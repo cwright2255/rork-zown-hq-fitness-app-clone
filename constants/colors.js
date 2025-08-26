@@ -1,68 +1,68 @@
 const Colors = {
-  // Primary brand colors - using main color as default
-  primary: '#4A80F0',
-  primaryLight: '#6B9BF7',
-  primaryDark: '#2E5CE6',
+  // Primary brand colors - black and white theme
+  primary: '#000000',
+  primaryLight: '#333333',
+  primaryDark: '#000000',
   
   // Secondary colors
-  secondary: '#FF6B6B',
-  secondaryLight: '#FF8E8E',
-  secondaryDark: '#FF4757',
+  secondary: '#666666',
+  secondaryLight: '#888888',
+  secondaryDark: '#444444',
   
   // Background colors
   background: '#FFFFFF',
-  backgroundSecondary: '#F8F9FA',
-  backgroundTertiary: '#F1F3F4',
+  backgroundSecondary: '#F5F5F5',
+  backgroundTertiary: '#EEEEEE',
   
   // Text colors
   text: {
-    primary: '#1A1A1A',
-    secondary: '#6B7280',
-    tertiary: '#9CA3AF',
+    primary: '#000000',
+    secondary: '#666666',
+    tertiary: '#888888',
     inverse: '#FFFFFF',
   },
   
   // Card and surface colors
   card: '#FFFFFF',
-  surface: '#F8F9FA',
+  surface: '#F5F5F5',
   
   // Border colors
-  border: '#E5E7EB',
+  border: '#DDDDDD',
   
   // Status colors
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
+  success: '#000000',
+  warning: '#666666',
+  error: '#333333',
+  info: '#000000',
   
   // Inactive/disabled
-  inactive: '#D1D5DB',
+  inactive: '#CCCCCC',
   
   // Running-specific colors
   running: {
-    primary: '#4A80F0',
-    secondary: '#10B981',
-    distance: '#8B5CF6',
-    pace: '#F59E0B',
-    calories: '#EF4444',
+    primary: '#000000',
+    secondary: '#333333',
+    distance: '#666666',
+    pace: '#444444',
+    calories: '#222222',
   },
   
   // Subscription tier colors
   subscription: {
     free: {
-      primary: '#6B7280',
-      background: '#F3F4F6',
-      text: '#374151',
+      primary: '#666666',
+      background: '#F0F0F0',
+      text: '#333333',
     },
     standard: {
-      primary: '#4A80F0',
-      background: '#EBF4FF',
-      text: '#1E40AF',
+      primary: '#000000',
+      background: '#F5F5F5',
+      text: '#000000',
     },
     elite: {
-      primary: '#F59E0B',
-      background: '#FEF3C7',
-      text: '#92400E',
+      primary: '#333333',
+      background: '#EEEEEE',
+      text: '#000000',
     },
   },
   
