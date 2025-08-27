@@ -69,9 +69,9 @@ export async function processAdminLink(url: string): Promise<AdminCommandResult>
     if (cmd === 'logout') {
       await useUserStore.getState().logout();
       try {
-        router.replace('/start');
+        router.replace('/');
       } catch (e) {
-        console.warn('[RemoteAdmin] Router not ready to replace to /start', e);
+        console.warn('[RemoteAdmin] Router not ready to replace to /', e);
       }
       return { handled: true, message: 'User logged out' };
     }
@@ -83,7 +83,7 @@ export async function processAdminLink(url: string): Promise<AdminCommandResult>
           useUserStore.setState({ isOnboarded: true });
         } else {
           useUserStore.setState({ isOnboarded: false });
-          try { router.replace('/start'); } catch {}
+          try { router.replace('/'); } catch {}
         }
         await persistAdminConfig({ isOnboarded: v });
         return { handled: true, message: `isOnboarded set to ${v}` };
@@ -113,7 +113,7 @@ export async function processAdminLink(url: string): Promise<AdminCommandResult>
       const action = path.replace(/^\//, '').split('/')[1];
       if (action === 'logout') {
         await useUserStore.getState().logout();
-        try { router.replace('/start'); } catch {}
+        try { router.replace('/'); } catch {}
         return { handled: true, message: 'User logged out' };
       }
     }

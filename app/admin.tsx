@@ -32,7 +32,7 @@ export default function AdminPanel() {
       setBusy(true);
       await logout();
       const { router } = await import('expo-router');
-      router.replace('/start');
+      router.replace('/');
     } catch (e) {
       Alert.alert('Logout error', 'Failed to log out. Please try again.');
       console.error('[AdminPanel] Logout failed', e);

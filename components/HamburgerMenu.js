@@ -127,8 +127,8 @@ const HamburgerMenu = React.memo(({ isVisible, onClose }) => {
               
               console.log('[HamburgerMenu] Logout completed, navigating to start screen');
               
-              // Navigate directly to start screen to avoid any timing issues
-              router.replace('/start');
+              // Force a complete app reset by navigating to index first
+              router.replace('/');
               
             } catch (e) {
               console.error('[HamburgerMenu] Logout error:', e);
