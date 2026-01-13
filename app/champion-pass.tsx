@@ -9,10 +9,52 @@ import ProgressBar from '@/components/ProgressBar';
 import { useUserStore } from '@/store/userStore';
 import { useChampionPassStore } from '@/store/championPassStore';
 
+interface Reward {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  type: string;
+  isClaimed: boolean;
+}
+
+interface Tier {
+  id: number;
+  name: string;
+  description?: string;
+  level: number;
+  requiredExp: number;
+  rewards: Reward[];
+  isUnlocked: boolean;
+  isPremium: boolean;
+}
+
+interface User {
+  exp?: number;
+  [key: string]: unknown;
+}
+
+interface UserStore {
+  user: User | null;
+}
+
+interface ChampionPassStore {
+  tiers: Tier[];
+  currentTier: number;
+  isPremium: boolean;
+  initializeChampionPass: () => void;
+  updateCurrentTier: (xp: number) => void;
+  getAvailableRewards: () => Reward[];
+  getCurrentTierProgress: (xp: number) => number;
+  getNextTierXp: () => number;
+  upgradeToPremium: () => void;
+  claimReward: (tierId: number, rewardId: string) => void;
+}
+
 const { width } = Dimensions.get('window');
 
 export default function ChampionPassScreen() {
-  const { user } = useUserStore();
+  const { user } = useUserStore() as UserStore;
   const { 
     tiers, 
     currentTier, 
@@ -24,7 +66,7 @@ export default function ChampionPassScreen() {
     getNextTierXp,
     upgradeToPremium,
     claimReward
-  } = useChampionPassStore();
+  } = useChampionPassStore() as ChampionPassStore;
   
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -143,7 +185,7 @@ export default function ChampionPassScreen() {
         
         <Text style={styles.rewardsTitle}>Rewards</Text>
         
-        {tier.rewards.map(reward => (
+        {tier.rewards.map((reward: Reward) => (
           <View key={reward.id} style={styles.rewardItem}>
             <Image
               source={{ uri: reward.imageUrl }}
@@ -235,7 +277,7 @@ export default function ChampionPassScreen() {
         <View style={styles.tiersGrid}>
           {/* Tier numbers row */}
           <View style={styles.tierNumbersRow}>
-            {currentTiers.map((tier, index) => (
+            {currentTiers.map((tier: Tier, index: number) => (
               <View key={`number-${tier.id}`} style={styles.tierNumberCell}>
                 <Text style={styles.tierNumberText}>{tier.level}</Text>
               </View>
@@ -245,7 +287,7 @@ export default function ChampionPassScreen() {
           {/* Free rewards row */}
           <View style={styles.rewardsRow}>
             {currentTiers.map((tier, index) => {
-              const freeRewards = tier.rewards.filter(r => !r.isClaimed && !tier.isPremium);
+              const freeRewards = tier.rewards.filter((r: Reward) => !r.isClaimed && !tier.isPremium);
               const isUnlocked = tier.isUnlocked;
               const isActive = tier.level === currentTier + 1;
               
@@ -295,7 +337,7 @@ export default function ChampionPassScreen() {
           {/* Premium rewards row */}
           <View style={styles.rewardsRow}>
             {currentTiers.map((tier, index) => {
-              const premiumRewards = tier.rewards.filter(r => !r.isClaimed && tier.isPremium);
+              const premiumRewards = tier.rewards.filter((r: Reward) => !r.isClaimed && tier.isPremium);
               const isUnlocked = tier.isUnlocked && isPremium;
               
               return (
@@ -336,7 +378,7 @@ export default function ChampionPassScreen() {
           {/* Additional premium rewards rows */}
           <View style={styles.rewardsRow}>
             {currentTiers.map((tier, index) => {
-              const additionalRewards = tier.rewards.filter(r => !r.isClaimed && tier.isPremium).slice(1, 2);
+              const additionalRewards = tier.rewards.filter((r: Reward) => !r.isClaimed && tier.isPremium).slice(1, 2);
               const isUnlocked = tier.isUnlocked && isPremium;
               
               return (
@@ -490,7 +532,7 @@ export default function ChampionPassScreen() {
                   contentContainerStyle={styles.availableRewardsScroll}
                   onMomentumScrollEnd={handleRewardsScroll}
                 >
-                  {availableRewards.map(reward => (
+                  {availableRewards.map((reward: Reward) => (
                     <TouchableOpacity
                       key={reward.id}
                       style={styles.availableRewardItem}
@@ -522,7 +564,7 @@ export default function ChampionPassScreen() {
                 {/* Carousel Indicators */}
                 {availableRewards.length > 1 && (
                   <View style={styles.indicatorsContainer}>
-                    {availableRewards.map((_, index) => (
+                    {availableRewards.map((_: Reward, index: number) => (
                       <TouchableOpacity
                         key={index}
                         style={[

@@ -24,7 +24,23 @@ import {
 import Colors from '@/constants/colors';
 import BadgeItem from '@/components/BadgeItem';
 import { useBadgeStore } from '@/store/badgeStore';
-import { Badge } from '@/types';
+
+interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  category: string;
+  rarity: string;
+  isUnlocked: boolean;
+  unlockedAt?: string;
+}
+
+interface BadgeStore {
+  badges: Badge[];
+  getUnlockedBadges: () => Badge[];
+  initializeDefaultBadges: () => void;
+}
 
 const { width } = Dimensions.get('window');
 const BADGE_SIZE = (width - 60) / 3;
@@ -37,7 +53,7 @@ export default function BadgesScreen() {
     badges,
     getUnlockedBadges,
     initializeDefaultBadges,
-  } = useBadgeStore();
+  } = useBadgeStore() as BadgeStore;
 
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [filterType, setFilterType] = useState<FilterType>('all');
@@ -51,26 +67,26 @@ export default function BadgesScreen() {
   }, [badges, initializeDefaultBadges]);
 
   const filteredBadges = useMemo(() => {
-    let filtered = badges;
+    let filtered: Badge[] = badges;
 
     // Apply category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(badge => badge.category === categoryFilter);
+      filtered = filtered.filter((badge: Badge) => badge.category === categoryFilter);
     }
 
     // Apply type filter
     switch (filterType) {
       case 'unlocked':
-        filtered = filtered.filter(badge => badge.isUnlocked);
+        filtered = filtered.filter((badge: Badge) => badge.isUnlocked);
         break;
       case 'locked':
-        filtered = filtered.filter(badge => !badge.isUnlocked);
+        filtered = filtered.filter((badge: Badge) => !badge.isUnlocked);
         break;
       case 'common':
       case 'uncommon':
       case 'rare':
       case 'legendary':
-        filtered = filtered.filter(badge => badge.rarity === filterType);
+        filtered = filtered.filter((badge: Badge) => badge.rarity === filterType);
         break;
     }
 
@@ -324,7 +340,7 @@ export default function BadgesScreen() {
           </Text>
           
           <View style={styles.badgesGrid}>
-            {filteredBadges.map((badge) => (
+            {filteredBadges.map((badge: Badge) => (
               <View key={badge.id} style={styles.badgeWrapper}>
                 <BadgeItem
                   badge={badge}
