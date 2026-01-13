@@ -18,6 +18,11 @@ import { Eye, EyeOff, Mail, Lock, Apple } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
 import { authService, AuthProvider } from '@/services/authService';
 
+interface UserStoreState {
+  setUser: (user: any) => void;
+  completeOnboarding: () => void;
+}
+
 export default function LoginScreen() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -27,7 +32,7 @@ export default function LoginScreen() {
   const [showMFA, setShowMFA] = useState<boolean>(false);
   const [socialLoading, setSocialLoading] = useState<AuthProvider | null>(null);
 
-  const { setUser } = useUserStore();
+  const { setUser } = useUserStore() as UserStoreState;
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -45,7 +50,7 @@ export default function LoginScreen() {
         setUser(result.user);
         // For existing users logging in, assume they've completed onboarding
         // In a real app, this would be determined by user data from the server
-        useUserStore.getState().completeOnboarding();
+        (useUserStore.getState() as UserStoreState).completeOnboarding();
         router.replace('/hq');
       }
     } catch (error) {
@@ -64,7 +69,7 @@ export default function LoginScreen() {
       setUser(result.user);
       // For social login, assume existing users have completed onboarding
       // In a real app, this would be determined by user data from the server
-      useUserStore.getState().completeOnboarding();
+      (useUserStore.getState() as UserStoreState).completeOnboarding();
       router.replace('/hq');
     } catch (e) {
       console.error('[Social Login] Error', e);
@@ -85,7 +90,7 @@ export default function LoginScreen() {
       const result = await authService.verifyMFA(email, mfaCode);
       setUser(result.user);
       // For MFA users, assume they've completed onboarding
-      useUserStore.getState().completeOnboarding();
+      (useUserStore.getState() as UserStoreState).completeOnboarding();
       router.replace('/hq');
     } catch {
       Alert.alert('Verification Failed', 'Invalid verification code');

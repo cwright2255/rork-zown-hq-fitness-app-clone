@@ -18,6 +18,10 @@ import { Eye, EyeOff, Mail, Lock, User, Apple } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
 import { authService, AuthProvider } from '@/services/authService';
 
+interface UserStoreState {
+  setUser: (user: any) => void;
+}
+
 export default function RegisterScreen() {
   const [formData, setFormData] = useState<{ name: string; email: string; password: string; confirmPassword: string }>({
     name: '',
@@ -30,7 +34,7 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [socialLoading, setSocialLoading] = useState<AuthProvider | null>(null);
 
-  const { setUser } = useUserStore();
+  const { setUser } = useUserStore() as UserStoreState;
 
   const updateFormData = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -59,7 +63,7 @@ export default function RegisterScreen() {
       const result = await authService.register(name, email, password);
       setUser(result.user);
       router.replace('/onboarding');
-    } catch (error) {
+    } catch {
       Alert.alert('Registration Failed', 'Please try again');
     } finally {
       setIsLoading(false);
@@ -72,7 +76,7 @@ export default function RegisterScreen() {
       const result = await authService.loginWithProvider(provider);
       setUser(result.user);
       router.replace('/onboarding');
-    } catch (e) {
+    } catch {
       Alert.alert('Sign-up failed', 'Please try again.');
     } finally {
       setSocialLoading(null);
