@@ -70,7 +70,7 @@ export default function LoginScreen() {
       // For social login, assume existing users have completed onboarding
       // In a real app, this would be determined by user data from the server
       (useUserStore.getState() as UserStoreState).completeOnboarding();
-      router.replace('/hq');
+      router.replace('/hq' as any);
     } catch (e) {
       console.error('[Social Login] Error', e);
       Alert.alert('Sign-in failed', 'Please try again.');
@@ -91,7 +91,7 @@ export default function LoginScreen() {
       setUser(result.user);
       // For MFA users, assume they've completed onboarding
       (useUserStore.getState() as UserStoreState).completeOnboarding();
-      router.replace('/hq');
+      router.replace('/hq' as any);
     } catch {
       Alert.alert('Verification Failed', 'Invalid verification code');
     } finally {
