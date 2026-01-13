@@ -11,8 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { 
   TrendingUp, 
-  Calendar, 
-  Target, 
   Activity,
   Flame,
   Clock,
@@ -41,7 +39,7 @@ export default function AnalyticsScreen() {
     value, 
     change, 
     icon, 
-    color = Colors.primary.main 
+    color = Colors.primary 
   }: {
     title: string;
     value: string;
@@ -65,7 +63,7 @@ export default function AnalyticsScreen() {
     label, 
     value, 
     maxValue, 
-    color = Colors.primary.main 
+    color = Colors.primary 
   }: {
     label: string;
     value: number;
@@ -98,7 +96,7 @@ export default function AnalyticsScreen() {
       
       <View style={styles.header}>
         <Text style={styles.title}>Analytics</Text>
-        <BarChart3 size={24} color={Colors.primary.main} />
+        <BarChart3 size={24} color={Colors.primary} />
       </View>
 
       <View style={styles.timeRangeContainer}>
@@ -130,7 +128,7 @@ export default function AnalyticsScreen() {
             title="Workouts Completed"
             value={analytics.workoutsCompleted.toString()}
             change={`+${analytics.workoutGrowth}%`}
-            icon={<Activity size={20} color={Colors.primary.main} />}
+            icon={<Activity size={20} color={Colors.primary} />}
           />
           
           <StatCard
@@ -166,7 +164,7 @@ export default function AnalyticsScreen() {
               label="Weekly Workouts"
               value={analytics.weeklyWorkouts}
               maxValue={5}
-              color={Colors.primary.main}
+              color={Colors.primary}
             />
             <ProgressBar
               label="Daily Calories"
@@ -193,7 +191,7 @@ export default function AnalyticsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Activity Breakdown</Text>
           <View style={styles.activityGrid}>
-            {analytics.activityBreakdown.map((activity, index) => (
+            {analytics.activityBreakdown.map((activity: { name: string; percentage: number; color: string; time: number }, index: number) => (
               <View key={index} style={styles.activityItem}>
                 <View style={styles.activityHeader}>
                   <Text style={styles.activityName}>{activity.name}</Text>
@@ -220,7 +218,7 @@ export default function AnalyticsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Trends</Text>
           <View style={styles.trendsContainer}>
-            {analytics.weeklyTrends.map((day, index) => (
+            {analytics.weeklyTrends.map((day: { day: string; value: number }, index: number) => (
               <View key={index} style={styles.trendDay}>
                 <Text style={styles.trendDayLabel}>{day.day}</Text>
                 <View style={styles.trendBar}>
@@ -228,8 +226,8 @@ export default function AnalyticsScreen() {
                     style={[
                       styles.trendBarFill,
                       { 
-                        height: `${(day.value / Math.max(...analytics.weeklyTrends.map(d => d.value))) * 100}%`,
-                        backgroundColor: Colors.primary.main,
+                        height: `${(day.value / Math.max(...analytics.weeklyTrends.map((d: { value: number }) => d.value))) * 100}%`,
+                        backgroundColor: Colors.primary,
                       }
                     ]} 
                   />
@@ -244,7 +242,7 @@ export default function AnalyticsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Achievements</Text>
           <View style={styles.achievementsContainer}>
-            {analytics.recentAchievements.map((achievement, index) => (
+            {analytics.recentAchievements.map((achievement: { icon: string; title: string; date: string }, index: number) => (
               <View key={index} style={styles.achievementItem}>
                 <Text style={styles.achievementIcon}>{achievement.icon}</Text>
                 <View style={styles.achievementInfo}>
@@ -260,9 +258,9 @@ export default function AnalyticsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Insights</Text>
           <View style={styles.insightsContainer}>
-            {analytics.insights.map((insight, index) => (
+            {analytics.insights.map((insight: string, index: number) => (
               <View key={index} style={styles.insightItem}>
-                <TrendingUp size={16} color={Colors.primary.main} />
+                <TrendingUp size={16} color={Colors.primary} />
                 <Text style={styles.insightText}>{insight}</Text>
               </View>
             ))}
@@ -276,7 +274,7 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -304,7 +302,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeTimeRange: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   timeRangeText: {
     fontSize: 14,
@@ -325,7 +323,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   statCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     width: (width - 52) / 2,
@@ -367,7 +365,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   progressContainer: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     gap: 16,
@@ -391,7 +389,7 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -400,7 +398,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   activityGrid: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     gap: 16,
@@ -425,7 +423,7 @@ const styles = StyleSheet.create({
   },
   activityBarContainer: {
     height: 6,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -438,7 +436,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   trendsContainer: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
@@ -456,7 +454,7 @@ const styles = StyleSheet.create({
   trendBar: {
     width: 24,
     height: 60,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     borderRadius: 12,
     justifyContent: 'flex-end',
     overflow: 'hidden',
@@ -472,7 +470,7 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   achievementsContainer: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -499,7 +497,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   insightsContainer: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     gap: 12,
