@@ -51,7 +51,7 @@ export default function LoginScreen() {
         // For existing users logging in, assume they've completed onboarding
         // In a real app, this would be determined by user data from the server
         (useUserStore.getState() as UserStoreState).completeOnboarding();
-        router.replace('/hq');
+        router.replace('/hq' as any);
       }
     } catch (error) {
       console.error('[Login] Failed', error);

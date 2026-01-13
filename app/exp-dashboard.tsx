@@ -14,7 +14,7 @@ import { performanceMonitor } from '@/utils/performanceOptimizations';
 
 export default function ExpDashboardScreen() {
   const [activeTab, setActiveTab] = useState('overview');
-  const { user } = useUserStore();
+  const { user } = useUserStore() as { user: any };
   const { 
     expSystem, 
     getExpBreakdown, 
@@ -22,7 +22,7 @@ export default function ExpDashboardScreen() {
     getExpToNextLevel, 
     getLevel,
     initializeExpSystem
-  } = useExpStore();
+  } = useExpStore() as any;
   
   // Performance monitoring
   const renderMonitor = performanceMonitor.measureRender('ExpDashboardScreen');
@@ -217,7 +217,7 @@ export default function ExpDashboardScreen() {
                   .slice(0, 20) // Show first 20 levels
                   .map(([lvl, reqXp], index) => {
                     const prevReq = levelRequirements[parseInt(lvl) - 1] || 0;
-                    const increase = reqXp - prevReq;
+                    const increase = (reqXp as number) - prevReq;
                     const increasePercent = prevReq > 0 ? ((increase / prevReq) * 100).toFixed(0) : 'N/A';
                     
                     return (
@@ -242,7 +242,7 @@ export default function ExpDashboardScreen() {
                             parseInt(lvl) === level && styles.currentLevelText
                           ]}
                         >
-                          {reqXp.toLocaleString()}
+                          {(reqXp as number).toLocaleString()}
                         </Text>
                         <Text 
                           style={[
