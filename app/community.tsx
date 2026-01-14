@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     marginHorizontal: 20,
     marginBottom: 16,
     borderRadius: 12,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   postCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
   groupCard: {
     width: width * 0.8,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginRight: 16,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
   challengeCard: {
     width: width * 0.8,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginRight: 16,
