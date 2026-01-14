@@ -23,7 +23,11 @@ export default function CommunityScreen() {
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
   
-  const { posts, groups, challenges } = useCommunityStore();
+  const { posts, groups, challenges } = useCommunityStore() as {
+    posts: { id: string; user: { id: string; name: string; avatar: string }; content: string; image?: string; likes: number; comments: number; timeAgo: string; type: string }[];
+    groups: { id: string; name: string; members: number; image: string; description: string }[];
+    challenges: { id: string; title: string; participants: number; description: string; timeLeft: string; image: string; progress: number }[];
+  };
 
   // Handle group carousel scroll
   const handleGroupScroll = useCallback((event: any) => {
