@@ -88,7 +88,7 @@ export interface SpotifyClientCredentialsResponse {
 class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
-  private clientSecret = ''; // Client secret removed for security
+  private clientSecret = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
   private redirectUri = Platform.OS === 'web' ? `https://rork.app/spotify-callback/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}` : 'myapp://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
