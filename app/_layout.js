@@ -286,6 +286,7 @@ export default function RootLayout() {
           <Stack.Screen name="recipe/[id]" />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           <Stack.Screen name="admin" />
+          <Stack.Screen name="spotify-callback" />
           <Stack.Screen name="spotify-callback/[id]" />
         </Stack>
         

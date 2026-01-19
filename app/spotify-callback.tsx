@@ -1,25 +1,22 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSpotifyStore } from '@/store/spotifyStore';
+import { useRouter } from 'expo-router';
+import { spotifyService } from '@/services/spotifyService';
 import Colors from '@/constants/colors';
 
 export default function SpotifyCallback() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const { connectSpotifyImplicit } = useSpotifyStore();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
         console.log('Spotify callback: Starting callback handling...');
-        console.log('Spotify callback: Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A');
-        console.log('Spotify callback: URL hash:', typeof window !== 'undefined' ? window.location.hash : 'N/A');
-        console.log('Spotify callback: URL search:', typeof window !== 'undefined' ? window.location.search : 'N/A');
+        const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+        console.log('Spotify callback: Current URL:', currentUrl);
         
-        // Check for error in URL params first
         const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-        const error = urlParams.get('error') || params.error as string;
+        const error = urlParams.get('error');
+        const code = urlParams.get('code');
         
         if (error) {
           console.error('Spotify authentication error:', error);
@@ -29,49 +26,55 @@ export default function SpotifyCallback() {
           return;
         }
         
-        // Get the URL fragment (everything after #) for implicit grant flow
-        let urlFragment = typeof window !== 'undefined' ? window.location.hash : '';
-        
-        // If no fragment but we have search params, check if token is in search params
-        if (!urlFragment && typeof window !== 'undefined') {
-          const searchParams = new URLSearchParams(window.location.search);
-          const accessToken = searchParams.get('access_token');
-          if (accessToken) {
-            // Convert search params to fragment format
-            urlFragment = '#' + window.location.search.substring(1);
-            console.log('Spotify callback: Converted search params to fragment:', urlFragment);
-          }
-        }
-        
-        if (urlFragment) {
-          console.log('Spotify callback: Processing URL fragment:', urlFragment);
-          
-          // For direct navigation, handle the callback
-          console.log('Spotify callback: Processing callback...');
-          const success = await connectSpotifyImplicit(urlFragment);
+        if (code) {
+          console.log('Spotify callback: Authorization code received, exchanging for token...');
+          const success = await spotifyService.handleAuthorizationCodeCallback(currentUrl);
           
           if (success) {
-            console.log('Spotify callback: Authentication successful, redirecting to home');
-            router.replace('/profile/settings');
+            console.log('Spotify callback: Token exchange successful');
+            
+            if (typeof window !== 'undefined' && window.opener) {
+              window.opener.postMessage({
+                type: 'SPOTIFY_AUTH_CODE',
+                url: currentUrl,
+                code: code,
+                state: urlParams.get('state'),
+              }, '*');
+              window.close();
+              return;
+            }
           } else {
-            console.error('Spotify callback: Authentication failed');
-            router.replace('/profile/settings');
+            console.error('Spotify callback: Token exchange failed');
+          }
+          
+          router.replace('/profile/settings');
+          return;
+        }
+        
+        const urlFragment = typeof window !== 'undefined' ? window.location.hash : '';
+        if (urlFragment && urlFragment.includes('access_token')) {
+          console.log('Spotify callback: Processing implicit grant fragment');
+          const success = await spotifyService.handleImplicitGrantCallback(urlFragment);
+          
+          if (success) {
+            console.log('Spotify callback: Implicit grant authentication successful');
+          } else {
+            console.error('Spotify callback: Implicit grant authentication failed');
           }
         } else {
-          console.log('Spotify callback: No URL fragment or access token found, redirecting to home');
-          router.replace('/profile/settings');
+          console.log('Spotify callback: No code or token found, redirecting');
         }
+        
+        router.replace('/profile/settings');
       } catch (error) {
         console.error('Spotify callback: Error handling callback:', error);
         router.replace('/');
       }
     };
 
-    // Small delay to ensure the component is mounted
     const timer = setTimeout(handleCallback, 100);
-    
     return () => clearTimeout(timer);
-  }, [params, connectSpotifyImplicit, router]);
+  }, [router]);
 
   return (
     <View style={styles.container}>
