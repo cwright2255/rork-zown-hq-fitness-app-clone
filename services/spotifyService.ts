@@ -224,25 +224,33 @@ class SpotifyService {
     return await res.json();
   }
 
-  // Handle implicit grant flow callback (access token from URL fragment)
-  async handleImplicitGrantCallback(urlFragment: string): Promise<boolean> {
-    console.log('Handling Spotify callback with fragment:', urlFragment);
+  // Handle PKCE authorization code callback
+  async handleAuthorizationCodeCallback(url: string): Promise<boolean> {
+    console.log('Handling Spotify callback with URL:', url);
     
     try {
-      const params = new URLSearchParams(urlFragment.replace('#', ''));
-      const accessToken = params.get('access_token');
-      const tokenType = params.get('token_type');
-      const expiresIn = params.get('expires_in');
-      const receivedState = params.get('state');
-      const error = params.get('error');
+      // Parse URL to get query params (code is in query string, not fragment)
+      let code: string | null = null;
+      let receivedState: string | null = null;
+      let error: string | null = null;
+      
+      // Check if it's a full URL or just params
+      if (url.includes('?')) {
+        const urlObj = new URL(url);
+        code = urlObj.searchParams.get('code');
+        receivedState = urlObj.searchParams.get('state');
+        error = urlObj.searchParams.get('error');
+      } else if (url.includes('code=')) {
+        const params = new URLSearchParams(url.replace('?', ''));
+        code = params.get('code');
+        receivedState = params.get('state');
+        error = params.get('error');
+      }
 
       console.log('Parsed callback params:', {
-        accessToken: accessToken ? 'present' : 'missing',
-        tokenType,
-        expiresIn,
+        code: code ? 'present' : 'missing',
         receivedState,
         error,
-        expectedState: this.state
       });
 
       if (error) {
@@ -250,28 +258,106 @@ class SpotifyService {
         return false;
       }
 
-      if (this.state && this.state !== receivedState) {
+      // Get stored state and code verifier
+      const storedState = await AsyncStorage.getItem('spotify_auth_state');
+      const storedCodeVerifier = await AsyncStorage.getItem('spotify_code_verifier');
+
+      if (storedState && storedState !== receivedState) {
         console.error('State mismatch during Spotify authentication');
-        console.error('Expected:', this.state, 'Received:', receivedState);
+        console.error('Expected:', storedState, 'Received:', receivedState);
+        return false;
+      }
+
+      if (!code) {
+        console.error('No authorization code received from Spotify');
+        return false;
+      }
+
+      if (!storedCodeVerifier) {
+        console.error('No code verifier found - PKCE flow broken');
+        return false;
+      }
+
+      // Exchange code for token
+      console.log('Exchanging authorization code for token...');
+      const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: this.redirectUri,
+          client_id: this.clientId,
+          code_verifier: storedCodeVerifier,
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json().catch(() => ({}));
+        console.error('Token exchange failed:', errorData);
+        return false;
+      }
+
+      const tokenData = await tokenResponse.json();
+      console.log('Token exchange successful');
+
+      // Store the tokens
+      await this.storeToken(
+        tokenData.access_token,
+        tokenData.refresh_token,
+        tokenData.expires_in || 3600,
+        false
+      );
+
+      // Clean up stored PKCE data
+      await AsyncStorage.removeItem('spotify_code_verifier');
+      await AsyncStorage.removeItem('spotify_auth_state');
+      
+      this.state = null;
+      this.codeVerifier = null;
+      console.log('Spotify authentication successful');
+      return true;
+    } catch (error) {
+      console.error('Failed to handle Spotify callback:', error);
+      return false;
+    }
+  }
+
+  // Legacy method for backward compatibility with implicit grant
+  async handleImplicitGrantCallback(urlFragment: string): Promise<boolean> {
+    // Check if this is actually an authorization code callback
+    if (urlFragment.includes('code=') || urlFragment.includes('?code=')) {
+      return this.handleAuthorizationCodeCallback(urlFragment);
+    }
+    
+    console.log('Handling Spotify implicit grant callback:', urlFragment);
+    
+    try {
+      const params = new URLSearchParams(urlFragment.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const tokenType = params.get('token_type');
+      const expiresIn = params.get('expires_in');
+      const error = params.get('error');
+
+      if (error) {
+        console.error('Spotify authentication error:', error);
         return false;
       }
 
       if (!accessToken || tokenType !== 'Bearer') {
         console.error('Invalid token response from Spotify');
-        console.error('Access token:', accessToken, 'Token type:', tokenType);
         return false;
       }
 
-      console.log('Storing Spotify access token...');
-      // Store the access token (no refresh token in implicit flow)
       await this.storeToken(
         accessToken, 
-        undefined, // No refresh token in implicit flow
+        undefined,
         expiresIn ? parseInt(expiresIn) : 3600,
-        false // This is user authentication, not client credentials
+        false
       );
       
-      this.state = null;
       console.log('Spotify authentication successful');
       return true;
     } catch (error) {
@@ -624,26 +710,19 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
   }
 
   // Check if user has required scopes
-  async checkUserScopes(): Promise<string[]> {
-    try {
-      // This would typically be done by checking the token scopes
-      // For demo purposes, return the scopes we requested
-      return [
-        'user-read-private',
-        'user-read-email',
-        'user-top-read',
-        'playlist-read-private',
-        'playlist-read-collaborative',
-        'playlist-modify-private',
-        'playlist-modify-public',
-        'user-read-currently-playing',
-        'user-modify-playback-state',
-        'user-read-playback-state',
-      ];
-    } catch (error) {
-      console.error('Failed to check user scopes:', error);
-      return [];
-    }
+  checkUserScopes(): string[] {
+    return [
+      'user-read-private',
+      'user-read-email',
+      'user-top-read',
+      'playlist-read-private',
+      'playlist-read-collaborative',
+      'playlist-modify-private',
+      'playlist-modify-public',
+      'user-read-currently-playing',
+      'user-modify-playback-state',
+      'user-read-playback-state',
+    ];
   }
 
   // Get currently playing track (requires user authentication)
@@ -805,13 +884,11 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
     }
   }
 
-  // Get authorization URL for Implicit Grant Flow
-  getAuthorizationUrl(): string {
-    console.log('Creating Spotify authorization URL...');
+  // Get authorization URL for Authorization Code with PKCE Flow
+  async getAuthorizationUrl(): Promise<string> {
+    console.log('Creating Spotify authorization URL with PKCE...');
     console.log('Client ID:', this.clientId);
-    console.log('Client ID type:', typeof this.clientId);
     console.log('Redirect URI:', this.redirectUri);
-    console.log('Redirect URI type:', typeof this.redirectUri);
     
     if (!this.clientId || typeof this.clientId !== 'string') {
       throw new Error(`Spotify client ID is not configured properly: ${typeof this.clientId} - ${this.clientId}`);
@@ -836,28 +913,32 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
 
     // Generate random state for security
     this.state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // Generate PKCE code verifier and challenge
+    this.codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
+    
+    // Store code verifier for later token exchange
+    await AsyncStorage.setItem('spotify_code_verifier', this.codeVerifier);
+    await AsyncStorage.setItem('spotify_auth_state', this.state);
+    
     console.log('Generated state:', this.state);
+    console.log('Generated code verifier (stored)');
 
-    const paramsObj = {
-      response_type: 'token', // Use 'token' for implicit grant flow
+    const paramsObj: Record<string, string> = {
+      response_type: 'code',
       client_id: this.clientId,
       scope: scopes,
       redirect_uri: this.redirectUri,
       state: this.state,
-      show_dialog: 'true', // Force re-authorization to ensure fresh token
+      show_dialog: 'true',
+      code_challenge_method: 'S256',
+      code_challenge: codeChallenge,
     };
     
-    console.log('URL params object:', paramsObj);
     const params = new URLSearchParams(paramsObj);
-    console.log('URLSearchParams:', params.toString());
-
     const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
     console.log('Generated auth URL:', authUrl);
-    console.log('Generated auth URL type:', typeof authUrl);
-    
-    if (typeof authUrl !== 'string') {
-      throw new Error(`Generated URL is not a string: ${typeof authUrl} - ${authUrl}`);
-    }
     
     return authUrl;
   }
@@ -869,9 +950,9 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
       return false;
     }
 
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       try {
-        const authUrl = this.getAuthorizationUrl();
+        const authUrl = await this.getAuthorizationUrl();
         console.log('Opening popup with URL:', authUrl);
         
         // Open popup window
@@ -887,23 +968,36 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
           return;
         }
 
-        // Listen for messages from the popup
+        // Listen for messages from the popup (for PKCE callback)
         const messageListener = async (event: MessageEvent) => {
           console.log('Received message from popup:', event.data);
           
-          if (event.data.type === 'SPOTIFY_AUTH_SUCCESS') {
-            console.log('Authentication successful, processing token...');
-            
-            // Remove event listener
+          if (event.data.type === 'SPOTIFY_AUTH_CODE') {
+            console.log('Authorization code received, exchanging for token...');
             window.removeEventListener('message', messageListener);
             
-            // Create URL fragment from the token data
+            try {
+              const callbackUrl = event.data.url || `?code=${event.data.code}&state=${event.data.state}`;
+              const success = await this.handleAuthorizationCodeCallback(callbackUrl);
+              console.log('Token exchange result:', success);
+              resolve(success);
+            } catch (error) {
+              console.error('Error exchanging code:', error);
+              resolve(false);
+            }
+            return;
+          }
+          
+          // Legacy support for implicit grant
+          if (event.data.type === 'SPOTIFY_AUTH_SUCCESS') {
+            console.log('Authentication successful (implicit grant)...');
+            window.removeEventListener('message', messageListener);
+            
             const tokenData = event.data.data;
             const urlFragment = `#access_token=${tokenData.access_token}&token_type=${tokenData.token_type}&expires_in=${tokenData.expires_in}&state=${tokenData.state}`;
             
             try {
               const success = await this.handleImplicitGrantCallback(urlFragment);
-              console.log('Token processing result:', success);
               resolve(success);
             } catch (error) {
               console.error('Error processing token:', error);
@@ -915,15 +1009,31 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
 
         window.addEventListener('message', messageListener);
 
-        // Poll for popup closure
-        const checkClosed = setInterval(() => {
+        // Poll for popup closure and URL changes
+        const checkClosed = setInterval(async () => {
           if (popup.closed) {
             console.log('Popup was closed');
             clearInterval(checkClosed);
             window.removeEventListener('message', messageListener);
             resolve(false);
           }
-        }, 1000);
+          
+          // Try to read popup URL for code
+          try {
+            const popupUrl = popup.location.href;
+            if (popupUrl && popupUrl.includes('code=')) {
+              console.log('Detected authorization code in popup URL');
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              popup.close();
+              
+              const success = await this.handleAuthorizationCodeCallback(popupUrl);
+              resolve(success);
+            }
+          } catch {
+            // Cross-origin - can't read URL, that's expected
+          }
+        }, 500);
 
         // Timeout after 5 minutes
         setTimeout(() => {
