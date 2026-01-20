@@ -88,7 +88,6 @@ export interface SpotifyClientCredentialsResponse {
 class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
-  private clientSecret = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
   private redirectUri = Platform.OS === 'web' ? 'https://rork.app/spotify-callback/n6dgejrmm3wincmkq5smp' : 'myapp://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
@@ -101,9 +100,12 @@ class SpotifyService {
     console.log('SpotifyService: Initializing...');
     console.log('SpotifyService: Client ID:', this.clientId);
     console.log('SpotifyService: Redirect URI:', this.redirectUri);
+    console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     this.loadStoredToken();
-    // Don't automatically initialize client credentials to avoid errors
-    // this.initializeClientCredentials();
+  }
+
+  private getClientSecret(): string {
+    return process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
   }
 
   private async loadStoredToken() {
@@ -403,7 +405,7 @@ class SpotifyService {
 
   // Get setup instructions for Spotify integration
   getSetupInstructions(): string {
-    const hasClientSecret = !!this.clientSecret;
+    const hasClientSecret = !!this.getClientSecret();
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081';
     
     return `
@@ -455,17 +457,18 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
 
   // Initialize Client Credentials Flow for public data access
   private async initializeClientCredentials(): Promise<boolean> {
+    const clientSecret = this.getClientSecret();
     console.log('SpotifyService: Initializing client credentials...');
-    console.log('SpotifyService: Client secret configured:', this.clientSecret !== 'your_client_secret_here');
+    console.log('SpotifyService: Client secret configured:', !!clientSecret && clientSecret !== 'your_client_secret_here');
     
     // Check if client secret is configured and different from client ID
-    if (!this.clientSecret || this.clientSecret === '' || this.clientSecret === this.clientId) {
+    if (!clientSecret || clientSecret === '' || clientSecret === this.clientId) {
       console.log('Spotify client secret not configured. Using user authentication flow only.');
       return false;
     }
     
     try {
-      const credentials = btoa(`${this.clientId}:${this.clientSecret}`);
+      const credentials = btoa(`${this.clientId}:${clientSecret}`);
       console.log('SpotifyService: Making client credentials request...');
       
       const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -1092,10 +1095,11 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
   
   // Get service status for debugging
   getServiceStatus() {
+    const clientSecret = this.getClientSecret();
     return {
       clientId: this.clientId,
       redirectUri: this.redirectUri,
-      hasClientSecret: !!this.clientSecret,
+      hasClientSecret: !!clientSecret && clientSecret.length > 0,
       hasToken: !!this.token,
       isClientCredentials: this.isClientCredentialsFlow,
       tokenExpiresAt: this.tokenExpiresAt,
