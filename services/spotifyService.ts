@@ -88,7 +88,7 @@ export interface SpotifyClientCredentialsResponse {
 class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
-  private redirectUri: string;
+  private redirectUri = Platform.OS === 'web' ? 'https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback' : 'myapp://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiresAt: number | null = null;
@@ -97,35 +97,11 @@ class SpotifyService {
   private isClientCredentialsFlow = false;
 
   constructor() {
-    this.redirectUri = this.getRedirectUri();
     console.log('SpotifyService: Initializing...');
     console.log('SpotifyService: Client ID:', this.clientId);
     console.log('SpotifyService: Redirect URI:', this.redirectUri);
     console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     this.loadStoredToken();
-  }
-
-  private getRedirectUri(): string {
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined') {
-        const origin = window.location.origin;
-        const pathname = window.location.pathname;
-        
-        // Handle Rork app structure: https://rork.app/p/[projectId]/...
-        if (origin.includes('rork.app') && pathname.startsWith('/p/')) {
-           const parts = pathname.split('/');
-           // parts[0] is empty, parts[1] is 'p', parts[2] is projectId
-           if (parts.length >= 3) {
-             return `${origin}/p/${parts[2]}/spotify-callback.html`;
-           }
-        }
-        
-        // Fallback for local development or other structures
-        return `${origin}/spotify-callback.html`;
-      }
-      return 'https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback.html';
-    }
-    return 'myapp://spotify-callback';
   }
 
   private getClientSecret(): string {
@@ -439,7 +415,7 @@ Spotify Integration Setup:
 2. Create or select your app
 3. Click "Edit Settings"
 4. Add these EXACT redirect URIs:
-   - ${this.redirectUri}
+   - https://rork.com/spotify-callback.html
    - myapp://spotify-callback
 
 5. Save the settings

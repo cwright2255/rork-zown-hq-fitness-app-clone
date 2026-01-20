@@ -60,6 +60,8 @@
             try {
                 console.log('Spotify callback: Starting...');
                 console.log('Current URL:', window.location.href);
+                console.log('URL hash:', window.location.hash);
+                console.log('URL search:', window.location.search);
 
                 // Check for error first
                 const urlParams = new URLSearchParams(window.location.search);
@@ -73,47 +75,12 @@
                     setTimeout(() => {
                         if (window.opener) {
                             window.close();
-                        } else {
-                            window.location.href = './profile/settings';
                         }
                     }, 3000);
                     return;
                 }
 
-                // Check for Authorization Code (PKCE flow)
-                const code = urlParams.get('code');
-                const state = urlParams.get('state');
-
-                if (code) {
-                    console.log('Authorization code received');
-                    updateStatus('Authorization successful! Finalizing...');
-
-                    if (window.opener) {
-                        // Send message to parent window
-                        window.opener.postMessage({
-                            type: 'SPOTIFY_AUTH_CODE',
-                            code: code,
-                            state: state,
-                            url: window.location.href
-                        }, '*');
-                        
-                        // Close popup
-                        setTimeout(() => {
-                            window.close();
-                        }, 1000);
-                        return;
-                    } else {
-                         // Fallback for non-popup flow (uncommon for web but possible)
-                         // We can't exchange token here easily as we don't have the service logic
-                         updateStatus('Please return to the app manually.');
-                         setTimeout(() => {
-                            window.location.href = './profile/settings';
-                         }, 2000);
-                         return;
-                    }
-                }
-
-                // Check for Implicit Grant flow (fragment)
+                // Get the URL fragment (everything after #) for implicit grant flow
                 let urlFragment = window.location.hash;
                 
                 // If no fragment but we have search params, check if token is in search params
@@ -123,6 +90,7 @@
                     if (accessToken) {
                         // Convert search params to fragment format
                         urlFragment = '#' + window.location.search.substring(1);
+                        console.log('Converted search params to fragment:', urlFragment);
                     }
                 }
 
@@ -161,7 +129,7 @@
                             // If not in popup, redirect to app
                             updateStatus('Redirecting to app...');
                             setTimeout(() => {
-                                window.location.href = './profile/settings';
+                                window.location.href = '/profile/settings';
                             }, 2000);
                         }
                     } else {
@@ -175,7 +143,7 @@
                         }, 3000);
                     }
                 } else {
-                    console.error('No authorization code or token found');
+                    console.error('No URL fragment found');
                     updateStatus('No authentication data received', true);
                     
                     setTimeout(() => {
