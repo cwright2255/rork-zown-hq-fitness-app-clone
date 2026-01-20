@@ -27,27 +27,22 @@ export default function SpotifyCallback() {
         }
         
         if (code) {
-          // If we are in a popup (web flow), pass the code back to the main window
-          // The main window will handle the token exchange to avoid double-consumption of the code
-          if (typeof window !== 'undefined' && window.opener) {
-             console.log('Spotify callback: Returning code to main window...');
-             window.opener.postMessage({
-                type: 'SPOTIFY_AUTH_CODE',
-                url: currentUrl,
-                code: code,
-                state: urlParams.get('state'),
-              }, '*');
-              
-              // Give it a moment to post before closing
-              setTimeout(() => window.close(), 500);
-              return;
-          }
-
           console.log('Spotify callback: Authorization code received, exchanging for token...');
           const success = await spotifyService.handleAuthorizationCodeCallback(currentUrl);
           
           if (success) {
             console.log('Spotify callback: Token exchange successful');
+            
+            if (typeof window !== 'undefined' && window.opener) {
+              window.opener.postMessage({
+                type: 'SPOTIFY_AUTH_CODE',
+                url: currentUrl,
+                code: code,
+                state: urlParams.get('state'),
+              }, '*');
+              window.close();
+              return;
+            }
           } else {
             console.error('Spotify callback: Token exchange failed');
           }
