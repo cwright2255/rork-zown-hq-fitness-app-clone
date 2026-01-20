@@ -88,7 +88,7 @@ export interface SpotifyClientCredentialsResponse {
 class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
-  private redirectUri = Platform.OS === 'web' ? 'https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback' : 'myapp://spotify-callback';
+  private redirectUri = Platform.OS === 'web' ? 'https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback' : 'zown://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiresAt: number | null = null;
