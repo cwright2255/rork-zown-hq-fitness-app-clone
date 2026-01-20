@@ -107,23 +107,15 @@ class SpotifyService {
 
   private getRedirectUri(): string {
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined') {
-        const origin = window.location.origin;
-        const pathname = window.location.pathname;
-        
-        // Handle Rork app structure: https://rork.app/p/[projectId]/...
-        if (origin.includes('rork.app') && pathname.startsWith('/p/')) {
-           const parts = pathname.split('/');
-           // parts[0] is empty, parts[1] is 'p', parts[2] is projectId
-           if (parts.length >= 3) {
-             return `${origin}/p/${parts[2]}/spotify-callback.html`;
-           }
-        }
-        
-        // Fallback for local development or other structures
-        return `${origin}/spotify-callback.html`;
-      }
-      return 'https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback.html';
+      // We must use a URL that is explicitly whitelisted in the Spotify Dashboard.
+      // The current environment (e.g. expo tunnel/client) is likely not whitelisted.
+      // We fallback to the rork.app production URL which is whitelisted.
+      
+      const projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
+      
+      // Use the format: https://rork.app/p/[projectId]/spotify-callback
+      // This matches one of the registered URIs: https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback
+      return `https://rork.app/p/${projectId}/spotify-callback`;
     }
     return 'myapp://spotify-callback';
   }
