@@ -177,14 +177,14 @@ export default function RootLayout() {
     if (!fontsLoaded) return;
 
     // Don't interfere with authentication flow - let index.tsx handle initial routing
-    if (pathname === '/' || pathname === '/index' || pathname === '/start' || pathname.startsWith('/auth/')) {
+    if (pathname === '/' || pathname === '/index' || pathname === '/start' || pathname.startsWith('/auth/') || pathname === '/spotify-callback') {
       return;
     }
 
     // Use requestAnimationFrame for better performance
     const navigationFrame = requestAnimationFrame(() => {
       // Only handle onboarding navigation for authenticated users who are already past auth flow
-      if (!isOnboarded && pathname !== '/start' && !pathname.startsWith('/auth/') && pathname !== '/') {
+      if (!isOnboarded && pathname !== '/start' && !pathname.startsWith('/auth/') && pathname !== '/' && pathname !== '/spotify-callback') {
         // Only navigate if we're not already on the target route
         if (pathname !== '/onboarding') {
           import('expo-router').then(({ router }) => {

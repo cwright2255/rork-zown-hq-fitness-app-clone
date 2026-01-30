@@ -11,10 +11,16 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Send, Search, Plus, Phone, Video, MoreHorizontal } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
+
+interface UserType {
+  id: string;
+  name: string;
+  profileImage?: string;
+}
 
 interface Message {
   id: string;
@@ -43,7 +49,7 @@ interface Conversation {
 }
 
 export default function MessagingScreen() {
-  const { user } = useUserStore();
+  const { user } = useUserStore() as { user: UserType | null };
   const [activeTab, setActiveTab] = useState<'conversations' | 'chat'>('conversations');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -176,6 +182,7 @@ export default function MessagingScreen() {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversation]);
 
   const handleSendMessage = () => {
@@ -432,7 +439,7 @@ export default function MessagingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -497,7 +504,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: Colors.success,
     borderWidth: 2,
-    borderColor: Colors.background.primary,
+    borderColor: Colors.background,
   },
   conversationContent: {
     flex: 1,
@@ -605,7 +612,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   messagesContent: {
     padding: 16,
@@ -681,7 +688,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     fontSize: 16,
     color: Colors.text.primary,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   sendButton: {
     width: 44,

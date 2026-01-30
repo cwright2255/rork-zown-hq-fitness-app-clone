@@ -11,13 +11,48 @@ import MetricCard from '@/components/MetricCard';
 import HydrationTracker from '@/components/HydrationTracker';
 import { wearableService, type WearableData } from '@/services/wearableService';
 
+interface UserStoreState {
+  user: {
+    id: string;
+    name: string;
+    profileImage?: string;
+    level?: number;
+    exp?: number;
+    xp?: number;
+    streak?: number;
+    streakData?: { currentStreak: number };
+  } | null;
+  initializeDefaultUser: () => void;
+}
+
+interface ExpStoreState {
+  expSystem: { totalExp: number } | null;
+  getExpToNextLevel: () => number;
+  getLevel: () => number;
+}
+
+interface Workout {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  difficulty?: string;
+  duration?: number;
+  imageUrl?: string;
+}
+
+interface WorkoutStoreState {
+  workouts: Workout[];
+  initializeDefaultWorkouts: () => void;
+}
+
 const { width } = Dimensions.get('window');
 
 export default function HQScreen() {
   const router = useRouter();
-  const { user, initializeDefaultUser } = useUserStore();
-  const { expSystem, getExpToNextLevel, getLevel } = useExpStore();
-  const { workouts, initializeDefaultWorkouts } = useWorkoutStore();
+  const { user, initializeDefaultUser } = useUserStore() as UserStoreState;
+  const { expSystem, getExpToNextLevel, getLevel } = useExpStore() as ExpStoreState;
+  const { workouts, initializeDefaultWorkouts } = useWorkoutStore() as WorkoutStoreState;
   const [currentWorkoutIndex, setCurrentWorkoutIndex] = useState<number>(0);
   const [wearableMetrics, setWearableMetrics] = useState<WearableData | null>(null);
   const [wearableLoading, setWearableLoading] = useState<boolean>(false);
@@ -337,7 +372,7 @@ export default function HQScreen() {
                   onMomentumScrollEnd={handleWorkoutScroll}
                   testID="workout-carousel"
                 >
-                  {recommendedWorkouts.map((workout) => (
+                  {recommendedWorkouts.map((workout: Workout) => (
                     <TouchableOpacity
                       key={workout?.id || Math.random().toString()}
                       style={styles.workoutCard}
@@ -372,7 +407,7 @@ export default function HQScreen() {
                 </ScrollView>
 
                 <View style={styles.indicatorsContainer}>
-                  {recommendedWorkouts && recommendedWorkouts.map((_, index) => (
+                  {recommendedWorkouts && recommendedWorkouts.map((_: Workout, index: number) => (
                     <TouchableOpacity
                       key={index}
                       style={[

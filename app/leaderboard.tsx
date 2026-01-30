@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { Stack } from 'expo-router';
-import { Trophy, Filter, Calendar, Users, Globe, MapPin, Zap, Target } from 'lucide-react-native';
+import { Trophy, Users, Globe, MapPin, Zap, Target } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -290,10 +290,11 @@ export default function LeaderboardScreen() {
             </Text>
             {item.isFriend && (
               <Badge 
-                label="Friend" 
                 variant="success" 
                 style={styles.friendBadge} 
-              />
+              >
+                Friend
+              </Badge>
             )}
           </View>
           <Text style={styles.locationText}>{item.location}</Text>
@@ -445,15 +446,15 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   filtersContainer: {
     padding: 16,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     borderRadius: 28,
     padding: 4,
   },
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeScopeFilterButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   scopeFilterText: {
     fontSize: 14,
@@ -501,11 +502,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     marginRight: 8,
   },
   activeFilterButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   filterButtonText: {
     fontSize: 14,
@@ -526,11 +527,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     gap: 6,
   },
   activeCategoryFilterButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   categoryFilterButtonText: {
     fontSize: 14,
