@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -43,7 +43,11 @@ export default function SettingsScreen() {
   
   const [isConnecting, setIsConnecting] = useState(false);
   
-  const discovery = AuthSession.useAutoDiscovery('https://accounts.spotify.com');
+  // Spotify doesn't have OIDC discovery, so we define endpoints manually
+const discovery = useMemo(() => ({
+  authorizationEndpoint: 'https://accounts.spotify.com/authorize',
+  tokenEndpoint: 'https://accounts.spotify.com/api/token',
+}), []);
   
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: 'zown',
