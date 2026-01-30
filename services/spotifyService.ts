@@ -90,7 +90,7 @@ class SpotifyService {
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
   private redirectUri = Platform.OS === 'web' 
-    ? `https://rork.app/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/spotify-callback` 
+    ? `https://rork.app/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/spotify-callback.html` 
     : 'zown://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
@@ -105,6 +105,58 @@ class SpotifyService {
     console.log('SpotifyService: Redirect URI:', this.redirectUri);
     console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     this.loadStoredToken();
+    this.checkHtmlCallbackAuth();
+  }
+
+  private async checkHtmlCallbackAuth() {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    
+    try {
+      const authCode = localStorage.getItem('spotify_auth_code');
+      const authTimestamp = localStorage.getItem('spotify_auth_timestamp');
+      
+      if (authCode && authTimestamp) {
+        const timestamp = parseInt(authTimestamp);
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        
+        if (timestamp > fiveMinutesAgo) {
+          console.log('SpotifyService: Found auth code from HTML callback, processing...');
+          const state = localStorage.getItem('spotify_auth_state') || '';
+          const url = `?code=${authCode}&state=${state}`;
+          
+          localStorage.removeItem('spotify_auth_code');
+          localStorage.removeItem('spotify_auth_state');
+          localStorage.removeItem('spotify_auth_timestamp');
+          
+          await this.handleAuthorizationCodeCallback(url);
+        } else {
+          localStorage.removeItem('spotify_auth_code');
+          localStorage.removeItem('spotify_auth_state');
+          localStorage.removeItem('spotify_auth_timestamp');
+        }
+      }
+      
+      const accessToken = localStorage.getItem('spotify_access_token');
+      const tokenTimestamp = localStorage.getItem('spotify_auth_timestamp');
+      
+      if (accessToken && tokenTimestamp && !this.token) {
+        const timestamp = parseInt(tokenTimestamp);
+        const oneHourAgo = Date.now() - (60 * 60 * 1000);
+        
+        if (timestamp > oneHourAgo) {
+          console.log('SpotifyService: Found access token from HTML callback');
+          const expiresIn = localStorage.getItem('spotify_expires_in') || '3600';
+          await this.storeToken(accessToken, undefined, parseInt(expiresIn), false);
+          
+          localStorage.removeItem('spotify_access_token');
+          localStorage.removeItem('spotify_token_type');
+          localStorage.removeItem('spotify_expires_in');
+          localStorage.removeItem('spotify_auth_timestamp');
+        }
+      }
+    } catch (error) {
+      console.error('SpotifyService: Error checking HTML callback auth:', error);
+    }
   }
 
   private getClientSecret(): string {

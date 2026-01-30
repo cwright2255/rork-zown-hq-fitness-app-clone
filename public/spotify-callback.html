@@ -1,171 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Authentication</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f5f5f5;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #1DB954;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .success {
-            color: #1DB954;
-        }
-        .error {
-            color: #e22134;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Authentication</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0a0a0a;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #1DB954;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 500;
+    }
+    p {
+      margin: 0;
+      color: #888;
+      font-size: 14px;
+    }
+    .error {
+      color: #ff6b6b;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="spinner"></div>
-        <h2>Connecting to Spotify...</h2>
-        <p id="status">Please wait while we complete the authentication process.</p>
-    </div>
+  <div class="container">
+    <div class="spinner"></div>
+    <h2 id="status">Processing Spotify authentication...</h2>
+    <p id="substatus">Please wait...</p>
+  </div>
 
-    <script>
-        function updateStatus(message, isError = false) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = isError ? 'error' : 'success';
-        }
+  <script>
+    (function() {
+      const statusEl = document.getElementById('status');
+      const substatusEl = document.getElementById('substatus');
 
-        function handleCallback() {
-            try {
-                console.log('Spotify callback: Starting...');
-                console.log('Current URL:', window.location.href);
-                console.log('URL hash:', window.location.hash);
-                console.log('URL search:', window.location.search);
+      function showError(message) {
+        statusEl.textContent = message;
+        statusEl.classList.add('error');
+        substatusEl.textContent = 'Redirecting back to app...';
+      }
 
-                // Check for error first
-                const urlParams = new URLSearchParams(window.location.search);
-                const error = urlParams.get('error');
+      function handleCallback() {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const hash = window.location.hash;
+          
+          const code = urlParams.get('code');
+          const error = urlParams.get('error');
+          const state = urlParams.get('state');
+          
+          console.log('Spotify callback HTML: code=' + !!code + ', error=' + error + ', state=' + state);
+
+          if (error) {
+            showError('Authentication error: ' + error);
+            setTimeout(function() {
+              window.location.href = '/profile/settings';
+            }, 2000);
+            return;
+          }
+
+          if (code) {
+            statusEl.textContent = 'Authentication successful!';
+            substatusEl.textContent = 'Completing connection...';
+            
+            // Store the code in localStorage for the app to pick up
+            localStorage.setItem('spotify_auth_code', code);
+            localStorage.setItem('spotify_auth_state', state || '');
+            localStorage.setItem('spotify_auth_timestamp', Date.now().toString());
+            
+            // If opened as popup, communicate with opener
+            if (window.opener && !window.opener.closed) {
+              try {
+                window.opener.postMessage({
+                  type: 'SPOTIFY_AUTH_CODE',
+                  code: code,
+                  state: state,
+                  url: window.location.href
+                }, '*');
                 
-                if (error) {
-                    console.error('Spotify authentication error:', error);
-                    updateStatus('Authentication failed: ' + error, true);
-                    
-                    // Close popup after delay
-                    setTimeout(() => {
-                        if (window.opener) {
-                            window.close();
-                        }
-                    }, 3000);
-                    return;
-                }
-
-                // Get the URL fragment (everything after #) for implicit grant flow
-                let urlFragment = window.location.hash;
-                
-                // If no fragment but we have search params, check if token is in search params
-                if (!urlFragment && window.location.search) {
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const accessToken = searchParams.get('access_token');
-                    if (accessToken) {
-                        // Convert search params to fragment format
-                        urlFragment = '#' + window.location.search.substring(1);
-                        console.log('Converted search params to fragment:', urlFragment);
-                    }
-                }
-
-                if (urlFragment) {
-                    console.log('Processing URL fragment:', urlFragment);
-                    
-                    // Parse the fragment
-                    const params = new URLSearchParams(urlFragment.replace('#', ''));
-                    const accessToken = params.get('access_token');
-                    const tokenType = params.get('token_type');
-                    const expiresIn = params.get('expires_in');
-                    const state = params.get('state');
-
-                    if (accessToken && tokenType === 'Bearer') {
-                        console.log('Authentication successful');
-                        updateStatus('Authentication successful! Closing window...');
-                        
-                        // Store the token data for the parent window to access
-                        if (window.opener) {
-                            // Send message to parent window
-                            window.opener.postMessage({
-                                type: 'SPOTIFY_AUTH_SUCCESS',
-                                data: {
-                                    access_token: accessToken,
-                                    token_type: tokenType,
-                                    expires_in: expiresIn,
-                                    state: state
-                                }
-                            }, '*');
-                            
-                            // Close popup
-                            setTimeout(() => {
-                                window.close();
-                            }, 1000);
-                        } else {
-                            // If not in popup, redirect to app
-                            updateStatus('Redirecting to app...');
-                            setTimeout(() => {
-                                window.location.href = '/profile/settings';
-                            }, 2000);
-                        }
-                    } else {
-                        console.error('Invalid token response');
-                        updateStatus('Invalid authentication response', true);
-                        
-                        setTimeout(() => {
-                            if (window.opener) {
-                                window.close();
-                            }
-                        }, 3000);
-                    }
-                } else {
-                    console.error('No URL fragment found');
-                    updateStatus('No authentication data received', true);
-                    
-                    setTimeout(() => {
-                        if (window.opener) {
-                            window.close();
-                        }
-                    }, 3000);
-                }
-            } catch (error) {
-                console.error('Error handling callback:', error);
-                updateStatus('Error processing authentication: ' + error.message, true);
-                
-                setTimeout(() => {
-                    if (window.opener) {
-                        window.close();
-                    }
-                }, 3000);
+                setTimeout(function() {
+                  window.close();
+                }, 500);
+                return;
+              } catch (e) {
+                console.log('Could not communicate with opener:', e);
+              }
             }
-        }
+            
+            // Redirect to profile settings
+            setTimeout(function() {
+              window.location.href = '/profile/settings?spotify_connected=true';
+            }, 1000);
+            return;
+          }
 
-        // Start handling the callback when page loads
-        window.addEventListener('load', handleCallback);
-    </script>
+          // Check for implicit grant (hash fragment)
+          if (hash && hash.includes('access_token')) {
+            statusEl.textContent = 'Authentication successful!';
+            substatusEl.textContent = 'Completing connection...';
+            
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const tokenType = hashParams.get('token_type');
+            const expiresIn = hashParams.get('expires_in');
+            
+            if (accessToken) {
+              localStorage.setItem('spotify_access_token', accessToken);
+              localStorage.setItem('spotify_token_type', tokenType || 'Bearer');
+              localStorage.setItem('spotify_expires_in', expiresIn || '3600');
+              localStorage.setItem('spotify_auth_timestamp', Date.now().toString());
+            }
+            
+            if (window.opener && !window.opener.closed) {
+              try {
+                window.opener.postMessage({
+                  type: 'SPOTIFY_AUTH_TOKEN',
+                  accessToken: accessToken,
+                  tokenType: tokenType,
+                  expiresIn: expiresIn
+                }, '*');
+                
+                setTimeout(function() {
+                  window.close();
+                }, 500);
+                return;
+              } catch (e) {
+                console.log('Could not communicate with opener:', e);
+              }
+            }
+            
+            setTimeout(function() {
+              window.location.href = '/profile/settings?spotify_connected=true';
+            }, 1000);
+            return;
+          }
+
+          // No auth data found
+          showError('No authentication data found');
+          setTimeout(function() {
+            window.location.href = '/profile/settings';
+          }, 2000);
+          
+        } catch (e) {
+          console.error('Error handling callback:', e);
+          showError('Error processing authentication');
+          setTimeout(function() {
+            window.location.href = '/profile/settings';
+          }, 2000);
+        }
+      }
+
+      // Run after a small delay to ensure page is ready
+      setTimeout(handleCallback, 100);
+    })();
+  </script>
 </body>
 </html>
