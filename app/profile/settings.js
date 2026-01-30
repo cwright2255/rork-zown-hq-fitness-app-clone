@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, Linking, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { Stack, router } from 'expo-router';
 import { Bell, Lock, HelpCircle, Info, LogOut, Music, ExternalLink } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -9,8 +11,23 @@ import Card from '@/components/Card';
 import { useUserStore } from '@/store/userStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { spotifyService } from '@/services/spotifyService';
 import { authService } from '@/services/authService';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const SPOTIFY_CLIENT_ID = 'cb884c0e045d4683bd3f0b38cb0e151e';
+const SPOTIFY_SCOPES = [
+  'user-read-private',
+  'user-read-email',
+  'user-top-read',
+  'playlist-read-private',
+  'playlist-read-collaborative',
+  'playlist-modify-private',
+  'playlist-modify-public',
+  'user-read-currently-playing',
+  'user-modify-playback-state',
+  'user-read-playback-state',
+];
 
 export default function SettingsScreen() {
   const { user, updateUserPreferences, logout } = useUserStore();
@@ -20,8 +37,75 @@ export default function SettingsScreen() {
     user: spotifyUser, 
     disconnectSpotify,
     musicPreferences,
-    updateMusicPreferences
+    updateMusicPreferences,
+    connectSpotifyImplicit
   } = useSpotifyStore();
+  
+  const [isConnecting, setIsConnecting] = useState(false);
+  
+  const discovery = AuthSession.useAutoDiscovery('https://accounts.spotify.com');
+  
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: 'zown',
+    path: 'spotify-callback',
+  });
+  
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: SPOTIFY_CLIENT_ID,
+      scopes: SPOTIFY_SCOPES,
+      usePKCE: true,
+      redirectUri,
+    },
+    discovery
+  );
+  
+  const handleAuthResponse = useCallback(async () => {
+    if (response?.type === 'success') {
+      setIsConnecting(true);
+      try {
+        const { code } = response.params;
+        console.log('Auth code received:', code ? 'yes' : 'no');
+        
+        if (code && discovery) {
+          const tokenResult = await AuthSession.exchangeCodeAsync(
+            {
+              clientId: SPOTIFY_CLIENT_ID,
+              code,
+              redirectUri,
+              extraParams: {
+                code_verifier: request?.codeVerifier || '',
+              },
+            },
+            discovery
+          );
+          
+          if (tokenResult.accessToken) {
+            const fragment = `#access_token=${tokenResult.accessToken}&token_type=Bearer&expires_in=${tokenResult.expiresIn || 3600}`;
+            const success = await connectSpotifyImplicit(fragment);
+            
+            if (success) {
+              Alert.alert('Success', 'Spotify connected successfully!');
+            } else {
+              Alert.alert('Error', 'Failed to connect Spotify. Please try again.');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Token exchange error:', error);
+        Alert.alert('Error', 'Failed to connect Spotify. Please try again.');
+      } finally {
+        setIsConnecting(false);
+      }
+    } else if (response?.type === 'error') {
+      console.error('Auth error:', response.error);
+      Alert.alert('Error', 'Spotify authorization failed.');
+    }
+  }, [response, discovery, redirectUri, request?.codeVerifier, connectSpotifyImplicit]);
+  
+  useEffect(() => {
+    handleAuthResponse();
+  }, [handleAuthResponse]);
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     user?.preferences.notifications?.workouts || false
@@ -72,68 +156,20 @@ export default function SettingsScreen() {
   
   const handleConnectSpotify = async () => {
     try {
-      console.log('Initiating Spotify connection...');
+      console.log('Initiating Spotify connection with expo-auth-session...');
+      console.log('Redirect URI:', redirectUri);
       
-      // Check if we're on web platform
-      if (Platform.OS === 'web') {
-        console.log('Using popup authentication for web');
-        
-        Alert.alert(
-          'Connect Spotify',
-          'A popup window will open for Spotify authorization. Please allow popups for this site and complete the authorization process.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Continue', 
-              onPress: async () => {
-                try {
-                  const success = await spotifyService.authenticateWithPopup();
-                  if (success) {
-                    Alert.alert('Success', 'Spotify connected successfully!');
-                  } else {
-                    Alert.alert('Error', 'Failed to connect to Spotify. Please try again.');
-                  }
-                } catch (error) {
-                  console.error('Popup authentication failed:', error);
-                  Alert.alert('Error', 'Failed to connect to Spotify. Please try again.');
-                }
-              }
-            }
-          ]
-        );
-      } else {
-        // Mobile platform - use regular redirect flow
-        console.log('Using redirect authentication for mobile');
-        const authUrl = spotifyService.getAuthorizationUrl();
-        console.log('Auth URL received:', authUrl);
-        
-        if (!authUrl || typeof authUrl !== 'string') {
-          throw new Error(`Invalid authorization URL: ${typeof authUrl} - ${JSON.stringify(authUrl)}`);
-        }
-        
-        Alert.alert(
-          'Connect Spotify',
-          'You will be redirected to Spotify to authorize this app. After authorization, you will be returned to the app.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Continue', 
-              onPress: async () => {
-                try {
-                  console.log('Opening URL:', authUrl);
-                  await Linking.openURL(authUrl);
-                } catch (error) {
-                  console.error('Failed to open Spotify authorization URL:', error);
-                  Alert.alert('Error', 'Failed to connect to Spotify. Please try again.');
-                }
-              }
-            }
-          ]
-        );
+      if (!request) {
+        Alert.alert('Error', 'Authentication not ready. Please try again.');
+        return;
       }
+      
+      setIsConnecting(true);
+      await promptAsync();
     } catch (error) {
       console.error('Failed to initiate Spotify connection:', error);
       Alert.alert('Error', `Failed to connect to Spotify: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsConnecting(false);
     }
   };
   
@@ -311,10 +347,11 @@ export default function SettingsScreen() {
                 </Text>
                 <View style={styles.spotifyButtons}>
                   <Button
-                    title="Connect Spotify"
+                    title={isConnecting ? "Connecting..." : "Connect Spotify"}
                     onPress={handleConnectSpotify}
                     style={styles.connectSpotifyButton}
                     leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
+                    disabled={!request || isConnecting}
                   />
                   <Button
                     title="Test Integration"
