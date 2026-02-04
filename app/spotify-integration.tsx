@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Music, ExternalLink, User, PlayCircle, Settings } from 'lucide-react-native';
+import { Music, ExternalLink, PlayCircle, Settings } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -22,7 +21,6 @@ export default function SpotifyIntegration() {
   const { 
     isConnected, 
     user, 
-    connectSpotifyImplicit,
     disconnectSpotify 
   } = useSpotifyStore();
   
@@ -67,48 +65,30 @@ export default function SpotifyIntegration() {
   
   const handleConnect = async () => {
     try {
-      if (Platform.OS === 'web') {
-        const success = await spotifyService.authenticateWithPopup();
-        if (!success) {
-          Alert.alert('Spotify', 'Authentication was canceled or failed.');
-        }
-        return;
+      setLoading(true);
+      // Use Client Credentials flow - no redirect URIs needed!
+      const success = await spotifyService.initializeClientCredentials();
+      if (success) {
+        setClientCredentialsReady(true);
+        Alert.alert('Success', 'Connected to Spotify! You can now browse playlists and get recommendations.');
+        loadPlaylists();
+      } else {
+        Alert.alert(
+          'Connection Failed', 
+          'Could not connect to Spotify. Please check that EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET is set correctly in your environment variables.\n\nYou can find your Client Secret in the Spotify Developer Dashboard.'
+        );
       }
-      const authUrl = spotifyService.getAuthorizationUrl();
-      Alert.alert(
-        'Connect Spotify',
-        'You will be redirected to Spotify to authorize this app.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Continue',
-            onPress: async () => {
-              await Linking.openURL(authUrl);
-            }
-          }
-        ]
-      );
     } catch (error) {
       Alert.alert('Error', `Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
   };
   
-  const handleDisconnect = () => {
-    Alert.alert(
-      'Disconnect Spotify',
-      'Are you sure you want to disconnect?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Disconnect', 
-          style: 'destructive',
-          onPress: async () => {
-            await disconnectSpotify();
-            setPlaylists([]);
-          }
-        }
-      ]
-    );
+  const handleDisconnect = async () => {
+    await disconnectSpotify();
+    setPlaylists([]);
+    setClientCredentialsReady(false);
   };
   
   const openPlaylist = (playlist: any) => {
@@ -154,20 +134,31 @@ export default function SpotifyIntegration() {
           </View>
           
           <View style={styles.statusActions}>
-            {isConnected ? (
-              <Button
-                title="Disconnect"
-                onPress={handleDisconnect}
-                variant="outline"
-                style={styles.actionButton}
-                testID="disconnect-spotify-button"
-              />
+            {isConnected || clientCredentialsReady ? (
+              <View style={styles.buttonRow}>
+                <Button
+                  title="Refresh"
+                  onPress={handleConnect}
+                  variant="outline"
+                  style={styles.actionButton}
+                  disabled={loading}
+                  testID="reconnect-spotify-button"
+                />
+                <Button
+                  title="Disconnect"
+                  onPress={handleDisconnect}
+                  variant="outline"
+                  style={[styles.actionButton, styles.disconnectButton]}
+                  testID="disconnect-spotify-button"
+                />
+              </View>
             ) : (
               <Button
-                title="Connect Spotify"
+                title={loading ? "Connecting..." : "Connect to Spotify"}
                 onPress={handleConnect}
-                leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
+                leftIcon={<Music size={16} color={Colors.text.inverse} />}
                 style={styles.actionButton}
+                disabled={loading}
                 testID="connect-spotify-button"
               />
             )}
@@ -175,14 +166,14 @@ export default function SpotifyIntegration() {
         </Card>
         
         {/* Setup Instructions */}
-        {!isConnected && (
-          <Card variant="outlined" style={styles.instructionsCard}>
-            <Text style={styles.instructionsTitle}>Setup Instructions</Text>
-            <Text style={styles.instructionsText}>
-              {spotifyService.getSetupInstructions()}
-            </Text>
-          </Card>
-        )}
+        <Card variant="outlined" style={styles.instructionsCard}>
+          <Text style={styles.instructionsTitle}>
+            {clientCredentialsReady ? '✅ Connected!' : 'Setup Instructions'}
+          </Text>
+          <Text style={styles.instructionsText}>
+            {spotifyService.getSetupInstructions()}
+          </Text>
+        </Card>
         
         {/* Workout Playlists */}
         {(isConnected || clientCredentialsReady) && (
@@ -274,6 +265,13 @@ const styles = StyleSheet.create({
   },
   statusActions: {
     alignItems: 'flex-start',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  disconnectButton: {
+    borderColor: '#ef4444',
   },
   actionButton: {
     paddingHorizontal: 24,

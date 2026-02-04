@@ -102,73 +102,30 @@ class SpotifyService {
   constructor() {
     console.log('SpotifyService: Initializing...');
     console.log('SpotifyService: Client ID:', this.clientId);
-    console.log('SpotifyService: Redirect URI:', this.redirectUri);
     console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     this.loadStoredToken();
-    this.checkHtmlCallbackAuth();
     // Auto-initialize client credentials for public API access
     this.autoInitialize();
   }
 
   private async autoInitialize() {
     // Wait a bit for stored token to load
-    await new Promise(resolve => setTimeout(resolve, 100));
-    if (!this.token) {
-      console.log('SpotifyService: No token found, initializing client credentials...');
-      await this.initializeClientCredentials();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Always try to initialize client credentials for public API access
+    // This doesn't require any redirect URIs - it's a direct server-to-server call
+    if (!this.token || this.isClientCredentialsFlow) {
+      console.log('SpotifyService: Initializing client credentials for public API access...');
+      const success = await this.initializeClientCredentials();
+      if (success) {
+        console.log('SpotifyService: Client credentials initialized successfully!');
+      } else {
+        console.log('SpotifyService: Client credentials failed - check EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET');
+      }
     }
   }
 
-  private async checkHtmlCallbackAuth() {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    
-    try {
-      const authCode = localStorage.getItem('spotify_auth_code');
-      const authTimestamp = localStorage.getItem('spotify_auth_timestamp');
-      
-      if (authCode && authTimestamp) {
-        const timestamp = parseInt(authTimestamp);
-        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-        
-        if (timestamp > fiveMinutesAgo) {
-          console.log('SpotifyService: Found auth code from HTML callback, processing...');
-          const state = localStorage.getItem('spotify_auth_state') || '';
-          const url = `?code=${authCode}&state=${state}`;
-          
-          localStorage.removeItem('spotify_auth_code');
-          localStorage.removeItem('spotify_auth_state');
-          localStorage.removeItem('spotify_auth_timestamp');
-          
-          await this.handleAuthorizationCodeCallback(url);
-        } else {
-          localStorage.removeItem('spotify_auth_code');
-          localStorage.removeItem('spotify_auth_state');
-          localStorage.removeItem('spotify_auth_timestamp');
-        }
-      }
-      
-      const accessToken = localStorage.getItem('spotify_access_token');
-      const tokenTimestamp = localStorage.getItem('spotify_auth_timestamp');
-      
-      if (accessToken && tokenTimestamp && !this.token) {
-        const timestamp = parseInt(tokenTimestamp);
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
-        
-        if (timestamp > oneHourAgo) {
-          console.log('SpotifyService: Found access token from HTML callback');
-          const expiresIn = localStorage.getItem('spotify_expires_in') || '3600';
-          await this.storeToken(accessToken, undefined, parseInt(expiresIn), false);
-          
-          localStorage.removeItem('spotify_access_token');
-          localStorage.removeItem('spotify_token_type');
-          localStorage.removeItem('spotify_expires_in');
-          localStorage.removeItem('spotify_auth_timestamp');
-        }
-      }
-    } catch (error) {
-      console.error('SpotifyService: Error checking HTML callback auth:', error);
-    }
-  }
+
 
   private getClientSecret(): string {
     return process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
@@ -471,37 +428,41 @@ class SpotifyService {
 
   // Get setup instructions for Spotify integration
   getSetupInstructions(): string {
-    const hasClientSecret = !!this.getClientSecret();
-    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081';
+    const clientSecret = this.getClientSecret();
+    const hasValidClientSecret = !!clientSecret && clientSecret.length > 10 && clientSecret !== this.clientId;
     
     return `
-Spotify Integration Setup:
+Spotify Integration (Client Credentials Flow):
 
+This app uses Client Credentials flow which:
+✓ Does NOT require redirect URIs
+✓ Works immediately with valid credentials
+✓ Allows searching tracks, playlists, and recommendations
+
+Setup:
 1. Go to https://developer.spotify.com/dashboard
 2. Create or select your app
-3. Click "Edit Settings"
-4. Add these EXACT redirect URIs:
-   - https://rork.app/p/n6dgejrmm3wincmkq5smp/spotify-callback
-   - zown://spotify-callback
-
-5. Save the settings
+3. Copy your Client ID and Client Secret
+4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
 
 Current Status:
 - Client ID: ${this.clientId} ✓
-- Client Secret: ${hasClientSecret ? 'Configured ✓' : 'Not configured ⚠️'}
-- Current Redirect URI: ${this.redirectUri} ✓
-- Current Origin: ${currentOrigin}
+- Client Secret: ${hasValidClientSecret ? 'Configured ✓' : 'Not configured or invalid ⚠️'}
+- Token Status: ${this.token ? 'Active ✓' : 'Not available'}
+- Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasClientSecret ? 'Ready for both Client Credentials and User Authentication!' : 'Ready for User Authentication only. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET for full functionality.'}
+${hasValidClientSecret ? '✅ Ready! You can search playlists and get recommendations.' : '⚠️ Add your Client Secret to enable Spotify features.'}
 
-To connect:
-1. Make sure redirect URIs are added to your Spotify app
-2. Click "Connect Spotify" button
-3. Authorize the app in Spotify
-4. You'll be redirected back automatically
+Note: Client Credentials flow provides access to:
+- Search tracks and playlists
+- Browse featured playlists
+- Get workout/running recommendations
+- View public playlist details
 
-Note: User authentication works without client secret!
-If you get "Invalid redirect URI" error, double-check the redirect URIs in your Spotify app settings.`;
+It does NOT provide access to:
+- User's personal playlists
+- User's listening history
+- Playback control`;
   }
 
   async clearToken() {
@@ -522,20 +483,27 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
   }
 
   // Initialize Client Credentials Flow for public data access
+  // This is the PRIMARY authentication method - no redirect URIs needed!
   async initializeClientCredentials(): Promise<boolean> {
     const clientSecret = this.getClientSecret();
     console.log('SpotifyService: Initializing client credentials...');
-    console.log('SpotifyService: Client secret configured:', !!clientSecret && clientSecret !== 'your_client_secret_here');
     
-    // Check if client secret is configured and different from client ID
-    if (!clientSecret || clientSecret === '' || clientSecret === this.clientId) {
-      console.log('Spotify client secret not configured. Using user authentication flow only.');
+    // Validate client secret
+    if (!clientSecret || clientSecret.length < 10) {
+      console.log('SpotifyService: Client secret not configured or too short');
+      console.log('SpotifyService: Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment');
+      return false;
+    }
+    
+    if (clientSecret === this.clientId) {
+      console.log('SpotifyService: Client secret cannot be the same as client ID');
       return false;
     }
     
     try {
+      // Create Base64 encoded credentials
       const credentials = btoa(`${this.clientId}:${clientSecret}`);
-      console.log('SpotifyService: Making client credentials request...');
+      console.log('SpotifyService: Making client credentials request to Spotify...');
       
       const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -546,22 +514,27 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
         body: 'grant_type=client_credentials',
       });
 
-      console.log('SpotifyService: Client credentials response status:', response.status);
+      console.log('SpotifyService: Response status:', response.status);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('Client credentials authentication failed (expected without valid secret):', errorData);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('SpotifyService: Client credentials failed:', errorData);
+        
+        if (response.status === 401) {
+          console.error('SpotifyService: Invalid client ID or client secret');
+        }
         return false;
       }
 
       const data: SpotifyClientCredentialsResponse = await response.json();
-      console.log('SpotifyService: Client credentials token received');
+      console.log('SpotifyService: Token received, expires in', data.expires_in, 'seconds');
+      
       await this.storeToken(data.access_token, undefined, data.expires_in, true);
       
-      console.log('Client credentials token obtained successfully');
+      console.log('SpotifyService: Client credentials initialized successfully!');
       return true;
     } catch (error) {
-      console.error('Failed to initialize client credentials:', error);
+      console.error('SpotifyService: Network error during client credentials:', error);
       return false;
     }
   }
