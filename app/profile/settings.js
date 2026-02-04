@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, Platform, Linking } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Bell, Lock, HelpCircle, Info, LogOut, Music, ExternalLink } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -12,22 +10,7 @@ import { useUserStore } from '@/store/userStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { authService } from '@/services/authService';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const SPOTIFY_CLIENT_ID = 'cb884c0e045d4683bd3f0b38cb0e151e';
-const SPOTIFY_SCOPES = [
-  'user-read-private',
-  'user-read-email',
-  'user-top-read',
-  'playlist-read-private',
-  'playlist-read-collaborative',
-  'playlist-modify-private',
-  'playlist-modify-public',
-  'user-read-currently-playing',
-  'user-modify-playback-state',
-  'user-read-playback-state',
-];
+import { spotifyService } from '@/services/spotifyService';
 
 export default function SettingsScreen() {
   const { user, updateUserPreferences, logout } = useUserStore();
@@ -38,78 +21,9 @@ export default function SettingsScreen() {
     disconnectSpotify,
     musicPreferences,
     updateMusicPreferences,
-    connectSpotifyImplicit
   } = useSpotifyStore();
   
   const [isConnecting, setIsConnecting] = useState(false);
-  
-  // Spotify doesn't have OIDC discovery, so we define endpoints manually
-const discovery = useMemo(() => ({
-  authorizationEndpoint: 'https://accounts.spotify.com/authorize',
-  tokenEndpoint: 'https://accounts.spotify.com/api/token',
-}), []);
-  
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'zown',
-    path: 'spotify-callback',
-  });
-  
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: SPOTIFY_CLIENT_ID,
-      scopes: SPOTIFY_SCOPES,
-      usePKCE: true,
-      redirectUri,
-    },
-    discovery
-  );
-  
-  const handleAuthResponse = useCallback(async () => {
-    if (response?.type === 'success') {
-      setIsConnecting(true);
-      try {
-        const { code } = response.params;
-        console.log('Auth code received:', code ? 'yes' : 'no');
-        
-        if (code && discovery) {
-          const tokenResult = await AuthSession.exchangeCodeAsync(
-            {
-              clientId: SPOTIFY_CLIENT_ID,
-              code,
-              redirectUri,
-              extraParams: {
-                code_verifier: request?.codeVerifier || '',
-              },
-            },
-            discovery
-          );
-          
-          if (tokenResult.accessToken) {
-            const fragment = `#access_token=${tokenResult.accessToken}&token_type=Bearer&expires_in=${tokenResult.expiresIn || 3600}`;
-            const success = await connectSpotifyImplicit(fragment);
-            
-            if (success) {
-              Alert.alert('Success', 'Spotify connected successfully!');
-            } else {
-              Alert.alert('Error', 'Failed to connect Spotify. Please try again.');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Token exchange error:', error);
-        Alert.alert('Error', 'Failed to connect Spotify. Please try again.');
-      } finally {
-        setIsConnecting(false);
-      }
-    } else if (response?.type === 'error') {
-      console.error('Auth error:', response.error);
-      Alert.alert('Error', 'Spotify authorization failed.');
-    }
-  }, [response, discovery, redirectUri, request?.codeVerifier, connectSpotifyImplicit]);
-  
-  useEffect(() => {
-    handleAuthResponse();
-  }, [handleAuthResponse]);
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     user?.preferences.notifications?.workouts || false
@@ -160,16 +74,36 @@ const discovery = useMemo(() => ({
   
   const handleConnectSpotify = async () => {
     try {
-      console.log('Initiating Spotify connection with expo-auth-session...');
-      console.log('Redirect URI:', redirectUri);
+      console.log('Initiating Spotify connection...');
+      setIsConnecting(true);
       
-      if (!request) {
-        Alert.alert('Error', 'Authentication not ready. Please try again.');
+      if (Platform.OS === 'web') {
+        const success = await spotifyService.authenticateWithPopup();
+        if (success) {
+          Alert.alert('Success', 'Spotify connected successfully!');
+          router.replace('/profile/settings');
+        } else {
+          Alert.alert('Info', 'Spotify authentication was canceled or failed.');
+        }
+        setIsConnecting(false);
         return;
       }
       
-      setIsConnecting(true);
-      await promptAsync();
+      const authUrl = await spotifyService.getAuthorizationUrl();
+      Alert.alert(
+        'Connect Spotify',
+        'You will be redirected to Spotify to authorize this app.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => setIsConnecting(false) },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              await Linking.openURL(authUrl);
+              setIsConnecting(false);
+            }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Failed to initiate Spotify connection:', error);
       Alert.alert('Error', `Failed to connect to Spotify: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -355,7 +289,7 @@ const discovery = useMemo(() => ({
                     onPress={handleConnectSpotify}
                     style={styles.connectSpotifyButton}
                     leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
-                    disabled={!request || isConnecting}
+                    disabled={isConnecting}
                   />
                   <Button
                     title="Test Integration"

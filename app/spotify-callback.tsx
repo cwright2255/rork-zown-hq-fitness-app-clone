@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { spotifyService } from '@/services/spotifyService';
+import { useSpotifyStore } from '@/store/spotifyStore';
 import Colors from '@/constants/colors';
 
 export default function SpotifyCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const spotifyStore = useSpotifyStore() as unknown as { initializeSpotify: () => Promise<void> };
   const [status, setStatus] = useState('Processing Spotify authentication...');
 
   useEffect(() => {
@@ -14,13 +16,34 @@ export default function SpotifyCallback() {
       try {
         console.log('Spotify callback: Starting callback handling...');
         console.log('Spotify callback: Route params:', params);
+        console.log('Spotify callback: Platform:', Platform.OS);
         
-        const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+        const currentUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : '';
         console.log('Spotify callback: Current URL:', currentUrl);
         
-        const code = params.code as string || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('code') : null);
-        const error = params.error as string || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('error') : null);
-        const state = params.state as string || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('state') : null);
+        // Get code from multiple sources
+        let code: string | null = null;
+        let error: string | null = null;
+        let state: string | null = null;
+        
+        // First try route params
+        if (params.code) {
+          code = params.code as string;
+        }
+        if (params.error) {
+          error = params.error as string;
+        }
+        if (params.state) {
+          state = params.state as string;
+        }
+        
+        // Then try URL search params (web)
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          if (!code) code = urlParams.get('code');
+          if (!error) error = urlParams.get('error');
+          if (!state) state = urlParams.get('state');
+        }
         
         console.log('Spotify callback: Parsed params - code:', !!code, 'error:', error, 'state:', state);
         
@@ -44,15 +67,23 @@ export default function SpotifyCallback() {
             console.log('Spotify callback: Token exchange successful');
             setStatus('Connected successfully!');
             
-            if (typeof window !== 'undefined' && window.opener) {
-              window.opener.postMessage({
-                type: 'SPOTIFY_AUTH_CODE',
-                url: callbackUrl,
-                code: code,
-                state: state,
-              }, '*');
-              window.close();
-              return;
+            // Initialize Spotify store to update connection state
+            await spotifyStore.initializeSpotify();
+            
+            // If this is a popup window, send message to parent and close
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'SPOTIFY_AUTH_CODE',
+                  url: callbackUrl,
+                  code: code,
+                  state: state,
+                }, '*');
+                window.close();
+                return;
+              } catch {
+                console.log('Failed to communicate with opener window');
+              }
             }
           } else {
             console.error('Spotify callback: Token exchange failed');
@@ -63,7 +94,8 @@ export default function SpotifyCallback() {
           return;
         }
         
-        const urlFragment = typeof window !== 'undefined' ? window.location.hash : '';
+        // Check for implicit grant token in URL fragment
+        const urlFragment = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.hash : '';
         if (urlFragment && urlFragment.includes('access_token')) {
           setStatus('Processing access token...');
           console.log('Spotify callback: Processing implicit grant fragment');
@@ -72,26 +104,29 @@ export default function SpotifyCallback() {
           if (success) {
             console.log('Spotify callback: Implicit grant authentication successful');
             setStatus('Connected successfully!');
+            await spotifyStore.initializeSpotify();
           } else {
             console.error('Spotify callback: Implicit grant authentication failed');
             setStatus('Authentication failed.');
           }
-        } else {
-          console.log('Spotify callback: No code or token found, redirecting');
-          setStatus('No authentication data found. Redirecting...');
+          
+          setTimeout(() => router.replace('/profile/settings'), 1500);
+          return;
         }
         
+        console.log('Spotify callback: No code or token found, redirecting');
+        setStatus('No authentication data found. Redirecting...');
         setTimeout(() => router.replace('/profile/settings'), 1500);
       } catch (error) {
         console.error('Spotify callback: Error handling callback:', error);
         setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setTimeout(() => router.replace('/'), 2000);
+        setTimeout(() => router.replace('/profile/settings'), 2000);
       }
     };
 
     const timer = setTimeout(handleCallback, 100);
     return () => clearTimeout(timer);
-  }, [router, params]);
+  }, [router, params, spotifyStore]);
 
   return (
     <View style={styles.container}>
