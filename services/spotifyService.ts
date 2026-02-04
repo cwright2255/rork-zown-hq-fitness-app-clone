@@ -106,6 +106,17 @@ class SpotifyService {
     console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     this.loadStoredToken();
     this.checkHtmlCallbackAuth();
+    // Auto-initialize client credentials for public API access
+    this.autoInitialize();
+  }
+
+  private async autoInitialize() {
+    // Wait a bit for stored token to load
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!this.token) {
+      console.log('SpotifyService: No token found, initializing client credentials...');
+      await this.initializeClientCredentials();
+    }
   }
 
   private async checkHtmlCallbackAuth() {
@@ -511,7 +522,7 @@ If you get "Invalid redirect URI" error, double-check the redirect URIs in your 
   }
 
   // Initialize Client Credentials Flow for public data access
-  private async initializeClientCredentials(): Promise<boolean> {
+  async initializeClientCredentials(): Promise<boolean> {
     const clientSecret = this.getClientSecret();
     console.log('SpotifyService: Initializing client credentials...');
     console.log('SpotifyService: Client secret configured:', !!clientSecret && clientSecret !== 'your_client_secret_here');

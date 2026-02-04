@@ -28,12 +28,30 @@ export default function SpotifyIntegration() {
   
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [clientCredentialsReady, setClientCredentialsReady] = useState(false);
   
   useEffect(() => {
-    if (isConnected) {
+    // Try to initialize client credentials on mount for public API access
+    initClientCredentials();
+  }, []);
+  
+  useEffect(() => {
+    if (isConnected || clientCredentialsReady) {
       loadPlaylists();
     }
-  }, [isConnected]);
+  }, [isConnected, clientCredentialsReady]);
+  
+  const initClientCredentials = async () => {
+    try {
+      const success = await spotifyService.initializeClientCredentials();
+      setClientCredentialsReady(success);
+      if (success) {
+        console.log('Client Credentials initialized - public API access ready');
+      }
+    } catch (error) {
+      console.error('Failed to init client credentials:', error);
+    }
+  };
   
   const loadPlaylists = async () => {
     try {
@@ -118,16 +136,20 @@ export default function SpotifyIntegration() {
         {/* Connection Status */}
         <Card variant="elevated" style={styles.statusCard}>
           <View style={styles.statusHeader}>
-            <Music size={32} color={isConnected ? '#1DB954' : Colors.text.tertiary} />
+            <Music size={32} color={isConnected || clientCredentialsReady ? '#1DB954' : Colors.text.tertiary} />
             <View style={styles.statusInfo}>
               <Text style={styles.statusTitle}>
-                {isConnected ? 'Connected to Spotify' : 'Not Connected'}
+                {isConnected ? 'Connected to Spotify' : clientCredentialsReady ? 'Public Access Ready' : 'Not Connected'}
               </Text>
-              {user && (
+              {user ? (
                 <Text style={styles.statusSubtitle}>
                   {user.display_name || user.id}
                 </Text>
-              )}
+              ) : clientCredentialsReady ? (
+                <Text style={styles.statusSubtitle}>
+                  Search & browse playlists available
+                </Text>
+              ) : null}
             </View>
           </View>
           
@@ -163,7 +185,7 @@ export default function SpotifyIntegration() {
         )}
         
         {/* Workout Playlists */}
-        {isConnected && (
+        {(isConnected || clientCredentialsReady) && (
           <Card variant="elevated" style={styles.playlistsCard}>
             <View style={styles.playlistsHeader}>
               <Text style={styles.playlistsTitle}>Workout Playlists</Text>
