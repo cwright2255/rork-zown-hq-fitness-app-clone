@@ -624,7 +624,7 @@ export default function WorkoutsScreen() {
         </TouchableOpacity>
       </View>
       
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengesContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengesContainer} removeClippedSubviews={true}>
         {runningChallenges.slice(0, 3).map(challenge => (
           <Card key={challenge.id} style={styles.challengeCard}>
             <Text style={styles.challengeTitle} numberOfLines={2}>{challenge.name}</Text>
@@ -652,7 +652,7 @@ export default function WorkoutsScreen() {
         </TouchableOpacity>
       </View>
       
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengesContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengesContainer} removeClippedSubviews={true}>
         {virtualRaces.slice(0, 2).map(race => (
           <Card key={race.id} style={styles.raceCard}>
             <Text style={styles.raceTitle} numberOfLines={2}>{race.name}</Text>
@@ -729,7 +729,7 @@ export default function WorkoutsScreen() {
             </TouchableOpacity>
           </View>
           
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playlistsContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playlistsContainer} removeClippedSubviews={true}>
             {workoutPlaylists.slice(0, 3).map(playlist => (
               <Card key={playlist.id} style={styles.playlistCard}>
                 {playlist.images[0] && (

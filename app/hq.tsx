@@ -196,6 +196,7 @@ export default function HQScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           testID="hq-scroll"
+          removeClippedSubviews={true}
         >
           <View style={styles.header}>
             <View>
@@ -309,6 +310,7 @@ export default function HQScreen() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.horizontalList}
+                removeClippedSubviews={true}
               >
                 {activityMetrics.map(m => (
                   <MetricCard key={m.key} title={m.title} value={m.value} target={m.target} unit={m.unit} icon={m.icon} />
@@ -324,6 +326,7 @@ export default function HQScreen() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.horizontalList}
+                removeClippedSubviews={true}
               >
                 {vitalsMetrics.map(m => (
                   <MetricCard key={m.key} title={m.title} value={m.value} target={m.target} unit={m.unit} icon={m.icon} />

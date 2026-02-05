@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -104,15 +104,7 @@ export default function MoodTrackingScreen() {
     }
   };
 
-  const handleConnectWearable = () => {
-    router.push('/wearables');
-  };
-
-  const handleRefreshWearableData = () => {
-    if (wearableConnected) {
-      loadWearableMoodData();
-    }
-  };
+  
 
   // Mock mood entries for demonstration
   const [moodEntries] = useState<MoodEntry[]>([
@@ -186,7 +178,17 @@ export default function MoodTrackingScreen() {
     };
   }, [moodEntries]);
 
-  const saveTodayEntry = () => {
+  const handleConnectWearable = useCallback(() => {
+    router.push('/wearables');
+  }, []);
+
+  const handleRefreshWearableData = useCallback(() => {
+    if (wearableConnected) {
+      loadWearableMoodData();
+    }
+  }, [wearableConnected]);
+
+  const saveTodayEntry = useCallback(() => {
     const entry: MoodEntry = {
       id: Date.now().toString(),
       date: new Date().toISOString().split('T')[0],
@@ -200,24 +202,21 @@ export default function MoodTrackingScreen() {
       tags: selectedTags
     };
 
-    // In a real app, this would save to the mood entries store
     console.log('Saving mood entry:', entry);
     
-    // Update user with mood tracking data
     if (user) {
       updateUser({
         lastMoodEntry: entry
       });
     }
 
-    // Clear notes after saving
     setTodayNotes('');
 
     Alert.alert(
       'Mood Entry Saved!', 
       `Your mood data from ${wearableDataSource} has been saved successfully.`
     );
-  };
+  }, [todayMood, todayEnergy, todayStress, todaySleep, todayNotes, selectedTags, useWearableData, wearableConnected, wearableDataSource, dataConfidence, user, updateUser]);
 
   const renderWearableStatus = () => (
     <Card variant="elevated" style={styles.wearableCard}>
@@ -270,7 +269,7 @@ export default function MoodTrackingScreen() {
   );
 
   const renderTodayTab = () => (
-    <ScrollView style={styles.content}>
+    <ScrollView style={styles.content} removeClippedSubviews={true}>
       {renderWearableStatus()}
       
       {wearableConnected ? (
@@ -370,7 +369,7 @@ export default function MoodTrackingScreen() {
   );
 
   const renderHistoryTab = () => (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.content} showsVerticalScrollIndicator={false} removeClippedSubviews={true}>
       <View style={styles.sectionHeader}>
         <Calendar size={20} color={Colors.primary} />
         <Text style={styles.sectionTitle}>Mood History</Text>
@@ -467,7 +466,7 @@ export default function MoodTrackingScreen() {
   );
 
   const renderInsightsTab = () => (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.content} showsVerticalScrollIndicator={false} removeClippedSubviews={true}>
       <View style={styles.sectionHeader}>
         <BarChart3 size={20} color={Colors.primary} />
         <Text style={styles.sectionTitle}>Mood Analytics</Text>

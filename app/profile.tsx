@@ -1011,6 +1011,7 @@ export default function ProfileScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
       >
         {activeTab === 'profile' && renderProfileTab()}
         {activeTab === 'progress' && renderProgressTab()}
