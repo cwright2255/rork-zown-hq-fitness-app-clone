@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Award, Dumbbell, Coffee, MapPin, ChevronLeft, ChevronRight, Play, Stars } from 'lucide-react-native';
@@ -59,8 +59,10 @@ export default function HQScreen() {
   const [wearableError, setWearableError] = useState<string | null>(null);
   const showWearables = true as const;
 
+  const hasInitializedUser = useRef(false);
   useEffect(() => {
-    if (!user) {
+    if (!user && !hasInitializedUser.current) {
+      hasInitializedUser.current = true;
       console.log('[HQ] Initializing default user');
       initializeDefaultUser();
     }
@@ -72,15 +74,14 @@ export default function HQScreen() {
 
   const streak = user?.streak || user?.streakData?.currentStreak || 3;
 
+  const hasInitializedWorkouts = useRef(false);
   useEffect(() => {
-    if (!workouts || workouts.length === 0) {
-      console.log('[HQ] Initializing default workouts (debounced)');
-      const timeoutId = setTimeout(() => {
-        initializeDefaultWorkouts();
-      }, 100);
-      return () => clearTimeout(timeoutId);
+    if ((!workouts || workouts.length === 0) && !hasInitializedWorkouts.current) {
+      hasInitializedWorkouts.current = true;
+      console.log('[HQ] Initializing default workouts');
+      requestAnimationFrame(() => initializeDefaultWorkouts());
     }
-  }, [workouts, initializeDefaultWorkouts]);
+  }, []);
 
   const recommendedWorkouts = useMemo(() =>
     (workouts && workouts.length > 0) ? workouts.slice(0, 5) : []

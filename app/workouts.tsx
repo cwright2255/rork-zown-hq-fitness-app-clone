@@ -230,26 +230,18 @@ export default function WorkoutsScreen() {
     }
   ], []);
   
-  // Optimized initialization with reduced dependencies
+  // Optimized initialization - run only once
+  const hasInitialized = useRef(false);
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        if (!workouts || workouts.length === 0) {
-          initializeDefaultWorkouts();
-        }
-        if (!runningPrograms || runningPrograms.length === 0) {
-          initializeRunningPrograms();
-        }
-        if (!communityRunningChallenges || communityRunningChallenges.length === 0) {
-          initializeRunningChallenges();
-        }
-      } catch (error) {
-        console.error('Failed to initialize data:', error);
-      }
-    };
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
     
-    loadData();
-  }, []); // Removed dependencies to prevent infinite re-renders
+    requestAnimationFrame(() => {
+      if (!workouts || workouts.length === 0) initializeDefaultWorkouts();
+      if (!runningPrograms || runningPrograms.length === 0) initializeRunningPrograms();
+      if (!communityRunningChallenges || communityRunningChallenges.length === 0) initializeRunningChallenges();
+    });
+  }, []);
   
   // Memoize workout data
   const followAlongWorkouts = useMemo(() => {

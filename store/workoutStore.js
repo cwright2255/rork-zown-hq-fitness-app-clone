@@ -563,25 +563,19 @@ export const useWorkoutStore = create(
       initializeDefaultWorkouts: () => {
         const { workouts } = get();
         if (workouts.length === 0) {
-          // Load only essential workouts for better performance - use requestAnimationFrame
-          requestAnimationFrame(() => {
-            set({ workouts: mockWorkouts.slice(0, 3) });
-          });
+          set({ workouts: mockWorkouts.slice(0, 3) });
         }
       },
       
       initializeRunningPrograms: () => {
-        const { runningPrograms, runHistory, runningChallenges, virtualRaces, runningBuddy } = get();
+        const { runningPrograms } = get();
         if (runningPrograms.length === 0) {
-          // Load data progressively for better performance - use requestAnimationFrame
-          requestAnimationFrame(() => {
-            set({ 
-              runningPrograms: mockRunningPrograms.slice(0, 2), // Load only 2 programs initially
-              runHistory: mockRunHistory.slice(-10), // Load last 10 runs
-              runningChallenges: mockRunningChallenges.slice(0, 3), // Load 3 challenges
-              virtualRaces: mockVirtualRaces.slice(0, 2), // Load 2 races
-              runningBuddy: mockRunningBuddy
-            });
+          set({ 
+            runningPrograms: mockRunningPrograms.slice(0, 2),
+            runHistory: mockRunHistory.slice(-10),
+            runningChallenges: mockRunningChallenges.slice(0, 3),
+            virtualRaces: mockVirtualRaces.slice(0, 2),
+            runningBuddy: mockRunningBuddy
           });
         }
       }
@@ -605,5 +599,18 @@ export const useWorkoutStore = create(
   )
 );
 
-// Initialize mock data on store creation
-useWorkoutStore.getState().initializeMockData();
+// Lazy initialization - only initialize when store is first accessed
+let hasInitialized = false;
+const originalGetState = useWorkoutStore.getState;
+useWorkoutStore.getState = () => {
+  const state = originalGetState();
+  if (!hasInitialized) {
+    hasInitialized = true;
+    requestAnimationFrame(() => {
+      if (state.runningPrograms.length === 0) {
+        state.initializeMockData();
+      }
+    });
+  }
+  return state;
+};

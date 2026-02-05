@@ -4,7 +4,6 @@ import { useRouter, usePathname } from 'expo-router';
 import { Home, Dumbbell, Utensils, ShoppingBag, User } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
-// Memoized tabs configuration outside component to prevent recreation
 const tabs = [
   {
     name: 'HQ',
@@ -33,12 +32,15 @@ const tabs = [
   },
 ] as const;
 
-// Memoized tab component to prevent unnecessary re-renders
-const TabItem = React.memo(({ tab, isActive, onPress }: {
-  tab: typeof tabs[0];
+type TabType = typeof tabs[number];
+
+interface TabItemProps {
+  tab: TabType;
   isActive: boolean;
   onPress: () => void;
-}) => {
+}
+
+const TabItem = React.memo(function TabItem({ tab, isActive, onPress }: TabItemProps) {
   const Icon = tab.icon;
   
   return (
@@ -61,32 +63,30 @@ const TabItem = React.memo(({ tab, isActive, onPress }: {
   );
 });
 
-const BottomNavigation = React.memo(() => {
+const BottomNavigation = React.memo(function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Memoize the active state calculation
-  const isActive = useCallback((route: string) => {
-    if (route === '/hq') {
-      return pathname === '/hq' || pathname === '/';
-    }
-    return pathname === route || pathname.startsWith(route + '/');
-  }, [pathname]);
-
-  // Memoize navigation handler with requestAnimationFrame for better performance
   const handleNavigation = useCallback((route: string) => {
-    requestAnimationFrame(() => {
-      router.push(route);
-    });
+    router.push(route);
   }, [router]);
 
-  // Memoize tabs with active states to prevent recalculation
+  const activeRoute = useMemo(() => {
+    if (pathname === '/hq' || pathname === '/') return '/hq';
+    for (const tab of tabs) {
+      if (pathname === tab.route || pathname.startsWith(tab.route + '/')) {
+        return tab.route;
+      }
+    }
+    return '/hq';
+  }, [pathname]);
+
   const tabsWithActiveState = useMemo(() => 
     tabs.map(tab => ({
       ...tab,
-      isActive: isActive(tab.route)
+      isActive: tab.route === activeRoute
     })),
-    [isActive]
+    [activeRoute]
   );
 
   return (
@@ -102,8 +102,6 @@ const BottomNavigation = React.memo(() => {
     </View>
   );
 });
-
-BottomNavigation.displayName = 'BottomNavigation';
 
 export default BottomNavigation;
 
@@ -135,11 +133,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     color: Colors.text.secondary,
   },
   activeLabel: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
 });
