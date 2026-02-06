@@ -89,9 +89,9 @@ class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
-  // Use the backend endpoint for OAuth callback - this is a REAL server endpoint
+  // Use the app preview URL for OAuth callback
   private redirectUri = Platform.OS === 'web' 
-    ? `https://rork.app/api/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/spotify/callback` 
+    ? `https://${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}.lite.rork.app/spotify-callback` 
     : 'zown://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
