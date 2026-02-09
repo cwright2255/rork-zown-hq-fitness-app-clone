@@ -19,6 +19,14 @@ import Button from '@/components/Button';
 import { MoodEntry } from '@/types';
 import { wearableService } from '@/services/wearableService';
 
+interface UserStoreState {
+  user: {
+    lastMoodEntry?: any;
+    [key: string]: any;
+  } | null;
+  updateUser: (updates: Record<string, any>) => void;
+}
+
 interface MoodStats {
   averageMood: number;
   averageEnergy: number;
@@ -34,7 +42,7 @@ const stressEmojis = ['😌', '😐', '😰', '😫', '🤯'];
 const sleepEmojis = ['😴', '😪', '😐', '😊', '✨'];
 
 export default function MoodTrackingScreen() {
-  const { user, updateUser } = useUserStore();
+  const { user, updateUser } = useUserStore() as UserStoreState;
   const [activeTab, setActiveTab] = useState<'today' | 'history' | 'insights'>('today');
   
   // Wearable integration state

@@ -12,11 +12,38 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Bell, Clock, Users, Trophy, Droplets } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { notificationService, NotificationSettings } from '@/services/notificationService';
+import { notificationService } from '@/services/notificationService';
 import { useUserStore } from '@/store/userStore';
 
+interface NotificationSettings {
+  workouts: boolean;
+  nutrition: boolean;
+  social: boolean;
+  achievements: boolean;
+  reminders: boolean;
+}
+
+interface UserPreferences {
+  notifications: {
+    workouts: boolean;
+    nutrition: boolean;
+    social: boolean;
+  };
+  [key: string]: any;
+}
+
+interface User {
+  preferences: UserPreferences;
+  [key: string]: any;
+}
+
+interface UserStoreState {
+  user: User | null;
+  setUser: (user: User) => void;
+}
+
 export default function NotificationsScreen() {
-  const { user, setUser } = useUserStore();
+  const { user, setUser } = useUserStore() as UserStoreState;
   const [settings, setSettings] = useState<NotificationSettings>({
     workouts: user?.preferences.notifications.workouts ?? true,
     nutrition: user?.preferences.notifications.nutrition ?? true,
@@ -45,7 +72,7 @@ export default function NotificationsScreen() {
   };
 
   const updateSetting = (key: keyof NotificationSettings, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev: NotificationSettings) => ({ ...prev, [key]: value }));
     
     // Update user preferences
     if (user && (key === 'workouts' || key === 'nutrition' || key === 'social')) {
@@ -77,31 +104,31 @@ export default function NotificationsScreen() {
       key: 'workouts' as keyof NotificationSettings,
       title: 'Workout Reminders',
       description: 'Get notified about scheduled workouts and rest days',
-      icon: <Clock size={24} color={Colors.primary.main} />,
+      icon: <Clock size={24} color={Colors.primary} />,
     },
     {
       key: 'nutrition' as keyof NotificationSettings,
       title: 'Nutrition Tracking',
       description: 'Reminders to log meals and track water intake',
-      icon: <Droplets size={24} color={Colors.primary.main} />,
+      icon: <Droplets size={24} color={Colors.primary} />,
     },
     {
       key: 'social' as keyof NotificationSettings,
       title: 'Social Updates',
       description: 'Likes, comments, and friend activity notifications',
-      icon: <Users size={24} color={Colors.primary.main} />,
+      icon: <Users size={24} color={Colors.primary} />,
     },
     {
       key: 'achievements' as keyof NotificationSettings,
       title: 'Achievements & Badges',
       description: 'Celebrate your fitness milestones and unlocked badges',
-      icon: <Trophy size={24} color={Colors.primary.main} />,
+      icon: <Trophy size={24} color={Colors.primary} />,
     },
     {
       key: 'reminders' as keyof NotificationSettings,
       title: 'General Reminders',
       description: 'Daily check-ins, hydration, and app usage reminders',
-      icon: <Bell size={24} color={Colors.primary.main} />,
+      icon: <Bell size={24} color={Colors.primary} />,
     },
   ];
 
@@ -129,7 +156,7 @@ export default function NotificationsScreen() {
         <Text style={styles.sectionTitle}>Notification Types</Text>
 
         {notificationTypes.map((type) => (
-          <View key={type.key} style={styles.settingItem}>
+          <View key={type.key as string} style={styles.settingItem}>
             <View style={styles.settingInfo}>
               {type.icon}
               <View style={styles.settingText}>
@@ -141,8 +168,8 @@ export default function NotificationsScreen() {
             <Switch
               value={settings[type.key]}
               onValueChange={(value) => updateSetting(type.key, value)}
-              trackColor={{ false: Colors.background.secondary, true: Colors.primary.main + '40' }}
-              thumbColor={settings[type.key] ? Colors.primary.main : Colors.text.secondary}
+              trackColor={{ false: Colors.backgroundSecondary, true: Colors.primary + '40' }}
+              thumbColor={settings[type.key] ? Colors.primary : Colors.text.secondary}
             />
           </View>
         ))}
@@ -151,12 +178,12 @@ export default function NotificationsScreen() {
           <Text style={styles.sectionTitle}>Quick Schedule</Text>
           
           <TouchableOpacity style={styles.scheduleButton}>
-            <Clock size={20} color={Colors.primary.main} />
+            <Clock size={20} color={Colors.primary} />
             <Text style={styles.scheduleButtonText}>Set Workout Reminders</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.scheduleButton}>
-            <Droplets size={20} color={Colors.primary.main} />
+            <Droplets size={20} color={Colors.primary} />
             <Text style={styles.scheduleButtonText}>Schedule Hydration Reminders</Text>
           </TouchableOpacity>
         </View>
@@ -193,7 +220,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -239,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   settingItem: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -271,7 +298,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   scheduleButton: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -288,7 +315,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   testButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',

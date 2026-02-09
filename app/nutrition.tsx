@@ -10,10 +10,35 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import HydrationTracker from '@/components/HydrationTracker';
 import { getAIDailyTargets, getAIMacroSplitForPreset } from '@/services/aiService';
 
+interface Meal {
+  id: string;
+  name: string;
+  foods: any[];
+  time: string;
+  date: string;
+}
+
+interface DailyGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  water: number;
+}
+
+interface NutritionStoreState {
+  addMeal: (meal: Meal) => void;
+  getMealsByDate: (date: string) => Meal[];
+  getWaterIntake: (date: string) => number;
+  updateWaterIntake: (date: string, amount: number) => void;
+  dailyGoals: DailyGoals | null;
+  updateDailyGoals: (goals: Partial<DailyGoals>) => void;
+}
+
 const { width } = Dimensions.get('window');
 
 export default function NutritionScreen() {
-  const { addMeal, getMealsByDate, getWaterIntake, updateWaterIntake, dailyGoals, updateDailyGoals } = useNutritionStore();
+  const { addMeal, getMealsByDate, getWaterIntake, updateWaterIntake, dailyGoals, updateDailyGoals } = useNutritionStore() as NutritionStoreState;
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [waterAmount, setWaterAmount] = useState(0);
   const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0);
