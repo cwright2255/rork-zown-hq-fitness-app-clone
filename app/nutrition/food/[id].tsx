@@ -10,11 +10,24 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { getFoodById } from '@/services/passioService';
 import { FoodItem } from '@/types';
 
+interface NutritionStore {
+  favoriteFood: FoodItem[];
+  addToFavorites: (food: FoodItem) => void;
+  removeFromFavorites: (foodId: string) => void;
+  addFoodToMeal: (date: string, mealId: string, food: FoodItem) => void;
+  dailyGoals: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
 export default function FoodDetailScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   
-  const { favoriteFood, addToFavorites, removeFromFavorites, addFoodToMeal, dailyGoals } = useNutritionStore();
+  const { favoriteFood, addToFavorites, removeFromFavorites, addFoodToMeal, dailyGoals } = useNutritionStore() as NutritionStore;
   
   const [food, setFood] = useState<FoodItem | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -42,7 +55,7 @@ export default function FoodDetailScreen() {
   useEffect(() => {
     // Check if food is in favorites
     if (food) {
-      const isFav = favoriteFood.some(f => f.id === food.id);
+      const isFav = favoriteFood.some((f: FoodItem) => f.id === food.id);
       setIsFavorite(isFav);
     }
   }, [food, favoriteFood]);

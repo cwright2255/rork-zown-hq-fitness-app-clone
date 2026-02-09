@@ -8,9 +8,14 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { searchFoods, testPassioConnection, getAvailableTools } from '@/services/passioService';
 import { FoodItem as FoodItemType } from '@/types';
 
+interface NutritionStore {
+  addFoodToMeal: (date: string, mealId: string, food: FoodItemType) => void;
+  recentFoods: FoodItemType[];
+}
+
 export default function SearchFoodScreen() {
   const { mealId, scannedFood } = useLocalSearchParams();
-  const { addFoodToMeal, recentFoods: storeRecentFoods } = useNutritionStore();
+  const { addFoodToMeal, recentFoods: storeRecentFoods } = useNutritionStore() as NutritionStore;
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItemType[]>([]);

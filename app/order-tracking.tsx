@@ -12,17 +12,22 @@ import { Stack } from 'expo-router';
 import { Package, Truck, CheckCircle, Clock, MapPin } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useOrderStore } from '@/store/orderStore';
+import { Order, OrderItem, TrackingEvent } from '@/types';
+
+interface OrderStore {
+  orders: Order[];
+}
 
 export default function OrderTrackingScreen() {
-  const { orders } = useOrderStore();
-  const [selectedOrder, setSelectedOrder] = useState(orders[0]);
+  const { orders } = useOrderStore() as OrderStore;
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(orders[0] || null);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'processing':
-        return <Clock size={20} color={Colors.primary.main} />;
+        return <Clock size={20} color={Colors.primary} />;
       case 'shipped':
-        return <Truck size={20} color={Colors.primary.main} />;
+        return <Truck size={20} color={Colors.primary} />;
       case 'delivered':
         return <CheckCircle size={20} color="#10B981" />;
       default:
@@ -33,7 +38,7 @@ export default function OrderTrackingScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'processing':
-        return Colors.primary.main;
+        return Colors.primary;
       case 'shipped':
         return '#3B82F6';
       case 'delivered':
@@ -56,7 +61,7 @@ export default function OrderTrackingScreen() {
         <Text style={styles.sectionTitle}>Your Orders</Text>
         
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.orderTabs}>
-          {orders.map((order) => (
+          {orders.map((order: Order) => (
             <TouchableOpacity
               key={order.id}
               style={[
@@ -103,7 +108,7 @@ export default function OrderTrackingScreen() {
             <View style={styles.timelineCard}>
               <Text style={styles.timelineTitle}>Tracking Timeline</Text>
               
-              {selectedOrder.trackingEvents.map((event, index) => (
+              {selectedOrder.trackingEvents.map((event: TrackingEvent, index: number) => (
                 <View key={index} style={styles.timelineItem}>
                   <View style={styles.timelineIconContainer}>
                     <View style={[
@@ -147,7 +152,7 @@ export default function OrderTrackingScreen() {
             {/* Delivery Address */}
             <View style={styles.addressCard}>
               <View style={styles.addressHeader}>
-                <MapPin size={20} color={Colors.primary.main} />
+                <MapPin size={20} color={Colors.primary} />
                 <Text style={styles.addressTitle}>Delivery Address</Text>
               </View>
               <Text style={styles.addressText}>{selectedOrder.deliveryAddress}</Text>
@@ -157,7 +162,7 @@ export default function OrderTrackingScreen() {
             <View style={styles.itemsCard}>
               <Text style={styles.itemsTitle}>Order Items</Text>
               
-              {selectedOrder.items.map((item) => (
+              {selectedOrder.items.map((item: OrderItem) => (
                 <View key={item.id} style={styles.orderItem}>
                   <Image source={{ uri: item.image }} style={styles.itemImage} />
                   <View style={styles.itemDetails}>
@@ -186,7 +191,7 @@ export default function OrderTrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -211,7 +216,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   orderTab: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -220,7 +225,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectedOrderTab: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   orderTabText: {
     fontSize: 14,
@@ -239,7 +244,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   orderCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -278,7 +283,7 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   timelineCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -301,15 +306,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: Colors.text.secondary,
   },
   timelineIconCompleted: {
-    backgroundColor: Colors.primary.main,
-    borderColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   timelineIconEmpty: {
     width: 8,
@@ -324,7 +329,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   timelineLineCompleted: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   timelineContent: {
     flex: 1,
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   addressCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -372,7 +377,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   itemsCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -411,10 +416,10 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary.main,
+    color: Colors.primary,
   },
   deliveryCard: {
-    backgroundColor: Colors.primary.main + '20',
+    backgroundColor: Colors.primary + '20',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -422,12 +427,12 @@ const styles = StyleSheet.create({
   },
   deliveryTitle: {
     fontSize: 14,
-    color: Colors.primary.main,
+    color: Colors.primary,
     marginBottom: 4,
   },
   deliveryDate: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.primary.main,
+    color: Colors.primary,
   },
 });

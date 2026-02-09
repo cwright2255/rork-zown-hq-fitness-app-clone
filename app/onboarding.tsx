@@ -10,8 +10,13 @@ import Card from '@/components/Card';
 import { useUserStore } from '@/store/userStore';
 import { User } from '@/types';
 
+interface UserStore {
+  setUser: (user: User) => void;
+  completeOnboarding: () => void;
+}
+
 const OnboardingScreen = () => {
-  const { setUser, completeOnboarding } = useUserStore();
+  const { setUser, completeOnboarding } = useUserStore() as UserStore;
 
   const [name, setName] = useState<string>('');
   const [fitnessLevel, setFitnessLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
