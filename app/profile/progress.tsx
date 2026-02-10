@@ -15,7 +15,16 @@ import ChampionPassTier from '@/components/ChampionPassTier';
 import StreakCalendar from '@/components/StreakCalendar';
 import BadgeItem from '@/components/BadgeItem';
 import AchievementCard from '@/components/AchievementCard';
-import { Achievement } from '@/types';
+import { Achievement, Badge, ProgressEntry } from '@/types';
+
+interface TierReward {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  imageUrl: string;
+  isClaimed?: boolean;
+}
 import { useProgressStore } from '@/store/progressStore';
 
 export default function ProgressTrackerScreen() {
@@ -23,8 +32,16 @@ export default function ProgressTrackerScreen() {
   const initialTab = params.tab as string || 'champion';
   const { width } = useWindowDimensions();
   
-  const { user, addXp, calculateLevel } = useUserStore();
-  const { getWorkoutStreak, completedWorkouts = [], getWorkoutsByDate } = useWorkoutStore();
+  const { user, addXp, calculateLevel } = useUserStore() as {
+    user: any;
+    addXp: (amount: number) => void;
+    calculateLevel: (xp: number) => number;
+  };
+  const { getWorkoutStreak, completedWorkouts = [], getWorkoutsByDate } = useWorkoutStore() as {
+    getWorkoutStreak: () => { current: number; longest: number };
+    completedWorkouts: any[];
+    getWorkoutsByDate: (date: string) => any[];
+  };
   const { 
     tiers, 
     currentTier, 
@@ -36,15 +53,37 @@ export default function ProgressTrackerScreen() {
     getNextTierXp,
     upgradeToPremium,
     claimReward
-  } = useChampionPassStore();
-  const { badges, initializeBadges, getUnlockedBadges } = useBadgeStore();
+  } = useChampionPassStore() as {
+    tiers: any[];
+    currentTier: number;
+    isPremium: boolean;
+    initializeChampionPass: () => void;
+    updateCurrentTier: (xp: number) => void;
+    getAvailableRewards: () => any[];
+    getCurrentTierProgress: (xp: number) => number;
+    getNextTierXp: () => number;
+    upgradeToPremium: () => void;
+    claimReward: (tierId: number, rewardId: string) => void;
+  };
+  const { badges, initializeBadges, getUnlockedBadges } = useBadgeStore() as {
+    badges: Badge[];
+    initializeBadges: () => void;
+    getUnlockedBadges: () => Badge[];
+  };
   const { 
     achievements, 
     getUnlockedAchievements, 
     getInProgressAchievements, 
     initializeAchievements 
-  } = useAchievementStore();
-  const { entries: progressEntries } = useProgressStore();
+  } = useAchievementStore() as {
+    achievements: Achievement[];
+    getUnlockedAchievements: () => Achievement[];
+    getInProgressAchievements: () => Achievement[];
+    initializeAchievements: () => void;
+  };
+  const { entries: progressEntries } = useProgressStore() as {
+    entries: ProgressEntry[];
+  };
   
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(getInitialIndex(initialTab));
@@ -219,7 +258,7 @@ export default function ProgressTrackerScreen() {
           
           <Text style={styles.rewardsTitle}>Rewards</Text>
           
-          {tiers[selectedTier]?.rewards.map(reward => (
+          {tiers[selectedTier]?.rewards.map((reward: TierReward) => (
             <View key={reward.id} style={styles.rewardItem}>
               <Image
                 source={{ uri: reward.imageUrl }}
@@ -296,7 +335,7 @@ export default function ProgressTrackerScreen() {
                       onPress={() => {
                         // Find the tier that contains this reward
                         const tierIndex = tiers.findIndex(tier => 
-                          tier.rewards.some(r => r.id === reward.id)
+                          tier.rewards.some((r: TierReward) => r.id === reward.id)
                         );
                         
                         if (tierIndex >= 0) {

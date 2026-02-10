@@ -312,7 +312,7 @@ const recipeCollections = [
   {
     id: 'high-protein',
     title: 'High Protein',
-    recipes: recipesData.filter(recipe => recipe.tags.includes('protein')),
+    recipes: recipesData.filter(recipe => recipe.tags?.includes('protein')),
   },
   {
     id: 'breakfast',
@@ -327,7 +327,7 @@ const recipeCollections = [
   {
     id: 'healthy',
     title: 'Healthy Options',
-    recipes: recipesData.filter(recipe => recipe.tags.includes('healthy')),
+    recipes: recipesData.filter(recipe => recipe.tags?.includes('healthy')),
   },
 ];
 
@@ -343,7 +343,10 @@ export default function RecipesScreen() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showGroceryList, setShowGroceryList] = useState(false);
   
-  const { savedRecipes, loadData } = useRecipeStore();
+  const { savedRecipes, loadData } = useRecipeStore() as {
+    savedRecipes: Recipe[];
+    loadData: () => Promise<void>;
+  };
   
   useEffect(() => {
     loadData();
@@ -375,7 +378,7 @@ export default function RecipesScreen() {
     // Search filter
     const matchesSearch = 
       searchQuery === '' || 
-      recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (recipe.name || recipe.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
       recipe.description.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Category filter
@@ -386,7 +389,7 @@ export default function RecipesScreen() {
     // Dietary filter
     const matchesDietary = 
       dietaryFilter === 'all' || 
-      recipe.tags.includes(dietaryFilter) ||
+      recipe.tags?.includes(dietaryFilter) ||
       recipe.dietaryTags.includes(dietaryFilter);
     
     return matchesSearch && matchesCategory && matchesDietary;
@@ -442,11 +445,11 @@ export default function RecipesScreen() {
           </View>
           
           <View style={styles.recipeMeta}>
-            <Text style={styles.recipeMetaText}>{item.nutrition.calories} cal</Text>
+            <Text style={styles.recipeMetaText}>{item.nutrition?.calories || item.calories} cal</Text>
           </View>
           
           <View style={styles.recipeMeta}>
-            <Text style={styles.recipeMetaText}>{item.nutrition.protein}g protein</Text>
+            <Text style={styles.recipeMetaText}>{item.nutrition?.protein || item.protein}g protein</Text>
           </View>
         </View>
         
@@ -490,8 +493,8 @@ export default function RecipesScreen() {
           >
             <Image source={{ uri: recipe.imageUrl }} style={styles.collectionRecipeImage} />
             <View style={styles.collectionRecipeContent}>
-              <Text style={styles.collectionRecipeTitle}>{recipe.name}</Text>
-              <Text style={styles.collectionRecipeCalories}>{recipe.nutrition.calories} Cal</Text>
+              <Text style={styles.collectionRecipeTitle}>{recipe.name || recipe.title}</Text>
+              <Text style={styles.collectionRecipeCalories}>{recipe.nutrition?.calories || recipe.calories} Cal</Text>
             </View>
           </TouchableOpacity>
         )}

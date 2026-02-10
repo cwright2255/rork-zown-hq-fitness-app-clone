@@ -49,8 +49,17 @@ export default function ProductDetailScreen() {
     isFavorite, 
     toggleFavorite, 
     addToRecentlyViewed 
-  } = useShopStore();
-  const { getLatestBodyScan } = useProgressStore();
+  } = useShopStore() as {
+    getProductById: (id: string) => Product | null;
+    getRelatedProducts: (id: string) => Product[];
+    addToCart: (productId: string, variantId?: string, quantity?: number, size?: string) => void;
+    isFavorite: (id: string) => boolean;
+    toggleFavorite: (id: string) => void;
+    addToRecentlyViewed: (id: string) => void;
+  };
+  const { getLatestBodyScan } = useProgressStore() as {
+    getLatestBodyScan: () => any;
+  };
   
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -319,7 +328,7 @@ export default function ProductDetailScreen() {
               
               <View style={styles.ratingContainer}>
                 <Star size={16} color="#F59E0B" fill="#F59E0B" />
-                <Text style={styles.rating}>{product.rating.toFixed(1)}</Text>
+                <Text style={styles.rating}>{(product.rating ?? 0).toFixed(1)}</Text>
                 <Text style={styles.reviews}>({product.reviewCount} reviews)</Text>
               </View>
             </View>
@@ -337,7 +346,7 @@ export default function ProductDetailScreen() {
           </View>
           
           <View style={styles.priceContainer}>
-            <Text style={styles.price}>${currentPrice.toFixed(2)}</Text>
+            <Text style={styles.price}>${(currentPrice ?? 0).toFixed(2)}</Text>
           </View>
           
           {canTryOn && (
@@ -389,7 +398,7 @@ export default function ProductDetailScreen() {
                           !variant.inStock && styles.outOfStockText
                         ]}
                       >
-                        {variant.name} - ${variant.price.toFixed(2)}
+                        {variant.name} - ${(variant.price ?? 0).toFixed(2)}
                         {!variant.inStock && ' (Out of Stock)'}
                       </Text>
                     </TouchableOpacity>
@@ -781,7 +790,7 @@ export default function ProductDetailScreen() {
             <View style={styles.tryOnProductInfo}>
               <Text style={styles.tryOnProductName}>{product.name}</Text>
               <Text style={styles.tryOnProductPrice}>
-                ${selectedVariant ? selectedVariant.price.toFixed(2) : product.price.toFixed(2)}
+                ${selectedVariant ? (selectedVariant.price ?? product.price).toFixed(2) : product.price.toFixed(2)}
               </Text>
             </View>
             

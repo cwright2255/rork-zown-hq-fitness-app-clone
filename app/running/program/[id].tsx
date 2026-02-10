@@ -18,8 +18,15 @@ export default function RunningProgramDetailScreen() {
   const params = useLocalSearchParams();
   const programId = typeof params.id === 'string' ? params.id : '';
   
-  const { runningPrograms, startProgram, activeProgram } = useWorkoutStore();
-  const { user, updateUserRunningProfile } = useUserStore();
+  const { runningPrograms, startProgram, activeProgram } = useWorkoutStore() as {
+    runningPrograms: RunningProgram[];
+    startProgram: (id: string) => void;
+    activeProgram: RunningProgram | null;
+  };
+  const { user, updateUserRunningProfile } = useUserStore() as {
+    user: any;
+    updateUserRunningProfile: (profile: any) => void;
+  };
   
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [program, setProgram] = useState<RunningProgram | null>(null);
@@ -95,7 +102,7 @@ export default function RunningProgramDetailScreen() {
   
   const getWeekSessions = (week: number) => {
     if (!program) return [];
-    return program.sessions.filter(session => session.week === week);
+    return program.sessions.filter((session: any) => session.week === week);
   };
   
   if (!program) {
@@ -136,7 +143,7 @@ export default function RunningProgramDetailScreen() {
               </View>
               <View style={styles.heroStat}>
                 <Clock size={16} color={Colors.text.inverse} />
-                <Text style={styles.heroStatText}>{program.estimatedTimePerSession} min/session</Text>
+                <Text style={styles.heroStatText}>{program.estimatedTimePerSession || 30} min/session</Text>
               </View>
               <View style={styles.heroStat}>
                 <Target size={16} color={Colors.text.inverse} />
@@ -146,10 +153,11 @@ export default function RunningProgramDetailScreen() {
             
             {program.isPopular && (
               <Badge 
-                label="Popular" 
                 variant="success" 
                 style={styles.popularBadge}
-              />
+              >
+                Popular
+              </Badge>
             )}
           </View>
         </View>
@@ -194,11 +202,11 @@ export default function RunningProgramDetailScreen() {
                 <Text style={styles.infoStatLabel}>Difficulty</Text>
               </View>
               <View style={styles.infoStat}>
-                <Text style={styles.infoStatValue}>{program.type}</Text>
+                <Text style={styles.infoStatValue}>{program.type || 'Running'}</Text>
                 <Text style={styles.infoStatLabel}>Type</Text>
               </View>
               <View style={styles.infoStat}>
-                <Text style={styles.infoStatValue}>{program.category}</Text>
+                <Text style={styles.infoStatValue}>{program.category || 'Training'}</Text>
                 <Text style={styles.infoStatLabel}>Category</Text>
               </View>
             </View>
@@ -206,13 +214,14 @@ export default function RunningProgramDetailScreen() {
             <View style={styles.goalsContainer}>
               <Text style={styles.goalsTitle}>Goals:</Text>
               <View style={styles.goalsList}>
-                {program.goals.map((goal, index) => (
+                {(program.goals || [program.goal]).filter((g): g is string => Boolean(g)).map((goal: string, index: number) => (
                   <Badge 
                     key={index}
-                    label={goal}
                     variant="neutral"
                     style={styles.goalBadge}
-                  />
+                  >
+                    {goal}
+                  </Badge>
                 ))}
               </View>
             </View>
@@ -302,7 +311,7 @@ export default function RunningProgramDetailScreen() {
                     
                     <View style={styles.sessionMetaItem}>
                       <Star size={14} color={Colors.warning} />
-                      <Text style={styles.sessionMetaText}>+{session.xpReward} XP</Text>
+                      <Text style={styles.sessionMetaText}>+{session.xpReward || 50} XP</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -342,7 +351,7 @@ export default function RunningProgramDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   errorText: {
     fontSize: 18,
@@ -448,7 +457,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginBottom: 16,
     paddingVertical: 16,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 8,
   },
   infoStat: {
@@ -499,7 +508,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -520,7 +529,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sessionCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,

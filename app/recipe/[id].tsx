@@ -28,7 +28,7 @@ import Button from '@/components/Button';
 import ProgressBar from '@/components/ProgressBar';
 import Card from '@/components/Card';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { Recipe, FoodItem, Meal } from '@/types';
+import { Recipe, FoodItem } from '@/types';
 
 const { width } = Dimensions.get('window');
 
@@ -180,7 +180,12 @@ export default function RecipeDetailScreen() {
   const [showFullNutrition, setShowFullNutrition] = useState(false);
   const [loggedToMeal, setLoggedToMeal] = useState(false);
   
-  const { favoriteFood, addToFavorites, removeFromFavorites, addFoodToMeal } = useNutritionStore();
+  const { favoriteFood, addToFavorites, removeFromFavorites, addFoodToMeal } = useNutritionStore() as {
+    favoriteFood: FoodItem[];
+    addToFavorites: (food: FoodItem) => void;
+    removeFromFavorites: (id: string) => void;
+    addFoodToMeal: (date: string, mealId: string, food: FoodItem) => void;
+  };
   
   useEffect(() => {
     // In a real app, you would fetch the recipe from an API or database
@@ -189,7 +194,7 @@ export default function RecipeDetailScreen() {
       setRecipe(foundRecipe);
       
       // Check if this recipe is in favorites
-      const isInFavorites = favoriteFood.some(food => 
+      const isInFavorites = favoriteFood.some((food: FoodItem) => 
         food.name === foundRecipe.title && food.calories === foundRecipe.calories
       );
       setIsFavorite(isInFavorites);
@@ -207,7 +212,7 @@ export default function RecipeDetailScreen() {
   const handleToggleFavorite = () => {
     if (isFavorite) {
       // Find the food item in favorites with this recipe name
-      const foodItem = favoriteFood.find(food => food.name === recipe.title);
+      const foodItem = favoriteFood.find((food: FoodItem) => food.name === recipe.title);
       if (foodItem) {
         removeFromFavorites(foodItem.id);
       }
@@ -349,10 +354,10 @@ ${recipe.description}`,
           <Text style={styles.servesText}>Serves {recipe.servings}</Text>
           
           <View style={styles.tagsContainer}>
-            {recipe.dietaryTags.map((tag, index) => (
+            {recipe.dietaryTags.map((tag: string, index: number) => (
               <View key={index} style={styles.tagPill}>
                 <Text style={styles.tagText}>
-                  {tag.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  {tag.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                 </Text>
               </View>
             ))}
@@ -439,7 +444,7 @@ ${recipe.description}`,
             <Text style={styles.sectionTitle}>Ingredients</Text>
             
             {recipe.ingredients && recipe.ingredients.length > 0 ? (
-              recipe.ingredients.map((ingredient, index) => (
+              (recipe.ingredients as string[]).map((ingredient: string, index: number) => (
                 <View key={index} style={styles.ingredientItem}>
                   <Text style={styles.ingredientText}>{ingredient}</Text>
                 </View>
@@ -454,7 +459,7 @@ ${recipe.description}`,
             <Text style={styles.sectionTitle}>Instructions</Text>
             
             {recipe.instructions && recipe.instructions.length > 0 ? (
-              recipe.instructions.map((instruction, index) => (
+              recipe.instructions.map((instruction: string, index: number) => (
                 <View key={index} style={styles.instructionItem}>
                   <View style={styles.instructionNumber}>
                     <Text style={styles.instructionNumberText}>{index + 1}</Text>

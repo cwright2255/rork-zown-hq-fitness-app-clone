@@ -109,8 +109,14 @@ export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
-  const { workouts, customWorkouts, favoriteWorkoutIds, toggleFavorite, initializeDefaultWorkouts } = useWorkoutStore();
-  const { user } = useUserStore();
+  const { workouts, customWorkouts, favoriteWorkoutIds, toggleFavorite, initializeDefaultWorkouts } = useWorkoutStore() as {
+    workouts: Workout[];
+    customWorkouts: Workout[];
+    favoriteWorkoutIds: string[];
+    toggleFavorite: (id: string) => void;
+    initializeDefaultWorkouts: () => void;
+  };
+  const { user } = useUserStore() as { user: any };
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

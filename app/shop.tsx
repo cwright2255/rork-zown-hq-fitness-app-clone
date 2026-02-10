@@ -10,7 +10,13 @@ import BottomNavigation from '@/components/BottomNavigation';
 const { width, height: windowHeight } = Dimensions.get('window');
 
 export default function ShopScreen() {
-  const { products, collections, fetchProducts, fetchCollections, getCartItemCount } = useShopStore();
+  const { products, collections, fetchProducts, fetchCollections, getCartItemCount } = useShopStore() as {
+    products: any[];
+    collections: any[];
+    fetchProducts: () => Promise<void>;
+    fetchCollections: () => Promise<void>;
+    getCartItemCount: () => number;
+  };
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);

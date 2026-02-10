@@ -9,6 +9,12 @@ import { Product, ProductVariant } from '@/types';
 import BottomNavigation from '@/components/BottomNavigation';
 
 export default function CartScreen() {
+  interface CartItem {
+    productId: string;
+    variantId?: string;
+    quantity: number;
+  }
+  
   const { 
     products, 
     cart, 
@@ -16,7 +22,14 @@ export default function CartScreen() {
     updateCartItemQuantity, 
     clearCart, 
     getCartTotal 
-  } = useShopStore();
+  } = useShopStore() as {
+    products: Product[];
+    cart: CartItem[];
+    removeFromCart: (index: number) => void;
+    updateCartItemQuantity: (index: number, quantity: number) => void;
+    clearCart: () => void;
+    getCartTotal: () => number;
+  };
   
   const [cartItems, setCartItems] = useState<{
     product: Product;
@@ -27,12 +40,12 @@ export default function CartScreen() {
   
   useEffect(() => {
     // Map cart items to products and variants
-    const items = cart.map((item, index) => {
-      const product = products.find(p => p.id === item.productId);
+    const items = cart.map((item: CartItem, index: number) => {
+      const product = products.find((p: Product) => p.id === item.productId);
       if (!product) return null;
       
       const variant = item.variantId 
-        ? product.variants?.find(v => v.id === item.variantId) 
+        ? product.variants?.find((v: ProductVariant) => v.id === item.variantId) 
         : undefined;
       
       return {
@@ -154,7 +167,7 @@ export default function CartScreen() {
                     )}
                     
                     <Text style={styles.itemPrice}>
-                      ${(item.variant ? item.variant.price : item.product.price).toFixed(2)}
+                      ${(item.variant?.price ?? item.product.price).toFixed(2)}
                     </Text>
                     
                     <View style={styles.itemActions}>

@@ -22,7 +22,11 @@ export default function SpotifyIntegration() {
     isConnected, 
     user, 
     disconnectSpotify 
-  } = useSpotifyStore();
+  } = useSpotifyStore() as {
+    isConnected: boolean;
+    user: any;
+    disconnectSpotify: () => void;
+  };
   
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

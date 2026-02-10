@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndi
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useShopStore } from '@/store/shopStore';
-import { Product, Collection } from '@/types';
+import { Product, Collection, ProductVariant } from '@/types';
 import ProductCard from '@/components/ProductCard';
 import Colors from '@/constants/colors';
 import { Shirt } from 'lucide-react-native';
@@ -11,7 +11,13 @@ import { Shirt } from 'lucide-react-native';
 export default function CollectionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { getCollectionById, getProductsByCollection, fetchProducts, fetchCollections, addToCart } = useShopStore();
+  const { getCollectionById, getProductsByCollection, fetchProducts, fetchCollections, addToCart } = useShopStore() as {
+    getCollectionById: (id: string) => Collection | null;
+    getProductsByCollection: (id: string) => Product[];
+    fetchProducts: () => Promise<void>;
+    fetchCollections: () => Promise<void>;
+    addToCart: (productId: string, variantId?: string, quantity?: number) => void;
+  };
   
   const [collection, setCollection] = useState<Collection | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -48,11 +54,11 @@ export default function CollectionScreen() {
   
   const handleTryOn = (product: Product) => {
     router.push({
-      pathname: `/shop/product/try-on`,
+      pathname: `/shop/product/${product.id}` as any,
       params: { 
         productId: product.id,
         variantId: product.variants?.[0]?.id || '',
-        size: product.variants?.[0]?.attributes?.size || ''
+        size: (product.variants?.[0]?.attributes as any)?.size || ''
       }
     });
   };
@@ -69,7 +75,7 @@ export default function CollectionScreen() {
     return (
       <View style={styles.header}>
         <Image 
-          source={{ uri: collection.imageUrl }} 
+          source={{ uri: collection.imageUrl || collection.image }} 
           style={styles.bannerImage}
           resizeMode="cover"
         />

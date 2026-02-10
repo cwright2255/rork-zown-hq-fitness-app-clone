@@ -31,8 +31,8 @@ interface Badge {
   description: string;
   imageUrl: string;
   category: string;
-  rarity: string;
-  isUnlocked: boolean;
+  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  isUnlocked?: boolean;
   unlockedAt?: string;
 }
 

@@ -16,8 +16,12 @@ export default function RunningSessionDetailScreen() {
   const sessionId = typeof params.id === 'string' ? params.id : '';
   const programId = typeof params.programId === 'string' ? params.programId : '';
   
-  const { runningPrograms } = useWorkoutStore();
-  const { user } = useUserStore();
+  const { runningPrograms } = useWorkoutStore() as {
+    runningPrograms: RunningProgram[];
+  };
+  const { user } = useUserStore() as {
+    user: any;
+  };
   
   const [session, setSession] = useState<RunningSession | null>(null);
   const [program, setProgram] = useState<RunningProgram | null>(null);
@@ -26,10 +30,10 @@ export default function RunningSessionDetailScreen() {
   
   useEffect(() => {
     // Find the program and session
-    const foundProgram = runningPrograms.find(p => p.id === programId);
+    const foundProgram = runningPrograms.find((p: RunningProgram) => p.id === programId);
     if (foundProgram) {
       setProgram(foundProgram);
-      const foundSession = foundProgram.sessions.find(s => s.id === sessionId);
+      const foundSession = foundProgram.sessions.find((s: RunningSession) => s.id === sessionId);
       setSession(foundSession || null);
     }
     
@@ -209,7 +213,7 @@ export default function RunningSessionDetailScreen() {
           <Card style={styles.instructionsCard}>
             <Text style={styles.cardTitle}>Instructions</Text>
             <View style={styles.instructionsList}>
-              {session.instructions.map((instruction, index) => (
+              {(session.instructions || []).map((instruction: string, index: number) => (
                 <View key={index} style={styles.instructionItem}>
                   <View style={styles.instructionNumber}>
                     <Text style={styles.instructionNumberText}>{index + 1}</Text>

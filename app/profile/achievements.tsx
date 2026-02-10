@@ -13,7 +13,12 @@ export default function AchievementsScreen() {
     getUnlockedAchievements, 
     getInProgressAchievements, 
     initializeAchievements 
-  } = useAchievementStore();
+  } = useAchievementStore() as {
+    achievements: Achievement[];
+    getUnlockedAchievements: () => Achievement[];
+    getInProgressAchievements: () => Achievement[];
+    initializeAchievements: () => void;
+  };
   
   useEffect(() => {
     // Make sure achievements are initialized

@@ -95,13 +95,13 @@ export default function SupportScreen() {
     <ScrollView style={styles.content}>
       <View style={styles.quickActions}>
         <TouchableOpacity style={styles.quickActionButton} onPress={handlePhoneCall}>
-          <Phone size={24} color={Colors.primary.main} />
+          <Phone size={24} color={Colors.primary} />
           <Text style={styles.quickActionText}>Call Support</Text>
           <Text style={styles.quickActionSubtext}>1-800-FITNESS</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.quickActionButton} onPress={handleEmail}>
-          <Mail size={24} color={Colors.primary.main} />
+          <Mail size={24} color={Colors.primary} />
           <Text style={styles.quickActionText}>Email Us</Text>
           <Text style={styles.quickActionSubtext}>support@fitnessapp.com</Text>
         </TouchableOpacity>
@@ -112,7 +112,7 @@ export default function SupportScreen() {
       {faqData.map((faq) => (
         <View key={faq.id} style={styles.faqItem}>
           <TouchableOpacity style={styles.faqQuestion}>
-            <HelpCircle size={20} color={Colors.primary.main} />
+            <HelpCircle size={20} color={Colors.primary} />
             <Text style={styles.faqQuestionText}>{faq.question}</Text>
             <ChevronRight size={16} color={Colors.text.secondary} />
           </TouchableOpacity>
@@ -124,13 +124,13 @@ export default function SupportScreen() {
         <Text style={styles.sectionTitle}>Additional Resources</Text>
         
         <TouchableOpacity style={styles.resourceItem}>
-          <Book size={20} color={Colors.primary.main} />
+          <Book size={20} color={Colors.primary} />
           <Text style={styles.resourceText}>User Guide</Text>
           <ExternalLink size={16} color={Colors.text.secondary} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.resourceItem}>
-          <MessageCircle size={20} color={Colors.primary.main} />
+          <MessageCircle size={20} color={Colors.primary} />
           <Text style={styles.resourceText}>Community Forum</Text>
           <ExternalLink size={16} color={Colors.text.secondary} />
         </TouchableOpacity>
@@ -223,7 +223,7 @@ export default function SupportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeTab: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   tabText: {
     fontSize: 14,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   quickActionButton: {
     flex: 1,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   faqItem: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   input: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   submitButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   responseTime: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginTop: 24,

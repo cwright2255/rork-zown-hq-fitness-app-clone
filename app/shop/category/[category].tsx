@@ -11,7 +11,11 @@ import { Shirt } from 'lucide-react-native';
 export default function CategoryScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
   const router = useRouter();
-  const { getProductsByCategory, fetchProducts, addToCart } = useShopStore();
+  const { getProductsByCategory, fetchProducts, addToCart } = useShopStore() as {
+    getProductsByCategory: (category: string) => Product[];
+    fetchProducts: () => Promise<void>;
+    addToCart: (productId: string, variantId?: string, quantity?: number) => void;
+  };
   
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,11 +43,11 @@ export default function CategoryScreen() {
   
   const handleTryOn = (product: Product) => {
     router.push({
-      pathname: `/shop/product/try-on`,
+      pathname: `/shop/product/${product.id}` as any,
       params: { 
         productId: product.id,
         variantId: product.variants?.[0]?.id || '',
-        size: product.variants?.[0]?.attributes?.size || ''
+        size: (product.variants?.[0]?.attributes as any)?.size || ''
       }
     });
   };

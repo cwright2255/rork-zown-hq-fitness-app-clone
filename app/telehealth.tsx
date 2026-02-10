@@ -17,7 +17,12 @@ import { useTelehealthStore } from '@/store/telehealthStore';
 export default function TelehealthScreen() {
   const [activeTab, setActiveTab] = useState<'consultations' | 'resources'>('consultations');
   
-  const { doctors, appointments, resources, bookAppointment } = useTelehealthStore();
+  const { doctors, appointments, resources, bookAppointment } = useTelehealthStore() as {
+    doctors: any[];
+    appointments: any[];
+    resources: any[];
+    bookAppointment: (doctorId: string, timeSlot: string) => void;
+  };
 
   const handleBookAppointment = (doctorId: string, timeSlot: string) => {
     Alert.alert(
@@ -40,7 +45,7 @@ export default function TelehealthScreen() {
     <ScrollView style={styles.content}>
       <Text style={styles.sectionTitle}>Available Doctors</Text>
       
-      {doctors.map((doctor) => (
+      {doctors.map((doctor: any) => (
         <View key={doctor.id} style={styles.doctorCard}>
           <Image source={{ uri: doctor.image }} style={styles.doctorImage} />
           
@@ -76,7 +81,7 @@ export default function TelehealthScreen() {
           <Text style={styles.emptyStateText}>No upcoming appointments</Text>
         </View>
       ) : (
-        appointments.map((appointment) => (
+        appointments.map((appointment: any) => (
           <View key={appointment.id} style={styles.appointmentCard}>
             <View style={styles.appointmentInfo}>
               <Text style={styles.appointmentDoctor}>{appointment.doctorName}</Text>
@@ -96,7 +101,7 @@ export default function TelehealthScreen() {
 
   const renderResources = () => (
     <ScrollView style={styles.content}>
-      {resources.map((resource) => (
+      {resources.map((resource: any) => (
         <TouchableOpacity key={resource.id} style={styles.resourceCard}>
           <Image source={{ uri: resource.image }} style={styles.resourceImage} />
           
@@ -146,7 +151,7 @@ export default function TelehealthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -170,7 +175,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeTab: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
   },
   tabText: {
     fontSize: 14,
@@ -192,7 +197,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   doctorCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -236,13 +241,13 @@ const styles = StyleSheet.create({
   doctorPrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.primary.main,
+    color: Colors.primary,
   },
   doctorActions: {
     justifyContent: 'center',
   },
   bookButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -256,7 +261,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   emptyState: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 32,
     alignItems: 'center',
@@ -266,7 +271,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   appointmentCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -293,7 +298,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   joinButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -307,7 +312,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   resourceCard: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -345,7 +350,7 @@ const styles = StyleSheet.create({
   },
   resourceCategory: {
     fontSize: 12,
-    color: Colors.primary.main,
+    color: Colors.primary,
     fontWeight: '500',
   },
 });

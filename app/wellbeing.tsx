@@ -568,6 +568,8 @@ const styles = StyleSheet.create({
   overallMoodIndicator: { alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 24, backgroundColor: `${Colors.primary}10` },
   overallMoodEmoji: { fontSize: 24 },
   historyMetricsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Colors.spacing?.lg ?? 16, paddingHorizontal: Colors.spacing?.xs ?? 4 },
+  historyMetric: { alignItems: 'center', flex: 1, paddingVertical: 8, paddingHorizontal: 4 },
+  historyDayText: { fontSize: 12, color: Colors.text.secondary },
   metricIconContainer: { width: 24, height: 24, borderRadius: 12, backgroundColor: `${Colors.primary}10`, alignItems: 'center', justifyContent: 'center', marginBottom: Colors.spacing?.xs ?? 4 },
   metricValueContainer: { flexDirection: 'row', alignItems: 'baseline' },
   metricMaxValue: { fontSize: 10, color: Colors.text.tertiary, marginLeft: 2 },

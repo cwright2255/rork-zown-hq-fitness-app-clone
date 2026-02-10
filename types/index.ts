@@ -141,3 +141,232 @@ export interface TrackingEvent {
   timestamp?: string;
   completed: boolean;
 }
+
+export type SubscriptionTier = 'free' | 'standard' | 'elite';
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  category: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  isUnlocked?: boolean;
+  unlockedAt?: string;
+}
+
+export interface AchievementCondition {
+  type: string;
+  target: number;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  xpReward: number;
+  condition: AchievementCondition;
+  unlockedAt?: string;
+  isUnlocked?: boolean;
+  progress?: number;
+}
+
+export interface ProgressEntry {
+  id: string;
+  userId: string;
+  date: string;
+  weight?: number;
+  bodyFat?: number;
+  measurements?: {
+    chest?: number;
+    waist?: number;
+    hips?: number;
+    arms?: number;
+    thighs?: number;
+  };
+  photos?: string[];
+  notes?: string;
+}
+
+export interface ExpActivity {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  timestamp: string;
+}
+
+export interface ExpBreakdown {
+  workouts: number;
+  nutrition: number;
+  social: number;
+  challenges: number;
+  streaks: number;
+}
+
+export interface RecipeIngredient {
+  id: string;
+  name: string;
+  amount: number;
+  unit: string;
+}
+
+export interface RecipeNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+}
+
+export interface Recipe {
+  id: string;
+  name?: string;
+  title: string;
+  description: string;
+  prepTime: number;
+  cookTime?: number;
+  servings: number;
+  difficulty?: string;
+  category: string;
+  tags?: string[];
+  dietaryTags: string[];
+  imageUrl?: string;
+  image: string;
+  ingredients: string[] | RecipeIngredient[];
+  instructions: string[];
+  nutrition?: RecipeNutrition;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  rating?: number;
+  reviewCount?: number;
+  dateAdded?: string;
+  sourceUrl?: string;
+  sourcePlatform?: string;
+  author?: string;
+  isFavorite?: boolean;
+  addedToGroceryList?: boolean;
+}
+
+export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface RunningInterval {
+  type: string;
+  duration: number;
+  pace?: string;
+  repeat?: number;
+  intensity?: 'low' | 'medium' | 'high';
+}
+
+export interface RunningSession {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  duration: number;
+  distance?: number;
+  pace?: number;
+  week?: number;
+  xpReward?: number;
+  targetPace?: string;
+  instructions?: string[];
+  intervals?: RunningInterval[];
+}
+
+export interface RunningProgram {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  totalSessions: number;
+  difficulty: string;
+  goal?: string;
+  goals?: string[];
+  type?: string;
+  category?: string;
+  imageUrl: string;
+  estimatedTimePerSession?: number;
+  isPopular?: boolean;
+  sessions: RunningSession[];
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  price?: number;
+  size?: string;
+  color?: string;
+  inStock?: boolean;
+  imageUrl?: string;
+  attributes?: {
+    size?: string;
+    color?: string;
+    [key: string]: any;
+  };
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  salePrice?: number;
+  image: string;
+  imageUrl?: string;
+  images?: string[];
+  category: string;
+  tags?: string[];
+  rating?: number;
+  reviewCount?: number;
+  inStock?: boolean;
+  variants?: ProductVariant[];
+}
+
+export interface ShopCollection {
+  id: string;
+  name: string;
+  description?: string;
+  image: string;
+  imageUrl?: string;
+  categories?: string[];
+  products: string[];
+}
+
+export type Collection = ShopCollection;
+
+export interface Exercise {
+  id: string;
+  name: string;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  restTime?: number;
+  rest?: number;
+  duration?: number;
+  description?: string;
+  imageUrl?: string;
+  difficulty?: string;
+  muscleGroups?: string[];
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: string;
+  duration: number;
+  category: string;
+  equipment: string[];
+  muscleGroups: string[];
+  calories: number;
+  xpReward: number;
+  imageUrl: string;
+  exercises: Exercise[];
+  isCustom: boolean;
+  completedAt?: string;
+  caloriesBurned?: number;
+}

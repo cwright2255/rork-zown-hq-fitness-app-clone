@@ -9,7 +9,9 @@ import Card from '@/components/Card';
 import { useProgressStore } from '@/store/progressStore';
 
 export default function BodyScanScreen() {
-  const { addEntry } = useProgressStore();
+  const { addEntry } = useProgressStore() as {
+    addEntry: (entry: any) => void;
+  };
   const [step, setStep] = useState<number>(1);
   const [measurements, setMeasurements] = useState<{ weight: string; height: string; chest: string; waist: string; hips: string; inseam: string; shoulders: string; arms: string; }>({
     weight: '',

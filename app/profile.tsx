@@ -22,18 +22,42 @@ import Button from '@/components/Button';
 import BadgeItem from '@/components/BadgeItem';
 import ExpBreakdownChart from '@/components/ExpBreakdownChart';
 import ExpActivityList from '@/components/ExpActivityList';
-import { Badge, SubscriptionTier } from '@/types';
+import { Badge, SubscriptionTier, Achievement, ProgressEntry, ExpActivity, ExpBreakdown } from '@/types';
 import { getSubscriptionPlan } from '@/constants/subscriptionPlans';
 import { authService } from '@/services/authService';
 
 export default function ProfileScreen() {
-  const { user, logout, upgradeSubscription } = useUserStore();
-  const { achievements, getUnlockedAchievements } = useAchievementStore();
-  const { completedWorkouts } = useWorkoutStore();
-  const { entries, getLatestEntry, addEntry } = useProgressStore();
-  const { expSystem, getExpBreakdown, getRecentActivities, getExpToNextLevel } = useExpStore();
-  const { badges, getUnlockedBadges } = useBadgeStore();
-  const { currentTier, getCurrentTierProgress } = useChampionPassStore();
+  const { user, logout, upgradeSubscription } = useUserStore() as {
+    user: any;
+    logout: () => Promise<void>;
+    upgradeSubscription: (tier: SubscriptionTier) => void;
+  };
+  const { achievements, getUnlockedAchievements } = useAchievementStore() as {
+    achievements: Achievement[];
+    getUnlockedAchievements: () => Achievement[];
+  };
+  const { completedWorkouts } = useWorkoutStore() as {
+    completedWorkouts: any[];
+  };
+  const { entries, getLatestEntry, addEntry } = useProgressStore() as {
+    entries: ProgressEntry[];
+    getLatestEntry: () => ProgressEntry | null;
+    addEntry: (entry: ProgressEntry) => void;
+  };
+  const { expSystem, getExpBreakdown, getRecentActivities, getExpToNextLevel } = useExpStore() as {
+    expSystem: any;
+    getExpBreakdown: () => ExpBreakdown;
+    getRecentActivities: (count: number) => ExpActivity[];
+    getExpToNextLevel: () => number;
+  };
+  const { badges, getUnlockedBadges } = useBadgeStore() as {
+    badges: Badge[];
+    getUnlockedBadges: () => Badge[];
+  };
+  const { currentTier, getCurrentTierProgress } = useChampionPassStore() as {
+    currentTier: any;
+    getCurrentTierProgress: (exp: number) => number;
+  };
   
   const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'progress', 'badges', 'exp'
   const [showMeasurementForm, setShowMeasurementForm] = useState(false);
@@ -385,7 +409,7 @@ export default function ProfileScreen() {
       </View>
       
       {recentAchievements.length > 0 ? (
-        recentAchievements.map(achievement => (
+        recentAchievements.map((achievement: Achievement) => (
           <AchievementCard
             key={achievement.id}
             achievement={achievement}
@@ -697,7 +721,7 @@ export default function ProfileScreen() {
       </View>
       
       {entries.length > 0 ? (
-        entries.map((entry, index) => (
+        entries.map((entry: ProgressEntry, index: number) => (
           <Card key={entry.id} variant="elevated" style={styles.progressEntryCard}>
             <View style={styles.progressEntryHeader}>
               <Text style={styles.progressEntryDate}>
