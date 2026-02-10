@@ -5,6 +5,25 @@ import Card from './Card';
 import ProgressBar from './ProgressBar';
 import { useNutritionStore } from '@/store/nutritionStore';
 
+interface NutritionStoreState {
+  getDailyNutrition: (date: string) => {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+    sugar?: number;
+    sodium?: number;
+  };
+  dailyGoals: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    water: number;
+  };
+}
+
 interface NutritionSummaryProps {
   date?: string;
   calories?: {
@@ -37,7 +56,7 @@ const NutritionSummary: React.FC<NutritionSummaryProps> = ({
   macros: propMacros,
   nutritionalScore,
 }) => {
-  const { getDailyNutrition, dailyGoals } = useNutritionStore();
+  const { getDailyNutrition, dailyGoals } = useNutritionStore() as NutritionStoreState;
   
   // If date is provided, get nutrition data for that date
   const dailyNutrition = date ? getDailyNutrition(date) : null;
@@ -267,7 +286,7 @@ const styles = StyleSheet.create({
   nutriScoreGrade: {
     width: '18%',
     paddingVertical: Colors.spacing.xs + 2,
-    borderRadius: Colors.radius.xs,
+    borderRadius: Colors.radius.small,
     alignItems: 'center',
   },
   nutriScoreGradeText: {

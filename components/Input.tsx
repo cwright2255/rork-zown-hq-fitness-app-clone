@@ -8,8 +8,6 @@ import {
   TouchableOpacity,
   ViewStyle,
   TextStyle,
-  NativeSyntheticEvent,
-  TextInputFocusEventData,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -36,23 +34,21 @@ const Input: React.FC<InputProps> = ({
   labelStyle,
   errorStyle,
   secureTextEntry,
+  onFocus,
+  onBlur,
   ...rest
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
   
-  const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleFocus: TextInputProps['onFocus'] = (e) => {
     setIsFocused(true);
-    if (rest.onFocus) {
-      rest.onFocus(e);
-    }
+    onFocus?.(e);
   };
   
-  const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleBlur: TextInputProps['onBlur'] = (e) => {
     setIsFocused(false);
-    if (rest.onBlur) {
-      rest.onBlur(e);
-    }
+    onBlur?.(e);
   };
   
   const togglePasswordVisibility = () => {

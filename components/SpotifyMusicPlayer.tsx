@@ -5,7 +5,21 @@ import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { SpotifyTrack } from '@/types/spotify';
+import { SpotifyTrack, SpotifyArtist } from '@/types/spotify';
+
+interface SpotifyStoreState {
+  isConnected: boolean;
+  currentTrack: SpotifyTrack | null;
+  playTrack: (uri: string) => Promise<void>;
+  pauseTrack: () => Promise<void>;
+  nextTrack: () => Promise<void>;
+  previousTrack: () => Promise<void>;
+  updateCurrentTrack: () => Promise<void>;
+  getRecommendationsForWorkout: (workoutType: string) => Promise<SpotifyTrack[]>;
+  getSpotifyAuthUrl: () => Promise<string>;
+  connectSpotifyImplicit: (urlFragment: string) => Promise<boolean>;
+  isLoading: boolean;
+}
 
 interface SpotifyMusicPlayerProps {
   workoutType?: 'cardio' | 'strength' | 'yoga' | 'running';
@@ -25,7 +39,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     getSpotifyAuthUrl,
     connectSpotifyImplicit,
     isLoading,
-  } = useSpotifyStore();
+  } = useSpotifyStore() as SpotifyStoreState;
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [recommendations, setRecommendations] = useState<SpotifyTrack[]>([]);
@@ -176,7 +190,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
                 {currentTrack.name}
               </Text>
               <Text style={styles.artistName} numberOfLines={1}>
-                {currentTrack.artists.map(artist => artist.name).join(', ')}
+                {currentTrack.artists.map((artist: SpotifyArtist) => artist.name).join(', ')}
               </Text>
             </View>
           </View>

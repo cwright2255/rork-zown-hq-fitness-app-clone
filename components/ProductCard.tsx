@@ -4,7 +4,7 @@ import { Star, ShoppingCart, Shirt } from 'lucide-react-native';
 import { Product } from '@/types';
 import Colors from '@/constants/colors';
 import Card from './Card';
-import { useRouter } from 'expo-router';
+import { useRouter, Href } from 'expo-router';
 
 interface ProductCardProps {
   product: Product;
@@ -30,9 +30,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const handleTryOn = (e: RNGestureResponderEvent) => {
     e.stopPropagation();
     router.push({
-      pathname: `/shop/product/${product.id}`,
+      pathname: `/shop/product/${product.id}` as Href,
       params: { showTryOn: 'true' }
-    });
+    } as any);
   };
   
   const canTryOn = category === 'apparel' || category === 'footwear';
@@ -78,7 +78,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           
           <View style={styles.ratingContainer}>
             <Star size={14} color={Colors.warning} fill={Colors.warning} />
-            <Text style={styles.rating}>{rating.toFixed(1)}</Text>
+            <Text style={styles.rating}>{(rating ?? 0).toFixed(1)}</Text>
             <Text style={styles.reviews}>({reviewCount})</Text>
           </View>
           

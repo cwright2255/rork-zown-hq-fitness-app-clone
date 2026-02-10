@@ -45,10 +45,11 @@ const RunningProgramCard = ({ program, onPress, userProgress }: RunningProgramCa
       
       {program.isPopular && (
         <Badge 
-          label="Popular" 
           variant="success" 
           style={styles.popularBadge}
-        />
+        >
+          Popular
+        </Badge>
       )}
       
       <View style={styles.content}>

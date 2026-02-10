@@ -1,7 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useUserStore } from '@/store/userStore';
-import { StreakData } from '@/types';
+
+interface StreakHistoryEntry {
+  date: string;
+  completed: boolean;
+}
+
+interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  streakHistory: StreakHistoryEntry[];
+}
+
+interface UserStoreState {
+  user: {
+    streakData?: StreakData;
+  } | null;
+}
 
 interface StreakCalendarProps {
   compact?: boolean;
@@ -9,7 +25,7 @@ interface StreakCalendarProps {
 }
 
 const StreakCalendar = ({ compact = false, streakData }: StreakCalendarProps) => {
-  const { user } = useUserStore();
+  const { user } = useUserStore() as UserStoreState;
   
   // Use provided streakData or get it from user store
   const streakInfo = streakData || (user ? user.streakData : { currentStreak: 0, longestStreak: 0, streakHistory: [] });

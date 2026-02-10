@@ -43,12 +43,12 @@ const ProgressBar = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    borderRadius: Colors.radius.xs,
+    borderRadius: Colors.radius.small,
     overflow: 'hidden',
   },
   progress: {
     height: '100%',
-    borderRadius: Colors.radius.xs,
+    borderRadius: Colors.radius.small,
   },
 });
 

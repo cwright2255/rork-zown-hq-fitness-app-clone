@@ -6,6 +6,10 @@ import Button from '@/components/Button';
 import recipeExtractionService from '@/services/recipeExtractionService';
 import { useRecipeStore } from '@/store/recipeStore';
 
+interface RecipeStoreState {
+  addRecipe: (recipe: any) => Promise<void>;
+}
+
 interface RecipeImportModalProps {
   visible: boolean;
   onClose: () => void;
@@ -18,7 +22,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }: Recip
   const [textInput, setTextInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { addRecipe } = useRecipeStore();
+  const { addRecipe } = useRecipeStore() as RecipeStoreState;
 
   const handleImportFromUrl = async () => {
     if (!urlInput.trim()) {

@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   progressBar: {
-    borderRadius: Colors.radius.xs,
+    borderRadius: Colors.radius.small,
     backgroundColor: `${Colors.primary}20`,
   },
   nextLevelContainer: {
