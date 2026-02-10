@@ -18,6 +18,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useCommunityStore } from '@/store/communityStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import type { WorkoutState, UserState, ExpState, CommunityState, SpotifyState } from '@/types/stores';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -70,12 +71,12 @@ export default function WorkoutsScreen() {
     registerForRace,
     getRunningStats,
     getPersonalBests
-  } = useWorkoutStore();
+  } = useWorkoutStore() as WorkoutState;
   
-  const { user, updateUserRunningProfile } = useUserStore();
-  const { expSystem } = useExpStore();
-  const { runningChallenges: communityRunningChallenges, initializeRunningChallenges } = useCommunityStore();
-  const { isConnected: isSpotifyConnected, workoutPlaylists } = useSpotifyStore();
+  const { user, updateUserRunningProfile } = useUserStore() as UserState;
+  const { expSystem } = useExpStore() as ExpState;
+  const { runningChallenges: communityRunningChallenges, initializeRunningChallenges } = useCommunityStore() as CommunityState;
+  const { isConnected: isSpotifyConnected, workoutPlaylists } = useSpotifyStore() as SpotifyState;
   
   // Memoize static data
   const tabs = useMemo(() => [
@@ -1058,13 +1059,13 @@ export default function WorkoutsScreen() {
           <Text style={styles.challengeDescription}>{challenge.description}</Text>
           <View style={styles.challengeProgress}>
             <Text style={styles.challengeProgressText}>
-              Progress: {challenge.progress || 0}/{challenge.target} {challenge.unit}
+              Progress: {challenge.progress || 0}/{challenge.target || 0} {challenge.unit}
             </Text>
             <View style={styles.challengeProgressBar}>
               <View 
                 style={[
                   styles.challengeProgressFill, 
-                  { width: `${((challenge.progress || 0) / challenge.target) * 100}%` }
+                  { width: `${((challenge.progress || 0) / (challenge.target || 1)) * 100}%` }
                 ]} 
               />
             </View>
