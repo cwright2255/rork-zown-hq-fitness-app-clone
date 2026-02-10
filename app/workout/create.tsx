@@ -10,16 +10,27 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { Workout, Exercise, WorkoutCategory } from '@/types';
 
+interface ExerciseInput {
+  name?: string;
+  description?: string;
+  muscleGroups?: string[];
+  sets?: number;
+  reps?: number;
+  restTime?: number;
+  equipment?: string[];
+  duration?: number;
+}
+
 export default function CreateWorkoutScreen() {
-  const { addWorkout } = useWorkoutStore();
-  const { updateAchievementProgress } = useAchievementStore();
+  const { addWorkout } = useWorkoutStore() as { addWorkout: (workout: Workout) => void };
+  const { updateAchievementProgress } = useAchievementStore() as { updateAchievementProgress: (id: string, progress: number) => void };
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<WorkoutCategory>('strength');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [duration, setDuration] = useState('30');
-  const [exercises, setExercises] = useState<Partial<Exercise>[]>([
+  const [exercises, setExercises] = useState<ExerciseInput[]>([
     {
       name: '',
       description: '',
@@ -60,7 +71,7 @@ export default function CreateWorkoutScreen() {
         reps: 10,
         restTime: 60,
         equipment: [],
-      }
+      } as ExerciseInput
     ]);
   };
   
@@ -75,7 +86,7 @@ export default function CreateWorkoutScreen() {
     setExercises(updatedExercises);
   };
   
-  const handleExerciseChange = (index: number, field: keyof Exercise, value: any) => {
+  const handleExerciseChange = (index: number, field: keyof ExerciseInput, value: string | number | string[]) => {
     const updatedExercises = [...exercises];
     updatedExercises[index] = {
       ...updatedExercises[index],
@@ -149,7 +160,6 @@ export default function CreateWorkoutScreen() {
         restTime: exercise.restTime!,
         equipment: exercise.equipment || [],
       })),
-      createdBy: 'user',
       isCustom: true,
       xpReward: calculateXpReward(difficulty, parseInt(duration)),
     };
@@ -186,7 +196,7 @@ export default function CreateWorkoutScreen() {
             <Button
               title="Save"
               onPress={handleSaveWorkout}
-              variant="text"
+              variant="primary"
               size="small"
             />
           ),
@@ -343,7 +353,7 @@ export default function CreateWorkoutScreen() {
             
             <Input
               label="Equipment (optional)"
-              value={exercise.equipment?.join(', ')}
+              value={exercise.equipment?.join(', ') || ''}
               onChangeText={(value) => handleExerciseChange(index, 'equipment', value.split(',').map(e => e.trim()))}
               placeholder="Enter equipment, separated by commas"
             />

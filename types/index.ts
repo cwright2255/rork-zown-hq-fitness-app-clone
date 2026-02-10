@@ -351,7 +351,10 @@ export interface Exercise {
   imageUrl?: string;
   difficulty?: string;
   muscleGroups?: string[];
+  equipment?: string[];
 }
+
+export type WorkoutCategory = 'strength' | 'cardio' | 'flexibility' | 'hiit' | 'yoga' | 'pilates' | 'crossfit' | 'bodyweight' | 'custom';
 
 export interface Workout {
   id: string;
@@ -360,13 +363,45 @@ export interface Workout {
   difficulty: string;
   duration: number;
   category: string;
-  equipment: string[];
-  muscleGroups: string[];
-  calories: number;
-  xpReward: number;
-  imageUrl: string;
+  equipment?: string[];
+  muscleGroups?: string[];
+  calories?: number;
+  xpReward?: number;
+  imageUrl?: string;
   exercises: Exercise[];
-  isCustom: boolean;
+  isCustom?: boolean;
   completedAt?: string;
   caloriesBurned?: number;
+}
+
+export interface CompletedWorkout extends Workout {
+  workoutId: string;
+  date: string;
+}
+
+export interface Coordinate {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+  altitude?: number;
+  speed?: number;
+}
+
+export interface LocationServiceState {
+  isTracking: boolean;
+  coordinates: Coordinate[];
+  currentLocation: {
+    coords: {
+      latitude: number;
+      longitude: number;
+      altitude: number | null;
+      accuracy: number;
+      heading: number | null;
+      speed: number | null;
+    };
+    timestamp: number;
+  } | null;
+  distance: number;
+  speed: number;
+  averageSpeed: number;
 }

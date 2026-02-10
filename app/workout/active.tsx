@@ -30,8 +30,8 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { Workout, Exercise, Coordinate, CompletedWorkout } from '@/types';
-import locationService, { LocationServiceState } from '@/services/locationService';
+import { Workout, Exercise, Coordinate, CompletedWorkout, LocationServiceState, RunningProgram, RunningSession } from '@/types';
+import locationService from '@/services/locationService';
 import voiceCommandService from '@/services/voiceCommandService';
 import formAnalysisService from '@/services/formAnalysisService';
 import smartRestService from '@/services/smartRestService';
@@ -45,10 +45,20 @@ export default function ActiveWorkoutScreen() {
   const sessionId = typeof params.sessionId === 'string' ? params.sessionId : '';
   const programId = typeof params.programId === 'string' ? params.programId : '';
   const mode = typeof params.mode === 'string' ? params.mode : (typeof params.type === 'string' ? params.type : 'workout');
-  const { workouts, customWorkouts, addCompletedWorkout, currentRun, startRun, finishRun, updateRunStats, initializeDefaultWorkouts, runningPrograms } = useWorkoutStore();
-  const { addXp } = useUserStore();
-  const { checkAchievements } = useAchievementStore();
-  const { isConnected: isSpotifyConnected } = useSpotifyStore();
+  const { workouts, customWorkouts, addCompletedWorkout, currentRun, startRun, finishRun, updateRunStats, initializeDefaultWorkouts, runningPrograms } = useWorkoutStore() as {
+    workouts: Workout[];
+    customWorkouts: Workout[];
+    addCompletedWorkout: (workout: CompletedWorkout) => void;
+    currentRun: { id: string; startTime: string; distance: number; duration: number; pace: number; calories: number; coordinates: Coordinate[] } | null;
+    startRun: () => void;
+    finishRun: () => void;
+    updateRunStats: (stats: { distance: number; time: number; pace: number; calories: number; coordinates: Coordinate[] }) => void;
+    initializeDefaultWorkouts: () => void;
+    runningPrograms: RunningProgram[];
+  };
+  const { addXp } = useUserStore() as { addXp: (amount: number) => void };
+  const { checkAchievements } = useAchievementStore() as { checkAchievements: (data: { workoutsCompleted?: number }) => void };
+  const { isConnected: isSpotifyConnected } = useSpotifyStore() as { isConnected: boolean };
   
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [runningSession, setRunningSession] = useState<any>(null);
@@ -110,10 +120,10 @@ export default function ActiveWorkoutScreen() {
         
         if (mode === 'running' && sessionId && programId) {
           // Handle running session
-          const foundProgram = runningPrograms.find(p => p.id === programId);
+          const foundProgram = runningPrograms.find((p: RunningProgram) => p.id === programId);
           if (foundProgram) {
             setRunningProgram(foundProgram);
-            const foundSession = foundProgram.sessions.find(s => s.id === sessionId);
+            const foundSession = foundProgram.sessions.find((s: RunningSession) => s.id === sessionId);
             setRunningSession(foundSession || null);
           }
           setWorkout(null);
@@ -144,7 +154,7 @@ export default function ActiveWorkoutScreen() {
   
   // Location service listener
   useEffect(() => {
-    const unsubscribe = locationService.addListener((state) => {
+    const unsubscribe = locationService.addListener((state: LocationServiceState) => {
       setLocationState(state);
       setRunStats(prev => ({
         ...prev,
