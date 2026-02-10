@@ -4,7 +4,8 @@ import { Check, X, ShoppingCart, Trash2, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
 import Button from '@/components/Button';
-import { useRecipeStore, GroceryItem } from '@/store/recipeStore';
+import { useRecipeStore } from '@/store/recipeStore';
+import { GroceryItem } from '@/types';
 
 interface GroceryListProps {
   visible: boolean;
@@ -12,7 +13,14 @@ interface GroceryListProps {
 }
 
 export default function GroceryList({ visible, onClose }: GroceryListProps) {
-  const { groceryList, savedRecipes, toggleGroceryItem, removeGroceryItem, clearGroceryList, generateGroceryList } = useRecipeStore();
+  const { groceryList, savedRecipes, toggleGroceryItem, removeGroceryItem, clearGroceryList, generateGroceryList } = useRecipeStore() as {
+    groceryList: GroceryItem[];
+    savedRecipes: { id: string; name: string; servings: number }[];
+    toggleGroceryItem: (id: string) => void;
+    removeGroceryItem: (id: string) => void;
+    clearGroceryList: () => void;
+    generateGroceryList: (recipeIds: string[]) => void;
+  };
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
   const [showRecipeSelector, setShowRecipeSelector] = useState(false);
 
@@ -22,7 +30,7 @@ export default function GroceryList({ visible, onClose }: GroceryListProps) {
     }
   }, [visible]);
 
-  const groupedGroceries = groceryList.reduce((acc, item) => {
+  const groupedGroceries = groceryList.reduce((acc: Record<string, GroceryItem[]>, item: GroceryItem) => {
     const category = item.category || 'Other';
     if (!acc[category]) {
       acc[category] = [];
@@ -32,7 +40,7 @@ export default function GroceryList({ visible, onClose }: GroceryListProps) {
   }, {} as Record<string, GroceryItem[]>);
 
   const categories = Object.keys(groupedGroceries).sort();
-  const completedItems = groceryList.filter(item => item.checked).length;
+  const completedItems = groceryList.filter((item: GroceryItem) => item.checked).length;
   const totalItems = groceryList.length;
 
   const handleToggleRecipe = (recipeId: string) => {

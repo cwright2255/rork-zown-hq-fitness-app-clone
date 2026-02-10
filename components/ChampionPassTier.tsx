@@ -18,7 +18,7 @@ const ChampionPassTier: React.FC<ChampionPassTierProps> = ({
   onPress,
 }) => {
   const isLocked = tier.isPremium && !isPremium;
-  const hasUnclaimedRewards = tier.isUnlocked && tier.rewards.some(reward => !reward.isClaimed);
+  const hasUnclaimedRewards = tier.isUnlocked && tier.rewards.some((reward: { isClaimed: boolean }) => !reward.isClaimed);
   
   return (
     <TouchableOpacity
@@ -49,7 +49,7 @@ const ChampionPassTier: React.FC<ChampionPassTierProps> = ({
         </Text>
         
         <View style={styles.rewardsPreview}>
-          {tier.rewards.slice(0, 2).map((reward, index) => (
+          {tier.rewards.slice(0, 2).map((reward: { id: string; imageUrl: string; isClaimed: boolean }, index: number) => (
             <View key={reward.id} style={styles.rewardPreview}>
               <Image 
                 source={{ uri: reward.imageUrl }} 

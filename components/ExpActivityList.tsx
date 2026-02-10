@@ -12,7 +12,7 @@ interface ExpActivityListProps {
   limit?: number;
 }
 
-const ExpActivityItem = memo(({ activity }: { activity: ExpActivity }) => {
+const ExpActivityItem = memo(function ExpActivityItem({ activity }: { activity: ExpActivity }) {
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -32,7 +32,7 @@ const ExpActivityItem = memo(({ activity }: { activity: ExpActivity }) => {
       case 'sideMission':
         return <MapPin size={20} color={Colors.primary} />;
       case 'meal':
-        if (activity.subtype === 'hydration') {
+        if (activity.subtype && activity.subtype === 'hydration') {
           return <Droplet size={20} color="#3498db" />;
         }
         return <Utensils size={20} color={Colors.success} />;
@@ -52,10 +52,10 @@ const ExpActivityItem = memo(({ activity }: { activity: ExpActivity }) => {
       </View>
       <View style={styles.activityContent}>
         <Text style={styles.activityDescription}>{activity.description}</Text>
-        <Text style={styles.activityDate}>{formatDate(activity.date)}</Text>
+        <Text style={styles.activityDate}>{formatDate(activity.date || activity.timestamp || '')}</Text>
       </View>
       <View style={styles.activityExp}>
-        <Text style={styles.activityExpValue}>+{activity.baseExp}</Text>
+        <Text style={styles.activityExpValue}>+{activity.baseExp || activity.amount || 0}</Text>
         <Text style={styles.activityExpLabel}>XP</Text>
       </View>
     </View>

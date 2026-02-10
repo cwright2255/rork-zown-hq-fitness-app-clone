@@ -193,17 +193,28 @@ export interface ProgressEntry {
 export interface ExpActivity {
   id: string;
   type: string;
-  amount: number;
+  subtype?: string;
+  amount?: number;
+  baseExp?: number;
+  multiplier?: number;
   description: string;
-  timestamp: string;
+  timestamp?: string;
+  date?: string;
+  completed?: boolean;
 }
 
 export interface ExpBreakdown {
   workouts: number;
   nutrition: number;
   social: number;
-  challenges: number;
-  streaks: number;
+  challenges?: number;
+  streaks?: number;
+  mainMissions?: number;
+  sideMissions?: number;
+  meals?: number;
+  events?: number;
+  running?: number;
+  total?: number;
 }
 
 export interface RecipeIngredient {
@@ -404,4 +415,34 @@ export interface LocationServiceState {
   distance: number;
   speed: number;
   averageSpeed: number;
+}
+
+export interface ChampionPassReward {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  imageUrl: string;
+  isClaimed: boolean;
+}
+
+export interface ChampionPassTier {
+  id: string;
+  level: number;
+  name: string;
+  description: string;
+  isPremium: boolean;
+  isUnlocked: boolean;
+  rewards: ChampionPassReward[];
+  xpRequired: number;
+}
+
+export interface GroceryItem {
+  id: string;
+  ingredient: string;
+  amount: number;
+  unit: string;
+  recipes: string[];
+  checked: boolean;
+  category: string;
 }

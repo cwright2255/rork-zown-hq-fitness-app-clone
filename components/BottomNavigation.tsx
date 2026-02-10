@@ -68,7 +68,7 @@ const BottomNavigation = React.memo(function BottomNavigation() {
   const pathname = usePathname();
 
   const handleNavigation = useCallback((route: string) => {
-    router.push(route);
+    router.push(route as any);
   }, [router]);
 
   const activeRoute = useMemo(() => {

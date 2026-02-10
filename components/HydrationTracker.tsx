@@ -5,7 +5,7 @@ import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
-import { ExpActivity } from '@/types';
+
 
 interface HydrationTrackerProps {
   onUpdate?: (amount: number) => void;
@@ -13,8 +13,8 @@ interface HydrationTrackerProps {
 }
 
 const HydrationTracker: React.FC<HydrationTrackerProps> = ({ onUpdate, initialAmount = 0 }) => {
-  const { user } = useUserStore();
-  const { addExpActivity } = useExpStore();
+  const { user } = useUserStore() as { user: { fitnessMetrics?: { water?: { current?: number; goal?: number } } } | null };
+  const { addExpActivity } = useExpStore() as { addExpActivity: (activity: { id: string; type: string; subtype: string; baseExp: number; multiplier: number; date: string; description: string; completed: boolean }) => void };
   
   const [currentAmount, setCurrentAmount] = useState(initialAmount);
   const [dailyGoal, setDailyGoal] = useState(2000); // Default 2000ml (2L)
@@ -85,58 +85,58 @@ const HydrationTracker: React.FC<HydrationTrackerProps> = ({ onUpdate, initialAm
     if (baseExp > 0 && currentAmount < dailyGoal * 0.2 && newAmount >= dailyGoal * 0.2) {
       addExpActivity({
         id: Date.now().toString(),
-        type: 'workout', // Changed from 'event' to a valid type
+        type: 'workout',
         subtype: 'hydration',
         baseExp: 11,
         multiplier: 1.0,
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 1: 20% of daily goal',
         completed: true
-      } as ExpActivity);
+      });
     } else if (baseExp > 0 && currentAmount < dailyGoal * 0.4 && newAmount >= dailyGoal * 0.4) {
       addExpActivity({
         id: Date.now().toString(),
-        type: 'workout', // Changed from 'event' to a valid type
+        type: 'workout',
         subtype: 'hydration',
         baseExp: 22,
         multiplier: 1.0,
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 2: 40% of daily goal',
         completed: true
-      } as ExpActivity);
+      });
     } else if (baseExp > 0 && currentAmount < dailyGoal * 0.6 && newAmount >= dailyGoal * 0.6) {
       addExpActivity({
         id: Date.now().toString(),
-        type: 'workout', // Changed from 'event' to a valid type
+        type: 'workout',
         subtype: 'hydration',
         baseExp: 33,
         multiplier: 1.0,
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 3: 60% of daily goal',
         completed: true
-      } as ExpActivity);
+      });
     } else if (baseExp > 0 && currentAmount < dailyGoal * 0.8 && newAmount >= dailyGoal * 0.8) {
       addExpActivity({
         id: Date.now().toString(),
-        type: 'workout', // Changed from 'event' to a valid type
+        type: 'workout',
         subtype: 'hydration',
         baseExp: 44,
         multiplier: 1.0,
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 4: 80% of daily goal',
         completed: true
-      } as ExpActivity);
+      });
     } else if (baseExp > 0 && currentAmount < dailyGoal && newAmount >= dailyGoal) {
       addExpActivity({
         id: Date.now().toString(),
-        type: 'workout', // Changed from 'event' to a valid type
+        type: 'workout',
         subtype: 'hydration',
         baseExp: 55,
         multiplier: 1.0,
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 5: 100% of daily goal',
         completed: true
-      } as ExpActivity);
+      });
     }
   };
   

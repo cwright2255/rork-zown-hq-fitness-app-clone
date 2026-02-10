@@ -10,13 +10,13 @@ interface ExpBreakdownChartProps {
 const ExpBreakdownChart: React.FC<ExpBreakdownChartProps> = ({ breakdown }) => {
   // Calculate percentages for each category
   const percentages = useMemo(() => {
-    const total = breakdown.total || 1; // Avoid division by zero
+    const total = breakdown.total || breakdown.workouts + breakdown.nutrition + breakdown.social || 1;
     return {
-      mainMissions: (breakdown.mainMissions / total) * 100,
-      sideMissions: (breakdown.sideMissions / total) * 100,
-      meals: (breakdown.meals / total) * 100,
-      workouts: (breakdown.workouts / total) * 100,
-      events: (breakdown.events / total) * 100,
+      mainMissions: ((breakdown.mainMissions || 0) / total) * 100,
+      sideMissions: ((breakdown.sideMissions || 0) / total) * 100,
+      meals: ((breakdown.meals || breakdown.nutrition || 0) / total) * 100,
+      workouts: ((breakdown.workouts || 0) / total) * 100,
+      events: ((breakdown.events || breakdown.social || 0) / total) * 100,
     };
   }, [breakdown]);
 
@@ -58,7 +58,7 @@ const ExpBreakdownChart: React.FC<ExpBreakdownChartProps> = ({ breakdown }) => {
                 </Text>
               </View>
               <Text style={styles.valueText}>
-                {breakdown[key as keyof ExpBreakdown].toLocaleString()} XP
+                {(breakdown[key as keyof ExpBreakdown] || 0).toLocaleString()} XP
               </Text>
             </View>
           ))}
@@ -67,7 +67,7 @@ const ExpBreakdownChart: React.FC<ExpBreakdownChartProps> = ({ breakdown }) => {
         {/* Summary */}
         <View style={styles.summaryContainer}>
           <Text style={styles.summaryTitle}>Total XP</Text>
-          <Text style={styles.summaryValue}>{breakdown.total.toLocaleString()}</Text>
+          <Text style={styles.summaryValue}>{(breakdown.total || breakdown.workouts + breakdown.nutrition + breakdown.social || 0).toLocaleString()}</Text>
         </View>
       </View>
     </View>

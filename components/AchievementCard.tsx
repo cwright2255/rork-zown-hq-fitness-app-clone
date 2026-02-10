@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Award } from 'lucide-react-native';
 import { Achievement } from '@/types';
 import Colors from '@/constants/colors';
 
@@ -8,15 +9,15 @@ interface AchievementCardProps {
 }
 
 const AchievementCard = ({ achievement }: AchievementCardProps) => {
-  const progress = Math.min(achievement.progress / achievement.requirement, 1);
+  const progress = achievement.progress ?? 0;
+  const target = achievement.condition?.target ?? 1;
+  const progressPercent = Math.min(progress / target, 1);
   
   return (
     <View style={styles.container}>
-      <Image 
-        source={{ uri: achievement.imageUrl }} 
-        style={styles.image}
-        resizeMode="cover"
-      />
+      <View style={styles.iconContainer}>
+        <Award size={32} color={achievement.isUnlocked ? Colors.primary : Colors.inactive} />
+      </View>
       
       <View style={styles.content}>
         <Text style={styles.title}>{achievement.name}</Text>
@@ -24,15 +25,15 @@ const AchievementCard = ({ achievement }: AchievementCardProps) => {
         
         <View style={styles.progressContainer}>
           <View style={styles.progressBackground}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            <View style={[styles.progressFill, { width: `${progressPercent * 100}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {achievement.progress} / {achievement.requirement}
+            {progress} / {target}
           </Text>
         </View>
         
         <View style={styles.rewardContainer}>
-          <Text style={styles.rewardText}>+{achievement.reward?.value || 0} XP</Text>
+          <Text style={styles.rewardText}>+{achievement.xpReward || 0} XP</Text>
         </View>
       </View>
     </View>
@@ -46,61 +47,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'row',
     marginBottom: Colors.spacing.md,
-    shadowColor: Colors.shadow.color,
-    shadowOffset: Colors.shadow.offset,
-    shadowOpacity: Colors.shadow.opacity,
-    shadowRadius: Colors.shadow.radius,
-    elevation: Colors.shadow.elevation,
+    ...Colors.shadow.medium,
   },
-  image: {
-    width: 80,
-    height: 80,
-  },
-  content: {
-    flex: 1,
-    padding: Colors.spacing.md,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-  description: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 8,
-  },
-  progressContainer: {
-    marginBottom: 8,
-  },
-  progressBackground: {
-    height: 6,
-    backgroundColor: Colors.border,
-    borderRadius: 3,
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
-  rewardContainer: {
-    alignSelf: 'flex-start',
-  },
-  rewardText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  image: {
+  iconContainer: {
     width: 80,
     height: 80,
     backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -108,7 +62,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     color: Colors.text.primary,
     marginBottom: 2,
   },
@@ -145,7 +99,7 @@ const styles = StyleSheet.create({
   },
   rewardText: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     color: Colors.primary,
   },
 });
