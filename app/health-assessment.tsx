@@ -199,7 +199,7 @@ export default function HealthAssessmentScreen() {
       </View>
       <Button
         title="Manage Wearables"
-        onPress={() => router.push('/wearables')}
+        onPress={() => router.push('/wearables' as any)}
         style={styles.manageBtn}
         testID="manageWearablesButton"
       />

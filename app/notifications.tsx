@@ -43,7 +43,7 @@ interface UserStoreState {
 }
 
 export default function NotificationsScreen() {
-  const { user, setUser } = useUserStore() as UserStoreState;
+  const { user, setUser } = useUserStore() as unknown as UserStoreState;
   const [settings, setSettings] = useState<NotificationSettings>({
     workouts: user?.preferences.notifications.workouts ?? true,
     nutrition: user?.preferences.notifications.nutrition ?? true,

@@ -88,7 +88,7 @@ export default function HQScreen() {
   , [workouts]);
 
   const goToExpDashboard = useCallback(() => {
-    router.push('/exp-dashboard');
+    router.push('/exp-dashboard' as any);
   }, [router]);
 
   const handleWorkoutScroll = useCallback((event: any) => {
@@ -380,7 +380,7 @@ export default function HQScreen() {
                     <TouchableOpacity
                       key={workout?.id || Math.random().toString()}
                       style={styles.workoutCard}
-                      onPress={() => workout?.id && router.push(`/workout/${workout.id}`)}
+                      onPress={() => workout?.id && router.push(`/workout/${workout.id}` as any)}
                     >
                       <Image
                         source={{ uri: workout?.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500' }}
@@ -400,7 +400,7 @@ export default function HQScreen() {
                         </View>
                         <TouchableOpacity
                           style={styles.startButton}
-                          onPress={() => workout?.id && router.push(`/workout/${workout.id}`)}
+                          onPress={() => workout?.id && router.push(`/workout/${workout.id}` as any)}
                           testID="start-workout"
                         >
                           <Text style={styles.startButtonText}>Start Workout</Text>
@@ -436,7 +436,7 @@ export default function HQScreen() {
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => router.push('/workouts')}
+              onPress={() => router.push('/workouts' as any)}
               testID="qa-workouts"
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#6366F120' }]}>
@@ -447,7 +447,7 @@ export default function HQScreen() {
 
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => router.push('/nutrition')}
+              onPress={() => router.push('/nutrition' as any)}
               testID="qa-nutrition"
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#10B98120' }]}>
@@ -458,7 +458,7 @@ export default function HQScreen() {
 
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => router.push('/shop')}
+              onPress={() => router.push('/shop' as any)}
               testID="qa-shop"
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#8B5CF620' }]}>
@@ -480,7 +480,7 @@ export default function HQScreen() {
 
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => router.push('/workout/active?mode=run')}
+              onPress={() => router.push('/workout/active?mode=run' as any)}
               testID="qa-run"
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#00ff8820' }]}>

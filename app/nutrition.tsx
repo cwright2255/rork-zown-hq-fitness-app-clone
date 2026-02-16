@@ -389,7 +389,7 @@ export default function NutritionScreen() {
           <Text style={styles.sectionTitle}>Meals</Text>
           <TouchableOpacity 
             style={styles.addButton}
-            onPress={() => router.push('/nutrition/search')}
+            onPress={() => router.push('/nutrition/search' as any)}
           >
             <Plus size={16} color={Colors.text.inverse} />
             <Text style={styles.addButtonText}>Add Food</Text>
@@ -414,7 +414,7 @@ export default function NutritionScreen() {
                 <TouchableOpacity 
                   key={food.id}
                   style={styles.foodItem}
-                  onPress={() => router.push(`/nutrition/food/${food.id}`)}
+                  onPress={() => router.push(`/nutrition/food/${food.id}` as any)}
                 >
                   {food.imageUrl ? (
                     <Image 
@@ -446,7 +446,7 @@ export default function NutritionScreen() {
               <TouchableOpacity 
                 style={styles.addFoodButton}
                 onPress={() => router.push({
-                  pathname: '/nutrition/search',
+                  pathname: '/nutrition/search' as any,
                   params: { mealId: meal.id }
                 })}
               >
@@ -462,7 +462,7 @@ export default function NutritionScreen() {
             </Text>
             <TouchableOpacity 
               style={styles.addMealButton}
-              onPress={() => router.push('/nutrition/search')}
+              onPress={() => router.push('/nutrition/search' as any)}
             >
               <Plus size={16} color={Colors.text.inverse} />
               <Text style={styles.addMealButtonText}>Add First Meal</Text>
@@ -546,7 +546,7 @@ export default function NutritionScreen() {
           <Text style={styles.sectionTitle}>Recommended Recipes</Text>
           <TouchableOpacity 
             style={styles.seeAllButton}
-            onPress={() => router.push('/recipes')}
+            onPress={() => router.push('/recipes' as any)}
           >
             <Text style={styles.seeAllText}>See All</Text>
             <ChevronRight size={16} color={Colors.primary} />
@@ -568,7 +568,7 @@ export default function NutritionScreen() {
               <TouchableOpacity 
                 key={recipe.id}
                 style={styles.recipeCard}
-                onPress={() => router.push(`/recipe/${recipe.id}`)}
+                onPress={() => router.push(`/recipe/${recipe.id}` as any)}
               >
                 <Image 
                   source={{ uri: recipe.image }} 
@@ -607,21 +607,21 @@ export default function NutritionScreen() {
       <View style={styles.actionButtons}>
         <TouchableOpacity 
           style={styles.scanButton}
-          onPress={() => router.push('/nutrition/scan')}
+          onPress={() => router.push('/nutrition/scan' as any)}
         >
           <Camera size={24} color={Colors.text.inverse} />
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.barcodeButton}
-          onPress={() => router.push('/nutrition/barcode-scan')}
+          onPress={() => router.push('/nutrition/barcode-scan' as any)}
         >
           <ScanLine size={24} color={Colors.text.inverse} />
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.searchButton}
-          onPress={() => router.push('/nutrition/search')}
+          onPress={() => router.push('/nutrition/search' as any)}
         >
           <Search size={24} color={Colors.text.inverse} />
         </TouchableOpacity>

@@ -78,7 +78,7 @@ export default function BarcodeScanScreen() {
           'This barcode is not in our database. You can still add the food manually.',
           [
             { text: 'Try Again', onPress: () => setIsScanning(true) },
-            { text: 'Manual Entry', onPress: () => router.push('/nutrition/search') }
+            { text: 'Manual Entry', onPress: () => router.push('/nutrition/search' as any) }
           ]
         );
       }
@@ -89,7 +89,7 @@ export default function BarcodeScanScreen() {
         'Failed to look up the barcode. Please check your connection and try again.',
         [
           { text: 'Try Again', onPress: () => setIsScanning(true) },
-          { text: 'Manual Entry', onPress: () => router.push('/nutrition/search') }
+          { text: 'Manual Entry', onPress: () => router.push('/nutrition/search' as any) }
         ]
       );
     } finally {

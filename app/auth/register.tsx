@@ -62,7 +62,7 @@ export default function RegisterScreen() {
     try {
       const result = await authService.register(name, email, password);
       setUser(result.user);
-      router.replace('/onboarding');
+      router.replace('/onboarding' as any);
     } catch {
       Alert.alert('Registration Failed', 'Please try again');
     } finally {
@@ -75,7 +75,7 @@ export default function RegisterScreen() {
       setSocialLoading(provider);
       const result = await authService.loginWithProvider(provider);
       setUser(result.user);
-      router.replace('/onboarding');
+      router.replace('/onboarding' as any);
     } catch {
       Alert.alert('Sign-up failed', 'Please try again.');
     } finally {
@@ -236,7 +236,7 @@ export default function RegisterScreen() {
 
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.push('/auth/login')}
+              onPress={() => router.push('/auth/login' as any)}
             >
               <Text style={styles.linkLight}>
                 Already have an account? <Text style={styles.linkStrong}>Sign In</Text>

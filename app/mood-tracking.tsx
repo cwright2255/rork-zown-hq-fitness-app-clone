@@ -187,7 +187,7 @@ export default function MoodTrackingScreen() {
   }, [moodEntries]);
 
   const handleConnectWearable = useCallback(() => {
-    router.push('/wearables');
+    router.push('/wearables' as any);
   }, []);
 
   const handleRefreshWearableData = useCallback(() => {
