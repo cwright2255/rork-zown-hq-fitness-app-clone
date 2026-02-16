@@ -422,7 +422,7 @@ export interface UserState {
   getStreakData: () => User['streakData'];
   updateFitnessMetrics: (metrics: Partial<User['fitnessMetrics']>) => void;
   incrementSteps: (steps: number) => void;
-  logSleep: (duration: number, quality: string) => void;
+  logSleep: (duration: number, quality: number) => void;
   updateRecovery: (score: number) => void;
   logCaloriesBurned: (calories: number) => void;
   logActiveMinutes: (minutes: number) => void;
