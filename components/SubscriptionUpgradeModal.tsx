@@ -94,11 +94,12 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
               Yearly
             </Text>
             <Badge
-              label="Save up to 20%"
               variant="success"
               size="small"
               style={styles.savingsBadge}
-            />
+            >
+              Save up to 20%
+            </Badge>
           </TouchableOpacity>
         </View>
         
@@ -176,7 +177,7 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
                 ) : (
                   <Button
                     title={plan.tier === 'free' ? 'Downgrade' : 'Upgrade'}
-                    onPress={() => onUpgrade(plan.tier)}
+                    onPress={() => onUpgrade(plan.tier as SubscriptionTier)}
                     variant={plan.tier === 'elite' ? 'primary' : 'outline'}
                     style={styles.upgradeButton}
                   />

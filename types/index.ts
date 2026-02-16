@@ -61,11 +61,12 @@ export interface UserPreferences {
 
 export interface UserSubscription {
   tier: 'free' | 'standard' | 'elite';
-  status: 'active' | 'cancelled' | 'expired';
+  status: 'active' | 'cancelled' | 'expired' | 'trial';
   startDate: string;
   autoRenew: boolean;
   nextBillingDate?: string;
   cancelledAt?: string;
+  trialEndsAt?: string;
 }
 
 export interface User {
@@ -326,7 +327,7 @@ export interface Product {
   description: string;
   price: number;
   salePrice?: number;
-  image: string;
+  image?: string;
   imageUrl?: string;
   images?: string[];
   category: string;
@@ -335,16 +336,18 @@ export interface Product {
   reviewCount?: number;
   inStock?: boolean;
   variants?: ProductVariant[];
+  collectionIds?: string[];
 }
 
 export interface ShopCollection {
   id: string;
   name: string;
   description?: string;
-  image: string;
+  image?: string;
   imageUrl?: string;
   categories?: string[];
-  products: string[];
+  products?: string[];
+  featured?: boolean;
 }
 
 export type Collection = ShopCollection;

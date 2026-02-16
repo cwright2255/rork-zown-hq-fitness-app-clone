@@ -3,6 +3,66 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useExpStore } from './expStore';
+import { User, UserSubscription, UserPreferences } from '@/types';
+
+interface FitnessMetrics {
+  weight: number;
+  height: number;
+  bodyFat: number;
+  muscleMass: number;
+}
+
+interface RunningProfile {
+  totalDistance: number;
+  totalRuns: number;
+  totalTime: number;
+  bestPace: number;
+  longestRun: number;
+  personalBests: Record<string, number>;
+  runningLevel: string;
+}
+
+interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  streakDates: string[];
+}
+
+interface UserStoreState {
+  user: User | null;
+  isOnboarded: boolean;
+  isLoading: boolean;
+  setUser: (user: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => void;
+  updateUserPreferences: (preferences: Partial<UserPreferences>) => void;
+  updateUserGoals: (goals: string[]) => void;
+  updateUserFitnessLevel: (level: string) => void;
+  addXp: (amount: number) => void;
+  calculateLevel: (xp: number) => number;
+  updateStreak: (workoutCompleted: boolean) => void;
+  getStreakData: () => StreakData;
+  updateFitnessMetrics: (metrics: Partial<FitnessMetrics>) => void;
+  incrementSteps: (steps: number) => void;
+  logSleep: (duration: number, quality: number) => void;
+  updateRecovery: (score: number) => void;
+  logCaloriesBurned: (calories: number) => void;
+  logActiveMinutes: (minutes: number) => void;
+  updateHeartRate: (rate: number) => void;
+  logWaterIntake: (amount: number) => void;
+  resetDailyMetrics: () => void;
+  logout: () => Promise<void>;
+  startOnboarding: () => void;
+  completeOnboarding: () => void;
+  initializeDefaultUser: () => void;
+  updateUserRunningProfile: (profile: Partial<RunningProfile>) => void;
+  updateRunningPreferences: (preferences: Record<string, unknown>) => void;
+  initializeRunningProfile: () => void;
+  updateSubscription: (subscription: Partial<UserSubscription>) => void;
+  upgradeSubscription: (tier: string) => void;
+  cancelSubscription: () => void;
+  getSubscriptionTier: () => string;
+  hasFeatureAccess: (feature: string) => boolean;
+}
 
 
 
@@ -45,8 +105,8 @@ const createDefaultStreakData = () => ({
 });
 
 // Generate level requirements
-const generateLevelRequirements = () => {
-  const requirements = {};
+const generateLevelRequirements = (): Record<number, number> => {
+  const requirements: Record<number, number> = {};
   for (let level = 1; level <= 100; level++) {
     requirements[level] = level * 1000; // 1000 XP per level
   }
@@ -89,21 +149,21 @@ const createDefaultRunningPreferences = () => ({
 });
 
 // Default subscription
-const createDefaultSubscription = () => ({
-  tier: 'free',
-  status: 'active',
+const createDefaultSubscription = (): UserSubscription => ({
+  tier: 'free' as const,
+  status: 'active' as const,
   startDate: new Date().toISOString(),
   autoRenew: false
 });
 
 // Lazy default user creation
-const createDefaultUser = () => ({
+const createDefaultUser = (): User => ({
   id: 'default-user',
   name: 'Fitness Enthusiast',
   email: 'user@example.com',
   profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
   joinDate: new Date().toISOString(),
-  fitnessLevel: 'beginner',
+  fitnessLevel: 'beginner' as const,
   goals: ['strength', 'weight-loss', 'endurance'],
   exp: 150,
   xp: 150,
@@ -111,7 +171,7 @@ const createDefaultUser = () => ({
   level: 2,
   streak: 3,
   streakData: createDefaultStreakData(),
-  preferences: createDefaultUserPreferences(),
+  preferences: createDefaultUserPreferences() as UserPreferences,
   fitnessMetrics: createDefaultFitnessMetrics(),
   expSystem: createDefaultExpSystem(),
   runningProfile: createDefaultRunningProfile(),
@@ -119,19 +179,20 @@ const createDefaultUser = () => ({
 });
 
 // Create selectors for better performance
-const userSelector = (state) => state.user;
-const isOnboardedSelector = (state) => state.isOnboarded;
-const isLoadingSelector = (state) => state.isLoading;
+const userSelector = (state: UserStoreState) => state.user;
+const isOnboardedSelector = (state: UserStoreState) => state.isOnboarded;
+const isLoadingSelector = (state: UserStoreState) => state.isLoading;
 
-export const useUserStore = create(
+export const useUserStore = create<UserStoreState>()(
   persist(
     (set, get) => ({
       user: null,
       isOnboarded: false, // Set to false by default to show startup screen
       isLoading: false, // Changed to false for faster startup
       
-      setUser: (user) => set({ 
+      setUser: (user: Partial<User>) => set({ 
         user: {
+          ...createDefaultUser(),
           ...user,
           fitnessMetrics: user.fitnessMetrics || createDefaultFitnessMetrics(),
           expSystem: user.expSystem || createDefaultExpSystem(),
@@ -141,7 +202,7 @@ export const useUserStore = create(
         isLoading: false
       }),
       
-      updateUser: (updates) => {
+      updateUser: (updates: Partial<User>) => {
         const { user } = get();
         if (!user) return;
         
@@ -153,7 +214,7 @@ export const useUserStore = create(
         });
       },
       
-      updateUserPreferences: (preferences) => {
+      updateUserPreferences: (preferences: Partial<UserPreferences>) => {
         const { user } = get();
         if (!user) return;
         
@@ -171,7 +232,7 @@ export const useUserStore = create(
         });
       },
       
-      updateUserGoals: (goals) => {
+      updateUserGoals: (goals: string[]) => {
         const { user } = get();
         if (!user) return;
         
@@ -183,24 +244,25 @@ export const useUserStore = create(
         });
       },
       
-      updateUserFitnessLevel: (level) => {
+      updateUserFitnessLevel: (level: string) => {
         const { user } = get();
         if (!user) return;
         
         set({
           user: {
             ...user,
-            fitnessLevel: level
+            fitnessLevel: level as 'beginner' | 'intermediate' | 'advanced'
           }
         });
       },
       
-      addXp: (amount) => {
+      addXp: (amount: number) => {
         const { user } = get();
         if (!user) return;
         
         const newXp = user.exp + amount;
-        const newLevel = get().calculateLevel(newXp);
+        const storeState = get();
+        const newLevel = storeState.calculateLevel(newXp);
         
         set({
           user: {
@@ -214,19 +276,19 @@ export const useUserStore = create(
         // Update EXP store asynchronously - optimized
         requestAnimationFrame(() => {
           try {
-            useExpStore.getState().addExp(amount);
+            (useExpStore.getState() as { addExp: (amount: number) => void }).addExp(amount);
           } catch (error) {
             console.error('Failed to update EXP store:', error);
           }
         });
       },
       
-      calculateLevel: (xp) => {
+      calculateLevel: (xp: number) => {
         // Simple level calculation
         return Math.floor(xp / 1000) + 1;
       },
       
-      updateStreak: (workoutCompleted) => {
+      updateStreak: (workoutCompleted: boolean) => {
         const { user } = get();
         if (!user) return;
         
@@ -273,7 +335,7 @@ export const useUserStore = create(
         return user.streakData || createDefaultStreakData();
       },
       
-      updateFitnessMetrics: (metrics) => {
+      updateFitnessMetrics: (metrics: Partial<FitnessMetrics>) => {
         const { user } = get();
         if (!user) return;
         
@@ -291,37 +353,37 @@ export const useUserStore = create(
         });
       },
       
-      incrementSteps: (steps) => {
+      incrementSteps: (steps: number) => {
         // Implementation for step tracking
         console.log('Steps incremented:', steps);
       },
       
-      logSleep: (duration, quality) => {
+      logSleep: (duration: number, quality: number) => {
         // Implementation for sleep tracking
         console.log('Sleep logged:', duration, quality);
       },
       
-      updateRecovery: (score) => {
+      updateRecovery: (score: number) => {
         // Implementation for recovery tracking
         console.log('Recovery updated:', score);
       },
       
-      logCaloriesBurned: (calories) => {
+      logCaloriesBurned: (calories: number) => {
         // Implementation for calorie tracking
         console.log('Calories burned:', calories);
       },
       
-      logActiveMinutes: (minutes) => {
+      logActiveMinutes: (minutes: number) => {
         // Implementation for active minutes tracking
         console.log('Active minutes:', minutes);
       },
       
-      updateHeartRate: (rate) => {
+      updateHeartRate: (rate: number) => {
         // Implementation for heart rate tracking
         console.log('Heart rate updated:', rate);
       },
       
-      logWaterIntake: (amount) => {
+      logWaterIntake: (amount: number) => {
         // Implementation for water intake tracking
         console.log('Water intake:', amount);
       },
@@ -384,7 +446,7 @@ export const useUserStore = create(
       },
       
       // Running-specific actions
-      updateUserRunningProfile: (profile) => {
+      updateUserRunningProfile: (profile: Partial<RunningProfile>) => {
         const { user } = get();
         if (!user) return;
         
@@ -402,27 +464,28 @@ export const useUserStore = create(
         });
       },
       
-      updateRunningPreferences: (preferences) => {
+      updateRunningPreferences: (preferences: Record<string, unknown>) => {
         const { user } = get();
         if (!user) return;
         
         // Get current running preferences with proper fallback
-        const currentRunningPrefs = user.preferences?.running || createDefaultRunningPreferences();
+        const defaultPrefs = createDefaultRunningPreferences();
+        const currentRunningPrefs = user.preferences?.running || defaultPrefs;
         
         const updatedRunningPreferences = {
-          audioCoaching: currentRunningPrefs.audioCoaching ?? true,
-          gpsTracking: currentRunningPrefs.gpsTracking ?? true,
-          safetySharing: currentRunningPrefs.safetySharing ?? false,
-          weatherAlerts: currentRunningPrefs.weatherAlerts ?? true,
-          virtualBuddy: currentRunningPrefs.virtualBuddy ?? true,
-          preferredUnit: currentRunningPrefs.preferredUnit ?? 'km',
-          targetPace: currentRunningPrefs.targetPace ?? 6.0,
+          audioCoaching: currentRunningPrefs.audioCoaching ?? defaultPrefs.audioCoaching,
+          gpsTracking: currentRunningPrefs.gpsTracking ?? defaultPrefs.gpsTracking,
+          safetySharing: currentRunningPrefs.safetySharing ?? defaultPrefs.safetySharing,
+          weatherAlerts: currentRunningPrefs.weatherAlerts ?? defaultPrefs.weatherAlerts,
+          virtualBuddy: currentRunningPrefs.virtualBuddy ?? defaultPrefs.virtualBuddy,
+          preferredUnit: currentRunningPrefs.preferredUnit ?? defaultPrefs.preferredUnit,
+          targetPace: currentRunningPrefs.targetPace ?? defaultPrefs.targetPace,
           ...preferences
         };
         
-        const updatedPreferences = {
+        const updatedPreferences: UserPreferences = {
           ...user.preferences,
-          running: updatedRunningPreferences
+          running: updatedRunningPreferences as UserPreferences['running']
         };
         
         set({
@@ -441,7 +504,7 @@ export const useUserStore = create(
       },
       
       // Subscription-specific actions
-      updateSubscription: (subscription) => {
+      updateSubscription: (subscription: Partial<UserSubscription>) => {
         const { user } = get();
         if (!user) return;
         
@@ -458,7 +521,7 @@ export const useUserStore = create(
         });
       },
       
-      upgradeSubscription: (tier) => {
+      upgradeSubscription: (tier: string) => {
         const { user } = get();
         if (!user) return;
         
@@ -467,8 +530,8 @@ export const useUserStore = create(
         
         const updatedSubscription: UserSubscription = {
           ...user.subscription,
-          tier,
-          status: 'active',
+          tier: tier as 'free' | 'standard' | 'elite',
+          status: 'active' as const,
           nextBillingDate: nextBillingDate.toISOString(),
           autoRenew: true
         };
@@ -505,7 +568,7 @@ export const useUserStore = create(
         return user?.subscription?.tier || 'free';
       },
       
-      hasFeatureAccess: (feature) => {
+      hasFeatureAccess: (feature: string) => {
         const { user } = get();
         if (!user) return false;
         

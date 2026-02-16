@@ -82,7 +82,7 @@ export default function TimerModal({ visible, onClose }: TimerModalProps) {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Set',
-          onPress: (value) => {
+          onPress: (value: string | undefined) => {
             const minutes = parseInt(value || '0');
             if (minutes > 0 && minutes <= 120) {
               const seconds = minutes * 60;
