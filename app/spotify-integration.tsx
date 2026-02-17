@@ -7,33 +7,32 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Music, ExternalLink, PlayCircle, Settings } from 'lucide-react-native';
+import { Music, ExternalLink, PlayCircle, Settings, RefreshCw } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
+import { SpotifyPlaylist } from '@/types/spotify';
 
 export default function SpotifyIntegration() {
   const { 
     isConnected, 
     user, 
-    disconnectSpotify 
-  } = useSpotifyStore() as {
-    isConnected: boolean;
-    user: any;
-    disconnectSpotify: () => void;
-  };
+    disconnectSpotify,
+    initializeSpotify,
+    getSpotifyAuthUrl,
+  } = useSpotifyStore();
   
-  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [loading, setLoading] = useState(false);
   const [clientCredentialsReady, setClientCredentialsReady] = useState(false);
   
   useEffect(() => {
-    // Try to initialize client credentials on mount for public API access
     initClientCredentials();
   }, []);
   
@@ -59,7 +58,7 @@ export default function SpotifyIntegration() {
     try {
       setLoading(true);
       const workoutPlaylists = await spotifyService.getWorkoutPlaylists();
-      setPlaylists(workoutPlaylists.slice(0, 5)); // Show first 5
+      setPlaylists(workoutPlaylists.slice(0, 5));
     } catch (error) {
       console.error('Failed to load playlists:', error);
     } finally {
@@ -70,17 +69,34 @@ export default function SpotifyIntegration() {
   const handleConnect = async () => {
     try {
       setLoading(true);
-      // Use Client Credentials flow - no redirect URIs needed!
-      const success = await spotifyService.initializeClientCredentials();
-      if (success) {
-        setClientCredentialsReady(true);
-        Alert.alert('Success', 'Connected to Spotify! You can now browse playlists and get recommendations.');
-        loadPlaylists();
+      
+      if (Platform.OS === 'web') {
+        const success = await spotifyService.authenticateWithPopup();
+        if (success) {
+          await initializeSpotify();
+          Alert.alert('Success', 'Connected to Spotify!');
+          loadPlaylists();
+        } else {
+          const clientSuccess = await spotifyService.initializeClientCredentials();
+          if (clientSuccess) {
+            setClientCredentialsReady(true);
+            Alert.alert('Success', 'Connected to Spotify! You can now browse playlists and get recommendations.');
+            loadPlaylists();
+          } else {
+            Alert.alert(
+              'Connection Failed', 
+              'Could not connect to Spotify. Please check your credentials.'
+            );
+          }
+        }
       } else {
-        Alert.alert(
-          'Connection Failed', 
-          'Could not connect to Spotify. Please check that EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET is set correctly in your environment variables.\n\nYou can find your Client Secret in the Spotify Developer Dashboard.'
-        );
+        const authUrl = await getSpotifyAuthUrl();
+        const supported = await Linking.canOpenURL(authUrl);
+        if (supported) {
+          await Linking.openURL(authUrl);
+        } else {
+          Alert.alert('Error', 'Unable to open Spotify authorization');
+        }
       }
     } catch (error) {
       Alert.alert('Error', `Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -95,21 +111,21 @@ export default function SpotifyIntegration() {
     setClientCredentialsReady(false);
   };
   
-  const openPlaylist = (playlist: any) => {
+  const openPlaylist = (playlist: SpotifyPlaylist) => {
     if (playlist.external_urls?.spotify) {
       Linking.openURL(playlist.external_urls.spotify);
     }
   };
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Spotify Integration',
           headerStyle: { backgroundColor: Colors.background },
           headerTintColor: Colors.text.primary,
           headerRight: () => (
-            <TouchableOpacity onPress={() => router.push('/profile/settings')}>
+            <TouchableOpacity onPress={() => router.push('/profile/settings' as any)}>
               <Settings size={24} color={Colors.text.primary} />
             </TouchableOpacity>
           ),
@@ -117,7 +133,6 @@ export default function SpotifyIntegration() {
       />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Connection Status */}
         <Card variant="elevated" style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <Music size={32} color={isConnected || clientCredentialsReady ? '#1DB954' : Colors.text.tertiary} />
@@ -146,6 +161,7 @@ export default function SpotifyIntegration() {
                   variant="outline"
                   style={styles.actionButton}
                   disabled={loading}
+                  leftIcon={<RefreshCw size={16} color={Colors.primary} />}
                   testID="reconnect-spotify-button"
                 />
                 <Button
@@ -169,7 +185,6 @@ export default function SpotifyIntegration() {
           </View>
         </Card>
         
-        {/* Setup Instructions */}
         <Card variant="outlined" style={styles.instructionsCard}>
           <Text style={styles.instructionsTitle}>
             {clientCredentialsReady ? '✅ Connected!' : 'Setup Instructions'}
@@ -179,7 +194,6 @@ export default function SpotifyIntegration() {
           </Text>
         </Card>
         
-        {/* Workout Playlists */}
         {(isConnected || clientCredentialsReady) && (
           <Card variant="elevated" style={styles.playlistsCard}>
             <View style={styles.playlistsHeader}>
@@ -224,7 +238,6 @@ export default function SpotifyIntegration() {
           </Card>
         )}
         
-        {/* Service Status */}
         <Card variant="outlined" style={styles.debugCard}>
           <Text style={styles.debugTitle}>Service Status</Text>
           <Text style={styles.debugText}>
@@ -259,7 +272,7 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
   },
   statusSubtitle: {
@@ -285,7 +298,7 @@ const styles = StyleSheet.create({
   },
   instructionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
     marginBottom: 8,
   },
@@ -306,7 +319,7 @@ const styles = StyleSheet.create({
   },
   playlistsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
   },
   loadingText: {
@@ -333,7 +346,7 @@ const styles = StyleSheet.create({
   },
   playlistName: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     color: Colors.text.primary,
   },
   playlistTracks: {
@@ -353,7 +366,7 @@ const styles = StyleSheet.create({
   },
   debugTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
     marginBottom: 8,
   },

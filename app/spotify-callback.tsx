@@ -8,7 +8,7 @@ import Colors from '@/constants/colors';
 export default function SpotifyCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const spotifyStore = useSpotifyStore() as unknown as { initializeSpotify: () => Promise<void> };
+  const { initializeSpotify } = useSpotifyStore();
   const [status, setStatus] = useState('Processing Spotify authentication...');
 
   useEffect(() => {
@@ -21,12 +21,10 @@ export default function SpotifyCallback() {
         const currentUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : '';
         console.log('Spotify callback: Current URL:', currentUrl);
         
-        // Get code from multiple sources
         let code: string | null = null;
         let error: string | null = null;
         let state: string | null = null;
         
-        // First try route params
         if (params.code) {
           code = params.code as string;
         }
@@ -37,7 +35,6 @@ export default function SpotifyCallback() {
           state = params.state as string;
         }
         
-        // Then try URL search params (web)
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           const urlParams = new URLSearchParams(window.location.search);
           if (!code) code = urlParams.get('code');
@@ -67,10 +64,8 @@ export default function SpotifyCallback() {
             console.log('Spotify callback: Token exchange successful');
             setStatus('Connected successfully!');
             
-            // Initialize Spotify store to update connection state
-            await spotifyStore.initializeSpotify();
+            await initializeSpotify();
             
-            // If this is a popup window, send message to parent and close
             if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
               try {
                 window.opener.postMessage({
@@ -94,7 +89,6 @@ export default function SpotifyCallback() {
           return;
         }
         
-        // Check for implicit grant token in URL fragment
         const urlFragment = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.hash : '';
         if (urlFragment && urlFragment.includes('access_token')) {
           setStatus('Processing access token...');
@@ -104,7 +98,7 @@ export default function SpotifyCallback() {
           if (success) {
             console.log('Spotify callback: Implicit grant authentication successful');
             setStatus('Connected successfully!');
-            await spotifyStore.initializeSpotify();
+            await initializeSpotify();
           } else {
             console.error('Spotify callback: Implicit grant authentication failed');
             setStatus('Authentication failed.');
@@ -126,7 +120,7 @@ export default function SpotifyCallback() {
 
     const timer = setTimeout(handleCallback, 100);
     return () => clearTimeout(timer);
-  }, [router, params, spotifyStore]);
+  }, [router, params, initializeSpotify]);
 
   return (
     <View style={styles.container}>

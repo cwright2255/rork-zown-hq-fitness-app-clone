@@ -6,9 +6,7 @@ import Colors from '@/constants/colors';
 
 export default function SpotifyRedirect() {
   const router = useRouter();
-  const { connectSpotifyImplicit } = useSpotifyStore() as {
-    connectSpotifyImplicit: (urlFragment: string) => Promise<boolean>;
-  };
+  const { connectSpotifyImplicit } = useSpotifyStore();
 
   useEffect(() => {
     const handleCallback = async () => {

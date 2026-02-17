@@ -18,11 +18,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 
 export default function SpotifyTest() {
-  const { isConnected, user, connectSpotifyImplicit } = useSpotifyStore() as {
-    isConnected: boolean;
-    user: any;
-    connectSpotifyImplicit: (urlFragment: string) => Promise<boolean>;
-  };
+  const { isConnected, user, connectSpotifyImplicit } = useSpotifyStore();
   const [testResults, setTestResults] = useState<string[]>([]);
 
   const addTestResult = (result: string) => {
@@ -31,7 +27,7 @@ export default function SpotifyTest() {
 
   const testAuthUrl = async () => {
     try {
-      const url = spotifyService.getAuthorizationUrl();
+      const url = await spotifyService.getAuthorizationUrl();
       addTestResult(`✅ Auth URL generated: ${String(url).substring(0, 100)}...`);
       console.log('Full auth URL:', url);
     } catch (error) {

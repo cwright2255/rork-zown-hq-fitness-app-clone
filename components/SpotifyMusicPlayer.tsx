@@ -1,29 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Linking, Platform } from 'react-native';
 import { Play, Pause, SkipForward, SkipBack, Music, ExternalLink } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { SpotifyTrack, SpotifyArtist } from '@/types/spotify';
-
-interface SpotifyStoreState {
-  isConnected: boolean;
-  currentTrack: SpotifyTrack | null;
-  playTrack: (uri: string) => Promise<void>;
-  pauseTrack: () => Promise<void>;
-  nextTrack: () => Promise<void>;
-  previousTrack: () => Promise<void>;
-  updateCurrentTrack: () => Promise<void>;
-  getRecommendationsForWorkout: (workoutType: string) => Promise<SpotifyTrack[]>;
-  getSpotifyAuthUrl: () => Promise<string>;
-  connectSpotifyImplicit: (urlFragment: string) => Promise<boolean>;
-  isLoading: boolean;
-}
+import { SpotifyTrack, SpotifyArtist, WorkoutType } from '@/types/spotify';
 
 interface SpotifyMusicPlayerProps {
-  workoutType?: 'cardio' | 'strength' | 'yoga' | 'running';
-  style?: any;
+  workoutType?: WorkoutType;
+  style?: object;
 }
 
 export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: SpotifyMusicPlayerProps) {
@@ -39,27 +25,13 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     getSpotifyAuthUrl,
     connectSpotifyImplicit,
     isLoading,
-  } = useSpotifyStore() as SpotifyStoreState;
+  } = useSpotifyStore();
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [recommendations, setRecommendations] = useState<SpotifyTrack[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   
-  useEffect(() => {
-    if (isConnected) {
-      updateCurrentTrack();
-      loadRecommendations();
-      
-      // Update current track every 30 seconds
-      const interval = setInterval(() => {
-        updateCurrentTrack();
-      }, 30000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [isConnected, workoutType, updateCurrentTrack]);
-  
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     if (!isConnected) return;
     
     setIsLoadingRecommendations(true);
@@ -71,7 +43,20 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     } finally {
       setIsLoadingRecommendations(false);
     }
-  };
+  }, [isConnected, workoutType, getRecommendationsForWorkout]);
+  
+  useEffect(() => {
+    if (isConnected) {
+      updateCurrentTrack();
+      loadRecommendations();
+      
+      const interval = setInterval(() => {
+        updateCurrentTrack();
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, workoutType, updateCurrentTrack, loadRecommendations]);
   
   const handlePlayPause = async () => {
     try {
@@ -121,14 +106,11 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
       const authUrl = await getSpotifyAuthUrl();
       
       if (Platform.OS === 'web') {
-        // For web, open in same window and handle callback
         const popup = window.open(authUrl, 'spotify-auth', 'width=500,height=600');
         
-        // Listen for the popup to close or redirect
         const checkClosed = setInterval(() => {
           if (popup?.closed) {
             clearInterval(checkClosed);
-            // Check if we have a token in localStorage (set by callback page)
             const urlFragment = localStorage.getItem('spotify_callback_fragment');
             if (urlFragment) {
               localStorage.removeItem('spotify_callback_fragment');
@@ -137,7 +119,6 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
           }
         }, 1000);
       } else {
-        // For mobile, use Linking
         const supported = await Linking.canOpenURL(authUrl);
         if (supported) {
           await Linking.openURL(authUrl);
@@ -165,7 +146,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
             onPress={handleConnectSpotify}
             loading={isLoading}
             style={styles.connectButton}
-            icon={<ExternalLink size={16} color={Colors.text.inverse} />}
+            leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
           />
         </View>
       </Card>
@@ -174,7 +155,6 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
   
   return (
     <Card variant="elevated" style={[styles.container, style]}>
-      {/* Current Track */}
       {currentTrack && (
         <View style={styles.currentTrackContainer}>
           <View style={styles.currentTrackInfo}>
@@ -195,7 +175,6 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
             </View>
           </View>
           
-          {/* Playback Controls */}
           <View style={styles.controls}>
             <TouchableOpacity
               style={styles.controlButton}
@@ -225,7 +204,6 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
         </View>
       )}
       
-      {/* Workout Recommendations */}
       <View style={styles.recommendationsContainer}>
         <Text style={styles.recommendationsTitle}>
           Recommended for {workoutType} workout
@@ -234,7 +212,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
         {isLoadingRecommendations ? (
           <Text style={styles.loadingText}>Loading recommendations...</Text>
         ) : recommendations.length > 0 ? (
-          recommendations.map((track, index) => (
+          recommendations.map((track) => (
             <TouchableOpacity
               key={track.id}
               style={styles.recommendationItem}
@@ -252,7 +230,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
                   {track.name}
                 </Text>
                 <Text style={styles.recommendationArtist} numberOfLines={1}>
-                  {track.artists.map(artist => artist.name).join(', ')}
+                  {track.artists.map((artist: SpotifyArtist) => artist.name).join(', ')}
                 </Text>
               </View>
               
@@ -281,7 +259,7 @@ const styles = StyleSheet.create({
   },
   disconnectedTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
     marginTop: 12,
     marginBottom: 8,
@@ -317,7 +295,7 @@ const styles = StyleSheet.create({
   },
   trackName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
     marginBottom: 4,
   },
@@ -348,12 +326,10 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
   },
-  recommendationsContainer: {
-    // No additional styles needed
-  },
+  recommendationsContainer: {},
   recommendationsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.text.primary,
     marginBottom: 12,
   },
@@ -380,7 +356,7 @@ const styles = StyleSheet.create({
   },
   recommendationName: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     color: Colors.text.primary,
     marginBottom: 2,
   },

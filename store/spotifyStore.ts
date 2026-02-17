@@ -2,8 +2,16 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spotifyService } from '@/services/spotifyService';
+import { 
+  SpotifyStoreState, 
+  MusicPreferences, 
+  SpotifyTrack, 
+  SpotifyPlaylist, 
+  SpotifyUser,
+  WorkoutType 
+} from '@/types/spotify';
 
-const defaultMusicPreferences = {
+const defaultMusicPreferences: MusicPreferences = {
   preferredGenres: ['pop', 'rock', 'electronic'],
   energyLevel: 0.7,
   tempoRange: {
@@ -13,10 +21,9 @@ const defaultMusicPreferences = {
   explicitContent: false,
 };
 
-export const useSpotifyStore = create(
+export const useSpotifyStore = create<SpotifyStoreState>()(
   persist(
     (set, get) => ({
-      // Initial state
       isConnected: false,
       user: null,
       topTracks: [],
@@ -28,8 +35,7 @@ export const useSpotifyStore = create(
       isLoading: false,
       isLoadingPlaylists: false,
       
-      // Connect to Spotify (legacy method)
-      connectSpotify: async (authCode) => {
+      connectSpotify: async (authCode: string): Promise<boolean> => {
         set({ isLoading: true });
         
         try {
@@ -43,7 +49,6 @@ export const useSpotifyStore = create(
               isLoading: false 
             });
             
-            // Load initial data
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
@@ -60,8 +65,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Connect to Spotify using Implicit Grant Flow
-      connectSpotifyImplicit: async (urlFragment) => {
+      connectSpotifyImplicit: async (urlFragment: string): Promise<boolean> => {
         console.log('Store: Starting Spotify implicit connection...');
         set({ isLoading: true });
         
@@ -82,7 +86,6 @@ export const useSpotifyStore = create(
             });
             
             console.log('Store: Loading initial data...');
-            // Load initial data
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
@@ -100,11 +103,10 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Get Spotify authorization URL
-      getSpotifyAuthUrl: async () => {
+      getSpotifyAuthUrl: async (): Promise<string> => {
         console.log('Store: Getting Spotify auth URL...');
         try {
-          const url = spotifyService.getAuthorizationUrl();
+          const url = await spotifyService.getAuthorizationUrl();
           console.log('Store: Auth URL received:', url);
           console.log('Store: Auth URL type:', typeof url);
           if (!url || typeof url !== 'string' || url.length === 0) {
@@ -117,8 +119,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Disconnect from Spotify
-      disconnectSpotify: async () => {
+      disconnectSpotify: async (): Promise<void> => {
         await spotifyService.clearToken();
         set({
           isConnected: false,
@@ -131,8 +132,7 @@ export const useSpotifyStore = create(
         });
       },
       
-      // Load user data
-      loadUserData: async () => {
+      loadUserData: async (): Promise<void> => {
         if (!get().isConnected) return;
         
         try {
@@ -150,10 +150,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Load workout playlists
-      loadWorkoutPlaylists: async () => {
-        if (!get().isConnected) return;
-        
+      loadWorkoutPlaylists: async (): Promise<void> => {
         set({ isLoadingPlaylists: true });
         
         try {
@@ -168,10 +165,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Load running playlists
-      loadRunningPlaylists: async () => {
-        if (!get().isConnected) return;
-        
+      loadRunningPlaylists: async (): Promise<void> => {
         try {
           const runningPlaylists = await spotifyService.getRunningPlaylists();
           set({ runningPlaylists });
@@ -180,8 +174,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Update current track
-      updateCurrentTrack: async () => {
+      updateCurrentTrack: async (): Promise<void> => {
         if (!get().isConnected) return;
         
         try {
@@ -192,8 +185,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Update music preferences
-      updateMusicPreferences: (preferences) => {
+      updateMusicPreferences: (preferences: Partial<MusicPreferences>): void => {
         set({
           musicPreferences: {
             ...get().musicPreferences,
@@ -202,11 +194,9 @@ export const useSpotifyStore = create(
         });
       },
       
-      // Playback controls
-      playTrack: async (uri) => {
+      playTrack: async (uri: string): Promise<void> => {
         try {
           await spotifyService.play(uri);
-          // Update current track after a short delay
           setTimeout(() => {
             get().updateCurrentTrack();
           }, 1000);
@@ -215,7 +205,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      pauseTrack: async () => {
+      pauseTrack: async (): Promise<void> => {
         try {
           await spotifyService.pause();
           get().updateCurrentTrack();
@@ -224,10 +214,9 @@ export const useSpotifyStore = create(
         }
       },
       
-      nextTrack: async () => {
+      nextTrack: async (): Promise<void> => {
         try {
           await spotifyService.next();
-          // Update current track after a short delay
           setTimeout(() => {
             get().updateCurrentTrack();
           }, 1000);
@@ -236,10 +225,9 @@ export const useSpotifyStore = create(
         }
       },
       
-      previousTrack: async () => {
+      previousTrack: async (): Promise<void> => {
         try {
           await spotifyService.previous();
-          // Update current track after a short delay
           setTimeout(() => {
             get().updateCurrentTrack();
           }, 1000);
@@ -248,13 +236,11 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Create workout playlist
-      createWorkoutPlaylist: async (name, description, trackUris) => {
+      createWorkoutPlaylist: async (name: string, description: string, trackUris: string[]): Promise<SpotifyPlaylist | null> => {
         try {
           const playlist = await spotifyService.createWorkoutPlaylist(name, description, trackUris);
           
           if (playlist) {
-            // Refresh workout playlists
             get().loadWorkoutPlaylists();
           }
           
@@ -265,8 +251,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Get recommendations for workout
-      getRecommendationsForWorkout: async (workoutType) => {
+      getRecommendationsForWorkout: async (workoutType: WorkoutType): Promise<SpotifyTrack[]> => {
         try {
           return await spotifyService.getWorkoutRecommendations(workoutType);
         } catch (error) {
@@ -275,8 +260,7 @@ export const useSpotifyStore = create(
         }
       },
       
-      // Initialize Spotify connection on app start
-      initializeSpotify: async () => {
+      initializeSpotify: async (): Promise<void> => {
         try {
           const isAuthenticated = await spotifyService.isAuthenticated();
           
@@ -287,14 +271,12 @@ export const useSpotifyStore = create(
               user: user
             });
             
-            // Load initial data
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
           }
         } catch (error) {
           console.error('Failed to initialize Spotify:', error);
-          // Clear any invalid stored tokens
           await spotifyService.clearToken();
           set({ isConnected: false, user: null });
         }
