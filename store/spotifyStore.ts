@@ -262,23 +262,30 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
       
       initializeSpotify: async (): Promise<void> => {
         try {
+          console.log('Initializing Spotify store...');
           const isAuthenticated = await spotifyService.isAuthenticated();
+          console.log('Is authenticated:', isAuthenticated);
           
           if (isAuthenticated) {
             const user = await spotifyService.getCurrentUser();
+            console.log('User loaded:', user?.display_name || user?.id);
             set({ 
               isConnected: true, 
-              user: user
+              user: user,
+              isLoading: false
             });
             
+            // Load data in background
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
+          } else {
+            set({ isConnected: false, user: null, isLoading: false });
           }
         } catch (error) {
           console.error('Failed to initialize Spotify:', error);
           await spotifyService.clearToken();
-          set({ isConnected: false, user: null });
+          set({ isConnected: false, user: null, isLoading: false });
         }
       },
     }),

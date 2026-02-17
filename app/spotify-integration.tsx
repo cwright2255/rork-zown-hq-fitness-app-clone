@@ -71,25 +71,31 @@ export default function SpotifyIntegration() {
       setLoading(true);
       
       if (Platform.OS === 'web') {
+        console.log('Starting Spotify popup authentication...');
         const success = await spotifyService.authenticateWithPopup();
+        console.log('Popup auth result:', success);
+        
         if (success) {
           await initializeSpotify();
           Alert.alert('Success', 'Connected to Spotify!');
           loadPlaylists();
         } else {
+          // Fallback to client credentials for browsing playlists
+          console.log('Popup auth failed, trying client credentials...');
           const clientSuccess = await spotifyService.initializeClientCredentials();
           if (clientSuccess) {
             setClientCredentialsReady(true);
-            Alert.alert('Success', 'Connected to Spotify! You can now browse playlists and get recommendations.');
+            Alert.alert('Connected', 'You can browse playlists and get recommendations. For full features, try connecting again.');
             loadPlaylists();
           } else {
             Alert.alert(
               'Connection Failed', 
-              'Could not connect to Spotify. Please check your credentials.'
+              'Could not connect to Spotify. Please check that popups are allowed and try again.'
             );
           }
         }
       } else {
+        // On native, use deep linking
         const authUrl = await getSpotifyAuthUrl();
         const supported = await Linking.canOpenURL(authUrl);
         if (supported) {
@@ -99,6 +105,7 @@ export default function SpotifyIntegration() {
         }
       }
     } catch (error) {
+      console.error('Spotify connection error:', error);
       Alert.alert('Error', `Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);

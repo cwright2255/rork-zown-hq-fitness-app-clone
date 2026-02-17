@@ -994,6 +994,58 @@ It does NOT provide access to:
     }
 
     return new Promise(async (resolve) => {
+      let resolved = false;
+      let checkClosedInterval: ReturnType<typeof setInterval> | null = null;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      
+      const cleanup = () => {
+        if (checkClosedInterval) clearInterval(checkClosedInterval);
+        if (timeoutId) clearTimeout(timeoutId);
+        window.removeEventListener('message', messageListener);
+      };
+      
+      const resolveOnce = (value: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(value);
+        }
+      };
+      
+      // Listen for messages from the popup
+      const messageListener = async (event: MessageEvent) => {
+        console.log('Received message from popup:', event.data);
+        
+        if (event.data.type === 'SPOTIFY_AUTH_SUCCESS') {
+          console.log('Authentication successful message received');
+          resolveOnce(true);
+          return;
+        }
+        
+        if (event.data.type === 'SPOTIFY_AUTH_ERROR') {
+          console.error('Authentication error from popup:', event.data.error);
+          resolveOnce(false);
+          return;
+        }
+        
+        if (event.data.type === 'SPOTIFY_AUTH_CODE') {
+          console.log('Authorization code received, exchanging for token...');
+          
+          try {
+            const callbackUrl = event.data.url || `?code=${event.data.code}&state=${event.data.state}`;
+            const success = await this.handleAuthorizationCodeCallback(callbackUrl);
+            console.log('Token exchange result:', success);
+            resolveOnce(success);
+          } catch (error) {
+            console.error('Error exchanging code:', error);
+            resolveOnce(false);
+          }
+          return;
+        }
+      };
+
+      window.addEventListener('message', messageListener);
+      
       try {
         const authUrl = await this.getAuthorizationUrl();
         console.log('Opening popup with URL:', authUrl);
@@ -1002,76 +1054,42 @@ It does NOT provide access to:
         const popup = window.open(
           authUrl,
           'spotify-auth',
-          'width=500,height=600,scrollbars=yes,resizable=yes'
+          'width=500,height=700,scrollbars=yes,resizable=yes,left=100,top=100'
         );
 
         if (!popup) {
-          console.error('Failed to open popup window');
-          resolve(false);
+          console.error('Failed to open popup window - may be blocked by browser');
+          resolveOnce(false);
           return;
         }
 
-        // Listen for messages from the popup (for PKCE callback)
-        const messageListener = async (event: MessageEvent) => {
-          console.log('Received message from popup:', event.data);
-          
-          if (event.data.type === 'SPOTIFY_AUTH_CODE') {
-            console.log('Authorization code received, exchanging for token...');
-            window.removeEventListener('message', messageListener);
-            
-            try {
-              const callbackUrl = event.data.url || `?code=${event.data.code}&state=${event.data.state}`;
-              const success = await this.handleAuthorizationCodeCallback(callbackUrl);
-              console.log('Token exchange result:', success);
-              resolve(success);
-            } catch (error) {
-              console.error('Error exchanging code:', error);
-              resolve(false);
-            }
-            return;
-          }
-          
-          // Legacy support for implicit grant
-          if (event.data.type === 'SPOTIFY_AUTH_SUCCESS') {
-            console.log('Authentication successful (implicit grant)...');
-            window.removeEventListener('message', messageListener);
-            
-            const tokenData = event.data.data;
-            const urlFragment = `#access_token=${tokenData.access_token}&token_type=${tokenData.token_type}&expires_in=${tokenData.expires_in}&state=${tokenData.state}`;
-            
-            try {
-              const success = await this.handleImplicitGrantCallback(urlFragment);
-              resolve(success);
-            } catch (error) {
-              console.error('Error processing token:', error);
-              resolve(false);
-            }
-            return;
-          }
-        };
-
-        window.addEventListener('message', messageListener);
-
-        // Poll for popup closure and URL changes
-        const checkClosed = setInterval(async () => {
+        // Poll for popup closure
+        checkClosedInterval = setInterval(async () => {
           if (popup.closed) {
             console.log('Popup was closed');
-            clearInterval(checkClosed);
-            window.removeEventListener('message', messageListener);
-            resolve(false);
+            // Give a small delay to allow any pending messages to arrive
+            setTimeout(() => {
+              if (!resolved) {
+                resolveOnce(false);
+              }
+            }, 500);
           }
           
-          // Try to read popup URL for code
+          // Try to read popup URL for code (only works for same-origin)
           try {
             const popupUrl = popup.location.href;
-            if (popupUrl && popupUrl.includes('code=')) {
-              console.log('Detected authorization code in popup URL');
-              clearInterval(checkClosed);
-              window.removeEventListener('message', messageListener);
+            if (popupUrl && (popupUrl.includes('code=') || popupUrl.includes('access_token='))) {
+              console.log('Detected auth data in popup URL');
               popup.close();
               
-              const success = await this.handleAuthorizationCodeCallback(popupUrl);
-              resolve(success);
+              if (popupUrl.includes('code=')) {
+                const success = await this.handleAuthorizationCodeCallback(popupUrl);
+                resolveOnce(success);
+              } else {
+                const hash = popupUrl.substring(popupUrl.indexOf('#'));
+                const success = await this.handleImplicitGrantCallback(hash);
+                resolveOnce(success);
+              }
             }
           } catch {
             // Cross-origin - can't read URL, that's expected
@@ -1079,19 +1097,17 @@ It does NOT provide access to:
         }, 500);
 
         // Timeout after 5 minutes
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           if (!popup.closed) {
             popup.close();
           }
-          clearInterval(checkClosed);
-          window.removeEventListener('message', messageListener);
           console.log('Authentication timeout');
-          resolve(false);
+          resolveOnce(false);
         }, 5 * 60 * 1000);
 
       } catch (error) {
         console.error('Error during popup authentication:', error);
-        resolve(false);
+        resolveOnce(false);
       }
     });
   }

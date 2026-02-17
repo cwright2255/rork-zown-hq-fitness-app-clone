@@ -5,6 +5,7 @@ import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { spotifyService } from '@/services/spotifyService';
 import { SpotifyTrack, SpotifyArtist, WorkoutType } from '@/types/spotify';
 
 interface SpotifyMusicPlayerProps {
@@ -103,22 +104,27 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
   
   const handleConnectSpotify = async () => {
     try {
-      const authUrl = await getSpotifyAuthUrl();
-      
       if (Platform.OS === 'web') {
-        const popup = window.open(authUrl, 'spotify-auth', 'width=500,height=600');
-        
-        const checkClosed = setInterval(() => {
-          if (popup?.closed) {
-            clearInterval(checkClosed);
-            const urlFragment = localStorage.getItem('spotify_callback_fragment');
-            if (urlFragment) {
-              localStorage.removeItem('spotify_callback_fragment');
-              connectSpotifyImplicit(urlFragment);
-            }
+        // Use popup-based authentication on web
+        const success = await spotifyService.authenticateWithPopup();
+        if (success) {
+          // Refresh the store state
+          await updateCurrentTrack();
+          loadRecommendations();
+          Alert.alert('Success', 'Connected to Spotify!');
+        } else {
+          // Fallback to client credentials for browsing
+          const clientSuccess = await spotifyService.initializeClientCredentials();
+          if (clientSuccess) {
+            loadRecommendations();
+            Alert.alert('Connected', 'You can now browse playlists and get recommendations.');
+          } else {
+            Alert.alert('Connection Failed', 'Could not connect to Spotify. Please try again.');
           }
-        }, 1000);
+        }
       } else {
+        // On native, use deep linking
+        const authUrl = await getSpotifyAuthUrl();
         const supported = await Linking.canOpenURL(authUrl);
         if (supported) {
           await Linking.openURL(authUrl);

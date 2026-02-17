@@ -25,6 +25,7 @@ export default function SpotifyCallback() {
         let error: string | null = null;
         let state: string | null = null;
         
+        // Get params from route params first
         if (params.code) {
           code = params.code as string;
         }
@@ -35,6 +36,7 @@ export default function SpotifyCallback() {
           state = params.state as string;
         }
         
+        // On web, also try to get from URL params
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           const urlParams = new URLSearchParams(window.location.search);
           if (!code) code = urlParams.get('code');
@@ -44,15 +46,33 @@ export default function SpotifyCallback() {
         
         console.log('Spotify callback: Parsed params - code:', !!code, 'error:', error, 'state:', state);
         
+        // Handle error from Spotify
         if (error) {
           console.error('Spotify authentication error:', error);
           const errorDescription = params.error_description as string || 'Unknown error';
           console.error('Error description:', errorDescription);
           setStatus(`Authentication error: ${error}`);
-          setTimeout(() => router.replace('/profile/settings'), 2000);
+          
+          // Try to communicate with opener window if this is a popup
+          if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
+            try {
+              window.opener.postMessage({
+                type: 'SPOTIFY_AUTH_ERROR',
+                error: error,
+                errorDescription: errorDescription,
+              }, '*');
+              setTimeout(() => window.close(), 1000);
+              return;
+            } catch {
+              console.log('Failed to communicate with opener window');
+            }
+          }
+          
+          setTimeout(() => router.replace('/spotify-integration' as any), 2000);
           return;
         }
         
+        // Handle authorization code
         if (code) {
           setStatus('Exchanging authorization code...');
           console.log('Spotify callback: Authorization code received, exchanging for token...');
@@ -66,15 +86,14 @@ export default function SpotifyCallback() {
             
             await initializeSpotify();
             
+            // Communicate success to opener window if this is a popup
             if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
               try {
                 window.opener.postMessage({
-                  type: 'SPOTIFY_AUTH_CODE',
-                  url: callbackUrl,
-                  code: code,
-                  state: state,
+                  type: 'SPOTIFY_AUTH_SUCCESS',
+                  success: true,
                 }, '*');
-                window.close();
+                setTimeout(() => window.close(), 500);
                 return;
               } catch {
                 console.log('Failed to communicate with opener window');
@@ -83,12 +102,26 @@ export default function SpotifyCallback() {
           } else {
             console.error('Spotify callback: Token exchange failed');
             setStatus('Token exchange failed. Redirecting...');
+            
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'SPOTIFY_AUTH_ERROR',
+                  error: 'token_exchange_failed',
+                }, '*');
+                setTimeout(() => window.close(), 1000);
+                return;
+              } catch {
+                console.log('Failed to communicate with opener window');
+              }
+            }
           }
           
-          setTimeout(() => router.replace('/profile/settings'), 1500);
+          setTimeout(() => router.replace('/spotify-integration' as any), 1500);
           return;
         }
         
+        // Check for implicit grant token in URL fragment
         const urlFragment = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.hash : '';
         if (urlFragment && urlFragment.includes('access_token')) {
           setStatus('Processing access token...');
@@ -99,22 +132,35 @@ export default function SpotifyCallback() {
             console.log('Spotify callback: Implicit grant authentication successful');
             setStatus('Connected successfully!');
             await initializeSpotify();
+            
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'SPOTIFY_AUTH_SUCCESS',
+                  success: true,
+                }, '*');
+                setTimeout(() => window.close(), 500);
+                return;
+              } catch {
+                console.log('Failed to communicate with opener window');
+              }
+            }
           } else {
             console.error('Spotify callback: Implicit grant authentication failed');
             setStatus('Authentication failed.');
           }
           
-          setTimeout(() => router.replace('/profile/settings'), 1500);
+          setTimeout(() => router.replace('/spotify-integration' as any), 1500);
           return;
         }
         
         console.log('Spotify callback: No code or token found, redirecting');
         setStatus('No authentication data found. Redirecting...');
-        setTimeout(() => router.replace('/profile/settings'), 1500);
+        setTimeout(() => router.replace('/spotify-integration' as any), 1500);
       } catch (error) {
         console.error('Spotify callback: Error handling callback:', error);
         setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setTimeout(() => router.replace('/profile/settings'), 2000);
+        setTimeout(() => router.replace('/spotify-integration' as any), 2000);
       }
     };
 
