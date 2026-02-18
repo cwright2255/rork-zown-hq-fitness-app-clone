@@ -274,7 +274,7 @@ export default function ProfileScreen() {
         
         <TouchableOpacity 
           style={styles.settingsButton}
-          onPress={() => router.push('/profile/settings')}
+          onPress={() => router.push('/profile/settings' as any)}
         >
           <Settings size={20} color={Colors.text.primary} />
         </TouchableOpacity>
@@ -339,7 +339,7 @@ export default function ProfileScreen() {
       <Card variant="elevated" style={styles.menuCard}>
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={() => router.push('/profile/progress?tab=achievements')}
+          onPress={() => router.push('/profile/progress?tab=achievements' as any)}
         >
           <View style={styles.menuItemLeft}>
             <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.warning}20` }]}>
@@ -354,7 +354,7 @@ export default function ProfileScreen() {
         
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={() => router.push('/champion-pass')}
+          onPress={() => router.push('/champion-pass' as any)}
         >
           <View style={styles.menuItemLeft}>
             <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.primary}20` }]}>
@@ -384,7 +384,7 @@ export default function ProfileScreen() {
         
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={() => router.push('/profile/settings')}
+          onPress={() => router.push('/profile/settings' as any)}
         >
           <View style={styles.menuItemLeft}>
             <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.text.secondary}20` }]}>
@@ -400,7 +400,7 @@ export default function ProfileScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Achievements</Text>
         <TouchableOpacity 
-          onPress={() => router.push('/profile/progress?tab=achievements')}
+          onPress={() => router.push('/profile/progress?tab=achievements' as any)}
           style={styles.seeAllButton}
         >
           <Text style={styles.seeAllText}>See All</Text>
@@ -979,7 +979,7 @@ export default function ProfileScreen() {
       
       <TouchableOpacity 
         style={styles.viewFullDashboardButton}
-        onPress={() => router.push('/exp-dashboard')}
+        onPress={() => router.push('/exp-dashboard' as any)}
       >
         <Text style={styles.viewFullDashboardText}>View Full EXP Dashboard</Text>
         <ChevronRight size={16} color={Colors.primary} />

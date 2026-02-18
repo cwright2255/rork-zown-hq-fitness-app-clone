@@ -91,7 +91,7 @@ export default function FoodDetailScreen() {
     addFoodToMeal(today, selectedMealId, adjustedFood);
     
     // Navigate back to nutrition screen
-    router.replace('/nutrition');
+    router.replace('/nutrition' as any);
   };
   
   const increaseQuantity = () => {

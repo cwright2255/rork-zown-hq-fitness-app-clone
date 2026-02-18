@@ -153,7 +153,7 @@ export default function SearchFoodScreen() {
   const renderFoodItem = ({ item }: { item: FoodItemType }) => (
     <FoodItem
       food={item}
-      onPress={() => router.push(`/nutrition/food/${item.id}`)}
+      onPress={() => router.push(`/nutrition/food/${item.id}` as any)}
       onAdd={() => handleAddFood(item)}
     />
   );
@@ -237,7 +237,7 @@ export default function SearchFoodScreen() {
             </View>
             <FoodItem
               food={scannedFoodData}
-              onPress={() => router.push(`/nutrition/food/${scannedFoodData.id}`)}
+              onPress={() => router.push(`/nutrition/food/${scannedFoodData.id}` as any)}
               onAdd={() => handleAddFood(scannedFoodData)}
               showAddButton={true}
             />

@@ -127,7 +127,7 @@ export default function FoodScanScreen() {
     
     // Navigate back to nutrition page with the analyzed food data
     router.push({
-      pathname: '/nutrition/search',
+      pathname: '/nutrition/search' as any,
       params: {
         scannedFood: JSON.stringify(analysisResult)
       }

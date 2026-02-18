@@ -619,7 +619,7 @@ export default function ActiveWorkoutScreen() {
               style={styles.nextWorkoutCard}
               onPress={() => {
                 closePreview();
-                router.replace(`/workout/${nextWorkout.id}?mode=workout`);
+                router.replace(`/workout/${nextWorkout.id}?mode=workout` as any);
               }}
             >
               <Image 

@@ -65,7 +65,7 @@ export default function RunningProgramDetailScreen() {
     // Navigate to first session
     const firstSession = program.sessions[0];
     if (firstSession) {
-      router.push(`/running/session/${firstSession.id}?programId=${program.id}`);
+      router.push(`/running/session/${firstSession.id}?programId=${program.id}` as any);
     }
   };
   

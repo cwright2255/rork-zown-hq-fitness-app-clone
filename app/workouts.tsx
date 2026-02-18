@@ -372,11 +372,11 @@ export default function WorkoutsScreen() {
   
   // Navigation handlers
   const handleWorkoutPress = useCallback((workoutId: string) => {
-    router.push(`/workout/${workoutId}`);
+    router.push(`/workout/${workoutId}` as any);
   }, []);
   
   const handleRunningProgramPress = useCallback((programId: string) => {
-    router.push(`/running/program/${programId}`);
+    router.push(`/running/program/${programId}` as any);
   }, []);
   
   const handleViewAllSavedPress = useCallback(() => {
@@ -394,7 +394,7 @@ export default function WorkoutsScreen() {
       // Start new run
       startRun();
       setIsRunning(true);
-      router.push('/workout/active?mode=run');
+      router.push('/workout/active?mode=run' as any);
     }
   }, [isRunning, startRun, finishRun]);
 
@@ -406,7 +406,7 @@ export default function WorkoutsScreen() {
       // Start new workout
       setIsWorkingOut(true);
       // In a real app, this would navigate to a workout tracking screen or start a timer
-      router.push('/workout/active?mode=workout');
+      router.push('/workout/active?mode=workout' as any);
     }
   }, [isWorkingOut]);
 
@@ -621,7 +621,7 @@ export default function WorkoutsScreen() {
       {/* Running Challenges */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Running Challenges</Text>
-        <TouchableOpacity onPress={() => router.push('/community')}>
+        <TouchableOpacity onPress={() => router.push('/community' as any)}>
           <Text style={styles.viewAllText}>View All</Text>
         </TouchableOpacity>
       </View>
@@ -1041,7 +1041,7 @@ export default function WorkoutsScreen() {
       {/* Community Challenges */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Community Challenges</Text>
-        <TouchableOpacity onPress={() => router.push('/community')}>
+        <TouchableOpacity onPress={() => router.push('/community' as any)}>
           <Text style={styles.viewAllText}>View All</Text>
         </TouchableOpacity>
       </View>

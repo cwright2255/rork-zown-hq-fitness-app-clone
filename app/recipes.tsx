@@ -423,7 +423,7 @@ export default function RecipesScreen() {
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
     <TouchableOpacity 
       style={styles.recipeCard}
-      onPress={() => router.push(`/recipe/${item.id}`)}
+      onPress={() => router.push(`/recipe/${item.id}` as any)}
       activeOpacity={0.8}
     >
       <Image source={{ uri: item.imageUrl }} style={styles.recipeImage} />
@@ -489,7 +489,7 @@ export default function RecipesScreen() {
         renderItem={({ item: recipe }) => (
           <TouchableOpacity 
             style={styles.collectionRecipeCard}
-            onPress={() => router.push(`/recipe/${recipe.id}`)}
+            onPress={() => router.push(`/recipe/${recipe.id}` as any)}
           >
             <Image source={{ uri: recipe.imageUrl }} style={styles.collectionRecipeImage} />
             <View style={styles.collectionRecipeContent}>

@@ -186,7 +186,7 @@ export default function ProgressTrackerScreen() {
   };
 
   const handleRecordBodyScan = () => {
-    router.push('/profile/body-scan');
+    router.push('/profile/body-scan' as any);
   };
   
   const renderChampionPassTab = () => (

@@ -109,7 +109,7 @@ export default function BarcodeScanScreen() {
     
     // Navigate back to nutrition page with the scanned product data
     router.push({
-      pathname: '/nutrition/search',
+      pathname: '/nutrition/search' as any,
       params: {
         scannedFood: JSON.stringify(scanResult)
       }

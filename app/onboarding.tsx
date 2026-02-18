@@ -78,7 +78,7 @@ const OnboardingScreen = () => {
 
   const handleNavigateBodyScan = useCallback(() => {
     console.log('[Onboarding] Navigate to Body Scan');
-    router.push('/profile/body-scan');
+    router.push('/profile/body-scan' as any);
   }, []);
 
   const handleGetStarted = useCallback(() => {

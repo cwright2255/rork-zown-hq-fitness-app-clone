@@ -277,7 +277,7 @@ ${recipe.description}`,
       [
         { 
           text: 'View Diary', 
-          onPress: () => router.push('/nutrition') 
+          onPress: () => router.push('/nutrition' as any) 
         },
         { 
           text: 'OK', 

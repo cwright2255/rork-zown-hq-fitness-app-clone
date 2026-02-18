@@ -101,7 +101,7 @@ export default function BodyScanScreen() {
         'Progress Saved',
         'Your body measurements and capture set have been saved.',
         [
-          { text: 'OK', onPress: () => router.push('/profile/progress') }
+          { text: 'OK', onPress: () => router.push('/profile/progress' as any) }
         ]
       );
     } catch (e) {
