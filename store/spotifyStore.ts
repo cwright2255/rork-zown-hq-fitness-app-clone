@@ -25,6 +25,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
   persist(
     (set, get) => ({
       isConnected: false,
+      isClientCredentialsReady: false,
       user: null,
       topTracks: [],
       workoutPlaylists: [],
@@ -123,6 +124,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
         await spotifyService.clearToken();
         set({
           isConnected: false,
+          isClientCredentialsReady: false,
           user: null,
           topTracks: [],
           workoutPlaylists: [],
@@ -267,25 +269,45 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
           console.log('Is authenticated:', isAuthenticated);
           
           if (isAuthenticated) {
+            const isClientCreds = spotifyService.isUsingClientCredentials();
             const user = await spotifyService.getCurrentUser();
-            console.log('User loaded:', user?.display_name || user?.id);
+            console.log('User loaded:', user?.display_name || user?.id, 'clientCreds:', isClientCreds);
             set({ 
-              isConnected: true, 
-              user: user,
+              isConnected: !isClientCreds, 
+              isClientCredentialsReady: isClientCreds,
+              user: isClientCreds ? null : user,
               isLoading: false
             });
             
-            // Load data in background
-            get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
+            if (!isClientCreds) {
+              get().loadUserData();
+            }
           } else {
-            set({ isConnected: false, user: null, isLoading: false });
+            set({ isConnected: false, isClientCredentialsReady: false, user: null, isLoading: false });
           }
         } catch (error) {
           console.error('Failed to initialize Spotify:', error);
           await spotifyService.clearToken();
-          set({ isConnected: false, user: null, isLoading: false });
+          set({ isConnected: false, isClientCredentialsReady: false, user: null, isLoading: false });
+        }
+      },
+      
+      initializeClientCredentials: async (): Promise<boolean> => {
+        try {
+          console.log('Store: Initializing client credentials...');
+          const success = await spotifyService.initializeClientCredentials();
+          if (success) {
+            console.log('Store: Client credentials ready');
+            set({ isClientCredentialsReady: true });
+            get().loadWorkoutPlaylists();
+            get().loadRunningPlaylists();
+          }
+          return success;
+        } catch (error) {
+          console.error('Store: Failed to init client credentials:', error);
+          return false;
         }
       },
     }),
@@ -294,6 +316,7 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         isConnected: state.isConnected,
+        isClientCredentialsReady: state.isClientCredentialsReady,
         user: state.user,
         musicPreferences: state.musicPreferences,
       }),

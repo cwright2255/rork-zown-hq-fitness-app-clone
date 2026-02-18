@@ -302,6 +302,7 @@ export interface SpotifyPlaylist {
 
 export interface SpotifyState {
   isConnected: boolean;
+  isClientCredentialsReady: boolean;
   user: SpotifyUser | null;
   topTracks: SpotifyTrack[];
   workoutPlaylists: SpotifyPlaylist[];
@@ -332,6 +333,7 @@ export interface SpotifyState {
   createWorkoutPlaylist: (name: string, description: string, trackUris: string[]) => Promise<SpotifyPlaylist | null>;
   getRecommendationsForWorkout: (workoutType: string) => Promise<SpotifyTrack[]>;
   initializeSpotify: () => Promise<void>;
+  initializeClientCredentials: () => Promise<boolean>;
 }
 
 export interface UserRunningProfile {

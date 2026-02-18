@@ -986,7 +986,6 @@ It does NOT provide access to:
     return authUrl;
   }
 
-  // Authenticate using popup window (for web)
   async authenticateWithPopup(): Promise<boolean> {
     if (Platform.OS !== 'web') {
       console.warn('Popup authentication is only available on web');
@@ -997,6 +996,7 @@ It does NOT provide access to:
       let resolved = false;
       let checkClosedInterval: ReturnType<typeof setInterval> | null = null;
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let codeHandled = false;
       
       const cleanup = () => {
         if (checkClosedInterval) clearInterval(checkClosedInterval);
@@ -1011,35 +1011,59 @@ It does NOT provide access to:
           resolve(value);
         }
       };
+
+      const extractAndHandleCode = async (url: string): Promise<boolean> => {
+        if (codeHandled) return false;
+        codeHandled = true;
+        
+        console.log('SpotifyService: Extracting auth data from URL:', url.substring(0, 100));
+        
+        try {
+          if (url.includes('error=')) {
+            const urlObj = new URL(url);
+            const error = urlObj.searchParams.get('error');
+            console.error('SpotifyService: Auth error in URL:', error);
+            return false;
+          }
+          
+          if (url.includes('code=')) {
+            const success = await this.handleAuthorizationCodeCallback(url);
+            console.log('SpotifyService: Code exchange result:', success);
+            return success;
+          }
+          
+          if (url.includes('access_token=')) {
+            const hash = url.substring(url.indexOf('#'));
+            const success = await this.handleImplicitGrantCallback(hash);
+            return success;
+          }
+        } catch (error) {
+          console.error('SpotifyService: Error handling auth data:', error);
+          codeHandled = false;
+        }
+        
+        return false;
+      };
       
-      // Listen for messages from the popup
       const messageListener = async (event: MessageEvent) => {
-        console.log('Received message from popup:', event.data);
+        if (!event.data || typeof event.data !== 'object') return;
+        console.log('SpotifyService: Received message from popup:', event.data.type);
         
         if (event.data.type === 'SPOTIFY_AUTH_SUCCESS') {
-          console.log('Authentication successful message received');
           resolveOnce(true);
           return;
         }
         
         if (event.data.type === 'SPOTIFY_AUTH_ERROR') {
-          console.error('Authentication error from popup:', event.data.error);
+          console.error('SpotifyService: Auth error from popup:', event.data.error);
           resolveOnce(false);
           return;
         }
         
         if (event.data.type === 'SPOTIFY_AUTH_CODE') {
-          console.log('Authorization code received, exchanging for token...');
-          
-          try {
-            const callbackUrl = event.data.url || `?code=${event.data.code}&state=${event.data.state}`;
-            const success = await this.handleAuthorizationCodeCallback(callbackUrl);
-            console.log('Token exchange result:', success);
-            resolveOnce(success);
-          } catch (error) {
-            console.error('Error exchanging code:', error);
-            resolveOnce(false);
-          }
+          const callbackUrl = event.data.url || `?code=${event.data.code}&state=${event.data.state}`;
+          const success = await extractAndHandleCode(callbackUrl);
+          resolveOnce(success);
           return;
         }
       };
@@ -1048,9 +1072,8 @@ It does NOT provide access to:
       
       try {
         const authUrl = await this.getAuthorizationUrl();
-        console.log('Opening popup with URL:', authUrl);
+        console.log('SpotifyService: Opening popup for auth...');
         
-        // Open popup window
         const popup = window.open(
           authUrl,
           'spotify-auth',
@@ -1058,55 +1081,49 @@ It does NOT provide access to:
         );
 
         if (!popup) {
-          console.error('Failed to open popup window - may be blocked by browser');
+          console.error('SpotifyService: Popup blocked by browser');
           resolveOnce(false);
           return;
         }
 
-        // Poll for popup closure
         checkClosedInterval = setInterval(async () => {
-          if (popup.closed) {
-            console.log('Popup was closed');
-            // Give a small delay to allow any pending messages to arrive
-            setTimeout(() => {
-              if (!resolved) {
-                resolveOnce(false);
-              }
-            }, 500);
-          }
-          
-          // Try to read popup URL for code (only works for same-origin)
           try {
-            const popupUrl = popup.location.href;
-            if (popupUrl && (popupUrl.includes('code=') || popupUrl.includes('access_token='))) {
-              console.log('Detected auth data in popup URL');
-              popup.close();
-              
-              if (popupUrl.includes('code=')) {
-                const success = await this.handleAuthorizationCodeCallback(popupUrl);
-                resolveOnce(success);
-              } else {
-                const hash = popupUrl.substring(popupUrl.indexOf('#'));
-                const success = await this.handleImplicitGrantCallback(hash);
-                resolveOnce(success);
-              }
+            if (popup.closed) {
+              console.log('SpotifyService: Popup closed by user');
+              setTimeout(() => resolveOnce(false), 300);
+              return;
             }
           } catch {
-            // Cross-origin - can't read URL, that's expected
+            // ignore
           }
-        }, 500);
+          
+          try {
+            const popupUrl = popup.location.href;
+            if (!popupUrl || popupUrl === 'about:blank') return;
+            
+            const hasAuthData = popupUrl.includes('code=') || 
+                               popupUrl.includes('access_token=') || 
+                               popupUrl.includes('error=');
+            
+            if (hasAuthData && !codeHandled) {
+              console.log('SpotifyService: Detected auth data in popup URL');
+              popup.close();
+              const success = await extractAndHandleCode(popupUrl);
+              resolveOnce(success);
+            }
+          } catch {
+            // Cross-origin - expected while on accounts.spotify.com
+          }
+        }, 300);
 
-        // Timeout after 5 minutes
         timeoutId = setTimeout(() => {
-          if (!popup.closed) {
-            popup.close();
-          }
-          console.log('Authentication timeout');
+          try { if (!popup.closed) popup.close(); } catch {}
+          console.log('SpotifyService: Auth timeout after 5 minutes');
           resolveOnce(false);
         }, 5 * 60 * 1000);
 
       } catch (error) {
-        console.error('Error during popup authentication:', error);
+        console.error('SpotifyService: Error during popup auth:', error);
         resolveOnce(false);
       }
     });

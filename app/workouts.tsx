@@ -76,7 +76,8 @@ export default function WorkoutsScreen() {
   const { user, updateUserRunningProfile } = useUserStore() as UserState;
   const { expSystem } = useExpStore() as ExpState;
   const { runningChallenges: communityRunningChallenges, initializeRunningChallenges } = useCommunityStore() as CommunityState;
-  const { isConnected: isSpotifyConnected, workoutPlaylists } = useSpotifyStore() as SpotifyState;
+  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds, workoutPlaylists } = useSpotifyStore() as SpotifyState;
+  const hasSpotifyAccess = isSpotifyConnected || isSpotifyClientCreds;
   
   // Memoize static data
   const tabs = useMemo(() => [
@@ -481,7 +482,7 @@ export default function WorkoutsScreen() {
       )}
 
       {/* Spotify Music Player for Running */}
-      {isSpotifyConnected && (
+      {hasSpotifyAccess && (
         <SpotifyMusicPlayer 
           workoutType="running"
           style={styles.musicPlayerCard}
@@ -689,7 +690,7 @@ export default function WorkoutsScreen() {
     runningBuddy,
     runningChallenges,
     virtualRaces,
-    isSpotifyConnected,
+    hasSpotifyAccess,
     formatTime,
     formatPace
   ]);
@@ -707,12 +708,12 @@ export default function WorkoutsScreen() {
       </View>
 
       {/* Spotify Music Player for Workouts */}
-      {showMusicSection && isSpotifyConnected ? (
+      {showMusicSection && hasSpotifyAccess ? (
         <SpotifyMusicPlayer 
           workoutType="cardio"
           style={styles.musicPlayerCard}
         />
-      ) : showMusicSection && !isSpotifyConnected ? (
+      ) : showMusicSection && !hasSpotifyAccess ? (
         <Card style={styles.musicPlayerCard}>
           <Text style={styles.noSpotifyConnectionText}>
             Spotify is not connected. Go to Settings to connect your account.
@@ -721,7 +722,7 @@ export default function WorkoutsScreen() {
       ) : null}
 
       {/* Spotify Workout Playlists */}
-      {isSpotifyConnected && workoutPlaylists.length > 0 && (
+      {hasSpotifyAccess && workoutPlaylists.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Workout Playlists</Text>
@@ -921,7 +922,7 @@ export default function WorkoutsScreen() {
     currentYoutubeIndex,
     isWorkingOut,
     showMusicSection,
-    isSpotifyConnected,
+    hasSpotifyAccess,
     workoutPlaylists,
     workouts
   ]);

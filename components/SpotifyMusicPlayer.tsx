@@ -16,6 +16,7 @@ interface SpotifyMusicPlayerProps {
 export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: SpotifyMusicPlayerProps) {
   const {
     isConnected,
+    isClientCredentialsReady,
     currentTrack,
     playTrack,
     pauseTrack,
@@ -26,40 +27,51 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     getSpotifyAuthUrl,
     connectSpotifyImplicit,
     isLoading,
+    initializeClientCredentials,
+    initializeSpotify,
   } = useSpotifyStore();
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [recommendations, setRecommendations] = useState<SpotifyTrack[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+
+  const hasApiAccess = isConnected || isClientCredentialsReady;
   
   const loadRecommendations = useCallback(async () => {
-    if (!isConnected) return;
+    if (!hasApiAccess) return;
     
     setIsLoadingRecommendations(true);
     try {
       const tracks = await getRecommendationsForWorkout(workoutType);
       setRecommendations(tracks.slice(0, 5));
+      console.log('SpotifyMusicPlayer: Loaded', tracks.length, 'recommendations');
     } catch (error) {
-      console.error('Failed to load recommendations:', error);
+      console.error('SpotifyMusicPlayer: Failed to load recommendations:', error);
     } finally {
       setIsLoadingRecommendations(false);
     }
-  }, [isConnected, workoutType, getRecommendationsForWorkout]);
+  }, [hasApiAccess, workoutType, getRecommendationsForWorkout]);
   
   useEffect(() => {
-    if (isConnected) {
-      updateCurrentTrack();
+    if (hasApiAccess) {
       loadRecommendations();
       
-      const interval = setInterval(() => {
+      if (isConnected) {
         updateCurrentTrack();
-      }, 30000);
-      
-      return () => clearInterval(interval);
+        const interval = setInterval(() => {
+          updateCurrentTrack();
+        }, 30000);
+        return () => clearInterval(interval);
+      }
     }
-  }, [isConnected, workoutType, updateCurrentTrack, loadRecommendations]);
+  }, [hasApiAccess, isConnected, workoutType, updateCurrentTrack, loadRecommendations]);
   
   const handlePlayPause = async () => {
+    if (!isConnected) {
+      Alert.alert('Spotify Premium Required', 'Playback control requires a connected Spotify Premium account. Tracks will open in Spotify instead.');
+      return;
+    }
+    
     try {
       if (isPlaying) {
         await pauseTrack();
@@ -78,6 +90,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
   };
   
   const handleNext = async () => {
+    if (!isConnected) return;
     try {
       await nextTrack();
     } catch (error) {
@@ -86,6 +99,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
   };
   
   const handlePrevious = async () => {
+    if (!isConnected) return;
     try {
       await previousTrack();
     } catch (error) {
@@ -94,36 +108,46 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
   };
   
   const handleTrackPress = async (track: SpotifyTrack) => {
-    try {
-      await playTrack(track.uri);
-      setIsPlaying(true);
-    } catch (error) {
-      Alert.alert('Playback Error', 'Unable to play this track.');
+    if (isConnected) {
+      try {
+        await playTrack(track.uri);
+        setIsPlaying(true);
+      } catch (error) {
+        openTrackInSpotify(track);
+      }
+    } else {
+      openTrackInSpotify(track);
+    }
+  };
+
+  const openTrackInSpotify = (track: SpotifyTrack) => {
+    if (track.external_urls?.spotify) {
+      Linking.openURL(track.external_urls.spotify);
     }
   };
   
   const handleConnectSpotify = async () => {
     try {
       if (Platform.OS === 'web') {
-        // Use popup-based authentication on web
+        console.log('SpotifyMusicPlayer: Starting popup auth...');
         const success = await spotifyService.authenticateWithPopup();
+        console.log('SpotifyMusicPlayer: Popup auth result:', success);
+        
         if (success) {
-          // Refresh the store state
-          await updateCurrentTrack();
-          loadRecommendations();
+          await initializeSpotify();
           Alert.alert('Success', 'Connected to Spotify!');
+          loadRecommendations();
         } else {
-          // Fallback to client credentials for browsing
-          const clientSuccess = await spotifyService.initializeClientCredentials();
+          console.log('SpotifyMusicPlayer: Falling back to client credentials...');
+          const clientSuccess = await initializeClientCredentials();
           if (clientSuccess) {
             loadRecommendations();
-            Alert.alert('Connected', 'You can now browse playlists and get recommendations.');
+            Alert.alert('Connected', 'You can browse music and get recommendations. Tap a track to open it in Spotify.');
           } else {
-            Alert.alert('Connection Failed', 'Could not connect to Spotify. Please try again.');
+            Alert.alert('Connection Failed', 'Could not connect to Spotify. Please check your settings.');
           }
         }
       } else {
-        // On native, use deep linking
         const authUrl = await getSpotifyAuthUrl();
         const supported = await Linking.canOpenURL(authUrl);
         if (supported) {
@@ -133,12 +157,12 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
         }
       }
     } catch (error) {
-      console.error('Failed to connect to Spotify:', error);
+      console.error('SpotifyMusicPlayer: Connection error:', error);
       Alert.alert('Connection Error', 'Failed to connect to Spotify. Please try again.');
     }
   };
   
-  if (!isConnected) {
+  if (!hasApiAccess) {
     return (
       <Card variant="outlined" style={[styles.container, style]}>
         <View style={styles.disconnectedContainer}>
@@ -161,7 +185,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
   
   return (
     <Card variant="elevated" style={[styles.container, style]}>
-      {currentTrack && (
+      {isConnected && currentTrack && (
         <View style={styles.currentTrackContainer}>
           <View style={styles.currentTrackInfo}>
             {currentTrack.album.images[0] && (
@@ -209,6 +233,15 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
           </View>
         </View>
       )}
+
+      {!isConnected && isClientCredentialsReady && (
+        <View style={styles.clientCredsBanner}>
+          <Music size={16} color="#1DB954" />
+          <Text style={styles.clientCredsBannerText}>
+            Tap any track to open in Spotify
+          </Text>
+        </View>
+      )}
       
       <View style={styles.recommendationsContainer}>
         <Text style={styles.recommendationsTitle}>
@@ -240,14 +273,21 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
                 </Text>
               </View>
               
-              <TouchableOpacity style={styles.playRecommendationButton}>
-                <Play size={16} color={Colors.primary} />
+              <TouchableOpacity
+                style={styles.playRecommendationButton}
+                onPress={() => handleTrackPress(track)}
+              >
+                {isConnected ? (
+                  <Play size={16} color={Colors.primary} />
+                ) : (
+                  <ExternalLink size={16} color={Colors.primary} />
+                )}
               </TouchableOpacity>
             </TouchableOpacity>
           ))
         ) : (
           <Text style={styles.noRecommendationsText}>
-            No recommendations available
+            No recommendations available. Try refreshing.
           </Text>
         )}
       </View>
@@ -278,6 +318,22 @@ const styles = StyleSheet.create({
   },
   connectButton: {
     marginTop: 8,
+  },
+  clientCredsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  clientCredsBannerText: {
+    fontSize: 13,
+    color: '#1DB954',
+    fontWeight: '500' as const,
   },
   currentTrackContainer: {
     paddingBottom: 16,

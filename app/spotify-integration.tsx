@@ -22,37 +22,28 @@ import { SpotifyPlaylist } from '@/types/spotify';
 export default function SpotifyIntegration() {
   const { 
     isConnected, 
+    isClientCredentialsReady,
     user, 
     disconnectSpotify,
     initializeSpotify,
     getSpotifyAuthUrl,
+    initializeClientCredentials: storeInitClientCreds,
   } = useSpotifyStore();
   
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [loading, setLoading] = useState(false);
-  const [clientCredentialsReady, setClientCredentialsReady] = useState(false);
   
   useEffect(() => {
-    initClientCredentials();
+    if (!isConnected && !isClientCredentialsReady) {
+      storeInitClientCreds();
+    }
   }, []);
   
   useEffect(() => {
-    if (isConnected || clientCredentialsReady) {
+    if (isConnected || isClientCredentialsReady) {
       loadPlaylists();
     }
-  }, [isConnected, clientCredentialsReady]);
-  
-  const initClientCredentials = async () => {
-    try {
-      const success = await spotifyService.initializeClientCredentials();
-      setClientCredentialsReady(success);
-      if (success) {
-        console.log('Client Credentials initialized - public API access ready');
-      }
-    } catch (error) {
-      console.error('Failed to init client credentials:', error);
-    }
-  };
+  }, [isConnected, isClientCredentialsReady]);
   
   const loadPlaylists = async () => {
     try {
@@ -80,12 +71,10 @@ export default function SpotifyIntegration() {
           Alert.alert('Success', 'Connected to Spotify!');
           loadPlaylists();
         } else {
-          // Fallback to client credentials for browsing playlists
           console.log('Popup auth failed, trying client credentials...');
-          const clientSuccess = await spotifyService.initializeClientCredentials();
+          const clientSuccess = await storeInitClientCreds();
           if (clientSuccess) {
-            setClientCredentialsReady(true);
-            Alert.alert('Connected', 'You can browse playlists and get recommendations. For full features, try connecting again.');
+            Alert.alert('Connected', 'You can browse playlists and get recommendations. Tap a playlist to open in Spotify.');
             loadPlaylists();
           } else {
             Alert.alert(
@@ -115,7 +104,6 @@ export default function SpotifyIntegration() {
   const handleDisconnect = async () => {
     await disconnectSpotify();
     setPlaylists([]);
-    setClientCredentialsReady(false);
   };
   
   const openPlaylist = (playlist: SpotifyPlaylist) => {
@@ -142,16 +130,16 @@ export default function SpotifyIntegration() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Card variant="elevated" style={styles.statusCard}>
           <View style={styles.statusHeader}>
-            <Music size={32} color={isConnected || clientCredentialsReady ? '#1DB954' : Colors.text.tertiary} />
+            <Music size={32} color={isConnected || isClientCredentialsReady ? '#1DB954' : Colors.text.tertiary} />
             <View style={styles.statusInfo}>
               <Text style={styles.statusTitle}>
-                {isConnected ? 'Connected to Spotify' : clientCredentialsReady ? 'Public Access Ready' : 'Not Connected'}
+                {isConnected ? 'Connected to Spotify' : isClientCredentialsReady ? 'Public Access Ready' : 'Not Connected'}
               </Text>
               {user ? (
                 <Text style={styles.statusSubtitle}>
                   {user.display_name || user.id}
                 </Text>
-              ) : clientCredentialsReady ? (
+              ) : isClientCredentialsReady ? (
                 <Text style={styles.statusSubtitle}>
                   Search & browse playlists available
                 </Text>
@@ -160,7 +148,7 @@ export default function SpotifyIntegration() {
           </View>
           
           <View style={styles.statusActions}>
-            {isConnected || clientCredentialsReady ? (
+            {isConnected || isClientCredentialsReady ? (
               <View style={styles.buttonRow}>
                 <Button
                   title="Refresh"
@@ -194,14 +182,14 @@ export default function SpotifyIntegration() {
         
         <Card variant="outlined" style={styles.instructionsCard}>
           <Text style={styles.instructionsTitle}>
-            {clientCredentialsReady ? '✅ Connected!' : 'Setup Instructions'}
+            {isClientCredentialsReady || isConnected ? '✅ Connected!' : 'Setup Instructions'}
           </Text>
           <Text style={styles.instructionsText}>
             {spotifyService.getSetupInstructions()}
           </Text>
         </Card>
         
-        {(isConnected || clientCredentialsReady) && (
+        {(isConnected || isClientCredentialsReady) && (
           <Card variant="elevated" style={styles.playlistsCard}>
             <View style={styles.playlistsHeader}>
               <Text style={styles.playlistsTitle}>Workout Playlists</Text>

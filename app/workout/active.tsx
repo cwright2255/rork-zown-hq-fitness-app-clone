@@ -58,7 +58,8 @@ export default function ActiveWorkoutScreen() {
   };
   const { addXp } = useUserStore() as { addXp: (amount: number) => void };
   const { checkAchievements } = useAchievementStore() as { checkAchievements: (data: { workoutsCompleted?: number }) => void };
-  const { isConnected: isSpotifyConnected } = useSpotifyStore() as { isConnected: boolean };
+  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds } = useSpotifyStore() as { isConnected: boolean; isClientCredentialsReady: boolean };
+  const hasSpotifyAccess = isSpotifyConnected || isSpotifyClientCreds;
   
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [runningSession, setRunningSession] = useState<any>(null);

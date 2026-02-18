@@ -88,6 +88,7 @@ export type WorkoutType = 'cardio' | 'strength' | 'yoga' | 'running';
 
 export interface SpotifyStoreState {
   isConnected: boolean;
+  isClientCredentialsReady: boolean;
   user: SpotifyUser | null;
   topTracks: SpotifyTrack[];
   workoutPlaylists: SpotifyPlaylist[];
@@ -114,4 +115,5 @@ export interface SpotifyStoreState {
   createWorkoutPlaylist: (name: string, description: string, trackUris: string[]) => Promise<SpotifyPlaylist | null>;
   getRecommendationsForWorkout: (workoutType: WorkoutType) => Promise<SpotifyTrack[]>;
   initializeSpotify: () => Promise<void>;
+  initializeClientCredentials: () => Promise<boolean>;
 }
