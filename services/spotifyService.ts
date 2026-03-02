@@ -675,7 +675,7 @@ It does NOT provide access to:
   // Get playlist tracks
   async getPlaylistTracks(playlistId: string): Promise<SpotifyTrack[]> {
     try {
-      const response = await this.fetchWebApi(`playlists/${playlistId}/tracks`);
+      const response = await this.fetchWebApi(`playlists/${playlistId}/items`);
       return response.items?.map((item: any) => item.track) || [];
     } catch (error) {
       console.error('Failed to get playlist tracks:', error);
@@ -870,7 +870,7 @@ It does NOT provide access to:
       if (!user) return null;
 
       // Create playlist
-      const playlist = await this.fetchWebApi(`users/${user.id}/playlists`, 'POST', {
+      const playlist = await this.fetchWebApi('me/playlists', 'POST', {
         name,
         description,
         public: false,
@@ -878,7 +878,7 @@ It does NOT provide access to:
 
       // Add tracks to playlist
       if (trackUris.length > 0) {
-        await this.fetchWebApi(`playlists/${playlist.id}/tracks`, 'POST', {
+        await this.fetchWebApi(`playlists/${playlist.id}/items`, 'POST', {
           uris: trackUris,
         });
       }
