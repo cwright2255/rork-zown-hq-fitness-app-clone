@@ -1096,8 +1096,18 @@ export default function WorkoutsScreen() {
         
         <Text style={styles.headerTitle}>Workout Hub</Text>
         
-        <TouchableOpacity style={styles.musicButton}>
-          <Music size={24} color={Colors.text.primary} />
+        <TouchableOpacity 
+          style={[styles.musicButton, hasSpotifyAccess && styles.musicButtonActive]}
+          onPress={() => {
+            if (hasSpotifyAccess) {
+              setShowMusicSection(!showMusicSection);
+            } else {
+              router.push('/spotify-integration' as any);
+            }
+          }}
+          testID="workouts-music-button"
+        >
+          <Music size={24} color={hasSpotifyAccess ? '#1DB954' : Colors.text.primary} />
         </TouchableOpacity>
       </View>
       
@@ -1191,6 +1201,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  musicButtonActive: {
+    backgroundColor: 'rgba(29, 185, 84, 0.12)',
   },
   notificationButton: {
     width: 40,

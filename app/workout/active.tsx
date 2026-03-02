@@ -103,6 +103,8 @@ export default function ActiveWorkoutScreen() {
   const [showLiveStreams, setShowLiveStreams] = useState(false);
   const [currentStream, setCurrentStream] = useState<any>(null);
   
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  
   // Next workouts preview state
   const [previewHeight] = useState(new Animated.Value(0));
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
@@ -931,8 +933,18 @@ export default function ActiveWorkoutScreen() {
                   </TouchableOpacity>
                   
                   {/* Music Button */}
-                  <TouchableOpacity style={styles.musicButton}>
-                    <Music size={24} color="#333" />
+                  <TouchableOpacity 
+                    style={[styles.musicButton, hasSpotifyAccess && styles.musicButtonActive]}
+                    onPress={() => {
+                      if (hasSpotifyAccess) {
+                        setShowMusicPlayer(!showMusicPlayer);
+                      } else {
+                        router.push('/spotify-integration' as any);
+                      }
+                    }}
+                    testID="active-workout-music-button"
+                  >
+                    <Music size={24} color={hasSpotifyAccess ? '#1DB954' : '#333'} />
                   </TouchableOpacity>
                 </View>
                 
@@ -1039,6 +1051,29 @@ export default function ActiveWorkoutScreen() {
             </View>
           </Modal>
           
+          {/* Music Player Modal */}
+          <Modal
+            visible={showMusicPlayer}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowMusicPlayer(false)}
+          >
+            <View style={styles.musicModalOverlay}>
+              <View style={styles.musicModalContent}>
+                <View style={styles.musicModalHeader}>
+                  <Text style={styles.musicModalTitle}>Music</Text>
+                  <TouchableOpacity onPress={() => setShowMusicPlayer(false)} testID="close-music-modal">
+                    <X size={24} color={Colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+                <SpotifyMusicPlayer 
+                  workoutType={getWorkoutType()}
+                  style={styles.musicPlayerInModal}
+                />
+              </View>
+            </View>
+          </Modal>
+
           {/* Next Workouts Preview Overlay */}
           {isPreviewVisible && (
             <TouchableOpacity 
@@ -1390,6 +1425,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  musicButtonActive: {
+    backgroundColor: 'rgba(29, 185, 84, 0.15)',
+    borderWidth: 2,
+    borderColor: '#1DB954',
+  },
+  musicModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  musicModalContent: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  musicModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  musicModalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.text.primary,
+  },
+  musicPlayerInModal: {
+    marginBottom: 0,
   },
 
   completeContainer: {

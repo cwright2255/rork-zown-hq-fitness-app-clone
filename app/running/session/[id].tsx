@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, Target, Zap, Play, Music, Volume2, Heart } from 'lucide-react-native';
@@ -9,6 +9,8 @@ import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
+import { useSpotifyStore } from '@/store/spotifyStore';
+import SpotifyMusicPlayer from '@/components/SpotifyMusicPlayer';
 import { RunningSession, RunningProgram } from '@/types';
 
 export default function RunningSessionDetailScreen() {
@@ -27,6 +29,13 @@ export default function RunningSessionDetailScreen() {
   const [program, setProgram] = useState<RunningProgram | null>(null);
   const [audioCoaching, setAudioCoaching] = useState(true);
   const [musicEnabled, setMusicEnabled] = useState(true);
+  
+  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds, initializeClientCredentials } = useSpotifyStore() as {
+    isConnected: boolean;
+    isClientCredentialsReady: boolean;
+    initializeClientCredentials: () => Promise<boolean>;
+  };
+  const hasSpotifyAccess = isSpotifyConnected || isSpotifyClientCreds;
   
   useEffect(() => {
     // Find the program and session
@@ -271,21 +280,66 @@ export default function RunningSessionDetailScreen() {
             
             <View style={styles.settingItem}>
               <View style={styles.settingInfo}>
-                <Music size={20} color={Colors.text.primary} />
+                <Music size={20} color={hasSpotifyAccess ? '#1DB954' : Colors.text.primary} />
                 <Text style={styles.settingLabel}>Background Music</Text>
               </View>
               <TouchableOpacity
                 style={[styles.toggle, musicEnabled && styles.toggleActive]}
-                onPress={() => setMusicEnabled(!musicEnabled)}
+                onPress={async () => {
+                  if (!musicEnabled && !hasSpotifyAccess) {
+                    console.log('RunningSession: Music enabled but no Spotify access, trying to connect...');
+                    const success = await initializeClientCredentials();
+                    if (success) {
+                      setMusicEnabled(true);
+                    } else {
+                      Alert.alert(
+                        'Connect Spotify',
+                        'Connect your Spotify account to play music during runs.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Connect', onPress: () => router.push('/spotify-integration' as any) },
+                        ]
+                      );
+                    }
+                  } else {
+                    setMusicEnabled(!musicEnabled);
+                  }
+                }}
+                testID="music-toggle"
               >
                 <View style={[styles.toggleThumb, musicEnabled && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
             
             <Text style={styles.settingDescription}>
-              Play your music in the background. Audio coaching will lower music volume when speaking.
+              {hasSpotifyAccess 
+                ? 'Spotify connected. Tap tracks below to play during your run.' 
+                : 'Connect Spotify to play music in the background during your run.'}
             </Text>
           </Card>
+          
+          {/* Spotify Music Player */}
+          {musicEnabled && (
+            hasSpotifyAccess ? (
+              <SpotifyMusicPlayer 
+                workoutType="running"
+                style={styles.musicPlayerCard}
+              />
+            ) : (
+              <Card style={styles.connectSpotifyCard}>
+                <View style={styles.connectSpotifyContent}>
+                  <Music size={28} color={Colors.text.tertiary} />
+                  <Text style={styles.connectSpotifyTitle}>Connect Spotify</Text>
+                  <Text style={styles.connectSpotifyText}>Get running playlists and music recommendations</Text>
+                  <Button
+                    title="Connect"
+                    onPress={() => router.push('/spotify-integration' as any)}
+                    style={styles.connectSpotifyButton}
+                  />
+                </View>
+              </Card>
+            )
+          )}
           
           {/* Safety Tips */}
           <Card style={styles.safetyCard}>
@@ -557,5 +611,31 @@ const styles = StyleSheet.create({
   },
   finishButton: {
     width: '100%',
+  },
+  musicPlayerCard: {
+    marginBottom: 16,
+  },
+  connectSpotifyCard: {
+    marginBottom: 16,
+  },
+  connectSpotifyContent: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  connectSpotifyTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  connectSpotifyText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center' as const,
+    marginBottom: 14,
+  },
+  connectSpotifyButton: {
+    paddingHorizontal: 32,
   },
 });
