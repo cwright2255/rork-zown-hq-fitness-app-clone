@@ -893,34 +893,29 @@ It does NOT provide access to:
   // Get recommendations based on workout type
   async getWorkoutRecommendations(workoutType: 'cardio' | 'strength' | 'yoga' | 'running'): Promise<SpotifyTrack[]> {
     try {
-      let seedGenres: string[] = [];
-      let targetEnergy = 0.5;
-      let targetTempo = 120;
+      let searchQuery = '';
 
       switch (workoutType) {
         case 'cardio':
+          searchQuery = 'cardio workout high energy';
+          break;
         case 'running':
-          seedGenres = ['pop', 'dance', 'electronic'];
-          targetEnergy = 0.8;
-          targetTempo = 140;
+          searchQuery = 'running workout pump up';
           break;
         case 'strength':
-          seedGenres = ['rock', 'hip-hop', 'electronic'];
-          targetEnergy = 0.9;
-          targetTempo = 130;
+          searchQuery = 'strength training gym power';
           break;
         case 'yoga':
-          seedGenres = ['ambient', 'chill', 'new-age'];
-          targetEnergy = 0.3;
-          targetTempo = 80;
+          searchQuery = 'yoga meditation calm ambient';
           break;
       }
 
+      console.log('Fetching workout recommendations via search for:', workoutType);
       const response = await this.fetchWebApi(
-        `recommendations?seed_genres=${seedGenres.join(',')}&target_energy=${targetEnergy}&target_tempo=${targetTempo}&limit=20`
+        `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20`
       );
 
-      return response.tracks || [];
+      return response.tracks?.items || [];
     } catch (error) {
       console.error('Failed to get workout recommendations:', error);
       return [];
