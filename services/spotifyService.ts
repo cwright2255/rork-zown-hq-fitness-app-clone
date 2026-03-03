@@ -110,20 +110,28 @@ class SpotifyService {
   }
 
   private async autoInitialize() {
-    // Wait a bit for stored token to load
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Always try to initialize client credentials for public API access
-    // This doesn't require any redirect URIs - it's a direct server-to-server call
-    if (!this.token || this.isClientCredentialsFlow) {
-      console.log('SpotifyService: Initializing client credentials for public API access...');
-      const success = await this.initializeClientCredentials();
-      if (success) {
-        console.log('SpotifyService: Client credentials initialized successfully!');
-      } else {
-        console.log('SpotifyService: Client credentials failed - check EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET');
-      }
+    if (this.token && this.tokenExpiresAt && Date.now() < this.tokenExpiresAt) {
+      console.log('SpotifyService: Existing token still valid, skipping auto-init');
+      return;
     }
+    
+    console.log('SpotifyService: Initializing client credentials for public API access...');
+    const success = await this.initializeClientCredentials();
+    if (success) {
+      console.log('SpotifyService: Client credentials initialized successfully!');
+    } else {
+      console.log('SpotifyService: Client credentials failed - check EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET');
+    }
+  }
+
+  async ensureToken(): Promise<boolean> {
+    if (this.token && this.tokenExpiresAt && Date.now() < this.tokenExpiresAt) {
+      return true;
+    }
+    console.log('SpotifyService: Token missing or expired, re-initializing...');
+    return await this.initializeClientCredentials();
   }
 
 
@@ -184,27 +192,22 @@ class SpotifyService {
   }
 
   private async fetchWebApi(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any): Promise<any> {
-    // Check if token is expired and refresh if needed
-    if (this.tokenExpiresAt && Date.now() > this.tokenExpiresAt) {
-      if (this.isClientCredentialsFlow) {
-        const refreshed = await this.refreshClientCredentialsToken();
+    if (!this.token || (this.tokenExpiresAt && Date.now() > this.tokenExpiresAt)) {
+      console.log('SpotifyService: Token missing or expired, refreshing before API call...');
+      if (this.isClientCredentialsFlow || !this.refreshToken) {
+        const refreshed = await this.initializeClientCredentials();
         if (!refreshed) {
-          throw new Error('Failed to refresh Spotify client credentials token');
+          throw new Error('Failed to get Spotify access token. Please try refreshing.');
         }
       } else if (this.refreshToken) {
         const refreshed = await this.refreshAccessToken();
         if (!refreshed) {
           throw new Error('Failed to refresh Spotify user token');
         }
-      } else {
-        // Implicit grant flow - token expired and cannot be refreshed
-        await this.clearToken();
-        throw new Error('Spotify token expired. Please re-authenticate using getAuthorizationUrl().');
       }
     }
 
     if (!this.token) {
-      // Try to get client credentials token if no token available
       const initialized = await this.initializeClientCredentials();
       if (!initialized || !this.token) {
         throw new Error('No Spotify access token available. Please authenticate first by clicking "Connect Spotify".');
@@ -902,59 +905,44 @@ It does NOT provide access to:
       };
 
       const queries = queryMap[workoutType] || queryMap.cardio;
-      const playableTracks: SpotifyTrack[] = [];
+      const allTracks: SpotifyTrack[] = [];
       const seenIds = new Set<string>();
 
       const shuffled = [...queries].sort(() => Math.random() - 0.5);
 
       for (const searchQuery of shuffled) {
-        if (playableTracks.length >= 15) break;
+        if (allTracks.length >= 30) break;
 
         const offset = Math.floor(Math.random() * 10);
         console.log('[SpotifyService] Searching:', searchQuery, '| offset:', offset);
 
         try {
           const response = await this.fetchWebApi(
-            `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=50&offset=${offset}`
+            `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=30&offset=${offset}`
           );
 
           const tracks = (response.tracks?.items || []).filter((t: any) => t !== null);
           for (const track of tracks) {
-            if (track.preview_url && !seenIds.has(track.id)) {
+            if (!seenIds.has(track.id)) {
               seenIds.add(track.id);
-              playableTracks.push(track);
+              allTracks.push(track);
             }
           }
-          console.log('[SpotifyService] Found', playableTracks.length, 'playable tracks so far');
+          console.log('[SpotifyService] Found', allTracks.length, 'total tracks so far,', allTracks.filter(t => t.preview_url).length, 'with preview');
         } catch (searchError) {
           console.warn('[SpotifyService] Search failed for query:', searchQuery, searchError);
         }
       }
 
-      if (playableTracks.length < 5) {
-        console.log('[SpotifyService] Low playable tracks, doing broad search...');
-        const broadQueries = ['popular workout music', 'top gym hits', 'exercise motivation', 'fitness playlist hits'];
-        for (const q of broadQueries) {
-          if (playableTracks.length >= 10) break;
-          try {
-            const response = await this.fetchWebApi(
-              `search?q=${encodeURIComponent(q)}&type=track&limit=50`
-            );
-            const tracks = (response.tracks?.items || []).filter((t: any) => t !== null);
-            for (const track of tracks) {
-              if (track.preview_url && !seenIds.has(track.id)) {
-                seenIds.add(track.id);
-                playableTracks.push(track);
-              }
-            }
-          } catch {
-            // continue
-          }
-        }
-      }
+      const withPreview = allTracks.filter(t => t.preview_url);
+      const withoutPreview = allTracks.filter(t => !t.preview_url);
+      const sorted = [...withPreview, ...withoutPreview];
 
-      const shuffledTracks = playableTracks.sort(() => Math.random() - 0.5);
-      console.log('[SpotifyService] Final:', shuffledTracks.length, 'playable tracks for', workoutType);
+      const shuffledTracks = sorted.length > 0 
+        ? [...withPreview.sort(() => Math.random() - 0.5), ...withoutPreview.sort(() => Math.random() - 0.5)]
+        : [];
+
+      console.log('[SpotifyService] Final:', shuffledTracks.length, 'tracks for', workoutType, '|', withPreview.length, 'with preview');
       return shuffledTracks.slice(0, 20);
     } catch (error) {
       console.error('Failed to get workout recommendations:', error);

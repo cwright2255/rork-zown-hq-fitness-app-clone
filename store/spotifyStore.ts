@@ -265,17 +265,18 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
       initializeSpotify: async (): Promise<void> => {
         try {
           console.log('Initializing Spotify store...');
+          const hasToken = await spotifyService.ensureToken();
           const isAuthenticated = await spotifyService.isAuthenticated();
-          console.log('Is authenticated:', isAuthenticated);
+          console.log('Is authenticated:', isAuthenticated, 'hasToken:', hasToken);
           
           if (isAuthenticated) {
             const isClientCreds = spotifyService.isUsingClientCredentials();
-            const user = await spotifyService.getCurrentUser();
+            const user = isClientCreds ? null : await spotifyService.getCurrentUser();
             console.log('User loaded:', user?.display_name || user?.id, 'clientCreds:', isClientCreds);
             set({ 
               isConnected: !isClientCreds, 
               isClientCredentialsReady: isClientCreds,
-              user: isClientCreds ? null : user,
+              user: user,
               isLoading: false
             });
             
@@ -285,12 +286,25 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
               get().loadUserData();
             }
           } else {
-            set({ isConnected: false, isClientCredentialsReady: false, user: null, isLoading: false });
+            console.log('Spotify: Not authenticated, trying client credentials...');
+            const ccSuccess = await spotifyService.initializeClientCredentials();
+            if (ccSuccess) {
+              set({ isConnected: false, isClientCredentialsReady: true, user: null, isLoading: false });
+              get().loadWorkoutPlaylists();
+              get().loadRunningPlaylists();
+            } else {
+              set({ isConnected: false, isClientCredentialsReady: false, user: null, isLoading: false });
+            }
           }
         } catch (error) {
           console.error('Failed to initialize Spotify:', error);
-          await spotifyService.clearToken();
-          set({ isConnected: false, isClientCredentialsReady: false, user: null, isLoading: false });
+          const ccSuccess = await spotifyService.initializeClientCredentials();
+          set({ 
+            isConnected: false, 
+            isClientCredentialsReady: ccSuccess, 
+            user: null, 
+            isLoading: false 
+          });
         }
       },
       
