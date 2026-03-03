@@ -1,5 +1,4 @@
 import { Audio, AVPlaybackStatus } from 'expo-av';
-import { Platform } from 'react-native';
 
 export interface AudioTrack {
   id: string;
@@ -194,14 +193,19 @@ class AudioPlayerService {
       return;
     }
 
-    const nextIndex = this.queueIndex + 1;
-    if (nextIndex < this.queue.length) {
-      this.queueIndex = nextIndex;
-      await this.loadAndPlay(this.queue[nextIndex]);
-    } else {
-      console.log('[AudioPlayer] End of queue');
-      await this.stop();
+    let nextIndex = this.queueIndex + 1;
+    while (nextIndex < this.queue.length) {
+      if (this.queue[nextIndex].previewUrl) {
+        this.queueIndex = nextIndex;
+        await this.loadAndPlay(this.queue[nextIndex]);
+        return;
+      }
+      console.log('[AudioPlayer] Skipping track without preview:', this.queue[nextIndex].name);
+      nextIndex++;
     }
+
+    console.log('[AudioPlayer] End of queue');
+    await this.stop();
   }
 
   async playPrevious() {
@@ -212,11 +216,18 @@ class AudioPlayerService {
       return;
     }
 
-    const prevIndex = this.queueIndex - 1;
-    if (prevIndex >= 0) {
-      this.queueIndex = prevIndex;
-      await this.loadAndPlay(this.queue[prevIndex]);
-    } else if (this.sound && this._isLoaded) {
+    let prevIndex = this.queueIndex - 1;
+    while (prevIndex >= 0) {
+      if (this.queue[prevIndex].previewUrl) {
+        this.queueIndex = prevIndex;
+        await this.loadAndPlay(this.queue[prevIndex]);
+        return;
+      }
+      console.log('[AudioPlayer] Skipping track without preview:', this.queue[prevIndex].name);
+      prevIndex--;
+    }
+
+    if (this.sound && this._isLoaded) {
       await this.sound.setPositionAsync(0);
     }
   }

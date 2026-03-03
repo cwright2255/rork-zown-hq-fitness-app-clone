@@ -895,24 +895,67 @@ It does NOT provide access to:
   async getWorkoutRecommendations(workoutType: 'cardio' | 'strength' | 'yoga' | 'running'): Promise<SpotifyTrack[]> {
     try {
       const queryMap: Record<string, string[]> = {
-        cardio: ['cardio workout high energy', 'hiit workout music', 'dance workout hits', 'cardio pump playlist'],
-        running: ['running workout pump up', 'running hits 2026', 'jog motivation beats', 'run tempo music'],
-        strength: ['strength training gym power', 'weightlifting motivation', 'gym beast mode', 'heavy lifting playlist'],
-        yoga: ['yoga meditation calm ambient', 'yoga flow music', 'peaceful meditation sounds', 'relaxing yoga'],
+        cardio: ['cardio workout high energy', 'hiit workout music', 'dance workout hits', 'cardio pump playlist', 'gym cardio beats', 'high energy dance'],
+        running: ['running workout pump up', 'running hits 2026', 'jog motivation beats', 'run tempo music', 'running pace beats', 'marathon training music'],
+        strength: ['strength training gym power', 'weightlifting motivation', 'gym beast mode', 'heavy lifting playlist', 'powerlifting hype', 'gym pump up'],
+        yoga: ['yoga meditation calm ambient', 'yoga flow music', 'peaceful meditation sounds', 'relaxing yoga', 'zen meditation', 'calm instrumental'],
       };
 
       const queries = queryMap[workoutType] || queryMap.cardio;
-      const searchQuery = queries[Math.floor(Math.random() * queries.length)];
-      const offset = Math.floor(Math.random() * 20);
+      const playableTracks: SpotifyTrack[] = [];
+      const seenIds = new Set<string>();
 
-      console.log('Fetching fresh workout recommendations for:', workoutType, '| query:', searchQuery, '| offset:', offset);
-      const response = await this.fetchWebApi(
-        `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20&offset=${offset}`
-      );
+      const shuffled = [...queries].sort(() => Math.random() - 0.5);
 
-      const tracks = (response.tracks?.items || []).filter((t: any) => t !== null);
-      console.log('Got', tracks.length, 'tracks,', tracks.filter((t: any) => t.preview_url).length, 'with previews');
-      return tracks;
+      for (const searchQuery of shuffled) {
+        if (playableTracks.length >= 15) break;
+
+        const offset = Math.floor(Math.random() * 10);
+        console.log('[SpotifyService] Searching:', searchQuery, '| offset:', offset);
+
+        try {
+          const response = await this.fetchWebApi(
+            `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=50&offset=${offset}`
+          );
+
+          const tracks = (response.tracks?.items || []).filter((t: any) => t !== null);
+          for (const track of tracks) {
+            if (track.preview_url && !seenIds.has(track.id)) {
+              seenIds.add(track.id);
+              playableTracks.push(track);
+            }
+          }
+          console.log('[SpotifyService] Found', playableTracks.length, 'playable tracks so far');
+        } catch (searchError) {
+          console.warn('[SpotifyService] Search failed for query:', searchQuery, searchError);
+        }
+      }
+
+      if (playableTracks.length < 5) {
+        console.log('[SpotifyService] Low playable tracks, doing broad search...');
+        const broadQueries = ['popular workout music', 'top gym hits', 'exercise motivation', 'fitness playlist hits'];
+        for (const q of broadQueries) {
+          if (playableTracks.length >= 10) break;
+          try {
+            const response = await this.fetchWebApi(
+              `search?q=${encodeURIComponent(q)}&type=track&limit=50`
+            );
+            const tracks = (response.tracks?.items || []).filter((t: any) => t !== null);
+            for (const track of tracks) {
+              if (track.preview_url && !seenIds.has(track.id)) {
+                seenIds.add(track.id);
+                playableTracks.push(track);
+              }
+            }
+          } catch {
+            // continue
+          }
+        }
+      }
+
+      const shuffledTracks = playableTracks.sort(() => Math.random() - 0.5);
+      console.log('[SpotifyService] Final:', shuffledTracks.length, 'playable tracks for', workoutType);
+      return shuffledTracks.slice(0, 20);
     } catch (error) {
       console.error('Failed to get workout recommendations:', error);
       return [];

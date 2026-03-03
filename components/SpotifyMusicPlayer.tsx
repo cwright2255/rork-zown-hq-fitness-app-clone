@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Animated, Platform, Linking } from 'react-native';
-import { Play, Pause, SkipForward, SkipBack, Music, Volume2, Disc3, Loader, ExternalLink } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Animated, Platform } from 'react-native';
+import { Play, Pause, SkipForward, SkipBack, Music, Volume2, Disc3, Loader, RefreshCw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
@@ -104,34 +104,13 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     }
   }, [hasApiAccess, workoutType, loadRecommendations]);
 
-  const openInSpotify = useCallback(async (track: SpotifyTrack) => {
-    try {
-      const spotifyUri = track.uri;
-      const webUrl = track.external_urls?.spotify;
-
-      if (Platform.OS !== 'web' && spotifyUri) {
-        const canOpen = await Linking.canOpenURL(spotifyUri);
-        if (canOpen) {
-          await Linking.openURL(spotifyUri);
-          return;
-        }
-      }
-
-      if (webUrl) {
-        await Linking.openURL(webUrl);
-      }
-    } catch (error) {
-      console.error('[SpotifyMusicPlayer] Failed to open in Spotify:', error);
-    }
-  }, []);
-
   const handleTrackPress = useCallback(async (track: SpotifyTrack, index: number) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     if (!track.preview_url) {
-      openInSpotify(track);
+      console.log('[SpotifyMusicPlayer] Track has no preview, skipping:', track.name);
       return;
     }
 
@@ -142,7 +121,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     const queueIndex = audioTracks.findIndex((t) => t.id === track.id);
     audioPlayer.setQueue(audioTracks, queueIndex >= 0 ? queueIndex : 0);
     await audioPlayer.loadAndPlay(spotifyTrackToAudioTrack(track));
-  }, [recommendations, openInSpotify]);
+  }, [recommendations]);
 
   const handlePlayPause = useCallback(async () => {
     if (Platform.OS !== 'web') {
@@ -332,17 +311,21 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
             const playable = recommendations.find((t) => !!t.preview_url);
             if (playable) {
               handlePlayPause();
-            } else if (recommendations.length > 0) {
-              openInSpotify(recommendations[0]);
+            } else {
+              loadRecommendations();
             }
           }}
           activeOpacity={0.8}
         >
           <Volume2 size={18} color="#1DB954" />
           <Text style={styles.quickPlayText}>
-            {recommendations.some(t => t.preview_url) ? 'Tap to start workout music' : 'Tap to open in Spotify'}
+            {recommendations.some(t => t.preview_url) ? 'Tap to start workout music' : 'Tap to refresh tracks'}
           </Text>
-          <Play size={16} color="#1DB954" />
+          {recommendations.some(t => t.preview_url) ? (
+            <Play size={16} color="#1DB954" />
+          ) : (
+            <RefreshCw size={16} color="#1DB954" />
+          )}
         </TouchableOpacity>
       )}
 
@@ -414,29 +397,31 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
                       {track.artists.map((a: SpotifyArtist) => a.name).join(', ')}
                     </Text>
                     {!hasPreview && (
-                      <View style={styles.spotifyBadge}>
-                        <ExternalLink size={9} color="#1DB954" />
+                      <View style={styles.noPreviewBadge}>
+                        <Text style={styles.noPreviewText}>No preview</Text>
                       </View>
                     )}
                   </View>
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.trackPlayBtn, isActive && styles.trackPlayBtnActive, !hasPreview && styles.trackOpenBtn]}
+                  style={[styles.trackPlayBtn, isActive && styles.trackPlayBtnActive, !hasPreview && styles.trackDisabledBtn]}
                   onPress={() => {
+                    if (!hasPreview) return;
                     if (isActive && hasPreview) {
                       audioPlayer.togglePlayPause();
                     } else {
                       handleTrackPress(track, index);
                     }
                   }}
+                  disabled={!hasPreview}
                 >
                   {isActive && playback.isPlaying ? (
                     <Pause size={14} color="#fff" />
                   ) : hasPreview ? (
                     <Play size={14} color={isActive ? '#fff' : Colors.text.primary} style={{ marginLeft: 1 }} />
                   ) : (
-                    <ExternalLink size={14} color="#1DB954" />
+                    <Music size={14} color={Colors.text.tertiary} />
                   )}
                 </TouchableOpacity>
               </TouchableOpacity>
@@ -731,19 +716,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  spotifyBadge: {
-    paddingHorizontal: 4,
+  noPreviewBadge: {
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+    backgroundColor: 'rgba(150, 150, 150, 0.1)',
+  },
+  noPreviewText: {
+    fontSize: 9,
+    color: Colors.text.tertiary,
+    fontWeight: '500' as const,
   },
   trackAlbumArtPlaceholder: {
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  trackOpenBtn: {
-    backgroundColor: 'rgba(29, 185, 84, 0.12)',
+  trackDisabledBtn: {
+    backgroundColor: Colors.backgroundSecondary,
+    opacity: 0.5,
   },
   trackPlayBtn: {
     width: 32,
