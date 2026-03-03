@@ -650,22 +650,24 @@ It does NOT provide access to:
     }
   }
 
-  // Get workout playlists (search for workout-related playlists)
   async getWorkoutPlaylists(): Promise<SpotifyPlaylist[]> {
     try {
-      const response = await this.fetchWebApi('search?q=workout%20fitness%20gym&type=playlist&limit=20');
-      return response.playlists?.items || [];
+      const queries = ['workout fitness gym', 'gym motivation', 'workout hits'];
+      const query = queries[Math.floor(Math.random() * queries.length)];
+      const response = await this.fetchWebApi(`search?q=${encodeURIComponent(query)}&type=playlist&limit=20`);
+      return (response.playlists?.items || []).filter((p: any) => p !== null);
     } catch (error) {
       console.error('Failed to get workout playlists:', error);
       return [];
     }
   }
 
-  // Get running playlists
   async getRunningPlaylists(): Promise<SpotifyPlaylist[]> {
     try {
-      const response = await this.fetchWebApi('search?q=running%20cardio%20jogging&type=playlist&limit=20');
-      return response.playlists?.items || [];
+      const queries = ['running cardio jogging', 'running motivation', 'running hits'];
+      const query = queries[Math.floor(Math.random() * queries.length)];
+      const response = await this.fetchWebApi(`search?q=${encodeURIComponent(query)}&type=playlist&limit=20`);
+      return (response.playlists?.items || []).filter((p: any) => p !== null);
     } catch (error) {
       console.error('Failed to get running playlists:', error);
       return [];
@@ -890,32 +892,27 @@ It does NOT provide access to:
     }
   }
 
-  // Get recommendations based on workout type
   async getWorkoutRecommendations(workoutType: 'cardio' | 'strength' | 'yoga' | 'running'): Promise<SpotifyTrack[]> {
     try {
-      let searchQuery = '';
+      const queryMap: Record<string, string[]> = {
+        cardio: ['cardio workout high energy', 'hiit workout music', 'dance workout hits', 'cardio pump playlist'],
+        running: ['running workout pump up', 'running hits 2026', 'jog motivation beats', 'run tempo music'],
+        strength: ['strength training gym power', 'weightlifting motivation', 'gym beast mode', 'heavy lifting playlist'],
+        yoga: ['yoga meditation calm ambient', 'yoga flow music', 'peaceful meditation sounds', 'relaxing yoga'],
+      };
 
-      switch (workoutType) {
-        case 'cardio':
-          searchQuery = 'cardio workout high energy';
-          break;
-        case 'running':
-          searchQuery = 'running workout pump up';
-          break;
-        case 'strength':
-          searchQuery = 'strength training gym power';
-          break;
-        case 'yoga':
-          searchQuery = 'yoga meditation calm ambient';
-          break;
-      }
+      const queries = queryMap[workoutType] || queryMap.cardio;
+      const searchQuery = queries[Math.floor(Math.random() * queries.length)];
+      const offset = Math.floor(Math.random() * 20);
 
-      console.log('Fetching workout recommendations via search for:', workoutType);
+      console.log('Fetching fresh workout recommendations for:', workoutType, '| query:', searchQuery, '| offset:', offset);
       const response = await this.fetchWebApi(
-        `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20`
+        `search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20&offset=${offset}`
       );
 
-      return response.tracks?.items || [];
+      const tracks = (response.tracks?.items || []).filter((t: any) => t !== null);
+      console.log('Got', tracks.length, 'tracks,', tracks.filter((t: any) => t.preview_url).length, 'with previews');
+      return tracks;
     } catch (error) {
       console.error('Failed to get workout recommendations:', error);
       return [];
