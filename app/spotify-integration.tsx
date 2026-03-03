@@ -11,27 +11,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Music, Play, Pause, Settings, RefreshCw, SkipForward, SkipBack, Search, Disc3, Loader } from 'lucide-react-native';
+import { Music, Play, Pause, Settings, RefreshCw, Search, Loader } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import SpotifyEmbedPlayer from '@/components/SpotifyEmbedPlayer';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
-import { audioPlayer, AudioTrack, PlaybackInfo } from '@/services/audioPlayerService';
 import { SpotifyPlaylist, SpotifyTrack, SpotifyArtist } from '@/types/spotify';
-
-function spotifyTrackToAudioTrack(track: SpotifyTrack): AudioTrack {
-  return {
-    id: track.id,
-    name: track.name,
-    artistName: track.artists.map((a: SpotifyArtist) => a.name).join(', '),
-    albumArt: track.album?.images?.[0]?.url,
-    previewUrl: track.preview_url || '',
-    durationMs: track.duration_ms || 30000,
-    uri: track.uri,
-  };
-}
 
 export default function SpotifyIntegration() {
   const {
@@ -49,12 +37,7 @@ export default function SpotifyIntegration() {
   const [playlistTracks, setPlaylistTracks] = useState<SpotifyTrack[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [loadingTracks, setLoadingTracks] = useState(false);
-  const [playback, setPlayback] = useState<PlaybackInfo>(audioPlayer.getPlaybackInfo());
-
-  useEffect(() => {
-    const unsubscribe = audioPlayer.subscribe(setPlayback);
-    return unsubscribe;
-  }, []);
+  const [activeTrack, setActiveTrack] = useState<SpotifyTrack | null>(null);
 
   useEffect(() => {
     if (!isConnected && !isClientCredentialsReady) {
@@ -92,7 +75,7 @@ export default function SpotifyIntegration() {
         } else {
           const clientSuccess = await storeInitClientCreds();
           if (clientSuccess) {
-            Alert.alert('Connected', 'You can browse and play track previews.');
+            Alert.alert('Connected', 'You can browse and play tracks.');
             loadPlaylists();
           } else {
             Alert.alert('Connection Failed', 'Could not connect to Spotify.');
@@ -113,11 +96,11 @@ export default function SpotifyIntegration() {
   };
 
   const handleDisconnect = async () => {
-    await audioPlayer.stop();
     await disconnectSpotify();
     setPlaylists([]);
     setPlaylistTracks([]);
     setSelectedPlaylist(null);
+    setActiveTrack(null);
   };
 
   const openPlaylist = async (playlist: SpotifyPlaylist) => {
@@ -137,38 +120,13 @@ export default function SpotifyIntegration() {
     }
   };
 
-  const handleTrackPress = useCallback(async (track: SpotifyTrack, index: number) => {
+  const handleTrackPress = useCallback((track: SpotifyTrack) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-
-    if (!track.preview_url) {
-      Alert.alert('Preview Unavailable', 'This track doesn\'t have a preview available.');
-      return;
-    }
-
-    const audioTracks = playlistTracks
-      .filter((t) => !!t.preview_url)
-      .map(spotifyTrackToAudioTrack);
-
-    const queueIndex = audioTracks.findIndex((t) => t.id === track.id);
-    audioPlayer.setQueue(audioTracks, queueIndex >= 0 ? queueIndex : 0);
-    await audioPlayer.loadAndPlay(spotifyTrackToAudioTrack(track));
-  }, [playlistTracks]);
-
-  const handlePlayPause = useCallback(async () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    await audioPlayer.togglePlayPause();
+    console.log('[SpotifyIntegration] Playing track via embed:', track.name);
+    setActiveTrack(track);
   }, []);
-
-  const formatTime = (ms: number) => {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -196,7 +154,7 @@ export default function SpotifyIntegration() {
               {user ? (
                 <Text style={styles.statusSubtitle}>{user.display_name || user.id}</Text>
               ) : isClientCredentialsReady ? (
-                <Text style={styles.statusSubtitle}>Play 30s previews in-app</Text>
+                <Text style={styles.statusSubtitle}>Play tracks directly in-app</Text>
               ) : null}
             </View>
             <Music size={24} color={isConnected || isClientCredentialsReady ? '#1DB954' : Colors.text.tertiary} />
@@ -235,47 +193,14 @@ export default function SpotifyIntegration() {
           </View>
         </Card>
 
-        {playback.currentTrack && (
-          <View style={styles.miniPlayer}>
-            <View style={styles.miniPlayerLeft}>
-              {playback.currentTrack.albumArt ? (
-                <Image source={{ uri: playback.currentTrack.albumArt }} style={styles.miniAlbumArt} />
-              ) : (
-                <View style={styles.miniAlbumPlaceholder}>
-                  <Disc3 size={16} color="#fff" />
-                </View>
-              )}
-              <View style={styles.miniTrackInfo}>
-                <Text style={styles.miniTrackName} numberOfLines={1}>{playback.currentTrack.name}</Text>
-                <Text style={styles.miniArtistName} numberOfLines={1}>{playback.currentTrack.artistName}</Text>
-              </View>
-            </View>
-            <View style={styles.miniControls}>
-              <TouchableOpacity onPress={() => audioPlayer.playPrevious()} style={styles.miniControlBtn}>
-                <SkipBack size={16} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handlePlayPause} style={styles.miniPlayBtn}>
-                {playback.isBuffering ? (
-                  <Loader size={18} color="#fff" />
-                ) : playback.isPlaying ? (
-                  <Pause size={18} color="#fff" />
-                ) : (
-                  <Play size={18} color="#fff" style={{ marginLeft: 1 }} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => audioPlayer.playNext()} style={styles.miniControlBtn}>
-                <SkipForward size={16} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.miniProgress}>
-              <View
-                style={[
-                  styles.miniProgressFill,
-                  { width: playback.durationMs > 0 ? `${(playback.positionMs / playback.durationMs) * 100}%` : '0%' },
-                ]}
-              />
-            </View>
-          </View>
+        {activeTrack && (
+          <SpotifyEmbedPlayer
+            trackId={activeTrack.id}
+            trackName={activeTrack.name}
+            artistName={activeTrack.artists.map((a: SpotifyArtist) => a.name).join(', ')}
+            onClose={() => setActiveTrack(null)}
+            compact={false}
+          />
         )}
 
         {selectedPlaylist && (
@@ -295,15 +220,13 @@ export default function SpotifyIntegration() {
             ) : playlistTracks.length > 0 ? (
               <View style={styles.tracksList}>
                 {playlistTracks.slice(0, 20).map((track, index) => {
-                  const isActive = audioPlayer.isCurrentTrack(track.id);
-                  const hasPreview = !!track.preview_url;
+                  const isActive = activeTrack?.id === track.id;
                   return (
                     <TouchableOpacity
                       key={track.id}
-                      style={[styles.trackItem, isActive && styles.trackItemActive, !hasPreview && styles.trackItemDisabled]}
-                      onPress={() => handleTrackPress(track, index)}
-                      activeOpacity={hasPreview ? 0.7 : 1}
-                      disabled={!hasPreview}
+                      style={[styles.trackItem, isActive && styles.trackItemActive]}
+                      onPress={() => handleTrackPress(track)}
+                      activeOpacity={0.7}
                     >
                       <Text style={[styles.trackNum, isActive && styles.trackNumActive]}>{index + 1}</Text>
                       {track.album?.images?.[0] && (
@@ -318,12 +241,10 @@ export default function SpotifyIntegration() {
                         </Text>
                       </View>
                       <View style={[styles.trackPlayIcon, isActive && styles.trackPlayIconActive]}>
-                        {!hasPreview ? (
-                          <Music size={12} color={Colors.text.tertiary} />
-                        ) : isActive && playback.isPlaying ? (
+                        {isActive ? (
                           <Pause size={12} color="#fff" />
                         ) : (
-                          <Play size={12} color={isActive ? '#fff' : Colors.text.primary} style={{ marginLeft: 1 }} />
+                          <Play size={12} color={Colors.text.primary} style={{ marginLeft: 1 }} />
                         )}
                       </View>
                     </TouchableOpacity>
@@ -444,76 +365,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1DB954',
     borderRadius: 24,
   },
-  miniPlayer: {
-    backgroundColor: '#111',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  miniPlayerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  miniAlbumArt: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  miniAlbumPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  miniTrackInfo: {
-    flex: 1,
-  },
-  miniTrackName: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#fff',
-  },
-  miniArtistName: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 1,
-  },
-  miniControls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  miniControlBtn: {
-    padding: 6,
-  },
-  miniPlayBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1DB954',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  miniProgress: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  miniProgressFill: {
-    height: '100%',
-    backgroundColor: '#1DB954',
-  },
   playlistDetailCard: {
     marginBottom: 16,
   },
@@ -556,10 +407,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   trackItemActive: {
-    backgroundColor: 'rgba(29, 185, 84, 0.06)',
-  },
-  trackItemDisabled: {
-    opacity: 0.45,
+    backgroundColor: 'rgba(29, 185, 84, 0.08)',
   },
   trackNum: {
     width: 22,
