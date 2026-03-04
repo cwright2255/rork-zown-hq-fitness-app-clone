@@ -89,9 +89,10 @@ class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
-  // Use rork.app/p/{projectId} domain for OAuth callback - must match Spotify Dashboard exactly
+  // Expo Router web route is served under /--/ for nested app paths on hosted previews.
+  // This URI must match Spotify Dashboard exactly.
   private redirectUri = Platform.OS === 'web' 
-    ? `https://rork.app/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/spotify-callback` 
+    ? `https://rork.app/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/--/spotify-callback` 
     : 'zown://spotify-callback';
   private token: string | null = null;
   private refreshToken: string | null = null;
