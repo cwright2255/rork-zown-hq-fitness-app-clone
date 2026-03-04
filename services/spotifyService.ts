@@ -89,11 +89,7 @@ class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
   public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
-  // Expo Router web route is served under /--/ for nested app paths on hosted previews.
-  // This URI must match Spotify Dashboard exactly.
-  private redirectUri = Platform.OS === 'web' 
-    ? `https://rork.app/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/--/spotify-callback` 
-    : 'zown://spotify-callback';
+  private redirectUri = this.computeRedirectUri();
   private token: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiresAt: number | null = null;
@@ -105,9 +101,32 @@ class SpotifyService {
     console.log('SpotifyService: Initializing...');
     console.log('SpotifyService: Client ID:', this.clientId);
     console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
+    console.log('SpotifyService: Redirect URI:', this.redirectUri);
     this.loadStoredToken();
     // Auto-initialize client credentials for public API access
     this.autoInitialize();
+  }
+
+  private computeRedirectUri(): string {
+    if (Platform.OS !== 'web') {
+      return 'zown://spotify-callback';
+    }
+
+    const projectId = process.env.EXPO_PUBLIC_PROJECT_ID || this.projectId;
+    const browserHref = typeof window !== 'undefined' ? window.location.href : '';
+    const browserOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+
+    const inRorkHostedPreview = browserHref.includes('/p/') || browserOrigin.includes('rork.app');
+
+    if (inRorkHostedPreview) {
+      const hostedRedirect = `https://rork.app/p/${projectId}/spotify-callback`;
+      console.log('SpotifyService: Using hosted redirect URI:', hostedRedirect);
+      return hostedRedirect;
+    }
+
+    const localRedirect = `${browserOrigin || 'http://localhost:8081'}/spotify-callback`;
+    console.log('SpotifyService: Using local web redirect URI:', localRedirect);
+    return localRedirect;
   }
 
   private async autoInitialize() {
