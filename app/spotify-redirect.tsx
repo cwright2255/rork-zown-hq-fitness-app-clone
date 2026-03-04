@@ -1,79 +1,122 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { spotifyService } from '@/services/spotifyService';
 import Colors from '@/constants/colors';
+
+type SpotifyPopupMessage = {
+  type: 'SPOTIFY_AUTH_SUCCESS' | 'SPOTIFY_AUTH_ERROR';
+  success?: boolean;
+  error?: string;
+};
 
 export default function SpotifyRedirect() {
   const router = useRouter();
-  const { connectSpotifyImplicit } = useSpotifyStore();
+  const params = useLocalSearchParams();
+  const { connectSpotifyImplicit, initializeSpotify } = useSpotifyStore();
+  const [status, setStatus] = useState<string>('Connecting to Spotify...');
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
         console.log('Spotify redirect: Starting callback handling...');
-        
-        // Check if we're on web and have access to window
-        if (typeof window !== 'undefined') {
-          console.log('Spotify redirect: Current URL:', window.location.href);
-          console.log('Spotify redirect: URL hash:', window.location.hash);
-          console.log('Spotify redirect: URL search:', window.location.search);
-          
-          // Get the URL fragment (everything after #) for implicit grant flow
-          let urlFragment = window.location.hash;
-          
-          // If no fragment but we have search params, check if token is in search params
-          if (!urlFragment && window.location.search) {
-            const searchParams = new URLSearchParams(window.location.search);
-            const accessToken = searchParams.get('access_token');
-            if (accessToken) {
-              // Convert search params to fragment format
-              urlFragment = '#' + window.location.search.substring(1);
-              console.log('Spotify redirect: Converted search params to fragment:', urlFragment);
-            }
+
+        const isWeb = Platform.OS === 'web' && typeof window !== 'undefined';
+        const isPopup = isWeb && !!window.opener;
+        const currentUrl = isWeb ? window.location.href : '';
+        const urlSearch = isWeb ? window.location.search : '';
+        const urlHash = isWeb ? window.location.hash : '';
+
+        console.log('Spotify redirect: Current URL:', currentUrl);
+        console.log('Spotify redirect: URL hash:', urlHash);
+        console.log('Spotify redirect: URL search:', urlSearch);
+        console.log('Spotify redirect: Is popup:', isPopup);
+
+        const postPopupMessage = (message: SpotifyPopupMessage) => {
+          if (!isWeb || !isPopup) return;
+          try {
+            window.opener.postMessage(message, '*');
+            setTimeout(() => window.close(), 400);
+          } catch (postError) {
+            console.error('Spotify redirect: Failed to post popup message:', postError);
           }
-          
-          if (urlFragment) {
-            console.log('Spotify redirect: Processing URL fragment:', urlFragment);
-            
-            const success = await connectSpotifyImplicit(urlFragment);
-            
-            if (success) {
-              console.log('Spotify redirect: Authentication successful');
-              // Redirect to settings page
-              window.location.href = '/profile/settings';
-            } else {
-              console.error('Spotify redirect: Authentication failed');
-              window.location.href = '/profile/settings';
-            }
-          } else {
-            console.log('Spotify redirect: No URL fragment found');
-            window.location.href = '/profile/settings';
-          }
-        } else {
-          // On mobile, redirect to settings
-          router.replace('/profile/settings');
+        };
+
+        let code: string | null = typeof params.code === 'string' ? params.code : null;
+        let error: string | null = typeof params.error === 'string' ? params.error : null;
+
+        if (isWeb) {
+          const searchParams = new URLSearchParams(urlSearch);
+          if (!code) code = searchParams.get('code');
+          if (!error) error = searchParams.get('error');
         }
+
+        if (error) {
+          console.error('Spotify redirect: Auth error:', error);
+          setStatus(`Authentication error: ${error}`);
+          postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error });
+          setTimeout(() => router.replace('/spotify-integration' as any), 900);
+          return;
+        }
+
+        if (code) {
+          setStatus('Finalizing login...');
+          const success = await spotifyService.handleAuthorizationCodeCallback(currentUrl || `?code=${code}`);
+          if (success) {
+            await initializeSpotify();
+            setStatus('Spotify connected!');
+            postPopupMessage({ type: 'SPOTIFY_AUTH_SUCCESS', success: true });
+          } else {
+            setStatus('Could not complete Spotify login.');
+            postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'token_exchange_failed' });
+          }
+          setTimeout(() => router.replace('/spotify-integration' as any), 900);
+          return;
+        }
+
+        if (urlHash && urlHash.includes('access_token')) {
+          setStatus('Finalizing login...');
+          const success = await connectSpotifyImplicit(urlHash);
+          if (success) {
+            setStatus('Spotify connected!');
+            postPopupMessage({ type: 'SPOTIFY_AUTH_SUCCESS', success: true });
+          } else {
+            setStatus('Could not complete Spotify login.');
+            postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'implicit_grant_failed' });
+          }
+          setTimeout(() => router.replace('/spotify-integration' as any), 900);
+          return;
+        }
+
+        console.log('Spotify redirect: No auth payload found');
+        setStatus('No authentication data found.');
+        postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'no_auth_data' });
+        setTimeout(() => router.replace('/spotify-integration' as any), 900);
       } catch (error) {
         console.error('Spotify redirect: Error handling callback:', error);
-        if (typeof window !== 'undefined') {
-          window.location.href = '/profile/settings';
-        } else {
-          router.replace('/profile/settings');
+        setStatus('Authentication failed.');
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.opener) {
+          try {
+            window.opener.postMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'callback_exception' } as SpotifyPopupMessage, '*');
+            setTimeout(() => window.close(), 400);
+            return;
+          } catch (postError) {
+            console.error('Spotify redirect: Failed to post exception to popup opener:', postError);
+          }
         }
+        setTimeout(() => router.replace('/spotify-integration' as any), 1200);
       }
     };
 
-    // Small delay to ensure the component is mounted
     const timer = setTimeout(handleCallback, 100);
-    
     return () => clearTimeout(timer);
-  }, [connectSpotifyImplicit, router]);
+  }, [connectSpotifyImplicit, initializeSpotify, params.code, params.error, router]);
 
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={Colors.primary} />
-      <Text style={styles.text}>Connecting to Spotify...</Text>
+      <Text style={styles.text}>{status}</Text>
       <Text style={styles.subText}>Please wait while we complete the authentication process.</Text>
     </View>
   );
