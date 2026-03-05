@@ -112,6 +112,15 @@ class SpotifyService {
       return 'zown://spotify-callback';
     }
 
+    const apiBaseUrlRaw = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
+    const apiBaseUrl = apiBaseUrlRaw.endsWith('/') ? apiBaseUrlRaw.slice(0, -1) : apiBaseUrlRaw;
+
+    if (apiBaseUrl) {
+      const apiRedirect = `${apiBaseUrl}/api/spotify/callback`;
+      console.log('SpotifyService: Using API redirect URI:', apiRedirect);
+      return apiRedirect;
+    }
+
     const projectId = process.env.EXPO_PUBLIC_PROJECT_ID || this.projectId;
     const browserHref = typeof window !== 'undefined' ? window.location.href : '';
     const browserOrigin = typeof window !== 'undefined' ? window.location.origin : '';
