@@ -59,7 +59,9 @@ export default function SpotifyCallback() {
           setStatus('Exchanging authorization code...');
           console.log('SpotifyCallback: Exchanging code for token...');
           
-          const callbackUrl = currentUrl || `https://rork.app/p/${process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp'}/spotify-callback?code=${code}&state=${state}`;
+          const fallbackProjectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
+          const callbackQuery = state ? `?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}` : `?code=${encodeURIComponent(code)}`;
+          const callbackUrl = currentUrl || `https://rork.app/p/${fallbackProjectId}/spotify-callback${callbackQuery}`;
           const success = await spotifyService.handleAuthorizationCodeCallback(callbackUrl);
           
           if (success) {

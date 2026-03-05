@@ -87,9 +87,10 @@ export interface SpotifyClientCredentialsResponse {
 
 class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
-  public clientId = 'cb884c0e045d4683bd3f0b38cb0e151e';
+  public clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
   private redirectUri = this.computeRedirectUri();
+  private hostedWebRedirectUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
   private token: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiresAt: number | null = null;
@@ -108,29 +109,23 @@ class SpotifyService {
   }
 
   private computeRedirectUri(): string {
+    const explicitRedirect = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
+    if (explicitRedirect) {
+      console.log('SpotifyService: Using explicit redirect URI from env:', explicitRedirect);
+      return explicitRedirect;
+    }
+
     if (Platform.OS !== 'web') {
       return 'zown://spotify-callback';
     }
 
-    const apiBaseUrlRaw = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
-    const apiBaseUrl = apiBaseUrlRaw.endsWith('/') ? apiBaseUrlRaw.slice(0, -1) : apiBaseUrlRaw;
-
-    if (apiBaseUrl) {
-      const apiRedirect = `${apiBaseUrl}/api/spotify/callback`;
-      console.log('SpotifyService: Using API redirect URI:', apiRedirect);
-      return apiRedirect;
-    }
-
-    const projectId = process.env.EXPO_PUBLIC_PROJECT_ID || this.projectId;
     const browserHref = typeof window !== 'undefined' ? window.location.href : '';
     const browserOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-
     const inRorkHostedPreview = browserHref.includes('/p/') || browserOrigin.includes('rork.app');
 
     if (inRorkHostedPreview) {
-      const hostedRedirect = `https://rork.app/p/${projectId}/spotify-callback`;
-      console.log('SpotifyService: Using hosted redirect URI:', hostedRedirect);
-      return hostedRedirect;
+      console.log('SpotifyService: Using hosted redirect URI:', this.hostedWebRedirectUri);
+      return this.hostedWebRedirectUri;
     }
 
     const localRedirect = `${browserOrigin || 'http://localhost:8081'}/spotify-callback`;
