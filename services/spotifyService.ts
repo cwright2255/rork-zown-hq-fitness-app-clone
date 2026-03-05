@@ -726,58 +726,41 @@ It does NOT provide access to:
   // Get current user profile (requires user authentication)
   async getCurrentUser(): Promise<SpotifyUser | null> {
     if (this.isClientCredentialsFlow) {
-      console.warn('User profile requires user authentication. Please authenticate first.');
-      // Return mock user for demo purposes when using client credentials
-      return {
-        id: 'demo_user',
-        display_name: 'Demo User',
-        images: [],
-        followers: { 
-          href: null,
-          total: 0 
-        },
-        external_urls: {
-          spotify: 'https://open.spotify.com/user/demo_user'
-        },
-        href: 'https://api.spotify.com/v1/users/demo_user',
-        type: 'user',
-        uri: 'spotify:user:demo_user'
-      };
+      console.log('SpotifyService: Skipping /me profile fetch because token is client-credentials.');
+      return null;
     }
-    
+
     try {
+      console.log('SpotifyService: Fetching current user profile from /v1/me...');
       const user = await this.fetchWebApi('me');
-      
-      // Validate required fields
-      if (!user.id || !user.type) {
-        throw new Error('Invalid user data received from Spotify');
+
+      if (!user || !user.id || !user.type) {
+        console.error('SpotifyService: Invalid /me payload:', user);
+        return null;
       }
-      
-      return user;
+
+      console.log('SpotifyService: Current user profile fetched:', user.display_name || user.id);
+      return user as SpotifyUser;
     } catch (error) {
-      console.error('Failed to get current user:', error);
-      
-      // Check if it's an authentication error
-      if (error instanceof Error && error.message.includes('token')) {
-        throw error; // Re-throw auth errors
+      console.error('SpotifyService: Failed to get current user profile from /me:', error);
+
+      if (error instanceof Error && (error.message.includes('token') || error.message.includes('OAuth'))) {
+        throw error;
       }
-      
-      // Return mock user for demo purposes only
-      return {
-        id: 'demo_user',
-        display_name: 'Demo User',
-        images: [],
-        followers: { 
-          href: null,
-          total: 0 
-        },
-        external_urls: {
-          spotify: 'https://open.spotify.com/user/demo_user'
-        },
-        href: 'https://api.spotify.com/v1/users/demo_user',
-        type: 'user',
-        uri: 'spotify:user:demo_user'
-      };
+
+      return null;
+    }
+  }
+
+  async validateUserSession(): Promise<boolean> {
+    try {
+      const user = await this.getCurrentUser();
+      const isValid = !!user?.id;
+      console.log('SpotifyService: User session validation result:', isValid);
+      return isValid;
+    } catch (error) {
+      console.error('SpotifyService: User session validation failed:', error);
+      return false;
     }
   }
 

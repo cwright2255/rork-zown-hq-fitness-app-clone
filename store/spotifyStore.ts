@@ -38,27 +38,34 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
       
       connectSpotify: async (authCode: string): Promise<boolean> => {
         set({ isLoading: true });
-        
+
         try {
           const success = await spotifyService.authenticate(authCode);
-          
+
           if (success) {
             const user = await spotifyService.getCurrentUser();
-            set({ 
-              isConnected: true, 
-              user: user,
-              isLoading: false 
+            if (!user) {
+              console.error('Store: Auth succeeded but Spotify profile /me was unavailable.');
+              await spotifyService.clearToken();
+              set({ isConnected: false, user: null, isLoading: false });
+              return false;
+            }
+
+            set({
+              isConnected: true,
+              user,
+              isLoading: false,
             });
-            
+
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
-            
+
             return true;
-          } else {
-            set({ isLoading: false });
-            return false;
           }
+
+          set({ isLoading: false });
+          return false;
         } catch (error) {
           console.error('Failed to connect to Spotify:', error);
           set({ isLoading: false });
@@ -69,34 +76,41 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
       connectSpotifyImplicit: async (urlFragment: string): Promise<boolean> => {
         console.log('Store: Starting Spotify implicit connection...');
         set({ isLoading: true });
-        
+
         try {
           console.log('Store: Calling spotifyService.handleImplicitGrantCallback...');
           const success = await spotifyService.handleImplicitGrantCallback(urlFragment);
           console.log('Store: Callback result:', success);
-          
+
           if (success) {
-            console.log('Store: Getting current user...');
+            console.log('Store: Getting current user from /me...');
             const user = await spotifyService.getCurrentUser();
             console.log('Store: User received:', user);
-            
-            set({ 
-              isConnected: true, 
-              user: user,
-              isLoading: false 
+
+            if (!user) {
+              console.error('Store: OAuth callback succeeded but /me profile fetch failed.');
+              await spotifyService.clearToken();
+              set({ isConnected: false, user: null, isLoading: false });
+              return false;
+            }
+
+            set({
+              isConnected: true,
+              user,
+              isLoading: false,
             });
-            
+
             console.log('Store: Loading initial data...');
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
-            
+
             return true;
-          } else {
-            console.log('Store: Connection failed');
-            set({ isLoading: false });
-            return false;
           }
+
+          console.log('Store: Connection failed');
+          set({ isLoading: false });
+          return false;
         } catch (error) {
           console.error('Store: Failed to connect to Spotify:', error);
           set({ isLoading: false });
@@ -272,17 +286,36 @@ export const useSpotifyStore = create<SpotifyStoreState>()(
           if (isAuthenticated) {
             const isClientCreds = spotifyService.isUsingClientCredentials();
             const user = isClientCreds ? null : await spotifyService.getCurrentUser();
-            console.log('User loaded:', user?.display_name || user?.id, 'clientCreds:', isClientCreds);
-            set({ 
-              isConnected: !isClientCreds, 
+            const hasValidUserProfile = !!user?.id;
+            console.log('User loaded:', user?.display_name || user?.id, 'clientCreds:', isClientCreds, 'hasValidUserProfile:', hasValidUserProfile);
+
+            if (!isClientCreds && !hasValidUserProfile) {
+              console.error('Store: Existing OAuth token is present but /me profile is invalid. Falling back to client credentials.');
+              await spotifyService.clearToken();
+              const ccSuccess = await spotifyService.initializeClientCredentials();
+              set({
+                isConnected: false,
+                isClientCredentialsReady: ccSuccess,
+                user: null,
+                isLoading: false,
+              });
+              if (ccSuccess) {
+                get().loadWorkoutPlaylists();
+                get().loadRunningPlaylists();
+              }
+              return;
+            }
+
+            set({
+              isConnected: !isClientCreds && hasValidUserProfile,
               isClientCredentialsReady: isClientCreds,
-              user: user,
-              isLoading: false
+              user,
+              isLoading: false,
             });
-            
+
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
-            if (!isClientCreds) {
+            if (!isClientCreds && hasValidUserProfile) {
               get().loadUserData();
             }
           } else {
