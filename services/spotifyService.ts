@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export interface SpotifyTrack {
   id: string;
@@ -91,6 +94,7 @@ class SpotifyService {
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
   private redirectUri = this.computeRedirectUri();
   private hostedWebRedirectUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
+  private hostedNativeCallbackUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
   private token: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiresAt: number | null = null;
@@ -103,9 +107,8 @@ class SpotifyService {
     console.log('SpotifyService: Client ID:', this.clientId);
     console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     console.log('SpotifyService: Redirect URI:', this.redirectUri);
-    this.loadStoredToken();
-    // Auto-initialize client credentials for public API access
-    this.autoInitialize();
+    void this.loadStoredToken();
+    void this.autoInitialize();
   }
 
   private computeRedirectUri(): string {
@@ -116,7 +119,8 @@ class SpotifyService {
     }
 
     if (Platform.OS !== 'web') {
-      return 'zown://spotify-callback';
+      console.log('SpotifyService: Using native hosted HTTPS redirect URI:', this.hostedNativeCallbackUri);
+      return this.hostedNativeCallbackUri;
     }
 
     const browserHref = typeof window !== 'undefined' ? window.location.href : '';
@@ -419,9 +423,7 @@ class SpotifyService {
     }
   }
 
-  // Legacy method for backward compatibility
-  async authenticate(authCode: string, receivedState: string = ''): Promise<boolean> {
-    // For implicit flow, we expect the full URL fragment, not just auth code
+  async authenticate(authCode: string, _receivedState: string = ''): Promise<boolean> {
     return this.handleImplicitGrantCallback(authCode);
   }
 
@@ -1018,11 +1020,35 @@ It does NOT provide access to:
 
   async authenticateWithPopup(): Promise<boolean> {
     if (Platform.OS !== 'web') {
-      console.warn('Popup authentication is only available on web');
-      return false;
+      console.log('SpotifyService: Starting native auth session for Spotify...');
+      try {
+        const authUrl = await this.getAuthorizationUrl();
+        console.log('SpotifyService: Native auth URL generated:', authUrl);
+        console.log('SpotifyService: Native auth redirect URI:', this.redirectUri);
+
+        const result = await WebBrowser.openAuthSessionAsync(authUrl, this.redirectUri);
+        console.log('SpotifyService: Native auth session result:', JSON.stringify(result));
+
+        if (result.type === 'success' && result.url) {
+          const success = await this.handleAuthorizationCodeCallback(result.url);
+          console.log('SpotifyService: Native auth callback handled:', success);
+          return success;
+        }
+
+        if (result.type === 'cancel' || result.type === 'dismiss') {
+          console.log('SpotifyService: Native auth session cancelled or dismissed');
+          return false;
+        }
+
+        console.log('SpotifyService: Native auth session did not return success');
+        return false;
+      } catch (error) {
+        console.error('SpotifyService: Native auth session failed:', error);
+        return false;
+      }
     }
 
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       let resolved = false;
       let checkClosedInterval: ReturnType<typeof setInterval> | null = null;
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1099,63 +1125,67 @@ It does NOT provide access to:
       };
 
       window.addEventListener('message', messageListener);
-      
-      try {
-        const authUrl = await this.getAuthorizationUrl();
-        console.log('SpotifyService: Opening popup for auth...');
-        
-        const popup = window.open(
-          authUrl,
-          'spotify-auth',
-          'width=500,height=700,scrollbars=yes,resizable=yes,left=100,top=100'
-        );
 
-        if (!popup) {
-          console.error('SpotifyService: Popup blocked by browser');
+      void (async () => {
+        try {
+          const authUrl = await this.getAuthorizationUrl();
+          console.log('SpotifyService: Opening popup for auth...');
+
+          const popup = window.open(
+            authUrl,
+            'spotify-auth',
+            'width=500,height=700,scrollbars=yes,resizable=yes,left=100,top=100'
+          );
+
+          if (!popup) {
+            console.error('SpotifyService: Popup blocked by browser');
+            resolveOnce(false);
+            return;
+          }
+
+          checkClosedInterval = setInterval(() => {
+            void (async () => {
+              try {
+                if (popup.closed) {
+                  console.log('SpotifyService: Popup closed by user');
+                  setTimeout(() => resolveOnce(false), 300);
+                  return;
+                }
+              } catch {
+              }
+
+              try {
+                const popupUrl = popup.location.href;
+                if (!popupUrl || popupUrl === 'about:blank') return;
+
+                const hasAuthData = popupUrl.includes('code=') || 
+                                   popupUrl.includes('access_token=') || 
+                                   popupUrl.includes('error=');
+
+                if (hasAuthData && !codeHandled) {
+                  console.log('SpotifyService: Detected auth data in popup URL');
+                  popup.close();
+                  const success = await extractAndHandleCode(popupUrl);
+                  resolveOnce(success);
+                }
+              } catch {
+              }
+            })();
+          }, 300);
+
+          timeoutId = setTimeout(() => {
+            try {
+              if (!popup.closed) popup.close();
+            } catch {
+            }
+            console.log('SpotifyService: Auth timeout after 5 minutes');
+            resolveOnce(false);
+          }, 5 * 60 * 1000);
+        } catch (error) {
+          console.error('SpotifyService: Error during popup auth:', error);
           resolveOnce(false);
-          return;
         }
-
-        checkClosedInterval = setInterval(async () => {
-          try {
-            if (popup.closed) {
-              console.log('SpotifyService: Popup closed by user');
-              setTimeout(() => resolveOnce(false), 300);
-              return;
-            }
-          } catch {
-            // ignore
-          }
-          
-          try {
-            const popupUrl = popup.location.href;
-            if (!popupUrl || popupUrl === 'about:blank') return;
-            
-            const hasAuthData = popupUrl.includes('code=') || 
-                               popupUrl.includes('access_token=') || 
-                               popupUrl.includes('error=');
-            
-            if (hasAuthData && !codeHandled) {
-              console.log('SpotifyService: Detected auth data in popup URL');
-              popup.close();
-              const success = await extractAndHandleCode(popupUrl);
-              resolveOnce(success);
-            }
-          } catch {
-            // Cross-origin - expected while on accounts.spotify.com
-          }
-        }, 300);
-
-        timeoutId = setTimeout(() => {
-          try { if (!popup.closed) popup.close(); } catch {}
-          console.log('SpotifyService: Auth timeout after 5 minutes');
-          resolveOnce(false);
-        }, 5 * 60 * 1000);
-
-      } catch (error) {
-        console.error('SpotifyService: Error during popup auth:', error);
-        resolveOnce(false);
-      }
+      })();
     });
   }
 

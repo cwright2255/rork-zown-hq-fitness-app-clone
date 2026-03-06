@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Music, Play, Pause, Settings, RefreshCw, Search, Loader } from 'lucide-react-native';
+import { Music, Play, Pause, Settings, RefreshCw, Loader } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
@@ -28,7 +28,6 @@ export default function SpotifyIntegration() {
     user,
     disconnectSpotify,
     initializeSpotify,
-    getSpotifyAuthUrl,
     initializeClientCredentials: storeInitClientCreds,
   } = useSpotifyStore();
 
@@ -41,13 +40,13 @@ export default function SpotifyIntegration() {
 
   useEffect(() => {
     if (!isConnected && !isClientCredentialsReady) {
-      storeInitClientCreds();
+      void storeInitClientCreds();
     }
-  }, []);
+  }, [isClientCredentialsReady, isConnected, storeInitClientCreds]);
 
   useEffect(() => {
     if (isConnected || isClientCredentialsReady) {
-      loadPlaylists();
+      void loadPlaylists();
     }
   }, [isConnected, isClientCredentialsReady]);
 
@@ -71,12 +70,12 @@ export default function SpotifyIntegration() {
         if (success) {
           await initializeSpotify();
           Alert.alert('Success', 'Connected to Spotify!');
-          loadPlaylists();
+          void loadPlaylists();
         } else {
           const clientSuccess = await storeInitClientCreds();
           if (clientSuccess) {
             Alert.alert('Connected', 'You can browse and play tracks.');
-            loadPlaylists();
+            void loadPlaylists();
           } else {
             Alert.alert('Connection Failed', 'Could not connect to Spotify.');
           }
@@ -84,7 +83,7 @@ export default function SpotifyIntegration() {
       } else {
         const clientSuccess = await storeInitClientCreds();
         if (clientSuccess) {
-          loadPlaylists();
+          void loadPlaylists();
         }
       }
     } catch (error) {
@@ -105,7 +104,7 @@ export default function SpotifyIntegration() {
 
   const openPlaylist = async (playlist: SpotifyPlaylist) => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     try {
       setSelectedPlaylist(playlist);
@@ -122,7 +121,7 @@ export default function SpotifyIntegration() {
 
   const handleTrackPress = useCallback((track: SpotifyTrack) => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     console.log('[SpotifyIntegration] Playing track via embed:', track.name);
     setActiveTrack(track);
