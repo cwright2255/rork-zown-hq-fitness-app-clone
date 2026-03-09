@@ -196,7 +196,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }: Recip
                   textAlignVertical="top"
                 />
                 <TouchableOpacity 
-                  style={styles.pasteButtonText}
+                  style={styles.pasteButton}
                   onPress={handlePasteFromClipboard}
                 >
                   <Text style={styles.pasteButtonText}>Paste</Text>

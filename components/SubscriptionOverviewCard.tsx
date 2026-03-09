@@ -72,11 +72,12 @@ const SubscriptionOverviewCard: React.FC<SubscriptionOverviewCardProps> = ({
         </View>
         
         <Badge
-          label={plan.badge.label}
           variant="neutral"
           style={[styles.tierBadge, { backgroundColor: plan.badge.color }]}
           textStyle={{ color: plan.badge.textColor }}
-        />
+        >
+          {plan.badge.label}
+        </Badge>
       </View>
       
       <View style={styles.content}>

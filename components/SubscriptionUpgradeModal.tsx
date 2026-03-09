@@ -6,7 +6,7 @@ import Card from './Card';
 import Button from './Button';
 import Badge from './Badge';
 import { SubscriptionTier } from '@/types';
-import { subscriptionPlans, getSubscriptionPlan } from '@/constants/subscriptionPlans';
+import { subscriptionPlans } from '@/constants/subscriptionPlans';
 
 interface SubscriptionUpgradeModalProps {
   visible: boolean;
@@ -124,11 +124,12 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
                   <View style={styles.planHeaderLeft}>
                     <Text style={styles.planName}>{plan.name}</Text>
                     <Badge
-                      label={plan.badge.label}
                       variant="neutral"
                       style={[styles.planBadge, { backgroundColor: plan.badge.color }]}
                       textStyle={{ color: plan.badge.textColor }}
-                    />
+                    >
+                      {plan.badge.label}
+                    </Badge>
                   </View>
                   
                   <View style={styles.planPricing}>

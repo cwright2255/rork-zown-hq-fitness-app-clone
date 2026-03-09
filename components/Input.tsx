@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -17,10 +18,10 @@ interface InputProps extends TextInputProps {
   error?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  containerStyle?: ViewStyle;
-  inputStyle?: TextStyle;
-  labelStyle?: TextStyle;
-  errorStyle?: TextStyle;
+  containerStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  errorStyle?: StyleProp<TextStyle>;
   secureTextEntry?: boolean;
 }
 
@@ -94,8 +95,8 @@ const Input: React.FC<InputProps> = ({
         <TextInput
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeftIcon,
-            (rightIcon || secureTextEntry) && styles.inputWithRightIcon,
+            Boolean(leftIcon) && styles.inputWithLeftIcon,
+            (Boolean(rightIcon) || Boolean(secureTextEntry)) && styles.inputWithRightIcon,
             inputStyle,
           ]}
           placeholderTextColor={Colors.text.tertiary}

@@ -26,7 +26,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
       variant="outlined" 
       style={[
         styles.card,
-        isLast ? styles.lastCard : styles.card
+        isLast && styles.lastCard
       ]}
     >
       <View style={styles.header}>

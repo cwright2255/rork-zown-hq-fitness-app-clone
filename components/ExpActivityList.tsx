@@ -98,7 +98,7 @@ const ExpActivityList: React.FC<ExpActivityListProps> = ({ activities, maxHeight
   }
   
   return (
-    <View style={[styles.container, maxHeight && { maxHeight }]}>
+    <View style={[styles.container, maxHeight !== undefined ? { maxHeight } : undefined]}>
       <FlatList
         data={displayActivities}
         keyExtractor={keyExtractor}
