@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -16,6 +16,7 @@ export default function SpotifyRedirect() {
   const params = useLocalSearchParams();
   const { connectSpotifyImplicit, initializeSpotify } = useSpotifyStore();
   const [status, setStatus] = useState<string>('Connecting to Spotify...');
+  const fallbackRoute = useMemo(() => '/spotify-integration' as const, []);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -56,7 +57,7 @@ export default function SpotifyRedirect() {
           console.error('Spotify redirect: Auth error:', error);
           setStatus(`Authentication error: ${error}`);
           postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error });
-          setTimeout(() => router.replace('/spotify-integration' as any), 900);
+          setTimeout(() => router.replace(fallbackRoute), 900);
           return;
         }
 
@@ -71,7 +72,7 @@ export default function SpotifyRedirect() {
             setStatus('Could not complete Spotify login.');
             postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'token_exchange_failed' });
           }
-          setTimeout(() => router.replace('/spotify-integration' as any), 900);
+          setTimeout(() => router.replace(fallbackRoute), 900);
           return;
         }
 
@@ -85,7 +86,7 @@ export default function SpotifyRedirect() {
             setStatus('Could not complete Spotify login.');
             postPopupMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'implicit_grant_failed' });
           }
-          setTimeout(() => router.replace('/spotify-integration' as any), 900);
+          setTimeout(() => router.replace(fallbackRoute), 900);
           return;
         }
 
@@ -105,13 +106,13 @@ export default function SpotifyRedirect() {
             console.error('Spotify redirect: Failed to post exception to popup opener:', postError);
           }
         }
-        setTimeout(() => router.replace('/spotify-integration' as any), 1200);
+        setTimeout(() => router.replace(fallbackRoute), 1200);
       }
     };
 
     const timer = setTimeout(handleCallback, 100);
     return () => clearTimeout(timer);
-  }, [connectSpotifyImplicit, initializeSpotify, params.code, params.error, router]);
+  }, [connectSpotifyImplicit, fallbackRoute, initializeSpotify, params.code, params.error, router]);
 
   return (
     <View style={styles.container}>

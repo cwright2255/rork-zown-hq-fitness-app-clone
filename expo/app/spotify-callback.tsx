@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { spotifyService } from '@/services/spotifyService';
@@ -9,7 +9,8 @@ export default function SpotifyCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { initializeSpotify } = useSpotifyStore();
-  const [status, setStatus] = useState('Processing Spotify authentication...');
+  const [status, setStatus] = useState<string>('Processing Spotify authentication...');
+  const fallbackRoute = useMemo(() => '/spotify-integration' as const, []);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -51,7 +52,7 @@ export default function SpotifyCallback() {
             } catch { /* ignore */ }
           }
           
-          setTimeout(() => router.replace('/spotify-integration' as any), 2000);
+          setTimeout(() => router.replace(fallbackRoute), 2000);
           return;
         }
 
@@ -89,7 +90,7 @@ export default function SpotifyCallback() {
             }
           }
           
-          setTimeout(() => router.replace('/spotify-integration' as any), 1500);
+          setTimeout(() => router.replace(fallbackRoute), 1500);
           return;
         }
 
@@ -113,7 +114,7 @@ export default function SpotifyCallback() {
             setStatus('Authentication failed.');
           }
           
-          setTimeout(() => router.replace('/spotify-integration' as any), 1500);
+          setTimeout(() => router.replace(fallbackRoute), 1500);
           return;
         }
         
@@ -132,13 +133,13 @@ export default function SpotifyCallback() {
       } catch (error) {
         console.error('SpotifyCallback: Error:', error);
         setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setTimeout(() => router.replace('/spotify-integration' as any), 2000);
+        setTimeout(() => router.replace(fallbackRoute), 2000);
       }
     };
 
     const timer = setTimeout(handleCallback, 100);
     return () => clearTimeout(timer);
-  }, [router, params, initializeSpotify]);
+  }, [fallbackRoute, router, params, initializeSpotify]);
 
   return (
     <View style={styles.container}>
