@@ -24,11 +24,11 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 
 const { width } = Dimensions.get('window');
-const PREVIEW_CARD_GAP = 16;
-const PREVIEW_CARD_WIDTH = Math.min(width * 0.82, 360);
+const PREVIEW_CARD_GAP = 12;
+const PREVIEW_CARD_WIDTH = Math.min(width * 0.9, 420);
 const PREVIEW_CARD_INTERVAL = PREVIEW_CARD_WIDTH + PREVIEW_CARD_GAP;
-const PREVIEW_SIDE_PADDING = Math.max(20, (width - PREVIEW_CARD_WIDTH) / 2);
-const PREVIEW_END_PADDING = PREVIEW_SIDE_PADDING - PREVIEW_CARD_GAP;
+const PREVIEW_SIDE_PADDING = Math.max(16, (width - PREVIEW_CARD_WIDTH) / 2);
+const PREVIEW_END_PADDING = PREVIEW_SIDE_PADDING;
 
 export default function WorkoutsScreen() {
   const [activeTab, setActiveTab] = useState('workouts');
