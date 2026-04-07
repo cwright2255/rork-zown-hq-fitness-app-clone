@@ -24,6 +24,11 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 
 const { width } = Dimensions.get('window');
+const PREVIEW_CARD_GAP = 16;
+const PREVIEW_CARD_WIDTH = Math.min(width * 0.82, 360);
+const PREVIEW_CARD_INTERVAL = PREVIEW_CARD_WIDTH + PREVIEW_CARD_GAP;
+const PREVIEW_SIDE_PADDING = Math.max(20, (width - PREVIEW_CARD_WIDTH) / 2);
+const PREVIEW_END_PADDING = PREVIEW_SIDE_PADDING - PREVIEW_CARD_GAP;
 
 export default function WorkoutsScreen() {
   const [activeTab, setActiveTab] = useState('workouts');
@@ -330,25 +335,25 @@ export default function WorkoutsScreen() {
   // Optimized scroll handlers
   const handleFollowAlongScroll = useCallback((event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (width * 0.85));
+    const index = Math.round(contentOffset / PREVIEW_CARD_INTERVAL);
     setCurrentFollowAlongIndex(index);
   }, []);
 
   const handleYoutubeScroll = useCallback((event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (width * 0.85));
+    const index = Math.round(contentOffset / PREVIEW_CARD_INTERVAL);
     setCurrentYoutubeIndex(index);
   }, []);
 
   const handleRunningProgramScroll = useCallback((event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (width * 0.85));
+    const index = Math.round(contentOffset / PREVIEW_CARD_INTERVAL);
     setCurrentRunningProgramIndex(index);
   }, []);
 
   const scrollToFollowAlongIndex = useCallback((index: number) => {
     followAlongScrollRef.current?.scrollTo({
-      x: index * (width * 0.85),
+      x: index * PREVIEW_CARD_INTERVAL,
       animated: true
     });
     setCurrentFollowAlongIndex(index);
@@ -356,7 +361,7 @@ export default function WorkoutsScreen() {
 
   const scrollToYoutubeIndex = useCallback((index: number) => {
     youtubeScrollRef.current?.scrollTo({
-      x: index * (width * 0.85),
+      x: index * PREVIEW_CARD_INTERVAL,
       animated: true
     });
     setCurrentYoutubeIndex(index);
@@ -364,7 +369,7 @@ export default function WorkoutsScreen() {
 
   const scrollToRunningProgramIndex = useCallback((index: number) => {
     runningProgramScrollRef.current?.scrollTo({
-      x: index * (width * 0.85),
+      x: index * PREVIEW_CARD_INTERVAL,
       animated: true
     });
     setCurrentRunningProgramIndex(index);
@@ -759,8 +764,8 @@ export default function WorkoutsScreen() {
       <View style={styles.carouselContainer}>
         <ScrollView 
           horizontal 
-          pagingEnabled
-          snapToInterval={width * 0.85 + 16}
+          snapToInterval={PREVIEW_CARD_INTERVAL}
+          snapToAlignment="start"
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.workoutsContainer}
@@ -790,8 +795,8 @@ export default function WorkoutsScreen() {
         <ScrollView 
           ref={followAlongScrollRef}
           horizontal 
-          pagingEnabled
-          snapToInterval={width * 0.85 + 16}
+          snapToInterval={PREVIEW_CARD_INTERVAL}
+          snapToAlignment="start"
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.workoutsContainer}
@@ -855,8 +860,8 @@ export default function WorkoutsScreen() {
         <ScrollView 
           ref={youtubeScrollRef}
           horizontal 
-          pagingEnabled
-          snapToInterval={width * 0.85 + 16}
+          snapToInterval={PREVIEW_CARD_INTERVAL}
+          snapToAlignment="start"
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.workoutsContainer}
@@ -1286,24 +1291,24 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   workoutsContainer: {
-    paddingLeft: 20,
-    paddingRight: 40,
+    paddingLeft: PREVIEW_SIDE_PADDING,
+    paddingRight: PREVIEW_END_PADDING,
   },
   workoutCard: {
-    width: width * 0.85,
+    width: PREVIEW_CARD_WIDTH,
     height: 200,
     borderRadius: Colors.radius.large,
     overflow: 'hidden',
-    marginRight: Colors.spacing.lg,
+    marginRight: PREVIEW_CARD_GAP,
     position: 'relative',
   },
   workoutCardContainer: {
-    width: width * 0.85,
-    marginRight: Colors.spacing.lg,
+    width: PREVIEW_CARD_WIDTH,
+    marginRight: PREVIEW_CARD_GAP,
   },
   runningProgramCardContainer: {
-    width: width * 0.85,
-    marginRight: Colors.spacing.lg,
+    width: PREVIEW_CARD_WIDTH,
+    marginRight: PREVIEW_CARD_GAP,
   },
   workoutImage: {
     width: '100%',
