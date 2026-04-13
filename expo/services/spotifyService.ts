@@ -222,6 +222,24 @@ class SpotifyService {
     }
   }
 
+  private getSpotifyProxyCandidates(): string[] {
+    const urls: string[] = [];
+
+    if (Platform.OS === 'web') {
+      urls.push('/api/spotify/token');
+
+      if (typeof window !== 'undefined' && window.location?.origin) {
+        urls.push(`${window.location.origin}/api/spotify/token`);
+      }
+    }
+
+    if (this.apiBaseUrl) {
+      urls.push(`${this.apiBaseUrl}/api/spotify/token`);
+    }
+
+    return Array.from(new Set(urls.filter(Boolean)));
+  }
+
   private async requestSpotifyTokenViaProxy(payload: {
     grantType: 'client_credentials' | 'authorization_code' | 'refresh_token';
     code?: string;
@@ -229,28 +247,52 @@ class SpotifyService {
     codeVerifier?: string;
     refreshToken?: string;
   }): Promise<SpotifyAuthResponse | SpotifyClientCredentialsResponse> {
-    if (!this.apiBaseUrl) {
-      throw new Error('Spotify proxy is unavailable because EXPO_PUBLIC_RORK_API_BASE_URL is missing');
+    const candidateUrls = this.getSpotifyProxyCandidates();
+
+    if (candidateUrls.length === 0) {
+      throw new Error('Spotify proxy is unavailable because no API base URL could be resolved');
     }
 
     console.log('SpotifyService: Requesting Spotify token via backend proxy...');
-    const response = await fetch(`${this.apiBaseUrl}/api/spotify/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    console.log('SpotifyService: Proxy candidates:', candidateUrls);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('SpotifyService: Backend Spotify token proxy failed:', errorData);
-      throw new Error(errorData.error || `Spotify proxy failed with status ${response.status}`);
+    let lastError: Error | null = null;
+
+    for (const url of candidateUrls) {
+      try {
+        console.log('SpotifyService: Trying Spotify proxy URL:', url);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('SpotifyService: Backend Spotify token proxy failed:', {
+            url,
+            status: response.status,
+            errorData,
+          });
+          lastError = new Error(errorData.error || `Spotify proxy failed with status ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json() as SpotifyAuthResponse | SpotifyClientCredentialsResponse;
+        console.log('SpotifyService: Spotify token proxy succeeded via:', url);
+        return data;
+      } catch (error) {
+        console.error('SpotifyService: Spotify proxy network failure:', {
+          url,
+          error,
+        });
+        lastError = error instanceof Error ? error : new Error('Unknown Spotify proxy error');
+      }
     }
 
-    const data = await response.json() as SpotifyAuthResponse | SpotifyClientCredentialsResponse;
-    console.log('SpotifyService: Spotify token proxy succeeded');
-    return data;
+    throw lastError ?? new Error('Spotify token proxy failed');
   }
 
   private async fetchWebApi(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any): Promise<any> {
@@ -562,6 +604,11 @@ It does NOT provide access to:
       return true;
     } catch (error) {
       console.error('SpotifyService: Network error during client credentials:', error);
+      console.error('SpotifyService: Proxy status snapshot:', {
+        apiBaseUrl: this.apiBaseUrl,
+        proxyCandidates: this.getSpotifyProxyCandidates(),
+        platform: Platform.OS,
+      });
       return false;
     }
   }
