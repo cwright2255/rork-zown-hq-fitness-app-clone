@@ -90,6 +90,7 @@ export interface SpotifyClientCredentialsResponse {
 
 class SpotifyService {
   private baseUrl = 'https://api.spotify.com/v1';
+  private apiBaseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
   public clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
   private hostedWebRedirectUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
@@ -221,6 +222,37 @@ class SpotifyService {
     }
   }
 
+  private async requestSpotifyTokenViaProxy(payload: {
+    grantType: 'client_credentials' | 'authorization_code' | 'refresh_token';
+    code?: string;
+    redirectUri?: string;
+    codeVerifier?: string;
+    refreshToken?: string;
+  }): Promise<SpotifyAuthResponse | SpotifyClientCredentialsResponse> {
+    if (!this.apiBaseUrl) {
+      throw new Error('Spotify proxy is unavailable because EXPO_PUBLIC_RORK_API_BASE_URL is missing');
+    }
+
+    console.log('SpotifyService: Requesting Spotify token via backend proxy...');
+    const response = await fetch(`${this.apiBaseUrl}/api/spotify/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('SpotifyService: Backend Spotify token proxy failed:', errorData);
+      throw new Error(errorData.error || `Spotify proxy failed with status ${response.status}`);
+    }
+
+    const data = await response.json() as SpotifyAuthResponse | SpotifyClientCredentialsResponse;
+    console.log('SpotifyService: Spotify token proxy succeeded');
+    return data;
+  }
+
   private async fetchWebApi(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any): Promise<any> {
     if (!this.token || (this.tokenExpiresAt && Date.now() > this.tokenExpiresAt)) {
       console.log('SpotifyService: Token missing or expired, refreshing before API call...');
@@ -339,27 +371,12 @@ class SpotifyService {
 
       // Exchange code for token
       console.log('Exchanging authorization code for token...');
-      const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: this.redirectUri,
-          client_id: this.clientId,
-          code_verifier: storedCodeVerifier,
-        }).toString(),
-      });
-
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json().catch(() => ({}));
-        console.error('Token exchange failed:', errorData);
-        return false;
-      }
-
-      const tokenData = await tokenResponse.json();
+      const tokenData = await this.requestSpotifyTokenViaProxy({
+        grantType: 'authorization_code',
+        code,
+        redirectUri: this.redirectUri,
+        codeVerifier: storedCodeVerifier,
+      }) as SpotifyAuthResponse;
       console.log('Token exchange successful');
 
       // Store the tokens
@@ -533,32 +550,10 @@ It does NOT provide access to:
     }
     
     try {
-      // Create Base64 encoded credentials
-      const credentials = btoa(`${this.clientId}:${clientSecret}`);
-      console.log('SpotifyService: Making client credentials request to Spotify...');
-      
-      const response = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'grant_type=client_credentials',
-      });
-
-      console.log('SpotifyService: Response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('SpotifyService: Client credentials failed:', errorData);
-        
-        if (response.status === 401) {
-          console.error('SpotifyService: Invalid client ID or client secret');
-        }
-        return false;
-      }
-
-      const data: SpotifyClientCredentialsResponse = await response.json();
+      console.log('SpotifyService: Making client credentials request through backend proxy...');
+      const data = await this.requestSpotifyTokenViaProxy({
+        grantType: 'client_credentials',
+      }) as SpotifyClientCredentialsResponse;
       console.log('SpotifyService: Token received, expires in', data.expires_in, 'seconds');
       
       await this.storeToken(data.access_token, undefined, data.expires_in, true);
@@ -584,14 +579,19 @@ It does NOT provide access to:
     }
 
     try {
-      // In a real implementation, you would call your backend to refresh the token
-      // For demo purposes, we'll simulate a successful refresh
-      console.log('Refreshing Spotify token...');
-      
-      // Simulate token refresh
-      const newToken = 'refreshed_token_' + Date.now();
-      await this.storeToken(newToken, this.refreshToken, 3600); // 1 hour
-      
+      console.log('Refreshing Spotify token via backend proxy...');
+      const data = await this.requestSpotifyTokenViaProxy({
+        grantType: 'refresh_token',
+        refreshToken: this.refreshToken,
+      }) as SpotifyAuthResponse;
+
+      await this.storeToken(
+        data.access_token,
+        data.refresh_token || this.refreshToken,
+        data.expires_in || 3600,
+        false
+      );
+
       return true;
     } catch (error) {
       console.error('Failed to refresh Spotify token:', error);

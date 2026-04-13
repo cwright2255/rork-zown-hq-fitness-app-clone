@@ -7,6 +7,33 @@ import { createContext } from "./trpc/create-context";
 const SPOTIFY_CLIENT_ID = "cb884c0e045d4683bd3f0b38cb0e151e";
 const SPOTIFY_CLIENT_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || "";
 
+type SpotifyTokenResponse = {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token?: string;
+  scope?: string;
+};
+
+async function exchangeSpotifyToken(formBody: URLSearchParams): Promise<Response> {
+  return fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)}`,
+    },
+    body: formBody.toString(),
+  });
+}
+
+async function parseSpotifyError(response: Response): Promise<{ error: string; details?: unknown }> {
+  const details = await response.json().catch(() => null);
+  return {
+    error: `Spotify token request failed with status ${response.status}`,
+    details,
+  };
+}
+
 // app will be mounted at /api
 const app = new Hono();
 
@@ -26,6 +53,64 @@ app.use(
 // Simple health check endpoint
 app.get("/", (c) => {
   return c.json({ status: "ok", message: "API is running" });
+});
+
+app.post("/spotify/token", async (c) => {
+  try {
+    if (!SPOTIFY_CLIENT_SECRET || SPOTIFY_CLIENT_SECRET.length < 10) {
+      return c.json({ error: "Spotify client secret is not configured on the server" }, 500);
+    }
+
+    const body = await c.req.json().catch(() => null) as {
+      grantType?: "client_credentials" | "authorization_code" | "refresh_token";
+      code?: string;
+      redirectUri?: string;
+      codeVerifier?: string;
+      refreshToken?: string;
+    } | null;
+
+    if (!body?.grantType) {
+      return c.json({ error: "Missing grantType" }, 400);
+    }
+
+    let formBody: URLSearchParams;
+
+    if (body.grantType === "client_credentials") {
+      formBody = new URLSearchParams({ grant_type: "client_credentials" });
+    } else if (body.grantType === "authorization_code") {
+      if (!body.code || !body.redirectUri || !body.codeVerifier) {
+        return c.json({ error: "Missing authorization code exchange parameters" }, 400);
+      }
+
+      formBody = new URLSearchParams({
+        grant_type: "authorization_code",
+        code: body.code,
+        redirect_uri: body.redirectUri,
+        code_verifier: body.codeVerifier,
+      });
+    } else {
+      if (!body.refreshToken) {
+        return c.json({ error: "Missing refresh token" }, 400);
+      }
+
+      formBody = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: body.refreshToken,
+      });
+    }
+
+    const response = await exchangeSpotifyToken(formBody);
+
+    if (!response.ok) {
+      return c.json(await parseSpotifyError(response), response.status as 400 | 401 | 500);
+    }
+
+    const data = await response.json() as SpotifyTokenResponse;
+    return c.json(data);
+  } catch (error) {
+    console.error("Spotify token proxy error:", error);
+    return c.json({ error: "Spotify token proxy failed" }, 500);
+  }
 });
 
 // Spotify OAuth callback handler
