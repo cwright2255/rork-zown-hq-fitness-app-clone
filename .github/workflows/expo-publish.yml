@@ -28,6 +28,12 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
 
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Publish EAS Update
         run: eas update --auto --non-interactive --platform all
         env:
