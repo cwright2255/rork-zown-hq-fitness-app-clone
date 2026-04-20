@@ -141,7 +141,7 @@
     "experiments": {
       "typedRoutes": true
     },
-    "owner": "Cwright_7",
+    "owner": "cwright_7",
     "sdkVersion": "54.0.0",
     "runtimeVersion": {
       "policy": "sdkVersion"
