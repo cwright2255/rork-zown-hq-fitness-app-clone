@@ -1,5 +1,5 @@
 // Passio.ai API Configuration
-const PASSIO_API_KEY = '9zR4qIXKlWdjb3PXfRjFFkCBJrNNoHGHb69MNcI5';
+const PASSIO_API_KEY = process.env.EXPO_PUBLIC_PASSIO_API_KEY ?? '';
 const PASSIO_BASE_URL = 'https://api.passiolife.com/v2';
 
 // Token management

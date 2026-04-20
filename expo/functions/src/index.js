@@ -9,6 +9,7 @@ import OpenAI from 'openai';
 initializeApp();
 
 const OPENAI_API_KEY = defineSecret('OPENAI_API_KEY');
+const SPOTIFY_CLIENT_ID = defineSecret('SPOTIFY_CLIENT_ID');
 const SPOTIFY_CLIENT_SECRET = defineSecret('SPOTIFY_CLIENT_SECRET');
 
 function getOpenAI() {
@@ -171,7 +172,7 @@ export const getNutritionRecommendations = onCall(
 );
 
 export const refreshSpotifyToken = onCall(
-  { secrets: [SPOTIFY_CLIENT_SECRET], region: 'us-central1' },
+  { secrets: [SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET], region: 'us-central1' },
   async (req) => {
     requireAuth(req.auth);
     const { refreshToken } = req.data as { refreshToken: string };
@@ -179,8 +180,7 @@ export const refreshSpotifyToken = onCall(
       throw new HttpsError('invalid-argument', 'refreshToken required');
     }
 
-    const clientId =
-      process.env.SPOTIFY_CLIENT_ID ?? 'cb884c0e045d4683bd3f0b38cb0e151e';
+    const clientId = SPOTIFY_CLIENT_ID.value();
     const clientSecret = SPOTIFY_CLIENT_SECRET.value();
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 

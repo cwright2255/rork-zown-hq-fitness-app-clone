@@ -60,13 +60,28 @@ The Firebase project `zown-3c512` already exists. The native config files (`expo
    cd expo
    firebase deploy --only firestore:rules,firestore:indexes,storage
    ```
-4. Set Cloud Function secrets and deploy:
+4. Set Cloud Function secrets and deploy (see **Firebase Secrets Setup** below for the full list):
    ```bash
-   firebase functions:secrets:set OPENAI_API_KEY
-   firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
    cd functions && npm install && cd ..
    firebase deploy --only functions
    ```
+
+## Firebase Secrets Setup
+
+Before deploying Cloud Functions, set these secrets via the Firebase CLI:
+
+```bash
+firebase functions:secrets:set SPOTIFY_CLIENT_ID
+# value: <your Spotify Client ID>
+
+firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
+# value: <your Spotify Client Secret>
+
+firebase functions:secrets:set OPENAI_API_KEY
+# value: <your OpenAI API key>
+```
+
+Also add `EXPO_PUBLIC_PASSIO_API_KEY` to your local `.env` file after rotating the key at https://platform.passiolife.com.
 
 ## Spotify Setup
 
