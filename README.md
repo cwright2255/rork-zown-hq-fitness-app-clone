@@ -201,15 +201,14 @@ The app scheme is `zownhq`. Supported deep links:
 
 ## Expo Go — Stable QR Code
 
-Every push to `main` triggers an automatic Expo publish via GitHub Actions. Once published, the app is available in Expo Go at:
+Every push to `main` triggers an automatic EAS Update. Once published, open the update in Expo Go via:
 
-**@cwright2255/zown-hq**
+**expo.dev/accounts/cwright2255/projects/zown-hq**
 
-Scan with the Expo Go app on iOS or Android:
-
-[![Expo QR](https://qr.expo.dev/expo-go?owner=cwright2255&slug=zown-hq&releaseChannel=default&host=exp.host)](https://expo.dev/@cwright2255/zown-hq)
-
-Or open directly: [expo.dev/@cwright2255/zown-hq](https://expo.dev/@cwright2255/zown-hq)
+Or run locally:
+```bash
+eas update --auto --platform all
+```
 
 ### GitHub Secrets Required
 

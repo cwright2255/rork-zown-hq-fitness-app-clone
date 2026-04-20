@@ -1,7 +1,10 @@
 {
   "cli": {
-    "version": ">= 5.0.0",
+    "version": ">= 16.0.0",
     "appVersionSource": "remote"
+  },
+  "updates": {
+    "sourceDir": "."
   },
   "build": {
     "development": {
