@@ -11,6 +11,8 @@ initializeApp();
 const OPENAI_API_KEY = defineSecret('OPENAI_API_KEY');
 const SPOTIFY_CLIENT_ID = defineSecret('SPOTIFY_CLIENT_ID');
 const SPOTIFY_CLIENT_SECRET = defineSecret('SPOTIFY_CLIENT_SECRET');
+const RADAR_LIVE_SECRET_KEY = defineSecret('RADAR_LIVE_SECRET_KEY');
+const RADAR_TEST_SECRET_KEY = defineSecret('RADAR_TEST_SECRET_KEY');
 
 function getOpenAI() {
   return new OpenAI({ apiKey: OPENAI_API_KEY.value() });

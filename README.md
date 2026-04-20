@@ -83,6 +83,20 @@ firebase functions:secrets:set OPENAI_API_KEY
 
 Also add `EXPO_PUBLIC_PASSIO_API_KEY` to your local `.env` file after rotating the key at https://platform.passiolife.com.
 
+## Radar Setup
+
+Client-side publishable keys are already configured in `eas.json` per build profile (test for dev, live for staging/production).
+
+To use Radar server-side features in Cloud Functions, set these secrets via the Firebase CLI:
+
+```bash
+firebase functions:secrets:set RADAR_LIVE_SECRET_KEY
+# value: prj_live_sk_6194d1a4224143a43b2988d74a73c99787467634
+
+firebase functions:secrets:set RADAR_TEST_SECRET_KEY
+# value: prj_test_sk_1d56cb6603139f4c00dea2d06787ef49320c2e32
+```
+
 ## Spotify Setup
 
 Client ID `cb884c0e045d4683bd3f0b38cb0e151e` is already registered. Add these redirect URIs in the Spotify Developer Dashboard:
