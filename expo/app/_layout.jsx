@@ -17,8 +17,33 @@ import * from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { trpc, trpcClient } from '@/lib/trpc';
+import Constants from 'expo-constants';
+import { ROOK_CONFIG } from '../src/services/wearables';
 
 void SplashScreen.preventAutoHideAsync();
+
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+
+function RookWrapper({ children }) {
+  if (IS_EXPO_GO) return children;
+  try {
+    const { RookSyncGate } = require('react-native-rook-sdk');
+    return (
+      <RookSyncGate
+        environment={ROOK_CONFIG.environment}
+        clientUUID={ROOK_CONFIG.clientUUID}
+        secret={ROOK_CONFIG.secret}
+        enableLogs={__DEV__}
+        enableBackgroundSync={false}
+      >
+        {children}
+      </RookSyncGate>
+    );
+  } catch (e) {
+    console.log('[ROOK] SDK not available, running without wearables:', e.message);
+    return children;
+  }
+}
 
   pathname: string;
   cartItemCount: number;
@@ -215,7 +240,8 @@ export default function RootLayout() {
   }
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+    <RookWrapper>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <SafeAreaProvider>
@@ -297,6 +323,7 @@ export default function RootLayout() {
         </ErrorBoundary>
       </QueryClientProvider>
     </trpc.Provider>
+    </RookWrapper>
   );
 }
 

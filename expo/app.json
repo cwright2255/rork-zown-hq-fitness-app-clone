@@ -31,6 +31,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.zownhq.app",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "usesAppleSignIn": true,
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Used for profile photo upload",
         "NSCameraUsageDescription": "Used for profile photo upload",
@@ -38,6 +43,8 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "NSHealthShareUsageDescription": "Zown uses Apple Health to sync your fitness data including steps, heart rate, sleep, and workouts to personalize your experience.",
+        "NSHealthUpdateUsageDescription": "Zown writes workout data to Apple Health to keep your health records up to date.",
         "UIBackgroundModes": [
           "location"
         ]
@@ -125,7 +132,15 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

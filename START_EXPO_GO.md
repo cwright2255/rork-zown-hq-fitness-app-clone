@@ -51,3 +51,14 @@ npm install -g eas-cli
 eas login
 eas build --platform ios --profile development
 ```
+
+## ROOK Wearables (Apple Health / Health Connect)
+ROOK wearables sync requires a dev client build — it is a no-op in Expo Go.
+The `WearablesCard` component will show a message explaining this when running in Expo Go.
+
+To enable full wearables support, build a dev client:
+```bash
+eas build --platform ios --profile development
+```
+
+ROOK Sandbox credentials are pre-configured. Visit [clients.portal.tryrook.io](https://www.clients.portal.tryrook.io/) to generate Production credentials when ready.

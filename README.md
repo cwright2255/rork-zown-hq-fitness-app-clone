@@ -75,6 +75,29 @@ Client ID `cb884c0e045d4683bd3f0b38cb0e151e` is already registered. Add these re
 - `zownhq://spotify-callback` (production / dev client)
 - `https://auth.expo.io/@carlton.v.wright.jr/zown` (Expo Go proxy)
 
+## ROOK Wearables Integration
+
+Zown uses the [ROOK SDK](https://docs.tryrook.io) to sync health data from Apple Health (iOS) and Health Connect (Android).
+
+### Supported data types
+- Steps, calories, active minutes
+- Heart rate (resting and active)
+- Sleep summaries
+- Workout events
+
+### Setup
+ROOK Sandbox credentials are pre-configured in `.env.example`. For Production:
+1. Log in at [clients.portal.tryrook.io](https://www.clients.portal.tryrook.io/)
+2. Switch to **Production** environment
+3. Generate new Client UUID + Secret Key
+4. Update `EXPO_PUBLIC_ROOK_CLIENT_UUID`, `EXPO_PUBLIC_ROOK_SECRET`, and `EXPO_PUBLIC_ROOK_ENVIRONMENT=production` in your `.env` and `eas.json`
+
+### Apple Health (iOS)
+HealthKit entitlement is configured in `app.json`. No additional Xcode setup is needed for EAS builds.
+
+### Health Connect (Android)
+Health Connect permissions are declared via the ROOK SDK manifest merge. No manual `AndroidManifest.xml` edits needed.
+
 ## Run
 
 ```bash
