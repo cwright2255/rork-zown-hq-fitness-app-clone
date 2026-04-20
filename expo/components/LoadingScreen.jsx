@@ -2,10 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import Colors from '@/constants/colors';
 
-class ErrorBoundary extends React.Component
-
-
-{
+class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false };

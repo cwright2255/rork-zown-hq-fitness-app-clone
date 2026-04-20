@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 class AuthService {
   baseUrl = 'https://api.yourapp.com';
@@ -147,6 +149,11 @@ class AuthService {
   }
 
   async loginWithProvider(provider) {
+    if (IS_EXPO_GO && (provider === 'apple' || provider === 'google' || provider === 'meta')) {
+      throw new Error(
+        `${provider} Sign-In is not available in Expo Go. Please build a dev client or use email/password.`
+      );
+    }
     await new Promise((resolve) => setTimeout(resolve, 800));
     const displayName = provider === 'google' ? 'Google' : provider === 'apple' ? 'Apple' : 'Meta';
     const mockUser = {

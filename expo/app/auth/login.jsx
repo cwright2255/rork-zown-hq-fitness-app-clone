@@ -15,8 +15,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Eye, EyeOff, Mail, Lock, Apple } from 'lucide-react-native';
+import Constants from 'expo-constants';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
+
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -57,6 +60,13 @@ export default function LoginScreen() {
   };
 
   const handleSocial = useCallback(async (provider) => {
+    if (IS_EXPO_GO && (provider === 'apple' || provider === 'google' || provider === 'meta')) {
+      Alert.alert(
+        'Not available in Expo Go',
+        `${provider === 'apple' ? 'Apple' : provider === 'google' ? 'Google' : 'Meta'} Sign-In requires a development build. Please use email/password while running in Expo Go.`
+      );
+      return;
+    }
     try {
       console.log('[Social Login] Provider', provider);
       setSocialLoading(provider);
@@ -218,16 +228,16 @@ export default function LoginScreen() {
             <View style={styles.socialRow}>
               <TouchableOpacity
                 testID="googleSignIn"
-                style={styles.outlinePill}
+                style={[styles.outlinePill, IS_EXPO_GO && styles.disabled]}
                 onPress={() => handleSocial('google')}
                 disabled={socialLoading === 'google'}>
-                
+
                 {socialLoading === 'google' ?
                 <ActivityIndicator color="#fff" /> :
 
                 <>
                     <Image source={{ uri: 'https://cdn.simpleicons.org/google/FFF' }} style={styles.socialIcon} />
-                    <Text style={styles.outlineText}>Google</Text>
+                    <Text style={styles.outlineText}>Google{IS_EXPO_GO ? ' (dev build)' : ''}</Text>
                   </>
                 }
               </TouchableOpacity>
@@ -235,16 +245,16 @@ export default function LoginScreen() {
               {Platform.OS !== 'web' &&
               <TouchableOpacity
                 testID="appleSignIn"
-                style={styles.outlinePill}
+                style={[styles.outlinePill, IS_EXPO_GO && styles.disabled]}
                 onPress={() => handleSocial('apple')}
                 disabled={socialLoading === 'apple'}>
-                
+
                   {socialLoading === 'apple' ?
                 <ActivityIndicator color="#fff" /> :
 
                 <>
                       <Apple size={18} color={'#fff'} />
-                      <Text style={styles.outlineText}>Apple</Text>
+                      <Text style={styles.outlineText}>Apple{IS_EXPO_GO ? ' (dev build)' : ''}</Text>
                     </>
                 }
                 </TouchableOpacity>
@@ -252,16 +262,16 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 testID="metaSignIn"
-                style={styles.outlinePill}
+                style={[styles.outlinePill, IS_EXPO_GO && styles.disabled]}
                 onPress={() => handleSocial('meta')}
                 disabled={socialLoading === 'meta'}>
-                
+
                 {socialLoading === 'meta' ?
                 <ActivityIndicator color="#fff" /> :
 
                 <>
                     <Image source={{ uri: 'https://cdn.simpleicons.org/meta/FFF' }} style={styles.socialIcon} />
-                    <Text style={styles.outlineText}>Meta</Text>
+                    <Text style={styles.outlineText}>Meta{IS_EXPO_GO ? ' (dev build)' : ''}</Text>
                   </>
                 }
               </TouchableOpacity>
