@@ -48,15 +48,13 @@ cp .env.example .env               # fill in the blanks
 
 ## Firebase Setup
 
-The Firebase project `zown-3c512` already exists.
+The Firebase project `zown-3c512` already exists. The native config files (`expo/GoogleService-Info.plist` and `expo/google-services.json`) are **already included in the repo** — you do not need to download or place them manually.
 
-1. Enable sign-in methods in the Firebase Console → Authentication:
+1. Copy `.env.example` → `.env` in `expo/`. The real `EXPO_PUBLIC_FIREBASE_API_KEY` and `EXPO_PUBLIC_FIREBASE_APP_ID` are already pre-filled in `.env.example`; just copy the file and you're ready.
+2. Enable sign-in methods in the Firebase Console → Authentication:
    - Email/Password
    - Google
    - Apple
-2. Download credentials:
-   - `GoogleService-Info.plist` → place at `expo/GoogleService-Info.plist`
-   - `google-services.json` → place at `expo/google-services.json`
 3. Deploy Firestore rules + indexes:
    ```bash
    cd expo

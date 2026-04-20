@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431690627943",
+    "project_id": "zown-3c512",
+    "storage_bucket": "zown-3c512.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431690627943:android:db8f94e7c16be73299cdc2",
+        "android_client_info": {
+          "package_name": "com.zownhq.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcCqB0-_PKgL-22J6R-lGO3byGzKp3xrM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

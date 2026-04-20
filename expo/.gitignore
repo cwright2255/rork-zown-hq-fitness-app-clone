@@ -47,3 +47,7 @@ rork-eslint.config.js
 core
 node_modules
 .expo
+
+# Native Firebase config (add back if you want to exclude from git)
+# GoogleService-Info.plist
+# google-services.json
