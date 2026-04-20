@@ -4,7 +4,7 @@ const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 export const ROOK_CONFIG = {
   clientUUID: process.env.EXPO_PUBLIC_ROOK_CLIENT_UUID ?? '78e6b253-ee09-43bf-b89b-a2983a59de06',
-  secret: process.env.EXPO_PUBLIC_ROOK_SECRET ?? 'q87wTh1L2eTCRprNFTZLftGvFFtPI5089sIM',
+  secret: process.env.EXPO_PUBLIC_ROOK_SECRET ?? 'ZownHQ2026',
   environment: process.env.EXPO_PUBLIC_ROOK_ENVIRONMENT ?? 'sandbox',
 };
 
