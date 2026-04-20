@@ -16,7 +16,6 @@ import { ErrorBoundary } from '@/components/LoadingScreen';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { trpc, trpcClient } from '@/lib/trpc';
 import Constants from 'expo-constants';
 import { ROOK_CONFIG } from '../src/services/wearables';
 
@@ -227,7 +226,6 @@ export default function RootLayout() {
 
   return (
     <RookWrapper>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <SafeAreaProvider>
@@ -309,7 +307,6 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </ErrorBoundary>
       </QueryClientProvider>
-    </trpc.Provider>
     </RookWrapper>);
 
 }
