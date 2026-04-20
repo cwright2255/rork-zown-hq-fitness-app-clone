@@ -27,12 +27,12 @@ export const getFeatureFlag = (
 key,
 defaultValue) =>
 {
-  if (!remoteConfig) return (DEFAULTS[key] ?? defaultValue)[K];
+  if (!remoteConfig) return DEFAULTS[key] ?? defaultValue;
   try {
     const { getValue } = require('firebase/remote-config');
-    return getValue(remoteConfig, key).asBoolean()[K];
+    return getValue(remoteConfig, key).asBoolean();
   } catch {
-    return (DEFAULTS[key] ?? defaultValue)[K];
+    return DEFAULTS[key] ?? defaultValue;
   }
 };
 

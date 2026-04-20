@@ -21,17 +21,17 @@ const defaultMusicPreferences = {
   explicitContent: false
 };
 
-export const useSpotifyStore = create()(
+export const useSpotifyStore = create(
   persist(
     (set, get) => ({
       isConnected: false,
       isClientCredentialsReady: false,
-      user,
+      user: null,
       topTracks: [],
       workoutPlaylists: [],
       runningPlaylists: [],
-      currentTrack,
-      playbackState,
+      currentTrack: null,
+      playbackState: null,
       musicPreferences: defaultMusicPreferences,
       isLoading: false,
       isLoadingPlaylists: false,
@@ -139,12 +139,12 @@ export const useSpotifyStore = create()(
         set({
           isConnected: false,
           isClientCredentialsReady: false,
-          user,
+          user: null,
           topTracks: [],
           workoutPlaylists: [],
           runningPlaylists: [],
-          currentTrack,
-          playbackState
+          currentTrack: null,
+          playbackState: null
         });
       },
 
@@ -322,11 +322,11 @@ export const useSpotifyStore = create()(
             console.log('Spotify: Not authenticated, trying client credentials...');
             const ccSuccess = await spotifyService.initializeClientCredentials();
             if (ccSuccess) {
-              set({ isConnected: false, isClientCredentialsReady: true, user, isLoading: false });
+              set({ isConnected: false, isClientCredentialsReady: true, user: null, isLoading: false });
               get().loadWorkoutPlaylists();
               get().loadRunningPlaylists();
             } else {
-              set({ isConnected: false, isClientCredentialsReady: false, user, isLoading: false });
+              set({ isConnected: false, isClientCredentialsReady: false, user: null, isLoading: false });
             }
           }
         } catch (error) {
@@ -335,7 +335,7 @@ export const useSpotifyStore = create()(
           set({
             isConnected: false,
             isClientCredentialsReady: ccSuccess,
-            user,
+            user: null,
             isLoading: false
           });
         }

@@ -122,10 +122,10 @@ const userSelector = (state) => state.user;
 const isOnboardedSelector = (state) => state.isOnboarded;
 const isLoadingSelector = (state) => state.isLoading;
 
-export const useUserStore = create()(
+export const useUserStore = create(
   persist(
     (set, get) => ({
-      user,
+      user: null,
       isOnboarded: false, // Set to false by default to show startup screen
       isLoading: false, // Changed to false for faster startup
 
@@ -568,7 +568,7 @@ export const useUserStore = create()(
               if (wasOnboarded) {
                 useUserStore.setState({ user: createDefaultUser(), isLoading: false });
               } else {
-                useUserStore.setState({ user, isLoading: false });
+                useUserStore.setState({ user: null, isLoading: false });
               }
             } else {
               useUserStore.setState({ isLoading: false });
@@ -579,7 +579,6 @@ export const useUserStore = create()(
     }
   )
 );
-
 // Export selectors for better performance
 export const useUser = () => useUserStore(userSelector);
 export const useIsOnboarded = () => useUserStore(isOnboardedSelector);
