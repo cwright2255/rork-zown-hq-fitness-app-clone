@@ -8,3 +8,5 @@ export const appRouter = createTRPCRouter({
   }),
   admin: adminRouter,
 });
+
+export type AppRouter = typeof appRouter;

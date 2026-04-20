@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User } from '@/types';
 
 class AuthService {
-  constructor() {
-    this.baseUrl = 'https://api.yourapp.com';
-  }
+  private baseUrl = 'https://api.yourapp.com';
 
   async login(email, password) {
     try {
@@ -71,7 +70,7 @@ class AuthService {
         token,
         requiresMFA: Math.random() > 0.7,
       };
-    } catch (_error) {
+    } catch (error) {
       throw new Error('Login failed');
     }
   }
@@ -142,7 +141,7 @@ class AuthService {
         user: mockUser,
         token,
       };
-    } catch (_error) {
+    } catch (error) {
       throw new Error('Registration failed');
     }
   }
@@ -261,7 +260,7 @@ class AuthService {
         user: mockUser,
         token,
       };
-    } catch (_error) {
+    } catch (error) {
       throw new Error('MFA verification failed');
     }
   }

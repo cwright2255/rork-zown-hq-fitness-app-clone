@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useExpStore } from './expStore';
+import { User, UserSubscription, UserPreferences } from '@/types';
 
 // Optimized default fitness metrics - reduced data size
 const createDefaultFitnessMetrics = () => ({
@@ -87,8 +89,8 @@ const createDefaultRunningPreferences = () => ({
 
 // Default subscription
 const createDefaultSubscription = () => ({
-  tier: 'free',
-  status: 'active',
+  tier: 'free' as const,
+  status: 'active' as const,
   startDate: new Date().toISOString(),
   autoRenew: false
 });
@@ -100,7 +102,7 @@ const createDefaultUser = () => ({
   email: 'user@example.com',
   profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
   joinDate: new Date().toISOString(),
-  fitnessLevel: 'beginner',
+  fitnessLevel: 'beginner' as const,
   goals: ['strength', 'weight-loss', 'endurance'],
   exp: 150,
   xp: 150,
@@ -120,15 +122,16 @@ const userSelector = (state) => state.user;
 const isOnboardedSelector = (state) => state.isOnboarded;
 const isLoadingSelector = (state) => state.isLoading;
 
-export const useUserStore = create(
+export const useUserStore = create()(
   persist(
     (set, get) => ({
-      user: null,
+      user,
       isOnboarded: false, // Set to false by default to show startup screen
       isLoading: false, // Changed to false for faster startup
       
       setUser: (user) => set({ 
         user: {
+          ...createDefaultUser(),
           ...user,
           fitnessMetrics: user.fitnessMetrics || createDefaultFitnessMetrics(),
           expSystem: user.expSystem || createDefaultExpSystem(),
@@ -168,7 +171,7 @@ export const useUserStore = create(
         });
       },
       
-      updateUserGoals: (goals) => {
+      updateUserGoals: (goals: string[]) => {
         const { user } = get();
         if (!user) return;
         
@@ -187,7 +190,7 @@ export const useUserStore = create(
         set({
           user: {
             ...user,
-            fitnessLevel: level
+            fitnessLevel: level as 'beginner' | 'intermediate' | 'advanced'
           }
         });
       },
@@ -197,7 +200,8 @@ export const useUserStore = create(
         if (!user) return;
         
         const newXp = user.exp + amount;
-        const newLevel = get().calculateLevel(newXp);
+        const storeState = get();
+        const newLevel = storeState.calculateLevel(newXp);
         
         set({
           user: {
@@ -211,7 +215,7 @@ export const useUserStore = create(
         // Update EXP store asynchronously - optimized
         requestAnimationFrame(() => {
           try {
-            useExpStore.getState().addExp(amount);
+            (useExpStore.getState() as { addExp: (amount) => void }).addExp(amount);
           } catch (error) {
             console.error('Failed to update EXP store:', error);
           }
@@ -357,7 +361,7 @@ export const useUserStore = create(
           console.error('[UserStore] Failed to clear storage during logout:', error);
         } finally {
           // Reset user state
-          set({ user: null, isOnboarded: false });
+          set({ user, isOnboarded: false });
           console.log('[UserStore] User state reset to logged out');
         }
       },
@@ -404,22 +408,23 @@ export const useUserStore = create(
         if (!user) return;
         
         // Get current running preferences with proper fallback
-        const currentRunningPrefs = user.preferences?.running || createDefaultRunningPreferences();
+        const defaultPrefs = createDefaultRunningPreferences();
+        const currentRunningPrefs = user.preferences?.running || defaultPrefs;
         
         const updatedRunningPreferences = {
-          audioCoaching: currentRunningPrefs.audioCoaching ?? true,
-          gpsTracking: currentRunningPrefs.gpsTracking ?? true,
-          safetySharing: currentRunningPrefs.safetySharing ?? false,
-          weatherAlerts: currentRunningPrefs.weatherAlerts ?? true,
-          virtualBuddy: currentRunningPrefs.virtualBuddy ?? true,
-          preferredUnit: currentRunningPrefs.preferredUnit ?? 'km',
-          targetPace: currentRunningPrefs.targetPace ?? 6.0,
+          audioCoaching: currentRunningPrefs.audioCoaching ?? defaultPrefs.audioCoaching,
+          gpsTracking: currentRunningPrefs.gpsTracking ?? defaultPrefs.gpsTracking,
+          safetySharing: currentRunningPrefs.safetySharing ?? defaultPrefs.safetySharing,
+          weatherAlerts: currentRunningPrefs.weatherAlerts ?? defaultPrefs.weatherAlerts,
+          virtualBuddy: currentRunningPrefs.virtualBuddy ?? defaultPrefs.virtualBuddy,
+          preferredUnit: currentRunningPrefs.preferredUnit ?? defaultPrefs.preferredUnit,
+          targetPace: currentRunningPrefs.targetPace ?? defaultPrefs.targetPace,
           ...preferences
         };
         
         const updatedPreferences = {
           ...user.preferences,
-          running: updatedRunningPreferences
+          running: updatedRunningPreferences['running']
         };
         
         set({
@@ -464,8 +469,8 @@ export const useUserStore = create(
         
         const updatedSubscription = {
           ...user.subscription,
-          tier,
-          status: 'active',
+          tier: tier as 'free' | 'standard' | 'elite',
+          status: 'active' as const,
           nextBillingDate: nextBillingDate.toISOString(),
           autoRenew: true
         };
@@ -563,7 +568,7 @@ export const useUserStore = create(
               if (wasOnboarded) {
                 useUserStore.setState({ user: createDefaultUser(), isLoading: false });
               } else {
-                useUserStore.setState({ user: null, isLoading: false });
+                useUserStore.setState({ user, isLoading: false });
               }
             } else {
               useUserStore.setState({ isLoading: false });

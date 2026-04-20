@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedAdminProcedure } from "../../create-context";
 
+  featureFlags: Record<string, boolean>;
+  theme: {
+    primary: string;
+    accent: string;
+  };
+};
+
 let CONFIG = {
   maintenanceMode: false,
   featureFlags: {},
@@ -16,13 +23,13 @@ export default createTRPCRouter({
     return {
       baseUrl: base,
       trpcUrl: `${base}/api/trpc`,
-      tokenType: "Bearer",
-      headerName: "Authorization",
+      tokenType: "Bearer" as const,
+      headerName: "Authorization" as const,
     };
   }),
 
-  getConfig: protectedAdminProcedure.query(() => ({
-    config: CONFIG,
+  getConfig: protectedAdminProcedure.query((): { config: AdminAppConfig } => ({
+    config,
   })),
 
   updateConfig: protectedAdminProcedure
@@ -36,16 +43,16 @@ export default createTRPCRouter({
           .optional(),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(({ input }): { ok: true; config: AdminAppConfig } => {
       CONFIG = {
         ...CONFIG,
         maintenanceMode: input.maintenanceMode ?? CONFIG.maintenanceMode,
-        featureFlags: input.featureFlags ?? CONFIG.featureFlags,
+        featureFlags: (input.featureFlags ?? CONFIG.featureFlags),
         theme: {
           primary: input.theme?.primary ?? CONFIG.theme.primary,
           accent: input.theme?.accent ?? CONFIG.theme.accent,
         },
       };
-      return { ok: true, config: CONFIG };
+      return { ok: true as const, config: CONFIG };
     }),
 });
