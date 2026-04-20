@@ -5,14 +5,18 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "zownhq",
     "linking": {
       "prefixes": [
-        "myapp://"
+        "zownhq://",
+        "https://zownhq.app"
       ],
       "config": {
         "screens": {
-          "spotify-callback": "spotify-callback"
+          "spotify-callback": "spotify-callback",
+          "workout": "workout/:workoutId",
+          "ai-coach": "ai-coach/:recommendationId",
+          "profile": "profile"
         }
       }
     },
@@ -25,7 +29,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.zown-hq-cmkq5smp",
+      "bundleIdentifier": "com.zownhq.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
@@ -43,7 +48,18 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.zown-hq-cmkq5smp",
+      "package": "com.zownhq.app",
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "zownhq" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "android.permission.VIBRATE",
         "CAMERA",

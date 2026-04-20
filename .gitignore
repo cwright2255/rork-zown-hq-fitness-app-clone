@@ -1,3 +1,6 @@
 node_modules
 .env
 .expo
+.claude/
+.mcp.json
+CLAUDE.md

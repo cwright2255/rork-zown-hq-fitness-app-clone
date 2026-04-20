@@ -93,8 +93,9 @@ class SpotifyService {
   private apiBaseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
   public clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
   private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
-  private hostedWebRedirectUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
-  private hostedNativeCallbackUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
+  private nativeRedirectUri = 'zownhq://spotify-callback';
+  private hostedWebRedirectUri = 'zownhq://spotify-callback';
+  private hostedNativeCallbackUri = 'zownhq://spotify-callback';
   private redirectUri = this.computeRedirectUri();
   private token: string | null = null;
   private refreshToken: string | null = null;
@@ -119,10 +120,10 @@ class SpotifyService {
       return explicitRedirect;
     }
 
-    const hostedCallbackUri = `https://rork.app/p/${this.projectId}/spotify-callback`;
+    const hostedCallbackUri = 'zownhq://spotify-callback';
 
     if (Platform.OS !== 'web') {
-      console.log('SpotifyService: Using native hosted HTTPS redirect URI:', hostedCallbackUri);
+      console.log('SpotifyService: Using native app scheme redirect URI:', hostedCallbackUri);
       return hostedCallbackUri;
     }
 
