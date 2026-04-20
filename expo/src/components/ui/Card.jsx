@@ -2,10 +2,10 @@ import React from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
-  View,
-  ViewStyle,
-  ViewProps,
-} from 'react-native';
+  View } from
+
+
+'react-native';
 import { Colors, Radius, Spacing } from '../../constants/tokens';
 
 export function Card({
@@ -15,13 +15,13 @@ export function Card({
   style,
   children,
   ...rest
-}: CardProps) {
+}) {
   const containerStyle = [
-    styles.base,
-    { backgroundColor: elevated ? Colors.surfaceElevated : Colors.surface },
-    elevated && styles.shadow,
-    style,
-  ];
+  styles.base,
+  { backgroundColor: elevated ? Colors.surfaceElevated : Colors.surface },
+  elevated && styles.shadow,
+  style];
+
 
   if (onPress) {
     return (
@@ -30,18 +30,18 @@ export function Card({
         activeOpacity={0.85}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        style={containerStyle}
-      >
+        style={containerStyle}>
+        
         {children}
-      </TouchableOpacity>
-    );
+      </TouchableOpacity>);
+
   }
 
   return (
     <View accessibilityLabel={accessibilityLabel} style={containerStyle} {...rest}>
       {children}
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -49,15 +49,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   shadow: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 4,
-  },
+    elevation: 4
+  }
 });
 
 export default Card;

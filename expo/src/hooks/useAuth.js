@@ -6,11 +6,11 @@ import { useAuthStore } from '../stores/authStore';
 
 export function useAuth() {
   const { user, isAuthenticated, isLoading, error, setUser, setLoading, setError } =
-    useAuthStore();
+  useAuthStore();
 
   useEffect(() => {
     setLoading(true);
-    let unsubscribeProfile: (() => void) | null = null;
+    let unsubscribeProfile = null;
 
     const unsubscribe = onAuthStateChanged((fbUser) => {
       if (unsubscribeProfile) {
@@ -34,22 +34,22 @@ export function useAuth() {
           const data = snap.data();
           const profile = {
             uid: fbUser.uid,
-            email: (data.email) ?? fbUser.email ?? '',
+            email: data.email ?? fbUser.email ?? '',
             displayName:
-              (data.displayName) ?? fbUser.displayName ?? '',
-            photoURL: (data.photoURL) ?? fbUser.photoURL ?? undefined,
+            data.displayName ?? fbUser.displayName ?? '',
+            photoURL: data.photoURL ?? fbUser.photoURL ?? undefined,
             fitnessLevel:
-              (data.fitnessLevel['fitnessLevel']) ?? 'beginner',
-            goals: (data.goals['goals']) ?? [],
+            data.fitnessLevel['fitnessLevel'] ?? 'beginner',
+            goals: data.goals['goals'] ?? [],
             weight: data.weight | undefined,
             height: data.height | undefined,
             age: data.age | undefined,
-            createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? new Date(),
-            updatedAt: (data.updatedAt as { toDate?: () => Date })?.toDate?.() ?? new Date(),
+            createdAt: data.createdAt?.toDate?.() ?? new Date(),
+            updatedAt: data.updatedAt?.toDate?.() ?? new Date()
           };
           setUser(profile);
         },
-        (err) => setError(err.message),
+        (err) => setError(err.message)
       );
     });
 

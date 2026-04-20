@@ -10,48 +10,48 @@ export default function SpotifyCallback() {
   const params = useLocalSearchParams();
   const { initializeSpotify } = useSpotifyStore();
   const [status, setStatus] = useState('Processing Spotify authentication...');
-  const fallbackRoute = useMemo(() => '/spotify-integration' as const, []);
+  const fallbackRoute = useMemo(() => '/spotify-integration', []);
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
         console.log('SpotifyCallback: Starting...');
         console.log('SpotifyCallback: Route params:', JSON.stringify(params));
-        
+
         const currentUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : '';
         console.log('SpotifyCallback: Current URL:', currentUrl);
         const isPopup = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.opener;
         console.log('SpotifyCallback: Is popup:', isPopup);
-        
-        let code: string | null = null;
-        let error: string | null = null;
-        let state: string | null = null;
-        
+
+        let code = null;
+        let error = null;
+        let state = null;
+
         if (params.code) code = params.code;
         if (params.error) error = params.error;
         if (params.state) state = params.state;
-        
+
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           const urlParams = new URLSearchParams(window.location.search);
           if (!code) code = urlParams.get('code');
           if (!error) error = urlParams.get('error');
           if (!state) state = urlParams.get('state');
         }
-        
+
         console.log('SpotifyCallback: code:', !!code, 'error:', error, 'state:', state);
 
         if (error) {
           console.error('SpotifyCallback: Auth error:', error);
           setStatus(`Authentication error: ${error}`);
-          
+
           if (isPopup) {
             try {
               window.opener.postMessage({ type: 'SPOTIFY_AUTH_ERROR', error }, '*');
               setTimeout(() => window.close(), 1000);
               return;
-            } catch { /* ignore */ }
+            } catch {/* ignore */}
           }
-          
+
           setTimeout(() => router.replace(fallbackRoute), 2000);
           return;
         }
@@ -59,36 +59,36 @@ export default function SpotifyCallback() {
         if (code) {
           setStatus('Exchanging authorization code...');
           console.log('SpotifyCallback: Exchanging code for token...');
-          
+
           const callbackQuery = state ? `?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}` : `?code=${encodeURIComponent(code)}`;
           const callbackUrl = currentUrl || `zownhq://spotify-callback${callbackQuery}`;
           const success = await spotifyService.handleAuthorizationCodeCallback(callbackUrl);
-          
+
           if (success) {
             console.log('SpotifyCallback: Token exchange successful!');
             setStatus('Connected successfully!');
             await initializeSpotify();
-            
+
             if (isPopup) {
               try {
                 window.opener.postMessage({ type: 'SPOTIFY_AUTH_SUCCESS', success: true }, '*');
                 setTimeout(() => window.close(), 500);
                 return;
-              } catch { /* ignore */ }
+              } catch {/* ignore */}
             }
           } else {
             console.error('SpotifyCallback: Token exchange failed');
             setStatus('Token exchange failed. Redirecting...');
-            
+
             if (isPopup) {
               try {
                 window.opener.postMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'token_exchange_failed' }, '*');
                 setTimeout(() => window.close(), 1000);
                 return;
-              } catch { /* ignore */ }
+              } catch {/* ignore */}
             }
           }
-          
+
           setTimeout(() => router.replace(fallbackRoute), 1500);
           return;
         }
@@ -97,37 +97,37 @@ export default function SpotifyCallback() {
         if (urlFragment && urlFragment.includes('access_token')) {
           setStatus('Processing access token...');
           const success = await spotifyService.handleImplicitGrantCallback(urlFragment);
-          
+
           if (success) {
             setStatus('Connected successfully!');
             await initializeSpotify();
-            
+
             if (isPopup) {
               try {
                 window.opener.postMessage({ type: 'SPOTIFY_AUTH_SUCCESS', success: true }, '*');
                 setTimeout(() => window.close(), 500);
                 return;
-              } catch { /* ignore */ }
+              } catch {/* ignore */}
             }
           } else {
             setStatus('Authentication failed.');
           }
-          
+
           setTimeout(() => router.replace(fallbackRoute), 1500);
           return;
         }
-        
+
         console.log('SpotifyCallback: No auth data found');
         setStatus('No authentication data found. Redirecting...');
-        
+
         if (isPopup) {
           try {
             window.opener.postMessage({ type: 'SPOTIFY_AUTH_ERROR', error: 'no_auth_data' }, '*');
             setTimeout(() => window.close(), 1000);
             return;
-          } catch { /* ignore */ }
+          } catch {/* ignore */}
         }
-        
+
         setTimeout(() => router.replace('/spotify-integration'), 1500);
       } catch (error) {
         console.error('SpotifyCallback: Error:', error);
@@ -145,8 +145,8 @@ export default function SpotifyCallback() {
       <ActivityIndicator size="large" color="#1DB954" />
       <Text style={styles.text}>{status}</Text>
       <Text style={styles.subtext}>Please wait...</Text>
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -155,19 +155,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    padding: 20,
+    padding: 20
   },
   text: {
     marginTop: 16,
     fontSize: 16,
     color: Colors.text.primary,
     textAlign: 'center',
-    fontWeight: '500' as const,
+    fontWeight: '500'
   },
   subtext: {
     marginTop: 8,
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+    textAlign: 'center'
+  }
 });

@@ -20,9 +20,9 @@ const getAnalytics = async () => {
 };
 
 const logEvent = async (
-  name,
-  params?: Record<string, unknown>,
-) => {
+name,
+params) =>
+{
   if (IS_EXPO_GO) {
     console.log('[Analytics]', name, params);
     return;
@@ -35,29 +35,29 @@ const logEvent = async (
 };
 
 export const logWorkoutStarted = (workoutId, workoutName) =>
-  logEvent('workout_started', { workout_id: workoutId, workout_name: workoutName });
+logEvent('workout_started', { workout_id: workoutId, workout_name: workoutName });
 
 export const logWorkoutCompleted = (
-  workoutId,
-  duration,
-  calories?,
-) =>
-  logEvent('workout_completed', {
-    workout_id: workoutId,
-    duration_minutes: duration,
-    calories,
-  });
+workoutId,
+duration,
+calories) =>
+
+logEvent('workout_completed', {
+  workout_id: workoutId,
+  duration_minutes: duration,
+  calories
+});
 
 export const logAICoachUsed = (featureType) =>
-  logEvent('ai_coach_used', { feature_type: featureType });
+logEvent('ai_coach_used', { feature_type: featureType });
 
 export const logSpotifyConnected = () => logEvent('spotify_connected');
 
 export const setUserProperties = (
-  userId,
-  fitnessLevel,
-  goals: string[],
-) => {
+userId,
+fitnessLevel,
+goals) =>
+{
   console.log('[Analytics] setUserProperties', { userId, fitnessLevel, goals });
 };
 

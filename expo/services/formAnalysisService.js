@@ -20,7 +20,7 @@ class FormAnalysisService {
 
     // Start mock analysis for demo purposes
     this.startMockAnalysis();
-    
+
     return true;
   }
 
@@ -45,7 +45,7 @@ class FormAnalysisService {
 
   generateMockAnalysis() {
     const exerciseAnalysis = this.getExerciseSpecificAnalysis(this.currentExercise);
-    
+
     // Generate random but realistic scores
     const baseScore = 70 + Math.random() * 25; // 70-95 range
     const score = Math.round(baseScore);
@@ -59,64 +59,64 @@ class FormAnalysisService {
 
   getExerciseSpecificAnalysis(exerciseName) {
     const exerciseType = exerciseName.toLowerCase();
-    
+
     if (exerciseType.includes('push') || exerciseType.includes('press')) {
       return {
         feedback: [
-          'Keep your core engaged',
-          'Maintain straight line from head to heels',
-          'Control the descent'
-        ],
+        'Keep your core engaged',
+        'Maintain straight line from head to heels',
+        'Control the descent'],
+
         recommendations: [
-          'Focus on slower, controlled movements',
-          'Engage your glutes to maintain form',
-          'Keep elbows at 45-degree angle'
-        ]
+        'Focus on slower, controlled movements',
+        'Engage your glutes to maintain form',
+        'Keep elbows at 45-degree angle']
+
       };
     }
-    
+
     if (exerciseType.includes('squat')) {
       return {
         feedback: [
-          'Good depth on your squats',
-          'Keep knees tracking over toes',
-          'Maintain upright torso'
-        ],
+        'Good depth on your squats',
+        'Keep knees tracking over toes',
+        'Maintain upright torso'],
+
         recommendations: [
-          'Drive through your heels',
-          'Keep chest up and proud',
-          'Engage your core throughout'
-        ]
+        'Drive through your heels',
+        'Keep chest up and proud',
+        'Engage your core throughout']
+
       };
     }
-    
+
     if (exerciseType.includes('deadlift')) {
       return {
         feedback: [
-          'Maintain neutral spine',
-          'Keep bar close to body',
-          'Good hip hinge pattern'
-        ],
+        'Maintain neutral spine',
+        'Keep bar close to body',
+        'Good hip hinge pattern'],
+
         recommendations: [
-          'Engage lats to keep bar close',
-          'Drive hips forward at the top',
-          'Control the eccentric phase'
-        ]
+        'Engage lats to keep bar close',
+        'Drive hips forward at the top',
+        'Control the eccentric phase']
+
       };
     }
 
     // Default analysis for other exercises
     return {
       feedback: [
-        'Maintain good posture',
-        'Control your breathing',
-        'Focus on form over speed'
-      ],
+      'Maintain good posture',
+      'Control your breathing',
+      'Focus on form over speed'],
+
       recommendations: [
-        'Slow down the movement',
-        'Engage your core',
-        'Full range of motion'
-      ]
+      'Slow down the movement',
+      'Engage your core',
+      'Full range of motion']
+
     };
   }
 
@@ -137,31 +137,31 @@ class FormAnalysisService {
   // Get exercise-specific form tips
   getFormTips(exerciseName) {
     const exerciseType = exerciseName.toLowerCase();
-    
+
     if (exerciseType.includes('push')) {
       return [
-        'Start in plank position with hands under shoulders',
-        'Lower body as one unit until chest nearly touches ground',
-        'Push up explosively while maintaining straight line',
-        'Keep core tight throughout movement'
-      ];
+      'Start in plank position with hands under shoulders',
+      'Lower body as one unit until chest nearly touches ground',
+      'Push up explosively while maintaining straight line',
+      'Keep core tight throughout movement'];
+
     }
-    
+
     if (exerciseType.includes('squat')) {
       return [
-        'Stand with feet shoulder-width apart',
-        'Lower hips back and down as if sitting in chair',
-        'Keep knees in line with toes',
-        'Drive through heels to return to standing'
-      ];
+      'Stand with feet shoulder-width apart',
+      'Lower hips back and down as if sitting in chair',
+      'Keep knees in line with toes',
+      'Drive through heels to return to standing'];
+
     }
-    
+
     return [
-      'Focus on controlled movements',
-      'Maintain proper breathing pattern',
-      'Keep core engaged',
-      'Use full range of motion'
-    ];
+    'Focus on controlled movements',
+    'Maintain proper breathing pattern',
+    'Keep core engaged',
+    'Use full range of motion'];
+
   }
 }
 

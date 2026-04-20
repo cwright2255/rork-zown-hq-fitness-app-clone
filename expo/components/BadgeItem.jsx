@@ -2,12 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { Badge } from '@/types';
 
-const BadgeItem: React.FC = ({
+
+const BadgeItem = ({
   badge,
   onPress,
-  size = 'medium',
+  size = 'medium'
 }) => {
   const getBadgeColor = (rarity) => {
     switch (rarity) {
@@ -25,7 +25,7 @@ const BadgeItem: React.FC = ({
         return Colors.text.tertiary;
     }
   };
-  
+
   const getBadgeSize = () => {
     switch (size) {
       case 'small':
@@ -36,48 +36,48 @@ const BadgeItem: React.FC = ({
         return { containerWidth: 90, containerHeight: 110, image: 60 };
     }
   };
-  
+
   const sizeStyles = getBadgeSize();
   const badgeColor = getBadgeColor(badge.rarity);
-  
+
   return (
     <TouchableOpacity
       style={[
-        styles.container,
-        { 
-          width: sizeStyles.containerWidth, 
-          height: size === 'small' ? sizeStyles.containerHeight : 'auto',
-          minHeight: sizeStyles.containerHeight
-        },
-        { borderColor: badge.isUnlocked ? badgeColor : Colors.border }
-      ]}
+      styles.container,
+      {
+        width: sizeStyles.containerWidth,
+        height: size === 'small' ? sizeStyles.containerHeight : 'auto',
+        minHeight: sizeStyles.containerHeight
+      },
+      { borderColor: badge.isUnlocked ? badgeColor : Colors.border }]
+      }
       onPress={onPress}
-      disabled={!onPress}
-    >
-      {badge.isUnlocked ? (
-        <Image
-          source={{ uri: badge.imageUrl }}
-          style={[styles.image, { width: sizeStyles.image, height: sizeStyles.image }]}
-        />
-      ) : (
-        <View style={[styles.lockedContainer, { width: sizeStyles.image, height: sizeStyles.image }]}>
+      disabled={!onPress}>
+      
+      {badge.isUnlocked ?
+      <Image
+        source={{ uri: badge.imageUrl }}
+        style={[styles.image, { width: sizeStyles.image, height: sizeStyles.image }]} /> :
+
+
+      <View style={[styles.lockedContainer, { width: sizeStyles.image, height: sizeStyles.image }]}>
           <Lock size={sizeStyles.image * 0.4} color={Colors.text.tertiary} />
         </View>
-      )}
+      }
       
-      {size !== 'small' && (
-        <Text 
-          style={[
-            styles.name, 
-            { color: badge.isUnlocked ? badgeColor : Colors.text.tertiary }
-          ]}
-          numberOfLines={2}
-        >
+      {size !== 'small' &&
+      <Text
+        style={[
+        styles.name,
+        { color: badge.isUnlocked ? badgeColor : Colors.text.tertiary }]
+        }
+        numberOfLines={2}>
+        
           {badge.name}
         </Text>
-      )}
-    </TouchableOpacity>
-  );
+      }
+    </TouchableOpacity>);
+
 };
 
 const styles = StyleSheet.create({
@@ -88,16 +88,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     backgroundColor: Colors.card,
-    margin: 4,
+    margin: 4
   },
   image: {
-    borderRadius: 8,
+    borderRadius: 8
   },
   lockedContainer: {
     backgroundColor: Colors.background,
     borderRadius: 8,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   name: {
     fontSize: 12,
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     lineHeight: 16,
     flexShrink: 1,
-    width: '100%',
-  },
+    width: '100%'
+  }
 });
 
 export default BadgeItem;

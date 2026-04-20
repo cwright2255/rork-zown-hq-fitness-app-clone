@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Colors, Spacing, Typography } from '../../constants/tokens';
 import { Button } from './Button';
 
@@ -9,37 +9,37 @@ export function ErrorState({
   icon,
   onRetry,
   retryLabel = 'Try again',
-  style,
-}: ErrorStateProps) {
+  style
+}) {
   return (
     <View
       accessibilityLabel={`Error: ${title}`}
       accessibilityRole="alert"
-      style={[styles.container, style]}
-    >
+      style={[styles.container, style]}>
+      
       <View style={styles.iconWrap}>
         {icon ?? <Text style={styles.fallbackIcon}>!</Text>}
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
-      {onRetry ? (
-        <Button
-          label={retryLabel}
-          onPress={onRetry}
-          variant="primary"
-          size="md"
-          style={styles.button}
-        />
-      ) : null}
-    </View>
-  );
+      {onRetry ?
+      <Button
+        label={retryLabel}
+        onPress={onRetry}
+        variant="primary"
+        size="md"
+        style={styles.button} /> :
+
+      null}
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.xl,
+    padding: Spacing.xl
   },
   iconWrap: {
     width: 56,
@@ -48,27 +48,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
   fallbackIcon: {
     color: Colors.error,
     fontSize: Typography.size['2xl'],
-    fontWeight: Typography.weight.bold,
+    fontWeight: Typography.weight.bold
   },
   title: {
     color: Colors.text.primary,
     fontSize: Typography.size.lg,
     fontWeight: Typography.weight.semibold,
     marginBottom: Spacing.xs,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   message: {
     color: Colors.text.secondary,
     fontSize: Typography.size.base,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
-  button: { marginTop: Spacing.sm },
+  button: { marginTop: Spacing.sm }
 });
 
 export default ErrorState;

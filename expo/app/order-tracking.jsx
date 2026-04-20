@@ -5,18 +5,18 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Image,
-} from 'react-native';
+  Image } from
+'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Package, Truck, CheckCircle, Clock, MapPin } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useOrderStore } from '@/store/orderStore';
-import { Order, OrderItem, TrackingEvent } from '@/types';
+
 
 export default function OrderTrackingScreen() {
   const { orders } = useOrderStore();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(orders[0] || null);
+  const [selectedOrder, setSelectedOrder] = useState(orders[0] || null);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -57,33 +57,33 @@ export default function OrderTrackingScreen() {
         <Text style={styles.sectionTitle}>Your Orders</Text>
         
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.orderTabs}>
-          {orders.map((order) => (
-            <TouchableOpacity
-              key={order.id}
-              style={[
-                styles.orderTab,
-                selectedOrder?.id === order.id && styles.selectedOrderTab,
-              ]}
-              onPress={() => setSelectedOrder(order)}
-            >
+          {orders.map((order) =>
+          <TouchableOpacity
+            key={order.id}
+            style={[
+            styles.orderTab,
+            selectedOrder?.id === order.id && styles.selectedOrderTab]
+            }
+            onPress={() => setSelectedOrder(order)}>
+            
               <Text style={[
-                styles.orderTabText,
-                selectedOrder?.id === order.id && styles.selectedOrderTabText,
-              ]}>
+            styles.orderTabText,
+            selectedOrder?.id === order.id && styles.selectedOrderTabText]
+            }>
                 #{order.id}
               </Text>
               <Text style={[
-                styles.orderTabStatus,
-                selectedOrder?.id === order.id && styles.selectedOrderTabStatus,
-              ]}>
+            styles.orderTabStatus,
+            selectedOrder?.id === order.id && styles.selectedOrderTabStatus]
+            }>
                 {order.status}
               </Text>
             </TouchableOpacity>
-          ))}
+          )}
         </ScrollView>
 
-        {selectedOrder && (
-          <>
+        {selectedOrder &&
+        <>
             {/* Order Details */}
             <View style={styles.orderCard}>
               <View style={styles.orderHeader}>
@@ -104,45 +104,45 @@ export default function OrderTrackingScreen() {
             <View style={styles.timelineCard}>
               <Text style={styles.timelineTitle}>Tracking Timeline</Text>
               
-              {selectedOrder.trackingEvents.map((event, index) => (
-                <View key={index} style={styles.timelineItem}>
+              {selectedOrder.trackingEvents.map((event, index) =>
+            <View key={index} style={styles.timelineItem}>
                   <View style={styles.timelineIconContainer}>
                     <View style={[
-                      styles.timelineIcon,
-                      event.completed && styles.timelineIconCompleted,
-                    ]}>
-                      {event.completed ? (
-                        <CheckCircle size={16} color="white" />
-                      ) : (
-                        <View style={styles.timelineIconEmpty} />
-                      )}
+                styles.timelineIcon,
+                event.completed && styles.timelineIconCompleted]
+                }>
+                      {event.completed ?
+                  <CheckCircle size={16} color="white" /> :
+
+                  <View style={styles.timelineIconEmpty} />
+                  }
                     </View>
-                    {index < selectedOrder.trackingEvents.length - 1 && (
-                      <View style={[
-                        styles.timelineLine,
-                        event.completed && styles.timelineLineCompleted,
-                      ]} />
-                    )}
+                    {index < selectedOrder.trackingEvents.length - 1 &&
+                <View style={[
+                styles.timelineLine,
+                event.completed && styles.timelineLineCompleted]
+                } />
+                }
                   </View>
                   
                   <View style={styles.timelineContent}>
                     <Text style={[
-                      styles.timelineEventTitle,
-                      event.completed && styles.timelineEventTitleCompleted,
-                    ]}>
+                styles.timelineEventTitle,
+                event.completed && styles.timelineEventTitleCompleted]
+                }>
                       {event.title}
                     </Text>
                     <Text style={styles.timelineEventDescription}>
                       {event.description}
                     </Text>
-                    {event.timestamp && (
-                      <Text style={styles.timelineEventTime}>
+                    {event.timestamp &&
+                <Text style={styles.timelineEventTime}>
                         {event.timestamp}
                       </Text>
-                    )}
+                }
                   </View>
                 </View>
-              ))}
+            )}
             </View>
 
             {/* Delivery Address */}
@@ -158,8 +158,8 @@ export default function OrderTrackingScreen() {
             <View style={styles.itemsCard}>
               <Text style={styles.itemsTitle}>Order Items</Text>
               
-              {selectedOrder.items.map((item) => (
-                <View key={item.id} style={styles.orderItem}>
+              {selectedOrder.items.map((item) =>
+            <View key={item.id} style={styles.orderItem}>
                   <Image source={{ uri: item.image }} style={styles.itemImage} />
                   <View style={styles.itemDetails}>
                     <Text style={styles.itemName}>{item.name}</Text>
@@ -167,49 +167,49 @@ export default function OrderTrackingScreen() {
                     <Text style={styles.itemPrice}>${item.price}</Text>
                   </View>
                 </View>
-              ))}
+            )}
             </View>
 
             {/* Estimated Delivery */}
-            {selectedOrder.estimatedDelivery && (
-              <View style={styles.deliveryCard}>
+            {selectedOrder.estimatedDelivery &&
+          <View style={styles.deliveryCard}>
                 <Text style={styles.deliveryTitle}>Estimated Delivery</Text>
                 <Text style={styles.deliveryDate}>{selectedOrder.estimatedDelivery}</Text>
               </View>
-            )}
+          }
           </>
-        )}
+        }
       </ScrollView>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 16
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   orderTabs: {
-    marginBottom: 24,
+    marginBottom: 24
   },
   orderTab: {
     backgroundColor: Colors.backgroundSecondary,
@@ -218,43 +218,43 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginRight: 12,
     minWidth: 100,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   selectedOrderTab: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   orderTabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   selectedOrderTabText: {
-    color: 'white',
+    color: 'white'
   },
   orderTabStatus: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: 2
   },
   selectedOrderTabStatus: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.8)'
   },
   orderCard: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 16
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   orderNumber: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   statusBadge: {
     flexDirection: 'row',
@@ -262,41 +262,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    gap: 4,
+    gap: 4
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   orderDate: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   orderTotal: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   timelineCard: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 16
   },
   timelineTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   timelineItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 16
   },
   timelineIconContainer: {
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 16
   },
   timelineIcon: {
     width: 32,
@@ -306,129 +306,129 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.text.secondary,
+    borderColor: Colors.text.secondary
   },
   timelineIconCompleted: {
     backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   timelineIconEmpty: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.text.secondary,
+    backgroundColor: Colors.text.secondary
   },
   timelineLine: {
     width: 2,
     flex: 1,
     backgroundColor: Colors.text.secondary,
-    marginTop: 8,
+    marginTop: 8
   },
   timelineLineCompleted: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   timelineContent: {
     flex: 1,
-    paddingTop: 4,
+    paddingTop: 4
   },
   timelineEventTitle: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   timelineEventTitleCompleted: {
     color: Colors.text.primary,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   timelineEventDescription: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   timelineEventTime: {
     fontSize: 11,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   addressCard: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 16
   },
   addressHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    gap: 8,
+    gap: 8
   },
   addressTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   addressText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    lineHeight: 20,
+    lineHeight: 20
   },
   itemsCard: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 16
   },
   itemsTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   orderItem: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 12
   },
   itemImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 12
   },
   itemDetails: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   itemName: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   itemQuantity: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: 2,
+    marginBottom: 2
   },
   itemPrice: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.primary
   },
   deliveryCard: {
     backgroundColor: Colors.primary + '20',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 16
   },
   deliveryTitle: {
     fontSize: 14,
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   deliveryDate: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.primary,
-  },
+    color: Colors.primary
+  }
 });

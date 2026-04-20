@@ -7,10 +7,10 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
-  updateProfile,
-  User,
-  UserCredential,
-} from 'firebase/auth';
+  updateProfile } from
+
+
+'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import Constants from 'expo-constants';
@@ -18,17 +18,17 @@ import Constants from 'expo-constants';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 export const signInWithEmail = async (
-  email,
-  password,
-) => {
+email,
+password) =>
+{
   return signInWithEmailAndPassword(auth, email, password);
 };
 
 export const signUpWithEmail = async (
-  email,
-  password,
-  displayName,
-) => {
+email,
+password,
+displayName) =>
+{
   const result = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(result.user, { displayName });
   await setDoc(doc(db, 'users', result.user.uid), {
@@ -38,7 +38,7 @@ export const signUpWithEmail = async (
     fitnessLevel: 'beginner',
     goals: [],
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
   return result;
 };
@@ -46,7 +46,7 @@ export const signUpWithEmail = async (
 export const signInWithGoogle = async () => {
   if (IS_EXPO_GO) {
     throw new Error(
-      'Google Sign-In is not available in Expo Go. Please use email/password or build a dev client.',
+      'Google Sign-In is not available in Expo Go. Please use email/password or build a dev client.'
     );
   }
   try {
@@ -63,14 +63,14 @@ export const signInWithGoogle = async () => {
 export const signInWithApple = async () => {
   if (IS_EXPO_GO) {
     throw new Error(
-      'Apple Sign-In is not available in Expo Go. Please use email/password or build a dev client.',
+      'Apple Sign-In is not available in Expo Go. Please use email/password or build a dev client.'
     );
   }
   try {
     const appleAuth = require('@invertase/react-native-apple-authentication').default;
     const appleAuthRequestResponse = await appleAuth.performRequest({
       requestedOperation: appleAuth.Operation.LOGIN,
-      requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+      requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME]
     });
     const { identityToken, nonce } = appleAuthRequestResponse;
     const provider = new OAuthProvider('apple.com');
@@ -82,12 +82,12 @@ export const signInWithApple = async () => {
 };
 
 export const sendPasswordReset = (email) =>
-  sendPasswordResetEmail(auth, email);
+sendPasswordResetEmail(auth, email);
 
 export const signOut = () => firebaseSignOut(auth);
 
 export const onAuthStateChanged = (
-  callback: Parameters<typeof firebaseOnAuthStateChanged>[1],
-): (() => void) => firebaseOnAuthStateChanged(auth, callback);
+callback) =>
+firebaseOnAuthStateChanged(auth, callback);
 
-export const getCurrentUser = (): User | null => auth.currentUser;
+export const getCurrentUser = () => auth.currentUser;

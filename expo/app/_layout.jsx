@@ -34,11 +34,11 @@ function RookWrapper({ children }) {
         clientUUID={ROOK_CONFIG.clientUUID}
         secret={ROOK_CONFIG.secret}
         enableLogs={__DEV__}
-        enableBackgroundSync={false}
-      >
+        enableBackgroundSync={false}>
+        
         {children}
-      </RookSyncGate>
-    );
+      </RookSyncGate>);
+
   } catch (e) {
     console.log('[ROOK] SDK not available, running without wearables:', e.message);
     return children;
@@ -51,7 +51,7 @@ const RootLayoutNav = React.memo(function RootLayoutNav({
   toggleMenu,
   pathname,
   cartItemCount,
-  isOnboarded,
+  isOnboarded
 }) {
   const isShopPage = useMemo(() => pathname === '/shop' || pathname.startsWith('/shop/'), [pathname]);
 
@@ -75,8 +75,8 @@ const RootLayoutNav = React.memo(function RootLayoutNav({
         onPress={handleMenuPress}
         accessibilityRole="button"
         accessibilityLabel="Open menu"
-        testID="open-menu-button"
-      >
+        testID="open-menu-button">
+        
         <Menu size={24} color={Colors.text.primary} />
       </TouchableOpacity>
 
@@ -85,33 +85,33 @@ const RootLayoutNav = React.memo(function RootLayoutNav({
           <Bell size={24} color={Colors.text.primary} />
         </TouchableOpacity>
 
-        {isShopPage ? (
-          <TouchableOpacity
-            style={styles.cartButton}
-            accessibilityRole="button"
-            accessibilityLabel={`Shopping cart with ${cartItemCount} items`}
-            testID="cart-button"
-          >
+        {isShopPage ?
+        <TouchableOpacity
+          style={styles.cartButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Shopping cart with ${cartItemCount} items`}
+          testID="cart-button">
+          
             <ShoppingCart size={24} color={Colors.text.primary} />
-            {cartItemCount > 0 ? (
-              <View style={styles.cartBadge}>
+            {cartItemCount > 0 ?
+          <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cartItemCount > 99 ? '99+' : cartItemCount.toString()}</Text>
-              </View>
-            ) : null}
-          </TouchableOpacity>
-        ) : null}
+              </View> :
+          null}
+          </TouchableOpacity> :
+        null}
       </View>
-    </View>
-  );
+    </View>);
+
 });
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
-      retry: 1,
-    },
-  },
+      retry: 1
+    }
+  }
 });
 
 export default function RootLayout() {
@@ -170,13 +170,13 @@ export default function RootLayout() {
   useEffect(() => {
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
-    Linking.getInitialURL()
-      .then((url) => {
-        if (url) {
-          handleDeepLink({ url });
-        }
-      })
-      .catch(console.error);
+    Linking.getInitialURL().
+    then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    }).
+    catch(console.error);
 
     return () => {
       subscription.remove();
@@ -195,18 +195,18 @@ export default function RootLayout() {
     const navigationFrame = requestAnimationFrame(() => {
       if (!isOnboarded && pathname !== '/start' && !pathname.startsWith('/auth/') && pathname !== '/' && pathname !== '/spotify-callback') {
         if (pathname !== '/onboarding') {
-          import('expo-router')
-            .then(({ router }) => {
-              router.replace('/start');
-            })
-            .catch(console.error);
+          import('expo-router').
+          then(({ router }) => {
+            router.replace('/start');
+          }).
+          catch(console.error);
         }
       } else if (isOnboarded && pathname === '/start') {
-        import('expo-router')
-          .then(({ router }) => {
-            router.replace('/hq');
-          })
-          .catch(console.error);
+        import('expo-router').
+        then(({ router }) => {
+          router.replace('/hq');
+        }).
+        catch(console.error);
       }
     });
 
@@ -231,32 +231,32 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <SafeAreaProvider>
-            {Platform.OS === 'web' ? (
+            {Platform.OS === 'web' ?
               <Head>
                 <link
                   rel="stylesheet"
                   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
                   integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-                  crossOrigin=""
-                />
-              </Head>
-            ) : null}
+                  crossOrigin="" />
+                
+              </Head> :
+              null}
             <View style={styles.container}>
               <StatusBar style="auto" />
 
               <RootLayoutNav
-                toggleMenu={toggleMenu}
-                pathname={pathname}
-                cartItemCount={cartItemCount}
-                isOnboarded={isOnboarded}
-              />
+                  toggleMenu={toggleMenu}
+                  pathname={pathname}
+                  cartItemCount={cartItemCount}
+                  isOnboarded={isOnboarded} />
+                
 
               <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: Colors.background },
-                }}
-              >
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: Colors.background }
+                  }}>
+                  
                 <Stack.Screen name="index" />
                 <Stack.Screen name="start" />
                 <Stack.Screen name="onboarding" />
@@ -310,14 +310,14 @@ export default function RootLayout() {
         </ErrorBoundary>
       </QueryClientProvider>
     </trpc.Provider>
-    </RookWrapper>
-  );
+    </RookWrapper>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   navContainer: {
     flexDirection: 'row',
@@ -329,23 +329,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    zIndex: 1000,
+    zIndex: 1000
   },
   navButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   navActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 8
   },
   cartButton: {
     position: 'relative',
     padding: 8,
     borderRadius: 8,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   cartBadge: {
     position: 'absolute',
@@ -357,11 +357,11 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 4
   },
   cartBadgeText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '600',
-  },
+    fontWeight: '600'
+  }
 });

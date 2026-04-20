@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, ViewStyle } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { Colors, Radius } from '../../constants/tokens';
 
 const colorMap = {
@@ -7,7 +7,7 @@ const colorMap = {
   accent: Colors.accent,
   success: Colors.success,
   warning: Colors.warning,
-  error: Colors.error,
+  error: Colors.error
 };
 
 export function ProgressBar({
@@ -16,17 +16,17 @@ export function ProgressBar({
   max = 100,
   variant = 'primary',
   accessibilityLabel,
-  style,
-}: ProgressBarProps) {
+  style
+}) {
   const clamped = Math.max(min, Math.min(max, value));
-  const pct = max === min ? 0 : ((clamped - min) / (max - min)) * 100;
+  const pct = max === min ? 0 : (clamped - min) / (max - min) * 100;
   const width = useRef(new Animated.Value(pct)).current;
 
   useEffect(() => {
     Animated.timing(width, {
       toValue: pct,
       duration: 300,
-      useNativeDriver: false,
+      useNativeDriver: false
     }).start();
   }, [pct, width]);
 
@@ -35,22 +35,22 @@ export function ProgressBar({
       accessibilityRole="progressbar"
       accessibilityLabel={accessibilityLabel}
       accessibilityValue={{ min, max, now: clamped }}
-      style={[styles.track, style]}
-    >
+      style={[styles.track, style]}>
+      
       <Animated.View
         style={[
-          styles.fill,
-          {
-            backgroundColor: colorMap[variant],
-            width: width.interpolate({
-              inputRange: [0, 100],
-              outputRange: ['0%', '100%'],
-            }),
-          },
-        ]}
-      />
-    </View>
-  );
+        styles.fill,
+        {
+          backgroundColor: colorMap[variant],
+          width: width.interpolate({
+            inputRange: [0, 100],
+            outputRange: ['0%', '100%']
+          })
+        }]
+        } />
+      
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -59,12 +59,12 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: Radius.full,
     backgroundColor: Colors.border,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   fill: {
     height: '100%',
-    borderRadius: Radius.full,
-  },
+    borderRadius: Radius.full
+  }
 });
 
 export default ProgressBar;

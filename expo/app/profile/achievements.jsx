@@ -5,38 +5,38 @@ import { Award } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import AchievementCard from '@/components/AchievementCard';
 import { useAchievementStore } from '@/store/achievementStore';
-import { Achievement } from '@/types';
+
 
 export default function AchievementsScreen() {
-  const { 
-    achievements, 
-    getUnlockedAchievements, 
-    getInProgressAchievements, 
-    initializeAchievements 
-  } = useAchievementStore() as {
-    achievements: Achievement[];
-    getUnlockedAchievements: () => Achievement[];
-    getInProgressAchievements: () => Achievement[];
-    initializeAchievements: () => void;
-  };
-  
+  const {
+    achievements,
+    getUnlockedAchievements,
+    getInProgressAchievements,
+    initializeAchievements
+  } = useAchievementStore();
+
+
+
+
+
+
   useEffect(() => {
     // Make sure achievements are initialized
     if (achievements.length === 0) {
       initializeAchievements();
     }
   }, [achievements, initializeAchievements]);
-  
+
   const unlockedAchievements = getUnlockedAchievements();
   const inProgressAchievements = getInProgressAchievements();
   const lockedAchievements = achievements.filter(
-    a => !a.isUnlocked && a.progress === 0
+    (a) => !a.isUnlocked && a.progress === 0
   );
-  
-  const renderAchievement = ({ item }: { item: Achievement }) => (
-    <AchievementCard achievement={item} />
-  );
-  
+
+  const renderAchievement = ({ item }) =>
+  <AchievementCard achievement={item} />;
+
+
   return (
     <>
       <Stack.Screen options={{ title: 'Achievements' }} />
@@ -67,86 +67,86 @@ export default function AchievementsScreen() {
         {/* Achievements List */}
         <FlatList
           data={[
-            ...unlockedAchievements,
-            ...inProgressAchievements,
-            ...lockedAchievements
-          ]}
+          ...unlockedAchievements,
+          ...inProgressAchievements,
+          ...lockedAchievements]
+          }
           renderItem={renderAchievement}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <Text style={styles.sectionTitle}>All Achievements</Text>
+          <Text style={styles.sectionTitle}>All Achievements</Text>
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
+          <View style={styles.emptyContainer}>
               <Award size={48} color={Colors.text.tertiary} />
               <Text style={styles.emptyTitle}>No Achievements</Text>
               <Text style={styles.emptyText}>
                 Complete workouts and track your nutrition to earn achievements.
               </Text>
             </View>
-          }
-        />
+          } />
+        
       </View>
-    </>
-  );
+    </>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   statValue: {
     fontSize: 24,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   statLabel: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.border
   },
   listContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 32
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   emptyContainer: {
     padding: 32,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 8
   },
   emptyText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+    textAlign: 'center'
+  }
 });

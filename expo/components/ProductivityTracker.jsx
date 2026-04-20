@@ -7,125 +7,125 @@ import Badge from '@/components/Badge';
 import ProgressBar from '@/components/ProgressBar';
 
 const mockMetrics = [
-  {
-    id: 'workouts',
-    title: 'Workouts This Week',
-    value: 4,
-    target: 5,
-    unit: 'sessions',
-    color: Colors.primary,
-    trend: 'up',
-    trendValue: 12
-  },
-  {
-    id: 'calories',
-    title: 'Calories Burned',
-    value: 2450,
-    target: 3000,
-    unit: 'kcal',
-    color: Colors.secondary,
-    trend: 'up',
-    trendValue: 8
-  },
-  {
-    id: 'sleep',
-    title: 'Sleep Quality',
-    value: 7.5,
-    target: 8,
-    unit: 'hours',
-    color: Colors.info,
-    trend: 'stable',
-    trendValue: 0
-  },
-  {
-    id: 'water',
-    title: 'Water Intake',
-    value: 6,
-    target: 8,
-    unit: 'glasses',
-    color: Colors.success,
-    trend: 'down',
-    trendValue: -5
-  }
-];
+{
+  id: 'workouts',
+  title: 'Workouts This Week',
+  value: 4,
+  target: 5,
+  unit: 'sessions',
+  color: Colors.primary,
+  trend: 'up',
+  trendValue: 12
+},
+{
+  id: 'calories',
+  title: 'Calories Burned',
+  value: 2450,
+  target: 3000,
+  unit: 'kcal',
+  color: Colors.secondary,
+  trend: 'up',
+  trendValue: 8
+},
+{
+  id: 'sleep',
+  title: 'Sleep Quality',
+  value: 7.5,
+  target: 8,
+  unit: 'hours',
+  color: Colors.info,
+  trend: 'stable',
+  trendValue: 0
+},
+{
+  id: 'water',
+  title: 'Water Intake',
+  value: 6,
+  target: 8,
+  unit: 'glasses',
+  color: Colors.success,
+  trend: 'down',
+  trendValue: -5
+}];
+
 
 const mockHabits = [
-  {
-    id: 'morning-workout',
-    name: 'Morning Workout',
-    streak: 12,
-    completedToday: true,
-    weeklyProgress: [true, true, false, true, true, true, false],
-    color: Colors.primary
-  },
-  {
-    id: 'meditation',
-    name: '10min Meditation',
-    streak: 8,
-    completedToday: false,
-    weeklyProgress: [true, true, true, false, true, true, false],
-    color: Colors.info
-  },
-  {
-    id: 'protein-shake',
-    name: 'Protein Shake',
-    streak: 5,
-    completedToday: true,
-    weeklyProgress: [true, false, true, true, true, false, false],
-    color: Colors.secondary
-  },
-  {
-    id: 'steps',
-    name: '10k Steps',
-    streak: 15,
-    completedToday: false,
-    weeklyProgress: [true, true, true, true, false, true, true],
-    color: Colors.success
-  }
-];
+{
+  id: 'morning-workout',
+  name: 'Morning Workout',
+  streak: 12,
+  completedToday: true,
+  weeklyProgress: [true, true, false, true, true, true, false],
+  color: Colors.primary
+},
+{
+  id: 'meditation',
+  name: '10min Meditation',
+  streak: 8,
+  completedToday: false,
+  weeklyProgress: [true, true, true, false, true, true, false],
+  color: Colors.info
+},
+{
+  id: 'protein-shake',
+  name: 'Protein Shake',
+  streak: 5,
+  completedToday: true,
+  weeklyProgress: [true, false, true, true, true, false, false],
+  color: Colors.secondary
+},
+{
+  id: 'steps',
+  name: '10k Steps',
+  streak: 15,
+  completedToday: false,
+  weeklyProgress: [true, true, true, true, false, true, true],
+  color: Colors.success
+}];
 
-export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSetGoal, onSchedule, onTimer }: ProductivityTrackerProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month'>('week');
+
+export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSetGoal, onSchedule, onTimer }) {
+  const [selectedPeriod, setSelectedPeriod] = useState('week');
 
   const overallProgress = useMemo(() => {
     const totalProgress = mockMetrics.reduce((sum, metric) => {
-      return sum + (metric.value / metric.target) * 100;
+      return sum + metric.value / metric.target * 100;
     }, 0);
     return Math.min(totalProgress / mockMetrics.length, 100);
   }, []);
 
   const completedHabitsToday = useMemo(() => {
-    return mockHabits.filter(habit => habit.completedToday).length;
+    return mockHabits.filter((habit) => habit.completedToday).length;
   }, []);
 
-  const renderTrendIcon = (trend: 'up' | 'down' | 'stable', trendValue) => {
+  const renderTrendIcon = (trend, trendValue) => {
     if (trend === 'stable') {
       return <View style={styles.trendIconStable} />;
     }
     return (
-      <TrendingUp 
-        size={12} 
+      <TrendingUp
+        size={12}
         color={trend === 'up' ? Colors.success : Colors.error}
-        style={trend === 'down' ? { transform: [{ rotate: '180deg' }] } : {}}
-      />
-    );
+        style={trend === 'down' ? { transform: [{ rotate: '180deg' }] } : {}} />);
+
+
   };
 
-  const renderWeeklyProgress = (progress: boolean[]) => {
+  const renderWeeklyProgress = (progress) => {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return (
       <View style={styles.weeklyProgressContainer}>
-        {progress.map((completed, index) => (
-          <View key={index} style={styles.dayProgressContainer}>
+        {progress.map((completed, index) =>
+        <View key={index} style={styles.dayProgressContainer}>
             <View style={[
-              styles.dayProgressDot,
-              completed && styles.dayProgressDotCompleted
-            ]} />
+          styles.dayProgressDot,
+          completed && styles.dayProgressDotCompleted]
+          } />
             <Text style={styles.dayProgressLabel}>{days[index]}</Text>
           </View>
-        ))}
-      </View>
-    );
+        )}
+      </View>);
+
   };
 
   return (
@@ -141,11 +141,11 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
           </View>
           <View style={styles.overviewProgress}>
             <Text style={styles.overallProgressText}>{Math.round(overallProgress)}%</Text>
-            <ProgressBar 
-              progress={overallProgress / 100} 
+            <ProgressBar
+              progress={overallProgress / 100}
               progressColor={Colors.primary}
-              style={styles.overallProgressBar}
-            />
+              style={styles.overallProgressBar} />
+            
           </View>
         </View>
       </Card>
@@ -154,29 +154,29 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
       <View style={styles.periodSelector}>
         <TouchableOpacity
           style={[
-            styles.periodButton,
-            selectedPeriod === 'week' && styles.periodButtonActive
-          ]}
-          onPress={() => setSelectedPeriod('week')}
-        >
+          styles.periodButton,
+          selectedPeriod === 'week' && styles.periodButtonActive]
+          }
+          onPress={() => setSelectedPeriod('week')}>
+          
           <Text style={[
-            styles.periodButtonText,
-            selectedPeriod === 'week' && styles.periodButtonTextActive
-          ]}>
+          styles.periodButtonText,
+          selectedPeriod === 'week' && styles.periodButtonTextActive]
+          }>
             This Week
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
-            styles.periodButton,
-            selectedPeriod === 'month' && styles.periodButtonActive
-          ]}
-          onPress={() => setSelectedPeriod('month')}
-        >
+          styles.periodButton,
+          selectedPeriod === 'month' && styles.periodButtonActive]
+          }
+          onPress={() => setSelectedPeriod('month')}>
+          
           <Text style={[
-            styles.periodButtonText,
-            selectedPeriod === 'month' && styles.periodButtonTextActive
-          ]}>
+          styles.periodButtonText,
+          selectedPeriod === 'month' && styles.periodButtonTextActive]
+          }>
             This Month
           </Text>
         </TouchableOpacity>
@@ -184,26 +184,26 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
 
       {/* Metrics Grid */}
       <View style={styles.metricsGrid}>
-        {mockMetrics.map(metric => {
-          const progressPercentage = (metric.value / metric.target) * 100;
+        {mockMetrics.map((metric) => {
+          const progressPercentage = metric.value / metric.target * 100;
           return (
             <TouchableOpacity
               key={metric.id}
               style={styles.metricCard}
-              onPress={() => onMetricPress?.(metric)}
-            >
+              onPress={() => onMetricPress?.(metric)}>
+              
               <View style={styles.metricHeader}>
                 <View style={[styles.metricColorBar, { backgroundColor: metric.color }]} />
                 <View style={styles.metricTrend}>
                   {renderTrendIcon(metric.trend, metric.trendValue)}
-                  {metric.trend !== 'stable' && (
-                    <Text style={[
-                      styles.trendText,
-                      { color: metric.trend === 'up' ? Colors.success : Colors.error }
-                    ]}>
+                  {metric.trend !== 'stable' &&
+                  <Text style={[
+                  styles.trendText,
+                  { color: metric.trend === 'up' ? Colors.success : Colors.error }]
+                  }>
                       {Math.abs(metric.trendValue)}%
                     </Text>
-                  )}
+                  }
                 </View>
               </View>
               
@@ -218,13 +218,13 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
                 </Text>
               </View>
               
-              <ProgressBar 
+              <ProgressBar
                 progress={progressPercentage / 100}
                 progressColor={metric.color}
-                style={styles.metricProgress}
-              />
-            </TouchableOpacity>
-          );
+                style={styles.metricProgress} />
+              
+            </TouchableOpacity>);
+
         })}
       </View>
 
@@ -237,16 +237,16 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
       </View>
 
       <View style={styles.habitsContainer}>
-        {mockHabits.map(habit => (
-          <Card key={habit.id} style={styles.habitCard}>
+        {mockHabits.map((habit) =>
+        <Card key={habit.id} style={styles.habitCard}>
             <View style={styles.habitHeader}>
               <View style={styles.habitInfo}>
                 <View style={styles.habitTitleRow}>
                   <Text style={styles.habitName}>{habit.name}</Text>
-                  <Badge 
-                    variant={habit.completedToday ? 'success' : 'neutral'}
-                    style={styles.habitBadge}
-                  >
+                  <Badge
+                  variant={habit.completedToday ? 'success' : 'neutral'}
+                  style={styles.habitBadge}>
+                  
                     <Text>{habit.streak} day streak</Text>
                   </Badge>
                 </View>
@@ -254,19 +254,19 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
               </View>
               
               <TouchableOpacity
-                style={[
-                  styles.habitToggle,
-                  habit.completedToday && styles.habitToggleCompleted
-                ]}
-                onPress={() => onHabitToggle?.(habit.id)}
-              >
-                {habit.completedToday && (
-                  <CheckCircle size={24} color={Colors.text.inverse} />
-                )}
+              style={[
+              styles.habitToggle,
+              habit.completedToday && styles.habitToggleCompleted]
+              }
+              onPress={() => onHabitToggle?.(habit.id)}>
+              
+                {habit.completedToday &&
+              <CheckCircle size={24} color={Colors.text.inverse} />
+              }
               </TouchableOpacity>
             </View>
           </Card>
-        ))}
+        )}
       </View>
 
       {/* Quick Actions */}
@@ -286,44 +286,44 @@ export default function ProductivityTracker({ onMetricPress, onHabitToggle, onSe
           <Text style={styles.quickActionText}>Timer</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
-  );
+    </ScrollView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1
   },
   overviewCard: {
     margin: 20,
-    padding: 20,
+    padding: 20
   },
   overviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   overviewTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   overviewSubtitle: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginTop: 4,
+    marginTop: 4
   },
   overviewProgress: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-end'
   },
   overallProgressText: {
     fontSize: 24,
     fontWeight: '700',
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   overallProgressBar: {
-    width: 80,
+    width: 80
   },
   periodSelector: {
     flexDirection: 'row',
@@ -331,154 +331,154 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 8,
-    padding: 4,
+    padding: 4
   },
   periodButton: {
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   periodButtonActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   periodButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   periodButtonTextActive: {
     color: Colors.text.inverse,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 20,
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 20
   },
   metricCard: {
     flex: 1,
     minWidth: '45%',
     backgroundColor: Colors.card,
     borderRadius: 12,
-    padding: 16,
+    padding: 16
   },
   metricHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   metricColorBar: {
     width: 4,
     height: 20,
-    borderRadius: 2,
+    borderRadius: 2
   },
   metricTrend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   trendIconStable: {
     width: 12,
     height: 2,
     backgroundColor: Colors.text.tertiary,
-    borderRadius: 1,
+    borderRadius: 1
   },
   trendText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   metricTitle: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   metricValueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 12,
+    marginBottom: 12
   },
   metricValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   metricTarget: {
     fontSize: 12,
     color: Colors.text.tertiary,
-    marginLeft: 2,
+    marginLeft: 2
   },
   metricProgress: {
-    height: 4,
+    height: 4
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 16
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   habitsContainer: {
     paddingHorizontal: 20,
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 20
   },
   habitCard: {
-    padding: 16,
+    padding: 16
   },
   habitHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   habitInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 16
   },
   habitTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   habitName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   habitBadge: {
     height: 20,
-    paddingHorizontal: 8,
+    paddingHorizontal: 8
   },
   weeklyProgressContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 8
   },
   dayProgressContainer: {
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   dayProgressDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.inactive,
+    backgroundColor: Colors.inactive
   },
   dayProgressDotCompleted: {
-    backgroundColor: Colors.success,
+    backgroundColor: Colors.success
   },
   dayProgressLabel: {
     fontSize: 10,
-    color: Colors.text.tertiary,
+    color: Colors.text.tertiary
   },
   habitToggle: {
     width: 40,
@@ -488,17 +488,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   habitToggleCompleted: {
     backgroundColor: Colors.success,
-    borderColor: Colors.success,
+    borderColor: Colors.success
   },
   quickActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 20
   },
   quickActionButton: {
     flex: 1,
@@ -508,11 +508,11 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: Colors.card,
     borderRadius: 12,
-    gap: 8,
+    gap: 8
   },
   quickActionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.primary,
-  },
+    color: Colors.primary
+  }
 });

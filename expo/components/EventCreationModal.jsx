@@ -6,20 +6,20 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const EVENT_TYPES = [
-  { id: 'workout', label: 'Workout', icon: '💪', color: Colors.primary },
-  { id: 'reminder', label: 'Reminder', icon: '🔔', color: Colors.warning },
-  { id: 'goal', label: 'Goal', icon: '🎯', color: Colors.success },
-  { id: 'habit', label: 'Habit', icon: '✅', color: Colors.info },
-];
+{ id: 'workout', label: 'Workout', icon: '💪', color: Colors.primary },
+{ id: 'reminder', label: 'Reminder', icon: '🔔', color: Colors.warning },
+{ id: 'goal', label: 'Goal', icon: '🎯', color: Colors.success },
+{ id: 'habit', label: 'Habit', icon: '✅', color: Colors.info }];
+
 
 const REMINDER_TIMES = [
-  '15 minutes before',
-  '30 minutes before',
-  '1 hour before',
-  '1 day before',
-];
+'15 minutes before',
+'30 minutes before',
+'1 hour before',
+'1 day before'];
 
-export default function EventCreationModal({ visible, selectedDate, onClose, onSave }: EventCreationModalProps) {
+
+export default function EventCreationModal({ visible, selectedDate, onClose, onSave }) {
   const [eventType, setEventType] = useState('workout');
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('');
@@ -35,8 +35,8 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
       return;
     }
 
-    const selectedEventType = EVENT_TYPES.find(type => type.id === eventType);
-    
+    const selectedEventType = EVENT_TYPES.find((type) => type.id === eventType);
+
     const newEvent = {
       id: `event-${Date.now()}`,
       title: title.trim(),
@@ -47,13 +47,13 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
       color: selectedEventType?.color || Colors.primary,
       date: selectedDate.toISOString().split('T')[0],
       reminderEnabled,
-      reminderTime: reminderEnabled ? reminderTime,
+      reminderTime: reminderEnabled ? reminderTime : undefined,
       isRecurring,
-      recurringPattern: isRecurring ? recurringPattern,
+      recurringPattern: isRecurring ? recurringPattern : undefined
     };
 
     onSave(newEvent);
-    
+
     // Reset form
     setTitle('');
     setTime('');
@@ -61,7 +61,7 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
     setReminderEnabled(false);
     setIsRecurring(false);
     setEventType('workout');
-    
+
     onClose();
   }, [title, eventType, time, duration, reminderEnabled, reminderTime, isRecurring, recurringPattern, selectedDate, onSave, onClose]);
 
@@ -78,10 +78,10 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
         </View>
 
         <Text style={styles.dateText}>
-          {selectedDate.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'long', 
-            day: 'numeric' 
+          {selectedDate.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
           })}
         </Text>
 
@@ -90,24 +90,24 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Event Type</Text>
             <View style={styles.eventTypeGrid}>
-              {EVENT_TYPES.map(type => (
-                <TouchableOpacity
-                  key={type.id}
-                  style={[
-                    styles.eventTypeCard,
-                    eventType === type.id && styles.eventTypeCardSelected
-                  ]}
-                  onPress={() => setEventType(type.id)}
-                >
+              {EVENT_TYPES.map((type) =>
+              <TouchableOpacity
+                key={type.id}
+                style={[
+                styles.eventTypeCard,
+                eventType === type.id && styles.eventTypeCardSelected]
+                }
+                onPress={() => setEventType(type.id)}>
+                
                   <Text style={styles.eventTypeIcon}>{type.icon}</Text>
                   <Text style={[
-                    styles.eventTypeLabel,
-                    eventType === type.id && styles.eventTypeLabelSelected
-                  ]}>
+                styles.eventTypeLabel,
+                eventType === type.id && styles.eventTypeLabelSelected]
+                }>
                     {type.label}
                   </Text>
                 </TouchableOpacity>
-              ))}
+              )}
             </View>
           </View>
 
@@ -119,8 +119,8 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
               value={title}
               onChangeText={setTitle}
               placeholder="Enter event title..."
-              placeholderTextColor={Colors.text.tertiary}
-            />
+              placeholderTextColor={Colors.text.tertiary} />
+            
           </View>
 
           {/* Time Input */}
@@ -133,25 +133,25 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
                 value={time}
                 onChangeText={setTime}
                 placeholder="HH:MM (e.g., 07:30)"
-                placeholderTextColor={Colors.text.tertiary}
-              />
+                placeholderTextColor={Colors.text.tertiary} />
+              
             </View>
           </View>
 
           {/* Duration Input */}
-          {(eventType === 'workout' || eventType === 'goal') && (
-            <View style={styles.section}>
+          {(eventType === 'workout' || eventType === 'goal') &&
+          <View style={styles.section}>
               <Text style={styles.sectionTitle}>Duration (Minutes)</Text>
               <TextInput
-                style={styles.textInput}
-                value={duration}
-                onChangeText={setDuration}
-                placeholder="30"
-                placeholderTextColor={Colors.text.tertiary}
-                keyboardType="numeric"
-              />
+              style={styles.textInput}
+              value={duration}
+              onChangeText={setDuration}
+              placeholder="30"
+              placeholderTextColor={Colors.text.tertiary}
+              keyboardType="numeric" />
+            
             </View>
-          )}
+          }
 
           {/* Reminder Settings */}
           <View style={styles.section}>
@@ -159,34 +159,34 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
               <Text style={styles.sectionTitle}>Reminder</Text>
               <TouchableOpacity
                 style={[styles.toggle, reminderEnabled && styles.toggleActive]}
-                onPress={() => setReminderEnabled(!reminderEnabled)}
-              >
+                onPress={() => setReminderEnabled(!reminderEnabled)}>
+                
                 <View style={[styles.toggleThumb, reminderEnabled && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
             
-            {reminderEnabled && (
-              <View style={styles.reminderOptions}>
-                {REMINDER_TIMES.map(option => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[
-                      styles.reminderOption,
-                      reminderTime === option && styles.reminderOptionSelected
-                    ]}
-                    onPress={() => setReminderTime(option)}
-                  >
+            {reminderEnabled &&
+            <View style={styles.reminderOptions}>
+                {REMINDER_TIMES.map((option) =>
+              <TouchableOpacity
+                key={option}
+                style={[
+                styles.reminderOption,
+                reminderTime === option && styles.reminderOptionSelected]
+                }
+                onPress={() => setReminderTime(option)}>
+                
                     <Bell size={16} color={reminderTime === option ? Colors.primary : Colors.text.secondary} />
                     <Text style={[
-                      styles.reminderOptionText,
-                      reminderTime === option && styles.reminderOptionTextSelected
-                    ]}>
+                styles.reminderOptionText,
+                reminderTime === option && styles.reminderOptionTextSelected]
+                }>
                       {option}
                     </Text>
                   </TouchableOpacity>
-                ))}
+              )}
               </View>
-            )}
+            }
           </View>
 
           {/* Recurring Settings */}
@@ -195,34 +195,34 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
               <Text style={styles.sectionTitle}>Recurring</Text>
               <TouchableOpacity
                 style={[styles.toggle, isRecurring && styles.toggleActive]}
-                onPress={() => setIsRecurring(!isRecurring)}
-              >
+                onPress={() => setIsRecurring(!isRecurring)}>
+                
                 <View style={[styles.toggleThumb, isRecurring && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
             
-            {isRecurring && (
-              <View style={styles.recurringOptions}>
-                {['daily', 'weekly', 'monthly'].map(pattern => (
-                  <TouchableOpacity
-                    key={pattern}
-                    style={[
-                      styles.recurringOption,
-                      recurringPattern === pattern && styles.recurringOptionSelected
-                    ]}
-                    onPress={() => setRecurringPattern(pattern)}
-                  >
+            {isRecurring &&
+            <View style={styles.recurringOptions}>
+                {['daily', 'weekly', 'monthly'].map((pattern) =>
+              <TouchableOpacity
+                key={pattern}
+                style={[
+                styles.recurringOption,
+                recurringPattern === pattern && styles.recurringOptionSelected]
+                }
+                onPress={() => setRecurringPattern(pattern)}>
+                
                     <Repeat size={16} color={recurringPattern === pattern ? Colors.primary : Colors.text.secondary} />
                     <Text style={[
-                      styles.recurringOptionText,
-                      recurringPattern === pattern && styles.recurringOptionTextSelected
-                    ]}>
+                styles.recurringOptionText,
+                recurringPattern === pattern && styles.recurringOptionTextSelected]
+                }>
                       {pattern.charAt(0).toUpperCase() + pattern.slice(1)}
                     </Text>
                   </TouchableOpacity>
-                ))}
+              )}
               </View>
-            )}
+            }
           </View>
         </ScrollView>
 
@@ -231,18 +231,18 @@ export default function EventCreationModal({ visible, selectedDate, onClose, onS
             title="Cancel"
             variant="outline"
             onPress={onClose}
-            style={styles.cancelButton}
-          />
+            style={styles.cancelButton} />
+          
           <Button
             title="Save Event"
             variant="primary"
             onPress={handleSave}
-            style={styles.saveButton}
-          />
+            style={styles.saveButton} />
+          
         </View>
       </Card>
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -255,13 +255,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    zIndex: 1000
   },
   modal: {
     width: '90%',
     maxHeight: '80%',
     margin: 20,
-    padding: 0,
+    padding: 0
   },
   header: {
     flexDirection: 'row',
@@ -269,12 +269,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   closeButton: {
     width: 32,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   dateText: {
     fontSize: 16,
@@ -290,31 +290,31 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textAlign: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 16
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 20
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 24
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   eventTypeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 12
   },
   eventTypeCard: {
     flex: 1,
@@ -324,24 +324,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: 'transparent'
   },
   eventTypeCardSelected: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '10',
+    backgroundColor: Colors.primary + '10'
   },
   eventTypeIcon: {
     fontSize: 24,
-    marginBottom: 8,
+    marginBottom: 8
   },
   eventTypeLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   eventTypeLabelSelected: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   textInput: {
     backgroundColor: Colors.backgroundSecondary,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text.primary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   timeInputContainer: {
     flexDirection: 'row',
@@ -359,14 +359,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   timeInput: {
     flex: 1,
     padding: 12,
     fontSize: 16,
     color: Colors.text.primary,
-    marginLeft: 8,
+    marginLeft: 8
   },
   toggle: {
     width: 50,
@@ -374,23 +374,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: Colors.inactive,
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 2
   },
   toggleActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   toggleThumb: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: Colors.text.inverse,
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-start'
   },
   toggleThumbActive: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-end'
   },
   reminderOptions: {
-    gap: 8,
+    gap: 8
   },
   reminderOption: {
     flexDirection: 'row',
@@ -398,24 +398,24 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 8,
-    gap: 8,
+    gap: 8
   },
   reminderOptionSelected: {
     backgroundColor: Colors.primary + '10',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   reminderOptionText: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   reminderOptionTextSelected: {
     color: Colors.primary,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   recurringOptions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 8
   },
   recurringOption: {
     flex: 1,
@@ -425,32 +425,32 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 8,
-    gap: 6,
+    gap: 6
   },
   recurringOptionSelected: {
     backgroundColor: Colors.primary + '10',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   recurringOptionText: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   recurringOptionTextSelected: {
     color: Colors.primary,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   footer: {
     flexDirection: 'row',
     padding: 20,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: Colors.border
   },
   cancelButton: {
-    flex: 1,
+    flex: 1
   },
   saveButton: {
-    flex: 1,
-  },
+    flex: 1
+  }
 });

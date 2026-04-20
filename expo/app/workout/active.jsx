@@ -1,41 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Alert, 
-  Platform, 
-  Dimensions, 
-  StatusBar,
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+
+  Platform,
+  Dimensions,
   Animated,
   PanResponder,
   ScrollView,
   Modal,
-  TextInput
-} from 'react-native';
+  TextInput } from
+'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { Play, Pause, SkipForward, ChevronLeft, Clock, Award, Heart, Volume2, ChevronUp, ChevronDown, X, Camera, Music, Info, MapPin, Loader2 } from 'lucide-react-native';
+import { Play, Pause, Clock, Award, Heart, X, Camera, Music, MapPin, Loader2 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import Button from '@/components/Button';
-import ProgressBar from '@/components/ProgressBar';
-import Card from '@/components/Card';
+
+
+
 import SpotifyMusicPlayer from '@/components/SpotifyMusicPlayer';
 import RunningMap from '@/components/RunningMap';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { Workout, Exercise, Coordinate, CompletedWorkout, LocationServiceState, RunningProgram, RunningSession } from '@/types';
+
 import locationService from '@/services/locationService';
-import voiceCommandService from '@/services/voiceCommandService';
-import formAnalysisService from '@/services/formAnalysisService';
-import smartRestService from '@/services/smartRestService';
-import workoutStreamingService from '@/services/workoutStreamingService';
+
+
+
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,24 +43,24 @@ export default function ActiveWorkoutScreen() {
   const workoutId = typeof params.workoutId === 'string' ? params.workoutId : '';
   const sessionId = typeof params.sessionId === 'string' ? params.sessionId : '';
   const programId = typeof params.programId === 'string' ? params.programId : '';
-  const mode = typeof params.mode === 'string' ? params.mode : (typeof params.type === 'string' ? params.type : 'workout');
-  const { workouts, customWorkouts, addCompletedWorkout, currentRun, startRun, finishRun, updateRunStats, initializeDefaultWorkouts, runningPrograms } = useWorkoutStore() as {
-    workouts: Workout[];
-    customWorkouts: Workout[];
-    addCompletedWorkout: (workout) => void;
-    currentRun: { id: string; startTime: string; distance: number; duration: number; pace: number; calories: number; coordinates: Coordinate[] } | null;
-    startRun: () => void;
-    finishRun: () => void;
-    updateRunStats: (stats: { distance: number; time: number; pace: number; calories: number; coordinates: Coordinate[] }) => void;
-    initializeDefaultWorkouts: () => void;
-    runningPrograms: RunningProgram[];
-  };
-  const { addXp } = useUserStore() as { addXp: (amount) => void };
-  const { checkAchievements } = useAchievementStore() as { checkAchievements: (data: { workoutsCompleted?: number }) => void };
-  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds } = useSpotifyStore() as { isConnected: boolean; isClientCredentialsReady: boolean };
+  const mode = typeof params.mode === 'string' ? params.mode : typeof params.type === 'string' ? params.type : 'workout';
+  const { workouts, customWorkouts, addCompletedWorkout, currentRun, startRun, finishRun, updateRunStats, initializeDefaultWorkouts, runningPrograms } = useWorkoutStore();
+
+
+
+
+
+
+
+
+
+
+  const { addXp } = useUserStore();
+  const { checkAchievements } = useAchievementStore();
+  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds } = useSpotifyStore();
   const hasSpotifyAccess = isSpotifyConnected || isSpotifyClientCreds;
-  
-  const [workout, setWorkout] = useState<Workout | null>(null);
+
+  const [workout, setWorkout] = useState(null);
   const [runningSession, setRunningSession] = useState(null);
   const [runningProgram, setRunningProgram] = useState(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -87,40 +86,40 @@ export default function ActiveWorkoutScreen() {
     currentLocation,
     distance: 0,
     speed: 0,
-    averageSpeed: 0,
+    averageSpeed: 0
   });
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'undetermined' | 'loading'>('undetermined');
+  const [locationPermission, setLocationPermission] = useState('undetermined');
   const [showLocationPermissionModal, setShowLocationPermissionModal] = useState(false);
-  
+
   // Enhanced workout features state
   const [showVoiceControl, setShowVoiceControl] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [showFormAnalysis, setShowFormAnalysis] = useState(false);
-  const [formScore, setFormScore] = useState<number | null>(null);
+  const [formScore, setFormScore] = useState(null);
   const [formFeedback, setFormFeedback] = useState([]);
-  const [adaptiveRestTime, setAdaptiveRestTime] = useState<number | null>(null);
-  const [heartRate, setHeartRate] = useState<number | null>(null);
+  const [adaptiveRestTime, setAdaptiveRestTime] = useState(null);
+  const [heartRate, setHeartRate] = useState(null);
   const [showLiveStreams, setShowLiveStreams] = useState(false);
   const [currentStream, setCurrentStream] = useState(null);
-  
+
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  
+
   // Next workouts preview state
   const [previewHeight] = useState(new Animated.Value(0));
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const previewMaxHeight = 300;
-  
 
-  
+
+
   useEffect(() => {
     const loadWorkout = async () => {
       try {
         if (workouts.length === 0) {
           initializeDefaultWorkouts();
           // Wait for initialization
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        
+
         if (mode === 'running' && sessionId && programId) {
           // Handle running session
           const foundProgram = runningPrograms.find((p) => p.id === programId);
@@ -133,8 +132,8 @@ export default function ActiveWorkoutScreen() {
         } else if (workoutId && mode === 'workout') {
           // Find workout in both regular and custom workouts
           const allWorkouts = [...workouts, ...customWorkouts];
-          const foundWorkout = allWorkouts.find(w => w.id === workoutId);
-          
+          const foundWorkout = allWorkouts.find((w) => w.id === workoutId);
+
           if (!foundWorkout && allWorkouts.length > 0) {
             // Fallback to first available workout
             setWorkout(allWorkouts[0]);
@@ -151,24 +150,24 @@ export default function ActiveWorkoutScreen() {
         console.error('Error loading workout:', error);
       }
     };
-    
+
     loadWorkout();
   }, [workoutId, sessionId, programId, mode, workouts.length, customWorkouts.length, currentRun, startRun, initializeDefaultWorkouts, runningPrograms]);
-  
+
   // Location service listener
   useEffect(() => {
     const unsubscribe = locationService.addListener((state) => {
       setLocationState(state);
-      setRunStats(prev => ({
+      setRunStats((prev) => ({
         ...prev,
         distance: state.distance,
-        coordinates: state.coordinates,
+        coordinates: state.coordinates
       }));
     });
-    
+
     return unsubscribe;
   }, []);
-  
+
   // Check location permissions on mount for running modes
   useEffect(() => {
     const checkLocationPermissions = async () => {
@@ -178,16 +177,16 @@ export default function ActiveWorkoutScreen() {
         setLocationPermission(status);
       }
     };
-    
+
     checkLocationPermissions();
   }, [mode]);
-  
+
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    
+    let interval = null;
+
     if (isActive && workout && !isResting) {
       interval = setInterval(() => {
-        setTimer(prevTimer => {
+        setTimer((prevTimer) => {
           if (prevTimer <= 0) {
             // Time's up, start rest period or move to next set
             if (Platform.OS !== 'web') {
@@ -201,7 +200,7 @@ export default function ActiveWorkoutScreen() {
       }, 1000);
     } else if (isActive && isResting) {
       interval = setInterval(() => {
-        setTimer(prevTimer => {
+        setTimer((prevTimer) => {
           if (prevTimer <= 0) {
             // Rest is over
             const currentExercise = workout?.exercises[currentExerciseIndex];
@@ -227,13 +226,13 @@ export default function ActiveWorkoutScreen() {
       }, 1000);
     } else if (isActive && (mode === 'run' || mode === 'running')) {
       interval = setInterval(() => {
-        setTimer(prevTimer => prevTimer + 1);
-        setRunStats(prev => {
+        setTimer((prevTimer) => prevTimer + 1);
+        setRunStats((prev) => {
           const newTime = prev.time + 1;
           const currentDistance = locationState.distance || prev.distance;
-          const newPace = newTime > 0 && currentDistance > 0 ? (newTime / 60) / currentDistance : 0;
+          const newPace = newTime > 0 && currentDistance > 0 ? newTime / 60 / currentDistance : 0;
           const newCalories = prev.calories + 0.1;
-          
+
           const updatedStats = {
             distance: currentDistance,
             time: newTime,
@@ -246,20 +245,20 @@ export default function ActiveWorkoutScreen() {
         });
       }, 1000);
     }
-    
+
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [isActive, isResting, currentExerciseIndex, workout, currentSet, mode, updateRunStats]);
-  
+
   const toggleTimer = async () => {
     const newIsActive = !isActive;
     setIsActive(newIsActive);
-    
+
     if (Platform.OS !== 'web' && newIsActive) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
+
     // Handle location tracking for running modes
     if (mode === 'run' || mode === 'running') {
       if (newIsActive) {
@@ -269,7 +268,7 @@ export default function ActiveWorkoutScreen() {
           setIsActive(false);
           return;
         }
-        
+
         // Start location tracking
         const started = await locationService.startTracking();
         if (!started) {
@@ -280,23 +279,23 @@ export default function ActiveWorkoutScreen() {
           setIsActive(false);
           return;
         }
-        
+
         // Update permission status to granted if tracking started successfully
         setLocationPermission('granted');
       } else {
+
+
         // Pause location tracking (don't stop completely)
         // Location service will continue but we won't update stats
-      }
-    }
-  };
-  
+      }}};
+
   const skipToNext = () => {
     if (!workout) return;
-    
+
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     if (isResting) {
       // Skip rest period
       const currentExercise = workout.exercises[currentExerciseIndex];
@@ -318,13 +317,13 @@ export default function ActiveWorkoutScreen() {
       setTimer(60);
     }
   };
-  
+
   const completeWorkout = () => {
     if (!workout) return;
-    
+
     setIsActive(false);
     setWorkoutComplete(true);
-    
+
     // Log completed workout
     if (addCompletedWorkout) {
       const completedWorkout = {
@@ -348,53 +347,53 @@ export default function ActiveWorkoutScreen() {
       };
       addCompletedWorkout(completedWorkout);
     }
-    
+
     // Award XP
     if (workout.xpReward) {
       addXp(workout.xpReward);
     }
-    
+
     // Update achievements
     try {
       checkAchievements({ workoutsCompleted: 1 });
     } catch (error) {
       console.error('Failed to update achievements:', error);
     }
-    
+
     // Haptic feedback
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
-  
+
   const completeRun = () => {
     setIsActive(false);
-    
+
     // Stop location tracking
     locationService.stopTracking();
-    
+
     if (mode === 'run') {
       finishRun();
     }
     setWorkoutComplete(true);
-    
+
     // Award XP
     const xpReward = mode === 'running' && runningSession ? runningSession.xpReward : 50;
     addXp(xpReward);
-    
+
     // Haptic feedback
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
-  
+
   const handleExitPress = () => {
     setShowExitMenu(true);
     if (isActive) {
       setIsActive(false); // Pause the workout when showing exit menu
     }
   };
-  
+
   const handleContinue = () => {
     setShowExitMenu(false);
     // Resume the workout if it was active before
@@ -402,12 +401,12 @@ export default function ActiveWorkoutScreen() {
       setIsActive(true);
     }
   };
-  
+
   const handleExitAndDiscard = () => {
     setShowExitMenu(false);
     router.back();
   };
-  
+
   const handleFinishWorkout = () => {
     setShowExitMenu(false);
     if (mode === 'run' || mode === 'running') {
@@ -416,11 +415,11 @@ export default function ActiveWorkoutScreen() {
       completeWorkout();
     }
   };
-  
+
   const handleFinish = () => {
     router.replace('/');
   };
-  
+
   const handleRequestLocationPermission = async () => {
     setLocationPermission('loading');
     const hasPermission = await locationService.requestPermissions();
@@ -433,48 +432,48 @@ export default function ActiveWorkoutScreen() {
       setLocationPermission('denied');
     }
   };
-  
+
   const handleLocationPermissionDenied = () => {
     setShowLocationPermissionModal(false);
     router.back();
   };
-  
+
   const toggleFeeling = (feeling) => {
     if (selectedFeelings.includes(feeling)) {
-      setSelectedFeelings(selectedFeelings.filter(f => f !== feeling));
+      setSelectedFeelings(selectedFeelings.filter((f) => f !== feeling));
     } else {
       setSelectedFeelings([...selectedFeelings, feeling]);
     }
   };
-  
+
   if (!workout && mode === 'workout') {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading workout...</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
-        >
+          onPress={() => router.back()}>
+          
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
-  
+
   if (!runningSession && mode === 'running') {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading running session...</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
-        >
+          onPress={() => router.back()}>
+          
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
-  
+
   // Show location permission screen for running modes if permission is denied
   if ((mode === 'run' || mode === 'running') && locationPermission === 'denied') {
     return (
@@ -485,31 +484,31 @@ export default function ActiveWorkoutScreen() {
           <Text style={styles.permissionText}>
             GPS tracking is required for running workouts. Please enable location services in your device settings to continue.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
+            
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
-  
+
   const currentExercise = workout?.exercises[currentExerciseIndex];
   const maxTime = isResting ? 60 : 5;
   const progress = (maxTime - timer) / maxTime;
-  
+
   // Format time
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   // Default image if none provided
   const defaultExerciseImage = 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500';
-  
+
   const formatPace = (pace) => {
     if (pace === 0) return '0:00/km';
     const minutes = Math.floor(pace);
@@ -520,44 +519,44 @@ export default function ActiveWorkoutScreen() {
   // Render map component with real GPS tracking
   const renderMap = () => {
     // Use real GPS coordinates or show waiting state
-    const coordinates = locationState.coordinates.length > 0 
-      ? locationState.coordinates 
-      : [];
-    
+    const coordinates = locationState.coordinates.length > 0 ?
+    locationState.coordinates :
+    [];
+
     return (
       <RunningMap
         coordinates={coordinates}
         currentLocation={locationState.currentLocation ? {
           latitude: locationState.currentLocation.coords.latitude,
           longitude: locationState.currentLocation.coords.longitude,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         } : undefined}
         distance={locationState.distance}
         pace={runStats.pace}
-        style={styles.mapContainer}
-      />
-    );
+        style={styles.mapContainer} />);
+
+
   };
 
   // Get workout type for Spotify recommendations
-  const getWorkoutType = (): 'cardio' | 'strength' | 'yoga' | 'running' => {
+  const getWorkoutType = () => {
     if (mode === 'run') return 'running';
     if (!workout) return 'cardio';
-    
+
     const category = workout.category.toLowerCase();
     if (category.includes('cardio') || category.includes('hiit')) return 'cardio';
     if (category.includes('strength') || category.includes('weight')) return 'strength';
     if (category.includes('yoga') || category.includes('flexibility')) return 'yoga';
-    
+
     return 'cardio';
   };
-  
+
   // Get next workouts for preview
   const getNextWorkouts = () => {
     const allWorkouts = [...workouts, ...customWorkouts];
-    const currentIndex = allWorkouts.findIndex(w => w.id === workoutId);
+    const currentIndex = allWorkouts.findIndex((w) => w.id === workoutId);
     if (currentIndex === -1) return allWorkouts.slice(0, 3);
-    
+
     const nextWorkouts = [];
     for (let i = 1; i <= 3; i++) {
       const nextIndex = (currentIndex + i) % allWorkouts.length;
@@ -565,46 +564,46 @@ export default function ActiveWorkoutScreen() {
     }
     return nextWorkouts;
   };
-  
+
   // Pan responder for swipe up gesture
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (evt, gestureState) => {
       return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && Math.abs(gestureState.dy) > 10;
     },
     onPanResponderMove: (evt, gestureState) => {
-      if (gestureState.dy < 0) { // Swiping up
+      if (gestureState.dy < 0) {// Swiping up
         const newHeight = Math.min(previewMaxHeight, Math.abs(gestureState.dy));
         previewHeight.setValue(newHeight);
       }
     },
     onPanResponderRelease: (evt, gestureState) => {
-      if (gestureState.dy < -50) { // Swipe up threshold
+      if (gestureState.dy < -50) {// Swipe up threshold
         setIsPreviewVisible(true);
         Animated.spring(previewHeight, {
           toValue: previewMaxHeight,
-          useNativeDriver: false,
+          useNativeDriver: false
         }).start();
       } else {
         setIsPreviewVisible(false);
         Animated.spring(previewHeight, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: false
         }).start();
       }
-    },
+    }
   });
-  
+
   const closePreview = () => {
     setIsPreviewVisible(false);
     Animated.spring(previewHeight, {
       toValue: 0,
-      useNativeDriver: false,
+      useNativeDriver: false
     }).start();
   };
-  
+
   const renderNextWorkoutsPreview = () => {
     const nextWorkouts = getNextWorkouts();
-    
+
     return (
       <Animated.View style={[styles.nextWorkoutsPreview, { height: previewHeight }]}>
         <View style={styles.previewHeader}>
@@ -615,19 +614,19 @@ export default function ActiveWorkoutScreen() {
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.previewContent} showsVerticalScrollIndicator={false}>
-          {nextWorkouts.map((nextWorkout, index) => (
-            <TouchableOpacity 
-              key={`next-workout-${nextWorkout.id}-${index}-${Date.now()}`} 
-              style={styles.nextWorkoutCard}
-              onPress={() => {
-                closePreview();
-                router.replace(`/workout/${nextWorkout.id}?mode=workout`);
-              }}
-            >
-              <Image 
-                source={{ uri: nextWorkout.imageUrl }} 
-                style={styles.nextWorkoutImage} 
-              />
+          {nextWorkouts.map((nextWorkout, index) =>
+          <TouchableOpacity
+            key={`next-workout-${nextWorkout.id}-${index}-${Date.now()}`}
+            style={styles.nextWorkoutCard}
+            onPress={() => {
+              closePreview();
+              router.replace(`/workout/${nextWorkout.id}?mode=workout`);
+            }}>
+            
+              <Image
+              source={{ uri: nextWorkout.imageUrl }}
+              style={styles.nextWorkoutImage} />
+            
               <View style={styles.nextWorkoutInfo}>
                 <Text style={styles.nextWorkoutName}>{nextWorkout.name}</Text>
                 <Text style={styles.nextWorkoutDetails}>
@@ -639,15 +638,15 @@ export default function ActiveWorkoutScreen() {
                 <Text style={styles.nextWorkoutXp}>+{nextWorkout.xpReward} XP</Text>
               </View>
             </TouchableOpacity>
-          ))}
+          )}
         </ScrollView>
-      </Animated.View>
-    );
+      </Animated.View>);
+
   };
-  
+
   return (
     <>
-      <Stack.Screen options={{ 
+      <Stack.Screen options={{
         headerShown: false,
         presentation: 'fullScreenModal',
         gestureEnabled: false,
@@ -657,13 +656,13 @@ export default function ActiveWorkoutScreen() {
       <StatusBar style="light" />
       <View style={styles.container}>
       
-      {workoutComplete ? (
+      {workoutComplete ?
         // Workout Complete Screen - Enhanced to match reference
         <SafeAreaView style={styles.completeContainer}>
           <View style={styles.completeHeader}>
-            <Text style={styles.completeTitle}>{(mode === 'run' || mode === 'running') ? 'Run Complete!' : 'Workout Complete!'}</Text>
+            <Text style={styles.completeTitle}>{mode === 'run' || mode === 'running' ? 'Run Complete!' : 'Workout Complete!'}</Text>
             <Text style={styles.completeSubtitle}>
-              Great job! You have completed the {(mode === 'run' || mode === 'running') ? (runningSession?.name || 'run') : workout?.name + ' workout'}.
+              Great job! You have completed the {mode === 'run' || mode === 'running' ? runningSession?.name || 'run' : workout?.name + ' workout'}.
             </Text>
           </View>
           
@@ -676,7 +675,7 @@ export default function ActiveWorkoutScreen() {
           
           <View style={styles.workoutStatsContainer}>
             <View style={styles.workoutTimeContainer}>
-              <Text style={styles.workoutTimeText}>{formatTime((mode === 'run' || mode === 'running') ? runStats.time : timer)}</Text>
+              <Text style={styles.workoutTimeText}>{formatTime(mode === 'run' || mode === 'running' ? runStats.time : timer)}</Text>
               <View style={styles.completionProgressContainer}>
                 <View style={styles.completionProgressBar}>
                   <View style={[styles.completionProgressFill, { width: '100%' }]} />
@@ -693,30 +692,30 @@ export default function ActiveWorkoutScreen() {
               placeholderTextColor="#888"
               multiline
               value={comment}
-              onChangeText={setComment}
-            />
+              onChangeText={setComment} />
+            
           </View>
           
           <View style={styles.feelingsContainer}>
             <Text style={styles.feelingsTitle}>How are you feeling?</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.feelingsScrollView}>
-              {['AMAZING', 'STRONG', 'FRESH', 'MOTIVATED', 'PUMPED'].map((feeling) => (
-                <TouchableOpacity 
-                  key={feeling} 
-                  style={[
-                    styles.feelingButton,
-                    selectedFeelings.includes(feeling) && styles.selectedFeelingButton
-                  ]}
-                  onPress={() => toggleFeeling(feeling)}
-                >
+              {['AMAZING', 'STRONG', 'FRESH', 'MOTIVATED', 'PUMPED'].map((feeling) =>
+              <TouchableOpacity
+                key={feeling}
+                style={[
+                styles.feelingButton,
+                selectedFeelings.includes(feeling) && styles.selectedFeelingButton]
+                }
+                onPress={() => toggleFeeling(feeling)}>
+                
                   <Text style={[
-                    styles.feelingText,
-                    selectedFeelings.includes(feeling) && styles.selectedFeelingText
-                  ]}>
+                styles.feelingText,
+                selectedFeelings.includes(feeling) && styles.selectedFeelingText]
+                }>
                     {feeling}
                   </Text>
                 </TouchableOpacity>
-              ))}
+              )}
             </ScrollView>
           </View>
           
@@ -727,10 +726,10 @@ export default function ActiveWorkoutScreen() {
                 *Public activities appear on other users feeds. You can change this at any time.
               </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.toggleContainer, isPublic ? styles.toggleActive : styles.toggleInactive]}
-              onPress={() => setIsPublic(!isPublic)}
-            >
+              onPress={() => setIsPublic(!isPublic)}>
+              
               <View style={[styles.toggleCircle, isPublic ? styles.toggleCircleActive : styles.toggleCircleInactive]} />
             </TouchableOpacity>
           </View>
@@ -738,18 +737,18 @@ export default function ActiveWorkoutScreen() {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Clock size={24} color={Colors.primary} />
-              <Text style={styles.summaryStatValue}>{(mode === 'run' || mode === 'running') ? formatTime(runStats.time) : `${workout?.duration} min`}</Text>
+              <Text style={styles.summaryStatValue}>{mode === 'run' || mode === 'running' ? formatTime(runStats.time) : `${workout?.duration} min`}</Text>
               <Text style={styles.summaryStatLabel}>Duration</Text>
             </View>
             
             <View style={styles.statItem}>
               <Award size={24} color={Colors.primary} />
-              <Text style={styles.summaryStatValue}>+{(mode === 'run' || mode === 'running') ? (runningSession?.xpReward || 50) : workout?.xpReward || 0}</Text>
+              <Text style={styles.summaryStatValue}>+{mode === 'run' || mode === 'running' ? runningSession?.xpReward || 50 : workout?.xpReward || 0}</Text>
               <Text style={styles.summaryStatLabel}>XP Earned</Text>
             </View>
             
-            {(mode === 'run' || mode === 'running') && (
-              <>
+            {(mode === 'run' || mode === 'running') &&
+            <>
                 <View style={styles.statItem}>
                   <MapPin size={24} color={Colors.primary} />
                   <Text style={styles.summaryStatValue}>{locationState.distance.toFixed(2)} km</Text>
@@ -762,23 +761,23 @@ export default function ActiveWorkoutScreen() {
                   <Text style={styles.summaryStatLabel}>Calories</Text>
                 </View>
               </>
-            )}
+            }
           </View>
           
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.finishedButton}
-            onPress={handleFinish}
-          >
+            onPress={handleFinish}>
+            
             <Text style={styles.finishedButtonText}>Finished</Text>
           </TouchableOpacity>
-        </SafeAreaView>
-      ) : (
+        </SafeAreaView> :
+
         // Active Workout Screen - New Design
         <View style={styles.activeWorkoutContainer}>
           <StatusBar style="light" />
           
-          {mode === 'workout' && workout && (
-            <>
+          {mode === 'workout' && workout &&
+          <>
               {/* Exercise Name Header */}
               <View style={styles.exerciseHeader}>
                 <Text style={styles.exerciseTitle}>{currentExercise?.name || 'Exercise'}</Text>
@@ -800,12 +799,12 @@ export default function ActiveWorkoutScreen() {
               <View style={styles.setTrackingContainer}>
                 <View style={styles.setTrackingBar}>
                   <View style={styles.setTrackingProgress}>
-                    <View 
-                      style={[
-                        styles.setTrackingFill, 
-                        { width: `${(currentSet / (currentExercise?.sets || 6)) * 100}%` }
-                      ]} 
-                    />
+                    <View
+                    style={[
+                    styles.setTrackingFill,
+                    { width: `${currentSet / (currentExercise?.sets || 6) * 100}%` }]
+                    } />
+                  
                   </View>
                   <Text style={styles.setTrackingText}>
                     Set {currentSet} of {currentExercise?.sets || 6}
@@ -816,10 +815,10 @@ export default function ActiveWorkoutScreen() {
               {/* Exercise Image */}
               <View style={styles.exerciseImageContainer}>
                 <Image
-                  source={{ uri: currentExercise?.imageUrl || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500' }}
-                  style={styles.mainExerciseImage}
-                  resizeMode="cover"
-                />
+                source={{ uri: currentExercise?.imageUrl || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500' }}
+                style={styles.mainExerciseImage}
+                resizeMode="cover" />
+              
               </View>
               
 
@@ -828,39 +827,39 @@ export default function ActiveWorkoutScreen() {
               <View style={styles.setsContainer}>
                 <Text style={styles.setsLabel}>Sets</Text>
                 <View style={styles.setsRow}>
-                  {Array.from({ length: currentExercise?.sets || 6 }, (_, index) => (
-                    <TouchableOpacity 
-                      key={index + 1}
-                      style={[
-                        styles.setCircle,
-                        index + 1 === currentSet ? styles.activeSet : 
-                        index + 1 < currentSet ? styles.completedSet : styles.inactiveSet
-                      ]}
-                    >
+                  {Array.from({ length: currentExercise?.sets || 6 }, (_, index) =>
+                <TouchableOpacity
+                  key={index + 1}
+                  style={[
+                  styles.setCircle,
+                  index + 1 === currentSet ? styles.activeSet :
+                  index + 1 < currentSet ? styles.completedSet : styles.inactiveSet]
+                  }>
+                  
                       <Text style={[
-                        styles.setNumber,
-                        index + 1 === currentSet ? styles.activeSetText : 
-                        index + 1 < currentSet ? styles.completedSetText : styles.inactiveSetText
-                      ]}>
+                  styles.setNumber,
+                  index + 1 === currentSet ? styles.activeSetText :
+                  index + 1 < currentSet ? styles.completedSetText : styles.inactiveSetText]
+                  }>
                         {index + 1}
                       </Text>
                     </TouchableOpacity>
-                  ))}
+                )}
                 </View>
               </View>
               
               {/* Timer and Controls */}
               <View style={styles.timerSection} {...panResponder.panHandlers}>
                 <View style={styles.timerRow}>
-                  <TouchableOpacity 
-                    style={styles.pauseButton}
-                    onPress={toggleTimer}
-                  >
-                    {isActive ? (
-                      <Pause size={24} color="#333" />
-                    ) : (
-                      <Play size={24} color="#333" />
-                    )}
+                  <TouchableOpacity
+                  style={styles.pauseButton}
+                  onPress={toggleTimer}>
+                  
+                    {isActive ?
+                  <Pause size={24} color="#333" /> :
+
+                  <Play size={24} color="#333" />
+                  }
                   </TouchableOpacity>
                   
                   <View style={styles.timerDisplay}>
@@ -868,10 +867,10 @@ export default function ActiveWorkoutScreen() {
                     <Text style={styles.timerText}>{formatTime(timer)}</Text>
                   </View>
                   
-                  <TouchableOpacity 
-                    style={styles.skipButtonNew}
-                    onPress={skipToNext}
-                  >
+                  <TouchableOpacity
+                  style={styles.skipButtonNew}
+                  onPress={skipToNext}>
+                  
                     <Text style={styles.skipButtonText}>SKIP</Text>
                   </TouchableOpacity>
                 </View>
@@ -886,10 +885,10 @@ export default function ActiveWorkoutScreen() {
               {/* Next Workouts Preview */}
               {renderNextWorkoutsPreview()}
             </>
-          )}
+          }
           
-          {(mode === 'run' || mode === 'running') && (
-            <View style={styles.runContainer}>
+          {(mode === 'run' || mode === 'running') &&
+          <View style={styles.runContainer}>
               {/* Full Screen Map */}
               <View style={styles.fullScreenMapContainer}>
                 {renderMap()}
@@ -918,32 +917,32 @@ export default function ActiveWorkoutScreen() {
                   </TouchableOpacity>
                   
                   {/* Start/Pause Button */}
-                  <TouchableOpacity 
-                    style={[styles.startButton, isActive && styles.pauseButtonActive]}
-                    onPress={toggleTimer}
-                  >
-                    {isActive ? (
-                      <View style={styles.pauseIcon}>
+                  <TouchableOpacity
+                  style={[styles.startButton, isActive && styles.pauseButtonActive]}
+                  onPress={toggleTimer}>
+                  
+                    {isActive ?
+                  <View style={styles.pauseIcon}>
                         <View style={styles.pauseBar} />
                         <View style={styles.pauseBar} />
-                      </View>
-                    ) : (
-                      <Text style={styles.startButtonText}>START</Text>
-                    )}
+                      </View> :
+
+                  <Text style={styles.startButtonText}>START</Text>
+                  }
                   </TouchableOpacity>
                   
                   {/* Music Button */}
-                  <TouchableOpacity 
-                    style={[styles.musicButton, hasSpotifyAccess && styles.musicButtonActive]}
-                    onPress={() => {
-                      if (hasSpotifyAccess) {
-                        setShowMusicPlayer(!showMusicPlayer);
-                      } else {
-                        router.push('/spotify-integration');
-                      }
-                    }}
-                    testID="active-workout-music-button"
-                  >
+                  <TouchableOpacity
+                  style={[styles.musicButton, hasSpotifyAccess && styles.musicButtonActive]}
+                  onPress={() => {
+                    if (hasSpotifyAccess) {
+                      setShowMusicPlayer(!showMusicPlayer);
+                    } else {
+                      router.push('/spotify-integration');
+                    }
+                  }}
+                  testID="active-workout-music-button">
+                  
                     <Music size={24} color={hasSpotifyAccess ? '#1DB954' : '#333'} />
                   </TouchableOpacity>
                 </View>
@@ -965,38 +964,38 @@ export default function ActiveWorkoutScreen() {
                 </View>
               </View>
             </View>
-          )}
+          }
           
           {/* Exit Menu Modal */}
           <Modal
             visible={showExitMenu}
             transparent={true}
             animationType="fade"
-            onRequestClose={handleContinue}
-          >
+            onRequestClose={handleContinue}>
+            
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>{(mode === 'run' || mode === 'running') ? 'Run in Progress' : 'Workout in Progress'}</Text>
+                <Text style={styles.modalTitle}>{mode === 'run' || mode === 'running' ? 'Run in Progress' : 'Workout in Progress'}</Text>
                 <Text style={styles.modalText}>What would you like to do?</Text>
                 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalButton, styles.continueButton]}
-                  onPress={handleContinue}
-                >
-                  <Text style={styles.continueButtonText}>{(mode === 'run' || mode === 'running') ? 'Continue Run' : 'Continue Workout'}</Text>
+                  onPress={handleContinue}>
+                  
+                  <Text style={styles.continueButtonText}>{mode === 'run' || mode === 'running' ? 'Continue Run' : 'Continue Workout'}</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalButton, styles.finishWorkoutButton]}
-                  onPress={handleFinishWorkout}
-                >
-                  <Text style={styles.finishWorkoutText}>{(mode === 'run' || mode === 'running') ? 'Finish Run' : 'Finish Workout'}</Text>
+                  onPress={handleFinishWorkout}>
+                  
+                  <Text style={styles.finishWorkoutText}>{mode === 'run' || mode === 'running' ? 'Finish Run' : 'Finish Workout'}</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalButton, styles.exitButton]}
-                  onPress={handleExitAndDiscard}
-                >
+                  onPress={handleExitAndDiscard}>
+                  
                   <Text style={styles.exitButtonText}>Exit and Discard</Text>
                 </TouchableOpacity>
               </View>
@@ -1008,8 +1007,8 @@ export default function ActiveWorkoutScreen() {
             visible={showLocationPermissionModal}
             transparent={true}
             animationType="fade"
-            onRequestClose={() => setShowLocationPermissionModal(false)}
-          >
+            onRequestClose={() => setShowLocationPermissionModal(false)}>
+            
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <MapPin size={48} color={Colors.primary} style={styles.permissionIcon} />
@@ -1025,28 +1024,28 @@ export default function ActiveWorkoutScreen() {
                   <Text style={styles.permissionFeature}>• Provide accurate workout data</Text>
                 </View>
                 
-                {locationPermission === 'loading' ? (
-                  <View style={styles.loadingContainer}>
+                {locationPermission === 'loading' ?
+                <View style={styles.loadingContainer}>
                     <Loader2 size={24} color={Colors.primary} />
                     <Text style={styles.loadingText}>Requesting permission...</Text>
-                  </View>
-                ) : (
-                  <>
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.continueButton]}
-                      onPress={handleRequestLocationPermission}
-                    >
+                  </View> :
+
+                <>
+                    <TouchableOpacity
+                    style={[styles.modalButton, styles.continueButton]}
+                    onPress={handleRequestLocationPermission}>
+                    
                       <Text style={styles.continueButtonText}>Grant Location Access</Text>
                     </TouchableOpacity>
                     
-                    <TouchableOpacity 
-                      style={[styles.modalButton, styles.exitButton]}
-                      onPress={handleLocationPermissionDenied}
-                    >
+                    <TouchableOpacity
+                    style={[styles.modalButton, styles.exitButton]}
+                    onPress={handleLocationPermissionDenied}>
+                    
                       <Text style={styles.exitButtonText}>Cancel</Text>
                     </TouchableOpacity>
                   </>
-                )}
+                }
               </View>
             </View>
           </Modal>
@@ -1056,8 +1055,8 @@ export default function ActiveWorkoutScreen() {
             visible={showMusicPlayer}
             transparent={true}
             animationType="slide"
-            onRequestClose={() => setShowMusicPlayer(false)}
-          >
+            onRequestClose={() => setShowMusicPlayer(false)}>
+            
             <View style={styles.musicModalOverlay}>
               <View style={styles.musicModalContent}>
                 <View style={styles.musicModalHeader}>
@@ -1066,138 +1065,138 @@ export default function ActiveWorkoutScreen() {
                     <X size={24} color={Colors.text.primary} />
                   </TouchableOpacity>
                 </View>
-                <SpotifyMusicPlayer 
+                <SpotifyMusicPlayer
                   workoutType={getWorkoutType()}
-                  style={styles.musicPlayerInModal}
-                />
+                  style={styles.musicPlayerInModal} />
+                
               </View>
             </View>
           </Modal>
 
           {/* Next Workouts Preview Overlay */}
-          {isPreviewVisible && (
-            <TouchableOpacity 
-              style={styles.previewOverlay} 
-              activeOpacity={1} 
-              onPress={closePreview}
-            />
-          )}
+          {isPreviewVisible &&
+          <TouchableOpacity
+            style={styles.previewOverlay}
+            activeOpacity={1}
+            onPress={closePreview} />
+
+          }
         </View>
-      )}
+        }
       </View>
-    </>
-  );
+    </>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1a1a1a'
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
-    padding: 20,
+    padding: 20
   },
   loadingText: {
     fontSize: 16,
     color: Colors.text.secondary,
-    marginBottom: 20,
+    marginBottom: 20
   },
   backButton: {
     backgroundColor: Colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 8
   },
   backButtonText: {
     color: Colors.text.inverse,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   activeWorkoutContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f5f5'
   },
   exerciseHeader: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   exerciseTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#333',
-    textAlign: 'center',
+    textAlign: 'center'
   },
 
   exerciseImageContainer: {
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 15
   },
   topStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 60,
-    marginBottom: 20,
+    marginBottom: 20
   },
   topStatBox: {
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16
   },
   topStatLabel: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 4
   },
   topStatValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#333',
+    color: '#333'
   },
   mainExerciseImage: {
     width: '100%',
     height: 300,
-    borderRadius: 16,
+    borderRadius: 16
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 60,
-    marginBottom: 40,
+    marginBottom: 40
   },
   statBox: {
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16
   },
   statLabel: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 8
   },
   statValue: {
     fontSize: 48,
     fontWeight: '700',
     color: '#333',
-    marginTop: -30,
+    marginTop: -30
   },
   setsContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 40
   },
   setsLabel: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 16,
+    marginBottom: 16
   },
   setsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12
   },
   setCircle: {
     width: 40,
@@ -1205,32 +1204,32 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 2
   },
   activeSet: {
     backgroundColor: '#333',
-    borderColor: '#333',
+    borderColor: '#333'
   },
   completedSet: {
     backgroundColor: '#e0e0e0',
-    borderColor: '#e0e0e0',
+    borderColor: '#e0e0e0'
   },
   inactiveSet: {
     backgroundColor: 'transparent',
-    borderColor: '#e0e0e0',
+    borderColor: '#e0e0e0'
   },
   setNumber: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   activeSetText: {
-    color: '#fff',
+    color: '#fff'
   },
   completedSetText: {
-    color: '#666',
+    color: '#666'
   },
   inactiveSetText: {
-    color: '#999',
+    color: '#999'
   },
   timerSection: {
     position: 'absolute',
@@ -1246,12 +1245,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 5
   },
   timerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between'
   },
   pauseButton: {
     width: 48,
@@ -1259,41 +1258,41 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   timerDisplay: {
     alignItems: 'center',
-    flex: 1,
+    flex: 1
   },
   timerLabel: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 4
   },
   timerText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#333',
+    color: '#333'
   },
   skipButtonNew: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 24
   },
   skipButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   runContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1a1a1a'
   },
   // Full screen running UI styles
   fullScreenMapContainer: {
     flex: 1,
-    position: 'relative',
+    position: 'relative'
   },
   topStatsOverlay: {
     position: 'absolute',
@@ -1302,7 +1301,7 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    zIndex: 10,
+    zIndex: 10
   },
   topStatItem: {
     alignItems: 'center',
@@ -1310,19 +1309,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    minWidth: 80,
+    minWidth: 80
   },
   runningTopStatValue: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 2,
+    marginBottom: 2
   },
   runningTopStatLabel: {
     fontSize: 10,
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.5
   },
   controlPanelOverlay: {
     position: 'absolute',
@@ -1333,7 +1332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 40,
-    zIndex: 10,
+    zIndex: 10
   },
   bottomStatsOverlay: {
     position: 'absolute',
@@ -1346,23 +1345,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 20,
-    zIndex: 10,
+    zIndex: 10
   },
   bottomStatItem: {
     alignItems: 'center',
-    flex: 1,
+    flex: 1
   },
   bottomStatValue: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 2,
+    marginBottom: 2
   },
   bottomStatLabel: {
     fontSize: 10,
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.5
   },
   exitButtonRun: {
     width: 56,
@@ -1375,7 +1374,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 4
   },
   startButton: {
     width: 90,
@@ -1390,28 +1389,28 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.3)'
   },
   pauseButtonActive: {
     backgroundColor: '#ff6b6b',
     shadowColor: '#ff6b6b',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.3)'
   },
   startButtonText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#fff',
-    letterSpacing: 1,
+    letterSpacing: 1
   },
   pauseIcon: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 4
   },
   pauseBar: {
     width: 4,
     height: 20,
     backgroundColor: '#fff',
-    borderRadius: 2,
+    borderRadius: 2
   },
   musicButton: {
     width: 56,
@@ -1424,66 +1423,66 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 4
   },
   musicButtonActive: {
     backgroundColor: 'rgba(29, 185, 84, 0.15)',
     borderWidth: 2,
-    borderColor: '#1DB954',
+    borderColor: '#1DB954'
   },
   musicModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-end'
   },
   musicModalContent: {
     backgroundColor: Colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '70%',
+    maxHeight: '70%'
   },
   musicModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 16
   },
   musicModalTitle: {
     fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
+    fontWeight: '700',
+    color: Colors.text.primary
   },
   musicPlayerInModal: {
-    marginBottom: 0,
+    marginBottom: 0
   },
 
   completeContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
   },
   completeHeader: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 10,
+    paddingBottom: 10
   },
   completeTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: '#333',
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   completeSubtitle: {
     fontSize: 16,
     color: '#666',
-    textAlign: 'center',
+    textAlign: 'center'
   },
   photoContainer: {
     height: 200,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 20
   },
   addPhotoButton: {
     justifyContent: 'center',
@@ -1491,32 +1490,32 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(74, 128, 240, 0.2)',
+    backgroundColor: 'rgba(74, 128, 240, 0.2)'
   },
   addPhotoText: {
     color: Colors.primary,
     marginTop: 8,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   workoutStatsContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   workoutTimeContainer: {
-    marginBottom: 20,
+    marginBottom: 20
   },
   workoutTimeText: {
     fontSize: 36,
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 10
   },
   completionProgressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   completionProgressBar: {
     height: 4,
@@ -1524,20 +1523,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.3)',
     borderRadius: 2,
     marginRight: 10,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   completionProgressFill: {
     height: '100%',
     backgroundColor: '#4CAF50',
-    borderRadius: 2,
+    borderRadius: 2
   },
   completionPercentText: {
     color: '#666',
-    fontSize: 12,
+    fontSize: 12
   },
   commentContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   commentInput: {
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
@@ -1545,83 +1544,83 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#333',
     fontSize: 16,
-    minHeight: 100,
+    minHeight: 100
   },
   feelingsContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   feelingsTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 12
   },
   feelingsScrollView: {
-    flexDirection: 'row',
+    flexDirection: 'row'
   },
   feelingButton: {
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    marginRight: 10,
+    marginRight: 10
   },
   selectedFeelingButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   feelingText: {
     color: '#333',
-    fontWeight: '600',
+    fontWeight: '600'
   },
   selectedFeelingText: {
-    color: '#fff',
+    color: '#fff'
   },
   publicActivityContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   publicActivityTextContainer: {
-    flex: 1,
+    flex: 1
   },
   publicActivityTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 4
   },
   publicActivityDescription: {
     fontSize: 12,
-    color: '#666',
+    color: '#666'
   },
   toggleContainer: {
     width: 50,
     height: 30,
     borderRadius: 15,
     padding: 2,
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   toggleActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4CAF50'
   },
   toggleInactive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)'
   },
   toggleCircle: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 13
   },
   toggleCircleActive: {
     backgroundColor: '#fff',
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-end'
   },
   toggleCircleInactive: {
     backgroundColor: '#fff',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-start'
   },
   finishedButton: {
     backgroundColor: Colors.primary,
@@ -1629,13 +1628,13 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginHorizontal: 20,
     marginBottom: 40,
-    marginTop: 20,
+    marginTop: 20
   },
   finishedButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-    textAlign: 'center',
+    textAlign: 'center'
   },
   statsContainer: {
     flexDirection: 'row',
@@ -1643,7 +1642,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   statItem: {
     alignItems: 'center',
@@ -1651,41 +1650,41 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     width: '48%',
-    marginBottom: 12,
+    marginBottom: 12
   },
   summaryStatValue: {
     fontSize: 24,
     fontWeight: '700',
     color: '#333',
-    marginVertical: 8,
+    marginVertical: 8
   },
   summaryStatLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#666'
   },
 
   finishButton: {
-    width: '100%',
+    width: '100%'
   },
   // Full workout view styles
   fullWorkoutContainer: {
     flex: 1,
-    paddingTop: 8,
+    paddingTop: 8
   },
   fullWorkoutTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 4
   },
   fullWorkoutSubtitle: {
     fontSize: 16,
     color: '#666',
     marginBottom: 16,
-    textAlign: 'right',
+    textAlign: 'right'
   },
   exerciseList: {
-    maxHeight: height * 0.6,
+    maxHeight: height * 0.6
   },
   exerciseListItem: {
     flexDirection: 'row',
@@ -1696,32 +1695,32 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     backgroundColor: 'rgba(230, 240, 255, 0.3)',
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 12
   },
   currentExerciseItem: {
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
     borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
+    borderLeftColor: Colors.primary
   },
   exerciseListImage: {
     width: 70,
     height: 70,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 12
   },
   exerciseListDetails: {
-    flex: 1,
+    flex: 1
   },
   exerciseListName: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 4
   },
   exerciseListSpecs: {
     fontSize: 14,
-    color: '#666',
+    color: '#666'
   },
   // Modal styles
   modalOverlay: {
@@ -1729,7 +1728,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 20
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -1742,119 +1741,119 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 5
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: '#333',
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   modalText: {
     fontSize: 16,
     color: '#666',
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   modalButton: {
     width: '100%',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   continueButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   continueButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   finishWorkoutButton: {
-    backgroundColor: 'rgba(230, 240, 255, 0.8)',
+    backgroundColor: 'rgba(230, 240, 255, 0.8)'
   },
   finishWorkoutText: {
     color: '#333',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   exitButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(255, 50, 50, 0.7)',
+    borderColor: 'rgba(255, 50, 50, 0.7)'
   },
   exitButtonText: {
     color: 'rgba(255, 50, 50, 0.9)',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   // Run-specific styles
   runStatsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: 16
   },
   runStatItem: {
     alignItems: 'center',
     backgroundColor: 'rgba(230, 240, 255, 0.8)',
     padding: 16,
     borderRadius: 12,
-    width: '30%',
+    width: '30%'
   },
   runStatValue: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   runStatLabel: {
     fontSize: 12,
-    color: '#666',
+    color: '#666'
   },
   mapContainer: {
     flex: 1,
     borderRadius: 0,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   webMapFallback: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(230, 240, 255, 0.5)',
-    padding: 20,
+    padding: 20
   },
   webMapText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   webMapSubtext: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 4
   },
   noSpotifyConnectionText: {
     textAlign: 'center',
     padding: 16,
     color: '#666',
-    fontSize: 14,
+    fontSize: 14
   },
   progressIndicator: {
     width: 100,
     height: 4,
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   progressIndicatorFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 2,
+    borderRadius: 2
   },
   // Next workouts preview styles
   nextWorkoutsPreview: {
@@ -1870,7 +1869,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   previewHeader: {
     flexDirection: 'row',
@@ -1879,7 +1878,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)'
   },
   previewHandle: {
     width: 40,
@@ -1889,14 +1888,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: '50%',
-    marginLeft: -20,
+    marginLeft: -20
   },
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     flex: 1,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   closePreviewButton: {
     width: 32,
@@ -1904,73 +1903,73 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   closePreviewText: {
     fontSize: 20,
     color: '#666',
-    fontWeight: '300',
+    fontWeight: '300'
   },
   previewContent: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   nextWorkoutCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)'
   },
   nextWorkoutImage: {
     width: 60,
     height: 60,
     borderRadius: 12,
-    marginRight: 16,
+    marginRight: 16
   },
   nextWorkoutInfo: {
-    flex: 1,
+    flex: 1
   },
   nextWorkoutName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 4
   },
   nextWorkoutDetails: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 2,
+    marginBottom: 2
   },
   nextWorkoutCategory: {
     fontSize: 12,
     color: Colors.primary,
     textTransform: 'uppercase',
-    fontWeight: '500',
+    fontWeight: '500'
   },
   nextWorkoutMeta: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-end'
   },
   nextWorkoutXp: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.primary
   },
   swipeIndicator: {
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 12
   },
   swipeHandle: {
     width: 40,
     height: 4,
     backgroundColor: '#ddd',
     borderRadius: 2,
-    marginBottom: 8,
+    marginBottom: 8
   },
   swipeText: {
     fontSize: 12,
     color: '#999',
-    textAlign: 'center',
+    textAlign: 'center'
   },
   previewOverlay: {
     position: 'absolute',
@@ -1978,15 +1977,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)'
   },
   // Set tracking bar styles
   setTrackingContainer: {
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 15
   },
   setTrackingBar: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   setTrackingProgress: {
     width: '100%',
@@ -1994,17 +1993,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 8
   },
   setTrackingFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 3,
+    borderRadius: 3
   },
   setTrackingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#666'
   },
   // Running session header styles
   runningHeader: {
@@ -2012,72 +2011,72 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: 'rgba(230, 240, 255, 0.3)',
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 20
   },
   runningTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 4
   },
   runningDescription: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 18,
+    lineHeight: 18
   },
   // Web map fallback styles
   webMapTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 8
   },
   webMapSubtitle: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 16,
+    marginBottom: 16
   },
   webMapStats: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   webMapStat: {
     fontSize: 14,
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 4
   },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Colors.spacing.xl,
+    paddingHorizontal: Colors.spacing.xl
   },
   permissionTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
     marginTop: Colors.spacing.lg,
     marginBottom: Colors.spacing.md,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   permissionText: {
     fontSize: 16,
     color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: Colors.spacing.xl,
+    marginBottom: Colors.spacing.xl
   },
   permissionIcon: {
     marginBottom: 16,
-    alignSelf: 'center',
+    alignSelf: 'center'
   },
   permissionFeatures: {
     alignSelf: 'stretch',
-    marginVertical: 16,
+    marginVertical: 16
   },
   permissionFeature: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
-    lineHeight: 20,
-  },
+    lineHeight: 20
+  }
 });

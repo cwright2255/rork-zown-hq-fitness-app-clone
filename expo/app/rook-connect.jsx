@@ -6,8 +6,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
-  Platform,
-} from 'react-native';
+  Platform } from
+'react-native';
 import { WebView } from 'react-native-webview';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../src/stores/authStore';
@@ -48,8 +48,8 @@ export default function RookConnectScreen() {
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
 
   return (
@@ -62,12 +62,12 @@ export default function RookConnectScreen() {
         <View style={{ width: 60 }} />
       </View>
 
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
+      {isLoading &&
+      <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Loading your devices...</Text>
         </View>
-      )}
+      }
 
       <WebView
         ref={webViewRef}
@@ -91,16 +91,16 @@ export default function RookConnectScreen() {
         allowsBackForwardNavigationGestures={Platform.OS === 'ios'}
         sharedCookiesEnabled={true}
         thirdPartyCookiesEnabled={true}
-        userAgent="ZownHQ/1.0 RookConnect"
-      />
-    </SafeAreaView>
-  );
+        userAgent="ZownHQ/1.0 RookConnect" />
+      
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   header: {
     flexDirection: 'row',
@@ -110,26 +110,26 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surface
   },
   headerTitle: {
     color: Colors.text.primary,
     fontSize: Typography.size.lg,
-    fontWeight: Typography.weight.semibold,
+    fontWeight: Typography.weight.semibold
   },
   backButton: {
     paddingVertical: Spacing.xs,
     paddingRight: Spacing.sm,
-    width: 60,
+    width: 60
   },
   backText: {
     color: Colors.primary,
     fontSize: Typography.size.base,
-    fontWeight: Typography.weight.medium,
+    fontWeight: Typography.weight.medium
   },
   webview: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   loadingOverlay: {
     position: 'absolute',
@@ -140,41 +140,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    zIndex: 10,
+    zIndex: 10
   },
   loadingText: {
     color: Colors.text.secondary,
     fontSize: Typography.size.base,
-    marginTop: Spacing.md,
+    marginTop: Spacing.md
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.xl
   },
   errorTitle: {
     color: Colors.text.primary,
     fontSize: Typography.size.xl,
     fontWeight: Typography.weight.bold,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.sm
   },
   errorSubtitle: {
     color: Colors.text.secondary,
     fontSize: Typography.size.base,
     textAlign: 'center',
     lineHeight: Typography.size.base * 1.5,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.xl
   },
   retryButton: {
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
+    borderRadius: Radius.md
   },
   retryText: {
     color: '#fff',
     fontSize: Typography.size.base,
-    fontWeight: Typography.weight.semibold,
-  },
+    fontWeight: Typography.weight.semibold
+  }
 });

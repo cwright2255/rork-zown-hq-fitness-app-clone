@@ -6,29 +6,29 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const PRESET_TIMES = [
-  { label: '5 min', seconds: 300 },
-  { label: '10 min', seconds: 600 },
-  { label: '15 min', seconds: 900 },
-  { label: '20 min', seconds: 1200 },
-  { label: '25 min', seconds: 1500 },
-  { label: '30 min', seconds: 1800 },
-];
+{ label: '5 min', seconds: 300 },
+{ label: '10 min', seconds: 600 },
+{ label: '15 min', seconds: 900 },
+{ label: '20 min', seconds: 1200 },
+{ label: '25 min', seconds: 1500 },
+{ label: '30 min', seconds: 1800 }];
 
-export default function TimerModal({ visible, onClose }: TimerModalProps) {
+
+export default function TimerModal({ visible, onClose }) {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes default
   const [initialTime, setInitialTime] = useState(300);
   const [isRunning, setIsRunning] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
+        setTimeLeft((prev) => {
           if (prev <= 1) {
             setIsRunning(false);
             Alert.alert('Timer Complete!', 'Your timer has finished.', [
-              { text: 'OK', onPress: () => {} }
-            ]);
+            { text: 'OK', onPress: () => {} }]
+            );
             return 0;
           }
           return prev - 1;
@@ -74,22 +74,22 @@ export default function TimerModal({ visible, onClose }: TimerModalProps) {
       'Custom Timer',
       'Enter minutes:',
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Set',
-          onPress: (value: string | undefined) => {
-            const minutes = parseInt(value || '0');
-            if (minutes > 0 && minutes <= 120) {
-              const seconds = minutes * 60;
-              setIsRunning(false);
-              setTimeLeft(seconds);
-              setInitialTime(seconds);
-            } else {
-              Alert.alert('Invalid Time', 'Please enter a number between 1 and 120 minutes.');
-            }
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Set',
+        onPress: (value) => {
+          const minutes = parseInt(value || '0');
+          if (minutes > 0 && minutes <= 120) {
+            const seconds = minutes * 60;
+            setIsRunning(false);
+            setTimeLeft(seconds);
+            setInitialTime(seconds);
+          } else {
+            Alert.alert('Invalid Time', 'Please enter a number between 1 and 120 minutes.');
           }
         }
-      ],
+      }],
+
       'plain-text',
       '',
       'numeric'
@@ -114,15 +114,15 @@ export default function TimerModal({ visible, onClose }: TimerModalProps) {
           {/* Timer Display */}
           <View style={styles.timerContainer}>
             <View style={[styles.progressRing, { borderColor: Colors.primary + '20' }]}>
-              <View 
+              <View
                 style={[
-                  styles.progressRingFill,
-                  {
-                    borderColor: Colors.primary,
-                    transform: [{ rotate: `${progress * 360}deg` }]
-                  }
-                ]}
-              />
+                styles.progressRingFill,
+                {
+                  borderColor: Colors.primary,
+                  transform: [{ rotate: `${progress * 360}deg` }]
+                }]
+                } />
+              
               <View style={styles.timerDisplay}>
                 <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
                 <Text style={styles.timerLabel}>
@@ -137,27 +137,27 @@ export default function TimerModal({ visible, onClose }: TimerModalProps) {
             <TouchableOpacity
               style={[styles.controlButton, styles.resetButton]}
               onPress={handleReset}
-              disabled={timeLeft === initialTime && !isRunning}
-            >
+              disabled={timeLeft === initialTime && !isRunning}>
+              
               <RotateCcw size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.controlButton, styles.playButton, isRunning && styles.pauseButton]}
               onPress={handlePlayPause}
-              disabled={timeLeft === 0}
-            >
-              {isRunning ? (
-                <Pause size={32} color={Colors.text.inverse} />
-              ) : (
-                <Play size={32} color={Colors.text.inverse} />
-              )}
+              disabled={timeLeft === 0}>
+              
+              {isRunning ?
+              <Pause size={32} color={Colors.text.inverse} /> :
+
+              <Play size={32} color={Colors.text.inverse} />
+              }
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.controlButton, styles.customButton]}
-              onPress={handleCustomTime}
-            >
+              onPress={handleCustomTime}>
+              
               <Clock size={24} color={Colors.primary} />
             </TouchableOpacity>
           </View>
@@ -166,23 +166,23 @@ export default function TimerModal({ visible, onClose }: TimerModalProps) {
           <View style={styles.presetsContainer}>
             <Text style={styles.presetsTitle}>Quick Times</Text>
             <View style={styles.presetGrid}>
-              {PRESET_TIMES.map((preset, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.presetButton,
-                    initialTime === preset.seconds && styles.presetButtonActive
-                  ]}
-                  onPress={() => handlePresetSelect(preset.seconds)}
-                >
+              {PRESET_TIMES.map((preset, index) =>
+              <TouchableOpacity
+                key={index}
+                style={[
+                styles.presetButton,
+                initialTime === preset.seconds && styles.presetButtonActive]
+                }
+                onPress={() => handlePresetSelect(preset.seconds)}>
+                
                   <Text style={[
-                    styles.presetButtonText,
-                    initialTime === preset.seconds && styles.presetButtonTextActive
-                  ]}>
+                styles.presetButtonText,
+                initialTime === preset.seconds && styles.presetButtonTextActive]
+                }>
                     {preset.label}
                   </Text>
                 </TouchableOpacity>
-              ))}
+              )}
             </View>
           </View>
         </View>
@@ -192,12 +192,12 @@ export default function TimerModal({ visible, onClose }: TimerModalProps) {
             title="Close"
             variant="outline"
             onPress={onClose}
-            style={styles.closeButtonFooter}
-          />
+            style={styles.closeButtonFooter} />
+          
         </View>
       </Card>
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -210,13 +210,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    zIndex: 1000
   },
   modal: {
     width: '90%',
     maxWidth: 400,
     margin: 20,
-    padding: 0,
+    padding: 0
   },
   header: {
     flexDirection: 'row',
@@ -224,12 +224,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   closeButton: {
     width: 32,
@@ -237,15 +237,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   content: {
     padding: 20,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   timerContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 32
   },
   progressRing: {
     width: 200,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     borderWidth: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    position: 'relative'
   },
   progressRingFill: {
     position: 'absolute',
@@ -264,67 +264,67 @@ const styles = StyleSheet.create({
     borderWidth: 8,
     borderColor: 'transparent',
     borderTopColor: Colors.primary,
-    borderRightColor: Colors.primary,
+    borderRightColor: Colors.primary
   },
   timerDisplay: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   timerText: {
     fontSize: 36,
     fontWeight: '700',
     color: Colors.text.primary,
-    fontFamily: 'monospace',
+    fontFamily: 'monospace'
   },
   timerLabel: {
     fontSize: 14,
     color: Colors.text.secondary,
     marginTop: 4,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
-    marginBottom: 32,
+    marginBottom: 32
   },
   controlButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   resetButton: {
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: Colors.backgroundSecondary
   },
   playButton: {
     backgroundColor: Colors.primary,
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 40
   },
   pauseButton: {
-    backgroundColor: Colors.warning,
+    backgroundColor: Colors.warning
   },
   customButton: {
-    backgroundColor: Colors.primary + '20',
+    backgroundColor: Colors.primary + '20'
   },
   presetsContainer: {
-    width: '100%',
+    width: '100%'
   },
   presetsTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   presetGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   presetButton: {
     paddingHorizontal: 16,
@@ -332,27 +332,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'transparent'
   },
   presetButtonActive: {
     backgroundColor: Colors.primary + '10',
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   presetButtonText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   presetButtonTextActive: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   footer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: Colors.border
   },
   closeButtonFooter: {
-    width: '100%',
-  },
+    width: '100%'
+  }
 });

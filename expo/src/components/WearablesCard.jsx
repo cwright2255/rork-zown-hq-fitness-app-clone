@@ -14,18 +14,18 @@ export function WearablesCard({ userId }) {
     todaySleep,
     requestPermissions,
     syncData,
-    isExpoGo,
+    isExpoGo
   } = useWearables(userId);
 
-  const manageDevicesButton = (
-    <TouchableOpacity
-      style={styles.manageButton}
-      onPress={() => router.push('/rook-connect')}
-      accessibilityLabel="Manage connected wearable devices"
-    >
+  const manageDevicesButton =
+  <TouchableOpacity
+    style={styles.manageButton}
+    onPress={() => router.push('/rook-connect')}
+    accessibilityLabel="Manage connected wearable devices">
+    
       <Text style={styles.manageButtonText}>Manage Connected Devices</Text>
-    </TouchableOpacity>
-  );
+    </TouchableOpacity>;
+
 
   if (isExpoGo) {
     return (
@@ -35,8 +35,8 @@ export function WearablesCard({ userId }) {
           Available in the full dev client build. Run `eas build --platform ios --profile development` to enable Apple Health sync.
         </Text>
         {manageDevicesButton}
-      </View>
-    );
+      </View>);
+
   }
 
   if (!hasPermissions) {
@@ -48,17 +48,17 @@ export function WearablesCard({ userId }) {
           style={styles.button}
           onPress={requestPermissions}
           disabled={isLoading}
-          accessibilityLabel="Connect Apple Health"
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>Connect Apple Health</Text>
-          )}
+          accessibilityLabel="Connect Apple Health">
+          
+          {isLoading ?
+          <ActivityIndicator color="#fff" size="small" /> :
+
+          <Text style={styles.buttonText}>Connect Apple Health</Text>
+          }
         </TouchableOpacity>
         {manageDevicesButton}
-      </View>
-    );
+      </View>);
+
   }
 
   return (
@@ -82,17 +82,17 @@ export function WearablesCard({ userId }) {
         style={[styles.button, styles.syncButton]}
         onPress={syncData}
         disabled={isLoading}
-        accessibilityLabel="Sync health data"
-      >
-        {isLoading ? (
-          <ActivityIndicator color={Colors.primary} size="small" />
-        ) : (
-          <Text style={[styles.buttonText, { color: Colors.primary }]}>Sync Now</Text>
-        )}
+        accessibilityLabel="Sync health data">
+        
+        {isLoading ?
+        <ActivityIndicator color={Colors.primary} size="small" /> :
+
+        <Text style={[styles.buttonText, { color: Colors.primary }]}>Sync Now</Text>
+        }
       </TouchableOpacity>
       {manageDevicesButton}
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -101,63 +101,63 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
   title: {
     color: Colors.text.primary,
     fontSize: Typography.size.lg,
     fontWeight: Typography.weight.semibold,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xs
   },
   subtitle: {
     color: Colors.text.secondary,
     fontSize: Typography.size.sm,
     lineHeight: Typography.size.sm * Typography.lineHeight.relaxed,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.md
   },
   metric: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   metricValue: {
     color: Colors.primary,
     fontSize: Typography.size['2xl'],
-    fontWeight: Typography.weight.bold,
+    fontWeight: Typography.weight.bold
   },
   metricLabel: {
     color: Colors.text.secondary,
     fontSize: Typography.size.xs,
-    marginTop: 2,
+    marginTop: 2
   },
   button: {
     backgroundColor: Colors.primary,
     borderRadius: Radius.md,
     paddingVertical: Spacing.sm,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   syncButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   buttonText: {
     color: '#fff',
     fontSize: Typography.size.base,
-    fontWeight: Typography.weight.semibold,
+    fontWeight: Typography.weight.semibold
   },
   manageButton: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.sm,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   manageButtonText: {
     color: Colors.primary,
     fontSize: Typography.size.sm,
     fontWeight: Typography.weight.medium,
-    textDecorationLine: 'underline',
-  },
+    textDecorationLine: 'underline'
+  }
 });

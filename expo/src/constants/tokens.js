@@ -12,10 +12,10 @@ export const Colors = {
   text: {
     primary: '#FFFFFF',
     secondary: '#A0A0C0',
-    disabled: '#5A5A7A',
+    disabled: '#5A5A7A'
   },
-  border: '#2A2A4A',
-} as const;
+  border: '#2A2A4A'
+};
 
 export const Spacing = {
   xs: 4,
@@ -24,8 +24,8 @@ export const Spacing = {
   lg: 24,
   xl: 32,
   '2xl': 48,
-  '3xl': 64,
-} as const;
+  '3xl': 64
+};
 
 export const Typography = {
   size: {
@@ -36,26 +36,25 @@ export const Typography = {
     xl: 20,
     '2xl': 24,
     '3xl': 30,
-    '4xl': 36,
+    '4xl': 36
   },
   weight: {
-    regular: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
+    regular: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700'
   },
   lineHeight: {
     tight: 1.2,
     normal: 1.5,
-    relaxed: 1.75,
-  },
-} as const;
+    relaxed: 1.75
+  }
+};
 
 export const Radius = {
   sm: 6,
   md: 12,
   lg: 16,
   xl: 24,
-  full: 9999,
-} as const;
-
+  full: 9999
+};

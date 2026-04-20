@@ -46,7 +46,7 @@ class VoiceCommandService {
 
   processCommand(transcript) {
     console.log('Voice command received:', transcript);
-    
+
     for (const command of this.commands) {
       for (const phrase of command.phrases) {
         if (transcript.includes(phrase.toLowerCase())) {
@@ -58,7 +58,7 @@ class VoiceCommandService {
         }
       }
     }
-    
+
     // If no command matched, provide feedback
     this.speak('Command not recognized');
   }
@@ -90,7 +90,7 @@ class VoiceCommandService {
         await Speech.speak(text, {
           language: 'en-US',
           pitch: 1.0,
-          rate: 0.8,
+          rate: 0.8
         });
       } else {
         // Web speech synthesis

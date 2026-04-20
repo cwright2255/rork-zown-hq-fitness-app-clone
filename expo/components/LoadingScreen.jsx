@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import Colors from '@/constants/colors';
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback?: React.ComponentType<{ error?: Error }> },
-  ErrorBoundaryState
-> {
-  constructor(props: { children: React.ReactNode; fallback?: React.ComponentType<{ error?: Error }> }) {
+class ErrorBoundary extends React.Component
+
+
+{
+  constructor(props) {
     super(props);
     this.state = { hasError: false };
   }
@@ -15,7 +15,7 @@ class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error, errorInfo) {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
   }
 
@@ -29,14 +29,14 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-const DefaultErrorFallback: React.FC<{ error?: Error }> = ({ error }) => (
-  <View style={errorStyles.container}>
+const DefaultErrorFallback = ({ error }) =>
+<View style={errorStyles.container}>
     <Text style={errorStyles.title}>Something went wrong</Text>
     <Text style={errorStyles.message}>
       {error?.message || 'An unexpected error occurred'}
     </Text>
-  </View>
-);
+  </View>;
+
 
 const errorStyles = StyleSheet.create({
   container: {
@@ -44,37 +44,37 @@ const errorStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   title: {
     fontSize: 20,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   message: {
     fontSize: 16,
     color: Colors.text.secondary,
-    textAlign: 'center' as const,
-  },
+    textAlign: 'center'
+  }
 });
 
-const LoadingScreen: React.FC = React.memo(({ 
-  message = 'Loading...', 
-  showSpinner = true 
+const LoadingScreen = React.memo(({
+  message = 'Loading...',
+  showSpinner = true
 }) => {
   return (
     <View style={styles.container}>
-      {showSpinner && (
-        <ActivityIndicator 
-          size="large" 
-          color={Colors.primary} 
-          style={styles.spinner}
-        />
-      )}
+      {showSpinner &&
+      <ActivityIndicator
+        size="large"
+        color={Colors.primary}
+        style={styles.spinner} />
+
+      }
       <Text style={styles.message}>{message}</Text>
-    </View>
-  );
+    </View>);
+
 });
 
 const styles = StyleSheet.create({
@@ -83,17 +83,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   spinner: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   message: {
     fontSize: 16,
     color: Colors.text.secondary,
     textAlign: 'center',
-    fontWeight: '500',
-  },
+    fontWeight: '500'
+  }
 });
 
 LoadingScreen.displayName = 'LoadingScreen';

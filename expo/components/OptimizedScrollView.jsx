@@ -1,8 +1,8 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { ScrollView, ScrollViewProps, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useThrottle } from '@/utils/performanceOptimizations';
 
-const OptimizedScrollView: React.FC = memo(({
+const OptimizedScrollView = memo(({
   children,
   onScrollThrottled,
   throttleDelay = 16,
@@ -26,14 +26,14 @@ const OptimizedScrollView: React.FC = memo(({
     scrollEventThrottle: enableOptimizations ? 16 : props.scrollEventThrottle,
     removeClippedSubviews: enableOptimizations ? true : props.removeClippedSubviews,
     showsVerticalScrollIndicator: props.showsVerticalScrollIndicator ?? false,
-    showsHorizontalScrollIndicator: props.showsHorizontalScrollIndicator ?? false,
+    showsHorizontalScrollIndicator: props.showsHorizontalScrollIndicator ?? false
   }), [props, throttledScrollHandler, enableOptimizations]);
 
   return (
     <ScrollView {...scrollViewProps}>
       {children}
-    </ScrollView>
-  );
+    </ScrollView>);
+
 });
 
 OptimizedScrollView.displayName = 'OptimizedScrollView';

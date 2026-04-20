@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Constants from 'expo-constants';
-import { initRook, syncTodayData, ROOK_CONFIG } from '../services/wearables';
+import { initRook, syncTodayData } from '../services/wearables';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
@@ -61,6 +61,6 @@ export const useWearables = (userId) => {
     todayCalories,
     requestPermissions,
     syncData,
-    isExpoGo: IS_EXPO_GO,
+    isExpoGo: IS_EXPO_GO
   };
 };

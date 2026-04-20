@@ -9,27 +9,27 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import BottomNavigation from '@/components/BottomNavigation';
 import MetricCard from '@/components/MetricCard';
 import HydrationTracker from '@/components/HydrationTracker';
-import { wearableService, type WearableData } from '@/services/wearableService';
+import { wearableService } from '@/services/wearableService';
 
-interface UserStoreState {
-  user: {
-    id: string;
-    name: string;
-    profileImage?: string;
-    level?: number;
-    exp?: number;
-    xp?: number;
-    streak?: number;
-    streakData?: { currentStreak: number };
-  } | null;
-  initializeDefaultUser: () => void;
-}
 
-interface ExpStoreState {
-  expSystem: { totalExp: number } | null;
-  getExpToNextLevel: () => number;
-  getLevel: () => number;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const { width } = Dimensions.get('window');
 
@@ -39,10 +39,10 @@ export default function HQScreen() {
   const { expSystem, getExpToNextLevel, getLevel } = useExpStore();
   const { workouts, initializeDefaultWorkouts } = useWorkoutStore();
   const [currentWorkoutIndex, setCurrentWorkoutIndex] = useState(0);
-  const [wearableMetrics, setWearableMetrics] = useState<WearableData | null>(null);
+  const [wearableMetrics, setWearableMetrics] = useState(null);
   const [wearableLoading, setWearableLoading] = useState(false);
-  const [wearableError, setWearableError] = useState<string | null>(null);
-  const showWearables = true as const;
+  const [wearableError, setWearableError] = useState(null);
+  const showWearables = true;
 
   const hasInitializedUser = useRef(false);
   useEffect(() => {
@@ -69,8 +69,8 @@ export default function HQScreen() {
   }, []);
 
   const recommendedWorkouts = useMemo(() =>
-    (workouts && workouts.length > 0) ? workouts.slice(0, 5) : []
-  , [workouts]);
+  workouts && workouts.length > 0 ? workouts.slice(0, 5) : [],
+  [workouts]);
 
   const goToExpDashboard = useCallback(() => {
     router.push('/exp-dashboard');
@@ -83,7 +83,7 @@ export default function HQScreen() {
     setCurrentWorkoutIndex(index);
   }, []);
 
-  const navigateWorkout = useCallback((direction: 'prev' | 'next') => {
+  const navigateWorkout = useCallback((direction) => {
     const workoutCount = recommendedWorkouts?.length || 0;
     if (workoutCount === 0) return;
     if (direction === 'prev') {
@@ -132,7 +132,7 @@ export default function HQScreen() {
     };
 
     fetchWearables();
-    return () => { isMounted = false; };
+    return () => {isMounted = false;};
   }, []);
 
   const activityMetrics = useMemo(() => {
@@ -142,12 +142,12 @@ export default function HQScreen() {
     const activeMinutes = wearableMetrics?.activeMinutes ?? 0;
     const distance = wearableMetrics?.distance ?? 0;
     return [
-      { key: 'steps', title: 'Steps', value: steps, target: 10000, unit: 'steps', icon: 'footprints' as const },
-      { key: 'stories', title: 'Stories Climbed', value: stories, target: 20, unit: 'stories', icon: 'stairs' as const },
-      { key: 'cal', title: 'Calories', value: calories, target: 2500, unit: 'kcal', icon: 'flame' as const },
-      { key: 'act', title: 'Active Minutes', value: activeMinutes, target: 60, unit: 'min', icon: 'activity' as const },
-      { key: 'dist', title: 'Distance', value: distance, target: 8, unit: 'km', icon: 'footprints' as const },
-    ];
+    { key: 'steps', title: 'Steps', value: steps, target: 10000, unit: 'steps', icon: 'footprints' },
+    { key: 'stories', title: 'Stories Climbed', value: stories, target: 20, unit: 'stories', icon: 'stairs' },
+    { key: 'cal', title: 'Calories', value: calories, target: 2500, unit: 'kcal', icon: 'flame' },
+    { key: 'act', title: 'Active Minutes', value: activeMinutes, target: 60, unit: 'min', icon: 'activity' },
+    { key: 'dist', title: 'Distance', value: distance, target: 8, unit: 'km', icon: 'footprints' }];
+
   }, [wearableMetrics?.steps, wearableMetrics?.floorsClimbed, wearableMetrics?.calories, wearableMetrics?.activeMinutes, wearableMetrics?.distance]);
 
   const vitalsMetrics = useMemo(() => {
@@ -159,14 +159,14 @@ export default function HQScreen() {
     const energy = wearableMetrics?.energyLevel ?? 0;
     const sleepQ = wearableMetrics?.sleepQuality ?? 0;
     return [
-      { key: 'hr', title: 'Resting HR', value: hr, target: 120, unit: 'bpm', icon: 'heart' as const },
-      { key: 'hrv', title: 'HRV', value: hrv, target: 50, unit: 'ms', icon: 'activity' as const },
-      { key: 'ready', title: 'Readiness', value: readiness, target: 100, unit: 'score', icon: 'battery-charging' as const },
-      { key: 'rec', title: 'Recovery', value: recovery, target: 100, unit: 'score', icon: 'battery-charging' as const },
-      { key: 'stress', title: 'Stress', value: stress, target: 5, unit: '/5', icon: 'flame' as const },
-      { key: 'energy', title: 'Energy', value: energy, target: 5, unit: '/5', icon: 'battery-charging' as const },
-      { key: 'sleepq', title: 'Sleep Quality', value: sleepQ, target: 5, unit: '/5', icon: 'moon' as const },
-    ];
+    { key: 'hr', title: 'Resting HR', value: hr, target: 120, unit: 'bpm', icon: 'heart' },
+    { key: 'hrv', title: 'HRV', value: hrv, target: 50, unit: 'ms', icon: 'activity' },
+    { key: 'ready', title: 'Readiness', value: readiness, target: 100, unit: 'score', icon: 'battery-charging' },
+    { key: 'rec', title: 'Recovery', value: recovery, target: 100, unit: 'score', icon: 'battery-charging' },
+    { key: 'stress', title: 'Stress', value: stress, target: 5, unit: '/5', icon: 'flame' },
+    { key: 'energy', title: 'Energy', value: energy, target: 5, unit: '/5', icon: 'battery-charging' },
+    { key: 'sleepq', title: 'Sleep Quality', value: sleepQ, target: 5, unit: '/5', icon: 'moon' }];
+
   }, [wearableMetrics?.restingHeartRate, wearableMetrics?.heartRate, wearableMetrics?.hrv, wearableMetrics?.readinessScore, wearableMetrics?.recoveryScore, wearableMetrics?.stressLevel, wearableMetrics?.energyLevel, wearableMetrics?.sleepQuality]);
 
   const sleepHours = wearableMetrics?.sleepHours ?? 0;
@@ -181,33 +181,33 @@ export default function HQScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           testID="hq-scroll"
-          removeClippedSubviews={true}
-        >
+          removeClippedSubviews={true}>
+          
           <View style={styles.header}>
             <View>
               <Text style={styles.welcomeText}>Welcome back,</Text>
               <Text style={styles.nameText}>{user?.name || 'Fitness Enthusiast'}</Text>
             </View>
 
-            {user?.profileImage ? (
-              <Image
-                source={{ uri: user.profileImage }}
-                style={styles.profileImage}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
+            {user?.profileImage ?
+            <Image
+              source={{ uri: user.profileImage }}
+              style={styles.profileImage} /> :
+
+
+            <View style={styles.profileImagePlaceholder}>
                 <Text style={styles.profileImagePlaceholderText}>
                   {(user?.name || 'FE').charAt(0)}
                 </Text>
               </View>
-            )}
+            }
           </View>
 
           <TouchableOpacity
             style={styles.levelCard}
             onPress={goToExpDashboard}
-            testID="level-card"
-          >
+            testID="level-card">
+            
             <View style={styles.levelInfo}>
               <View style={styles.levelHeader}>
                 <Text style={styles.levelLabel}>Level</Text>
@@ -219,10 +219,10 @@ export default function HQScreen() {
               <View style={styles.progressBar}>
                 <View
                   style={[
-                    styles.progressBarFill,
-                    { width: `${Math.min(expToNextLevel > 0 ? ((xp || 0) % expToNextLevel) / expToNextLevel * 100 : 0, 100)}%` }
-                  ]}
-                />
+                  styles.progressBarFill,
+                  { width: `${Math.min(expToNextLevel > 0 ? (xp || 0) % expToNextLevel / expToNextLevel * 100 : 0, 100)}%` }]
+                  } />
+                
               </View>
             </View>
 
@@ -230,34 +230,34 @@ export default function HQScreen() {
               <Text style={styles.streakLabel}>Current Streak</Text>
               <Text style={styles.streakValue}>{streak || 0} days</Text>
               <View style={styles.streakDots}>
-                {[...Array(5)].map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.streakDot,
-                      i < (streak || 0) ? styles.streakDotActive : {}
-                    ]}
-                  />
-                ))}
+                {[...Array(5)].map((_, i) =>
+                <View
+                  key={i}
+                  style={[
+                  styles.streakDot,
+                  i < (streak || 0) ? styles.streakDotActive : {}]
+                  } />
+
+                )}
               </View>
             </View>
           </TouchableOpacity>
 
-          {showWearables && (
-            <>
+          {showWearables &&
+          <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Today’s Progress</Text>
-                {wearableLoading && (
-                  <ActivityIndicator color={Colors.primary} size="small" />
-                )}
+                {wearableLoading &&
+              <ActivityIndicator color={Colors.primary} size="small" />
+              }
               </View>
 
-              {wearableError ? (
-                <View style={styles.errorBox} testID="wearable-error">
+              {wearableError ?
+            <View style={styles.errorBox} testID="wearable-error">
                   <Text style={styles.errorText}>{wearableError}</Text>
-                </View>
-              ) : (
-                <View style={styles.progressCards} testID="today-progress">
+                </View> :
+
+            <View style={styles.progressCards} testID="today-progress">
                   <View style={styles.progressCard}>
                     <View style={[styles.progressIconContainer, { backgroundColor: '#10B98120' }]}>
                       <Stars size={24} color="#10B981" />
@@ -266,9 +266,9 @@ export default function HQScreen() {
                     <Text style={styles.progressValue}>{(wearableMetrics?.floorsClimbed ?? 0).toLocaleString()}</Text>
                     <Text style={styles.progressTarget}>stories</Text>
                     <View style={styles.progressBar}>
-                      <View style={[styles.progressBarFill, { width: `${Math.min(((wearableMetrics?.floorsClimbed ?? 0) / 20) * 100, 100)}%` }]} />
+                      <View style={[styles.progressBarFill, { width: `${Math.min((wearableMetrics?.floorsClimbed ?? 0) / 20 * 100, 100)}%` }]} />
                     </View>
-                    <Text style={styles.progressPercentage}>{Math.round(Math.min(((wearableMetrics?.floorsClimbed ?? 0) / 20) * 100, 100))}% of 20</Text>
+                    <Text style={styles.progressPercentage}>{Math.round(Math.min((wearableMetrics?.floorsClimbed ?? 0) / 20 * 100, 100))}% of 20</Text>
                   </View>
 
                   <View style={styles.progressCard}>
@@ -279,49 +279,49 @@ export default function HQScreen() {
                     <Text style={styles.progressValue}>{(wearableMetrics?.calories ?? 0).toLocaleString()}</Text>
                     <Text style={styles.progressTarget}>kcal</Text>
                     <View style={styles.progressBar}>
-                      <View style={[styles.progressBarFill, { width: `${Math.min(((wearableMetrics?.calories ?? 0) / 2500) * 100, 100)}%` }]} />
+                      <View style={[styles.progressBarFill, { width: `${Math.min((wearableMetrics?.calories ?? 0) / 2500 * 100, 100)}%` }]} />
                     </View>
-                    <Text style={styles.progressPercentage}>{Math.round(Math.min(((wearableMetrics?.calories ?? 0) / 2500) * 100, 100))}% of 2,500</Text>
+                    <Text style={styles.progressPercentage}>{Math.round(Math.min((wearableMetrics?.calories ?? 0) / 2500 * 100, 100))}% of 2,500</Text>
                   </View>
                 </View>
-              )}
+            }
             </>
-          )}
+          }
 
-          {showWearables && (
-            <View style={styles.metricsSection} testID="activity-metrics">
+          {showWearables &&
+          <View style={styles.metricsSection} testID="activity-metrics">
               <Text style={styles.sectionTitle}>Activity Snapshot</Text>
               <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-                removeClippedSubviews={true}
-              >
-                {activityMetrics.map(m => (
-                  <MetricCard key={m.key} title={m.title} value={m.value} target={m.target} unit={m.unit} icon={m.icon} />
-                ))}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+              removeClippedSubviews={true}>
+              
+                {activityMetrics.map((m) =>
+              <MetricCard key={m.key} title={m.title} value={m.value} target={m.target} unit={m.unit} icon={m.icon} />
+              )}
               </ScrollView>
             </View>
-          )}
+          }
 
-          {showWearables && (
-            <View style={styles.metricsSection} testID="vitals-metrics">
+          {showWearables &&
+          <View style={styles.metricsSection} testID="vitals-metrics">
               <Text style={styles.sectionTitle}>Vitals & Readiness</Text>
               <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-                removeClippedSubviews={true}
-              >
-                {vitalsMetrics.map(m => (
-                  <MetricCard key={m.key} title={m.title} value={m.value} target={m.target} unit={m.unit} icon={m.icon} />
-                ))}
-              </ScrollView>
-              {sleepHours > 0 && (
-                <Text style={styles.helperText} testID="sleep-hours">Last night: {sleepHours} hrs</Text>
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+              removeClippedSubviews={true}>
+              
+                {vitalsMetrics.map((m) =>
+              <MetricCard key={m.key} title={m.title} value={m.value} target={m.target} unit={m.unit} icon={m.icon} />
               )}
+              </ScrollView>
+              {sleepHours > 0 &&
+            <Text style={styles.helperText} testID="sleep-hours">Last night: {sleepHours} hrs</Text>
+            }
             </View>
-          )}
+          }
 
           <View style={styles.metricsSection} testID="hydration-section">
             <Text style={styles.sectionTitle}>Hydration</Text>
@@ -334,43 +334,43 @@ export default function HQScreen() {
               <TouchableOpacity
                 style={styles.carouselButton}
                 onPress={() => navigateWorkout('prev')}
-                testID="carousel-prev"
-              >
+                testID="carousel-prev">
+                
                 <ChevronLeft size={20} color={Colors.text.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.carouselButton}
                 onPress={() => navigateWorkout('next')}
-                testID="carousel-next"
-              >
+                testID="carousel-next">
+                
                 <ChevronRight size={20} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.workoutCarouselContainer}>
-            {recommendedWorkouts && recommendedWorkouts.length > 0 ? (
-              <>
+            {recommendedWorkouts && recommendedWorkouts.length > 0 ?
+            <>
                 <ScrollView
-                  horizontal
-                  pagingEnabled
-                  snapToInterval={width * 0.9 + 16}
-                  decelerationRate="fast"
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.workoutCarouselContent}
-                  onMomentumScrollEnd={handleWorkoutScroll}
-                  testID="workout-carousel"
-                >
-                  {recommendedWorkouts.map((workout) => (
-                    <TouchableOpacity
-                      key={workout?.id || Math.random().toString()}
-                      style={styles.workoutCard}
-                      onPress={() => workout?.id && router.push(`/workout/${workout.id}`)}
-                    >
+                horizontal
+                pagingEnabled
+                snapToInterval={width * 0.9 + 16}
+                decelerationRate="fast"
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.workoutCarouselContent}
+                onMomentumScrollEnd={handleWorkoutScroll}
+                testID="workout-carousel">
+                
+                  {recommendedWorkouts.map((workout) =>
+                <TouchableOpacity
+                  key={workout?.id || Math.random().toString()}
+                  style={styles.workoutCard}
+                  onPress={() => workout?.id && router.push(`/workout/${workout.id}`)}>
+                  
                       <Image
-                        source={{ uri: workout?.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500' }}
-                        style={styles.workoutImage}
-                      />
+                    source={{ uri: workout?.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500' }}
+                    style={styles.workoutImage} />
+                  
                       <View style={styles.workoutContent}>
                         <View style={styles.workoutHeader}>
                           <Text style={styles.workoutCategory}>{workout?.category || 'Workout'}</Text>
@@ -384,46 +384,46 @@ export default function HQScreen() {
                           <Text style={styles.workoutDuration}>{workout?.duration || 30} min</Text>
                         </View>
                         <TouchableOpacity
-                          style={styles.startButton}
-                          onPress={() => workout?.id && router.push(`/workout/${workout.id}`)}
-                          testID="start-workout"
-                        >
+                      style={styles.startButton}
+                      onPress={() => workout?.id && router.push(`/workout/${workout.id}`)}
+                      testID="start-workout">
+                      
                           <Text style={styles.startButtonText}>Start Workout</Text>
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
-                  ))}
+                )}
                 </ScrollView>
 
                 <View style={styles.indicatorsContainer}>
-                  {recommendedWorkouts && recommendedWorkouts.map((_, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.indicator,
-                        currentWorkoutIndex === index && styles.activeIndicator
-                      ]}
-                      onPress={() => setCurrentWorkoutIndex(index)}
-                      testID={`indicator-${index}`}
-                    />
-                  ))}
+                  {recommendedWorkouts && recommendedWorkouts.map((_, index) =>
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                  styles.indicator,
+                  currentWorkoutIndex === index && styles.activeIndicator]
+                  }
+                  onPress={() => setCurrentWorkoutIndex(index)}
+                  testID={`indicator-${index}`} />
+
+                )}
                 </View>
-              </>
-            ) : (
-              <View style={styles.emptyWorkoutsContainer}>
+              </> :
+
+            <View style={styles.emptyWorkoutsContainer}>
                 <Text style={styles.emptyWorkoutsText}>
                   No recommended workouts available. Check back later
                 </Text>
               </View>
-            )}
+            }
           </View>
 
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={styles.quickAction}
               onPress={() => router.push('/workouts')}
-              testID="qa-workouts"
-            >
+              testID="qa-workouts">
+              
               <View style={[styles.quickActionIcon, { backgroundColor: '#6366F120' }]}>
                 <Dumbbell size={24} color="#6366F1" />
               </View>
@@ -433,8 +433,8 @@ export default function HQScreen() {
             <TouchableOpacity
               style={styles.quickAction}
               onPress={() => router.push('/nutrition')}
-              testID="qa-nutrition"
-            >
+              testID="qa-nutrition">
+              
               <View style={[styles.quickActionIcon, { backgroundColor: '#10B98120' }]}>
                 <Coffee size={24} color="#10B981" />
               </View>
@@ -444,8 +444,8 @@ export default function HQScreen() {
             <TouchableOpacity
               style={styles.quickAction}
               onPress={() => router.push('/shop')}
-              testID="qa-shop"
-            >
+              testID="qa-shop">
+              
               <View style={[styles.quickActionIcon, { backgroundColor: '#8B5CF620' }]}>
                 <MapPin size={24} color="#8B5CF6" />
               </View>
@@ -455,8 +455,8 @@ export default function HQScreen() {
             <TouchableOpacity
               style={styles.quickAction}
               onPress={goToExpDashboard}
-              testID="qa-exp"
-            >
+              testID="qa-exp">
+              
               <View style={[styles.quickActionIcon, { backgroundColor: '#F59E0B20' }]}>
                 <Award size={24} color="#F59E0B" />
               </View>
@@ -466,8 +466,8 @@ export default function HQScreen() {
             <TouchableOpacity
               style={styles.quickAction}
               onPress={() => router.push('/workout/active?mode=run')}
-              testID="qa-run"
-            >
+              testID="qa-run">
+              
               <View style={[styles.quickActionIcon, { backgroundColor: '#00ff8820' }]}>
                 <Play size={24} color="#00ff88" />
               </View>
@@ -478,41 +478,41 @@ export default function HQScreen() {
 
         <BottomNavigation />
       </View>
-    </>
-  );
+    </>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   scrollView: {
-    flex: 1,
+    flex: 1
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 80
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 16
   },
   welcomeText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   nameText: {
     fontSize: 24,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
+    fontWeight: '700',
+    color: Colors.text.primary
   },
   profileImage: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 24
   },
   profileImagePlaceholder: {
     width: 48,
@@ -520,12 +520,12 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   profileImagePlaceholderText: {
     fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text.inverse,
+    fontWeight: '700',
+    color: Colors.text.inverse
   },
   levelCard: {
     flexDirection: 'row',
@@ -535,41 +535,41 @@ const styles = StyleSheet.create({
     marginBottom: Colors.spacing.xxl,
     ...Colors.shadow.medium,
     minHeight: 80,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   levelInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 16
   },
   levelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 4
   },
   levelLabel: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginRight: 8,
+    marginRight: 8
   },
   levelValue: {
     fontSize: 24,
-    fontWeight: '700' as const,
-    color: Colors.primary,
+    fontWeight: '700',
+    color: Colors.primary
   },
   xpText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   progressBar: {
     height: 6,
     backgroundColor: Colors.inactive,
-    borderRadius: 3,
+    borderRadius: 3
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 3,
+    borderRadius: 3
   },
   streakContainer: {
     borderLeftWidth: 1,
@@ -577,47 +577,47 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '35%',
+    width: '35%'
   },
   streakLabel: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   streakValue: {
     fontSize: 20,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   streakDots: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   streakDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.inactive,
-    marginHorizontal: 2,
+    marginHorizontal: 2
   },
   streakDotActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 16
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
+    fontWeight: '600',
+    color: Colors.text.primary
   },
   carouselControls: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 8
   },
   carouselButton: {
     width: 32,
@@ -627,19 +627,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   progressCards: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 24
   },
   progressCard: {
     width: '48%',
     backgroundColor: Colors.card,
     borderRadius: Colors.radius.large,
     padding: Colors.spacing.lg,
-    ...Colors.shadow.medium,
+    ...Colors.shadow.medium
   },
   progressIconContainer: {
     width: 40,
@@ -647,34 +647,34 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   progressLabel: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   progressValue: {
     fontSize: 24,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
+    fontWeight: '700',
+    color: Colors.text.primary
   },
   progressTarget: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   progressPercentage: {
     fontSize: 12,
     color: Colors.text.tertiary,
-    textAlign: 'right',
+    textAlign: 'right'
   },
   workoutCarouselContainer: {
-    marginBottom: Colors.spacing.xxl,
+    marginBottom: Colors.spacing.xxl
   },
   workoutCarouselContent: {
     paddingLeft: 16,
-    paddingRight: 16,
+    paddingRight: 16
   },
   workoutCard: {
     width: width * 0.9,
@@ -682,26 +682,26 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.large,
     overflow: 'hidden',
     marginRight: 16,
-    ...Colors.shadow.medium,
+    ...Colors.shadow.medium
   },
   workoutImage: {
     width: '100%',
-    height: 160,
+    height: 160
   },
   workoutContent: {
-    padding: 16,
+    padding: 16
   },
   workoutHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   workoutCategory: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.primary,
-    textTransform: 'uppercase',
+    textTransform: 'uppercase'
   },
   workoutDifficulty: {
     fontSize: 12,
@@ -709,66 +709,66 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 4
   },
   workoutTitle: {
     fontSize: 18,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   workoutDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   workoutMeta: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 16
   },
   workoutDuration: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginRight: 16,
+    marginRight: 16
   },
   startButton: {
     backgroundColor: Colors.primary,
     borderRadius: Colors.radius.medium,
     paddingVertical: Colors.spacing.md,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   startButtonText: {
     fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text.inverse,
+    fontWeight: '600',
+    color: Colors.text.inverse
   },
   indicatorsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 12
   },
   indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.inactive,
-    marginHorizontal: 4,
+    marginHorizontal: 4
   },
   activeIndicator: {
     backgroundColor: Colors.primary,
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: 5
   },
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 16
   },
   quickAction: {
     alignItems: 'center',
-    width: '22%',
+    width: '22%'
   },
   quickActionIcon: {
     width: 56,
@@ -776,12 +776,12 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   quickActionText: {
     fontSize: 12,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   emptyWorkoutsContainer: {
     height: 200,
@@ -789,23 +789,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.card,
     borderRadius: Colors.radius.large,
-    ...Colors.shadow.medium,
+    ...Colors.shadow.medium
   },
   emptyWorkoutsText: {
     fontSize: 16,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   metricsSection: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   horizontalList: {
-    paddingRight: 8,
+    paddingRight: 8
   },
   helperText: {
     marginTop: 8,
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   errorBox: {
     padding: 12,
@@ -813,10 +813,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef444410',
     borderWidth: 1,
     borderColor: '#ef4444',
-    marginBottom: 12,
+    marginBottom: 12
   },
   errorText: {
     color: '#ef4444',
-    fontSize: 13,
-  },
+    fontSize: 13
+  }
 });

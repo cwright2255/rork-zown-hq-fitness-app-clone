@@ -5,7 +5,7 @@ const IS_EXPO_GO = Constants.appOwnership === 'expo';
 const DEFAULTS = {
   aiCoachEnabled: true,
   spotifyEnabled: true,
-  newWorkoutUIEnabled: false,
+  newWorkoutUIEnabled: false
 };
 
 let remoteConfig = null;
@@ -14,7 +14,7 @@ export const fetchAndActivate = async () => {
   if (IS_EXPO_GO) return;
   try {
     const { getRemoteConfig, fetchAndActivate: firebaseFetchAndActivate } =
-      await import('firebase/remote-config');
+    await import('firebase/remote-config');
     const app = (await import('../config/firebase')).default;
     remoteConfig = getRemoteConfig(app);
     remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
@@ -23,10 +23,10 @@ export const fetchAndActivate = async () => {
   } catch {}
 };
 
-export const getFeatureFlag = <K extends keyof FeatureFlags>(
-  key,
-  defaultValue?: FeatureFlags[K],
-): FeatureFlags[K] => {
+export const getFeatureFlag = (
+key,
+defaultValue) =>
+{
   if (!remoteConfig) return (DEFAULTS[key] ?? defaultValue)[K];
   try {
     const { getValue } = require('firebase/remote-config');

@@ -4,79 +4,79 @@ import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: SpotifyArtist[];
-  album: SpotifyAlbum;
-  duration_ms: number;
-  preview_url: string | null;
-  external_urls: {
-    spotify: string;
-  };
-  uri: string;
-}
 
-export interface SpotifyArtist {
-  id: string;
-  name: string;
-  external_urls: {
-    spotify: string;
-  };
-}
 
-export interface SpotifyPlaylist {
-  id: string;
-  name: string;
-  description: string;
-  images: SpotifyImage[];
-  tracks: {
-    total: number;
-  };
-  external_urls: {
-    spotify: string;
-  };
-  uri: string;
-}
 
-export interface SpotifyUser {
-  id: string;
-  display_name: string | null;
-  email?: string;
-  images: SpotifyImage[];
-  followers: {
-    href: string | null;
-    total: number;
-  };
-  country?: string;
-  explicit_content?: {
-    filter_enabled: boolean;
-    filter_locked: boolean;
-  };
-  external_urls: {
-    spotify: string;
-  };
-  href: string;
-  product?: string;
-  type: string;
-  uri: string;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class SpotifyService {
-  private baseUrl = 'https://api.spotify.com/v1';
-  private apiBaseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
-  public clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
-  private projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
-  private nativeRedirectUri = 'zownhq://spotify-callback';
-  private hostedWebRedirectUri = 'zownhq://spotify-callback';
-  private hostedNativeCallbackUri = 'zownhq://spotify-callback';
-  private redirectUri = this.computeRedirectUri();
-  private token: string | null = null;
-  private refreshToken: string | null = null;
-  private tokenExpiresAt: number | null = null;
-  private state: string | null = null;
-  private codeVerifier: string | null = null;
-  private isClientCredentialsFlow = false;
+  baseUrl = 'https://api.spotify.com/v1';
+  apiBaseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
+  clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
+  projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
+  nativeRedirectUri = 'zownhq://spotify-callback';
+  hostedWebRedirectUri = 'zownhq://spotify-callback';
+  hostedNativeCallbackUri = 'zownhq://spotify-callback';
+  redirectUri = this.computeRedirectUri();
+  token = null;
+  refreshToken = null;
+  tokenExpiresAt = null;
+  state = null;
+  codeVerifier = null;
+  isClientCredentialsFlow = false;
 
   constructor() {
     console.log('SpotifyService: Initializing...');
@@ -87,7 +87,7 @@ class SpotifyService {
     void this.autoInitialize();
   }
 
-  private computeRedirectUri() {
+  computeRedirectUri() {
     const explicitRedirect = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
     if (explicitRedirect) {
       console.log('SpotifyService: Using explicit redirect URI from env:', explicitRedirect);
@@ -105,14 +105,14 @@ class SpotifyService {
     return hostedCallbackUri;
   }
 
-  private async autoInitialize() {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+  async autoInitialize() {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     if (this.token && this.tokenExpiresAt && Date.now() < this.tokenExpiresAt) {
       console.log('SpotifyService: Existing token still valid, skipping auto-init');
       return;
     }
-    
+
     console.log('SpotifyService: Initializing client credentials for public API access...');
     const success = await this.initializeClientCredentials();
     if (success) {
@@ -130,25 +130,25 @@ class SpotifyService {
     return await this.initializeClientCredentials();
   }
 
-  private getClientSecret() {
+  getClientSecret() {
     return process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
   }
 
-  private async loadStoredToken() {
+  async loadStoredToken() {
     try {
       const [storedToken, storedRefreshToken, storedExpiresAt, isClientCreds] = await Promise.all([
-        AsyncStorage.getItem('spotify_access_token'),
-        AsyncStorage.getItem('spotify_refresh_token'),
-        AsyncStorage.getItem('spotify_token_expires_at'),
-        AsyncStorage.getItem('spotify_is_client_credentials')
-      ]);
-      
+      AsyncStorage.getItem('spotify_access_token'),
+      AsyncStorage.getItem('spotify_refresh_token'),
+      AsyncStorage.getItem('spotify_token_expires_at'),
+      AsyncStorage.getItem('spotify_is_client_credentials')]
+      );
+
       if (storedToken) {
         this.token = storedToken;
         this.refreshToken = storedRefreshToken;
         this.tokenExpiresAt = storedExpiresAt ? parseInt(storedExpiresAt) : null;
         this.isClientCredentialsFlow = isClientCreds === 'true';
-        
+
         // Check if token is expired and refresh if needed
         if (this.tokenExpiresAt && Date.now() > this.tokenExpiresAt) {
           if (this.isClientCredentialsFlow) {
@@ -163,20 +163,20 @@ class SpotifyService {
     }
   }
 
-  private async storeToken(token, refreshToken?, expiresIn?, isClientCredentials = false) {
+  async storeToken(token, refreshToken, expiresIn, isClientCredentials = false) {
     try {
       await AsyncStorage.setItem('spotify_access_token', token);
       await AsyncStorage.setItem('spotify_is_client_credentials', isClientCredentials.toString());
       this.token = token;
       this.isClientCredentialsFlow = isClientCredentials;
-      
+
       if (refreshToken) {
         await AsyncStorage.setItem('spotify_refresh_token', refreshToken);
         this.refreshToken = refreshToken;
       }
-      
+
       if (expiresIn) {
-        const expiresAt = Date.now() + (expiresIn * 1000);
+        const expiresAt = Date.now() + expiresIn * 1000;
         await AsyncStorage.setItem('spotify_token_expires_at', expiresAt.toString());
         this.tokenExpiresAt = expiresAt;
       }
@@ -185,8 +185,8 @@ class SpotifyService {
     }
   }
 
-  private getSpotifyProxyCandidates(): string[] {
-    const urls: string[] = [];
+  getSpotifyProxyCandidates() {
+    const urls = [];
 
     if (Platform.OS === 'web') {
       urls.push('/api/spotify/token');
@@ -203,13 +203,13 @@ class SpotifyService {
     return Array.from(new Set(urls.filter(Boolean)));
   }
 
-  private async requestSpotifyTokenViaProxy(payload: {
-    grantType: 'client_credentials' | 'authorization_code' | 'refresh_token';
-    code?: string;
-    redirectUri?: string;
-    codeVerifier?: string;
-    refreshToken?: string;
-  }) {
+  async requestSpotifyTokenViaProxy(payload)
+
+
+
+
+
+  {
     const candidateUrls = this.getSpotifyProxyCandidates();
 
     if (candidateUrls.length === 0) {
@@ -219,7 +219,7 @@ class SpotifyService {
     console.log('SpotifyService: Requesting Spotify token via backend proxy...');
     console.log('SpotifyService: Proxy candidates:', candidateUrls);
 
-    let lastError: Error | null = null;
+    let lastError = null;
 
     for (const url of candidateUrls) {
       try {
@@ -227,9 +227,9 @@ class SpotifyService {
         const response = await fetch(url, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -237,19 +237,19 @@ class SpotifyService {
           console.error('SpotifyService: Backend Spotify token proxy failed:', {
             url,
             status: response.status,
-            errorData,
+            errorData
           });
           lastError = new Error(errorData.error || `Spotify proxy failed with status ${response.status}`);
           continue;
         }
 
-        const data = await response.json() | SpotifyClientCredentialsResponse;
+        const data = (await response.json()) | SpotifyClientCredentialsResponse;
         console.log('SpotifyService: Spotify token proxy succeeded via:', url);
         return data;
       } catch (error) {
         console.error('SpotifyService: Spotify proxy network failure:', {
           url,
-          error,
+          error
         });
         lastError = error instanceof Error ? error : new Error('Unknown Spotify proxy error');
       }
@@ -258,8 +258,8 @@ class SpotifyService {
     throw lastError ?? new Error('Spotify token proxy failed');
   }
 
-  private async fetchWebApi(endpoint, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?) {
-    if (!this.token || (this.tokenExpiresAt && Date.now() > this.tokenExpiresAt)) {
+  async fetchWebApi(endpoint, method = 'GET', body) {
+    if (!this.token || this.tokenExpiresAt && Date.now() > this.tokenExpiresAt) {
       console.log('SpotifyService: Token missing or expired, refreshing before API call...');
       if (this.isClientCredentialsFlow || !this.refreshToken) {
         const refreshed = await this.initializeClientCredentials();
@@ -284,15 +284,15 @@ class SpotifyService {
     const res = await fetch(`${this.baseUrl}/${endpoint}`, {
       headers: {
         'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       method,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined
     });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      
+
       switch (res.status) {
         case 401:
           // Token expired or invalid, try to refresh
@@ -323,13 +323,13 @@ class SpotifyService {
   // Handle PKCE authorization code callback
   async handleAuthorizationCodeCallback(url) {
     console.log('Handling Spotify callback with URL:', url);
-    
+
     try {
       // Parse URL to get query params (code is in query string, not fragment)
-      let code: string | null = null;
-      let receivedState: string | null = null;
-      let error: string | null = null;
-      
+      let code = null;
+      let receivedState = null;
+      let error = null;
+
       // Check if it's a full URL or just params
       if (url.includes('?')) {
         const urlObj = new URL(url);
@@ -346,7 +346,7 @@ class SpotifyService {
       console.log('Parsed callback params:', {
         code: code ? 'present' : 'missing',
         receivedState,
-        error,
+        error
       });
 
       if (error) {
@@ -380,7 +380,7 @@ class SpotifyService {
         grantType: 'authorization_code',
         code,
         redirectUri: this.redirectUri,
-        codeVerifier: storedCodeVerifier,
+        codeVerifier: storedCodeVerifier
       });
       console.log('Token exchange successful');
 
@@ -395,7 +395,7 @@ class SpotifyService {
       // Clean up stored PKCE data
       await AsyncStorage.removeItem('spotify_code_verifier');
       await AsyncStorage.removeItem('spotify_auth_state');
-      
+
       this.state = null;
       this.codeVerifier = null;
       console.log('Spotify authentication successful');
@@ -412,9 +412,9 @@ class SpotifyService {
     if (urlFragment.includes('code=') || urlFragment.includes('?code=')) {
       return this.handleAuthorizationCodeCallback(urlFragment);
     }
-    
+
     console.log('Handling Spotify implicit grant callback:', urlFragment);
-    
+
     try {
       const params = new URLSearchParams(urlFragment.replace('#', ''));
       const accessToken = params.get('access_token');
@@ -433,12 +433,12 @@ class SpotifyService {
       }
 
       await this.storeToken(
-        accessToken, 
+        accessToken,
         undefined,
         expiresIn ? parseInt(expiresIn) : 3600,
         false
       );
-      
+
       console.log('Spotify authentication successful');
       return true;
     } catch (error) {
@@ -468,7 +468,7 @@ class SpotifyService {
   // Check if token will expire soon (within 5 minutes)
   isTokenExpiringSoon() {
     if (!this.tokenExpiresAt) return false;
-    const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
+    const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
     return this.tokenExpiresAt < fiveMinutesFromNow;
   }
 
@@ -484,7 +484,7 @@ class SpotifyService {
   getSetupInstructions() {
     const clientSecret = this.getClientSecret();
     const hasValidClientSecret = !!clientSecret && clientSecret.length > 10 && clientSecret !== this.clientId;
-    
+
     return `
 Spotify Integration (Client Credentials Flow):
 
@@ -522,11 +522,11 @@ It does NOT provide access to:
   async clearToken() {
     try {
       await Promise.all([
-        AsyncStorage.removeItem('spotify_access_token'),
-        AsyncStorage.removeItem('spotify_refresh_token'),
-        AsyncStorage.removeItem('spotify_token_expires_at'),
-        AsyncStorage.removeItem('spotify_is_client_credentials')
-      ]);
+      AsyncStorage.removeItem('spotify_access_token'),
+      AsyncStorage.removeItem('spotify_refresh_token'),
+      AsyncStorage.removeItem('spotify_token_expires_at'),
+      AsyncStorage.removeItem('spotify_is_client_credentials')]
+      );
       this.token = null;
       this.refreshToken = null;
       this.tokenExpiresAt = null;
@@ -541,28 +541,28 @@ It does NOT provide access to:
   async initializeClientCredentials() {
     const clientSecret = this.getClientSecret();
     console.log('SpotifyService: Initializing client credentials...');
-    
+
     // Validate client secret
     if (!clientSecret || clientSecret.length < 10) {
       console.log('SpotifyService: Client secret not configured or too short');
       console.log('SpotifyService: Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment');
       return false;
     }
-    
+
     if (clientSecret === this.clientId) {
       console.log('SpotifyService: Client secret cannot be the same as client ID');
       return false;
     }
-    
+
     try {
       console.log('SpotifyService: Making client credentials request through backend proxy...');
       const data = await this.requestSpotifyTokenViaProxy({
-        grantType: 'client_credentials',
+        grantType: 'client_credentials'
       });
       console.log('SpotifyService: Token received, expires in', data.expires_in, 'seconds');
-      
+
       await this.storeToken(data.access_token, undefined, data.expires_in, true);
-      
+
       console.log('SpotifyService: Client credentials initialized successfully!');
       return true;
     } catch (error) {
@@ -570,19 +570,19 @@ It does NOT provide access to:
       console.error('SpotifyService: Proxy status snapshot:', {
         apiBaseUrl: this.apiBaseUrl,
         proxyCandidates: this.getSpotifyProxyCandidates(),
-        platform: Platform.OS,
+        platform: Platform.OS
       });
       return false;
     }
   }
 
   // Refresh client credentials token
-  private async refreshClientCredentialsToken() {
+  async refreshClientCredentialsToken() {
     return await this.initializeClientCredentials();
   }
 
   // Refresh access token using refresh token (for user authentication)
-  private async refreshAccessToken() {
+  async refreshAccessToken() {
     if (!this.refreshToken) {
       console.warn('No refresh token available. Implicit Grant Flow tokens cannot be refreshed.');
       return false;
@@ -592,7 +592,7 @@ It does NOT provide access to:
       console.log('Refreshing Spotify token via backend proxy...');
       const data = await this.requestSpotifyTokenViaProxy({
         grantType: 'refresh_token',
-        refreshToken: this.refreshToken,
+        refreshToken: this.refreshToken
       });
 
       await this.storeToken(
@@ -611,7 +611,7 @@ It does NOT provide access to:
   }
 
   // Generate code verifier for PKCE
-  private generateCodeVerifier() {
+  generateCodeVerifier() {
     const array = new Uint8Array(32);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(array);
@@ -621,22 +621,22 @@ It does NOT provide access to:
         array[i] = Math.floor(Math.random() * 256);
       }
     }
-    return btoa(String.fromCharCode.apply(null, Array.from(array)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
+    return btoa(String.fromCharCode.apply(null, Array.from(array))).
+    replace(/\+/g, '-').
+    replace(/\//g, '_').
+    replace(/=/g, '');
   }
 
   // Generate code challenge from verifier
-  private async generateCodeChallenge(verifier) {
+  async generateCodeChallenge(verifier) {
     if (typeof crypto !== 'undefined' && crypto.subtle) {
       const encoder = new TextEncoder();
       const data = encoder.encode(verifier);
       const digest = await crypto.subtle.digest('SHA-256', data);
-      return btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(digest))))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+      return btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(digest)))).
+      replace(/\+/g, '-').
+      replace(/\//g, '_').
+      replace(/=/g, '');
     } else {
       // Fallback: use plain verifier (not recommended for production)
       return verifier;
@@ -644,12 +644,12 @@ It does NOT provide access to:
   }
 
   // Get user's top tracks (requires user authentication)
-  async getTopTracks(timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term', limit = 20) {
+  async getTopTracks(timeRange = 'medium_term', limit = 20) {
     if (this.isClientCredentialsFlow) {
       console.warn('Top tracks require user authentication. Please authenticate first.');
       return [];
     }
-    
+
     try {
       const response = await this.fetchWebApi(`me/top/tracks?time_range=${timeRange}&limit=${limit}`);
       return response.items || [];
@@ -660,12 +660,12 @@ It does NOT provide access to:
   }
 
   // Get user's top artists (requires user authentication)
-  async getTopArtists(timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term', limit = 20) {
+  async getTopArtists(timeRange = 'medium_term', limit = 20) {
     if (this.isClientCredentialsFlow) {
       console.warn('Top artists require user authentication. Please authenticate first.');
       return [];
     }
-    
+
     try {
       const response = await this.fetchWebApi(`me/top/artists?time_range=${timeRange}&limit=${limit}`);
       return response.items || [];
@@ -681,7 +681,7 @@ It does NOT provide access to:
       console.warn('User playlists require user authentication. Please authenticate first.');
       return [];
     }
-    
+
     try {
       const response = await this.fetchWebApi(`me/playlists?limit=${limit}`);
       return response.items || [];
@@ -779,19 +779,19 @@ It does NOT provide access to:
   }
 
   // Check if user has required scopes
-  checkUserScopes(): string[] {
+  checkUserScopes() {
     return [
-      'user-read-private',
-      'user-read-email',
-      'user-top-read',
-      'playlist-read-private',
-      'playlist-read-collaborative',
-      'playlist-modify-private',
-      'playlist-modify-public',
-      'user-read-currently-playing',
-      'user-modify-playback-state',
-      'user-read-playback-state',
-    ];
+    'user-read-private',
+    'user-read-email',
+    'user-top-read',
+    'playlist-read-private',
+    'playlist-read-collaborative',
+    'playlist-modify-private',
+    'playlist-modify-public',
+    'user-read-currently-playing',
+    'user-modify-playback-state',
+    'user-read-playback-state'];
+
   }
 
   // Get currently playing track (requires user authentication)
@@ -800,7 +800,7 @@ It does NOT provide access to:
       console.warn('Currently playing track requires user authentication. Please authenticate first.');
       return null;
     }
-    
+
     try {
       const response = await this.fetchWebApi('me/player/currently-playing');
       return response?.item || null;
@@ -811,7 +811,7 @@ It does NOT provide access to:
   }
 
   // Control playback (requires Spotify Premium and user authentication)
-  async play(uri?) {
+  async play(uri) {
     if (Platform.OS === 'web') {
       console.log('Playback control not available on web');
       return;
@@ -885,12 +885,12 @@ It does NOT provide access to:
   }
 
   // Create a workout playlist (requires user authentication)
-  async createWorkoutPlaylist(name, description, trackUris: string[]) {
+  async createWorkoutPlaylist(name, description, trackUris) {
     if (this.isClientCredentialsFlow) {
       console.warn('Creating playlists requires user authentication. Please authenticate first.');
       return null;
     }
-    
+
     try {
       const user = await this.getCurrentUser();
       if (!user) return null;
@@ -899,13 +899,13 @@ It does NOT provide access to:
       const playlist = await this.fetchWebApi('me/playlists', 'POST', {
         name,
         description,
-        public: false,
+        public: false
       });
 
       // Add tracks to playlist
       if (trackUris.length > 0) {
         await this.fetchWebApi(`playlists/${playlist.id}/items`, 'POST', {
-          uris: trackUris,
+          uris: trackUris
         });
       }
 
@@ -916,13 +916,13 @@ It does NOT provide access to:
     }
   }
 
-  async getWorkoutRecommendations(workoutType: 'cardio' | 'strength' | 'yoga' | 'running') {
+  async getWorkoutRecommendations(workoutType) {
     try {
       const queryMap = {
         cardio: ['cardio workout high energy', 'hiit workout music', 'dance workout hits', 'cardio pump playlist', 'gym cardio beats', 'high energy dance'],
         running: ['running workout pump up', 'running hits 2026', 'jog motivation beats', 'run tempo music', 'running pace beats', 'marathon training music'],
         strength: ['strength training gym power', 'weightlifting motivation', 'gym beast mode', 'heavy lifting playlist', 'powerlifting hype', 'gym pump up'],
-        yoga: ['yoga meditation calm ambient', 'yoga flow music', 'peaceful meditation sounds', 'relaxing yoga', 'zen meditation', 'calm instrumental'],
+        yoga: ['yoga meditation calm ambient', 'yoga flow music', 'peaceful meditation sounds', 'relaxing yoga', 'zen meditation', 'calm instrumental']
       };
 
       const queries = queryMap[workoutType] || queryMap.cardio;
@@ -949,19 +949,19 @@ It does NOT provide access to:
               allTracks.push(track);
             }
           }
-          console.log('[SpotifyService] Found', allTracks.length, 'total tracks so far,', allTracks.filter(t => t.preview_url).length, 'with preview');
+          console.log('[SpotifyService] Found', allTracks.length, 'total tracks so far,', allTracks.filter((t) => t.preview_url).length, 'with preview');
         } catch (searchError) {
           console.warn('[SpotifyService] Search failed for query:', searchQuery, searchError);
         }
       }
 
-      const withPreview = allTracks.filter(t => t.preview_url);
-      const withoutPreview = allTracks.filter(t => !t.preview_url);
+      const withPreview = allTracks.filter((t) => t.preview_url);
+      const withoutPreview = allTracks.filter((t) => !t.preview_url);
       const sorted = [...withPreview, ...withoutPreview];
 
-      const shuffledTracks = sorted.length > 0 
-        ? [...withPreview.sort(() => Math.random() - 0.5), ...withoutPreview.sort(() => Math.random() - 0.5)]
-        : [];
+      const shuffledTracks = sorted.length > 0 ?
+      [...withPreview.sort(() => Math.random() - 0.5), ...withoutPreview.sort(() => Math.random() - 0.5)] :
+      [];
 
       console.log('[SpotifyService] Final:', shuffledTracks.length, 'tracks for', workoutType, '|', withPreview.length, 'with preview');
       return shuffledTracks.slice(0, 20);
@@ -976,39 +976,39 @@ It does NOT provide access to:
     console.log('Creating Spotify authorization URL with PKCE...');
     console.log('Client ID:', this.clientId);
     console.log('Redirect URI:', this.redirectUri);
-    
+
     if (!this.clientId || typeof this.clientId !== 'string') {
       throw new Error(`Spotify client ID is not configured properly: ${typeof this.clientId} - ${this.clientId}`);
     }
-    
+
     if (!this.redirectUri || typeof this.redirectUri !== 'string') {
       throw new Error(`Spotify redirect URI is not configured properly: ${typeof this.redirectUri} - ${this.redirectUri}`);
     }
-    
+
     const scopes = [
-      'user-read-private',
-      'user-read-email',
-      'user-top-read',
-      'playlist-read-private',
-      'playlist-read-collaborative',
-      'playlist-modify-private',
-      'playlist-modify-public',
-      'user-read-currently-playing',
-      'user-modify-playback-state',
-      'user-read-playback-state',
-    ].join(' ');
+    'user-read-private',
+    'user-read-email',
+    'user-top-read',
+    'playlist-read-private',
+    'playlist-read-collaborative',
+    'playlist-modify-private',
+    'playlist-modify-public',
+    'user-read-currently-playing',
+    'user-modify-playback-state',
+    'user-read-playback-state'].
+    join(' ');
 
     // Generate random state for security
     this.state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    
+
     // Generate PKCE code verifier and challenge
     this.codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
-    
+
     // Store code verifier for later token exchange
     await AsyncStorage.setItem('spotify_code_verifier', this.codeVerifier);
     await AsyncStorage.setItem('spotify_auth_state', this.state);
-    
+
     console.log('Generated state:', this.state);
     console.log('Generated code verifier (stored)');
 
@@ -1020,13 +1020,13 @@ It does NOT provide access to:
       state: this.state,
       show_dialog: 'true',
       code_challenge_method: 'S256',
-      code_challenge: codeChallenge,
+      code_challenge: codeChallenge
     };
-    
+
     const params = new URLSearchParams(paramsObj);
     const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
     console.log('Generated auth URL:', authUrl);
-    
+
     return authUrl;
   }
 
@@ -1062,16 +1062,16 @@ It does NOT provide access to:
 
     return new Promise((resolve) => {
       let resolved = false;
-      let checkClosedInterval: ReturnType<typeof setInterval> | null = null;
-      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let checkClosedInterval = null;
+      let timeoutId = null;
       let codeHandled = false;
-      
+
       const cleanup = () => {
         if (checkClosedInterval) clearInterval(checkClosedInterval);
         if (timeoutId) clearTimeout(timeoutId);
         window.removeEventListener('message', messageListener);
       };
-      
+
       const resolveOnce = (value) => {
         if (!resolved) {
           resolved = true;
@@ -1083,9 +1083,9 @@ It does NOT provide access to:
       const extractAndHandleCode = async (url) => {
         if (codeHandled) return false;
         codeHandled = true;
-        
+
         console.log('SpotifyService: Extracting auth data from URL:', url.substring(0, 100));
-        
+
         try {
           if (url.includes('error=')) {
             const urlObj = new URL(url);
@@ -1093,13 +1093,13 @@ It does NOT provide access to:
             console.error('SpotifyService: Auth error in URL:', error);
             return false;
           }
-          
+
           if (url.includes('code=')) {
             const success = await this.handleAuthorizationCodeCallback(url);
             console.log('SpotifyService: Code exchange result:', success);
             return success;
           }
-          
+
           if (url.includes('access_token=')) {
             const hash = url.substring(url.indexOf('#'));
             const success = await this.handleImplicitGrantCallback(hash);
@@ -1109,25 +1109,25 @@ It does NOT provide access to:
           console.error('SpotifyService: Error handling auth data:', error);
           codeHandled = false;
         }
-        
+
         return false;
       };
-      
+
       const messageListener = async (event) => {
         if (!event.data || typeof event.data !== 'object') return;
         console.log('SpotifyService: Received message from popup:', event.data.type);
-        
+
         if (event.data.type === 'SPOTIFY_AUTH_SUCCESS') {
           resolveOnce(true);
           return;
         }
-        
+
         if (event.data.type === 'SPOTIFY_AUTH_ERROR') {
           console.error('SpotifyService: Auth error from popup:', event.data.error);
           resolveOnce(false);
           return;
         }
-        
+
         if (event.data.type === 'SPOTIFY_AUTH_CODE') {
           const callbackUrl = event.data.url || `?code=${event.data.code}&state=${event.data.state}`;
           const success = await extractAndHandleCode(callbackUrl);
@@ -1170,9 +1170,9 @@ It does NOT provide access to:
                 const popupUrl = popup.location.href;
                 if (!popupUrl || popupUrl === 'about:blank') return;
 
-                const hasAuthData = popupUrl.includes('code=') || 
-                                   popupUrl.includes('access_token=') || 
-                                   popupUrl.includes('error=');
+                const hasAuthData = popupUrl.includes('code=') ||
+                popupUrl.includes('access_token=') ||
+                popupUrl.includes('error=');
 
                 if (hasAuthData && !codeHandled) {
                   console.log('SpotifyService: Detected auth data in popup URL');
@@ -1204,17 +1204,17 @@ It does NOT provide access to:
   // Get authorization URL for Authorization Code with PKCE Flow (alternative)
   async getAuthorizationUrlWithPKCE() {
     const scopes = [
-      'user-read-private',
-      'user-read-email',
-      'user-top-read',
-      'playlist-read-private',
-      'playlist-read-collaborative',
-      'playlist-modify-private',
-      'playlist-modify-public',
-      'user-read-currently-playing',
-      'user-modify-playback-state',
-      'user-read-playback-state',
-    ].join(' ');
+    'user-read-private',
+    'user-read-email',
+    'user-top-read',
+    'playlist-read-private',
+    'playlist-read-collaborative',
+    'playlist-modify-private',
+    'playlist-modify-public',
+    'user-read-currently-playing',
+    'user-modify-playback-state',
+    'user-read-playback-state'].
+    join(' ');
 
     this.state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     this.codeVerifier = this.generateCodeVerifier();
@@ -1227,7 +1227,7 @@ It does NOT provide access to:
       redirect_uri: this.redirectUri,
       state: this.state,
       code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      code_challenge_method: 'S256'
     });
 
     return `https://accounts.spotify.com/authorize?${params.toString()}`;
@@ -1237,7 +1237,7 @@ It does NOT provide access to:
   getCallbackUrl() {
     return this.redirectUri;
   }
-  
+
   // Get service status for debugging
   getServiceStatus() {
     const clientSecret = this.getClientSecret();
@@ -1247,7 +1247,7 @@ It does NOT provide access to:
       hasClientSecret: !!clientSecret && clientSecret.length > 0,
       hasToken: !!this.token,
       isClientCredentials: this.isClientCredentialsFlow,
-      tokenExpiresAt: this.tokenExpiresAt,
+      tokenExpiresAt: this.tokenExpiresAt
     };
   }
 }

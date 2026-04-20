@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  Alert,
-  Platform,
-} from 'react-native';
+
+
+  Platform } from
+'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { Music, ExternalLink, TestTube } from 'lucide-react-native';
+import { TestTube } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -22,7 +22,7 @@ export default function SpotifyTest() {
   const [testResults, setTestResults] = useState([]);
 
   const addTestResult = (result) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
+    setTestResults((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
   };
 
   const testAuthUrl = async () => {
@@ -66,9 +66,9 @@ export default function SpotifyTest() {
         options={{
           title: 'Spotify Integration Test',
           headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text.primary,
-        }}
-      />
+          headerTintColor: Colors.text.primary
+        }} />
+      
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Card variant="elevated" style={styles.statusCard}>
@@ -81,11 +81,11 @@ export default function SpotifyTest() {
             Connection Status: {isConnected ? '✅ Connected' : '❌ Not Connected'}
           </Text>
           
-          {user && (
-            <Text style={styles.statusText}>
+          {user &&
+          <Text style={styles.statusText}>
               User: {user.display_name || user.id}
             </Text>
-          )}
+          }
         </Card>
 
         <Card variant="elevated" style={styles.testCard}>
@@ -96,113 +96,113 @@ export default function SpotifyTest() {
               title="Test Auth URL"
               onPress={testAuthUrl}
               variant="primary"
-              style={styles.testButton}
-            />
+              style={styles.testButton} />
+            
             
             <Button
               title="Test Callback"
               onPress={testCallbackHandling}
               variant="secondary"
-              style={styles.testButton}
-            />
+              style={styles.testButton} />
+            
             
             <Button
               title="Service Status"
               onPress={testServiceStatus}
               variant="outline"
-              style={styles.testButton}
-            />
+              style={styles.testButton} />
+            
             
             <Button
               title="Clear Results"
               onPress={clearResults}
               variant="danger"
-              style={styles.testButton}
-            />
+              style={styles.testButton} />
+            
           </View>
         </Card>
 
         <Card variant="elevated" style={styles.resultsCard}>
           <Text style={styles.sectionTitle}>Test Results</Text>
           
-          {testResults.length === 0 ? (
-            <Text style={styles.noResultsText}>No test results yet</Text>
-          ) : (
-            <ScrollView style={styles.resultsScroll} nestedScrollEnabled>
-              {testResults.map((result, index) => (
-                <Text key={index} style={styles.resultText}>
+          {testResults.length === 0 ?
+          <Text style={styles.noResultsText}>No test results yet</Text> :
+
+          <ScrollView style={styles.resultsScroll} nestedScrollEnabled>
+              {testResults.map((result, index) =>
+            <Text key={index} style={styles.resultText}>
                   {result}
                 </Text>
-              ))}
+            )}
             </ScrollView>
-          )}
+          }
         </Card>
       </ScrollView>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   scrollView: {
     flex: 1,
-    padding: 16,
+    padding: 16
   },
   statusCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   statusTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginLeft: 8,
+    marginLeft: 8
   },
   statusText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   testCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   buttonContainer: {
-    gap: 12,
+    gap: 12
   },
   testButton: {
-    marginBottom: 0,
+    marginBottom: 0
   },
   resultsCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   noResultsText: {
     fontSize: 14,
     color: Colors.text.secondary,
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: 20
   },
   resultsScroll: {
-    maxHeight: 300,
+    maxHeight: 300
   },
   resultText: {
     fontSize: 12,
     color: Colors.text.primary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     marginBottom: 4,
-    paddingVertical: 2,
-  },
+    paddingVertical: 2
+  }
 });

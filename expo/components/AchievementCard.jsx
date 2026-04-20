@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Award } from 'lucide-react-native';
-import { Achievement } from '@/types';
+
 import Colors from '@/constants/colors';
 
-const AchievementCard = ({ achievement }: AchievementCardProps) => {
+const AchievementCard = ({ achievement }) => {
   const progress = achievement.progress ?? 0;
   const target = achievement.condition?.target ?? 1;
   const progressPercent = Math.min(progress / target, 1);
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
@@ -32,8 +32,8 @@ const AchievementCard = ({ achievement }: AchievementCardProps) => {
           <Text style={styles.rewardText}>+{achievement.xpReward || 0} XP</Text>
         </View>
       </View>
-    </View>
-  );
+    </View>);
+
 };
 
 const styles = StyleSheet.create({
@@ -43,61 +43,61 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'row',
     marginBottom: Colors.spacing.md,
-    ...Colors.shadow.medium,
+    ...Colors.shadow.medium
   },
   iconContainer: {
     width: 80,
     height: 80,
     backgroundColor: Colors.background,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   content: {
     flex: 1,
-    padding: Colors.spacing.md,
+    padding: Colors.spacing.md
   },
   title: {
     fontSize: 16,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: Colors.text.primary,
-    marginBottom: 2,
+    marginBottom: 2
   },
   description: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: Colors.spacing.sm,
+    marginBottom: Colors.spacing.sm
   },
   progressContainer: {
-    marginBottom: Colors.spacing.sm,
+    marginBottom: Colors.spacing.sm
   },
   progressBackground: {
     height: 4,
     backgroundColor: Colors.inactive,
     borderRadius: 2,
     overflow: 'hidden',
-    marginBottom: Colors.spacing.xs,
+    marginBottom: Colors.spacing.xs
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 2,
+    borderRadius: 2
   },
   progressText: {
     fontSize: 10,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   rewardContainer: {
     alignSelf: 'flex-start',
     backgroundColor: Colors.background,
     paddingHorizontal: Colors.spacing.sm,
     paddingVertical: 2,
-    borderRadius: Colors.radius.medium,
+    borderRadius: Colors.radius.medium
   },
   rewardText: {
     fontSize: 10,
-    fontWeight: '500' as const,
-    color: Colors.primary,
-  },
+    fontWeight: '500',
+    color: Colors.primary
+  }
 });
 
 export default AchievementCard;

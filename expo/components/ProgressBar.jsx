@@ -8,40 +8,40 @@ const ProgressBar = ({
   progressColor = Colors.primary,
   backgroundColor = `${Colors.primary}20`,
   style
-}: ProgressBarProps) => {
+}) => {
   // Ensure progress is between 0 and 1
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
-  
+
   return (
     <View style={[
-      styles.container, 
-      { height, backgroundColor },
-      style
-    ]}>
-      <View 
+    styles.container,
+    { height, backgroundColor },
+    style]
+    }>
+      <View
         style={[
-          styles.progress, 
-          { 
-            width: `${clampedProgress * 100}%`,
-            backgroundColor: progressColor,
-            height
-          }
-        ]} 
-      />
-    </View>
-  );
+        styles.progress,
+        {
+          width: `${clampedProgress * 100}%`,
+          backgroundColor: progressColor,
+          height
+        }]
+        } />
+      
+    </View>);
+
 };
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
     borderRadius: Colors.radius.small,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   progress: {
     height: '100%',
-    borderRadius: Colors.radius.small,
-  },
+    borderRadius: Colors.radius.small
+  }
 });
 
 export default ProgressBar;

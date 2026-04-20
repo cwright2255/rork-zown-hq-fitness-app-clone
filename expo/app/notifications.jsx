@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
-  Alert,
-} from 'react-native';
+  Alert } from
+'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Bell, Clock, Users, Trophy, Droplets } from 'lucide-react-native';
@@ -15,14 +15,14 @@ import Colors from '@/constants/colors';
 import { notificationService } from '@/services/notificationService';
 import { useUserStore } from '@/store/userStore';
 
-interface UserPreferences {
-  notifications: {
-    workouts: boolean;
-    nutrition: boolean;
-    social: boolean;
-  };
-  [key: string]: any;
-}
+
+
+
+
+
+
+
+
 
 export default function NotificationsScreen() {
   const { user, setUser } = useUserStore();
@@ -31,7 +31,7 @@ export default function NotificationsScreen() {
     nutrition: user?.preferences.notifications.nutrition ?? true,
     social: user?.preferences.notifications.social ?? true,
     achievements: true,
-    reminders: true,
+    reminders: true
   });
   const [permissionGranted, setPermissionGranted] = useState(false);
 
@@ -43,7 +43,7 @@ export default function NotificationsScreen() {
   const checkPermissions = async () => {
     const granted = await notificationService.requestPermissions();
     setPermissionGranted(granted);
-    
+
     if (!granted) {
       Alert.alert(
         'Notifications Disabled',
@@ -53,9 +53,9 @@ export default function NotificationsScreen() {
     }
   };
 
-  const updateSetting = (key: keyof NotificationSettings, value) => {
+  const updateSetting = (key, value) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
-    
+
     // Update user preferences
     if (user && (key === 'workouts' || key === 'nutrition' || key === 'social')) {
       setUser({
@@ -64,9 +64,9 @@ export default function NotificationsScreen() {
           ...user.preferences,
           notifications: {
             ...user.preferences.notifications,
-            [key]: value,
-          },
-        },
+            [key]: value
+          }
+        }
       });
     }
   };
@@ -82,37 +82,37 @@ export default function NotificationsScreen() {
   };
 
   const notificationTypes = [
-    {
-      key: 'workouts' as keyof NotificationSettings,
-      title: 'Workout Reminders',
-      description: 'Get notified about scheduled workouts and rest days',
-      icon: <Clock size={24} color={Colors.primary} />,
-    },
-    {
-      key: 'nutrition' as keyof NotificationSettings,
-      title: 'Nutrition Tracking',
-      description: 'Reminders to log meals and track water intake',
-      icon: <Droplets size={24} color={Colors.primary} />,
-    },
-    {
-      key: 'social' as keyof NotificationSettings,
-      title: 'Social Updates',
-      description: 'Likes, comments, and friend activity notifications',
-      icon: <Users size={24} color={Colors.primary} />,
-    },
-    {
-      key: 'achievements' as keyof NotificationSettings,
-      title: 'Achievements & Badges',
-      description: 'Celebrate your fitness milestones and unlocked badges',
-      icon: <Trophy size={24} color={Colors.primary} />,
-    },
-    {
-      key: 'reminders' as keyof NotificationSettings,
-      title: 'General Reminders',
-      description: 'Daily check-ins, hydration, and app usage reminders',
-      icon: <Bell size={24} color={Colors.primary} />,
-    },
-  ];
+  {
+    key: 'workouts',
+    title: 'Workout Reminders',
+    description: 'Get notified about scheduled workouts and rest days',
+    icon: <Clock size={24} color={Colors.primary} />
+  },
+  {
+    key: 'nutrition',
+    title: 'Nutrition Tracking',
+    description: 'Reminders to log meals and track water intake',
+    icon: <Droplets size={24} color={Colors.primary} />
+  },
+  {
+    key: 'social',
+    title: 'Social Updates',
+    description: 'Likes, comments, and friend activity notifications',
+    icon: <Users size={24} color={Colors.primary} />
+  },
+  {
+    key: 'achievements',
+    title: 'Achievements & Badges',
+    description: 'Celebrate your fitness milestones and unlocked badges',
+    icon: <Trophy size={24} color={Colors.primary} />
+  },
+  {
+    key: 'reminders',
+    title: 'General Reminders',
+    description: 'Daily check-ins, hydration, and app usage reminders',
+    icon: <Bell size={24} color={Colors.primary} />
+  }];
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,8 +123,8 @@ export default function NotificationsScreen() {
       </View>
 
       <ScrollView style={styles.content}>
-        {!permissionGranted && (
-          <View style={styles.warningCard}>
+        {!permissionGranted &&
+        <View style={styles.warningCard}>
             <Bell size={24} color="#F59E0B" />
             <View style={styles.warningContent}>
               <Text style={styles.warningTitle}>Notifications Disabled</Text>
@@ -133,12 +133,12 @@ export default function NotificationsScreen() {
               </Text>
             </View>
           </View>
-        )}
+        }
 
         <Text style={styles.sectionTitle}>Notification Types</Text>
 
-        {notificationTypes.map((type) => (
-          <View key={type.key} style={styles.settingItem}>
+        {notificationTypes.map((type) =>
+        <View key={type.key} style={styles.settingItem}>
             <View style={styles.settingInfo}>
               {type.icon}
               <View style={styles.settingText}>
@@ -148,13 +148,13 @@ export default function NotificationsScreen() {
             </View>
             
             <Switch
-              value={settings[type.key]}
-              onValueChange={(value) => updateSetting(type.key, value)}
-              trackColor={{ false: Colors.backgroundSecondary, true: Colors.primary + '40' }}
-              thumbColor={settings[type.key] ? Colors.primary : Colors.text.secondary}
-            />
+            value={settings[type.key]}
+            onValueChange={(value) => updateSetting(type.key, value)}
+            trackColor={{ false: Colors.backgroundSecondary, true: Colors.primary + '40' }}
+            thumbColor={settings[type.key] ? Colors.primary : Colors.text.secondary} />
+          
           </View>
-        ))}
+        )}
 
         <View style={styles.scheduleSection}>
           <Text style={styles.sectionTitle}>Quick Schedule</Text>
@@ -173,10 +173,10 @@ export default function NotificationsScreen() {
         <View style={styles.testSection}>
           <Text style={styles.sectionTitle}>Test Notifications</Text>
           
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.testButton}
-            onPress={scheduleTestNotification}
-          >
+            onPress={scheduleTestNotification}>
+            
             <Text style={styles.testButtonText}>Send Test Notification</Text>
           </TouchableOpacity>
         </View>
@@ -195,27 +195,27 @@ export default function NotificationsScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 16
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   warningCard: {
     backgroundColor: '#FEF3C7',
@@ -223,29 +223,29 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'flex-start'
   },
   warningContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 12
   },
   warningTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#92400E',
-    marginBottom: 4,
+    marginBottom: 4
   },
   warningText: {
     fontSize: 14,
     color: '#92400E',
-    lineHeight: 20,
+    lineHeight: 20
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: 16,
-    marginTop: 8,
+    marginTop: 8
   },
   settingItem: {
     backgroundColor: Colors.backgroundSecondary,
@@ -254,30 +254,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   settingInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    flex: 1
   },
   settingText: {
     marginLeft: 12,
-    flex: 1,
+    flex: 1
   },
   settingTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   settingDescription: {
     fontSize: 12,
     color: Colors.text.secondary,
-    lineHeight: 16,
+    lineHeight: 16
   },
   scheduleSection: {
-    marginTop: 24,
+    marginTop: 24
   },
   scheduleButton: {
     backgroundColor: Colors.backgroundSecondary,
@@ -286,41 +286,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12
   },
   scheduleButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   testSection: {
-    marginTop: 24,
+    marginTop: 24
   },
   testButton: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   testButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   infoSection: {
     marginTop: 24,
-    marginBottom: 32,
+    marginBottom: 32
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   infoText: {
     fontSize: 14,
     color: Colors.text.secondary,
     lineHeight: 20,
-    marginBottom: 12,
-  },
+    marginBottom: 12
+  }
 });

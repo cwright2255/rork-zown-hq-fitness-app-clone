@@ -14,19 +14,19 @@ import { performanceMonitor } from '@/utils/performanceOptimizations';
 
 export default function ExpDashboardScreen() {
   const [activeTab, setActiveTab] = useState('overview');
-  const { user } = useUserStore() as { user: any };
-  const { 
-    expSystem, 
-    getExpBreakdown, 
-    getRecentActivities, 
-    getExpToNextLevel, 
+  const { user } = useUserStore();
+  const {
+    expSystem,
+    getExpBreakdown,
+    getRecentActivities,
+    getExpToNextLevel,
     getLevel,
     initializeExpSystem
   } = useExpStore();
-  
+
   // Performance monitoring
   const renderMonitor = performanceMonitor.measureRender('ExpDashboardScreen');
-  
+
   // Initialize exp system if needed
   useEffect(() => {
     renderMonitor.start();
@@ -35,30 +35,30 @@ export default function ExpDashboardScreen() {
     }
     renderMonitor.end();
   }, [expSystem, initializeExpSystem, renderMonitor]);
-  
+
   // Get user level and XP with proper fallbacks
   const level = user?.level || getLevel() || 1;
   const xp = user?.xp || expSystem?.totalExp || 0;
   const expToNextLevel = getExpToNextLevel() || 0;
-  
+
   // Memoize expensive calculations
   const expBreakdown = useMemo(() => getExpBreakdown(), [getExpBreakdown]);
   const recentActivities = useMemo(() => getRecentActivities(5), [getRecentActivities]);
   const allActivities = useMemo(() => getRecentActivities(50), [getRecentActivities]);
-  
+
   // Calculate level progress with null checks
   const levelRequirements = expSystem?.levelRequirements || { 1: 0, 2: 1000, 3: 2000, 4: 3000, 5: 4000 };
   const prevLevelExp = levelRequirements[level] || 0;
   const nextLevelExp = levelRequirements[level + 1] || prevLevelExp + expToNextLevel;
-  
+
   // Define tabs
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: <Activity size={20} color={activeTab === 'overview' ? Colors.primary : Colors.text.secondary} /> },
-    { id: 'breakdown', label: 'Breakdown', icon: <BarChart2 size={20} color={activeTab === 'breakdown' ? Colors.primary : Colors.text.secondary} /> },
-    { id: 'activities', label: 'Activities', icon: <List size={20} color={activeTab === 'activities' ? Colors.primary : Colors.text.secondary} /> },
-    { id: 'levels', label: 'Levels', icon: <TrendingUp size={20} color={activeTab === 'levels' ? Colors.primary : Colors.text.secondary} /> },
-  ];
-  
+  { id: 'overview', label: 'Overview', icon: <Activity size={20} color={activeTab === 'overview' ? Colors.primary : Colors.text.secondary} /> },
+  { id: 'breakdown', label: 'Breakdown', icon: <BarChart2 size={20} color={activeTab === 'breakdown' ? Colors.primary : Colors.text.secondary} /> },
+  { id: 'activities', label: 'Activities', icon: <List size={20} color={activeTab === 'activities' ? Colors.primary : Colors.text.secondary} /> },
+  { id: 'levels', label: 'Levels', icon: <TrendingUp size={20} color={activeTab === 'levels' ? Colors.primary : Colors.text.secondary} /> }];
+
+
   // Memoize tab content to improve performance
   const renderTabContent = useCallback(() => {
     switch (activeTab) {
@@ -67,13 +67,13 @@ export default function ExpDashboardScreen() {
           <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Level Progress</Text>
-              <LevelProgress 
-                level={level} 
-                xp={xp} 
-                nextLevelXp={nextLevelExp} 
+              <LevelProgress
+                level={level}
+                xp={xp}
+                nextLevelXp={nextLevelExp}
                 xpForNextLevel={expToNextLevel}
-                showDetails={true}
-              />
+                showDetails={true} />
+              
             </View>
             
             <View style={styles.section}>
@@ -109,9 +109,9 @@ export default function ExpDashboardScreen() {
               <Text style={styles.sectionTitle}>Recent Activities</Text>
               <ExpActivityList activities={recentActivities} />
             </View>
-          </>
-        );
-        
+          </>);
+
+
       case 'breakdown':
         return (
           <>
@@ -179,29 +179,29 @@ export default function ExpDashboardScreen() {
                 </View>
               </View>
             </View>
-          </>
-        );
-        
+          </>);
+
+
       case 'activities':
         return (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>All Activities</Text>
             <ExpActivityList activities={allActivities} maxHeight={400} />
-          </View>
-        );
-        
+          </View>);
+
+
       case 'levels':
         return (
           <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Level Progress</Text>
-              <LevelProgress 
-                level={level} 
-                xp={xp} 
-                nextLevelXp={nextLevelExp} 
+              <LevelProgress
+                level={level}
+                xp={xp}
+                nextLevelXp={nextLevelExp}
                 xpForNextLevel={expToNextLevel}
-                showDetails={true}
-              />
+                showDetails={true} />
+              
             </View>
             
             <View style={styles.section}>
@@ -213,69 +213,69 @@ export default function ExpDashboardScreen() {
                   <Text style={styles.levelRequirementsHeaderText}>XP Increase</Text>
                 </View>
                 
-                {Object.entries(levelRequirements)
-                  .slice(0, 20) // Show first 20 levels
-                  .map(([lvl, reqXp], index) => {
-                    const prevReq = levelRequirements[parseInt(lvl) - 1] || 0;
-                    const increase = (reqXp) - prevReq;
-                    const increasePercent = prevReq > 0 ? ((increase / prevReq) * 100).toFixed(0) : 'N/A';
-                    
-                    return (
-                      <View 
-                        key={lvl} 
+                {Object.entries(levelRequirements).
+                slice(0, 20) // Show first 20 levels
+                .map(([lvl, reqXp], index) => {
+                  const prevReq = levelRequirements[parseInt(lvl) - 1] || 0;
+                  const increase = reqXp - prevReq;
+                  const increasePercent = prevReq > 0 ? (increase / prevReq * 100).toFixed(0) : 'N/A';
+
+                  return (
+                    <View
+                      key={lvl}
+                      style={[
+                      styles.levelRequirementsRow,
+                      parseInt(lvl) === level && styles.currentLevelRow]
+                      }>
+                      
+                        <Text
                         style={[
-                          styles.levelRequirementsRow,
-                          parseInt(lvl) === level && styles.currentLevelRow
-                        ]}
-                      >
-                        <Text 
-                          style={[
-                            styles.levelRequirementsCell,
-                            parseInt(lvl) === level && styles.currentLevelText
-                          ]}
-                        >
+                        styles.levelRequirementsCell,
+                        parseInt(lvl) === level && styles.currentLevelText]
+                        }>
+                        
                           {lvl}
                         </Text>
-                        <Text 
-                          style={[
-                            styles.levelRequirementsCell,
-                            parseInt(lvl) === level && styles.currentLevelText
-                          ]}
-                        >
-                          {(reqXp).toLocaleString()}
+                        <Text
+                        style={[
+                        styles.levelRequirementsCell,
+                        parseInt(lvl) === level && styles.currentLevelText]
+                        }>
+                        
+                          {reqXp.toLocaleString()}
                         </Text>
-                        <Text 
-                          style={[
-                            styles.levelRequirementsCell,
-                            parseInt(lvl) === level && styles.currentLevelText
-                          ]}
-                        >
+                        <Text
+                        style={[
+                        styles.levelRequirementsCell,
+                        parseInt(lvl) === level && styles.currentLevelText]
+                        }>
+                        
                           {index > 0 ? `+${increasePercent}%` : '-'}
                         </Text>
-                      </View>
-                    );
-                  })
+                      </View>);
+
+                })
                 }
               </View>
             </View>
-          </>
-        );
-        
+          </>);
+
+
       default:
         return null;
     }
   }, [activeTab, level, xp, nextLevelExp, expToNextLevel, expBreakdown, recentActivities, levelRequirements]);
-  
+
   return (
     <>
       <Stack.Screen options={{ title: 'EXP Dashboard' }} />
       
       <View style={styles.container}>
-        <OptimizedScrollView 
+        <OptimizedScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          enableOptimizations={true}
-        >
+          enableOptimizations={true}>
+          
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Award size={32} color={Colors.primary} />
@@ -291,26 +291,26 @@ export default function ExpDashboardScreen() {
           </View>
           
           <View style={styles.tabsContainer}>
-            {tabs.map(tab => (
-              <TouchableOpacity
-                key={tab.id}
-                style={[
-                  styles.tabButton,
-                  activeTab === tab.id && styles.activeTabButton
-                ]}
-                onPress={() => setActiveTab(tab.id)}
-              >
+            {tabs.map((tab) =>
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+              styles.tabButton,
+              activeTab === tab.id && styles.activeTabButton]
+              }
+              onPress={() => setActiveTab(tab.id)}>
+              
                 {tab.icon}
-                <Text 
-                  style={[
-                    styles.tabButtonText,
-                    activeTab === tab.id && styles.activeTabButtonText
-                  ]}
-                >
+                <Text
+                style={[
+                styles.tabButtonText,
+                activeTab === tab.id && styles.activeTabButtonText]
+                }>
+                
                   {tab.label}
                 </Text>
               </TouchableOpacity>
-            ))}
+            )}
           </View>
           
           {renderTabContent()}
@@ -318,20 +318,20 @@ export default function ExpDashboardScreen() {
         
         <BottomNavigation />
       </View>
-    </>
-  );
+    </>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   scrollView: {
-    flex: 1,
+    flex: 1
   },
   scrollContent: {
-    paddingBottom: 80, // Space for bottom navigation
+    paddingBottom: 80 // Space for bottom navigation
   },
   header: {
     flexDirection: 'row',
@@ -340,104 +340,104 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   headerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   headerTextContainer: {
-    marginLeft: 12,
+    marginLeft: 12
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   headerSubtitle: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   levelBadge: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 16
   },
   levelBadgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   tabButton: {
     flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 12
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: Colors.primary
   },
   tabButtonText: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: 4,
+    marginTop: 4
   },
   activeTabButtonText: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   section: {
-    padding: 16,
+    padding: 16
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   summaryContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
     borderRadius: 12,
-    padding: 16,
+    padding: 16
   },
   summaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   summaryValue: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   summaryLabel: {
     fontSize: 12,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   summaryDivider: {
     width: 1,
     height: '100%',
     backgroundColor: Colors.border,
-    marginHorizontal: 8,
+    marginHorizontal: 8
   },
   expSourcesContainer: {
     backgroundColor: Colors.card,
     borderRadius: 12,
-    padding: 16,
+    padding: 16
   },
   expSourceItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 16
   },
   expSourceIcon: {
     width: 48,
@@ -445,31 +445,31 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 16
   },
   expSourceContent: {
-    flex: 1,
+    flex: 1
   },
   expSourceTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   expSourceDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   expSourceValue: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.primary,
+    color: Colors.primary
   },
   levelRequirementsContainer: {
     backgroundColor: Colors.card,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   levelRequirementsHeader: {
     flexDirection: 'row',
@@ -477,31 +477,31 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   levelRequirementsHeaderText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   levelRequirementsRow: {
     flexDirection: 'row',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   currentLevelRow: {
-    backgroundColor: `${Colors.primary}15`,
+    backgroundColor: `${Colors.primary}15`
   },
   levelRequirementsCell: {
     flex: 1,
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   currentLevelText: {
     fontWeight: '600',
-    color: Colors.primary,
-  },
+    color: Colors.primary
+  }
 });

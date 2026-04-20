@@ -29,8 +29,8 @@ class NotificationService {
         shouldPlaySound: true,
         shouldSetBadge: false,
         shouldShowBanner: true,
-        shouldShowList: true,
-      }),
+        shouldShowList: true
+      })
     });
   }
 
@@ -43,12 +43,12 @@ class NotificationService {
       content: {
         title: 'Workout Reminder',
         body: `Time for your ${workoutName} workout!`,
-        data: { type: 'workout' },
+        data: { type: 'workout' }
       },
       trigger: {
         type: 'date',
-        date: scheduledTime,
-      },
+        date: scheduledTime
+      }
     });
   }
 
@@ -61,12 +61,12 @@ class NotificationService {
       content: {
         title: 'Nutrition Reminder',
         body: `Don't forget to log your ${mealType}!`,
-        data: { type: 'nutrition' },
+        data: { type: 'nutrition' }
       },
       trigger: {
         type: 'date',
-        date: scheduledTime,
-      },
+        date: scheduledTime
+      }
     });
   }
 
@@ -79,9 +79,9 @@ class NotificationService {
       content: {
         title: 'Achievement Unlocked! 🏆',
         body: `Congratulations! You've earned: ${achievementName}`,
-        data: { type: 'achievement' },
+        data: { type: 'achievement' }
       },
-      trigger: null,
+      trigger: null
     });
   }
 
@@ -94,9 +94,9 @@ class NotificationService {
       content: {
         title: 'Social Update',
         body: message,
-        data: { type: 'social' },
+        data: { type: 'social' }
       },
-      trigger: null,
+      trigger: null
     });
   }
 
@@ -109,13 +109,13 @@ class NotificationService {
       content: {
         title: 'Hydration Reminder 💧',
         body: 'Time to drink some water!',
-        data: { type: 'hydration' },
+        data: { type: 'hydration' }
       },
       trigger: {
         type: 'timeInterval',
         seconds: 3600, // Every hour
-        repeats: true,
-      },
+        repeats: true
+      }
     });
   }
 
@@ -128,14 +128,14 @@ class NotificationService {
       content: {
         title: 'Daily Check-in',
         body: 'How are you feeling today? Log your mood and progress!',
-        data: { type: 'checkin' },
+        data: { type: 'checkin' }
       },
       trigger: {
         type: 'daily',
         hour: 9,
         minute: 0,
-        repeats: true,
-      },
+        repeats: true
+      }
     });
   }
 
@@ -154,7 +154,7 @@ class NotificationService {
 
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
     const notificationsToCancel = scheduledNotifications.filter(
-      notification => notification.content.data?.type === type
+      (notification) => notification.content.data?.type === type
     );
 
     for (const notification of notificationsToCancel) {

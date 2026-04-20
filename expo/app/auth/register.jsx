@@ -10,30 +10,30 @@ import {
   Platform,
   ScrollView,
   Image,
-  ActivityIndicator,
-} from 'react-native';
+  ActivityIndicator } from
+'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Eye, EyeOff, Mail, Lock, User, Apple } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
-import { authService, AuthProvider } from '@/services/authService';
+import { authService } from '@/services/authService';
 
 export default function RegisterScreen() {
-  const [formData, setFormData] = useState<{ name: string; email: string; password: string; confirmPassword: string }>({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<AuthProvider | null>(null);
+  const [socialLoading, setSocialLoading] = useState(null);
 
   const { setUser } = useUserStore();
 
-  const updateFormData = (field: keyof typeof formData, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateFormData = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleRegister = async () => {
@@ -85,23 +85,23 @@ export default function RegisterScreen() {
       <View style={styles.diagonalHeader}>
         <View style={styles.whiteSlice} />
         <View style={styles.logoCenterContainer}>
-          <Image 
+          <Image
             source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/eqtu2hf6sno9snll0zcru' }}
-            style={styles.logoCenter} 
+            style={styles.logoCenter}
             testID="register-logo-zown"
             resizeMode="contain"
-            accessibilityLabel="ZOWN Logo"
-          />
+            accessibilityLabel="ZOWN Logo" />
+          
         </View>
         <View style={styles.headerContent}>
           <Text style={styles.brandWord}>OWN THE DAY</Text>
         </View>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+        style={styles.keyboardView}>
+        
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.form}>
             <View style={styles.inputUnderline}>
@@ -112,8 +112,8 @@ export default function RegisterScreen() {
                 placeholderTextColor="#9CA3AF"
                 value={formData.name}
                 onChangeText={(value) => updateFormData('name', value)}
-                autoCapitalize="words"
-              />
+                autoCapitalize="words" />
+              
             </View>
 
             <View style={styles.inputUnderline}>
@@ -125,8 +125,8 @@ export default function RegisterScreen() {
                 value={formData.email}
                 onChangeText={(value) => updateFormData('email', value)}
                 keyboardType="email-address"
-                autoCapitalize="none"
-              />
+                autoCapitalize="none" />
+              
             </View>
 
             <View style={styles.inputUnderline}>
@@ -137,14 +137,14 @@ export default function RegisterScreen() {
                 placeholderTextColor="#9CA3AF"
                 value={formData.password}
                 onChangeText={(value) => updateFormData('password', value)}
-                secureTextEntry={!showPassword}
-              />
+                secureTextEntry={!showPassword} />
+              
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                {showPassword ? (
-                  <EyeOff size={18} color={'#9CA3AF'} />
-                ) : (
-                  <Eye size={18} color={'#9CA3AF'} />
-                )}
+                {showPassword ?
+                <EyeOff size={18} color={'#9CA3AF'} /> :
+
+                <Eye size={18} color={'#9CA3AF'} />
+                }
               </TouchableOpacity>
             </View>
 
@@ -156,14 +156,14 @@ export default function RegisterScreen() {
                 placeholderTextColor="#9CA3AF"
                 value={formData.confirmPassword}
                 onChangeText={(value) => updateFormData('confirmPassword', value)}
-                secureTextEntry={!showConfirmPassword}
-              />
+                secureTextEntry={!showConfirmPassword} />
+              
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                {showConfirmPassword ? (
-                  <EyeOff size={18} color={'#9CA3AF'} />
-                ) : (
-                  <Eye size={18} color={'#9CA3AF'} />
-                )}
+                {showConfirmPassword ?
+                <EyeOff size={18} color={'#9CA3AF'} /> :
+
+                <Eye size={18} color={'#9CA3AF'} />
+                }
               </TouchableOpacity>
             </View>
 
@@ -171,11 +171,11 @@ export default function RegisterScreen() {
               testID="registerSubmit"
               style={[styles.primaryPill, isLoading && styles.disabled]}
               onPress={handleRegister}
-              disabled={isLoading}
-            >
-              {isLoading ? <ActivityIndicator color="#111827" /> : (
-                <Text style={styles.primaryPillText}>Create Account</Text>
-              )}
+              disabled={isLoading}>
+              
+              {isLoading ? <ActivityIndicator color="#111827" /> :
+              <Text style={styles.primaryPillText}>Create Account</Text>
+              }
             </TouchableOpacity>
 
             <View style={styles.socialRow}>
@@ -183,57 +183,57 @@ export default function RegisterScreen() {
                 testID="googleSignUp"
                 style={styles.outlinePill}
                 onPress={() => handleSocial('google')}
-                disabled={socialLoading === 'google'}
-              >
-                {socialLoading === 'google' ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
+                disabled={socialLoading === 'google'}>
+                
+                {socialLoading === 'google' ?
+                <ActivityIndicator color="#fff" /> :
+
+                <>
                     <Image source={{ uri: 'https://cdn.simpleicons.org/google/FFF' }} style={styles.socialIcon} />
                     <Text style={styles.outlineText}>Google</Text>
                   </>
-                )}
+                }
               </TouchableOpacity>
 
-              {Platform.OS !== 'web' && (
-                <TouchableOpacity
-                  testID="appleSignUp"
-                  style={styles.outlinePill}
-                  onPress={() => handleSocial('apple')}
-                  disabled={socialLoading === 'apple'}
-                >
-                  {socialLoading === 'apple' ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
+              {Platform.OS !== 'web' &&
+              <TouchableOpacity
+                testID="appleSignUp"
+                style={styles.outlinePill}
+                onPress={() => handleSocial('apple')}
+                disabled={socialLoading === 'apple'}>
+                
+                  {socialLoading === 'apple' ?
+                <ActivityIndicator color="#fff" /> :
+
+                <>
                       <Apple size={18} color={'#fff'} />
                       <Text style={styles.outlineText}>Apple</Text>
                     </>
-                  )}
+                }
                 </TouchableOpacity>
-              )}
+              }
 
               <TouchableOpacity
                 testID="metaSignUp"
                 style={styles.outlinePill}
                 onPress={() => handleSocial('meta')}
-                disabled={socialLoading === 'meta'}
-              >
-                {socialLoading === 'meta' ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
+                disabled={socialLoading === 'meta'}>
+                
+                {socialLoading === 'meta' ?
+                <ActivityIndicator color="#fff" /> :
+
+                <>
                     <Image source={{ uri: 'https://cdn.simpleicons.org/meta/FFF' }} style={styles.socialIcon} />
                     <Text style={styles.outlineText}>Meta</Text>
                   </>
-                )}
+                }
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.push('/auth/login')}
-            >
+              onPress={() => router.push('/auth/login')}>
+              
               <Text style={styles.linkLight}>
                 Already have an account? <Text style={styles.linkStrong}>Sign In</Text>
               </Text>
@@ -241,20 +241,20 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000'
   },
   diagonalHeader: {
     height: 240,
     position: 'relative',
     backgroundColor: '#000',
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   whiteSlice: {
     position: 'absolute',
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     right: -100,
     height: 360,
     backgroundColor: '#fff',
-    transform: [{ rotate: '-18deg' }],
+    transform: [{ rotate: '-18deg' }]
   },
 
   logoCenterContainer: {
@@ -274,49 +274,49 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 3,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   logoCenter: {
     width: 200,
-    height: 60,
+    height: 60
   },
 
   headerContent: {
     position: 'absolute',
     right: 16,
-    bottom: 10,
+    bottom: 10
   },
   brandWord: {
     color: '#fff',
     fontSize: 44,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 1
   },
   keyboardView: {
-    flex: 1,
+    flex: 1
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    padding: 24
   },
   form: {
-    gap: 16,
+    gap: 16
   },
   inlineIcon: {
-    marginRight: 8,
+    marginRight: 8
   },
   inputUnderline: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
-    paddingVertical: 6,
+    paddingVertical: 6
   },
   inputDark: {
     flex: 1,
     fontSize: 16,
     color: '#fff',
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   primaryPill: {
     height: 56,
@@ -324,12 +324,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 8
   },
   primaryPillText: {
     color: '#111827',
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '800'
   },
   outlinePill: {
     flex: 1,
@@ -340,34 +340,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 8
   },
   outlineText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.6
   },
   linkButton: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   linkLight: {
     color: '#E5E7EB',
-    fontSize: 13,
+    fontSize: 13
   },
   linkStrong: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '700'
   },
   socialRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12
   },
   socialIcon: {
     width: 18,
-    height: 18,
-  },
+    height: 18
+  }
 });

@@ -1,26 +1,25 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Plus } from 'lucide-react-native';
-import { FoodItem } from '@/types';
 import Colors from '@/constants/colors';
 import Card from './Card';
 
-const FoodItem: React.FC = ({
+const FoodItem = ({
   food,
   onPress,
   onAdd,
-  showAddButton = true,
+  showAddButton = true
 }) => {
   const { name, servingSize, calories, protein, carbs, fat, imageUrl } = food;
-  
+
   // Default image if none provided
   const defaultImage = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=500';
-  
+
   const handleAddPress = (e) => {
     e.stopPropagation();
     if (onAdd) onAdd();
   };
-  
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <Card variant="outlined" style={styles.card}>
@@ -28,8 +27,8 @@ const FoodItem: React.FC = ({
           <Image
             source={{ uri: imageUrl || defaultImage }}
             style={styles.image}
-            resizeMode="cover"
-          />
+            resizeMode="cover" />
+          
           
           <View style={styles.content}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>
@@ -45,66 +44,66 @@ const FoodItem: React.FC = ({
             </View>
           </View>
           
-          {showAddButton && (
-            <TouchableOpacity 
-              style={styles.addButton} 
-              onPress={handleAddPress}
-              activeOpacity={0.8}
-            >
+          {showAddButton &&
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={handleAddPress}
+            activeOpacity={0.8}>
+            
               <Plus size={20} color={Colors.text.inverse} />
             </TouchableOpacity>
-          )}
+          }
         </View>
       </Card>
-    </TouchableOpacity>
-  );
+    </TouchableOpacity>);
+
 };
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: Colors.spacing.md,
+    marginBottom: Colors.spacing.md
   },
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   image: {
     width: 60,
     height: 60,
-    borderRadius: Colors.radius.small,
+    borderRadius: Colors.radius.small
   },
   content: {
     flex: 1,
-    marginLeft: Colors.spacing.md,
+    marginLeft: Colors.spacing.md
   },
   name: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 2,
+    marginBottom: 2
   },
   serving: {
     fontSize: 12,
     color: Colors.text.tertiary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   macros: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   calories: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.primary
   },
   macroDetails: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 8
   },
   macro: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   addButton: {
     backgroundColor: Colors.primary,
@@ -113,8 +112,8 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.large,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: Colors.spacing.sm,
-  },
+    marginLeft: Colors.spacing.sm
+  }
 });
 
 export default FoodItem;

@@ -4,9 +4,7 @@ import adminRouter from "./routes/admin/router";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
-    hi: hiRoute,
+    hi: hiRoute
   }),
-  admin: adminRouter,
+  admin: adminRouter
 });
-
-export type AppRouter = typeof appRouter;

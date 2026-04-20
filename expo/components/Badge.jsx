@@ -1,18 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Colors from '@/constants/colors';
 
-const Badge: React.FC = React.memo(({
+const Badge = React.memo(({
   children,
   variant = 'primary',
   size = 'medium',
   style,
-  textStyle,
+  textStyle
 }) => {
   // Memoize badge style calculation
   const badgeStyle = React.useMemo(() => {
     let baseStyle = {};
-    
+
     // Variant styles
     switch (variant) {
       case 'primary':
@@ -37,7 +37,7 @@ const Badge: React.FC = React.memo(({
         baseStyle = styles.outlineBadge;
         break;
     }
-    
+
     // Size styles
     switch (size) {
       case 'small':
@@ -50,11 +50,11 @@ const Badge: React.FC = React.memo(({
         return baseStyle;
     }
   }, [variant, size]);
-  
+
   // Memoize text style calculation
   const textStyleComputed = React.useMemo(() => {
     let baseTextStyle = {};
-    
+
     // Variant text styles
     switch (variant) {
       case 'primary':
@@ -79,7 +79,7 @@ const Badge: React.FC = React.memo(({
         baseTextStyle = styles.outlineText;
         break;
     }
-    
+
     // Size text styles
     switch (size) {
       case 'small':
@@ -92,110 +92,110 @@ const Badge: React.FC = React.memo(({
         return baseTextStyle;
     }
   }, [variant, size]);
-  
+
   return (
     <View style={[badgeStyle, style]}>
       <Text style={[textStyleComputed, textStyle]} numberOfLines={1}>
         {children}
       </Text>
-    </View>
-  );
+    </View>);
+
 });
 
 const styles = StyleSheet.create({
   // Variant styles
   primaryBadge: {
     backgroundColor: `${Colors.primary}20`, // 20% opacity
-    borderRadius: 100,
+    borderRadius: 100
   },
   secondaryBadge: {
     backgroundColor: `${Colors.secondary}20`,
-    borderRadius: 100,
+    borderRadius: 100
   },
   successBadge: {
     backgroundColor: `${Colors.success}20`,
-    borderRadius: 100,
+    borderRadius: 100
   },
   warningBadge: {
     backgroundColor: `${Colors.warning}20`,
-    borderRadius: 100,
+    borderRadius: 100
   },
   errorBadge: {
     backgroundColor: `${Colors.error}20`,
-    borderRadius: 100,
+    borderRadius: 100
   },
   neutralBadge: {
     backgroundColor: `${Colors.text.tertiary}20`,
-    borderRadius: 100,
+    borderRadius: 100
   },
   outlineBadge: {
     backgroundColor: 'transparent',
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
-  
+
   // Size styles
   smallBadge: {
     paddingVertical: 2,
-    paddingHorizontal: Colors.spacing.sm,
+    paddingHorizontal: Colors.spacing.sm
   },
   mediumBadge: {
     paddingVertical: Colors.spacing.xs,
-    paddingHorizontal: Colors.spacing.md,
+    paddingHorizontal: Colors.spacing.md
   },
   largeBadge: {
     paddingVertical: Colors.spacing.xs + 2,
-    paddingHorizontal: Colors.spacing.lg,
+    paddingHorizontal: Colors.spacing.lg
   },
-  
+
   // Text styles
   primaryText: {
     color: Colors.primary,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   secondaryText: {
     color: Colors.secondary,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   successText: {
     color: Colors.success,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   warningText: {
     color: Colors.warning,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   errorText: {
     color: Colors.error,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   neutralText: {
     color: Colors.text.secondary,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   outlineText: {
     color: Colors.text.secondary,
-    fontWeight: '600' as const,
-    textAlign: 'center' as const,
+    fontWeight: '600',
+    textAlign: 'center'
   },
-  
+
   // Text size styles
   smallText: {
-    fontSize: 10,
+    fontSize: 10
   },
   mediumText: {
-    fontSize: 12,
+    fontSize: 12
   },
   largeText: {
-    fontSize: 14,
-  },
+    fontSize: 14
+  }
 });
 
 export default Badge;

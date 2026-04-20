@@ -9,8 +9,8 @@ import {
   query,
   serverTimestamp,
   updateDoc,
-  where,
-} from 'firebase/firestore';
+  where } from
+'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuthStore } from '../stores/authStore';
 import { useGoalStore } from '../stores/goalStore';
@@ -23,19 +23,19 @@ function toGoal(id, data) {
     userId: data.userId,
     type: data.type['type'],
     title: data.title,
-    target: (data.target) ?? 0,
-    current: (data.current) ?? 0,
-    unit: (data.unit) ?? '',
-    deadline: (data.deadline as { toDate?: () => Date })?.toDate?.(),
-    completed: (data.completed) ?? false,
-    createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? new Date(),
+    target: data.target ?? 0,
+    current: data.current ?? 0,
+    unit: data.unit ?? '',
+    deadline: data.deadline?.toDate?.(),
+    completed: data.completed ?? false,
+    createdAt: data.createdAt?.toDate?.() ?? new Date()
   };
 }
 
 export function useGoals() {
   const user = useAuthStore((s) => s.user);
   const { goals, isLoading, error, setGoals, setLoading, setError } =
-    useGoalStore();
+  useGoalStore();
 
   useEffect(() => {
     if (!user) return;
@@ -43,12 +43,12 @@ export function useGoals() {
     const q = query(
       collection(db, GOALS),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
+      orderBy('createdAt', 'desc')
     );
     const unsub = onSnapshot(
       q,
       (snap) => setGoals(snap.docs.map((d) => toGoal(d.id, d.data()))),
-      (err) => setError(err.message),
+      (err) => setError(err.message)
     );
     return () => unsub();
   }, [user, setGoals, setLoading, setError]);
@@ -59,11 +59,11 @@ export function useGoals() {
       const ref = await addDoc(collection(db, GOALS), {
         ...goal,
         userId: user.uid,
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp()
       });
       return ref.id;
     },
-    [user],
+    [user]
   );
 
   const updateGoal = useCallback(async (id, patch) => {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { Search, Bell, ChevronRight, Play, MapPin, Clock, Target, Trophy, Users, Zap, Calendar, Settings, Dumbbell, Activity, Award, Music } from 'lucide-react-native';
+import { Search, Target, Trophy, Calendar, Settings, Dumbbell, Activity, Award, Music } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import BottomNavigation from '@/components/BottomNavigation';
 import RunningProgramCard from '@/components/RunningProgramCard';
@@ -39,26 +39,26 @@ export default function WorkoutsScreen() {
   const [isWorkingOut, setIsWorkingOut] = useState(false);
   const [showMusicSection, setShowMusicSection] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showTimerModal, setShowTimerModal] = useState(false);
-  const [calendarView, setCalendarView] = useState<'calendar' | 'productivity'>('calendar');
+  const [calendarView, setCalendarView] = useState('calendar');
   const [runningStats, setRunningStats] = useState({
     distance: 0,
     time: 0,
     pace: 0,
     calories: 0
   });
-  
+
   const followAlongScrollRef = useRef(null);
   const youtubeScrollRef = useRef(null);
   const runningProgramScrollRef = useRef(null);
-  
-  const { 
-    workouts, 
-    customWorkouts, 
-    completedWorkouts, 
+
+  const {
+    workouts,
+    customWorkouts,
+    completedWorkouts,
     initializeDefaultWorkouts,
     runningPrograms,
     activeProgram,
@@ -76,208 +76,208 @@ export default function WorkoutsScreen() {
     getRunningStats,
     getPersonalBests
   } = useWorkoutStore();
-  
+
   const { user, updateUserRunningProfile } = useUserStore();
   const { expSystem } = useExpStore();
   const { runningChallenges: communityRunningChallenges, initializeRunningChallenges } = useCommunityStore();
   const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds, workoutPlaylists } = useSpotifyStore();
   const hasSpotifyAccess = isSpotifyConnected || isSpotifyClientCreds;
-  
+
   // Memoize static data
   const tabs = useMemo(() => [
-    { id: 'workouts', label: 'Workouts', icon: Dumbbell },
-    { id: 'running', label: 'Running', icon: Activity },
-    { id: 'programs', label: 'Calendar', icon: Calendar },
-    { id: 'challenges', label: 'Challenges', icon: Award },
-  ], []);
-  
+  { id: 'workouts', label: 'Workouts', icon: Dumbbell },
+  { id: 'running', label: 'Running', icon: Activity },
+  { id: 'programs', label: 'Calendar', icon: Calendar },
+  { id: 'challenges', label: 'Challenges', icon: Award }],
+  []);
+
   const mockFollowAlongWorkouts = useMemo(() => [
-    {
-      id: 'follow-1',
-      title: 'Do This Plank Routine Every Morning',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
-      duration: '10 min',
-      isPro: true,
-      muscleGroups: ['abs', 'core'],
-    },
-    {
-      id: 'follow-2',
-      title: 'Full Body HIIT Workout',
-      image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800',
-      duration: '20 min',
-      isPro: false,
-      muscleGroups: ['full body'],
-    }
-  ], []);
-  
+  {
+    id: 'follow-1',
+    title: 'Do This Plank Routine Every Morning',
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
+    duration: '10 min',
+    isPro: true,
+    muscleGroups: ['abs', 'core']
+  },
+  {
+    id: 'follow-2',
+    title: 'Full Body HIIT Workout',
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800',
+    duration: '20 min',
+    isPro: false,
+    muscleGroups: ['full body']
+  }],
+  []);
+
   const mockYoutubeWorkouts = useMemo(() => [
-    {
-      id: 'youtube-1',
-      title: 'DO THIS Workout For BIGGER BICEPS & TRICEPS',
-      image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800',
-      duration: '7 min',
-      muscleGroups: ['biceps', 'triceps'],
-      equipment: ['dumbbells'],
-    },
-    {
-      id: 'youtube-2',
-      title: '10 Minute Ab Workout - No Equipment',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
-      duration: '10 min',
-      muscleGroups: ['abs'],
-      equipment: [],
-    }
-  ], []);
-  
+  {
+    id: 'youtube-1',
+    title: 'DO THIS Workout For BIGGER BICEPS & TRICEPS',
+    image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800',
+    duration: '7 min',
+    muscleGroups: ['biceps', 'triceps'],
+    equipment: ['dumbbells']
+  },
+  {
+    id: 'youtube-2',
+    title: '10 Minute Ab Workout - No Equipment',
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
+    duration: '10 min',
+    muscleGroups: ['abs'],
+    equipment: []
+  }],
+  []);
+
   // Mock data for programs tab
   const mockWorkoutPrograms = useMemo(() => [
-    {
-      id: 'program-1',
-      name: 'Strength Builder',
-      description: 'Build muscle and strength with progressive overload',
-      duration: 12,
-      workoutsPerWeek: 4,
-      difficulty: 'intermediate' as const,
-      progress: 65,
-      isPremium: false,
-      imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=300&fit=crop',
-    },
-    {
-      id: 'program-2',
-      name: 'Fat Loss Accelerator',
-      description: 'High-intensity workouts for rapid fat loss',
-      duration: 8,
-      workoutsPerWeek: 5,
-      difficulty: 'advanced' as const,
-      progress: 30,
-      isPremium: true,
-      imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-    },
-    {
-      id: 'program-3',
-      name: 'Beginner Basics',
-      description: 'Perfect introduction to fitness and exercise',
-      duration: 6,
-      workoutsPerWeek: 3,
-      difficulty: 'beginner' as const,
-      progress: 0,
-      isPremium: false,
-      imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=300&fit=crop',
-    }
-  ], []);
-  
+  {
+    id: 'program-1',
+    name: 'Strength Builder',
+    description: 'Build muscle and strength with progressive overload',
+    duration: 12,
+    workoutsPerWeek: 4,
+    difficulty: 'intermediate',
+    progress: 65,
+    isPremium: false,
+    imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=300&fit=crop'
+  },
+  {
+    id: 'program-2',
+    name: 'Fat Loss Accelerator',
+    description: 'High-intensity workouts for rapid fat loss',
+    duration: 8,
+    workoutsPerWeek: 5,
+    difficulty: 'advanced',
+    progress: 30,
+    isPremium: true,
+    imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'
+  },
+  {
+    id: 'program-3',
+    name: 'Beginner Basics',
+    description: 'Perfect introduction to fitness and exercise',
+    duration: 6,
+    workoutsPerWeek: 3,
+    difficulty: 'beginner',
+    progress: 0,
+    isPremium: false,
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=300&fit=crop'
+  }],
+  []);
+
   const mockSpecializedPrograms = useMemo(() => [
-    {
-      id: 'spec-1',
-      name: 'Yoga Flow',
-      duration: '4 weeks',
-      participants: 1250,
-      isJoined: false,
-      icon: '🧘‍♀️',
-      color: '#E8F5E8',
-    },
-    {
-      id: 'spec-2',
-      name: 'HIIT Blast',
-      duration: '6 weeks',
-      participants: 890,
-      isJoined: true,
-      icon: '🔥',
-      color: '#FFE8E8',
-    },
-    {
-      id: 'spec-3',
-      name: 'Pilates Core',
-      duration: '8 weeks',
-      participants: 650,
-      isJoined: false,
-      icon: '💪',
-      color: '#E8F0FF',
-    },
-    {
-      id: 'spec-4',
-      name: 'Flexibility',
-      duration: '4 weeks',
-      participants: 420,
-      isJoined: false,
-      icon: '🤸‍♀️',
-      color: '#FFF0E8',
-    }
-  ], []);
-  
+  {
+    id: 'spec-1',
+    name: 'Yoga Flow',
+    duration: '4 weeks',
+    participants: 1250,
+    isJoined: false,
+    icon: '🧘‍♀️',
+    color: '#E8F5E8'
+  },
+  {
+    id: 'spec-2',
+    name: 'HIIT Blast',
+    duration: '6 weeks',
+    participants: 890,
+    isJoined: true,
+    icon: '🔥',
+    color: '#FFE8E8'
+  },
+  {
+    id: 'spec-3',
+    name: 'Pilates Core',
+    duration: '8 weeks',
+    participants: 650,
+    isJoined: false,
+    icon: '💪',
+    color: '#E8F0FF'
+  },
+  {
+    id: 'spec-4',
+    name: 'Flexibility',
+    duration: '4 weeks',
+    participants: 420,
+    isJoined: false,
+    icon: '🤸‍♀️',
+    color: '#FFF0E8'
+  }],
+  []);
+
   const mockProgramCategories = useMemo(() => [
-    {
-      id: 'cat-1',
-      name: 'Strength',
-      programCount: 12,
-      icon: '💪',
-      color: '#E8F0FF',
-    },
-    {
-      id: 'cat-2',
-      name: 'Cardio',
-      programCount: 8,
-      icon: '❤️',
-      color: '#FFE8E8',
-    },
-    {
-      id: 'cat-3',
-      name: 'Flexibility',
-      programCount: 6,
-      icon: '🤸‍♀️',
-      color: '#FFF0E8',
-    },
-    {
-      id: 'cat-4',
-      name: 'Wellness',
-      programCount: 4,
-      icon: '🧘‍♀️',
-      color: '#E8F5E8',
-    }
-  ], []);
-  
+  {
+    id: 'cat-1',
+    name: 'Strength',
+    programCount: 12,
+    icon: '💪',
+    color: '#E8F0FF'
+  },
+  {
+    id: 'cat-2',
+    name: 'Cardio',
+    programCount: 8,
+    icon: '❤️',
+    color: '#FFE8E8'
+  },
+  {
+    id: 'cat-3',
+    name: 'Flexibility',
+    programCount: 6,
+    icon: '🤸‍♀️',
+    color: '#FFF0E8'
+  },
+  {
+    id: 'cat-4',
+    name: 'Wellness',
+    programCount: 4,
+    icon: '🧘‍♀️',
+    color: '#E8F5E8'
+  }],
+  []);
+
   // Optimized initialization - run only once
   const hasInitialized = useRef(false);
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
-    
+
     requestAnimationFrame(() => {
       if (!workouts || workouts.length === 0) initializeDefaultWorkouts();
       if (!runningPrograms || runningPrograms.length === 0) initializeRunningPrograms();
       if (!communityRunningChallenges || communityRunningChallenges.length === 0) initializeRunningChallenges();
     });
   }, []);
-  
+
   // Memoize workout data
   const followAlongWorkouts = useMemo(() => {
     if (workouts && workouts.length > 0) {
-      return workouts.slice(0, 2).map(workout => ({
+      return workouts.slice(0, 2).map((workout) => ({
         id: workout.id,
         title: workout.name,
         image: workout.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
         duration: `${workout.duration} min`,
         isPro: Math.random() > 0.7,
-        muscleGroups: workout.muscleGroups || ['full body'],
+        muscleGroups: workout.muscleGroups || ['full body']
       }));
     }
     return mockFollowAlongWorkouts;
   }, [workouts, mockFollowAlongWorkouts]);
-  
+
   const youtubeWorkouts = useMemo(() => {
     if (customWorkouts && customWorkouts.length > 0) {
-      return customWorkouts.slice(0, 2).map(workout => ({
+      return customWorkouts.slice(0, 2).map((workout) => ({
         id: workout.id,
         title: workout.name,
         image: workout.imageUrl || 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800',
         duration: `${workout.duration} min`,
         muscleGroups: workout.muscleGroups || ['full body'],
-        equipment: workout.equipment || ['dumbbells', 'mat'],
+        equipment: workout.equipment || ['dumbbells', 'mat']
       }));
     }
     return mockYoutubeWorkouts;
   }, [customWorkouts, mockYoutubeWorkouts]);
-  
+
   // Get running stats
   const userRunningStats = useMemo(() => {
     return getRunningStats ? getRunningStats() : {
@@ -287,48 +287,48 @@ export default function WorkoutsScreen() {
       totalTime: 0
     };
   }, [getRunningStats, runHistory]);
-  
+
   const personalBests = useMemo(() => {
     return getPersonalBests ? getPersonalBests() : {};
   }, [getPersonalBests, runHistory]);
-  
+
   // Get user's running progress for programs
   const getUserRunningProgress = useCallback((programId) => {
     if (user?.runningProfile?.programProgress?.programId === programId) {
       return {
         currentWeek: user.runningProfile.programProgress.currentWeek,
         completedSessions: user.runningProfile.programProgress.completedSessions,
-        totalSessions: user.runningProfile.programProgress.totalSessions,
+        totalSessions: user.runningProfile.programProgress.totalSessions
       };
     }
     return undefined;
   }, [user?.runningProfile?.programProgress]);
-  
+
   // Memoized components
-  const renderMuscleGroupIcons = useCallback((muscleGroups: string[]) => {
+  const renderMuscleGroupIcons = useCallback((muscleGroups) => {
     return (
       <View style={styles.muscleGroupIcons}>
-        <Image 
-          source={{ uri: 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=100' }} 
+        <Image
+          source={{ uri: 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=100' }}
           style={styles.muscleIcon}
-          resizeMode="contain"
-        />
-      </View>
-    );
+          resizeMode="contain" />
+        
+      </View>);
+
   }, []);
-  
-  const renderEquipmentIcons = useCallback((equipment: string[] | undefined) => {
+
+  const renderEquipmentIcons = useCallback((equipment) => {
     if (!equipment || equipment.length === 0) return null;
-    
+
     return (
       <View style={styles.equipmentIcon}>
-        <Image 
-          source={{ uri: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=100' }} 
+        <Image
+          source={{ uri: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=100' }}
           style={styles.equipmentIconImage}
-          resizeMode="contain"
-        />
-      </View>
-    );
+          resizeMode="contain" />
+        
+      </View>);
+
   }, []);
 
   // Optimized scroll handlers
@@ -373,16 +373,16 @@ export default function WorkoutsScreen() {
     });
     setCurrentRunningProgramIndex(index);
   }, []);
-  
+
   // Navigation handlers
   const handleWorkoutPress = useCallback((workoutId) => {
     router.push(`/workout/${workoutId}`);
   }, []);
-  
+
   const handleRunningProgramPress = useCallback((programId) => {
     router.push(`/running/program/${programId}`);
   }, []);
-  
+
   const handleViewAllSavedPress = useCallback(() => {
     console.log('Navigate to saved workouts');
     // router.push('/workout/saved'); // Commented out as this route doesn't exist yet
@@ -438,31 +438,31 @@ export default function WorkoutsScreen() {
     const seconds = Math.round((pace - minutes) * 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}/km`;
   }, []);
-  
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading workouts...</Text>
-      </View>
-    );
+      </View>);
+
   }
 
-  const renderRunningTab = useCallback(() => (
-    <>
+  const renderRunningTab = useCallback(() =>
+  <>
       {/* Quick Actions */}
       <View style={styles.quickActionsContainer}>
         <Button
-          title={isRunning ? 'Finish Run' : 'Quick Run'}
-          onPress={handleStartRun}
-          variant="primary"
-          style={styles.quickActionButton}
-        />
+        title={isRunning ? 'Finish Run' : 'Quick Run'}
+        onPress={handleStartRun}
+        variant="primary"
+        style={styles.quickActionButton} />
+      
       </View>
 
       {/* Current Run Stats */}
-      {isRunning && (
-        <Card style={styles.currentRunCard}>
+      {isRunning &&
+    <Card style={styles.currentRunCard}>
           <Text style={styles.currentRunTitle}>Current Run</Text>
           <View style={styles.currentRunStats}>
             <View style={styles.currentRunStat}>
@@ -483,15 +483,15 @@ export default function WorkoutsScreen() {
             </View>
           </View>
         </Card>
-      )}
+    }
 
       {/* Spotify Music Player for Running */}
-      {hasSpotifyAccess && (
-        <SpotifyMusicPlayer 
-          workoutType="running"
-          style={styles.musicPlayerCard}
-        />
-      )}
+      {hasSpotifyAccess &&
+    <SpotifyMusicPlayer
+      workoutType="running"
+      style={styles.musicPlayerCard} />
+
+    }
 
       {/* Running Programs */}
       <View style={styles.sectionHeader}>
@@ -502,39 +502,39 @@ export default function WorkoutsScreen() {
       </View>
       
       <View style={styles.carouselContainer}>
-        <ScrollView 
-          ref={runningProgramScrollRef}
-          horizontal 
-          pagingEnabled
-          snapToInterval={width * 0.85 + 16}
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.workoutsContainer}
-          onMomentumScrollEnd={handleRunningProgramScroll}
-          removeClippedSubviews={true}
-        >
-          {runningPrograms.map(program => (
-            <View key={program.id} style={styles.runningProgramCardContainer}>
+        <ScrollView
+        ref={runningProgramScrollRef}
+        horizontal
+        pagingEnabled
+        snapToInterval={width * 0.85 + 16}
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.workoutsContainer}
+        onMomentumScrollEnd={handleRunningProgramScroll}
+        removeClippedSubviews={true}>
+        
+          {runningPrograms.map((program) =>
+        <View key={program.id} style={styles.runningProgramCardContainer}>
               <RunningProgramCard
-                program={program}
-                onPress={() => handleRunningProgramPress(program.id)}
-                userProgress={getUserRunningProgress(program.id)}
-              />
+            program={program}
+            onPress={() => handleRunningProgramPress(program.id)}
+            userProgress={getUserRunningProgress(program.id)} />
+          
             </View>
-          ))}
+        )}
         </ScrollView>
         
         <View style={styles.indicatorsContainer}>
-          {runningPrograms.map((_, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={[
-                styles.indicator, 
-                currentRunningProgramIndex === index && styles.activeIndicator
-              ]}
-              onPress={() => scrollToRunningProgramIndex(index)}
-            />
-          ))}
+          {runningPrograms.map((_, index) =>
+        <TouchableOpacity
+          key={index}
+          style={[
+          styles.indicator,
+          currentRunningProgramIndex === index && styles.activeIndicator]
+          }
+          onPress={() => scrollToRunningProgramIndex(index)} />
+
+        )}
         </View>
       </View>
 
@@ -566,41 +566,41 @@ export default function WorkoutsScreen() {
       </View>
 
       {/* Personal Bests */}
-      {(personalBests.fastest5K || personalBests.fastest10K || personalBests.longestRun) && (
-        <>
+      {(personalBests.fastest5K || personalBests.fastest10K || personalBests.longestRun) &&
+    <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Personal Bests</Text>
           </View>
           
           <View style={styles.personalBestsContainer}>
-            {personalBests.fastest5K && (
-              <Card style={styles.personalBestCard}>
+            {personalBests.fastest5K &&
+        <Card style={styles.personalBestCard}>
                 <Trophy size={20} color={Colors.warning} />
                 <Text style={styles.personalBestLabel}>Fastest 5K</Text>
                 <Text style={styles.personalBestValue}>{formatTime(personalBests.fastest5K)}</Text>
               </Card>
-            )}
-            {personalBests.fastest10K && (
-              <Card style={styles.personalBestCard}>
+        }
+            {personalBests.fastest10K &&
+        <Card style={styles.personalBestCard}>
                 <Trophy size={20} color={Colors.warning} />
                 <Text style={styles.personalBestLabel}>Fastest 10K</Text>
                 <Text style={styles.personalBestValue}>{formatTime(personalBests.fastest10K)}</Text>
               </Card>
-            )}
-            {personalBests.longestRun && (
-              <Card style={styles.personalBestCard}>
+        }
+            {personalBests.longestRun &&
+        <Card style={styles.personalBestCard}>
                 <Target size={20} color={Colors.running.distance} />
                 <Text style={styles.personalBestLabel}>Longest Run</Text>
                 <Text style={styles.personalBestValue}>{personalBests.longestRun.toFixed(1)} km</Text>
               </Card>
-            )}
+        }
           </View>
         </>
-      )}
+    }
 
       {/* Virtual Running Buddy */}
-      {runningBuddy && (
-        <>
+      {runningBuddy &&
+    <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Your Running Buddy</Text>
           </View>
@@ -620,7 +620,7 @@ export default function WorkoutsScreen() {
             </View>
           </Card>
         </>
-      )}
+    }
 
       {/* Running Challenges */}
       <View style={styles.sectionHeader}>
@@ -631,23 +631,23 @@ export default function WorkoutsScreen() {
       </View>
       
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengesContainer} removeClippedSubviews={true}>
-        {runningChallenges.slice(0, 3).map(challenge => (
-          <Card key={challenge.id} style={styles.challengeCard}>
+        {runningChallenges.slice(0, 3).map((challenge) =>
+      <Card key={challenge.id} style={styles.challengeCard}>
             <Text style={styles.challengeTitle} numberOfLines={2}>{challenge.name}</Text>
             <Text style={styles.challengeDescription} numberOfLines={3}>{challenge.description}</Text>
             <View style={styles.challengeStats}>
               <Text style={styles.challengeParticipants}>{challenge.participants} participants</Text>
               <Text style={styles.challengeReward}>+{challenge.reward.xp} XP</Text>
             </View>
-            <Button 
-              title={challenge.isJoined ? 'Joined' : 'Join Challenge'}
-              onPress={() => handleJoinChallenge(challenge.id)}
-              variant={challenge.isJoined ? 'outline' : 'primary'}
-              style={styles.challengeButton}
-              disabled={challenge.isJoined}
-            />
+            <Button
+          title={challenge.isJoined ? 'Joined' : 'Join Challenge'}
+          onPress={() => handleJoinChallenge(challenge.id)}
+          variant={challenge.isJoined ? 'outline' : 'primary'}
+          style={styles.challengeButton}
+          disabled={challenge.isJoined} />
+        
           </Card>
-        ))}
+      )}
       </ScrollView>
 
       {/* Virtual Races */}
@@ -659,8 +659,8 @@ export default function WorkoutsScreen() {
       </View>
       
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.challengesContainer} removeClippedSubviews={true}>
-        {virtualRaces.slice(0, 2).map(race => (
-          <Card key={race.id} style={styles.raceCard}>
+        {virtualRaces.slice(0, 2).map((race) =>
+      <Card key={race.id} style={styles.raceCard}>
             <Text style={styles.raceTitle} numberOfLines={2}>{race.name}</Text>
             <Text style={styles.raceDescription} numberOfLines={3}>{race.description}</Text>
             <View style={styles.raceStats}>
@@ -669,65 +669,65 @@ export default function WorkoutsScreen() {
             </View>
             <View style={styles.raceRewards}>
               <Text style={styles.raceRewardText}>Winner: +{race.rewards.winner.xp} XP</Text>
-              {race.rewards.winner.prize && (
-                <Text style={styles.racePrize}>{race.rewards.winner.prize}</Text>
-              )}
+              {race.rewards.winner.prize &&
+          <Text style={styles.racePrize}>{race.rewards.winner.prize}</Text>
+          }
             </View>
-            <Button 
-              title={race.isRegistered ? 'Registered' : 'Register'}
-              onPress={() => handleRegisterForRace(race.id)}
-              variant={race.isRegistered ? 'outline' : 'primary'}
-              style={styles.raceButton}
-              disabled={race.isRegistered}
-            />
+            <Button
+          title={race.isRegistered ? 'Registered' : 'Register'}
+          onPress={() => handleRegisterForRace(race.id)}
+          variant={race.isRegistered ? 'outline' : 'primary'}
+          style={styles.raceButton}
+          disabled={race.isRegistered} />
+        
           </Card>
-        ))}
+      )}
       </ScrollView>
-    </>
-  ), [
-    isRunning,
-    runningStats,
-    runningPrograms,
-    currentRunningProgramIndex,
-    userRunningStats,
-    personalBests,
-    runningBuddy,
-    runningChallenges,
-    virtualRaces,
-    hasSpotifyAccess,
-    formatTime,
-    formatPace
-  ]);
-  
-  const renderWorkoutsTab = useCallback(() => (
-    <>
+    </>,
+  [
+  isRunning,
+  runningStats,
+  runningPrograms,
+  currentRunningProgramIndex,
+  userRunningStats,
+  personalBests,
+  runningBuddy,
+  runningChallenges,
+  virtualRaces,
+  hasSpotifyAccess,
+  formatTime,
+  formatPace]
+  );
+
+  const renderWorkoutsTab = useCallback(() =>
+  <>
       {/* Quick Actions */}
       <View style={styles.quickActionsContainer}>
         <Button
-          title={isWorkingOut ? 'Finish Workout' : 'Quick Workout'}
-          onPress={handleStartWorkout}
-          variant="primary"
-          style={styles.quickActionButton}
-        />
+        title={isWorkingOut ? 'Finish Workout' : 'Quick Workout'}
+        onPress={handleStartWorkout}
+        variant="primary"
+        style={styles.quickActionButton} />
+      
       </View>
 
       {/* Spotify Music Player for Workouts */}
-      {showMusicSection && hasSpotifyAccess ? (
-        <SpotifyMusicPlayer 
-          workoutType="cardio"
-          style={styles.musicPlayerCard}
-        />
-      ) : showMusicSection && !hasSpotifyAccess ? (
-        <Card style={styles.musicPlayerCard}>
+      {showMusicSection && hasSpotifyAccess ?
+    <SpotifyMusicPlayer
+      workoutType="cardio"
+      style={styles.musicPlayerCard} /> :
+
+    showMusicSection && !hasSpotifyAccess ?
+    <Card style={styles.musicPlayerCard}>
           <Text style={styles.noSpotifyConnectionText}>
             Spotify is not connected. Go to Settings to connect your account.
           </Text>
-        </Card>
-      ) : null}
+        </Card> :
+    null}
 
       {/* Spotify Workout Playlists */}
-      {hasSpotifyAccess && workoutPlaylists.length > 0 && (
-        <>
+      {hasSpotifyAccess && workoutPlaylists.length > 0 &&
+    <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Workout Playlists</Text>
             <TouchableOpacity>
@@ -736,21 +736,21 @@ export default function WorkoutsScreen() {
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playlistsContainer} removeClippedSubviews={true}>
-            {workoutPlaylists.slice(0, 3).map(playlist => (
-              <Card key={playlist.id} style={styles.playlistCard}>
-                {playlist.images[0] && (
-                  <Image 
-                    source={{ uri: playlist.images[0].url }}
-                    style={styles.playlistImage}
-                  />
-                )}
+            {workoutPlaylists.slice(0, 3).map((playlist) =>
+        <Card key={playlist.id} style={styles.playlistCard}>
+                {playlist.images[0] &&
+          <Image
+            source={{ uri: playlist.images[0].url }}
+            style={styles.playlistImage} />
+
+          }
                 <Text style={styles.playlistName} numberOfLines={2}>{playlist.name}</Text>
                 <Text style={styles.playlistTracks}>{playlist.tracks.total} tracks</Text>
               </Card>
-            ))}
+        )}
           </ScrollView>
         </>
-      )}
+    }
       
       {/* Featured Workouts */}
       <View style={styles.sectionHeader}>
@@ -761,23 +761,23 @@ export default function WorkoutsScreen() {
       </View>
       
       <View style={styles.carouselContainer}>
-        <ScrollView 
-          horizontal 
-          snapToInterval={PREVIEW_CARD_INTERVAL}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.workoutsContainer}
-          removeClippedSubviews={true}
-        >
-          {workouts.slice(0, 3).map(workout => (
-            <View key={workout.id} style={styles.workoutCardContainer}>
+        <ScrollView
+        horizontal
+        snapToInterval={PREVIEW_CARD_INTERVAL}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.workoutsContainer}
+        removeClippedSubviews={true}>
+        
+          {workouts.slice(0, 3).map((workout) =>
+        <View key={workout.id} style={styles.workoutCardContainer}>
               <WorkoutCard
-                workout={workout}
-                onPress={() => handleWorkoutPress(workout.id)}
-              />
+            workout={workout}
+            onPress={() => handleWorkoutPress(workout.id)} />
+          
             </View>
-          ))}
+        )}
         </ScrollView>
       </View>
       
@@ -791,58 +791,58 @@ export default function WorkoutsScreen() {
       
       {/* Carousel for Follow Along Workouts */}
       <View style={styles.carouselContainer}>
-        <ScrollView 
-          ref={followAlongScrollRef}
-          horizontal 
-          snapToInterval={PREVIEW_CARD_INTERVAL}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.workoutsContainer}
-          onMomentumScrollEnd={handleFollowAlongScroll}
-          removeClippedSubviews={true}
-        >
-          {followAlongWorkouts.map(workout => {
-            // Convert to Workout format
-            const workoutData = {
-              id: workout.id,
-              name: workout.title,
-              description: `Follow along workout targeting ${workout.muscleGroups.join(', ')}`,
-              difficulty: 'intermediate' as const,
-              duration: parseInt(workout.duration.replace(' min', '')),
-              category: 'Follow Along',
-              xpReward: 25,
-              imageUrl: workout.image,
-              exercises: [],
-              equipment: [],
-              muscleGroups: workout.muscleGroups,
-              calories: 150,
-              isCustom: false
-            };
-            
-            return (
-              <View key={workout.id} style={styles.workoutCardContainer}>
+        <ScrollView
+        ref={followAlongScrollRef}
+        horizontal
+        snapToInterval={PREVIEW_CARD_INTERVAL}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.workoutsContainer}
+        onMomentumScrollEnd={handleFollowAlongScroll}
+        removeClippedSubviews={true}>
+        
+          {followAlongWorkouts.map((workout) => {
+          // Convert to Workout format
+          const workoutData = {
+            id: workout.id,
+            name: workout.title,
+            description: `Follow along workout targeting ${workout.muscleGroups.join(', ')}`,
+            difficulty: 'intermediate',
+            duration: parseInt(workout.duration.replace(' min', '')),
+            category: 'Follow Along',
+            xpReward: 25,
+            imageUrl: workout.image,
+            exercises: [],
+            equipment: [],
+            muscleGroups: workout.muscleGroups,
+            calories: 150,
+            isCustom: false
+          };
+
+          return (
+            <View key={workout.id} style={styles.workoutCardContainer}>
                 <WorkoutCard
-                  workout={workoutData}
-                  onPress={() => handleWorkoutPress(workout.id)}
-                />
-              </View>
-            );
-          })}
+                workout={workoutData}
+                onPress={() => handleWorkoutPress(workout.id)} />
+              
+              </View>);
+
+        })}
         </ScrollView>
         
         {/* Carousel Indicators */}
         <View style={styles.indicatorsContainer}>
-          {followAlongWorkouts.map((_, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={[
-                styles.indicator, 
-                currentFollowAlongIndex === index && styles.activeIndicator
-              ]}
-              onPress={() => scrollToFollowAlongIndex(index)}
-            />
-          ))}
+          {followAlongWorkouts.map((_, index) =>
+        <TouchableOpacity
+          key={index}
+          style={[
+          styles.indicator,
+          currentFollowAlongIndex === index && styles.activeIndicator]
+          }
+          onPress={() => scrollToFollowAlongIndex(index)} />
+
+        )}
         </View>
       </View>
       
@@ -856,80 +856,80 @@ export default function WorkoutsScreen() {
       
       {/* Carousel for YouTube Workouts */}
       <View style={styles.carouselContainer}>
-        <ScrollView 
-          ref={youtubeScrollRef}
-          horizontal 
-          snapToInterval={PREVIEW_CARD_INTERVAL}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.workoutsContainer}
-          onMomentumScrollEnd={handleYoutubeScroll}
-          removeClippedSubviews={true}
-        >
-          {youtubeWorkouts.map(workout => {
-            // Convert to Workout format
-            const workoutData = {
-              id: workout.id,
-              name: workout.title,
-              description: `YouTube workout targeting ${workout.muscleGroups.join(', ')}`,
-              difficulty: 'beginner' as const,
-              duration: parseInt(workout.duration.replace(' min', '')),
-              category: 'YouTube',
-              xpReward: 30,
-              imageUrl: workout.image,
-              exercises: [],
-              equipment: workout.equipment || [],
-              muscleGroups: workout.muscleGroups,
-              calories: 120,
-              isCustom: false
-            };
-            
-            return (
-              <View key={workout.id} style={styles.workoutCardContainer}>
+        <ScrollView
+        ref={youtubeScrollRef}
+        horizontal
+        snapToInterval={PREVIEW_CARD_INTERVAL}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.workoutsContainer}
+        onMomentumScrollEnd={handleYoutubeScroll}
+        removeClippedSubviews={true}>
+        
+          {youtubeWorkouts.map((workout) => {
+          // Convert to Workout format
+          const workoutData = {
+            id: workout.id,
+            name: workout.title,
+            description: `YouTube workout targeting ${workout.muscleGroups.join(', ')}`,
+            difficulty: 'beginner',
+            duration: parseInt(workout.duration.replace(' min', '')),
+            category: 'YouTube',
+            xpReward: 30,
+            imageUrl: workout.image,
+            exercises: [],
+            equipment: workout.equipment || [],
+            muscleGroups: workout.muscleGroups,
+            calories: 120,
+            isCustom: false
+          };
+
+          return (
+            <View key={workout.id} style={styles.workoutCardContainer}>
                 <WorkoutCard
-                  workout={workoutData}
-                  onPress={() => handleWorkoutPress(workout.id)}
-                />
-              </View>
-            );
-          })}
+                workout={workoutData}
+                onPress={() => handleWorkoutPress(workout.id)} />
+              
+              </View>);
+
+        })}
         </ScrollView>
         
         {/* Carousel Indicators */}
         <View style={styles.indicatorsContainer}>
-          {youtubeWorkouts.map((_, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={[
-                styles.indicator, 
-                currentYoutubeIndex === index && styles.activeIndicator
-              ]}
-              onPress={() => scrollToYoutubeIndex(index)}
-            />
-          ))}
+          {youtubeWorkouts.map((_, index) =>
+        <TouchableOpacity
+          key={index}
+          style={[
+          styles.indicator,
+          currentYoutubeIndex === index && styles.activeIndicator]
+          }
+          onPress={() => scrollToYoutubeIndex(index)} />
+
+        )}
         </View>
       </View>
       
       {/* View All Saved Workouts Button */}
-      <Button 
-        title="View All Saved Workouts"
-        onPress={handleViewAllSavedPress}
-        variant="outline"
-        style={styles.viewAllSavedButton}
-      />
-    </>
-  ), [
-    followAlongWorkouts,
-    youtubeWorkouts,
-    currentFollowAlongIndex,
-    currentYoutubeIndex,
-    isWorkingOut,
-    showMusicSection,
-    hasSpotifyAccess,
-    workoutPlaylists,
-    workouts
-  ]);
+      <Button
+      title="View All Saved Workouts"
+      onPress={handleViewAllSavedPress}
+      variant="outline"
+      style={styles.viewAllSavedButton} />
+    
+    </>,
+  [
+  followAlongWorkouts,
+  youtubeWorkouts,
+  currentFollowAlongIndex,
+  currentYoutubeIndex,
+  isWorkingOut,
+  showMusicSection,
+  hasSpotifyAccess,
+  workoutPlaylists,
+  workouts]
+  );
 
   const renderProgramsTab = useCallback(() => {
     return (
@@ -938,69 +938,69 @@ export default function WorkoutsScreen() {
         <View style={styles.calendarToggleContainer}>
           <TouchableOpacity
             style={[
-              styles.calendarToggleButton,
-              calendarView === 'calendar' && styles.calendarToggleButtonActive
-            ]}
-            onPress={() => setCalendarView('calendar')}
-          >
+            styles.calendarToggleButton,
+            calendarView === 'calendar' && styles.calendarToggleButtonActive]
+            }
+            onPress={() => setCalendarView('calendar')}>
+            
             <Calendar size={20} color={calendarView === 'calendar' ? Colors.text.inverse : Colors.text.secondary} />
             <Text style={[
-              styles.calendarToggleText,
-              calendarView === 'calendar' && styles.calendarToggleTextActive
-            ]}>
+            styles.calendarToggleText,
+            calendarView === 'calendar' && styles.calendarToggleTextActive]
+            }>
               Calendar
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity
             style={[
-              styles.calendarToggleButton,
-              calendarView === 'productivity' && styles.calendarToggleButtonActive
-            ]}
-            onPress={() => setCalendarView('productivity')}
-          >
+            styles.calendarToggleButton,
+            calendarView === 'productivity' && styles.calendarToggleButtonActive]
+            }
+            onPress={() => setCalendarView('productivity')}>
+            
             <Target size={20} color={calendarView === 'productivity' ? Colors.text.inverse : Colors.text.secondary} />
             <Text style={[
-              styles.calendarToggleText,
-              calendarView === 'productivity' && styles.calendarToggleTextActive
-            ]}>
+            styles.calendarToggleText,
+            calendarView === 'productivity' && styles.calendarToggleTextActive]
+            }>
               Productivity
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Calendar or Productivity View */}
-        {calendarView === 'calendar' ? (
-          <WorkoutCalendar
-            onDateSelect={(date) => setSelectedCalendarDate(date)}
-            onEventPress={(event) => console.log('Event pressed:', event)}
-            onAddEvent={(date) => {
-              setSelectedCalendarDate(date);
-              setShowEventModal(true);
-            }}
-          />
-        ) : (
-          <ProductivityTracker
-            onMetricPress={(metric) => console.log('Metric pressed:', metric)}
-            onHabitToggle={(habitId) => console.log('Habit toggled:', habitId)}
-            onSetGoal={() => setShowGoalModal(true)}
-            onSchedule={() => setShowScheduleModal(true)}
-            onTimer={() => setShowTimerModal(true)}
-          />
-        )}
+        {calendarView === 'calendar' ?
+        <WorkoutCalendar
+          onDateSelect={(date) => setSelectedCalendarDate(date)}
+          onEventPress={(event) => console.log('Event pressed:', event)}
+          onAddEvent={(date) => {
+            setSelectedCalendarDate(date);
+            setShowEventModal(true);
+          }} /> :
+
+
+        <ProductivityTracker
+          onMetricPress={(metric) => console.log('Metric pressed:', metric)}
+          onHabitToggle={(habitId) => console.log('Habit toggled:', habitId)}
+          onSetGoal={() => setShowGoalModal(true)}
+          onSchedule={() => setShowScheduleModal(true)}
+          onTimer={() => setShowTimerModal(true)} />
+
+        }
 
         {/* Event Creation Modal */}
-        {showEventModal && selectedCalendarDate && (
-          <EventCreationModal
-            visible={showEventModal}
-            selectedDate={selectedCalendarDate}
-            onClose={() => setShowEventModal(false)}
-            onSave={(event) => {
-              console.log('Saving event:', event);
-              setShowEventModal(false);
-            }}
-          />
-        )}
+        {showEventModal && selectedCalendarDate &&
+        <EventCreationModal
+          visible={showEventModal}
+          selectedDate={selectedCalendarDate}
+          onClose={() => setShowEventModal(false)}
+          onSave={(event) => {
+            console.log('Saving event:', event);
+            setShowEventModal(false);
+          }} />
+
+        }
 
         {/* Goal Setting Modal */}
         <GoalSettingModal
@@ -1009,8 +1009,8 @@ export default function WorkoutsScreen() {
           onSave={(goal) => {
             console.log('Saving goal:', goal);
             setShowGoalModal(false);
-          }}
-        />
+          }} />
+        
 
         {/* Schedule Modal */}
         <ScheduleModal
@@ -1019,27 +1019,27 @@ export default function WorkoutsScreen() {
           onSave={(schedule) => {
             console.log('Saving schedule:', schedule);
             setShowScheduleModal(false);
-          }}
-        />
+          }} />
+        
 
         {/* Timer Modal */}
         <TimerModal
           visible={showTimerModal}
-          onClose={() => setShowTimerModal(false)}
-        />
-      </>
-    );
-  }, [
-    calendarView,
-    showEventModal,
-    selectedCalendarDate,
-    showGoalModal,
-    showScheduleModal,
-    showTimerModal
-  ]);
+          onClose={() => setShowTimerModal(false)} />
+        
+      </>);
 
-  const renderChallengesTab = useCallback(() => (
-    <>
+  }, [
+  calendarView,
+  showEventModal,
+  selectedCalendarDate,
+  showGoalModal,
+  showScheduleModal,
+  showTimerModal]
+  );
+
+  const renderChallengesTab = useCallback(() =>
+  <>
       {/* Community Challenges */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Community Challenges</Text>
@@ -1048,14 +1048,14 @@ export default function WorkoutsScreen() {
         </TouchableOpacity>
       </View>
       
-      {communityRunningChallenges.map(challenge => (
-        <Card key={challenge.id} style={styles.fullWidthChallengeCard}>
+      {communityRunningChallenges.map((challenge) =>
+    <Card key={challenge.id} style={styles.fullWidthChallengeCard}>
           <View style={styles.challengeHeader}>
             <Text style={styles.challengeTitle}>{challenge.name}</Text>
-            <Badge 
-              variant="primary" 
-              style={styles.challengeCategoryBadge}
-            >
+            <Badge
+          variant="primary"
+          style={styles.challengeCategoryBadge}>
+          
               {challenge.category}
             </Badge>
           </View>
@@ -1065,29 +1065,29 @@ export default function WorkoutsScreen() {
               Progress: {challenge.progress || 0}/{challenge.target || 0} {challenge.unit}
             </Text>
             <View style={styles.challengeProgressBar}>
-              <View 
-                style={[
-                  styles.challengeProgressFill, 
-                  { width: `${((challenge.progress || 0) / (challenge.target || 1)) * 100}%` }
-                ]} 
-              />
+              <View
+            style={[
+            styles.challengeProgressFill,
+            { width: `${(challenge.progress || 0) / (challenge.target || 1) * 100}%` }]
+            } />
+          
             </View>
           </View>
           <View style={styles.challengeFooter}>
             <Text style={styles.challengeParticipants}>{challenge.participants} participants</Text>
-            <Button 
-              title={challenge.isJoined ? 'Joined' : 'Join Challenge'}
-              onPress={() => handleJoinChallenge(challenge.id)}
-              variant={challenge.isJoined ? 'outline' : 'primary'}
-              style={styles.challengeJoinButton}
-              disabled={challenge.isJoined}
-            />
+            <Button
+          title={challenge.isJoined ? 'Joined' : 'Join Challenge'}
+          onPress={() => handleJoinChallenge(challenge.id)}
+          variant={challenge.isJoined ? 'outline' : 'primary'}
+          style={styles.challengeJoinButton}
+          disabled={challenge.isJoined} />
+        
           </View>
         </Card>
-      ))}
-    </>
-  ), [communityRunningChallenges]);
-  
+    )}
+    </>,
+  [communityRunningChallenges]);
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -1098,7 +1098,7 @@ export default function WorkoutsScreen() {
         
         <Text style={styles.headerTitle}>Workout Hub</Text>
         
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.musicButton, hasSpotifyAccess && styles.musicButtonActive]}
           onPress={() => {
             if (hasSpotifyAccess) {
@@ -1107,39 +1107,39 @@ export default function WorkoutsScreen() {
               router.push('/spotify-integration');
             }
           }}
-          testID="workouts-music-button"
-        >
+          testID="workouts-music-button">
+          
           <Music size={24} color={hasSpotifyAccess ? '#1DB954' : Colors.text.primary} />
         </TouchableOpacity>
       </View>
       
       {/* Tab Bar - Updated to match Profile style */}
       <View style={styles.tabBar}>
-        {tabs.map(tab => {
+        {tabs.map((tab) => {
           const IconComponent = tab.icon;
           return (
             <TouchableOpacity
               key={tab.id}
               style={[styles.tabButton, activeTab === tab.id && styles.activeTabButton]}
-              onPress={() => setActiveTab(tab.id)}
-            >
-              <IconComponent 
-                size={20} 
-                color={activeTab === tab.id ? Colors.primary : Colors.text.secondary} 
-              />
+              onPress={() => setActiveTab(tab.id)}>
+              
+              <IconComponent
+                size={20}
+                color={activeTab === tab.id ? Colors.primary : Colors.text.secondary} />
+              
               <Text style={[styles.tabButtonText, activeTab === tab.id && styles.activeTabButtonText]}>
                 {tab.label}
               </Text>
-            </TouchableOpacity>
-          );
+            </TouchableOpacity>);
+
         })}
       </View>
       
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-      >
+        removeClippedSubviews={true}>
+        
         {activeTab === 'workouts' && renderWorkoutsTab()}
         {activeTab === 'running' && renderRunningTab()}
         {activeTab === 'programs' && renderProgramsTab()}
@@ -1149,25 +1149,25 @@ export default function WorkoutsScreen() {
       </ScrollView>
       
       <BottomNavigation />
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   header: {
     flexDirection: 'row',
@@ -1176,7 +1176,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 15,
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: Colors.backgroundSecondary
   },
   searchButton: {
     width: 40,
@@ -1184,17 +1184,17 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.xlarge,
     backgroundColor: Colors.background,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   headerRightButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12
   },
   musicButton: {
     width: 40,
@@ -1202,10 +1202,10 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.xlarge,
     backgroundColor: Colors.background,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   musicButtonActive: {
-    backgroundColor: 'rgba(29, 185, 84, 0.12)',
+    backgroundColor: 'rgba(29, 185, 84, 0.12)'
   },
   notificationButton: {
     width: 40,
@@ -1214,7 +1214,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    position: 'relative'
   },
   notificationBadge: {
     position: 'absolute',
@@ -1225,12 +1225,12 @@ const styles = StyleSheet.create({
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   notificationBadgeText: {
     color: Colors.text.inverse,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   // Updated Tab Bar styles to match Profile
   tabBar: {
@@ -1238,7 +1238,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   tabButton: {
     flex: 1,
@@ -1248,23 +1248,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: 'transparent'
   },
   activeTabButton: {
-    borderBottomColor: Colors.primary,
+    borderBottomColor: Colors.primary
   },
   tabButtonText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   activeTabButtonText: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1272,24 +1272,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 16,
-    marginTop: 16,
+    marginTop: 16
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   viewAllText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.primary
   },
   carouselContainer: {
-    marginBottom: 24,
+    marginBottom: 24
   },
   workoutsContainer: {
     paddingLeft,
-    paddingRight,
+    paddingRight
   },
   workoutCard: {
     width,
@@ -1297,25 +1297,25 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.large,
     overflow: 'hidden',
     marginRight,
-    position: 'relative',
+    position: 'relative'
   },
   workoutCardContainer: {
     width,
-    marginRight,
+    marginRight
   },
   runningProgramCardContainer: {
     width,
-    marginRight,
+    marginRight
   },
   workoutImage: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
+    position: 'absolute'
   },
   workoutOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 16,
+    borderRadius: 16
   },
   workoutTitle: {
     position: 'absolute',
@@ -1324,7 +1324,7 @@ const styles = StyleSheet.create({
     right: 16,
     color: Colors.text.inverse,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700'
   },
   proBadge: {
     position: 'absolute',
@@ -1333,12 +1333,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 4
   },
   proBadgeText: {
     color: Colors.text.inverse,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '700'
   },
   durationBadge: {
     position: 'absolute',
@@ -1349,25 +1349,25 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   durationText: {
     color: Colors.text.inverse,
     fontSize: 10,
     fontWeight: '600',
-    textAlign: 'center',
+    textAlign: 'center'
   },
   muscleGroupIcons: {
     position: 'absolute',
     bottom: 16,
     right: 16,
-    flexDirection: 'row',
+    flexDirection: 'row'
   },
   muscleIcon: {
     width: 30,
     height: 30,
     marginLeft: 4,
-    tintColor: Colors.text.inverse,
+    tintColor: Colors.text.inverse
   },
   equipmentIcon: {
     position: 'absolute',
@@ -1378,49 +1378,49 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   equipmentIconImage: {
     width: 20,
     height: 20,
-    tintColor: Colors.text.inverse,
+    tintColor: Colors.text.inverse
   },
   indicatorsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 12
   },
   indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.inactive,
-    marginHorizontal: 4,
+    marginHorizontal: 4
   },
   activeIndicator: {
     backgroundColor: Colors.primary,
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: 5
   },
   viewAllSavedButton: {
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 16
   },
-  
+
   // Running-specific styles
   quickActionsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     marginBottom: 20,
     gap: 12,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   quickActionButton: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: Colors.radius.large,
+    borderRadius: Colors.radius.large
   },
   musicToggleButton: {
     width: 48,
@@ -1430,94 +1430,94 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   musicPlayerCard: {
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   quickActionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.running.primary,
+    color: Colors.running.primary
   },
   quickActionTextActive: {
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   currentRunCard: {
     marginHorizontal: 20,
     marginBottom: 20,
-    padding: 20,
+    padding: 20
   },
   currentRunTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   currentRunStats: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-around'
   },
   currentRunStat: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   currentRunStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.running.primary,
+    color: Colors.running.primary
   },
   currentRunStatLabel: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: 4,
+    marginTop: 4
   },
   runningStatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 20,
     marginBottom: 20,
-    gap: 12,
+    gap: 12
   },
   runningStatCard: {
     flex: 1,
     minWidth: '45%',
     padding: 16,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   runningStatValue: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   runningStatLabel: {
     fontSize: 12,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   personalBestsContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   personalBestCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     marginBottom: 12,
-    gap: 12,
+    gap: 12
   },
   personalBestLabel: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   personalBestValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   runningBuddyCard: {
     flexDirection: 'row',
@@ -1525,204 +1525,204 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 20,
     padding: 16,
-    gap: 12,
+    gap: 12
   },
   buddyAvatar: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 25
   },
   buddyInfo: {
-    flex: 1,
+    flex: 1
   },
   buddyName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   buddyLevel: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: 2
   },
   buddyStats: {
     fontSize: 12,
     color: Colors.text.tertiary,
-    marginTop: 2,
+    marginTop: 2
   },
   buddyStatus: {
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   buddyStatusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 4
   },
   buddyStatusText: {
     fontSize: 10,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   challengesContainer: {
     paddingLeft: 20,
     paddingRight: 20,
-    gap: 16,
+    gap: 16
   },
   challengeCard: {
     width: 280,
-    padding: 16,
+    padding: 16
   },
   challengeTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   challengeDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   challengeStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 12
   },
   challengeParticipants: {
     fontSize: 12,
-    color: Colors.text.tertiary,
+    color: Colors.text.tertiary
   },
   challengeReward: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.running.primary,
+    color: Colors.running.primary
   },
   challengeButton: {
-    marginTop: 8,
+    marginTop: 8
   },
   raceCard: {
     width: 300,
-    padding: 16,
+    padding: 16
   },
   raceTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   raceDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   raceStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 8
   },
   raceDistance: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.running.distance,
+    color: Colors.running.distance
   },
   raceParticipants: {
     fontSize: 12,
-    color: Colors.text.tertiary,
+    color: Colors.text.tertiary
   },
   raceRewards: {
-    marginBottom: 12,
+    marginBottom: 12
   },
   raceRewardText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.warning,
+    color: Colors.warning
   },
   racePrize: {
     fontSize: 12,
     color: Colors.text.secondary,
-    fontStyle: 'italic',
+    fontStyle: 'italic'
   },
   raceButton: {
-    marginTop: 8,
+    marginTop: 8
   },
   fullWidthChallengeCard: {
     marginHorizontal: 20,
     marginBottom: 16,
-    padding: 16,
+    padding: 16
   },
   challengeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   challengeCategoryBadge: {
     height: 24,
-    paddingHorizontal: 8,
+    paddingHorizontal: 8
   },
   challengeProgress: {
-    marginVertical: 12,
+    marginVertical: 12
   },
   challengeProgressText: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   challengeProgressBar: {
     height: 6,
     backgroundColor: Colors.inactive,
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   challengeProgressFill: {
     height: '100%',
-    backgroundColor: Colors.running.primary,
+    backgroundColor: Colors.running.primary
   },
   challengeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   challengeJoinButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   // Spotify playlist styles
   playlistsContainer: {
     paddingLeft: 20,
     paddingRight: 20,
-    gap: 16,
+    gap: 16
   },
   playlistCard: {
     width: 160,
     padding: 12,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   playlistImage: {
     width: 120,
     height: 120,
     borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: 8
   },
   playlistName: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.text.primary,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 4
   },
   playlistTracks: {
     fontSize: 12,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   noSpotifyConnectionText: {
     textAlign: 'center',
     padding: 16,
     color: Colors.text.secondary,
-    fontSize: 14,
+    fontSize: 14
   },
-  
+
   // Calendar tab styles
   calendarToggleContainer: {
     flexDirection: 'row',
@@ -1730,7 +1730,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
-    padding: 4,
+    padding: 4
   },
   calendarToggleButton: {
     flex: 1,
@@ -1740,18 +1740,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    gap: 8,
+    gap: 8
   },
   calendarToggleButtonActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   calendarToggleText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   calendarToggleTextActive: {
     color: Colors.text.inverse,
-    fontWeight: '600',
-  },
+    fontWeight: '600'
+  }
 });

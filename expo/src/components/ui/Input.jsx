@@ -3,11 +3,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TextInputProps,
+
   TouchableOpacity,
-  View,
-  ViewStyle,
-} from 'react-native';
+  View } from
+
+'react-native';
 import { Colors, Radius, Spacing, Typography } from '../../constants/tokens';
 
 export function Input({
@@ -17,7 +17,7 @@ export function Input({
   accessibilityLabel,
   containerStyle,
   ...rest
-}: InputProps) {
+}) {
   const [hidden, setHidden] = useState(secureTextEntry);
 
   return (
@@ -29,22 +29,22 @@ export function Input({
           secureTextEntry={hidden}
           placeholderTextColor={Colors.text.disabled}
           style={styles.input}
-          accessibilityLabel={accessibilityLabel ?? label}
-        />
-        {secureTextEntry ? (
-          <TouchableOpacity
-            onPress={() => setHidden((h) => !h)}
-            accessibilityRole="button"
-            accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
-            style={styles.toggle}
-          >
+          accessibilityLabel={accessibilityLabel ?? label} />
+        
+        {secureTextEntry ?
+        <TouchableOpacity
+          onPress={() => setHidden((h) => !h)}
+          accessibilityRole="button"
+          accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
+          style={styles.toggle}>
+          
             <Text style={styles.toggleText}>{hidden ? 'Show' : 'Hide'}</Text>
-          </TouchableOpacity>
-        ) : null}
+          </TouchableOpacity> :
+        null}
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontSize: Typography.size.sm,
     marginBottom: Spacing.xs,
-    fontWeight: Typography.weight.medium,
+    fontWeight: Typography.weight.medium
   },
   inputWrap: {
     flexDirection: 'row',
@@ -62,28 +62,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.md
   },
   inputWrapError: {
-    borderColor: Colors.error,
+    borderColor: Colors.error
   },
   input: {
     flex: 1,
     color: Colors.text.primary,
     fontSize: Typography.size.base,
-    paddingVertical: Spacing.md - 4,
+    paddingVertical: Spacing.md - 4
   },
   toggle: { paddingHorizontal: Spacing.sm },
   toggleText: {
     color: Colors.primary,
     fontSize: Typography.size.sm,
-    fontWeight: Typography.weight.semibold,
+    fontWeight: Typography.weight.semibold
   },
   errorText: {
     color: Colors.error,
     fontSize: Typography.size.xs,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs
+  }
 });
 
 export default Input;

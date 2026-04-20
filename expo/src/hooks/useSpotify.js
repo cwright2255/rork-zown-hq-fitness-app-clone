@@ -14,7 +14,7 @@ export function useSpotify() {
     setPlaylists,
     setLoading,
     setError,
-    reset,
+    reset
   } = useSpotifyStore();
 
   const authenticate = useCallback(async () => {
@@ -36,7 +36,7 @@ export function useSpotify() {
       if (!tokens) throw new Error('Not authenticated with Spotify');
       return spotifyService.searchTracks(tokens.accessToken, q);
     },
-    [tokens],
+    [tokens]
   );
 
   const getUserPlaylists = useCallback(async () => {
@@ -56,7 +56,7 @@ export function useSpotify() {
       if (!tokens) throw new Error('Not authenticated with Spotify');
       return spotifyService.getPlaylistTracks(tokens.accessToken, playlistId);
     },
-    [tokens],
+    [tokens]
   );
 
   const disconnect = useCallback(async () => {
@@ -75,6 +75,6 @@ export function useSpotify() {
     searchTracks,
     getUserPlaylists,
     getPlaylistTracks,
-    disconnect,
+    disconnect
   };
 }

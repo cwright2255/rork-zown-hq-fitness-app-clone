@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { X, Minimize2, Maximize2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
-function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, compact = false }: SpotifyEmbedPlayerProps) {
+function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, compact = false }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(!compact);
 
@@ -17,46 +17,46 @@ function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, com
     return (
       <View style={[styles.container, { height: 80 }]}>
         <Text style={styles.errorText}>WebView not available</Text>
-      </View>
-    );
+      </View>);
+
   }
 
   return (
     <View style={[styles.container, { height: height + 40 }]}>
       <View style={styles.header}>
         <View style={styles.headerInfo}>
-          {trackName && (
-            <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
-          )}
-          {artistName && (
-            <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
-          )}
+          {trackName &&
+          <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
+          }
+          {artistName &&
+          <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
+          }
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? (
-              <Minimize2 size={16} color="#fff" />
-            ) : (
-              <Maximize2 size={16} color="#fff" />
-            )}
+            onPress={() => setIsExpanded(!isExpanded)}>
+            
+            {isExpanded ?
+            <Minimize2 size={16} color="#fff" /> :
+
+            <Maximize2 size={16} color="#fff" />
+            }
           </TouchableOpacity>
-          {onClose && (
-            <TouchableOpacity style={styles.headerButton} onPress={onClose}>
+          {onClose &&
+          <TouchableOpacity style={styles.headerButton} onPress={onClose}>
               <X size={16} color="#fff" />
             </TouchableOpacity>
-          )}
+          }
         </View>
       </View>
       <View style={[styles.webviewContainer, { height }]}>
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
+        {isLoading &&
+        <View style={styles.loadingOverlay}>
             <ActivityIndicator size="small" color="#1DB954" />
             <Text style={styles.loadingText}>Loading player...</Text>
           </View>
-        )}
+        }
         <WebViewComponent
           source={{ uri: embedUrl }}
           style={[styles.webview, { height }]}
@@ -67,14 +67,14 @@ function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, com
           domStorageEnabled={true}
           scrollEnabled={false}
           bounces={false}
-          originWhitelist={['*']}
-        />
+          originWhitelist={['*']} />
+        
       </View>
-    </View>
-  );
+    </View>);
+
 }
 
-function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compact = false }: SpotifyEmbedPlayerProps) {
+function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compact = false }) {
   const [isExpanded, setIsExpanded] = useState(!compact);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -85,38 +85,38 @@ function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compac
     <View style={[styles.container, { height: height + 40 }]}>
       <View style={styles.header}>
         <View style={styles.headerInfo}>
-          {trackName && (
-            <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
-          )}
-          {artistName && (
-            <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
-          )}
+          {trackName &&
+          <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
+          }
+          {artistName &&
+          <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
+          }
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? (
-              <Minimize2 size={16} color="#fff" />
-            ) : (
-              <Maximize2 size={16} color="#fff" />
-            )}
+            onPress={() => setIsExpanded(!isExpanded)}>
+            
+            {isExpanded ?
+            <Minimize2 size={16} color="#fff" /> :
+
+            <Maximize2 size={16} color="#fff" />
+            }
           </TouchableOpacity>
-          {onClose && (
-            <TouchableOpacity style={styles.headerButton} onPress={onClose}>
+          {onClose &&
+          <TouchableOpacity style={styles.headerButton} onPress={onClose}>
               <X size={16} color="#fff" />
             </TouchableOpacity>
-          )}
+          }
         </View>
       </View>
       <View style={[styles.webviewContainer, { height }]}>
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
+        {isLoading &&
+        <View style={styles.loadingOverlay}>
             <ActivityIndicator size="small" color="#1DB954" />
             <Text style={styles.loadingText}>Loading player...</Text>
           </View>
-        )}
+        }
         <iframe
           src={embedUrl}
           width="100%"
@@ -125,11 +125,11 @@ function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compac
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
           style={{ borderRadius: 12, border: 'none' }}
-          onLoad={() => setIsLoading(false)}
-        />
+          onLoad={() => setIsLoading(false)} />
+        
       </View>
-    </View>
-  );
+    </View>);
+
 }
 
 export default function SpotifyEmbedPlayer(props) {
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#111',
-    marginBottom: 12,
+    marginBottom: 12
   },
   header: {
     flexDirection: 'row',
@@ -152,25 +152,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 14,
     height: 40,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1a1a1a'
   },
   headerInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 12
   },
   headerTrackName: {
     fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#fff',
+    fontWeight: '600',
+    color: '#fff'
   },
   headerArtistName: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.5)'
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 8
   },
   headerButton: {
     width: 28,
@@ -178,15 +178,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   webviewContainer: {
     width: '100%',
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   webview: {
     width: '100%',
-    backgroundColor: 'transparent',
+    backgroundColor: 'transparent'
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -194,16 +194,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#111',
     zIndex: 10,
-    gap: 8,
+    gap: 8
   },
   loadingText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.5)'
   },
   errorText: {
     fontSize: 13,
     color: Colors.text.secondary,
     textAlign: 'center',
-    padding: 20,
-  },
+    padding: 20
+  }
 });

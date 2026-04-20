@@ -1,10 +1,10 @@
-import { Colors, Spacing, Typography, Radius } from './tokens';
+
 
 export const theme = {
   colors,
   spacing,
   typography,
-  radius,
-} as const;
+  radius
+};
 
 export default theme;

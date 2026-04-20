@@ -21,7 +21,7 @@ export function useUserProfile() {
       height: data.height,
       age: data.age,
       createdAt: data.createdAt?.toDate?.() ?? new Date(),
-      updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
+      updatedAt: data.updatedAt?.toDate?.() ?? new Date()
     };
   }, []);
 
@@ -30,10 +30,10 @@ export function useUserProfile() {
       if (!user) throw new Error('Not authenticated');
       await updateDoc(doc(db, 'users', user.uid), {
         ...patch,
-        updatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
     },
-    [user],
+    [user]
   );
 
   const createProfile = useCallback(async (uid, profile) => {
@@ -41,7 +41,7 @@ export function useUserProfile() {
       ...profile,
       uid,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
   }, []);
 

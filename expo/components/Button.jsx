@@ -14,11 +14,11 @@ const Button = React.memo(({
   leftIcon,
   rightIcon,
   icon, // Added for backward compatibility
-  testID,
-}: ButtonProps) => {
+  testID
+}) => {
   // Use icon as leftIcon if provided (for backward compatibility)
   const effectiveLeftIcon = leftIcon || icon;
-  
+
   // Memoize button styles
   const buttonStyles = React.useMemo(() => {
     let variantStyle;
@@ -35,7 +35,7 @@ const Button = React.memo(({
       default:
         variantStyle = styles.primaryButton;
     }
-    
+
     let sizeStyle;
     switch (size) {
       case 'small':
@@ -47,10 +47,10 @@ const Button = React.memo(({
       default:
         sizeStyle = styles.mediumButton;
     }
-    
+
     return [styles.button, variantStyle, sizeStyle];
   }, [variant, size]);
-  
+
   // Memoize text styles
   const textStyles = React.useMemo(() => {
     let variantTextStyle;
@@ -67,7 +67,7 @@ const Button = React.memo(({
       default:
         variantTextStyle = styles.primaryButtonText;
     }
-    
+
     let sizeTextStyle;
     switch (size) {
       case 'small':
@@ -79,58 +79,58 @@ const Button = React.memo(({
       default:
         sizeTextStyle = styles.mediumButtonText;
     }
-    
+
     return [styles.buttonText, variantTextStyle, sizeTextStyle];
   }, [variant, size]);
-  
+
   // Memoize activity indicator color
-  const indicatorColor = React.useMemo(() => 
-    variant === 'outline' ? Colors.primary : Colors.text.inverse,
-    [variant]
+  const indicatorColor = React.useMemo(() =>
+  variant === 'outline' ? Colors.primary : Colors.text.inverse,
+  [variant]
   );
-  
+
   return (
     <TouchableOpacity
       style={[
-        ...buttonStyles,
-        disabled && styles.disabledButton,
-        style
-      ]}
+      ...buttonStyles,
+      disabled && styles.disabledButton,
+      style]
+      }
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
-      testID={testID}
-    >
-      {loading ? (
-        <ActivityIndicator 
-          color={indicatorColor} 
-          size="small" 
-        />
-      ) : (
-        <View style={styles.buttonContent}>
-          {effectiveLeftIcon && (
-            <View style={styles.leftIconContainer}>
+      testID={testID}>
+      
+      {loading ?
+      <ActivityIndicator
+        color={indicatorColor}
+        size="small" /> :
+
+
+      <View style={styles.buttonContent}>
+          {effectiveLeftIcon &&
+        <View style={styles.leftIconContainer}>
               {effectiveLeftIcon}
             </View>
-          )}
-          <Text 
-            style={[
-              ...textStyles,
-              disabled && styles.disabledButtonText,
-              textStyle
-            ]}
-          >
+        }
+          <Text
+          style={[
+          ...textStyles,
+          disabled && styles.disabledButtonText,
+          textStyle]
+          }>
+          
             {title}
           </Text>
-          {rightIcon && (
-            <View style={styles.rightIconContainer}>
+          {rightIcon &&
+        <View style={styles.rightIconContainer}>
               {rightIcon}
             </View>
-          )}
+        }
         </View>
-      )}
-    </TouchableOpacity>
-  );
+      }
+    </TouchableOpacity>);
+
 });
 
 const styles = StyleSheet.create({
@@ -141,89 +141,89 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 2
     },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 3
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   buttonText: {
     fontWeight: '600',
-    textAlign: 'center',
+    textAlign: 'center'
   },
   // Variants
   primaryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   primaryButtonText: {
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   secondaryButton: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.secondary
   },
   secondaryButtonText: {
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   outlineButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   outlineButtonText: {
-    color: Colors.primary,
+    color: Colors.primary
   },
   dangerButton: {
-    backgroundColor: Colors.error,
+    backgroundColor: Colors.error
   },
   dangerButtonText: {
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   // Sizes
   smallButton: {
     paddingVertical: Colors.spacing.sm,
-    paddingHorizontal: Colors.spacing.lg,
+    paddingHorizontal: Colors.spacing.lg
   },
   mediumButton: {
     paddingVertical: Colors.spacing.md,
-    paddingHorizontal: Colors.spacing.xxl,
+    paddingHorizontal: Colors.spacing.xxl
   },
   largeButton: {
     paddingVertical: Colors.spacing.lg,
-    paddingHorizontal: 32,
+    paddingHorizontal: 32
   },
   smallButtonText: {
-    fontSize: 12,
+    fontSize: 12
   },
   mediumButtonText: {
-    fontSize: 14,
+    fontSize: 14
   },
   largeButtonText: {
-    fontSize: 16,
+    fontSize: 16
   },
   // States
   disabledButton: {
     backgroundColor: Colors.inactive,
     borderColor: Colors.inactive,
     shadowOpacity: 0,
-    elevation: 0,
+    elevation: 0
   },
   disabledButtonText: {
-    color: Colors.text.tertiary,
+    color: Colors.text.tertiary
   },
   // Icons
   leftIconContainer: {
     marginRight: Colors.spacing.sm,
-    backgroundColor: 'transparent',
+    backgroundColor: 'transparent'
   },
   rightIconContainer: {
     marginLeft: Colors.spacing.sm,
-    backgroundColor: 'transparent',
-  },
+    backgroundColor: 'transparent'
+  }
 });
 
 Button.displayName = 'Button';

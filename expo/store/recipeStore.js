@@ -16,7 +16,7 @@ export const useRecipeStore = create((set, get) => ({
   addRecipe: async (recipeData) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const newRecipe = {
         id: Date.now().toString(),
         name: recipeData.name,
@@ -56,10 +56,10 @@ export const useRecipeStore = create((set, get) => ({
 
       const { savedRecipes } = get();
       const updatedRecipes = [...savedRecipes, newRecipe];
-      
+
       set({ savedRecipes: updatedRecipes, isLoading: false });
       await get().saveData();
-      
+
       console.log('Recipe added successfully:', newRecipe.name);
     } catch (error) {
       console.error('Error adding recipe:', error);
@@ -69,15 +69,15 @@ export const useRecipeStore = create((set, get) => ({
 
   removeRecipe: (recipeId) => {
     const { savedRecipes } = get();
-    const updatedRecipes = savedRecipes.filter(recipe => recipe.id !== recipeId);
+    const updatedRecipes = savedRecipes.filter((recipe) => recipe.id !== recipeId);
     set({ savedRecipes: updatedRecipes });
     get().saveData();
   },
 
   toggleFavorite: (recipeId) => {
     const { savedRecipes } = get();
-    const updatedRecipes = savedRecipes.map(recipe =>
-      recipe.id === recipeId ? { ...recipe, isFavorite: !recipe.isFavorite } : recipe
+    const updatedRecipes = savedRecipes.map((recipe) =>
+    recipe.id === recipeId ? { ...recipe, isFavorite: !recipe.isFavorite } : recipe
     );
     set({ savedRecipes: updatedRecipes });
     get().saveData();
@@ -85,8 +85,8 @@ export const useRecipeStore = create((set, get) => ({
 
   updateRecipe: (recipeId, updates) => {
     const { savedRecipes } = get();
-    const updatedRecipes = savedRecipes.map(recipe =>
-      recipe.id === recipeId ? { ...recipe, ...updates } : recipe
+    const updatedRecipes = savedRecipes.map((recipe) =>
+    recipe.id === recipeId ? { ...recipe, ...updates } : recipe
     );
     set({ savedRecipes: updatedRecipes });
     get().saveData();
@@ -94,10 +94,10 @@ export const useRecipeStore = create((set, get) => ({
 
   generateGroceryList: (recipeIds) => {
     const { savedRecipes } = get();
-    const selectedRecipes = savedRecipes.filter(recipe => recipeIds.includes(recipe.id));
-    
+    const selectedRecipes = savedRecipes.filter((recipe) => recipeIds.includes(recipe.id));
+
     const groceryItems = recipeExtractionService.generateGroceryList(selectedRecipes);
-    
+
     const groceryList = groceryItems.map((item, index) => ({
       id: `grocery_${index}_${Date.now()}`,
       ingredient: item.ingredient,
@@ -115,10 +115,10 @@ export const useRecipeStore = create((set, get) => ({
   addToGroceryList: (recipeId) => {
     const { savedRecipes } = get();
     get().generateGroceryList([recipeId]);
-    
+
     // Mark recipe as added to grocery list
-    const updatedRecipes = savedRecipes.map(recipe =>
-      recipe.id === recipeId ? { ...recipe, addedToGroceryList: true } : recipe
+    const updatedRecipes = savedRecipes.map((recipe) =>
+    recipe.id === recipeId ? { ...recipe, addedToGroceryList: true } : recipe
     );
     set({ savedRecipes: updatedRecipes });
     get().saveData();
@@ -126,20 +126,20 @@ export const useRecipeStore = create((set, get) => ({
 
   removeFromGroceryList: (recipeId) => {
     const { groceryList, savedRecipes } = get();
-    const recipe = savedRecipes.find(r => r.id === recipeId);
-    
+    const recipe = savedRecipes.find((r) => r.id === recipeId);
+
     if (recipe) {
       // Remove items that only belong to this recipe
-      const updatedGroceryList = groceryList.filter(item => 
-        !item.recipes.includes(recipe.name) || item.recipes.length > 1
-      ).map(item => ({
+      const updatedGroceryList = groceryList.filter((item) =>
+      !item.recipes.includes(recipe.name) || item.recipes.length > 1
+      ).map((item) => ({
         ...item,
-        recipes: item.recipes.filter(recipeName => recipeName !== recipe.name)
+        recipes: item.recipes.filter((recipeName) => recipeName !== recipe.name)
       }));
 
       // Mark recipe as removed from grocery list
-      const updatedRecipes = savedRecipes.map(r =>
-        r.id === recipeId ? { ...r, addedToGroceryList: false } : r
+      const updatedRecipes = savedRecipes.map((r) =>
+      r.id === recipeId ? { ...r, addedToGroceryList: false } : r
       );
 
       set({ groceryList: updatedGroceryList, savedRecipes: updatedRecipes });
@@ -149,8 +149,8 @@ export const useRecipeStore = create((set, get) => ({
 
   toggleGroceryItem: (itemId) => {
     const { groceryList } = get();
-    const updatedList = groceryList.map(item =>
-      item.id === itemId ? { ...item, checked: !item.checked } : item
+    const updatedList = groceryList.map((item) =>
+    item.id === itemId ? { ...item, checked: !item.checked } : item
     );
     set({ groceryList: updatedList });
     get().saveData();
@@ -158,18 +158,18 @@ export const useRecipeStore = create((set, get) => ({
 
   clearGroceryList: () => {
     const { savedRecipes } = get();
-    const updatedRecipes = savedRecipes.map(recipe => ({
+    const updatedRecipes = savedRecipes.map((recipe) => ({
       ...recipe,
       addedToGroceryList: false
     }));
-    
+
     set({ groceryList: [], savedRecipes: updatedRecipes });
     get().saveData();
   },
 
   removeGroceryItem: (itemId) => {
     const { groceryList } = get();
-    const updatedList = groceryList.filter(item => item.id !== itemId);
+    const updatedList = groceryList.filter((item) => item.id !== itemId);
     set({ groceryList: updatedList });
     get().saveData();
   },
@@ -177,11 +177,11 @@ export const useRecipeStore = create((set, get) => ({
   loadData: async () => {
     try {
       set({ isLoading: true });
-      
+
       const [recipesData, groceryData] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.RECIPES),
-        AsyncStorage.getItem(STORAGE_KEYS.GROCERY_LIST)
-      ]);
+      AsyncStorage.getItem(STORAGE_KEYS.RECIPES),
+      AsyncStorage.getItem(STORAGE_KEYS.GROCERY_LIST)]
+      );
 
       const savedRecipes = recipesData ? JSON.parse(recipesData) : [];
       const groceryList = groceryData ? JSON.parse(groceryData) : [];
@@ -196,11 +196,11 @@ export const useRecipeStore = create((set, get) => ({
   saveData: async () => {
     try {
       const { savedRecipes, groceryList } = get();
-      
+
       await Promise.all([
-        AsyncStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(savedRecipes)),
-        AsyncStorage.setItem(STORAGE_KEYS.GROCERY_LIST, JSON.stringify(groceryList))
-      ]);
+      AsyncStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(savedRecipes)),
+      AsyncStorage.setItem(STORAGE_KEYS.GROCERY_LIST, JSON.stringify(groceryList))]
+      );
     } catch (error) {
       console.error('Error saving recipe data:', error);
     }
@@ -210,42 +210,42 @@ export const useRecipeStore = create((set, get) => ({
 // Helper function to categorize ingredients
 function categorizeIngredient(ingredient) {
   const lowerIngredient = ingredient.toLowerCase();
-  
-  if (lowerIngredient.includes('milk') || lowerIngredient.includes('cheese') || 
-      lowerIngredient.includes('yogurt') || lowerIngredient.includes('butter') ||
-      lowerIngredient.includes('cream')) {
+
+  if (lowerIngredient.includes('milk') || lowerIngredient.includes('cheese') ||
+  lowerIngredient.includes('yogurt') || lowerIngredient.includes('butter') ||
+  lowerIngredient.includes('cream')) {
     return 'Dairy';
   }
-  
-  if (lowerIngredient.includes('chicken') || lowerIngredient.includes('beef') || 
-      lowerIngredient.includes('pork') || lowerIngredient.includes('fish') ||
-      lowerIngredient.includes('salmon') || lowerIngredient.includes('turkey')) {
+
+  if (lowerIngredient.includes('chicken') || lowerIngredient.includes('beef') ||
+  lowerIngredient.includes('pork') || lowerIngredient.includes('fish') ||
+  lowerIngredient.includes('salmon') || lowerIngredient.includes('turkey')) {
     return 'Meat & Seafood';
   }
-  
-  if (lowerIngredient.includes('apple') || lowerIngredient.includes('banana') || 
-      lowerIngredient.includes('orange') || lowerIngredient.includes('berry') ||
-      lowerIngredient.includes('lemon') || lowerIngredient.includes('lime')) {
+
+  if (lowerIngredient.includes('apple') || lowerIngredient.includes('banana') ||
+  lowerIngredient.includes('orange') || lowerIngredient.includes('berry') ||
+  lowerIngredient.includes('lemon') || lowerIngredient.includes('lime')) {
     return 'Fruits';
   }
-  
-  if (lowerIngredient.includes('lettuce') || lowerIngredient.includes('spinach') || 
-      lowerIngredient.includes('broccoli') || lowerIngredient.includes('carrot') ||
-      lowerIngredient.includes('onion') || lowerIngredient.includes('tomato')) {
+
+  if (lowerIngredient.includes('lettuce') || lowerIngredient.includes('spinach') ||
+  lowerIngredient.includes('broccoli') || lowerIngredient.includes('carrot') ||
+  lowerIngredient.includes('onion') || lowerIngredient.includes('tomato')) {
     return 'Vegetables';
   }
-  
-  if (lowerIngredient.includes('bread') || lowerIngredient.includes('rice') || 
-      lowerIngredient.includes('pasta') || lowerIngredient.includes('flour') ||
-      lowerIngredient.includes('oats') || lowerIngredient.includes('quinoa')) {
+
+  if (lowerIngredient.includes('bread') || lowerIngredient.includes('rice') ||
+  lowerIngredient.includes('pasta') || lowerIngredient.includes('flour') ||
+  lowerIngredient.includes('oats') || lowerIngredient.includes('quinoa')) {
     return 'Grains & Bread';
   }
-  
-  if (lowerIngredient.includes('beans') || lowerIngredient.includes('lentils') || 
-      lowerIngredient.includes('chickpeas') || lowerIngredient.includes('nuts') ||
-      lowerIngredient.includes('seeds')) {
+
+  if (lowerIngredient.includes('beans') || lowerIngredient.includes('lentils') ||
+  lowerIngredient.includes('chickpeas') || lowerIngredient.includes('nuts') ||
+  lowerIngredient.includes('seeds')) {
     return 'Pantry';
   }
-  
+
   return 'Other';
 }

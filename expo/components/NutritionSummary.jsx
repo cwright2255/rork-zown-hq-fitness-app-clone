@@ -5,68 +5,68 @@ import Card from './Card';
 import ProgressBar from './ProgressBar';
 import { useNutritionStore } from '@/store/nutritionStore';
 
-interface NutritionStoreState {
-  getDailyNutrition: (date) => {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber?: number;
-    sugar?: number;
-    sodium?: number;
-  };
-  dailyGoals: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    water: number;
-  };
-}
 
-interface NutritionSummaryProps {
-  date?: string;
-  calories?: {
-    consumed: number;
-    goal: number;
-  };
-  macros?: {
-    protein: {
-      consumed: number;
-      goal: number;
-    };
-    carbs: {
-      consumed: number;
-      goal: number;
-    };
-    fat: {
-      consumed: number;
-      goal: number;
-    };
-  };
-  nutritionalScore?: {
-    score: 'A' | 'B' | 'C' | 'D' | 'E';
-    averagePoints: number;
-  };
-}
 
-const NutritionSummary: React.FC = ({
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const NutritionSummary = ({
   date,
   calories: propCalories,
   macros: propMacros,
-  nutritionalScore,
+  nutritionalScore
 }) => {
   const { getDailyNutrition, dailyGoals } = useNutritionStore();
-  
+
   // If date is provided, get nutrition data for that date
   const dailyNutrition = date ? getDailyNutrition(date) : null;
-  
+
   // Use provided props or calculate from daily nutrition
   const calories = propCalories || {
     consumed: dailyNutrition?.calories || 0,
     goal: dailyGoals.calories
   };
-  
+
   const macros = propMacros || {
     protein: {
       consumed: dailyNutrition?.protein || 0,
@@ -81,26 +81,26 @@ const NutritionSummary: React.FC = ({
       goal: dailyGoals.fat
     }
   };
-  
+
   const caloriesProgress = Math.min(calories.consumed / calories.goal, 1);
   const proteinProgress = Math.min(macros.protein.consumed / macros.protein.goal, 1);
   const carbsProgress = Math.min(macros.carbs.consumed / macros.carbs.goal, 1);
   const fatProgress = Math.min(macros.fat.consumed / macros.fat.goal, 1);
-  
+
   const caloriesRemaining = calories.goal - calories.consumed;
-  
+
   // Get color for Nutri-Score
   const getNutriScoreColor = (score) => {
     switch (score) {
-      case 'A': return '#1E8F4E'; // Dark green
-      case 'B': return '#4CAF50'; // Green
-      case 'C': return '#FFEB3B'; // Yellow
-      case 'D': return '#FF9800'; // Orange
-      case 'E': return '#F44336'; // Red
-      default: return '#757575'; // Grey
+      case 'A':return '#1E8F4E'; // Dark green
+      case 'B':return '#4CAF50'; // Green
+      case 'C':return '#FFEB3B'; // Yellow
+      case 'D':return '#FF9800'; // Orange
+      case 'E':return '#F44336'; // Red
+      default:return '#757575'; // Grey
     }
   };
-  
+
   return (
     <Card variant="elevated" style={styles.card}>
       <View style={styles.caloriesContainer}>
@@ -111,17 +111,17 @@ const NutritionSummary: React.FC = ({
           </Text>
         </View>
         
-        <ProgressBar 
+        <ProgressBar
           progress={caloriesProgress}
           height={10}
           progressColor={Colors.primary}
-          style={styles.caloriesProgress}
-        />
+          style={styles.caloriesProgress} />
+        
         
         <Text style={styles.caloriesRemaining}>
-          {caloriesRemaining > 0 
-            ? `${caloriesRemaining} calories remaining`
-            : 'Daily goal reached'}
+          {caloriesRemaining > 0 ?
+          `${caloriesRemaining} calories remaining` :
+          'Daily goal reached'}
         </Text>
       </View>
       
@@ -135,11 +135,11 @@ const NutritionSummary: React.FC = ({
               {macros.protein.consumed}g / {macros.protein.goal}g
             </Text>
           </View>
-          <ProgressBar 
+          <ProgressBar
             progress={proteinProgress}
             height={6}
-            progressColor="#4CAF50"
-          />
+            progressColor="#4CAF50" />
+          
         </View>
         
         <View style={styles.macroItem}>
@@ -149,11 +149,11 @@ const NutritionSummary: React.FC = ({
               {macros.carbs.consumed}g / {macros.carbs.goal}g
             </Text>
           </View>
-          <ProgressBar 
+          <ProgressBar
             progress={carbsProgress}
             height={6}
-            progressColor="#2196F3"
-          />
+            progressColor="#2196F3" />
+          
         </View>
         
         <View style={styles.macroItem}>
@@ -163,33 +163,33 @@ const NutritionSummary: React.FC = ({
               {macros.fat.consumed}g / {macros.fat.goal}g
             </Text>
           </View>
-          <ProgressBar 
+          <ProgressBar
             progress={fatProgress}
             height={6}
-            progressColor="#FF9800"
-          />
+            progressColor="#FF9800" />
+          
         </View>
       </View>
       
-      {nutritionalScore && (
-        <View style={styles.nutriScoreContainer}>
+      {nutritionalScore &&
+      <View style={styles.nutriScoreContainer}>
           <Text style={styles.nutriScoreTitle}>Nutritional Quality</Text>
           
           <View style={styles.nutriScoreGrades}>
-            {['A', 'B', 'C', 'D', 'E'].map((grade) => (
-              <View 
-                key={grade}
-                style={[
-                  styles.nutriScoreGrade,
-                  { 
-                    backgroundColor: getNutriScoreColor(grade),
-                    opacity: nutritionalScore.score === grade ? 1 : 0.3
-                  }
-                ]}
-              >
+            {['A', 'B', 'C', 'D', 'E'].map((grade) =>
+          <View
+            key={grade}
+            style={[
+            styles.nutriScoreGrade,
+            {
+              backgroundColor: getNutriScoreColor(grade),
+              opacity: nutritionalScore.score === grade ? 1 : 0.3
+            }]
+            }>
+            
                 <Text style={styles.nutriScoreGradeText}>{grade}</Text>
               </View>
-            ))}
+          )}
           </View>
           
           <Text style={styles.nutriScoreDescription}>
@@ -200,105 +200,105 @@ const NutritionSummary: React.FC = ({
             {nutritionalScore.score === 'E' && "Unhealthy nutritional quality"}
           </Text>
         </View>
-      )}
-    </Card>
-  );
+      }
+    </Card>);
+
 };
 
 const styles = StyleSheet.create({
   card: {
     marginBottom: Colors.spacing.lg,
-    padding: Colors.spacing.lg,
+    padding: Colors.spacing.lg
   },
   caloriesContainer: {
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   caloriesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Colors.spacing.sm,
+    marginBottom: Colors.spacing.sm
   },
   caloriesTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   caloriesValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.primary
   },
   caloriesProgress: {
-    marginBottom: Colors.spacing.sm,
+    marginBottom: Colors.spacing.sm
   },
   caloriesRemaining: {
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'right',
+    textAlign: 'right'
   },
   macrosContainer: {
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    paddingTop: Colors.spacing.lg,
+    paddingTop: Colors.spacing.lg
   },
   macrosTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: Colors.spacing.md,
+    marginBottom: Colors.spacing.md
   },
   macroItem: {
-    marginBottom: Colors.spacing.md,
+    marginBottom: Colors.spacing.md
   },
   macroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Colors.spacing.xs,
+    marginBottom: Colors.spacing.xs
   },
   macroName: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   macroValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   nutriScoreContainer: {
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     paddingTop: Colors.spacing.lg,
-    marginTop: Colors.spacing.lg,
+    marginTop: Colors.spacing.lg
   },
   nutriScoreTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: Colors.spacing.md,
+    marginBottom: Colors.spacing.md
   },
   nutriScoreGrades: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Colors.spacing.md,
+    marginBottom: Colors.spacing.md
   },
   nutriScoreGrade: {
     width: '18%',
     paddingVertical: Colors.spacing.xs + 2,
     borderRadius: Colors.radius.small,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   nutriScoreGradeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: 'white',
+    color: 'white'
   },
   nutriScoreDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+    textAlign: 'center'
+  }
 });
 
 export default NutritionSummary;

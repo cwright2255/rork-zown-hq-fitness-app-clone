@@ -11,32 +11,32 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import SpotifyMusicPlayer from '@/components/SpotifyMusicPlayer';
-import { RunningSession, RunningProgram } from '@/types';
+
 
 export default function RunningSessionDetailScreen() {
   const params = useLocalSearchParams();
   const sessionId = typeof params.id === 'string' ? params.id : '';
   const programId = typeof params.programId === 'string' ? params.programId : '';
-  
-  const { runningPrograms } = useWorkoutStore() as {
-    runningPrograms: RunningProgram[];
-  };
-  const { user } = useUserStore() as {
-    user: any;
-  };
-  
-  const [session, setSession] = useState<RunningSession | null>(null);
-  const [program, setProgram] = useState<RunningProgram | null>(null);
+
+  const { runningPrograms } = useWorkoutStore();
+
+
+  const { user } = useUserStore();
+
+
+
+  const [session, setSession] = useState(null);
+  const [program, setProgram] = useState(null);
   const [audioCoaching, setAudioCoaching] = useState(true);
   const [musicEnabled, setMusicEnabled] = useState(true);
-  
-  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds, initializeClientCredentials } = useSpotifyStore() as {
-    isConnected: boolean;
-    isClientCredentialsReady: boolean;
-    initializeClientCredentials: () => Promise;
-  };
+
+  const { isConnected: isSpotifyConnected, isClientCredentialsReady: isSpotifyClientCreds, initializeClientCredentials } = useSpotifyStore();
+
+
+
+
   const hasSpotifyAccess = isSpotifyConnected || isSpotifyClientCreds;
-  
+
   useEffect(() => {
     // Find the program and session
     const foundProgram = runningPrograms.find((p) => p.id === programId);
@@ -45,27 +45,27 @@ export default function RunningSessionDetailScreen() {
       const foundSession = foundProgram.sessions.find((s) => s.id === sessionId);
       setSession(foundSession || null);
     }
-    
+
     // Set audio preferences from user profile
     if (user?.preferences?.running) {
       setAudioCoaching(user.preferences.running.audioCoaching);
     }
   }, [sessionId, programId, runningPrograms, user]);
-  
+
   const handleStartWorkout = () => {
     if (!session || !program) return;
-    
+
     // Navigate to active workout with session data
     router.push({
       pathname: '/workout/active',
-      params: { 
+      params: {
         sessionId: session.id,
         programId: program.id,
         type: 'running'
       }
     });
   };
-  
+
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -74,7 +74,7 @@ export default function RunningSessionDetailScreen() {
     }
     return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
   };
-  
+
   const getIntervalTypeColor = (type) => {
     switch (type) {
       case 'run':
@@ -88,7 +88,7 @@ export default function RunningSessionDetailScreen() {
         return Colors.text.secondary;
     }
   };
-  
+
   const getIntervalTypeIcon = (type) => {
     switch (type) {
       case 'run':
@@ -102,37 +102,37 @@ export default function RunningSessionDetailScreen() {
         return <Clock size={16} color={getIntervalTypeColor(type)} />;
     }
   };
-  
+
   const calculateEstimatedStats = () => {
     if (!session) return { distance: 0, calories: 0 };
-    
+
     // Rough estimates based on session type and duration
     const basePace = 6; // minutes per km
     const duration = session.duration || 30;
-    const distance = session.distance || (duration / basePace);
+    const distance = session.distance || duration / basePace;
     const calories = Math.round(duration * 10); // ~10 calories per minute
-    
+
     return { distance, calories };
   };
-  
+
   const estimatedStats = calculateEstimatedStats();
-  
+
   if (!session || !program) {
     return (
       <SafeAreaView style={styles.container}>
         <Text style={styles.errorText}>Session not found</Text>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
-  
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           title: session.name,
           headerBackTitle: program.name
-        }}
-      />
+        }} />
+      
       
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header Section */}
@@ -148,12 +148,12 @@ export default function RunningSessionDetailScreen() {
               </Text>
             </View>
             
-            {session.distance && (
-              <View style={styles.metaItem}>
+            {session.distance &&
+            <View style={styles.metaItem}>
                 <Target size={20} color={Colors.running.primary} />
                 <Text style={styles.metaText}>{session.distance} km</Text>
               </View>
-            )}
+            }
             
             <View style={styles.metaItem}>
               <Zap size={20} color={Colors.warning} />
@@ -167,10 +167,10 @@ export default function RunningSessionDetailScreen() {
           <Card style={styles.breakdownCard}>
             <Text style={styles.cardTitle}>Workout Breakdown</Text>
             
-            {session.intervals && session.intervals.length > 0 ? (
-              <View style={styles.intervalsContainer}>
-                {session.intervals.map((interval, index) => (
-                  <View key={index} style={styles.intervalItem}>
+            {session.intervals && session.intervals.length > 0 ?
+            <View style={styles.intervalsContainer}>
+                {session.intervals.map((interval, index) =>
+              <View key={index} style={styles.intervalItem}>
                     <View style={styles.intervalHeader}>
                       <View style={styles.intervalType}>
                         {getIntervalTypeIcon(interval.type)}
@@ -181,55 +181,55 @@ export default function RunningSessionDetailScreen() {
                       
                       <Text style={styles.intervalDuration}>
                         {formatDuration(interval.duration)}
-                        {interval.repeat && interval.repeat > 1 && (
-                          <Text style={styles.intervalRepeat}> × {interval.repeat}</Text>
-                        )}
+                        {interval.repeat && interval.repeat > 1 &&
+                    <Text style={styles.intervalRepeat}> × {interval.repeat}</Text>
+                    }
                       </Text>
                     </View>
                     
                     <View style={styles.intervalDetails}>
-                      <Badge 
-                        variant={interval.intensity === 'high' ? 'error' : interval.intensity === 'medium' ? 'warning' : 'success'}
-                        style={styles.intensityBadge}
-                      >
+                      <Badge
+                    variant={interval.intensity === 'high' ? 'error' : interval.intensity === 'medium' ? 'warning' : 'success'}
+                    style={styles.intensityBadge}>
+                    
                         {interval.intensity}
                       </Badge>
                       
-                      {interval.pace && (
-                        <Text style={styles.intervalPace}>
+                      {interval.pace &&
+                  <Text style={styles.intervalPace}>
                           Target pace: {interval.pace} min/km
                         </Text>
-                      )}
+                  }
                     </View>
                   </View>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.simpleWorkout}>
+              )}
+              </View> :
+
+            <View style={styles.simpleWorkout}>
                 <Text style={styles.simpleWorkoutText}>
                   {session.type === 'run' ? 'Continuous run' : 'Walking session'}
                 </Text>
-                {session.targetPace && (
-                  <Text style={styles.targetPace}>
+                {session.targetPace &&
+              <Text style={styles.targetPace}>
                     Target pace: {session.targetPace} min/km
                   </Text>
-                )}
+              }
               </View>
-            )}
+            }
           </Card>
           
           {/* Instructions */}
           <Card style={styles.instructionsCard}>
             <Text style={styles.cardTitle}>Instructions</Text>
             <View style={styles.instructionsList}>
-              {(session.instructions || []).map((instruction, index) => (
-                <View key={index} style={styles.instructionItem}>
+              {(session.instructions || []).map((instruction, index) =>
+              <View key={index} style={styles.instructionItem}>
                   <View style={styles.instructionNumber}>
                     <Text style={styles.instructionNumberText}>{index + 1}</Text>
                   </View>
                   <Text style={styles.instructionText}>{instruction}</Text>
                 </View>
-              ))}
+              )}
             </View>
           </Card>
           
@@ -268,8 +268,8 @@ export default function RunningSessionDetailScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.toggle, audioCoaching && styles.toggleActive]}
-                onPress={() => setAudioCoaching(!audioCoaching)}
-              >
+                onPress={() => setAudioCoaching(!audioCoaching)}>
+                
                 <View style={[styles.toggleThumb, audioCoaching && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
@@ -296,50 +296,50 @@ export default function RunningSessionDetailScreen() {
                         'Connect Spotify',
                         'Connect your Spotify account to play music during runs.',
                         [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Connect', onPress: () => router.push('/spotify-integration') },
-                        ]
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Connect', onPress: () => router.push('/spotify-integration') }]
+
                       );
                     }
                   } else {
                     setMusicEnabled(!musicEnabled);
                   }
                 }}
-                testID="music-toggle"
-              >
+                testID="music-toggle">
+                
                 <View style={[styles.toggleThumb, musicEnabled && styles.toggleThumbActive]} />
               </TouchableOpacity>
             </View>
             
             <Text style={styles.settingDescription}>
-              {hasSpotifyAccess 
-                ? 'Spotify connected. Tap tracks below to play during your run.' 
-                : 'Connect Spotify to play music in the background during your run.'}
+              {hasSpotifyAccess ?
+              'Spotify connected. Tap tracks below to play during your run.' :
+              'Connect Spotify to play music in the background during your run.'}
             </Text>
           </Card>
           
           {/* Spotify Music Player */}
           {musicEnabled && (
-            hasSpotifyAccess ? (
-              <SpotifyMusicPlayer 
-                workoutType="running"
-                style={styles.musicPlayerCard}
-              />
-            ) : (
-              <Card style={styles.connectSpotifyCard}>
+          hasSpotifyAccess ?
+          <SpotifyMusicPlayer
+            workoutType="running"
+            style={styles.musicPlayerCard} /> :
+
+
+          <Card style={styles.connectSpotifyCard}>
                 <View style={styles.connectSpotifyContent}>
                   <Music size={28} color={Colors.text.tertiary} />
                   <Text style={styles.connectSpotifyTitle}>Connect Spotify</Text>
                   <Text style={styles.connectSpotifyText}>Get running playlists and music recommendations</Text>
                   <Button
-                    title="Connect"
-                    onPress={() => router.push('/spotify-integration')}
-                    style={styles.connectSpotifyButton}
-                  />
+                title="Connect"
+                onPress={() => router.push('/spotify-integration')}
+                style={styles.connectSpotifyButton} />
+              
                 </View>
-              </Card>
-            )
-          )}
+              </Card>)
+
+          }
           
           {/* Safety Tips */}
           <Card style={styles.safetyCard}>
@@ -359,147 +359,147 @@ export default function RunningSessionDetailScreen() {
               title="Begin Workout"
               onPress={handleStartWorkout}
               style={styles.startButton}
-              leftIcon={<Play size={20} color={Colors.text.inverse} />}
-            />
+              leftIcon={<Play size={20} color={Colors.text.inverse} />} />
+            
             
             <Button
               title="Finish Session"
               onPress={() => router.back()}
               style={styles.finishButton}
-              variant="secondary"
-            />
+              variant="secondary" />
+            
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   errorText: {
     fontSize: 18,
     color: Colors.text.primary,
     textAlign: 'center',
-    marginTop: 50,
+    marginTop: 50
   },
   headerSection: {
     backgroundColor: Colors.backgroundSecondary,
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   sessionTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   sessionDescription: {
     fontSize: 16,
     color: Colors.text.secondary,
     lineHeight: 22,
-    marginBottom: 16,
+    marginBottom: 16
   },
   sessionMeta: {
     flexDirection: 'row',
-    gap: 20,
+    gap: 20
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 6
   },
   metaText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   content: {
-    padding: 16,
+    padding: 16
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   breakdownCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   intervalsContainer: {
-    gap: 12,
+    gap: 12
   },
   intervalItem: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 8,
-    padding: 12,
+    padding: 12
   },
   intervalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   intervalType: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 6
   },
   intervalTypeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   intervalDuration: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   intervalRepeat: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   intervalDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12
   },
   intensityBadge: {
     height: 20,
-    paddingHorizontal: 8,
+    paddingHorizontal: 8
   },
   intervalPace: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   simpleWorkout: {
     padding: 16,
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   simpleWorkoutText: {
     fontSize: 16,
     fontWeight: '500',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   targetPace: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   instructionsCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   instructionsList: {
-    gap: 12,
+    gap: 12
   },
   instructionItem: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12
   },
   instructionNumber: {
     width: 24,
@@ -508,64 +508,64 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.running.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 2
   },
   instructionNumberText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   instructionText: {
     flex: 1,
     fontSize: 14,
     color: Colors.text.primary,
-    lineHeight: 20,
+    lineHeight: 20
   },
   statsCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-around'
   },
   statItem: {
     alignItems: 'center',
-    flex: 1,
+    flex: 1
   },
   statValue: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginVertical: 8,
+    marginVertical: 8
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   settingsCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   settingInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12
   },
   settingLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   settingDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
     marginBottom: 16,
-    paddingLeft: 32,
+    paddingLeft: 32
   },
   toggle: {
     width: 50,
@@ -573,69 +573,69 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: Colors.inactive,
     padding: 2,
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   toggleActive: {
-    backgroundColor: Colors.running.primary,
+    backgroundColor: Colors.running.primary
   },
   toggleThumb: {
     width: 26,
     height: 26,
     borderRadius: 13,
     backgroundColor: Colors.text.inverse,
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-start'
   },
   toggleThumbActive: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-end'
   },
   safetyCard: {
     marginBottom: 24,
     backgroundColor: `${Colors.warning}10`,
     borderColor: Colors.warning,
-    borderWidth: 1,
+    borderWidth: 1
   },
   safetyTips: {
-    gap: 8,
+    gap: 8
   },
   safetyTip: {
     fontSize: 14,
     color: Colors.text.primary,
-    lineHeight: 18,
+    lineHeight: 18
   },
   actionButtonsContainer: {
     gap: 12,
-    marginBottom: 32,
+    marginBottom: 32
   },
   startButton: {
-    width: '100%',
+    width: '100%'
   },
   finishButton: {
-    width: '100%',
+    width: '100%'
   },
   musicPlayerCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   connectSpotifyCard: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   connectSpotifyContent: {
     alignItems: 'center',
-    padding: 20,
+    padding: 20
   },
   connectSpotifyTitle: {
     fontSize: 16,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.text.primary,
     marginTop: 10,
-    marginBottom: 6,
+    marginBottom: 6
   },
   connectSpotifyText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center' as const,
-    marginBottom: 14,
+    textAlign: 'center',
+    marginBottom: 14
   },
   connectSpotifyButton: {
-    paddingHorizontal: 32,
-  },
+    paddingHorizontal: 32
+  }
 });

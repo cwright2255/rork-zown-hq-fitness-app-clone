@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useExpStore } from './expStore';
-import { User, UserSubscription, UserPreferences } from '@/types';
+
 
 // Optimized default fitness metrics - reduced data size
 const createDefaultFitnessMetrics = () => ({
@@ -89,8 +89,8 @@ const createDefaultRunningPreferences = () => ({
 
 // Default subscription
 const createDefaultSubscription = () => ({
-  tier: 'free' as const,
-  status: 'active' as const,
+  tier: 'free',
+  status: 'active',
   startDate: new Date().toISOString(),
   autoRenew: false
 });
@@ -102,7 +102,7 @@ const createDefaultUser = () => ({
   email: 'user@example.com',
   profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
   joinDate: new Date().toISOString(),
-  fitnessLevel: 'beginner' as const,
+  fitnessLevel: 'beginner',
   goals: ['strength', 'weight-loss', 'endurance'],
   exp: 150,
   xp: 150,
@@ -128,8 +128,8 @@ export const useUserStore = create()(
       user,
       isOnboarded: false, // Set to false by default to show startup screen
       isLoading: false, // Changed to false for faster startup
-      
-      setUser: (user) => set({ 
+
+      setUser: (user) => set({
         user: {
           ...createDefaultUser(),
           ...user,
@@ -140,11 +140,11 @@ export const useUserStore = create()(
         },
         isLoading: false
       }),
-      
+
       updateUser: (updates) => {
         const { user } = get();
         if (!user) return;
-        
+
         set({
           user: {
             ...user,
@@ -152,17 +152,17 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       updateUserPreferences: (preferences) => {
         const { user } = get();
         if (!user) return;
-        
+
         const updatedPreferences = {
           ...createDefaultUserPreferences(),
           ...user.preferences,
           ...preferences
         };
-        
+
         set({
           user: {
             ...user,
@@ -170,11 +170,11 @@ export const useUserStore = create()(
           }
         });
       },
-      
-      updateUserGoals: (goals: string[]) => {
+
+      updateUserGoals: (goals) => {
         const { user } = get();
         if (!user) return;
-        
+
         set({
           user: {
             ...user,
@@ -182,27 +182,27 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       updateUserFitnessLevel: (level) => {
         const { user } = get();
         if (!user) return;
-        
+
         set({
           user: {
             ...user,
-            fitnessLevel: level as 'beginner' | 'intermediate' | 'advanced'
+            fitnessLevel: level
           }
         });
       },
-      
+
       addXp: (amount) => {
         const { user } = get();
         if (!user) return;
-        
+
         const newXp = user.exp + amount;
         const storeState = get();
         const newLevel = storeState.calculateLevel(newXp);
-        
+
         set({
           user: {
             ...user,
@@ -211,38 +211,38 @@ export const useUserStore = create()(
             level: newLevel
           }
         });
-        
+
         // Update EXP store asynchronously - optimized
         requestAnimationFrame(() => {
           try {
-            (useExpStore.getState() as { addExp: (amount) => void }).addExp(amount);
+            useExpStore.getState().addExp(amount);
           } catch (error) {
             console.error('Failed to update EXP store:', error);
           }
         });
       },
-      
+
       calculateLevel: (xp) => {
         // Simple level calculation
         return Math.floor(xp / 1000) + 1;
       },
-      
+
       updateStreak: (workoutCompleted) => {
         const { user } = get();
         if (!user) return;
-        
+
         const today = new Date().toISOString().split('T')[0];
         const streakData = user.streakData || createDefaultStreakData();
-        
+
         let currentStreak = streakData.currentStreak;
         let longestStreak = streakData.longestStreak;
         let streakDates = [...streakData.streakDates];
-        
+
         if (workoutCompleted) {
           if (!streakDates.includes(today)) {
             currentStreak += 1;
             streakDates.push(today);
-            
+
             if (currentStreak > longestStreak) {
               longestStreak = currentStreak;
             }
@@ -250,10 +250,10 @@ export const useUserStore = create()(
         } else {
           currentStreak = 0;
         }
-        
+
         // Limit streak dates for performance - keep only last 7 days
         streakDates = streakDates.slice(-7);
-        
+
         set({
           user: {
             ...user,
@@ -266,24 +266,24 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       getStreakData: () => {
         const { user } = get();
         if (!user) return createDefaultStreakData();
-        
+
         return user.streakData || createDefaultStreakData();
       },
-      
+
       updateFitnessMetrics: (metrics) => {
         const { user } = get();
         if (!user) return;
-        
+
         const updatedMetrics = {
           ...createDefaultFitnessMetrics(),
           ...user.fitnessMetrics,
           ...metrics
         };
-        
+
         set({
           user: {
             ...user,
@@ -291,72 +291,72 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       incrementSteps: (steps) => {
         // Implementation for step tracking
         console.log('Steps incremented:', steps);
       },
-      
+
       logSleep: (duration, quality) => {
         // Implementation for sleep tracking
         console.log('Sleep logged:', duration, quality);
       },
-      
+
       updateRecovery: (score) => {
         // Implementation for recovery tracking
         console.log('Recovery updated:', score);
       },
-      
+
       logCaloriesBurned: (calories) => {
         // Implementation for calorie tracking
         console.log('Calories burned:', calories);
       },
-      
+
       logActiveMinutes: (minutes) => {
         // Implementation for active minutes tracking
         console.log('Active minutes:', minutes);
       },
-      
+
       updateHeartRate: (rate) => {
         // Implementation for heart rate tracking
         console.log('Heart rate updated:', rate);
       },
-      
+
       logWaterIntake: (amount) => {
         // Implementation for water intake tracking
         console.log('Water intake:', amount);
       },
-      
+
       resetDailyMetrics: () => {
         // Implementation for resetting daily metrics
         console.log('Daily metrics reset');
       },
-      
+
       logout: async () => {
         try {
           console.log('[UserStore] Logging out: clearing auth token and persisted user storage');
-          
+
           // Clear auth token
           await AsyncStorage.removeItem('auth_token');
           console.log('[UserStore] Auth token cleared');
-          
+
           // Clear persisted user storage
           await AsyncStorage.removeItem('zown-user-storage');
           console.log('[UserStore] User storage cleared');
-          
+
           // Clear any other app-specific storage
           const keys = await AsyncStorage.getAllKeys();
-          const appKeys = keys.filter(key => 
-            key.startsWith('zown-') || 
-            key.includes('user') || 
-            key.includes('auth')
+          const appKeys = keys.filter((key) =>
+          key.startsWith('zown-') ||
+          key.includes('user') ||
+          key.includes('auth')
           );
-          
+
           if (appKeys.length > 0) {
             await AsyncStorage.multiRemove(appKeys);
             console.log('[UserStore] Additional app storage cleared:', appKeys);
           }
-          
+
         } catch (error) {
           console.error('[UserStore] Failed to clear storage during logout:', error);
         } finally {
@@ -365,17 +365,17 @@ export const useUserStore = create()(
           console.log('[UserStore] User state reset to logged out');
         }
       },
-      
+
       startOnboarding: () => set({ isOnboarded: false }),
       completeOnboarding: () => set({ isOnboarded: true }),
-      
+
       // Optimized initialization
       initializeDefaultUser: () => {
         const { user } = get();
         if (!user) {
           // Create user lazily
           const defaultUser = createDefaultUser();
-          set({ 
+          set({
             user: defaultUser,
             isLoading: false
           });
@@ -383,18 +383,18 @@ export const useUserStore = create()(
           set({ isLoading: false });
         }
       },
-      
+
       // Running-specific actions
       updateUserRunningProfile: (profile) => {
         const { user } = get();
         if (!user) return;
-        
+
         const updatedProfile = {
           ...createDefaultRunningProfile(),
           ...user.runningProfile,
           ...profile
         };
-        
+
         set({
           user: {
             ...user,
@@ -402,15 +402,15 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       updateRunningPreferences: (preferences) => {
         const { user } = get();
         if (!user) return;
-        
+
         // Get current running preferences with proper fallback
         const defaultPrefs = createDefaultRunningPreferences();
         const currentRunningPrefs = user.preferences?.running || defaultPrefs;
-        
+
         const updatedRunningPreferences = {
           audioCoaching: currentRunningPrefs.audioCoaching ?? defaultPrefs.audioCoaching,
           gpsTracking: currentRunningPrefs.gpsTracking ?? defaultPrefs.gpsTracking,
@@ -421,12 +421,12 @@ export const useUserStore = create()(
           targetPace: currentRunningPrefs.targetPace ?? defaultPrefs.targetPace,
           ...preferences
         };
-        
+
         const updatedPreferences = {
           ...user.preferences,
           running: updatedRunningPreferences['running']
         };
-        
+
         set({
           user: {
             ...user,
@@ -434,24 +434,24 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       initializeRunningProfile: () => {
         const { user } = get();
         if (!user || !user.runningProfile) {
           get().updateUserRunningProfile(createDefaultRunningProfile());
         }
       },
-      
+
       // Subscription-specific actions
       updateSubscription: (subscription) => {
         const { user } = get();
         if (!user) return;
-        
+
         const updatedSubscription = {
           ...user.subscription,
           ...subscription
         };
-        
+
         set({
           user: {
             ...user,
@@ -459,22 +459,22 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       upgradeSubscription: (tier) => {
         const { user } = get();
         if (!user) return;
-        
+
         const now = new Date();
         const nextBillingDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-        
+
         const updatedSubscription = {
           ...user.subscription,
-          tier: tier as 'free' | 'standard' | 'elite',
-          status: 'active' as const,
+          tier: tier,
+          status: 'active',
           nextBillingDate: nextBillingDate.toISOString(),
           autoRenew: true
         };
-        
+
         set({
           user: {
             ...user,
@@ -482,18 +482,18 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       cancelSubscription: () => {
         const { user } = get();
         if (!user) return;
-        
+
         const updatedSubscription = {
           ...user.subscription,
           status: 'cancelled',
           cancelledAt: new Date().toISOString(),
           autoRenew: false
         };
-        
+
         set({
           user: {
             ...user,
@@ -501,54 +501,54 @@ export const useUserStore = create()(
           }
         });
       },
-      
+
       getSubscriptionTier: () => {
         const { user } = get();
         return user?.subscription?.tier || 'free';
       },
-      
+
       hasFeatureAccess: (feature) => {
         const { user } = get();
         if (!user) return false;
-        
+
         const tier = user.subscription.tier;
-        
+
         // Define feature access by tier
         const featureAccess = {
           free: [
-            'basic_workouts',
-            'basic_nutrition',
-            'community_basic',
-            'champion_pass_basic'
-          ],
+          'basic_workouts',
+          'basic_nutrition',
+          'community_basic',
+          'champion_pass_basic'],
+
           standard: [
-            'basic_workouts',
-            'basic_nutrition',
-            'community_basic',
-            'champion_pass_basic',
-            'full_running_programs',
-            'advanced_analytics',
-            'unlimited_ai_recommendations',
-            'champion_pass_full',
-            'priority_support'
-          ],
+          'basic_workouts',
+          'basic_nutrition',
+          'community_basic',
+          'champion_pass_basic',
+          'full_running_programs',
+          'advanced_analytics',
+          'unlimited_ai_recommendations',
+          'champion_pass_full',
+          'priority_support'],
+
           elite: [
-            'basic_workouts',
-            'basic_nutrition',
-            'community_basic',
-            'champion_pass_basic',
-            'full_running_programs',
-            'advanced_analytics',
-            'unlimited_ai_recommendations',
-            'champion_pass_full',
-            'priority_support',
-            'vip_challenges',
-            'virtual_coaching',
-            'family_sharing',
-            'champion_pass_vip'
-          ]
+          'basic_workouts',
+          'basic_nutrition',
+          'community_basic',
+          'champion_pass_basic',
+          'full_running_programs',
+          'advanced_analytics',
+          'unlimited_ai_recommendations',
+          'champion_pass_full',
+          'priority_support',
+          'vip_challenges',
+          'virtual_coaching',
+          'family_sharing',
+          'champion_pass_vip']
+
         };
-        
+
         return featureAccess[tier]?.includes(feature) || false;
       }
     }),
@@ -557,7 +557,7 @@ export const useUserStore = create()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         user: state.user,
-        isOnboarded: state.isOnboarded,
+        isOnboarded: state.isOnboarded
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

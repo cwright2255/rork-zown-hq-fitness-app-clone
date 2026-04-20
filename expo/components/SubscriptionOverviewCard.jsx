@@ -4,16 +4,16 @@ import { Crown, ChevronRight, Calendar, Award } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from './Card';
 import Badge from './Badge';
-import { UserSubscription } from '@/types';
+
 import { getSubscriptionPlan } from '@/constants/subscriptionPlans';
 
-const SubscriptionOverviewCard: React.FC = ({
+const SubscriptionOverviewCard = ({
   subscription,
-  onUpgradePress,
+  onUpgradePress
 }) => {
   const plan = getSubscriptionPlan(subscription.tier);
-  
-  const formatDate = (dateString?) => {
+
+  const formatDate = (dateString) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -21,26 +21,26 @@ const SubscriptionOverviewCard: React.FC = ({
       year: 'numeric'
     });
   };
-  
+
   const getStatusText = () => {
     switch (subscription.status) {
       case 'trial':
-        return subscription.trialEndsAt 
-          ? `Trial ends ${formatDate(subscription.trialEndsAt)}`
-          : 'Trial active';
+        return subscription.trialEndsAt ?
+        `Trial ends ${formatDate(subscription.trialEndsAt)}` :
+        'Trial active';
       case 'cancelled':
-        return subscription.nextBillingDate 
-          ? `Access until ${formatDate(subscription.nextBillingDate)}`
-          : 'Cancelled';
+        return subscription.nextBillingDate ?
+        `Access until ${formatDate(subscription.nextBillingDate)}` :
+        'Cancelled';
       case 'expired':
         return 'Subscription expired';
       default:
-        return subscription.nextBillingDate 
-          ? `Next billing: ${formatDate(subscription.nextBillingDate)}`
-          : 'Active';
+        return subscription.nextBillingDate ?
+        `Next billing: ${formatDate(subscription.nextBillingDate)}` :
+        'Active';
     }
   };
-  
+
   const getStatusColor = () => {
     switch (subscription.status) {
       case 'trial':
@@ -52,7 +52,7 @@ const SubscriptionOverviewCard: React.FC = ({
         return Colors.success;
     }
   };
-  
+
   return (
     <Card variant="elevated" style={styles.container}>
       <View style={styles.header}>
@@ -69,8 +69,8 @@ const SubscriptionOverviewCard: React.FC = ({
         <Badge
           variant="neutral"
           style={[styles.tierBadge, { backgroundColor: plan.badge.color }]}
-          textStyle={{ color: plan.badge.textColor }}
-        >
+          textStyle={{ color: plan.badge.textColor }}>
+          
           {plan.badge.label}
         </Badge>
       </View>
@@ -93,90 +93,90 @@ const SubscriptionOverviewCard: React.FC = ({
             </Text>
           </View>
           
-          {plan.aiRecommendations === -1 ? (
-            <View style={styles.feature}>
+          {plan.aiRecommendations === -1 ?
+          <View style={styles.feature}>
               <Crown size={16} color={Colors.primary} />
               <Text style={styles.featureText}>
                 Unlimited AI Recommendations
               </Text>
-            </View>
-          ) : (
-            <View style={styles.feature}>
+            </View> :
+
+          <View style={styles.feature}>
               <Crown size={16} color={Colors.primary} />
               <Text style={styles.featureText}>
                 {plan.aiRecommendations} AI Recommendation{plan.aiRecommendations !== 1 ? 's' : ''}/month
               </Text>
             </View>
-          )}
+          }
         </View>
       </View>
       
-      {subscription.tier !== 'elite' && (
-        <TouchableOpacity style={styles.upgradeButton} onPress={onUpgradePress}>
+      {subscription.tier !== 'elite' &&
+      <TouchableOpacity style={styles.upgradeButton} onPress={onUpgradePress}>
           <Text style={styles.upgradeButtonText}>
             {subscription.tier === 'free' ? 'Upgrade to Premium' : 'Upgrade Plan'}
           </Text>
           <ChevronRight size={20} color={Colors.primary} />
         </TouchableOpacity>
-      )}
-    </Card>
-  );
+      }
+    </Card>);
+
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Colors.spacing.md,
+    marginBottom: Colors.spacing.md
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    flex: 1
   },
   headerText: {
     marginLeft: Colors.spacing.md,
-    flex: 1,
+    flex: 1
   },
   tierName: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 2,
+    marginBottom: 2
   },
   statusText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   tierBadge: {
     paddingHorizontal: Colors.spacing.md,
-    paddingVertical: Colors.spacing.xs,
+    paddingVertical: Colors.spacing.xs
   },
   content: {
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   description: {
     fontSize: 14,
     color: Colors.text.secondary,
     marginBottom: Colors.spacing.md,
-    lineHeight: 20,
+    lineHeight: 20
   },
   features: {
-    gap: Colors.spacing.sm,
+    gap: Colors.spacing.sm
   },
   feature: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   featureText: {
     fontSize: 14,
     color: Colors.text.primary,
     marginLeft: Colors.spacing.sm,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   upgradeButton: {
     flexDirection: 'row',
@@ -187,13 +187,13 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}10`,
     borderRadius: Colors.radius.medium,
     borderWidth: 1,
-    borderColor: `${Colors.primary}20`,
+    borderColor: `${Colors.primary}20`
   },
   upgradeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.primary,
-  },
+    color: Colors.primary
+  }
 });
 
 export default SubscriptionOverviewCard;

@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Image, View, StyleSheet, ImageStyle, ViewStyle, ActivityIndicator } from 'react-native';
+import { Image, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { getOptimizedImageUrl } from '@/constants/performance';
 import Colors from '@/constants/colors';
 
-const OptimizedImage: React.FC = React.memo(({
+const OptimizedImage = React.memo(({
   uri,
   width,
   height,
@@ -16,39 +16,39 @@ const OptimizedImage: React.FC = React.memo(({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  
-  const optimizedUri = React.useMemo(() => 
-    getOptimizedImageUrl(uri, width, height),
-    [uri, width, height]
+
+  const optimizedUri = React.useMemo(() =>
+  getOptimizedImageUrl(uri, width, height),
+  [uri, width, height]
   );
-  
+
   const handleLoad = useCallback(() => {
     setIsLoading(false);
     setHasError(false);
     onLoad?.();
   }, [onLoad]);
-  
+
   const handleError = useCallback(() => {
     setIsLoading(false);
     setHasError(true);
     onError?.();
   }, [onError]);
-  
-  const imageStyle = React.useMemo(() => ([
-    width && height ? { width, height } : {},
-    style
-  ]), [width, height, style]);
-  
+
+  const imageStyle = React.useMemo(() => [
+  width && height ? { width, height } : {},
+  style],
+  [width, height, style]);
+
   if (hasError) {
     return (
       <View style={[styles.container, containerStyle, imageStyle]}>
         <View style={styles.errorContainer}>
           {placeholder || <View style={styles.errorPlaceholder} />}
         </View>
-      </View>
-    );
+      </View>);
+
   }
-  
+
   return (
     <View style={[styles.container, containerStyle]}>
       <Image
@@ -59,26 +59,26 @@ const OptimizedImage: React.FC = React.memo(({
         onError={handleError}
         loadingIndicatorSource={{
           uri: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-        }}
-      />
+        }} />
       
-      {isLoading && (
-        <View style={[styles.loadingContainer, imageStyle]}>
-          {placeholder || (
-            <ActivityIndicator 
-              size="small" 
-              color={Colors.primary} 
-            />
-          )}
+      
+      {isLoading &&
+      <View style={[styles.loadingContainer, imageStyle]}>
+          {placeholder ||
+        <ActivityIndicator
+          size="small"
+          color={Colors.primary} />
+
+        }
         </View>
-      )}
-    </View>
-  );
+      }
+    </View>);
+
 });
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    position: 'relative'
   },
   loadingContainer: {
     position: 'absolute',
@@ -88,20 +88,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.inactive,
+    backgroundColor: Colors.inactive
   },
   errorPlaceholder: {
     width: 40,
     height: 40,
     backgroundColor: Colors.border,
-    borderRadius: 4,
-  },
+    borderRadius: 4
+  }
 });
 
 OptimizedImage.displayName = 'OptimizedImage';

@@ -36,21 +36,21 @@ export default function ForgotPasswordScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
-            onChangeText={setEmail}
-          />
+            onChangeText={setEmail} />
+          
         </View>
 
         <TouchableOpacity
           testID="send-reset"
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleReset}
-          disabled={loading}
-        >
+          disabled={loading}>
+          
           <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send reset link'}</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 16,
-    height: 56,
+    height: 56
   },
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: 16, color: Colors.text.primary },
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 8
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: 'white', fontSize: 16, fontWeight: '600' }
 });

@@ -5,8 +5,8 @@ import {
   Pressable,
   Dimensions,
   Animated,
-  Easing,
-} from 'react-native';
+  Easing } from
+'react-native';
 import { router, Stack } from 'expo-router';
 import LoginScreen from '@/app/auth/login';
 import { ErrorBoundary } from '@/components/LoadingScreen';
@@ -27,31 +27,31 @@ function StartScreenContent() {
 
     const duration = 650;
     Animated.parallel([
-      Animated.timing(coverY, {
-        toValue: -screenH,
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoY, {
-        toValue: -Math.min(120, screenH * 0.18),
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoScale, {
-        toValue: 0.76,
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 0.92,
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
+    Animated.timing(coverY, {
+      toValue: -screenH,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }),
+    Animated.timing(logoY, {
+      toValue: -Math.min(120, screenH * 0.18),
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }),
+    Animated.timing(logoScale, {
+      toValue: 0.76,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }),
+    Animated.timing(logoOpacity, {
+      toValue: 0.92,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    })]
+    ).start(({ finished }) => {
       console.log('[StartScreen] Animation finished:', finished);
       if (finished) {
         try {
@@ -82,34 +82,34 @@ function StartScreenContent() {
         </View>
 
         <Animated.View
-          style={[styles.whiteCover, { transform: [{ translateY: coverY }] }]}
-          testID="startup-cover"
-        >
+            style={[styles.whiteCover, { transform: [{ translateY: coverY }] }]}
+            testID="startup-cover">
+            
           <Pressable
-            style={styles.pressArea}
-            onPress={runTransition}
-            disabled={animating}
-            testID="startup-press"
-          >
+              style={styles.pressArea}
+              onPress={runTransition}
+              disabled={animating}
+              testID="startup-press">
+              
             <Animated.Image
-              source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/vweh81504p0fox25qu1wk' }}
-              style={[
+                source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/vweh81504p0fox25qu1wk' }}
+                style={[
                 styles.logo,
                 {
                   opacity: logoOpacity,
-                  transform: [{ translateY: logoY }, { scale: logoScale }],
-                },
-              ]}
-              accessibilityRole="image"
-              accessibilityLabel="ZOWN Logo"
-              resizeMode="contain"
-            />
+                  transform: [{ translateY: logoY }, { scale: logoScale }]
+                }]
+                }
+                accessibilityRole="image"
+                accessibilityLabel="ZOWN Logo"
+                resizeMode="contain" />
+              
           </Pressable>
         </Animated.View>
       </View>
       </View>
-    </ErrorBoundary>
-  );
+    </ErrorBoundary>);
+
 }
 
 export default function StartScreen() {
@@ -119,27 +119,27 @@ export default function StartScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000'
   },
   layers: {
-    flex: 1,
+    flex: 1
   },
   loginUnderlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
+    zIndex: 0
   },
   whiteCover: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#fff',
-    zIndex: 1,
+    zIndex: 1
   },
   pressArea: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   logo: {
     width: 280,
-    height: 80,
-  },
+    height: 80
+  }
 });

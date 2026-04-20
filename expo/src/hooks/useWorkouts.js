@@ -9,8 +9,8 @@ import {
   query,
   serverTimestamp,
   updateDoc,
-  where,
-} from 'firebase/firestore';
+  where } from
+'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuthStore } from '../stores/authStore';
 import { useWorkoutStore } from '../stores/workoutStore';
@@ -23,14 +23,14 @@ function toWorkout(id, data) {
     userId: data.userId,
     name: data.name,
     description: data.description | undefined,
-    exercises: (data.exercises['exercises']) ?? [],
-    duration: (data.duration) ?? 0,
+    exercises: data.exercises['exercises'] ?? [],
+    duration: data.duration ?? 0,
     calories: data.calories | undefined,
-    date: (data.date as { toDate?: () => Date })?.toDate?.() ?? new Date(),
+    date: data.date?.toDate?.() ?? new Date(),
     notes: data.notes | undefined,
-    aiGenerated: (data.aiGenerated) ?? false,
-    completed: (data.completed) ?? false,
-    completedAt: (data.completedAt as { toDate?: () => Date })?.toDate?.(),
+    aiGenerated: data.aiGenerated ?? false,
+    completed: data.completed ?? false,
+    completedAt: data.completedAt?.toDate?.()
   };
 }
 
@@ -42,7 +42,7 @@ export function useWorkouts() {
     error,
     setWorkouts,
     setLoading,
-    setError,
+    setError
   } = useWorkoutStore();
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function useWorkouts() {
     const q = query(
       collection(db, WORKOUTS),
       where('userId', '==', user.uid),
-      orderBy('date', 'desc'),
+      orderBy('date', 'desc')
     );
     const unsub = onSnapshot(
       q,
@@ -59,7 +59,7 @@ export function useWorkouts() {
         const list = snap.docs.map((d) => toWorkout(d.id, d.data()));
         setWorkouts(list);
       },
-      (err) => setError(err.message),
+      (err) => setError(err.message)
     );
     return () => unsub();
   }, [user, setWorkouts, setLoading, setError]);
@@ -70,21 +70,21 @@ export function useWorkouts() {
       const ref = await addDoc(collection(db, WORKOUTS), {
         ...workout,
         userId: user.uid,
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp()
       });
       return ref.id;
     },
-    [user],
+    [user]
   );
 
   const updateWorkout = useCallback(
     async (id, patch) => {
       await updateDoc(doc(db, WORKOUTS, id), {
         ...patch,
-        updatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
     },
-    [],
+    []
   );
 
   const deleteWorkout = useCallback(async (id) => {
@@ -95,10 +95,10 @@ export function useWorkouts() {
     async (id) => {
       await updateWorkout(id, {
         completed: true,
-        completedAt: new Date(),
+        completedAt: new Date()
       });
     },
-    [updateWorkout],
+    [updateWorkout]
   );
 
   return {
@@ -108,6 +108,6 @@ export function useWorkouts() {
     addWorkout,
     updateWorkout,
     deleteWorkout,
-    completeWorkout,
+    completeWorkout
   };
 }

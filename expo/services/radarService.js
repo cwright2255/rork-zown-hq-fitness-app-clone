@@ -24,14 +24,14 @@ export class RadarService {
     try {
       const origin = coordinates[0];
       const destination = coordinates[coordinates.length - 1];
-      
+
       const url = `${this.baseUrl}/route/distance`;
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': this.apiKey,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           origin: {
@@ -52,7 +52,7 @@ export class RadarService {
       }
 
       const json = await response.json();
-      
+
       // Transform Radar response to match expected format
       return {
         distance: {
@@ -81,7 +81,7 @@ export class RadarService {
           text: `${Math.round(distance * 12)} min`
         },
         geometry: {
-          coordinates: coordinates.map(coord => [coord.longitude, coord.latitude])
+          coordinates: coordinates.map((coord) => [coord.longitude, coord.latitude])
         }
       };
     }
@@ -95,12 +95,12 @@ export class RadarService {
   async searchLocations(query) {
     try {
       const url = `${this.baseUrl}/search/autocomplete`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': this.apiKey,
-        },
+          'Authorization': this.apiKey
+        }
         // Note: In a real implementation, you'd add query parameters
         // For now, return mock data since we don't have a real API key
       });
@@ -110,7 +110,7 @@ export class RadarService {
       }
 
       const json = await response.json();
-      
+
       return json.addresses?.map((address) => ({
         latitude: address.latitude,
         longitude: address.longitude,
@@ -124,27 +124,27 @@ export class RadarService {
       console.error('Error searching locations:', error);
       // Return mock locations for demo
       return [
-        {
-          latitude: 37.7749,
-          longitude: -122.4194,
-          formattedAddress: 'San Francisco, CA, USA',
-          name: 'San Francisco',
-          city: 'San Francisco',
-          state: 'CA',
-          country: 'USA'
-        },
-        {
-          latitude: 40.7128,
-          longitude: -74.0060,
-          formattedAddress: 'New York, NY, USA',
-          name: 'New York',
-          city: 'New York',
-          state: 'NY',
-          country: 'USA'
-        }
-      ].filter(location => 
-        location.name?.toLowerCase().includes(query.toLowerCase()) ||
-        location.city?.toLowerCase().includes(query.toLowerCase())
+      {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        formattedAddress: 'San Francisco, CA, USA',
+        name: 'San Francisco',
+        city: 'San Francisco',
+        state: 'CA',
+        country: 'USA'
+      },
+      {
+        latitude: 40.7128,
+        longitude: -74.0060,
+        formattedAddress: 'New York, NY, USA',
+        name: 'New York',
+        city: 'New York',
+        state: 'NY',
+        country: 'USA'
+      }].
+      filter((location) =>
+      location.name?.toLowerCase().includes(query.toLowerCase()) ||
+      location.city?.toLowerCase().includes(query.toLowerCase())
       );
     }
   }
@@ -157,7 +157,7 @@ export class RadarService {
    */
   calculateDistance(coord1, coord2) {
     const R = 6371; // Earth's radius in kilometers
-    const toRad = (angle) => (Math.PI * angle) / 180;
+    const toRad = (angle) => Math.PI * angle / 180;
 
     const lat1 = coord1.latitude;
     const lon1 = coord1.longitude;
@@ -167,8 +167,8 @@ export class RadarService {
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
 
@@ -210,7 +210,7 @@ export class RadarService {
         }
 
         const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.High
         });
 
         return {
@@ -263,7 +263,7 @@ export class RadarService {
         {
           accuracy: Location.Accuracy.High,
           timeInterval: 1000,
-          distanceInterval: 1,
+          distanceInterval: 1
         },
         (location) => {
           callback({

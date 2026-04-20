@@ -8,5 +8,5 @@ export const useAuthStore = create((set) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error, isLoading: false }),
-  reset: () => set({ user, isAuthenticated: false, isLoading: false, error: null }),
+  reset: () => set({ user, isAuthenticated: false, isLoading: false, error: null })
 }));

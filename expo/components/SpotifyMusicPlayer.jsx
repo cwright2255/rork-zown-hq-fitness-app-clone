@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Animated, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Animated, Platform } from 'react-native';
 import { Play, Pause, Music, Volume2, Loader, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -8,21 +8,21 @@ import Button from '@/components/Button';
 import SpotifyEmbedPlayer from '@/components/SpotifyEmbedPlayer';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
-import { SpotifyTrack, SpotifyArtist, WorkoutType } from '@/types/spotify';
 
-export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: SpotifyMusicPlayerProps) {
+
+export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
   const {
     isConnected,
     isClientCredentialsReady,
     getRecommendationsForWorkout,
     isLoading,
     initializeClientCredentials,
-    initializeSpotify,
+    initializeSpotify
   } = useSpotifyStore();
 
   const [recommendations, setRecommendations] = useState([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
-  const [activeTrack, setActiveTrack] = useState<SpotifyTrack | null>(null);
+  const [activeTrack, setActiveTrack] = useState(null);
   const [showTrackList, setShowTrackList] = useState(true);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -32,9 +32,9 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
     if (activeTrack) {
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1000, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        ])
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })]
+        )
       );
       pulse.start();
       return () => pulse.stop();
@@ -120,7 +120,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
 
   const handleNextTrack = useCallback(() => {
     if (!activeTrack || recommendations.length === 0) return;
-    const currentIndex = recommendations.findIndex(t => t.id === activeTrack.id);
+    const currentIndex = recommendations.findIndex((t) => t.id === activeTrack.id);
     const nextIndex = (currentIndex + 1) % recommendations.length;
     setActiveTrack(recommendations[nextIndex]);
   }, [activeTrack, recommendations]);
@@ -142,38 +142,38 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
             loading={isLoading}
             style={styles.connectButton}
             leftIcon={<Music size={16} color={Colors.text.inverse} />}
-            testID="connect-spotify-button"
-          />
+            testID="connect-spotify-button" />
+          
         </View>
-      </Card>
-    );
+      </Card>);
+
   }
 
   return (
     <View style={[styles.container, style]}>
-      {activeTrack && (
-        <SpotifyEmbedPlayer
-          trackId={activeTrack.id}
-          trackName={activeTrack.name}
-          artistName={activeTrack.artists.map((a) => a.name).join(', ')}
-          onClose={handleCloseEmbed}
-          compact={false}
-        />
-      )}
+      {activeTrack &&
+      <SpotifyEmbedPlayer
+        trackId={activeTrack.id}
+        trackName={activeTrack.name}
+        artistName={activeTrack.artists.map((a) => a.name).join(', ')}
+        onClose={handleCloseEmbed}
+        compact={false} />
 
-      {!activeTrack && !isLoadingRecommendations && recommendations.length > 0 && (
-        <TouchableOpacity
-          style={styles.quickPlayBanner}
-          onPress={handlePlayFirst}
-          activeOpacity={0.8}
-        >
+      }
+
+      {!activeTrack && !isLoadingRecommendations && recommendations.length > 0 &&
+      <TouchableOpacity
+        style={styles.quickPlayBanner}
+        onPress={handlePlayFirst}
+        activeOpacity={0.8}>
+        
           <Volume2 size={18} color="#1DB954" />
           <Text style={styles.quickPlayText}>
             Tap to play ({recommendations.length} tracks)
           </Text>
           <Play size={16} color="#1DB954" />
         </TouchableOpacity>
-      )}
+      }
 
       <View style={styles.recommendationsContainer}>
         <View style={styles.recommendationsHeader}>
@@ -187,70 +187,70 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
                 {isLoadingRecommendations ? 'Loading...' : 'Refresh'}
               </Text>
             </TouchableOpacity>
-            {recommendations.length > 0 && (
-              <TouchableOpacity
-                style={styles.toggleListBtn}
-                onPress={() => setShowTrackList(!showTrackList)}
-              >
-                {showTrackList ? (
-                  <ChevronUp size={18} color={Colors.text.secondary} />
-                ) : (
-                  <ChevronDown size={18} color={Colors.text.secondary} />
-                )}
+            {recommendations.length > 0 &&
+            <TouchableOpacity
+              style={styles.toggleListBtn}
+              onPress={() => setShowTrackList(!showTrackList)}>
+              
+                {showTrackList ?
+              <ChevronUp size={18} color={Colors.text.secondary} /> :
+
+              <ChevronDown size={18} color={Colors.text.secondary} />
+              }
               </TouchableOpacity>
-            )}
+            }
           </View>
         </View>
 
-        {isLoadingRecommendations ? (
-          <View style={styles.loadingContainer}>
+        {isLoadingRecommendations ?
+        <View style={styles.loadingContainer}>
             <Loader size={20} color={Colors.text.tertiary} />
             <Text style={styles.loadingText}>Finding tracks...</Text>
-          </View>
-        ) : recommendations.length > 0 && showTrackList ? (
-          <>
+          </View> :
+        recommendations.length > 0 && showTrackList ?
+        <>
             {recommendations.map((track, index) => {
-              const isActive = activeTrack?.id === track.id;
-              return (
-                <TouchableOpacity
-                  key={track.id}
-                  style={[
-                    styles.trackItem,
-                    isActive && styles.trackItemActive,
-                  ]}
-                  onPress={() => handleTrackPress(track)}
-                  activeOpacity={0.7}
-                >
+            const isActive = activeTrack?.id === track.id;
+            return (
+              <TouchableOpacity
+                key={track.id}
+                style={[
+                styles.trackItem,
+                isActive && styles.trackItemActive]
+                }
+                onPress={() => handleTrackPress(track)}
+                activeOpacity={0.7}>
+                
                   <View style={styles.trackIndex}>
-                    {isActive ? (
-                      <Animated.View style={[styles.equalizerContainer, { transform: [{ scale: pulseAnim }] }]}>
+                    {isActive ?
+                  <Animated.View style={[styles.equalizerContainer, { transform: [{ scale: pulseAnim }] }]}>
                         <View style={[styles.eqBar, styles.eqBar1]} />
                         <View style={[styles.eqBar, styles.eqBar2]} />
                         <View style={[styles.eqBar, styles.eqBar3]} />
-                      </Animated.View>
-                    ) : (
-                      <Text style={styles.trackNumber}>
+                      </Animated.View> :
+
+                  <Text style={styles.trackNumber}>
                         {index + 1}
                       </Text>
-                    )}
+                  }
                   </View>
 
-                  {track.album?.images?.[0] ? (
-                    <Image
-                      source={{ uri: track.album.images[0].url }}
-                      style={[styles.trackAlbumArt, isActive && styles.trackAlbumArtActive]}
-                    />
-                  ) : (
-                    <View style={[styles.trackAlbumArt, styles.trackAlbumArtPlaceholder]}>
+                  {track.album?.images?.[0] ?
+                <Image
+                  source={{ uri: track.album.images[0].url }}
+                  style={[styles.trackAlbumArt, isActive && styles.trackAlbumArtActive]} /> :
+
+
+                <View style={[styles.trackAlbumArt, styles.trackAlbumArtPlaceholder]}>
                       <Music size={16} color={Colors.text.tertiary} />
                     </View>
-                  )}
+                }
 
                   <View style={styles.trackDetails}>
                     <Text
-                      style={[styles.trackItemName, isActive && styles.trackItemNameActive]}
-                      numberOfLines={1}
-                    >
+                    style={[styles.trackItemName, isActive && styles.trackItemNameActive]}
+                    numberOfLines={1}>
+                    
                       {track.name}
                     </Text>
                     <Text style={styles.trackItemArtist} numberOfLines={1}>
@@ -259,41 +259,41 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }: Sp
                   </View>
 
                   <TouchableOpacity
-                    style={[styles.trackPlayBtn, isActive && styles.trackPlayBtnActive]}
-                    onPress={() => handleTrackPress(track)}
-                  >
-                    {isActive ? (
-                      <Pause size={14} color="#fff" />
-                    ) : (
-                      <Play size={14} color={Colors.text.primary} style={{ marginLeft: 1 }} />
-                    )}
+                  style={[styles.trackPlayBtn, isActive && styles.trackPlayBtnActive]}
+                  onPress={() => handleTrackPress(track)}>
+                  
+                    {isActive ?
+                  <Pause size={14} color="#fff" /> :
+
+                  <Play size={14} color={Colors.text.primary} style={{ marginLeft: 1 }} />
+                  }
                   </TouchableOpacity>
-                </TouchableOpacity>
-              );
-            })}
-          </>
-        ) : recommendations.length === 0 ? (
-          <View style={styles.emptyContainer}>
+                </TouchableOpacity>);
+
+          })}
+          </> :
+        recommendations.length === 0 ?
+        <View style={styles.emptyContainer}>
             <Music size={24} color={Colors.text.tertiary} />
             <Text style={styles.noTracksText}>No tracks found. Tap Refresh to try again.</Text>
             <TouchableOpacity style={styles.retryButton} onPress={loadRecommendations}>
               <RefreshCw size={14} color="#1DB954" />
               <Text style={styles.retryText}>Refresh</Text>
             </TouchableOpacity>
-          </View>
-        ) : null}
+          </View> :
+        null}
       </View>
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   disconnectedContainer: {
     alignItems: 'center',
-    padding: 28,
+    padding: 28
   },
   iconCircle: {
     width: 56,
@@ -302,25 +302,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(29, 185, 84, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12
   },
   disconnectedTitle: {
     fontSize: 18,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 6,
+    marginBottom: 6
   },
   disconnectedText: {
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
     marginBottom: 20,
-    lineHeight: 20,
+    lineHeight: 20
   },
   connectButton: {
     backgroundColor: '#1DB954',
     borderRadius: 24,
-    paddingHorizontal: 28,
+    paddingHorizontal: 28
   },
   quickPlayBanner: {
     flexDirection: 'row',
@@ -333,45 +333,45 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(29, 185, 84, 0.15)',
+    borderColor: 'rgba(29, 185, 84, 0.15)'
   },
   quickPlayText: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1DB954',
+    fontWeight: '600',
+    color: '#1DB954'
   },
   recommendationsContainer: {
     backgroundColor: Colors.card,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   recommendationsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 14
   },
   recommendationsTitle: {
     fontSize: 16,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
+    fontWeight: '700',
+    color: Colors.text.primary
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12
   },
   refreshBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   refreshText: {
     fontSize: 13,
     color: '#1DB954',
-    fontWeight: '600' as const,
+    fontWeight: '600'
   },
   toggleListBtn: {
     width: 28,
@@ -379,18 +379,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 24,
-    gap: 10,
+    gap: 10
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   trackItem: {
     flexDirection: 'row',
@@ -398,73 +398,73 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 4,
     borderRadius: 10,
-    marginBottom: 2,
+    marginBottom: 2
   },
   trackItemActive: {
-    backgroundColor: 'rgba(29, 185, 84, 0.08)',
+    backgroundColor: 'rgba(29, 185, 84, 0.08)'
   },
   trackIndex: {
     width: 24,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   trackNumber: {
     fontSize: 13,
     color: Colors.text.tertiary,
-    fontWeight: '500' as const,
-    fontVariant: ['tabular-nums'] as const,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums']
   },
   equalizerContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     height: 14,
-    gap: 2,
+    gap: 2
   },
   eqBar: {
     width: 3,
     borderRadius: 1.5,
-    backgroundColor: '#1DB954',
+    backgroundColor: '#1DB954'
   },
   eqBar1: {
-    height: 8,
+    height: 8
   },
   eqBar2: {
-    height: 14,
+    height: 14
   },
   eqBar3: {
-    height: 6,
+    height: 6
   },
   trackAlbumArt: {
     width: 42,
     height: 42,
     borderRadius: 6,
     marginLeft: 10,
-    marginRight: 12,
+    marginRight: 12
   },
   trackAlbumArtActive: {
     borderWidth: 1.5,
-    borderColor: '#1DB954',
+    borderColor: '#1DB954'
   },
   trackDetails: {
-    flex: 1,
+    flex: 1
   },
   trackItemName: {
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 2,
+    marginBottom: 2
   },
   trackItemNameActive: {
-    color: '#1DB954',
+    color: '#1DB954'
   },
   trackItemArtist: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   trackAlbumArtPlaceholder: {
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   trackPlayBtn: {
     width: 32,
@@ -473,34 +473,34 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: 8
   },
   trackPlayBtnActive: {
-    backgroundColor: '#1DB954',
+    backgroundColor: '#1DB954'
   },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 24,
-    gap: 10,
+    gap: 10
   },
   noTracksText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   retryButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     marginTop: 12,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+    backgroundColor: 'rgba(29, 185, 84, 0.1)'
   },
   retryText: {
     fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#1DB954',
-  },
+    fontWeight: '600',
+    color: '#1DB954'
+  }
 });

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Colors, Radius, Typography } from '../../constants/tokens';
 
 const sizeMap = { sm: 32, md: 48, lg: 64 };
 
-function initials(name?) {
+function initials(name) {
   if (!name) return '?';
   const parts = name.trim().split(/\s+/);
   const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? parts[parts.length - 1]![0] ?? '' : '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
   return (first + last).toUpperCase() || '?';
 }
 
@@ -17,8 +17,8 @@ export function Avatar({
   name,
   size = 'md',
   accessibilityLabel,
-  style,
-}: AvatarProps) {
+  style
+}) {
   const [errored, setErrored] = useState(false);
   const dim = sizeMap[size];
   const showImage = !!uri && !errored;
@@ -27,29 +27,29 @@ export function Avatar({
     <View
       accessibilityLabel={accessibilityLabel ?? name ?? 'User avatar'}
       style={[
-        styles.base,
-        { width: dim, height: dim, borderRadius: Radius.full },
-        style,
-      ]}
-    >
-      {showImage ? (
-        <Image
-          source={{ uri: uri! }}
-          style={{ width: dim, height: dim, borderRadius: Radius.full }}
-          onError={() => setErrored(true)}
-        />
-      ) : (
-        <Text
-          style={[
-            styles.initials,
-            { fontSize: dim * 0.4 },
-          ]}
-        >
+      styles.base,
+      { width: dim, height: dim, borderRadius: Radius.full },
+      style]
+      }>
+      
+      {showImage ?
+      <Image
+        source={{ uri: uri }}
+        style={{ width: dim, height: dim, borderRadius: Radius.full }}
+        onError={() => setErrored(true)} /> :
+
+
+      <Text
+        style={[
+        styles.initials,
+        { fontSize: dim * 0.4 }]
+        }>
+        
           {initials(name)}
         </Text>
-      )}
-    </View>
-  );
+      }
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -57,12 +57,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   initials: {
     color: Colors.text.primary,
-    fontWeight: Typography.weight.semibold,
-  },
+    fontWeight: Typography.weight.semibold
+  }
 });
 
 export default Avatar;

@@ -4,39 +4,39 @@ import {
   onSnapshot,
   orderBy,
   query,
-  where,
-} from 'firebase/firestore';
+  where } from
+'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 import { useAuthStore } from '../stores/authStore';
 import { useAIStore } from '../stores/aiStore';
 
-interface WorkoutPlanInput {
-  fitnessLevel: FitnessLevel;
-  goals: GoalType[];
-  history?: Array<{ name: string; date: string; duration: number }>;
-}
 
-interface ProgressSummaryInput {
-  userId: string;
-  dateRange: { start: string; end: string };
-}
 
-interface NutritionInput {
-  recentWorkouts: Array<{ name: string; calories?: number; duration: number }>;
-  goals: GoalType[];
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function toRec(id, data) {
   return {
     id,
     userId: data.userId,
     type: data.type['type'],
-    content: (data.content) ?? '',
+    content: data.content ?? '',
     structuredData: data.structuredData | undefined,
-    prompt: (data.prompt) ?? '',
-    createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? new Date(),
-    isRead: (data.isRead) ?? false,
+    prompt: data.prompt ?? '',
+    createdAt: data.createdAt?.toDate?.() ?? new Date(),
+    isRead: data.isRead ?? false
   };
 }
 
@@ -49,7 +49,7 @@ export function useAICoach() {
     error,
     setRecommendations,
     setGenerating,
-    setError,
+    setError
   } = useAIStore();
 
   useEffect(() => {
@@ -57,12 +57,12 @@ export function useAICoach() {
     const q = query(
       collection(db, 'aiRecommendations'),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
+      orderBy('createdAt', 'desc')
     );
     const unsub = onSnapshot(
       q,
       (snap) => setRecommendations(snap.docs.map((d) => toRec(d.id, d.data()))),
-      (err) => setError(err.message),
+      (err) => setError(err.message)
     );
     return () => unsub();
   }, [user, setRecommendations, setError]);
@@ -71,9 +71,9 @@ export function useAICoach() {
     async (input) => {
       setGenerating(true);
       try {
-        const fn = httpsCallable<WorkoutPlanInput, { recommendationId: string }>(
+        const fn = httpsCallable(
           functions,
-          'generateWorkoutPlan',
+          'generateWorkoutPlan'
         );
         const res = await fn(input);
         return res.data;
@@ -84,16 +84,16 @@ export function useAICoach() {
         setGenerating(false);
       }
     },
-    [setGenerating, setError],
+    [setGenerating, setError]
   );
 
   const getProgressSummary = useCallback(
     async (input) => {
       setGenerating(true);
       try {
-        const fn = httpsCallable<ProgressSummaryInput, { recommendationId: string }>(
+        const fn = httpsCallable(
           functions,
-          'getProgressSummary',
+          'getProgressSummary'
         );
         const res = await fn(input);
         return res.data;
@@ -101,16 +101,16 @@ export function useAICoach() {
         setGenerating(false);
       }
     },
-    [setGenerating],
+    [setGenerating]
   );
 
   const getNutritionRecommendations = useCallback(
     async (input) => {
       setGenerating(true);
       try {
-        const fn = httpsCallable<NutritionInput, { recommendationId: string }>(
+        const fn = httpsCallable(
           functions,
-          'getNutritionRecommendations',
+          'getNutritionRecommendations'
         );
         const res = await fn(input);
         return res.data;
@@ -118,7 +118,7 @@ export function useAICoach() {
         setGenerating(false);
       }
     },
-    [setGenerating],
+    [setGenerating]
   );
 
   return {
@@ -128,6 +128,6 @@ export function useAICoach() {
     error,
     generateWorkoutPlan,
     getProgressSummary,
-    getNutritionRecommendations,
+    getNutritionRecommendations
   };
 }

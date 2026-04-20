@@ -10,8 +10,8 @@ Notifications.setNotificationHandler({
     shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+    shouldShowList: true
+  })
 });
 
 export async function requestNotificationPermission() {
@@ -32,17 +32,17 @@ export async function registerForPushNotifications(userId) {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Default',
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: Notifications.AndroidImportance.HIGH
       });
     }
 
     const projectId =
-      Constants.expoConfig?.extra?.eas?.projectId ??
-      Constants.easConfig?.projectId ??
-      undefined;
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId ??
+    undefined;
 
     const token = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined,
+      projectId ? { projectId } : undefined
     );
     const pushToken = token.data;
     if (!pushToken) return null;
@@ -52,9 +52,9 @@ export async function registerForPushNotifications(userId) {
       {
         token: pushToken,
         platform: Platform.OS,
-        updatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       },
-      { merge: true },
+      { merge: true }
     );
 
     return pushToken;
@@ -65,15 +65,15 @@ export async function registerForPushNotifications(userId) {
 }
 
 export function addForegroundHandler(
-  handler: (notification: Notifications.Notification) => void,
-): () => void {
+handler)
+{
   const sub = Notifications.addNotificationReceivedListener(handler);
   return () => sub.remove();
 }
 
 export function addResponseHandler(
-  handler: (response: Notifications.NotificationResponse) => void,
-): () => void {
+handler)
+{
   const sub = Notifications.addNotificationResponseReceivedListener(handler);
   return () => sub.remove();
 }

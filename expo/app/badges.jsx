@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   Modal,
   Image,
-  Dimensions,
-} from 'react-native';
+  Dimensions } from
+'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -19,8 +19,8 @@ import {
   X,
   Lock,
   Calendar,
-  Target,
-} from 'lucide-react-native';
+  Target } from
+'lucide-react-native';
 import Colors from '@/constants/colors';
 import BadgeItem from '@/components/BadgeItem';
 import { useBadgeStore } from '@/store/badgeStore';
@@ -32,10 +32,10 @@ export default function BadgesScreen() {
   const {
     badges,
     getUnlockedBadges,
-    initializeDefaultBadges,
+    initializeDefaultBadges
   } = useBadgeStore();
 
-  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -75,7 +75,7 @@ export default function BadgesScreen() {
 
   const unlockedBadges = getUnlockedBadges();
   const totalBadges = badges.length;
-  const completionPercentage = totalBadges > 0 ? Math.round((unlockedBadges.length / totalBadges) * 100) : 0;
+  const completionPercentage = totalBadges > 0 ? Math.round(unlockedBadges.length / totalBadges * 100) : 0;
 
   const getRarityColor = (rarity) => {
     switch (rarity) {
@@ -111,23 +111,23 @@ export default function BadgesScreen() {
     }
   };
 
-  const renderFilterChip = (label, value, isActive) => (
-    <TouchableOpacity
-      key={value}
-      style={[
-        styles.filterChip,
-        isActive && styles.filterChipActive,
-      ]}
-      onPress={() => setFilterType(value)}
-    >
+  const renderFilterChip = (label, value, isActive) =>
+  <TouchableOpacity
+    key={value}
+    style={[
+    styles.filterChip,
+    isActive && styles.filterChipActive]
+    }
+    onPress={() => setFilterType(value)}>
+    
       <Text style={[
-        styles.filterChipText,
-        isActive && styles.filterChipTextActive,
-      ]}>
+    styles.filterChipText,
+    isActive && styles.filterChipTextActive]
+    }>
         {label}
       </Text>
-    </TouchableOpacity>
-  );
+    </TouchableOpacity>;
+
 
   const renderCategoryChip = (label, value, isActive) => {
     const IconComponent = getCategoryIcon(value);
@@ -135,26 +135,26 @@ export default function BadgesScreen() {
       <TouchableOpacity
         key={value}
         style={[
-          styles.categoryChip,
-          isActive && styles.categoryChipActive,
-        ]}
-        onPress={() => setCategoryFilter(value)}
-      >
-        {value !== 'all' && (
-          <IconComponent
-            size={16}
-            color={isActive ? Colors.primary : Colors.text.secondary}
-          />
-        )}
+        styles.categoryChip,
+        isActive && styles.categoryChipActive]
+        }
+        onPress={() => setCategoryFilter(value)}>
+        
+        {value !== 'all' &&
+        <IconComponent
+          size={16}
+          color={isActive ? Colors.primary : Colors.text.secondary} />
+
+        }
         <Text style={[
-          styles.categoryChipText,
-          isActive && styles.categoryChipTextActive,
-          value !== 'all' && { marginLeft: 6 },
-        ]}>
+        styles.categoryChipText,
+        isActive && styles.categoryChipTextActive,
+        value !== 'all' && { marginLeft: 6 }]
+        }>
           {label}
         </Text>
-      </TouchableOpacity>
-    );
+      </TouchableOpacity>);
+
   };
 
   const renderBadgeModal = () => {
@@ -165,37 +165,37 @@ export default function BadgesScreen() {
         visible={!!selectedBadge}
         transparent
         animationType="fade"
-        onRequestClose={() => setSelectedBadge(null)}
-      >
+        onRequestClose={() => setSelectedBadge(null)}>
+        
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <TouchableOpacity
               style={styles.modalCloseButton}
-              onPress={() => setSelectedBadge(null)}
-            >
+              onPress={() => setSelectedBadge(null)}>
+              
               <X size={24} color={Colors.text.primary} />
             </TouchableOpacity>
 
             <View style={[
-              styles.modalBadgeContainer,
-              { borderColor: getRarityColor(selectedBadge.rarity) }
-            ]}>
-              {selectedBadge.isUnlocked ? (
-                <Image
-                  source={{ uri: selectedBadge.imageUrl }}
-                  style={styles.modalBadgeImage}
-                />
-              ) : (
-                <View style={styles.modalLockedContainer}>
+            styles.modalBadgeContainer,
+            { borderColor: getRarityColor(selectedBadge.rarity) }]
+            }>
+              {selectedBadge.isUnlocked ?
+              <Image
+                source={{ uri: selectedBadge.imageUrl }}
+                style={styles.modalBadgeImage} /> :
+
+
+              <View style={styles.modalLockedContainer}>
                   <Lock size={60} color={Colors.text.tertiary} />
                 </View>
-              )}
+              }
             </View>
 
             <Text style={[
-              styles.modalBadgeName,
-              { color: getRarityColor(selectedBadge.rarity) }
-            ]}>
+            styles.modalBadgeName,
+            { color: getRarityColor(selectedBadge.rarity) }]
+            }>
               {selectedBadge.name}
             </Text>
 
@@ -207,44 +207,44 @@ export default function BadgesScreen() {
               {selectedBadge.description}
             </Text>
 
-            {selectedBadge.isUnlocked && selectedBadge.unlockedAt && (
-              <View style={styles.modalUnlockedInfo}>
+            {selectedBadge.isUnlocked && selectedBadge.unlockedAt &&
+            <View style={styles.modalUnlockedInfo}>
                 <Calendar size={16} color={Colors.text.secondary} />
                 <Text style={styles.modalUnlockedText}>
                   Unlocked on {new Date(selectedBadge.unlockedAt).toLocaleDateString()}
                 </Text>
               </View>
-            )}
+            }
 
-            {!selectedBadge.isUnlocked && (
-              <View style={styles.modalLockedInfo}>
+            {!selectedBadge.isUnlocked &&
+            <View style={styles.modalLockedInfo}>
                 <Lock size={16} color={Colors.text.secondary} />
                 <Text style={styles.modalLockedText}>
                   Complete the requirement to unlock this badge
                 </Text>
               </View>
-            )}
+            }
           </View>
         </View>
-      </Modal>
-    );
+      </Modal>);
+
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           title: 'Badge Collection',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => setShowFilters(!showFilters)}
-              style={styles.filterButton}
-            >
+          headerRight: () =>
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            style={styles.filterButton}>
+            
               <Filter size={20} color={Colors.primary} />
             </TouchableOpacity>
-          ),
-        }} 
-      />
+
+        }} />
+      
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Stats Header */}
@@ -272,12 +272,12 @@ export default function BadgesScreen() {
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
-                styles.progressFill,
-                { width: `${completionPercentage}%` }
-              ]} 
-            />
+              styles.progressFill,
+              { width: `${completionPercentage}%` }]
+              } />
+            
           </View>
           <Text style={styles.progressText}>
             {unlockedBadges.length} of {totalBadges} badges collected
@@ -285,8 +285,8 @@ export default function BadgesScreen() {
         </View>
 
         {/* Filters */}
-        {showFilters && (
-          <View style={styles.filtersContainer}>
+        {showFilters &&
+        <View style={styles.filtersContainer}>
             <Text style={styles.filterTitle}>Filter by Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
               {renderFilterChip('All', 'all', filterType === 'all')}
@@ -308,56 +308,56 @@ export default function BadgesScreen() {
               {renderCategoryChip('Achievement', 'achievement', categoryFilter === 'achievement')}
             </ScrollView>
           </View>
-        )}
+        }
 
         {/* Badges Grid */}
         <View style={styles.badgesContainer}>
           <Text style={styles.sectionTitle}>
-            {filterType === 'all' && categoryFilter === 'all' 
-              ? 'All Badges' 
-              : `${filterType === 'all' ? '' : filterType.charAt(0).toUpperCase() + filterType.slice(1) + ' '}${categoryFilter === 'all' ? '' : categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1) + ' '}Badges`
+            {filterType === 'all' && categoryFilter === 'all' ?
+            'All Badges' :
+            `${filterType === 'all' ? '' : filterType.charAt(0).toUpperCase() + filterType.slice(1) + ' '}${categoryFilter === 'all' ? '' : categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1) + ' '}Badges`
             }
           </Text>
           
           <View style={styles.badgesGrid}>
-            {filteredBadges.map((badge) => (
-              <View key={badge.id} style={styles.badgeWrapper}>
+            {filteredBadges.map((badge) =>
+            <View key={badge.id} style={styles.badgeWrapper}>
                 <BadgeItem
-                  badge={badge}
-                  size="large"
-                  onPress={() => setSelectedBadge(badge)}
-                />
+                badge={badge}
+                size="large"
+                onPress={() => setSelectedBadge(badge)} />
+              
               </View>
-            ))}
+            )}
           </View>
 
-          {filteredBadges.length === 0 && (
-            <View style={styles.emptyContainer}>
+          {filteredBadges.length === 0 &&
+          <View style={styles.emptyContainer}>
               <Award size={48} color={Colors.text.tertiary} />
               <Text style={styles.emptyTitle}>No Badges Found</Text>
               <Text style={styles.emptyText}>
                 Try adjusting your filters or complete more activities to earn badges.
               </Text>
             </View>
-          )}
+          }
         </View>
       </ScrollView>
 
       {renderBadgeModal()}
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   scrollView: {
-    flex: 1,
+    flex: 1
   },
   filterButton: {
-    padding: 8,
+    padding: 8
   },
   statsContainer: {
     flexDirection: 'row',
@@ -370,65 +370,65 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 4
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   statValue: {
     fontSize: 28,
     fontWeight: '700',
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   statLabel: {
     fontSize: 14,
     color: Colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   statDivider: {
     width: 1,
     height: 40,
     backgroundColor: Colors.border,
-    marginHorizontal: 16,
+    marginHorizontal: 16
   },
   progressContainer: {
     padding: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 16
   },
   progressBar: {
     height: 8,
     backgroundColor: Colors.border,
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 8
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 4,
+    borderRadius: 4
   },
   progressText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   filtersContainer: {
     backgroundColor: Colors.card,
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
-    padding: 16,
+    padding: 16
   },
   filterTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   filterRow: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -437,19 +437,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   filterChipActive: {
     backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   filterChipText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFFFF'
   },
   categoryChip: {
     flexDirection: 'row',
@@ -460,62 +460,62 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   categoryChipActive: {
     backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   categoryChipText: {
     fontSize: 14,
     color: Colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   categoryChipTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFFFF'
   },
   badgesContainer: {
-    padding: 16,
+    padding: 16
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   badgesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between'
   },
   badgeWrapper: {
     width,
     marginBottom: 20,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   emptyContainer: {
     padding: 40,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 8
   },
   emptyText: {
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 20
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 20
   },
   modalContent: {
     backgroundColor: Colors.card,
@@ -523,14 +523,14 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     maxWidth: 320,
-    width: '100%',
+    width: '100%'
   },
   modalCloseButton: {
     position: 'absolute',
     top: 16,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 8
   },
   modalBadgeContainer: {
     width: 120,
@@ -540,12 +540,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   modalBadgeImage: {
     width: 100,
     height: 100,
-    borderRadius: 16,
+    borderRadius: 16
   },
   modalLockedContainer: {
     width: 100,
@@ -553,27 +553,27 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: Colors.background,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   modalBadgeName: {
     fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   modalBadgeRarity: {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.text.secondary,
     letterSpacing: 1,
-    marginBottom: 16,
+    marginBottom: 16
   },
   modalBadgeDescription: {
     fontSize: 16,
     color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: 20
   },
   modalUnlockedInfo: {
     flexDirection: 'row',
@@ -581,13 +581,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + '20',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 12
   },
   modalUnlockedText: {
     fontSize: 14,
     color: Colors.success,
     marginLeft: 8,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   modalLockedInfo: {
     flexDirection: 'row',
@@ -595,12 +595,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.text.tertiary + '20',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 12
   },
   modalLockedText: {
     fontSize: 14,
     color: Colors.text.tertiary,
     marginLeft: 8,
-    fontWeight: '500',
-  },
+    fontWeight: '500'
+  }
 });

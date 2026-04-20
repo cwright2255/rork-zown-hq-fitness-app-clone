@@ -2,15 +2,15 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { Smile, Watch, Wifi, WifiOff, RefreshCw, Brain, Heart, Moon, TrendingUp, Calendar, CheckCircle, Activity, Target, Scale, AlertTriangle } from 'lucide-react-native';
+import { Smile, Watch, Wifi, WifiOff, RefreshCw, Brain, Heart, Moon, TrendingUp, Calendar, CheckCircle, Target, Scale, AlertTriangle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { wearableService, WearableData, WearableDevice } from '@/services/wearableService';
-import { MoodEntry } from '@/types';
+import { wearableService } from '@/services/wearableService';
+
 
 export default function WellbeingScreen() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'assessment'>('overview');
+  const [activeTab, setActiveTab] = useState('overview');
 
   const [connectedDevices, setConnectedDevices] = useState([]);
   const [wearableConnected, setWearableConnected] = useState(false);
@@ -24,14 +24,14 @@ export default function WellbeingScreen() {
   const [todaySleep, setTodaySleep] = useState(3);
   const [selectedTags, setSelectedTags] = useState([]);
 
-  const [latestData, setLatestData] = useState<WearableData | null>(null);
+  const [latestData, setLatestData] = useState(null);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
-  const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [assessmentError, setAssessmentError] = useState(null);
 
-  const moodEmojis = ['😢', '😕', '😐', '😊', '😄'] as const;
-  const energyEmojis = ['🔋', '🔋', '🔋', '🔋', '🔋'] as const;
-  const stressEmojis = ['😌', '😐', '😰', '😫', '🤯'] as const;
-  const sleepEmojis = ['😴', '😪', '😐', '😊', '✨'] as const;
+  const moodEmojis = ['😢', '😕', '😐', '😊', '😄'];
+  const energyEmojis = ['🔋', '🔋', '🔋', '🔋', '🔋'];
+  const stressEmojis = ['😌', '😐', '😰', '😫', '🤯'];
+  const sleepEmojis = ['😴', '😪', '😐', '😊', '✨'];
 
   useEffect(() => {
     try {
@@ -59,7 +59,7 @@ export default function WellbeingScreen() {
         setTodaySleep(moodData.sleep);
         setDataConfidence(moodData.confidence);
         setWearableDataSource(moodData.dataSource);
-        const autoTags: string[] = [];
+        const autoTags = [];
         if (moodData.mood >= 4) autoTags.push('Happy');
         if (moodData.energy >= 4) autoTags.push('Energetic');
         if (moodData.stress <= 2) autoTags.push('Calm');
@@ -84,11 +84,11 @@ export default function WellbeingScreen() {
     if (wearableConnected) loadWearableMoodData();
   };
 
-  const moodEntries = useMemo(() => ([
-    { id: '1', date: '2024-01-15', mood: 4, energy: 3, stress: 2, sleep: 4, notes: 'Great workout today! Feeling accomplished.', tags: ['Happy', 'Energetic', 'Motivated'] },
-    { id: '2', date: '2024-01-14', mood: 3, energy: 2, stress: 4, sleep: 2, notes: 'Stressful day at work, did not sleep well.', tags: ['Stressed', 'Tired'] },
-    { id: '3', date: '2024-01-13', mood: 5, energy: 4, stress: 1, sleep: 5, notes: 'Perfect day! Everything went smoothly.', tags: ['Happy', 'Calm', 'Grateful'] },
-  ]), []);
+  const moodEntries = useMemo(() => [
+  { id: '1', date: '2024-01-15', mood: 4, energy: 3, stress: 2, sleep: 4, notes: 'Great workout today! Feeling accomplished.', tags: ['Happy', 'Energetic', 'Motivated'] },
+  { id: '2', date: '2024-01-14', mood: 3, energy: 2, stress: 4, sleep: 2, notes: 'Stressful day at work, did not sleep well.', tags: ['Stressed', 'Tired'] },
+  { id: '3', date: '2024-01-13', mood: 5, energy: 4, stress: 1, sleep: 5, notes: 'Perfect day! Everything went smoothly.', tags: ['Happy', 'Calm', 'Grateful'] }],
+  []);
 
   const moodStats = useMemo(() => {
     if (moodEntries.length === 0) {
@@ -99,12 +99,12 @@ export default function WellbeingScreen() {
     const averageEnergy = recent.reduce((s, e) => s + e.energy, 0) / recent.length;
     const averageStress = recent.reduce((s, e) => s + e.stress, 0) / recent.length;
     const averageSleep = recent.reduce((s, e) => s + e.sleep, 0) / recent.length;
-    let trend: MoodStats['moodTrend'] = 'stable';
+    let trend = 'stable';
     if (recent.length >= 3) {
       const recentAvg = recent.slice(0, 3).reduce((s, e) => s + e.mood, 0) / 3;
       const olderAvg = recent.slice(3, 6).reduce((s, e) => s + e.mood, 0) / Math.min(3, Math.max(1, recent.length - 3));
-      if (recentAvg > olderAvg + 0.5) trend = 'improving';
-      else if (recentAvg < olderAvg - 0.5) trend = 'declining';
+      if (recentAvg > olderAvg + 0.5) trend = 'improving';else
+      if (recentAvg < olderAvg - 0.5) trend = 'declining';
     }
     return { averageMood, averageEnergy, averageStress, averageSleep, moodTrend: trend, streakDays: moodEntries.length };
   }, [moodEntries]);
@@ -118,7 +118,7 @@ export default function WellbeingScreen() {
       stress: todayStress,
       sleep: todaySleep,
       notes: `[Auto-generated from ${wearableDataSource} with ${dataConfidence}% confidence]`,
-      tags: selectedTags,
+      tags: selectedTags
     };
     console.log('Wellbeing save mood entry', entry);
     Alert.alert('Saved', 'Your wearable-derived mood entry has been saved.');
@@ -158,71 +158,71 @@ export default function WellbeingScreen() {
   const assessmentBlocks = useMemo(() => {
     if (!latestData) return [];
 
-    const toPct = (score, max) => Math.round((score / max) * 100);
+    const toPct = (score, max) => Math.round(score / max * 100);
 
     const fitness = (() => {
-      let s = 0; const m = 5;
-      if ((latestData.steps ?? 0) >= 8000) s += 2; else if ((latestData.steps ?? 0) >= 5000) s += 1;
-      if ((latestData.activeMinutes ?? 0) >= 45) s += 2; else if ((latestData.activeMinutes ?? 0) >= 20) s += 1;
+      let s = 0;const m = 5;
+      if ((latestData.steps ?? 0) >= 8000) s += 2;else if ((latestData.steps ?? 0) >= 5000) s += 1;
+      if ((latestData.activeMinutes ?? 0) >= 45) s += 2;else if ((latestData.activeMinutes ?? 0) >= 20) s += 1;
       if ((latestData.heartRate ?? 0) > 0) s += 1;
       return { pct: toPct(Math.min(s, m), m), recs: s >= 4 ? ['Great activity levels—maintain variety.'] : ['Add an extra 20–30 min session.'] };
     })();
 
     const sleep = (() => {
-      let s = 0; const m = 5;
-      if ((latestData.sleepHours ?? 0) >= 7 && (latestData.sleepHours ?? 0) <= 9) s += 3; else if ((latestData.sleepHours ?? 0) >= 6) s += 1;
-      if ((latestData.sleepQuality ?? 0) >= 4) s += 2; else if ((latestData.sleepQuality ?? 0) >= 3) s += 1;
+      let s = 0;const m = 5;
+      if ((latestData.sleepHours ?? 0) >= 7 && (latestData.sleepHours ?? 0) <= 9) s += 3;else if ((latestData.sleepHours ?? 0) >= 6) s += 1;
+      if ((latestData.sleepQuality ?? 0) >= 4) s += 2;else if ((latestData.sleepQuality ?? 0) >= 3) s += 1;
       return { pct: toPct(Math.min(s, m), m), recs: s >= 4 ? ['Keep a stable 7–9h window.'] : ['Target 7–9h and improve wind-down.'] };
     })();
 
     const recovery = (() => {
-      let s = 0; const m = 5;
-      if ((latestData.hrv ?? 0) > 40) s += 2; else if ((latestData.hrv ?? 0) >= 30) s += 1;
-      if ((latestData.recoveryScore ?? 0) >= 80 || (latestData.readinessScore ?? 0) >= 80) s += 3; else if ((latestData.recoveryScore ?? 0) >= 65 || (latestData.readinessScore ?? 0) >= 65) s += 1;
+      let s = 0;const m = 5;
+      if ((latestData.hrv ?? 0) > 40) s += 2;else if ((latestData.hrv ?? 0) >= 30) s += 1;
+      if ((latestData.recoveryScore ?? 0) >= 80 || (latestData.readinessScore ?? 0) >= 80) s += 3;else if ((latestData.recoveryScore ?? 0) >= 65 || (latestData.readinessScore ?? 0) >= 65) s += 1;
       return { pct: toPct(Math.min(s, m), m), recs: s >= 4 ? ['Recovery looks strong.'] : ['Prioritize sleep and easy movement.'] };
     })();
 
     const stress = (() => {
-      let normalized: number;
-      if (typeof latestData.stressLevel === 'number') normalized = Math.max(1, Math.min(5, latestData.stressLevel));
-      else {
+      let normalized;
+      if (typeof latestData.stressLevel === 'number') normalized = Math.max(1, Math.min(5, latestData.stressLevel));else
+      {
         let s = 3;
-        if ((latestData.hrv ?? 0) < 25) s += 1; else if ((latestData.hrv ?? 0) > 40) s -= 1;
-        if ((latestData.restingHeartRate ?? 0) > 70) s += 0.5; else if ((latestData.restingHeartRate ?? 0) > 0 && (latestData.restingHeartRate ?? 0) < 55) s -= 0.5;
+        if ((latestData.hrv ?? 0) < 25) s += 1;else if ((latestData.hrv ?? 0) > 40) s -= 1;
+        if ((latestData.restingHeartRate ?? 0) > 70) s += 0.5;else if ((latestData.restingHeartRate ?? 0) > 0 && (latestData.restingHeartRate ?? 0) < 55) s -= 0.5;
         if ((latestData.recoveryScore ?? 0) > 0 && (latestData.recoveryScore ?? 0) < 60) s += 0.5;
         normalized = Math.round(Math.max(1, Math.min(5, s)));
       }
-      const score = 6 - normalized; const max = 5;
+      const score = 6 - normalized;const max = 5;
       const pct = toPct(Math.max(0, Math.min(score, max)), max);
       return { pct, recs: pct >= 80 ? ['Nice stress balance—continue habits.'] : ['Try 5 min box breathing.'] };
     })();
 
     const cardio = (() => {
-      let s = 0; const m = 5;
-      if ((latestData.restingHeartRate ?? 0) > 0) { if ((latestData.restingHeartRate ?? 0) < 60) s += 3; else if ((latestData.restingHeartRate ?? 0) <= 70) s += 2; else s += 1; }
+      let s = 0;const m = 5;
+      if ((latestData.restingHeartRate ?? 0) > 0) {if ((latestData.restingHeartRate ?? 0) < 60) s += 3;else if ((latestData.restingHeartRate ?? 0) <= 70) s += 2;else s += 1;}
       if ((latestData.distance ?? 0) >= 3) s += 1;
       if ((latestData.calories ?? 0) >= 1800) s += 1;
       return { pct: toPct(Math.min(s, m), m), recs: s >= 4 ? ['Cardio markers solid.'] : ['Add 2x zone-2 sessions weekly.'] };
     })();
 
     return [
-      { key: 'fitness', label: 'Fitness', scorePct: fitness.pct, color: '#10B981', icon: <ActivityIcon size={24} color="#10B981" />, recs: fitness.recs },
-      { key: 'sleep', label: 'Sleep', scorePct: sleep.pct, color: '#06B6D4', icon: <Target size={24} color="#06B6D4" />, recs: sleep.recs },
-      { key: 'recovery', label: 'Recovery', scorePct: recovery.pct, color: '#8B5CF6', icon: <Scale size={24} color="#8B5CF6" />, recs: recovery.recs },
-      { key: 'stress', label: 'Stress', scorePct: stress.pct, color: '#F59E0B', icon: <Brain size={24} color="#F59E0B" />, recs: stress.recs },
-      { key: 'cardio', label: 'Cardio', scorePct: cardio.pct, color: '#EF4444', icon: <Heart size={24} color="#EF4444" />, recs: cardio.recs },
-    ];
+    { key: 'fitness', label: 'Fitness', scorePct: fitness.pct, color: '#10B981', icon: <ActivityIcon size={24} color="#10B981" />, recs: fitness.recs },
+    { key: 'sleep', label: 'Sleep', scorePct: sleep.pct, color: '#06B6D4', icon: <Target size={24} color="#06B6D4" />, recs: sleep.recs },
+    { key: 'recovery', label: 'Recovery', scorePct: recovery.pct, color: '#8B5CF6', icon: <Scale size={24} color="#8B5CF6" />, recs: recovery.recs },
+    { key: 'stress', label: 'Stress', scorePct: stress.pct, color: '#F59E0B', icon: <Brain size={24} color="#F59E0B" />, recs: stress.recs },
+    { key: 'cardio', label: 'Cardio', scorePct: cardio.pct, color: '#EF4444', icon: <Heart size={24} color="#EF4444" />, recs: cardio.recs }];
+
   }, [latestData]);
 
-  const renderWearableStatus = () => (
-    <Card variant="elevated" style={styles.wearableCard}>
+  const renderWearableStatus = () =>
+  <Card variant="elevated" style={styles.wearableCard}>
       <View style={styles.wearableHeader}>
         <Watch size={20} color={wearableConnected ? Colors.success : Colors.text.secondary} />
         <Text style={styles.wearableTitle}>{wearableConnected ? 'Wearable Connected' : 'No Wearable Connected'}</Text>
         {wearableConnected ? <Wifi size={16} color={Colors.success} /> : <WifiOff size={16} color={Colors.text.secondary} />}
       </View>
-      {wearableConnected ? (
-        <View style={styles.wearableInfo}>
+      {wearableConnected ?
+    <View style={styles.wearableInfo}>
           <Text style={styles.wearableSource}>Data from: {wearableDataSource}</Text>
           <Text style={styles.wearableConfidence}>Confidence: {dataConfidence}%</Text>
           <View style={styles.wearableControls}>
@@ -230,32 +230,32 @@ export default function WellbeingScreen() {
               {isLoadingWearableData ? <ActivityIndicator size="small" color={Colors.primary} /> : <RefreshCw size={16} color={Colors.primary} />}
             </TouchableOpacity>
           </View>
-        </View>
-      ) : (
-        <View style={styles.wearableInfo}>
+        </View> :
+
+    <View style={styles.wearableInfo}>
           <Text style={styles.wearableDescription}>Connect a wearable device to automatically track mood and health metrics.</Text>
           <Button title="Connect Wearable" onPress={handleConnectWearable} style={styles.connectButton} variant="outline" testID="connectWearableBtn" />
         </View>
-      )}
-    </Card>
-  );
+    }
+    </Card>;
 
-  const OverviewTab = () => (
-    <ScrollView style={styles.content} testID="overviewTab">
+
+  const OverviewTab = () =>
+  <ScrollView style={styles.content} testID="overviewTab">
       {renderWearableStatus()}
-      {wearableConnected ? (
-        <Card variant="elevated" style={styles.todayCard}>
+      {wearableConnected ?
+    <Card variant="elevated" style={styles.todayCard}>
           <View style={styles.todayHeader}>
             <Brain size={24} color={Colors.primary} />
             <Text style={styles.todayTitle}>Today from your wearable</Text>
           </View>
-          {isLoadingWearableData ? (
-            <View style={styles.loadingContainer}>
+          {isLoadingWearableData ?
+      <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.loadingText}>Loading from {wearableDataSource}…</Text>
-            </View>
-          ) : (
-            <>
+            </View> :
+
+      <>
               <View style={styles.wearableDataContainer}>
                 <View style={styles.wearableMetric}>
                   <Text style={styles.metricLabel}>Mood</Text>
@@ -279,21 +279,21 @@ export default function WellbeingScreen() {
                 </View>
               </View>
 
-              {selectedTags.length > 0 && (
-                <View style={styles.tagsContainer}>
+              {selectedTags.length > 0 &&
+        <View style={styles.tagsContainer}>
                   <View style={styles.scaleLabelContainer}>
                     <Text style={styles.tagsLabel}>Auto indicators</Text>
                     <Text style={styles.wearableIndicator}>📱 From {wearableDataSource}</Text>
                   </View>
                   <View style={styles.tagsGrid}>
-                    {selectedTags.map((t) => (
-                      <View key={t} style={[styles.tagButton, styles.selectedTagButton]}>
+                    {selectedTags.map((t) =>
+            <View key={t} style={[styles.tagButton, styles.selectedTagButton]}>
                         <Text style={styles.selectedTagText}>{t}</Text>
                       </View>
-                    ))}
+            )}
                   </View>
                 </View>
-              )}
+        }
 
               <View style={styles.confidenceContainer}>
                 <Text style={styles.confidenceLabel}>Data confidence</Text>
@@ -305,10 +305,10 @@ export default function WellbeingScreen() {
 
               <Button title="Save Entry" onPress={saveTodayEntry} style={styles.saveButton} testID="saveMoodEntryBtn" />
             </>
-          )}
-        </Card>
-      ) : (
-        <Card variant="elevated" style={styles.noWearableCard}>
+      }
+        </Card> :
+
+    <Card variant="elevated" style={styles.noWearableCard}>
           <View style={styles.noWearableContent}>
             <Watch size={48} color={Colors.text.secondary} />
             <Text style={styles.noWearableTitle}>Connect a Wearable Device</Text>
@@ -316,48 +316,48 @@ export default function WellbeingScreen() {
             <Button title="Connect Device" onPress={handleConnectWearable} style={styles.connectWearableButton} />
           </View>
         </Card>
-      )}
+    }
 
-      {latestData && (
-        <Card variant="elevated" style={styles.snapshotCard}>
+      {latestData &&
+    <Card variant="elevated" style={styles.snapshotCard}>
           <Text style={styles.sectionTitle}>Latest health snapshot</Text>
           <View style={styles.dataGrid}>
-            {typeof latestData.heartRate === 'number' && (
-              <View style={styles.dataItem} testID="metric-bpm">
+            {typeof latestData.heartRate === 'number' &&
+        <View style={styles.dataItem} testID="metric-bpm">
                 <Heart size={20} color={Colors.primary} />
                 <Text style={styles.dataValue}>{latestData.heartRate}</Text>
                 <Text style={styles.dataLabel}>BPM</Text>
               </View>
-            )}
-            {typeof latestData.steps === 'number' && (
-              <View style={styles.dataItem} testID="metric-steps">
+        }
+            {typeof latestData.steps === 'number' &&
+        <View style={styles.dataItem} testID="metric-steps">
                 <ActivityIcon size={20} color={Colors.primary} />
                 <Text style={styles.dataValue}>{latestData.steps?.toLocaleString?.() ?? latestData.steps}</Text>
                 <Text style={styles.dataLabel}>Steps</Text>
               </View>
-            )}
-            {typeof latestData.sleepHours === 'number' && (
-              <View style={styles.dataItem} testID="metric-sleep">
+        }
+            {typeof latestData.sleepHours === 'number' &&
+        <View style={styles.dataItem} testID="metric-sleep">
                 <Text style={styles.dataIcon}>😴</Text>
                 <Text style={styles.dataValue}>{latestData.sleepHours}h</Text>
                 <Text style={styles.dataLabel}>Sleep</Text>
               </View>
-            )}
-            {typeof latestData.hrv === 'number' && (
-              <View style={styles.dataItem} testID="metric-hrv">
+        }
+            {typeof latestData.hrv === 'number' &&
+        <View style={styles.dataItem} testID="metric-hrv">
                 <Text style={styles.dataIcon}>💓</Text>
                 <Text style={styles.dataValue}>{latestData.hrv}ms</Text>
                 <Text style={styles.dataLabel}>HRV</Text>
               </View>
-            )}
+        }
           </View>
         </Card>
-      )}
-    </ScrollView>
-  );
+    }
+    </ScrollView>;
 
-  const InsightsTab = () => (
-    <ScrollView style={styles.content} testID="insightsTab">
+
+  const InsightsTab = () =>
+  <ScrollView style={styles.content} testID="insightsTab">
       <View style={styles.sectionHeader}>
         <TrendingUp size={20} color={Colors.primary} />
         <Text style={styles.sectionTitle}>Mood Analytics</Text>
@@ -373,33 +373,33 @@ export default function WellbeingScreen() {
             <View style={styles.statIconContainer}><Smile size={18} color={Colors.primary} /></View>
             <Text style={styles.statValue}>{moodStats.averageMood.toFixed(1)}</Text>
             <Text style={styles.statLabel}>Avg Mood</Text>
-            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${(moodStats.averageMood / 5) * 100}%`, backgroundColor: Colors.primary }]} /></View>
+            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${moodStats.averageMood / 5 * 100}%`, backgroundColor: Colors.primary }]} /></View>
           </View>
           <View style={styles.modernStatItem}>
             <View style={styles.statIconContainer}><Heart size={18} color={Colors.error} /></View>
             <Text style={styles.statValue}>{moodStats.averageEnergy.toFixed(1)}</Text>
             <Text style={styles.statLabel}>Avg Energy</Text>
-            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${(moodStats.averageEnergy / 5) * 100}%`, backgroundColor: Colors.error }]} /></View>
+            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${moodStats.averageEnergy / 5 * 100}%`, backgroundColor: Colors.error }]} /></View>
           </View>
           <View style={styles.modernStatItem}>
             <View style={styles.statIconContainer}><Brain size={18} color={Colors.warning} /></View>
             <Text style={styles.statValue}>{moodStats.averageStress.toFixed(1)}</Text>
             <Text style={styles.statLabel}>Avg Stress</Text>
-            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${(moodStats.averageStress / 5) * 100}%`, backgroundColor: Colors.warning }]} /></View>
+            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${moodStats.averageStress / 5 * 100}%`, backgroundColor: Colors.warning }]} /></View>
           </View>
           <View style={styles.modernStatItem}>
             <View style={styles.statIconContainer}><Moon size={18} color={Colors.info} /></View>
             <Text style={styles.statValue}>{moodStats.averageSleep.toFixed(1)}</Text>
             <Text style={styles.statLabel}>Avg Sleep</Text>
-            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${(moodStats.averageSleep / 5) * 100}%`, backgroundColor: Colors.info }]} /></View>
+            <View style={styles.statProgressBar}><View style={[styles.statProgressFill, { width: `${moodStats.averageSleep / 5 * 100}%`, backgroundColor: Colors.info }]} /></View>
           </View>
         </View>
       </Card>
 
       <Card variant="elevated" style={styles.historyCard}>
         <View style={styles.sectionHeader}><Calendar size={20} color={Colors.primary} /><Text style={styles.sectionTitle}>Mood History</Text></View>
-        {moodEntries.map((entry, index) => (
-          <Card key={entry.id} variant="elevated" style={styles.innerHistoryCard}>
+        {moodEntries.map((entry, index) =>
+      <Card key={entry.id} variant="elevated" style={styles.innerHistoryCard}>
             <View style={[styles.historyHeader, { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }]}>
               <View style={styles.historyDateContainer}>
                 <Text style={styles.historyDate}>{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
@@ -413,60 +413,60 @@ export default function WellbeingScreen() {
               <View style={styles.historyMetric}><View style={styles.metricIconContainer}><Brain size={16} color={Colors.warning} /></View><Text style={styles.metricLabel}>Stress</Text><View style={styles.metricValueContainer}><Text style={styles.metricValue}>{entry.stress}</Text><Text style={styles.metricMaxValue}>/5</Text></View></View>
               <View style={styles.historyMetric}><View style={styles.metricIconContainer}><Moon size={16} color={Colors.info} /></View><Text style={styles.metricLabel}>Sleep</Text><View style={styles.metricValueContainer}><Text style={styles.metricValue}>{entry.sleep}</Text><Text style={styles.metricMaxValue}>/5</Text></View></View>
             </View>
-            {entry.tags.length > 0 && (
-              <View style={styles.historyTagsContainer}>
+            {entry.tags.length > 0 &&
+        <View style={styles.historyTagsContainer}>
                 <Text style={styles.tagsHeaderText}>Mood Indicators</Text>
                 <View style={styles.historyTags}>
-                  {entry.tags.map((tag) => (<View key={tag} style={styles.historyTag}><Text style={styles.historyTagText}>{tag}</Text></View>))}
+                  {entry.tags.map((tag) => <View key={tag} style={styles.historyTag}><Text style={styles.historyTagText}>{tag}</Text></View>)}
                 </View>
               </View>
-            )}
-            {entry.notes && (
-              <View style={styles.historyNotesContainer}><Text style={styles.notesHeaderText}>Notes</Text><Text style={styles.historyNotes}>{entry.notes}</Text></View>
-            )}
+        }
+            {entry.notes &&
+        <View style={styles.historyNotesContainer}><Text style={styles.notesHeaderText}>Notes</Text><Text style={styles.historyNotes}>{entry.notes}</Text></View>
+        }
           </Card>
-        ))}
+      )}
       </Card>
-    </ScrollView>
-  );
+    </ScrollView>;
 
-  const AssessmentTab = () => (
-    <ScrollView style={styles.content} testID="assessmentTab">
+
+  const AssessmentTab = () =>
+  <ScrollView style={styles.content} testID="assessmentTab">
       <View style={styles.syncBar}>
         <Text style={styles.syncText} numberOfLines={1}>{connectedDevices[0]?.name ?? 'Primary device'} connected</Text>
         <Button title={assessmentLoading ? 'Syncing…' : 'Sync now'} onPress={syncAssessment} disabled={assessmentLoading} testID="syncNowButton" />
       </View>
-      {assessmentError && (
-        <View style={styles.errorBox}>
+      {assessmentError &&
+    <View style={styles.errorBox}>
           <AlertTriangle size={18} color={Colors.error} />
           <Text style={styles.errorText}>{assessmentError}</Text>
         </View>
-      )}
-      {assessmentLoading && (
-        <View style={styles.loadingRow}>
+    }
+      {assessmentLoading &&
+    <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color={Colors.primary} />
           <Text style={styles.loadingText}>Syncing wearable data…</Text>
         </View>
-      )}
-      {latestData ? (
-        <Card variant="elevated" style={styles.resultsCard}>
+    }
+      {latestData ?
+    <Card variant="elevated" style={styles.resultsCard}>
           <View style={styles.resultsHeader}><CheckCircle size={40} color={Colors.success} /><Text style={styles.resultsTitle}>Assessment Ready</Text></View>
-          {assessmentBlocks.map((b) => (
-            <Card key={b.key} variant="elevated" style={styles.resultCard}>
+          {assessmentBlocks.map((b) =>
+      <Card key={b.key} variant="elevated" style={styles.resultCard}>
               <View style={styles.resultHeader}>{b.icon}<Text style={styles.resultCategory}>{b.label}</Text><Text style={[styles.resultScore, { color: b.color }]}>{b.scorePct}%</Text></View>
               <View style={styles.progressBar}><View style={[styles.progressFill, { width: `${b.scorePct}%`, backgroundColor: b.color }]} /></View>
-              <View style={styles.recommendations}><Text style={styles.recommendationsTitle}>Recommendations</Text>{b.recs.map((r, i) => (<Text key={i} style={styles.recommendationText}>• {r}</Text>))}</View>
+              <View style={styles.recommendations}><Text style={styles.recommendationsTitle}>Recommendations</Text>{b.recs.map((r, i) => <Text key={i} style={styles.recommendationText}>• {r}</Text>)}</View>
             </Card>
-          ))}
-        </Card>
-      ) : (
-        <Card variant="elevated" style={styles.snapshotCard}>
+      )}
+        </Card> :
+
+    <Card variant="elevated" style={styles.snapshotCard}>
           <Text style={styles.sectionTitle}>No data yet</Text>
           <Text style={styles.helperText}>Tap the Sync now button to fetch your latest health metrics.</Text>
         </Card>
-      )}
-    </ScrollView>
-  );
+    }
+    </ScrollView>;
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -476,17 +476,17 @@ export default function WellbeingScreen() {
         <Smile size={24} color={Colors.primary} />
       </View>
       <View style={styles.tabContainer}>
-        {(['overview', 'insights', 'assessment'] as const).map((tab) => (
-          <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)} testID={`tab-${tab}`}>
+        {['overview', 'insights', 'assessment'].map((tab) =>
+        <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)} testID={`tab-${tab}`}>
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
           </TouchableOpacity>
-        ))}
+        )}
       </View>
       {activeTab === 'overview' && <OverviewTab />}
       {activeTab === 'insights' && <InsightsTab />}
       {activeTab === 'assessment' && <AssessmentTab />}
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
@@ -595,5 +595,5 @@ const styles = StyleSheet.create({
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
   errorText: { color: Colors.error, fontSize: 14, marginLeft: 8, flex: 1 },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
-  helperText: { fontSize: 13, color: Colors.text.secondary },
+  helperText: { fontSize: 13, color: Colors.text.secondary }
 });

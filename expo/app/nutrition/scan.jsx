@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, SafeAreaView } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { X, Camera, RotateCcw, Loader2, CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -11,62 +11,62 @@ export default function FoodScanScreen() {
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<FoodAnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
   const cameraRef = useRef(null);
 
   const toggleCameraFacing = useCallback(() => {
-    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+    setFacing((current) => current === 'back' ? 'front' : 'back');
   }, []);
 
   const analyzeFood = useCallback(async (imageUri) => {
     setIsAnalyzing(true);
-    
+
     try {
       console.log('Analyzing food image:', imageUri);
-      
+
       // Convert image to base64 for AI analysis
       const response = await fetch(imageUri);
       const blob = await response.blob();
       const reader = new FileReader();
-      
+
       reader.onloadend = async () => {
         const base64Data = reader.result;
         const base64Image = base64Data.split(',')[1];
-        
+
         try {
           // Call AI service for food recognition
           const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
           const aiResponse = await fetch(`${apiBase}/text/llm/`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               messages: [
+              {
+                role: 'system',
+                content: 'You are a nutrition expert. Analyze the food in the image and provide detailed nutritional information. Return ONLY a JSON object with: name, confidence (0-1), calories, protein, carbs, fat (all per 100g), and servingSize. If you cannot identify food, return null.'
+              },
+              {
+                role: 'user',
+                content: [
                 {
-                  role: 'system',
-                  content: 'You are a nutrition expert. Analyze the food in the image and provide detailed nutritional information. Return ONLY a JSON object with: name, confidence (0-1), calories, protein, carbs, fat (all per 100g), and servingSize. If you cannot identify food, return null.'
+                  type: 'text',
+                  text: 'Analyze this food image and provide nutritional information.'
                 },
                 {
-                  role: 'user',
-                  content: [
-                    {
-                      type: 'text',
-                      text: 'Analyze this food image and provide nutritional information.'
-                    },
-                    {
-                      type: 'image',
-                      image: base64Image
-                    }
-                  ]
-                }
-              ]
+                  type: 'image',
+                  image: base64Image
+                }]
+
+              }]
+
             })
           });
-          
+
           const aiResult = await aiResponse.json();
           console.log('AI Analysis Result:', aiResult);
-          
+
           try {
             const foodData = JSON.parse(aiResult.completion);
             if (foodData && foodData.name) {
@@ -83,7 +83,7 @@ export default function FoodScanScreen() {
           Alert.alert('Analysis Failed', 'Failed to analyze the image. Please check your connection and try again.');
         }
       };
-      
+
       reader.readAsDataURL(blob);
     } catch (error) {
       console.error('Image processing error:', error);
@@ -95,14 +95,14 @@ export default function FoodScanScreen() {
 
   const takePicture = useCallback(async () => {
     if (!cameraRef.current) return;
-    
+
     try {
       console.log('Taking picture...');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
-        base64: false,
+        base64: false
       });
-      
+
       if (photo?.uri) {
         console.log('Photo taken:', photo.uri);
         await analyzeFood(photo.uri);
@@ -115,7 +115,7 @@ export default function FoodScanScreen() {
 
   const addToMeal = useCallback(() => {
     if (!analysisResult) return;
-    
+
     // Navigate back to nutrition page with the analyzed food data
     router.push({
       pathname: '/nutrition/search',
@@ -136,8 +136,8 @@ export default function FoodScanScreen() {
           <Loader2 size={32} color={Colors.primary} />
           <Text style={styles.loadingText}>Loading camera...</Text>
         </View>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
 
   if (!permission.granted) {
@@ -149,30 +149,30 @@ export default function FoodScanScreen() {
           <Text style={styles.permissionText}>
             We need access to your camera to scan and identify food items for nutrition tracking.
           </Text>
-          <Button 
-            title="Grant Permission" 
+          <Button
+            title="Grant Permission"
             onPress={requestPermission}
-            style={styles.permissionButton}
-          />
-          <TouchableOpacity 
+            style={styles.permissionButton} />
+          
+          <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
+            
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
 
   if (analysisResult) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
+            
             <X size={24} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Food Identified</Text>
@@ -217,49 +217,49 @@ export default function FoodScanScreen() {
             </View>
             
             <View style={styles.actionButtons}>
-              <Button 
+              <Button
                 title="Add to Meal"
                 onPress={addToMeal}
-                style={styles.addButton}
-              />
+                style={styles.addButton} />
               
-              <TouchableOpacity 
+              
+              <TouchableOpacity
                 style={styles.retryButton}
-                onPress={retryAnalysis}
-              >
+                onPress={retryAnalysis}>
+                
                 <Text style={styles.retryButtonText}>Scan Again</Text>
               </TouchableOpacity>
             </View>
           </Card>
         </View>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.closeButton}
-          onPress={() => router.back()}
-        >
+          onPress={() => router.back()}>
+          
           <X size={24} color={Colors.text.inverse} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Scan Food</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.flipButton}
-          onPress={toggleCameraFacing}
-        >
+          onPress={toggleCameraFacing}>
+          
           <RotateCcw size={24} color={Colors.text.inverse} />
         </TouchableOpacity>
       </View>
       
-      {Platform.OS !== 'web' ? (
-        <CameraView 
-          ref={cameraRef}
-          style={styles.camera} 
-          facing={facing}
-        >
+      {Platform.OS !== 'web' ?
+      <CameraView
+        ref={cameraRef}
+        style={styles.camera}
+        facing={facing}>
+        
           <View style={styles.cameraOverlay}>
             <View style={styles.scanFrame} />
             
@@ -270,44 +270,44 @@ export default function FoodScanScreen() {
             </View>
             
             <View style={styles.cameraControls}>
-              {isAnalyzing ? (
-                <View style={styles.analyzingContainer}>
+              {isAnalyzing ?
+            <View style={styles.analyzingContainer}>
                   <Loader2 size={32} color={Colors.text.inverse} />
                   <Text style={styles.analyzingText}>Analyzing food...</Text>
-                </View>
-              ) : (
-                <TouchableOpacity 
-                  style={styles.captureButton}
-                  onPress={takePicture}
-                >
+                </View> :
+
+            <TouchableOpacity
+              style={styles.captureButton}
+              onPress={takePicture}>
+              
                   <View style={styles.captureButtonInner} />
                 </TouchableOpacity>
-              )}
+            }
             </View>
           </View>
-        </CameraView>
-      ) : (
-        <View style={styles.webFallback}>
+        </CameraView> :
+
+      <View style={styles.webFallback}>
           <Camera size={64} color={Colors.text.secondary} />
           <Text style={styles.webFallbackTitle}>Camera Not Available</Text>
           <Text style={styles.webFallbackText}>
             Food scanning is not available on web. Please use the mobile app for this feature.
           </Text>
-          <Button 
-            title="Go Back"
-            onPress={() => router.back()}
-            style={styles.webFallbackButton}
-          />
+          <Button
+          title="Go Back"
+          onPress={() => router.back()}
+          style={styles.webFallbackButton} />
+        
         </View>
-      )}
-    </SafeAreaView>
-  );
+      }
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   header: {
     flexDirection: 'row',
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10,
+    zIndex: 10
   },
   closeButton: {
     width: 40,
@@ -328,12 +328,12 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.large,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text.inverse,
+    fontWeight: '600',
+    color: Colors.text.inverse
   },
   flipButton: {
     width: 40,
@@ -341,20 +341,20 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.large,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   placeholder: {
-    width: 40,
+    width: 40
   },
   camera: {
-    flex: 1,
+    flex: 1
   },
   cameraOverlay: {
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 100,
-    paddingBottom: 50,
+    paddingBottom: 50
   },
   scanFrame: {
     width: 250,
@@ -362,23 +362,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primary,
     borderRadius: Colors.radius.large,
-    backgroundColor: 'transparent',
+    backgroundColor: 'transparent'
   },
   instructionContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: Colors.spacing.lg,
     paddingVertical: Colors.spacing.md,
     borderRadius: Colors.radius.large,
-    marginHorizontal: Colors.spacing.lg,
+    marginHorizontal: Colors.spacing.lg
   },
   instructionText: {
     color: Colors.text.inverse,
     fontSize: 16,
     textAlign: 'center',
-    fontWeight: '500' as const,
+    fontWeight: '500'
   },
   cameraControls: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   captureButton: {
     width: 80,
@@ -388,159 +388,159 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: Colors.primary,
+    borderColor: Colors.primary
   },
   captureButtonInner: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   analyzingContainer: {
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: Colors.spacing.lg,
     paddingVertical: Colors.spacing.md,
-    borderRadius: Colors.radius.large,
+    borderRadius: Colors.radius.large
   },
   analyzingText: {
     color: Colors.text.inverse,
     fontSize: 16,
     marginTop: Colors.spacing.sm,
-    fontWeight: '500' as const,
+    fontWeight: '500'
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   loadingText: {
     fontSize: 16,
     color: Colors.text.secondary,
-    marginTop: Colors.spacing.md,
+    marginTop: Colors.spacing.md
   },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Colors.spacing.xl,
+    paddingHorizontal: Colors.spacing.xl
   },
   permissionTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
     marginTop: Colors.spacing.lg,
     marginBottom: Colors.spacing.md,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   permissionText: {
     fontSize: 16,
     color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: Colors.spacing.xl,
+    marginBottom: Colors.spacing.xl
   },
   permissionButton: {
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   backButton: {
-    paddingVertical: Colors.spacing.md,
+    paddingVertical: Colors.spacing.md
   },
   backButtonText: {
     fontSize: 16,
     color: Colors.primary,
-    fontWeight: '500' as const,
+    fontWeight: '500'
   },
   resultContainer: {
     flex: 1,
     padding: Colors.spacing.lg,
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   resultCard: {
     padding: Colors.spacing.xl,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   successIcon: {
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   foodName: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
     textAlign: 'center',
-    marginBottom: Colors.spacing.sm,
+    marginBottom: Colors.spacing.sm
   },
   confidence: {
     fontSize: 16,
     color: Colors.text.secondary,
-    marginBottom: Colors.spacing.xl,
+    marginBottom: Colors.spacing.xl
   },
   nutritionInfo: {
     width: '100%',
-    marginBottom: Colors.spacing.xl,
+    marginBottom: Colors.spacing.xl
   },
   nutritionTitle: {
     fontSize: 18,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: Colors.spacing.lg,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   nutritionGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-around'
   },
   nutritionItem: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
   nutritionValue: {
     fontSize: 20,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.primary,
-    marginBottom: Colors.spacing.xs,
+    marginBottom: Colors.spacing.xs
   },
   nutritionLabel: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   actionButtons: {
     width: '100%',
-    gap: Colors.spacing.md,
+    gap: Colors.spacing.md
   },
   addButton: {
-    marginBottom: 0,
+    marginBottom: 0
   },
   retryButton: {
     paddingVertical: Colors.spacing.md,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   retryButtonText: {
     fontSize: 16,
     color: Colors.primary,
-    fontWeight: '500' as const,
+    fontWeight: '500'
   },
   webFallback: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Colors.spacing.xl,
+    paddingHorizontal: Colors.spacing.xl
   },
   webFallbackTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text.primary,
     marginTop: Colors.spacing.lg,
     marginBottom: Colors.spacing.md,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   webFallbackText: {
     fontSize: 16,
     color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: Colors.spacing.xl,
+    marginBottom: Colors.spacing.xl
   },
   webFallbackButton: {
-    marginBottom: 0,
-  },
+    marginBottom: 0
+  }
 });

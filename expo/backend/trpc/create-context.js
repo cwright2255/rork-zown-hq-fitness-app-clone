@@ -1,4 +1,4 @@
-import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
+
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
@@ -7,26 +7,26 @@ export const createContext = async (opts) => {
   const authHeader = opts.req.headers.get("authorization");
   const altHeader = opts.req.headers.get("x-admin-token");
   const provided =
-    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader) ??
-    altHeader ??
-    null;
+  (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader) ??
+  altHeader ??
+  null;
 
   const expected = process.env.ADMIN_API_TOKEN ?? process.env.API_ADMIN_TOKEN ?? null;
 
   const adminAuth = {
     isAdmin: Boolean(provided && expected && provided === expected),
-    adminTokenProvided: provided,
+    adminTokenProvided: provided
   };
 
   return {
     req: opts.req,
-    admin: adminAuth,
+    admin: adminAuth
   };
 };
 
 // Initialize tRPC
 const t = initTRPC.context().create({
-  transformer: superjson,
+  transformer: superjson
 });
 
 export const createTRPCRouter = t.router;

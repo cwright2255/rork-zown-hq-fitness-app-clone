@@ -1,17 +1,17 @@
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { Audio } from 'expo-av';
 
 class AudioPlayerService {
-  private sound: Audio.Sound | null = null;
-  private currentTrack: AudioTrack | null = null;
-  private queue = [];
-  private queueIndex = -1;
-  private listeners = new Set();
-  private isInitialized = false;
-  private _isPlaying = false;
-  private _isBuffering = false;
-  private _isLoaded = false;
-  private _positionMs = 0;
-  private _durationMs = 0;
+  sound = null;
+  currentTrack = null;
+  queue = [];
+  queueIndex = -1;
+  listeners = new Set();
+  isInitialized = false;
+  _isPlaying = false;
+  _isBuffering = false;
+  _isLoaded = false;
+  _positionMs = 0;
+  _durationMs = 0;
 
   async initialize() {
     if (this.isInitialized) return;
@@ -19,7 +19,7 @@ class AudioPlayerService {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
-        shouldDuckAndroid: true,
+        shouldDuckAndroid: true
       });
       this.isInitialized = true;
       console.log('[AudioPlayer] Initialized');
@@ -28,7 +28,7 @@ class AudioPlayerService {
     }
   }
 
-  subscribe(listener): () => void {
+  subscribe(listener) {
     this.listeners.add(listener);
     listener(this.getPlaybackInfo());
     return () => {
@@ -36,7 +36,7 @@ class AudioPlayerService {
     };
   }
 
-  private notify() {
+  notify() {
     const info = this.getPlaybackInfo();
     this.listeners.forEach((l) => l(info));
   }
@@ -48,11 +48,11 @@ class AudioPlayerService {
       isLoaded: this._isLoaded,
       positionMs: this._positionMs,
       durationMs: this._durationMs,
-      currentTrack: this.currentTrack,
+      currentTrack: this.currentTrack
     };
   }
 
-  private onPlaybackStatusUpdate = (status) => {
+  onPlaybackStatusUpdate = (status) => {
     if (status.isLoaded) {
       this._isLoaded = true;
       this._isPlaying = status.isPlaying;
@@ -222,7 +222,7 @@ class AudioPlayerService {
     this.notify();
   }
 
-  private async unloadCurrent() {
+  async unloadCurrent() {
     if (this.sound) {
       try {
         await this.sound.unloadAsync();

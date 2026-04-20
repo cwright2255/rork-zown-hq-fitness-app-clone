@@ -6,18 +6,18 @@ import Card from '@/components/Card';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 
-const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
-  const { user } = useUserStore() as { user: { fitnessMetrics?: { water?: { current?: number; goal?: number } } } | null };
-  const { addExpActivity } = useExpStore() as { addExpActivity: (activity: { id: string; type: string; subtype: string; baseExp: number; multiplier: number; date: string; description: string; completed: boolean }) => void };
-  
+const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
+  const { user } = useUserStore();
+  const { addExpActivity } = useExpStore();
+
   const [currentAmount, setCurrentAmount] = useState(initialAmount);
   const [dailyGoal, setDailyGoal] = useState(2000); // Default 2000ml (2L)
   const [fillAnimation] = useState(new Animated.Value(0));
   const lastReportedAmountRef = useRef(initialAmount);
-  
+
   // Standard cup sizes in ml
   const cupSizes = [100, 250, 500, 750];
-  
+
   // Load user's hydration data if available
   useEffect(() => {
     if (user?.fitnessMetrics?.water) {
@@ -25,24 +25,24 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
       setDailyGoal(user.fitnessMetrics.water.goal || 2000);
     }
   }, [user, initialAmount]);
-  
+
   // Update fill animation when current amount changes
   useEffect(() => {
     const fillPercentage = Math.min(currentAmount / dailyGoal, 1);
-    
+
     Animated.timing(fillAnimation, {
       toValue: fillPercentage,
       duration: 500,
-      useNativeDriver: false,
+      useNativeDriver: false
     }).start();
-    
+
     // Only call onUpdate if it exists and if currentAmount has changed from last reported amount
     if (onUpdate && currentAmount !== lastReportedAmountRef.current) {
       lastReportedAmountRef.current = currentAmount;
       onUpdate(currentAmount);
     }
   }, [currentAmount, dailyGoal, fillAnimation, onUpdate]);
-  
+
   // Update component if initialAmount changes
   useEffect(() => {
     if (initialAmount !== currentAmount && initialAmount !== lastReportedAmountRef.current) {
@@ -50,14 +50,14 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
       lastReportedAmountRef.current = initialAmount;
     }
   }, [initialAmount, currentAmount]);
-  
+
   const addWater = (amount) => {
     const newAmount = currentAmount + amount;
     setCurrentAmount(newAmount);
-    
+
     // Determine which hydration tier to award
     let baseExp = 0;
-    
+
     if (newAmount >= dailyGoal) {
       // Tier 5: Completed daily goal
       baseExp = 55;
@@ -74,7 +74,7 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
       // Tier 1: 20% of daily goal
       baseExp = 11;
     }
-    
+
     // Only award EXP if we've reached a new tier
     if (baseExp > 0 && currentAmount < dailyGoal * 0.2 && newAmount >= dailyGoal * 0.2) {
       addExpActivity({
@@ -133,14 +133,14 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
       });
     }
   };
-  
+
   const removeWater = (amount) => {
     setCurrentAmount(Math.max(0, currentAmount - amount));
   };
-  
+
   const getHydrationStatus = () => {
-    const percentage = (currentAmount / dailyGoal) * 100;
-    
+    const percentage = currentAmount / dailyGoal * 100;
+
     if (percentage >= 100) {
       return { text: 'Goal reached! 🎉', color: Colors.success };
     } else if (percentage >= 75) {
@@ -153,13 +153,13 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
       return { text: 'Stay hydrated', color: Colors.error };
     }
   };
-  
+
   const status = getHydrationStatus();
   const fillHeight = fillAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: ['0%', '100%']
   });
-  
+
   return (
     <Card variant="elevated" style={styles.container}>
       <View style={styles.header}>
@@ -172,12 +172,12 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
       
       <View style={styles.trackerContainer}>
         <View style={styles.waterBottle}>
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.waterFill,
-              { height: fillHeight, backgroundColor: status.color }
-            ]}
-          />
+            styles.waterFill,
+            { height: fillHeight, backgroundColor: status.color }]
+            } />
+          
           <View style={styles.waterMeasurements}>
             <Text style={styles.waterMeasurement}>2L</Text>
             <Text style={styles.waterMeasurement}>1.5L</Text>
@@ -202,74 +202,74 @@ const HydrationTracker: React.FC = ({ onUpdate, initialAmount = 0 }) => {
           <View style={styles.statDivider} />
           
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{Math.round((currentAmount / dailyGoal) * 100)}%</Text>
+            <Text style={styles.statValue}>{Math.round(currentAmount / dailyGoal * 100)}%</Text>
             <Text style={styles.statLabel}>Progress</Text>
           </View>
         </View>
       </View>
       
       <View style={styles.controlsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.controlButton}
-          onPress={() => removeWater(250)}
-        >
+          onPress={() => removeWater(250)}>
+          
           <Minus size={20} color={Colors.text.primary} />
         </TouchableOpacity>
         
         <View style={styles.cupSizesContainer}>
-          {cupSizes.map((size) => (
-            <TouchableOpacity
-              key={size}
-              style={styles.cupSizeButton}
-              onPress={() => addWater(size)}
-            >
+          {cupSizes.map((size) =>
+          <TouchableOpacity
+            key={size}
+            style={styles.cupSizeButton}
+            onPress={() => addWater(size)}>
+            
               <Droplet size={size === 100 ? 16 : size === 250 ? 18 : size === 500 ? 20 : 22} color={Colors.primary} />
               <Text style={styles.cupSizeText}>{size}ml</Text>
             </TouchableOpacity>
-          ))}
+          )}
         </View>
         
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.controlButton}
-          onPress={() => addWater(250)}
-        >
+          onPress={() => addWater(250)}>
+          
           <Plus size={20} color={Colors.text.primary} />
         </TouchableOpacity>
       </View>
-    </Card>
-  );
+    </Card>);
+
 };
 
 const styles = StyleSheet.create({
   container: {
     padding: Colors.spacing.lg,
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   titleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginLeft: Colors.spacing.sm,
+    marginLeft: Colors.spacing.sm
   },
   statusText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.primary,
+    color: Colors.primary
   },
   trackerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Colors.spacing.lg,
+    marginBottom: Colors.spacing.lg
   },
   waterBottle: {
     width: 60,
@@ -279,14 +279,14 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.small,
     overflow: 'hidden',
     position: 'relative',
-    marginRight: Colors.spacing.lg,
+    marginRight: Colors.spacing.lg
   },
   waterFill: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   waterMeasurements: {
     position: 'absolute',
@@ -294,11 +294,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: -30,
     justifyContent: 'space-between',
-    paddingVertical: 5,
+    paddingVertical: 5
   },
   waterMeasurement: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   statsContainer: {
     flex: 1,
@@ -307,31 +307,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.background,
     borderRadius: Colors.radius.small,
-    padding: Colors.spacing.md,
+    padding: Colors.spacing.md
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   statValue: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: Colors.spacing.xs,
+    marginBottom: Colors.spacing.xs
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.border
   },
   controlsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between'
   },
   controlButton: {
     width: 40,
@@ -341,24 +341,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   cupSizesContainer: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    marginHorizontal: Colors.spacing.sm,
+    marginHorizontal: Colors.spacing.sm
   },
   cupSizeButton: {
     alignItems: 'center',
-    padding: Colors.spacing.sm,
+    padding: Colors.spacing.sm
   },
   cupSizeText: {
     fontSize: 12,
     color: Colors.text.secondary,
-    marginTop: Colors.spacing.xs,
-  },
+    marginTop: Colors.spacing.xs
+  }
 });
 
 export default HydrationTracker;

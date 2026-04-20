@@ -3,202 +3,202 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const defaultAchievements = [
-  {
-    id: 'first-workout',
-    name: 'First Steps',
-    description: 'Complete your first workout',
-    icon: '🏃‍♂️',
-    category: 'workout',
-    xpReward: 50,
-    condition: {
-      type: 'workout_count',
-      target: 1
-    },
-    unlockedAt: undefined
+{
+  id: 'first-workout',
+  name: 'First Steps',
+  description: 'Complete your first workout',
+  icon: '🏃‍♂️',
+  category: 'workout',
+  xpReward: 50,
+  condition: {
+    type: 'workout_count',
+    target: 1
   },
-  {
-    id: 'workout-streak-7',
-    name: 'Week Warrior',
-    description: 'Maintain a 7-day workout streak',
-    icon: '🔥',
-    category: 'streak',
-    xpReward: 200,
-    condition: {
-      type: 'streak',
-      target: 7
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'workout-streak-7',
+  name: 'Week Warrior',
+  description: 'Maintain a 7-day workout streak',
+  icon: '🔥',
+  category: 'streak',
+  xpReward: 200,
+  condition: {
+    type: 'streak',
+    target: 7
   },
-  {
-    id: 'workout-streak-30',
-    name: 'Monthly Master',
-    description: 'Maintain a 30-day workout streak',
-    icon: '💪',
-    category: 'streak',
-    xpReward: 500,
-    condition: {
-      type: 'streak',
-      target: 30
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'workout-streak-30',
+  name: 'Monthly Master',
+  description: 'Maintain a 30-day workout streak',
+  icon: '💪',
+  category: 'streak',
+  xpReward: 500,
+  condition: {
+    type: 'streak',
+    target: 30
   },
-  {
-    id: 'calories-1000',
-    name: 'Calorie Crusher',
-    description: 'Burn 1000 calories in a single workout',
-    icon: '🔥',
-    category: 'workout',
-    xpReward: 150,
-    condition: {
-      type: 'calories_burned',
-      target: 1000
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'calories-1000',
+  name: 'Calorie Crusher',
+  description: 'Burn 1000 calories in a single workout',
+  icon: '🔥',
+  category: 'workout',
+  xpReward: 150,
+  condition: {
+    type: 'calories_burned',
+    target: 1000
   },
-  {
-    id: 'workouts-10',
-    name: 'Dedicated Athlete',
-    description: 'Complete 10 workouts',
-    icon: '🏆',
-    category: 'workout',
-    xpReward: 300,
-    condition: {
-      type: 'workout_count',
-      target: 10
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'workouts-10',
+  name: 'Dedicated Athlete',
+  description: 'Complete 10 workouts',
+  icon: '🏆',
+  category: 'workout',
+  xpReward: 300,
+  condition: {
+    type: 'workout_count',
+    target: 10
   },
-  {
-    id: 'workouts-50',
-    name: 'Fitness Enthusiast',
-    description: 'Complete 50 workouts',
-    icon: '🌟',
-    category: 'workout',
-    xpReward: 750,
-    condition: {
-      type: 'workout_count',
-      target: 50
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'workouts-50',
+  name: 'Fitness Enthusiast',
+  description: 'Complete 50 workouts',
+  icon: '🌟',
+  category: 'workout',
+  xpReward: 750,
+  condition: {
+    type: 'workout_count',
+    target: 50
   },
-  {
-    id: 'workouts-100',
-    name: 'Fitness Legend',
-    description: 'Complete 100 workouts',
-    icon: '👑',
-    category: 'workout',
-    xpReward: 1500,
-    condition: {
-      type: 'workout_count',
-      target: 100
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'workouts-100',
+  name: 'Fitness Legend',
+  description: 'Complete 100 workouts',
+  icon: '👑',
+  category: 'workout',
+  xpReward: 1500,
+  condition: {
+    type: 'workout_count',
+    target: 100
   },
-  {
-    id: 'nutrition-streak-7',
-    name: 'Nutrition Ninja',
-    description: 'Log nutrition for 7 consecutive days',
-    icon: '🥗',
-    category: 'nutrition',
-    xpReward: 150,
-    condition: {
-      type: 'nutrition_logged',
-      target: 7
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'nutrition-streak-7',
+  name: 'Nutrition Ninja',
+  description: 'Log nutrition for 7 consecutive days',
+  icon: '🥗',
+  category: 'nutrition',
+  xpReward: 150,
+  condition: {
+    type: 'nutrition_logged',
+    target: 7
   },
-  {
-    id: 'weight-loss-5',
-    name: 'Weight Warrior',
-    description: 'Lose 5 pounds',
-    icon: '⚖️',
-    category: 'progress',
-    xpReward: 400,
-    condition: {
-      type: 'weight_lost',
-      target: 5
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'weight-loss-5',
+  name: 'Weight Warrior',
+  description: 'Lose 5 pounds',
+  icon: '⚖️',
+  category: 'progress',
+  xpReward: 400,
+  condition: {
+    type: 'weight_lost',
+    target: 5
   },
-  {
-    id: 'social-butterfly',
-    name: 'Social Butterfly',
-    description: 'Make 10 social interactions',
-    icon: '🦋',
-    category: 'social',
-    xpReward: 100,
-    condition: {
-      type: 'social_interactions',
-      target: 10
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'social-butterfly',
+  name: 'Social Butterfly',
+  description: 'Make 10 social interactions',
+  icon: '🦋',
+  category: 'social',
+  xpReward: 100,
+  condition: {
+    type: 'social_interactions',
+    target: 10
   },
-  {
-    id: 'level-5',
-    name: 'Rising Star',
-    description: 'Reach level 5',
-    icon: '⭐',
-    category: 'level',
-    xpReward: 250,
-    condition: {
-      type: 'level',
-      target: 5
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'level-5',
+  name: 'Rising Star',
+  description: 'Reach level 5',
+  icon: '⭐',
+  category: 'level',
+  xpReward: 250,
+  condition: {
+    type: 'level',
+    target: 5
   },
-  {
-    id: 'level-10',
-    name: 'Elite Athlete',
-    description: 'Reach level 10',
-    icon: '🏅',
-    category: 'level',
-    xpReward: 500,
-    condition: {
-      type: 'level',
-      target: 10
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'level-10',
+  name: 'Elite Athlete',
+  description: 'Reach level 10',
+  icon: '🏅',
+  category: 'level',
+  xpReward: 500,
+  condition: {
+    type: 'level',
+    target: 10
   },
-  {
-    id: 'xp-1000',
-    name: 'XP Collector',
-    description: 'Earn 1000 XP',
-    icon: '💎',
-    category: 'xp',
-    xpReward: 100,
-    condition: {
-      type: 'xp',
-      target: 1000
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'xp-1000',
+  name: 'XP Collector',
+  description: 'Earn 1000 XP',
+  icon: '💎',
+  category: 'xp',
+  xpReward: 100,
+  condition: {
+    type: 'xp',
+    target: 1000
   },
-  {
-    id: 'xp-5000',
-    name: 'XP Master',
-    description: 'Earn 5000 XP',
-    icon: '💰',
-    category: 'xp',
-    xpReward: 300,
-    condition: {
-      type: 'xp',
-      target: 5000
-    },
-    unlockedAt: undefined
+  unlockedAt: undefined
+},
+{
+  id: 'xp-5000',
+  name: 'XP Master',
+  description: 'Earn 5000 XP',
+  icon: '💰',
+  category: 'xp',
+  xpReward: 300,
+  condition: {
+    type: 'xp',
+    target: 5000
   },
-  {
-    id: 'early-bird',
-    name: 'Early Bird',
-    description: 'Complete 5 morning workouts',
-    icon: '🌅',
-    category: 'workout',
-    xpReward: 200,
-    condition: {
-      type: 'morning_workouts',
-      target: 5
-    },
-    unlockedAt: undefined
-  }
-];
+  unlockedAt: undefined
+},
+{
+  id: 'early-bird',
+  name: 'Early Bird',
+  description: 'Complete 5 morning workouts',
+  icon: '🌅',
+  category: 'workout',
+  xpReward: 200,
+  condition: {
+    type: 'morning_workouts',
+    target: 5
+  },
+  unlockedAt: undefined
+}];
+
 
 export const useAchievementStore = create(
   persist(
@@ -210,7 +210,7 @@ export const useAchievementStore = create(
         const { achievements, unlockedAchievements } = get();
         const newlyUnlocked = [];
 
-        achievements.forEach(achievement => {
+        achievements.forEach((achievement) => {
           // Skip if already unlocked
           if (unlockedAchievements.includes(achievement.id)) {
             return;
@@ -262,13 +262,13 @@ export const useAchievementStore = create(
 
         // Update store with newly unlocked achievements
         if (newlyUnlocked.length > 0) {
-          set(state => ({
+          set((state) => ({
             unlockedAchievements: [
-              ...state.unlockedAchievements,
-              ...newlyUnlocked.map(a => a.id)
-            ],
-            achievements: state.achievements.map(achievement => {
-              const unlocked = newlyUnlocked.find(u => u.id === achievement.id);
+            ...state.unlockedAchievements,
+            ...newlyUnlocked.map((a) => a.id)],
+
+            achievements: state.achievements.map((achievement) => {
+              const unlocked = newlyUnlocked.find((u) => u.id === achievement.id);
               return unlocked ? unlocked : achievement;
             })
           }));
@@ -279,37 +279,37 @@ export const useAchievementStore = create(
 
       unlockAchievement: (achievementId) => {
         const { achievements, unlockedAchievements } = get();
-        
+
         if (unlockedAchievements.includes(achievementId)) {
           return;
         }
 
-        set(state => ({
+        set((state) => ({
           unlockedAchievements: [...state.unlockedAchievements, achievementId],
-          achievements: state.achievements.map(achievement =>
-            achievement.id === achievementId
-              ? { ...achievement, unlockedAt: new Date().toISOString() }
-              : achievement
+          achievements: state.achievements.map((achievement) =>
+          achievement.id === achievementId ?
+          { ...achievement, unlockedAt: new Date().toISOString() } :
+          achievement
           )
         }));
       },
-      
+
       updateAchievementProgress: (achievementId, progress) => {
         const { achievements, unlockedAchievements } = get();
-        
+
         if (unlockedAchievements.includes(achievementId)) {
           return;
         }
-        
-        const achievement = achievements.find(a => a.id === achievementId);
+
+        const achievement = achievements.find((a) => a.id === achievementId);
         if (achievement && achievement.condition.target) {
           if (progress >= achievement.condition.target) {
-            set(state => ({
+            set((state) => ({
               unlockedAchievements: [...state.unlockedAchievements, achievementId],
-              achievements: state.achievements.map(a =>
-                a.id === achievementId
-                  ? { ...a, unlockedAt: new Date().toISOString() }
-                  : a
+              achievements: state.achievements.map((a) =>
+              a.id === achievementId ?
+              { ...a, unlockedAt: new Date().toISOString() } :
+              a
               )
             }));
           }
@@ -318,15 +318,15 @@ export const useAchievementStore = create(
 
       getUnlockedAchievements: () => {
         const { achievements, unlockedAchievements } = get();
-        return achievements.filter(achievement => 
-          unlockedAchievements.includes(achievement.id)
+        return achievements.filter((achievement) =>
+        unlockedAchievements.includes(achievement.id)
         );
       },
 
       getLockedAchievements: () => {
         const { achievements, unlockedAchievements } = get();
-        return achievements.filter(achievement => 
-          !unlockedAchievements.includes(achievement.id)
+        return achievements.filter((achievement) =>
+        !unlockedAchievements.includes(achievement.id)
         );
       },
 
@@ -342,7 +342,7 @@ export const useAchievementStore = create(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         unlockedAchievements: state.unlockedAchievements,
-        achievements: state.achievements.map(achievement => ({
+        achievements: state.achievements.map((achievement) => ({
           ...achievement,
           unlockedAt: achievement.unlockedAt
         }))

@@ -2,12 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
-  Modal,
+  Modal as RNModal,
   Pressable,
   StyleSheet,
-  View,
-  ViewStyle,
-} from 'react-native';
+  View } from
+'react-native';
 import { Colors, Radius, Spacing } from '../../constants/tokens';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -17,15 +16,15 @@ export function BottomSheet({
   onClose,
   children,
   accessibilityLabel,
-  contentStyle,
-}: BottomSheetProps) {
+  contentStyle
+}) {
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   useEffect(() => {
     Animated.timing(translateY, {
-      toValue: visible ? 0,
+      toValue: visible ? 0 : SCREEN_HEIGHT,
       duration: 250,
-      useNativeDriver: true,
+      useNativeDriver: true
     }).start();
   }, [visible, translateY]);
 
@@ -34,32 +33,32 @@ export function BottomSheet({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
+      
       <View style={styles.container}>
         <Pressable
           style={styles.backdrop}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Close bottom sheet"
-        />
+          accessibilityLabel="Close bottom sheet" />
+        
         <Animated.View
           style={[styles.sheet, { transform: [{ translateY }] }, contentStyle]}
-          accessibilityLabel={accessibilityLabel}
-        >
+          accessibilityLabel={accessibilityLabel}>
+          
           <View style={styles.handle} />
           {children}
         </Animated.View>
       </View>
-    </RNModal>
-  );
+    </RNModal>);
+
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'flex-end' },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.6)'
   },
   sheet: {
     backgroundColor: Colors.surfaceElevated,
@@ -67,7 +66,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: Radius.xl,
     padding: Spacing.lg,
     paddingTop: Spacing.sm,
-    minHeight: 200,
+    minHeight: 200
   },
   handle: {
     alignSelf: 'center',
@@ -75,8 +74,8 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.border,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md
+  }
 });
 
 export default BottomSheet;

@@ -5,16 +5,12 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 import Colors from '@/constants/colors';
 
-  success?: boolean;
-  error?: string;
-};
-
 export default function SpotifyRedirect() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { connectSpotifyImplicit, initializeSpotify } = useSpotifyStore();
   const [status, setStatus] = useState('Connecting to Spotify...');
-  const fallbackRoute = useMemo(() => '/spotify-integration' as const, []);
+  const fallbackRoute = useMemo(() => '/spotify-integration', []);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -42,8 +38,8 @@ export default function SpotifyRedirect() {
           }
         };
 
-        let code: string | null = typeof params.code === 'string' ? params.code : null;
-        let error: string | null = typeof params.error === 'string' ? params.error : null;
+        let code = typeof params.code === 'string' ? params.code : null;
+        let error = typeof params.error === 'string' ? params.error : null;
 
         if (isWeb) {
           const searchParams = new URLSearchParams(urlSearch);
@@ -117,8 +113,8 @@ export default function SpotifyRedirect() {
       <ActivityIndicator size="large" color={Colors.primary} />
       <Text style={styles.text}>{status}</Text>
       <Text style={styles.subText}>Please wait while we complete the authentication process.</Text>
-    </View>
-  );
+    </View>);
+
 }
 
 const styles = StyleSheet.create({
@@ -127,19 +123,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    padding: 20,
+    padding: 20
   },
   text: {
     marginTop: 16,
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   subText: {
     marginTop: 8,
     fontSize: 14,
     color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+    textAlign: 'center'
+  }
 });

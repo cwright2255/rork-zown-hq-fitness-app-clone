@@ -59,15 +59,15 @@ const calculateMultiplier = (level) => {
   // 43% increase per level, 7% decline per level
   const baseIncrease = 0.43;
   const baseDecline = 0.07;
-  
+
   // Start with a multiplier of 1 for level 1
   let multiplier = 1.0;
-  
+
   // Apply the increase and decline for each level
   for (let i = 2; i <= level; i++) {
-    multiplier *= (1 + baseIncrease - baseDecline);
+    multiplier *= 1 + baseIncrease - baseDecline;
   }
-  
+
   return multiplier;
 };
 
@@ -76,21 +76,21 @@ export const useExpStore = create(
     (set, get) => ({
       expSystem: defaultExpSystem,
       isLoading: false,
-      
+
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
       },
-      
+
       addExp: (amount) => {
         // Use requestAnimationFrame for better performance
         requestAnimationFrame(() => {
           const { expSystem } = get();
           const newTotalExp = expSystem.totalExp + amount;
           const newLevel = get().calculateLevelFromExp(newTotalExp);
-          
+
           // Calculate EXP needed for the next level
           const expToNextLevel = (newLevel + 1) * 1000 - newTotalExp;
-          
+
           set({
             expSystem: {
               ...expSystem,
@@ -101,29 +101,29 @@ export const useExpStore = create(
           });
         });
       },
-      
+
       addExpActivity: (activity) => {
         const { expSystem } = get();
         const { level } = expSystem;
-        
+
         // Calculate the multiplier based on the current level
         const levelMultiplier = calculateMultiplier(level);
-        
+
         // Apply the multiplier to the base EXP
         let expAmount = activity.baseExp * levelMultiplier * activity.multiplier;
-        
+
         // Round to the nearest integer
         expAmount = Math.round(expAmount);
-        
+
         // Create a new activity with the calculated EXP
         const newActivity = {
           ...activity,
           baseExp: expAmount
         };
-        
+
         // Update the EXP sources
         const updatedExpSources = { ...expSystem.expSources };
-        
+
         switch (activity.type) {
           case 'workout':
           case 'running':
@@ -136,7 +136,7 @@ export const useExpStore = create(
             updatedExpSources.social += expAmount;
             break;
         }
-        
+
         // Update the EXP system
         set({
           expSystem: {
@@ -144,11 +144,11 @@ export const useExpStore = create(
             expSources: updatedExpSources
           }
         });
-        
+
         // Add the EXP to the total
         get().addExp(expAmount);
       },
-      
+
       getExpBreakdown: () => {
         const { expSystem } = get();
         const safeExpSystem = expSystem || defaultExpSystem;
@@ -162,28 +162,28 @@ export const useExpStore = create(
           total: safeExpSystem.totalExp
         };
       },
-      
+
       getExpForLevel: (level) => {
         return level * 1000; // Simple calculation: 1000 XP per level
       },
-      
+
       getExpToNextLevel: () => {
         const { expSystem } = get();
         const safeExpSystem = expSystem || defaultExpSystem;
         return safeExpSystem.expToNextLevel;
       },
-      
+
       getLevel: () => {
         const { expSystem } = get();
         const safeExpSystem = expSystem || defaultExpSystem;
         return safeExpSystem.level;
       },
-      
+
       getRecentActivities: (count = 10) => {
         // Return empty array for now - would be implemented with activity tracking
         return [];
       },
-      
+
       calculateLevelFromExp: (exp) => {
         // Simple level calculation: 1000 XP per level
         return Math.floor(exp / 1000) + 1;

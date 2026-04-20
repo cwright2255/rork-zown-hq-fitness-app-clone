@@ -75,7 +75,7 @@ export async function processAdminLink(url) {
           useUserStore.setState({ isOnboarded: true });
         } else {
           useUserStore.setState({ isOnboarded: false });
-          try { router.replace('/'); } catch {}
+          try {router.replace('/');} catch {}
         }
         await persistAdminConfig({ isOnboarded: v });
         return { handled: true, message: `isOnboarded set to ${v}` };
@@ -108,7 +108,7 @@ export async function processAdminLink(url) {
         if (userStore && userStore.logout) {
           await userStore.logout();
         }
-        try { router.replace('/'); } catch {}
+        try {router.replace('/');} catch {}
         return { handled: true, message: 'User logged out' };
       }
     }

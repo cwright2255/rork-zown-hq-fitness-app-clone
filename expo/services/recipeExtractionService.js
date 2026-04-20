@@ -10,27 +10,27 @@ class RecipeExtractionService {
   async extractRecipeFromUrl(url) {
     try {
       console.log('Extracting recipe from URL:', url);
-      
+
       // Detect platform
       const platform = this.detectPlatform(url);
       console.log('Detected platform:', platform);
-      
+
       // Get metadata from URL
       const metadata = await this.getUrlMetadata(url);
       console.log('URL metadata:', metadata);
-      
+
       // Extract recipe using AI
       const extractedRecipe = await this.extractRecipeWithAI(metadata, url, platform);
-      
+
       if (extractedRecipe) {
         console.log('Successfully extracted recipe:', extractedRecipe.name);
         return {
           ...extractedRecipe,
           sourceUrl: url,
-          sourcePlatform: platform,
+          sourcePlatform: platform
         };
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error extracting recipe from URL:', error);
@@ -41,18 +41,18 @@ class RecipeExtractionService {
   async extractRecipeFromText(text) {
     try {
       console.log('Extracting recipe from text');
-      
-      const extractedRecipe = await this.extractRecipeWithAI({ 
-        url: '', 
-        platform: 'other', 
-        description: text 
+
+      const extractedRecipe = await this.extractRecipeWithAI({
+        url: '',
+        platform: 'other',
+        description: text
       }, '', 'other');
-      
+
       if (extractedRecipe) {
         console.log('Successfully extracted recipe from text:', extractedRecipe.name);
         return extractedRecipe;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error extracting recipe from text:', error);
@@ -86,7 +86,7 @@ class RecipeExtractionService {
 
   detectPlatform(url) {
     const domain = url.toLowerCase();
-    
+
     if (domain.includes('instagram.com') || domain.includes('instagr.am')) {
       return 'instagram';
     } else if (domain.includes('tiktok.com')) {
@@ -112,15 +112,15 @@ class RecipeExtractionService {
           'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)'
         }
       });
-      
+
       const html = await response.text();
-      
+
       // Extract basic metadata from HTML
       const title = this.extractMetaTag(html, 'og:title') || this.extractTitle(html);
       const description = this.extractMetaTag(html, 'og:description') || this.extractMetaTag(html, 'description');
       const imageUrl = this.extractMetaTag(html, 'og:image');
       const videoUrl = this.extractMetaTag(html, 'og:video');
-      
+
       return {
         url,
         platform: this.detectPlatform(url),
@@ -189,15 +189,15 @@ If no recipe is found, return null. Only return valid JSON.
       const response = await fetch(this.AI_API_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ]
+          {
+            role: 'user',
+            content: prompt
+          }]
+
         })
       });
 
@@ -213,7 +213,7 @@ If no recipe is found, return null. Only return valid JSON.
         const jsonMatch = completion.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const recipeData = JSON.parse(jsonMatch[0]);
-          
+
           // Validate the extracted data
           if (recipeData && recipeData.name && recipeData.ingredients && recipeData.instructions) {
             return recipeData;
@@ -243,10 +243,10 @@ If no recipe is found, return null. Only return valid JSON.
   generateGroceryList(recipes) {
     const groceryMap = new Map();
 
-    recipes.forEach(recipe => {
-      recipe.ingredients.forEach(ingredient => {
+    recipes.forEach((recipe) => {
+      recipe.ingredients.forEach((ingredient) => {
         const key = ingredient.name.toLowerCase().trim();
-        
+
         if (groceryMap.has(key)) {
           const existing = groceryMap.get(key);
           // If same unit, add amounts; otherwise, keep separate entries

@@ -1,14 +1,13 @@
 import React from 'react';
 import {
-  Modal,
+  Modal as RNModal,
   Pressable,
   StyleSheet,
-  View,
-  ViewStyle,
-} from 'react-native';
+  View } from
+'react-native';
 import { Colors, Radius, Spacing } from '../../constants/tokens';
 
-let AnimatedView: React.ComponentType | null = null;
+let AnimatedView = null;
 let FadeIn = null;
 let FadeOut = null;
 try {
@@ -25,35 +24,35 @@ export function Modal({
   onClose,
   children,
   accessibilityLabel,
-  contentStyle,
-}: ModalProps) {
-  const Content: React.ComponentType = AnimatedView ?? View;
+  contentStyle
+}) {
+  const Content = AnimatedView ?? View;
   return (
     <RNModal
       visible={visible}
       transparent
       animationType="fade"
       onRequestClose={onClose}
-      accessibilityViewIsModal
-    >
+      accessibilityViewIsModal>
+      
       <Pressable
         style={styles.backdrop}
         accessibilityRole="button"
         accessibilityLabel="Close modal"
-        onPress={onClose}
-      >
+        onPress={onClose}>
+        
         <Pressable onPress={() => undefined} style={styles.centered}>
           <Content
             entering={FadeIn ?? undefined}
             exiting={FadeOut ?? undefined}
-            style={[styles.content, contentStyle]}
-          >
+            style={[styles.content, contentStyle]}>
+            
             <View accessibilityLabel={accessibilityLabel}>{children}</View>
           </Content>
         </Pressable>
       </Pressable>
-    </RNModal>
-  );
+    </RNModal>);
+
 }
 
 const styles = StyleSheet.create({
@@ -62,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.lg
   },
   centered: { width: '100%', alignItems: 'center' },
   content: {
@@ -70,8 +69,8 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     backgroundColor: Colors.surfaceElevated,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg
+  }
 });
 
 export default Modal;

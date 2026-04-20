@@ -5,13 +5,13 @@ export const linking = {
       workout: 'workout/:workoutId',
       'ai-coach': 'ai-coach/:recommendationId',
       profile: 'profile',
-      'rook-connect': 'rook-connect',
-    },
-  },
+      'rook-connect': 'rook-connect'
+    }
+  }
 };
 
 export const makeWorkoutDeepLink = (workoutId) =>
-  `zownhq://workout/${workoutId}`;
+`zownhq://workout/${workoutId}`;
 
 export const makeAIDeepLink = (recommendationId) =>
-  `zownhq://ai-coach/${recommendationId}`;
+`zownhq://ai-coach/${recommendationId}`;

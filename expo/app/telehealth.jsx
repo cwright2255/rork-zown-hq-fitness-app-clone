@@ -6,47 +6,47 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
-} from 'react-native';
+  Alert } from
+'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { Video, Calendar, Clock, Star, Phone } from 'lucide-react-native';
+import { Video, Calendar, Clock, Star } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useTelehealthStore } from '@/store/telehealthStore';
 
 export default function TelehealthScreen() {
-  const [activeTab, setActiveTab] = useState<'consultations' | 'resources'>('consultations');
-  
-  const { doctors, appointments, resources, bookAppointment } = useTelehealthStore() as {
-    doctors: any[];
-    appointments: any[];
-    resources: any[];
-    bookAppointment: (doctorId, timeSlot) => void;
-  };
+  const [activeTab, setActiveTab] = useState('consultations');
+
+  const { doctors, appointments, resources, bookAppointment } = useTelehealthStore();
+
+
+
+
+
 
   const handleBookAppointment = (doctorId, timeSlot) => {
     Alert.alert(
       'Book Appointment',
       `Would you like to book an appointment for ${timeSlot}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Book',
-          onPress: () => {
-            bookAppointment(doctorId, timeSlot);
-            Alert.alert('Success', 'Appointment booked successfully!');
-          },
-        },
-      ]
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Book',
+        onPress: () => {
+          bookAppointment(doctorId, timeSlot);
+          Alert.alert('Success', 'Appointment booked successfully!');
+        }
+      }]
+
     );
   };
 
-  const renderConsultations = () => (
-    <ScrollView style={styles.content}>
+  const renderConsultations = () =>
+  <ScrollView style={styles.content}>
       <Text style={styles.sectionTitle}>Available Doctors</Text>
       
-      {doctors.map((doctor) => (
-        <View key={doctor.id} style={styles.doctorCard}>
+      {doctors.map((doctor) =>
+    <View key={doctor.id} style={styles.doctorCard}>
           <Image source={{ uri: doctor.image }} style={styles.doctorImage} />
           
           <View style={styles.doctorInfo}>
@@ -64,25 +64,25 @@ export default function TelehealthScreen() {
           
           <View style={styles.doctorActions}>
             <TouchableOpacity
-              style={styles.bookButton}
-              onPress={() => handleBookAppointment(doctor.id, 'Next Available')}
-            >
+          style={styles.bookButton}
+          onPress={() => handleBookAppointment(doctor.id, 'Next Available')}>
+          
               <Calendar size={16} color="white" />
               <Text style={styles.bookButtonText}>Book</Text>
             </TouchableOpacity>
           </View>
         </View>
-      ))}
+    )}
 
       <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
       
-      {appointments.length === 0 ? (
-        <View style={styles.emptyState}>
+      {appointments.length === 0 ?
+    <View style={styles.emptyState}>
           <Text style={styles.emptyStateText}>No upcoming appointments</Text>
-        </View>
-      ) : (
-        appointments.map((appointment) => (
-          <View key={appointment.id} style={styles.appointmentCard}>
+        </View> :
+
+    appointments.map((appointment) =>
+    <View key={appointment.id} style={styles.appointmentCard}>
             <View style={styles.appointmentInfo}>
               <Text style={styles.appointmentDoctor}>{appointment.doctorName}</Text>
               <Text style={styles.appointmentDate}>{appointment.date}</Text>
@@ -94,15 +94,15 @@ export default function TelehealthScreen() {
               <Text style={styles.joinButtonText}>Join Call</Text>
             </TouchableOpacity>
           </View>
-        ))
-      )}
-    </ScrollView>
-  );
+    )
+    }
+    </ScrollView>;
 
-  const renderResources = () => (
-    <ScrollView style={styles.content}>
-      {resources.map((resource) => (
-        <TouchableOpacity key={resource.id} style={styles.resourceCard}>
+
+  const renderResources = () =>
+  <ScrollView style={styles.content}>
+      {resources.map((resource) =>
+    <TouchableOpacity key={resource.id} style={styles.resourceCard}>
           <Image source={{ uri: resource.image }} style={styles.resourceImage} />
           
           <View style={styles.resourceInfo}>
@@ -116,9 +116,9 @@ export default function TelehealthScreen() {
             </View>
           </View>
         </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
+    )}
+    </ScrollView>;
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -129,122 +129,122 @@ export default function TelehealthScreen() {
       </View>
 
       <View style={styles.tabContainer}>
-        {(['consultations', 'resources'] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => setActiveTab(tab)}
-          >
+        {['consultations', 'resources'].map((tab) =>
+        <TouchableOpacity
+          key={tab}
+          style={[styles.tab, activeTab === tab && styles.activeTab]}
+          onPress={() => setActiveTab(tab)}>
+          
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Text>
           </TouchableOpacity>
-        ))}
+        )}
       </View>
 
       {activeTab === 'consultations' && renderConsultations()}
       {activeTab === 'resources' && renderResources()}
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 16
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   tabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 16
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
     borderRadius: 8,
-    marginHorizontal: 4,
+    marginHorizontal: 4
   },
   activeTab: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primary
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   activeTabText: {
-    color: 'white',
+    color: 'white'
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: 16,
-    marginTop: 8,
+    marginTop: 8
   },
   doctorCard: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    flexDirection: 'row',
+    flexDirection: 'row'
   },
   doctorImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginRight: 16,
+    marginRight: 16
   },
   doctorInfo: {
-    flex: 1,
+    flex: 1
   },
   doctorName: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   doctorSpecialty: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 8,
+    marginBottom: 8
   },
   doctorRating: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    gap: 4,
+    gap: 4
   },
   ratingText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   reviewCount: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   doctorPrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.primary
   },
   doctorActions: {
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   bookButton: {
     backgroundColor: Colors.primary,
@@ -253,22 +253,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   bookButtonText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   emptyState: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 32,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   emptyStateText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   appointmentCard: {
     backgroundColor: Colors.backgroundSecondary,
@@ -277,25 +277,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   appointmentInfo: {
-    flex: 1,
+    flex: 1
   },
   appointmentDoctor: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   appointmentDate: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 2,
+    marginBottom: 2
   },
   appointmentTime: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   joinButton: {
     backgroundColor: Colors.primary,
@@ -304,53 +304,53 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   joinButtonText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   resourceCard: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    flexDirection: 'row',
+    flexDirection: 'row'
   },
   resourceImage: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    marginRight: 16,
+    marginRight: 16
   },
   resourceInfo: {
-    flex: 1,
+    flex: 1
   },
   resourceTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   resourceDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
     marginBottom: 8,
-    lineHeight: 20,
+    lineHeight: 20
   },
   resourceMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 8
   },
   resourceDuration: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   resourceCategory: {
     fontSize: 12,
     color: Colors.primary,
-    fontWeight: '500',
-  },
+    fontWeight: '500'
+  }
 });

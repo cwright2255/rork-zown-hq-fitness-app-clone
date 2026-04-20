@@ -7,20 +7,14 @@ import { createContext } from "./trpc/create-context";
 const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || "";
 const SPOTIFY_CLIENT_SECRET = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || "";
 
-  token_type: string;
-  expires_in: number;
-  refresh_token?: string;
-  scope?: string;
-};
-
 async function exchangeSpotifyToken(formBody) {
   return fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)}`,
+      Authorization: `Basic ${btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)}`
     },
-    body: formBody.toString(),
+    body: formBody.toString()
   });
 }
 
@@ -28,7 +22,7 @@ async function parseSpotifyError(response) {
   const details = await response.json().catch(() => null);
   return {
     error: `Spotify token request failed with status ${response.status}`,
-    details,
+    details
   };
 }
 
@@ -44,7 +38,7 @@ app.use(
   trpcServer({
     endpoint: "/api/trpc",
     router: appRouter,
-    createContext,
+    createContext
   })
 );
 
@@ -59,19 +53,13 @@ app.post("/spotify/token", async (c) => {
       return c.json({ error: "Spotify client secret is not configured on the server" }, 500);
     }
 
-    const body = await c.req.json().catch(() => null) as {
-      grantType?: "client_credentials" | "authorization_code" | "refresh_token";
-      code?: string;
-      redirectUri?: string;
-      codeVerifier?: string;
-      refreshToken?: string;
-    } | null;
+    const body = await c.req.json().catch(() => null);
 
     if (!body?.grantType) {
       return c.json({ error: "Missing grantType" }, 400);
     }
 
-    let formBody: URLSearchParams;
+    let formBody;
 
     if (body.grantType === "client_credentials") {
       formBody = new URLSearchParams({ grant_type: "client_credentials" });
@@ -84,7 +72,7 @@ app.post("/spotify/token", async (c) => {
         grant_type: "authorization_code",
         code: body.code,
         redirect_uri: body.redirectUri,
-        code_verifier: body.codeVerifier,
+        code_verifier: body.codeVerifier
       });
     } else {
       if (!body.refreshToken) {
@@ -93,14 +81,14 @@ app.post("/spotify/token", async (c) => {
 
       formBody = new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token: body.refreshToken,
+        refresh_token: body.refreshToken
       });
     }
 
     const response = await exchangeSpotifyToken(formBody);
 
     if (!response.ok) {
-      return c.json(await parseSpotifyError(response), response.status as 400 | 401 | 500);
+      return c.json(await parseSpotifyError(response), response.status);
     }
 
     const data = await response.json();

@@ -6,12 +6,12 @@ const Card = React.memo(({
   children,
   style,
   variant = 'default',
-  padding = 'medium',
+  padding = 'medium'
 }) => {
   // Memoize card style calculation
   const cardStyle = React.useMemo(() => {
     let baseStyle = {};
-    
+
     // Variant styles
     switch (variant) {
       case 'default':
@@ -24,7 +24,7 @@ const Card = React.memo(({
         baseStyle = styles.outlinedCard;
         break;
     }
-    
+
     // Padding styles
     switch (padding) {
       case 'none':
@@ -39,33 +39,33 @@ const Card = React.memo(({
         return baseStyle;
     }
   }, [variant, padding]);
-  
+
   return (
     <View style={[cardStyle, style]}>
       {children}
-    </View>
-  );
+    </View>);
+
 });
 
 const styles = StyleSheet.create({
   defaultCard: {
     backgroundColor: Colors.card,
     borderRadius: Colors.radius.large,
-    padding: Colors.spacing.lg,
+    padding: Colors.spacing.lg
   },
   elevatedCard: {
     backgroundColor: Colors.card,
     borderRadius: Colors.radius.large,
     padding: Colors.spacing.lg,
-    ...Colors.shadow.medium,
+    ...Colors.shadow.medium
   },
   outlinedCard: {
     backgroundColor: Colors.card,
     borderRadius: Colors.radius.large,
     padding: Colors.spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-  },
+    borderColor: Colors.border
+  }
 });
 
 Card.displayName = 'Card';

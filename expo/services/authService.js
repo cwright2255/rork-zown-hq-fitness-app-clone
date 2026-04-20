@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '@/types';
+
 
 class AuthService {
-  private baseUrl = 'https://api.yourapp.com';
+  baseUrl = 'https://api.yourapp.com';
 
   async login(email, password) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const mockUser = {
         id: '1',
         name: 'John Doe',
@@ -22,25 +22,25 @@ class AuthService {
         streakData: {
           currentStreak: 7,
           longestStreak: 15,
-          streakDates: [],
+          streakDates: []
         },
         preferences: {
           units: 'metric',
           notifications: {
             workouts: true,
             nutrition: true,
-            social: true,
+            social: true
           },
           privacy: {
             profileVisible: true,
-            shareProgress: true,
-          },
+            shareProgress: true
+          }
         },
         fitnessMetrics: {
           weight: 75,
           height: 180,
           bodyFat: 15,
-          muscleMass: 65,
+          muscleMass: 65
         },
         expSystem: {
           totalExp: 1250,
@@ -49,26 +49,26 @@ class AuthService {
           expSources: {
             workouts: 800,
             nutrition: 300,
-            social: 150,
+            social: 150
           },
-          levelRequirements: { 1: 0, 2: 100, 3: 300, 4: 700, 5: 1200, 6: 2000 },
+          levelRequirements: { 1: 0, 2: 100, 3: 300, 4: 700, 5: 1200, 6: 2000 }
         },
         xp: 1250,
         subscription: {
           tier: 'free',
           status: 'active',
           startDate: new Date().toISOString(),
-          autoRenew: false,
-        },
+          autoRenew: false
+        }
       };
 
       const token = 'mock-jwt-token';
       await AsyncStorage.setItem('auth_token', token);
-      
+
       return {
         user: mockUser,
         token,
-        requiresMFA: Math.random() > 0.7,
+        requiresMFA: Math.random() > 0.7
       };
     } catch (error) {
       throw new Error('Login failed');
@@ -77,8 +77,8 @@ class AuthService {
 
   async register(name, email, password) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const mockUser = {
         id: Math.random().toString(36).slice(2, 11),
         name,
@@ -94,25 +94,25 @@ class AuthService {
         streakData: {
           currentStreak: 0,
           longestStreak: 0,
-          streakDates: [],
+          streakDates: []
         },
         preferences: {
           units: 'metric',
           notifications: {
             workouts: true,
             nutrition: true,
-            social: true,
+            social: true
           },
           privacy: {
             profileVisible: true,
-            shareProgress: true,
-          },
+            shareProgress: true
+          }
         },
         fitnessMetrics: {
           weight: 0,
           height: 0,
           bodyFat: 0,
-          muscleMass: 0,
+          muscleMass: 0
         },
         expSystem: {
           totalExp: 0,
@@ -121,25 +121,25 @@ class AuthService {
           expSources: {
             workouts: 0,
             nutrition: 0,
-            social: 0,
+            social: 0
           },
-          levelRequirements: { 1: 0, 2: 100, 3: 300, 4: 700, 5: 1200 },
+          levelRequirements: { 1: 0, 2: 100, 3: 300, 4: 700, 5: 1200 }
         },
         xp: 0,
         subscription: {
           tier: 'free',
           status: 'active',
           startDate: new Date().toISOString(),
-          autoRenew: false,
-        },
+          autoRenew: false
+        }
       };
 
       const token = 'mock-jwt-token';
       await AsyncStorage.setItem('auth_token', token);
-      
+
       return {
         user: mockUser,
-        token,
+        token
       };
     } catch (error) {
       throw new Error('Registration failed');
@@ -147,7 +147,7 @@ class AuthService {
   }
 
   async loginWithProvider(provider) {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
     const displayName = provider === 'google' ? 'Google' : provider === 'apple' ? 'Apple' : 'Meta';
     const mockUser = {
       id: `${provider}-${Math.random().toString(36).slice(2, 10)}`,
@@ -164,12 +164,12 @@ class AuthService {
       streakData: {
         currentStreak: 0,
         longestStreak: 0,
-        streakDates: [],
+        streakDates: []
       },
       preferences: {
         units: 'metric',
         notifications: { workouts: true, nutrition: true, social: true },
-        privacy: { profileVisible: true, shareProgress: true },
+        privacy: { profileVisible: true, shareProgress: true }
       },
       fitnessMetrics: { weight: 0, height: 0, bodyFat: 0, muscleMass: 0 },
       expSystem: {
@@ -177,15 +177,15 @@ class AuthService {
         level: 1,
         expToNextLevel: 100,
         expSources: { workouts: 0, nutrition: 0, social: 0 },
-        levelRequirements: { 1: 0, 2: 100, 3: 300 },
+        levelRequirements: { 1: 0, 2: 100, 3: 300 }
       },
       xp: 0,
       subscription: {
         tier: 'free',
         status: 'active',
         startDate: new Date().toISOString(),
-        autoRenew: false,
-      },
+        autoRenew: false
+      }
     };
     const token = `${provider}-mock-token`;
     await AsyncStorage.setItem('auth_token', token);
@@ -194,7 +194,7 @@ class AuthService {
 
   async verifyMFA(email, code) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       if (code !== '123456') {
         throw new Error('Invalid MFA code');
       }
@@ -213,25 +213,25 @@ class AuthService {
         streakData: {
           currentStreak: 7,
           longestStreak: 15,
-          streakDates: [],
+          streakDates: []
         },
         preferences: {
           units: 'metric',
           notifications: {
             workouts: true,
             nutrition: true,
-            social: true,
+            social: true
           },
           privacy: {
             profileVisible: true,
-            shareProgress: true,
-          },
+            shareProgress: true
+          }
         },
         fitnessMetrics: {
           weight: 75,
           height: 180,
           bodyFat: 15,
-          muscleMass: 65,
+          muscleMass: 65
         },
         expSystem: {
           totalExp: 1250,
@@ -240,25 +240,25 @@ class AuthService {
           expSources: {
             workouts: 800,
             nutrition: 300,
-            social: 150,
+            social: 150
           },
-          levelRequirements: { 1: 0, 2: 100, 3: 300, 4: 700, 5: 1200, 6: 2000 },
+          levelRequirements: { 1: 0, 2: 100, 3: 300, 4: 700, 5: 1200, 6: 2000 }
         },
         xp: 1250,
         subscription: {
           tier: 'free',
           status: 'active',
           startDate: new Date().toISOString(),
-          autoRenew: false,
-        },
+          autoRenew: false
+        }
       };
 
       const token = 'mock-jwt-token';
       await AsyncStorage.setItem('auth_token', token);
-      
+
       return {
         user: mockUser,
-        token,
+        token
       };
     } catch (error) {
       throw new Error('MFA verification failed');

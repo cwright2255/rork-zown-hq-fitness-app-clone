@@ -1,16 +1,16 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Clock, Dumbbell, BarChart3, Trophy } from 'lucide-react-native';
-import { Workout } from '@/types';
+import { Clock, Dumbbell, Trophy } from 'lucide-react-native';
+
 import Colors from '@/constants/colors';
-import Badge from './Badge';
+
 import { getOptimizedImageUrl } from '@/constants/performance';
 import { usePerformanceMonitor } from '@/utils/storeOptimizations';
 
-const WorkoutCard = React.memo(({ workout, onPress }: WorkoutCardProps) => {
+const WorkoutCard = React.memo(({ workout, onPress }) => {
   // Performance monitoring in development
   usePerformanceMonitor('WorkoutCard', __DEV__);
-  
+
   // Memoize expensive calculations
   const difficultyColor = useMemo(() => {
     switch (workout.difficulty) {
@@ -31,9 +31,9 @@ const WorkoutCard = React.memo(({ workout, onPress }: WorkoutCardProps) => {
     }
     const hours = Math.floor(workout.duration / 60);
     const remainingMinutes = workout.duration % 60;
-    return remainingMinutes > 0 
-      ? `${hours} hr ${remainingMinutes} min` 
-      : `${hours} hr`;
+    return remainingMinutes > 0 ?
+    `${hours} hr ${remainingMinutes} min` :
+    `${hours} hr`;
   }, [workout.duration]);
 
   // Optimize image URL with fallback
@@ -45,27 +45,27 @@ const WorkoutCard = React.memo(({ workout, onPress }: WorkoutCardProps) => {
   }, [workout.imageUrl]);
 
   // Memoize exercise count
-  const exerciseCount = useMemo(() => 
-    workout.exercises?.length || 0,
-    [workout.exercises]
+  const exerciseCount = useMemo(() =>
+  workout.exercises?.length || 0,
+  [workout.exercises]
   );
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Image 
-        source={{ uri: optimizedImageUrl }} 
+      <Image
+        source={{ uri: optimizedImageUrl }}
         style={styles.image}
         resizeMode="cover"
-        loadingIndicatorSource={{ uri: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' }}
-      />
+        loadingIndicatorSource={{ uri: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' }} />
+      
       
       <View style={styles.overlay} />
       
-      {workout.xpReward && workout.xpReward > 50 && (
-        <View style={[styles.xpBadge, { backgroundColor: Colors.warning }]}>
+      {workout.xpReward && workout.xpReward > 50 &&
+      <View style={[styles.xpBadge, { backgroundColor: Colors.warning }]}>
           <Text style={styles.xpBadgeText}>High XP</Text>
         </View>
-      )}
+      }
       
       <View style={styles.content}>
         <Text style={styles.title}>{workout.name}</Text>
@@ -98,8 +98,8 @@ const WorkoutCard = React.memo(({ workout, onPress }: WorkoutCardProps) => {
           <Text style={styles.categoryText}>{workout.category}</Text>
         </View>
       </View>
-    </TouchableOpacity>
-  );
+    </TouchableOpacity>);
+
 });
 
 const styles = StyleSheet.create({
@@ -109,16 +109,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: Colors.spacing.lg,
     position: 'relative',
-    ...Colors.shadow.medium,
+    ...Colors.shadow.medium
   },
   image: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
+    position: 'absolute'
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.4)'
   },
   xpBadge: {
     position: 'absolute',
@@ -127,69 +127,69 @@ const styles = StyleSheet.create({
     zIndex: 2,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 12
   },
   xpBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   content: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: Colors.spacing.lg,
+    padding: Colors.spacing.lg
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.text.inverse,
-    marginBottom: 4,
+    marginBottom: 4
   },
   description: {
     fontSize: 14,
     color: Colors.text.inverse,
     opacity: 0.9,
     marginBottom: 12,
-    lineHeight: 18,
+    lineHeight: 18
   },
   metaContainer: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 12,
+    marginBottom: 12
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4
   },
   metaText: {
     fontSize: 12,
     color: Colors.text.inverse,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   difficultyContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   difficultyBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 12
   },
   difficultyText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.text.inverse,
+    color: Colors.text.inverse
   },
   categoryText: {
     fontSize: 12,
     color: Colors.text.inverse,
     fontWeight: '500',
-    textTransform: 'capitalize',
-  },
+    textTransform: 'capitalize'
+  }
 });
 
 export default WorkoutCard;

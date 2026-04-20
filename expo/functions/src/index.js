@@ -18,25 +18,25 @@ function getOpenAI() {
   return new OpenAI({ apiKey: OPENAI_API_KEY.value() });
 }
 
-function requireAuth(auth: { uid?: string } | undefined) {
+function requireAuth(auth) {
   if (!auth?.uid) {
     throw new HttpsError('unauthenticated', 'Must be signed in');
   }
   return auth.uid;
 }
 
-async function saveRecommendation(data: {
-  userId: string;
-  type: 'workout_plan' | 'nutrition' | 'progress_summary' | 'form_tip';
-  content: string;
-  structuredData?: Record<string, unknown>;
-  prompt: string;
-}) {
+async function saveRecommendation(data)
+
+
+
+
+
+{
   const db = getFirestore();
   const ref = await db.collection('aiRecommendations').add({
     ...data,
     isRead: false,
-    createdAt: FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp()
   });
   return ref.id;
 }
@@ -45,14 +45,14 @@ export const generateWorkoutPlan = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
-    const { fitnessLevel, goals, history } = req.data as {
-      fitnessLevel: string;
-      goals: string[];
-      history?: Array<{ name: string; date: string; duration: number }>;
-    };
+    const { fitnessLevel, goals, history } = req.data;
+
+
+
+
 
     const prompt = `Create a personalized 7-day workout plan for a ${fitnessLevel} user with goals: ${goals.join(
-      ', ',
+      ', '
     )}. Recent workout history: ${JSON.stringify(history ?? [])}. Return strict JSON with shape { "days": [{ "day": string, "focus": string, "exercises": [{ "name": string, "sets": number, "reps": number, "restSeconds": number }] }] }.`;
 
     const openai = getOpenAI();
@@ -60,9 +60,9 @@ export const generateWorkoutPlan = onCall(
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: 'You are an elite personal trainer. Always return valid JSON.' },
-        { role: 'user', content: prompt },
-      ],
+      { role: 'system', content: 'You are an elite personal trainer. Always return valid JSON.' },
+      { role: 'user', content: prompt }]
+
     });
     const content = completion.choices[0]?.message?.content ?? '{}';
 
@@ -78,31 +78,31 @@ export const generateWorkoutPlan = onCall(
       type: 'workout_plan',
       content,
       structuredData: structured,
-      prompt,
+      prompt
     });
 
     return { recommendationId, plan: structured };
-  },
+  }
 );
 
 export const getProgressSummary = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
-    const { dateRange } = req.data as {
-      userId: string;
-      dateRange: { start: string; end: string };
-    };
+    const { dateRange } = req.data;
+
+
+
 
     const db = getFirestore();
     const start = new Date(dateRange.start);
     const end = new Date(dateRange.end);
-    const snap = await db
-      .collection('workouts')
-      .where('userId', '==', uid)
-      .where('date', '>=', start)
-      .where('date', '<=', end)
-      .get();
+    const snap = await db.
+    collection('workouts').
+    where('userId', '==', uid).
+    where('date', '>=', start).
+    where('date', '<=', end).
+    get();
 
     const workouts = snap.docs.map((d) => d.data());
     const prompt = `Summarize this user's fitness progress from ${dateRange.start} to ${dateRange.end}. Workouts: ${JSON.stringify(workouts)}. Provide a warm, 2-3 paragraph natural-language summary with specific stats and encouragement.`;
@@ -111,9 +111,9 @@ export const getProgressSummary = onCall(
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a supportive fitness coach.' },
-        { role: 'user', content: prompt },
-      ],
+      { role: 'system', content: 'You are a supportive fitness coach.' },
+      { role: 'user', content: prompt }]
+
     });
 
     const content = completion.choices[0]?.message?.content ?? '';
@@ -123,24 +123,24 @@ export const getProgressSummary = onCall(
       type: 'progress_summary',
       content,
       prompt,
-      structuredData: { workoutCount: workouts.length, dateRange },
+      structuredData: { workoutCount: workouts.length, dateRange }
     });
 
     return { recommendationId, summary: content };
-  },
+  }
 );
 
 export const getNutritionRecommendations = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
-    const { recentWorkouts, goals } = req.data as {
-      recentWorkouts: Array<{ name: string; calories?: number; duration: number }>;
-      goals: string[];
-    };
+    const { recentWorkouts, goals } = req.data;
+
+
+
 
     const prompt = `Provide nutrition recommendations for a user with goals: ${goals.join(
-      ', ',
+      ', '
     )}. Recent workouts: ${JSON.stringify(recentWorkouts)}. Include daily macro targets and 3 meal ideas. Return strict JSON { "dailyMacros": { "calories": number, "protein": number, "carbs": number, "fat": number }, "mealIdeas": [{ "name": string, "description": string }] }.`;
 
     const openai = getOpenAI();
@@ -148,9 +148,9 @@ export const getNutritionRecommendations = onCall(
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: 'You are a sports nutrition expert. Return valid JSON.' },
-        { role: 'user', content: prompt },
-      ],
+      { role: 'system', content: 'You are a sports nutrition expert. Return valid JSON.' },
+      { role: 'user', content: prompt }]
+
     });
     const content = completion.choices[0]?.message?.content ?? '{}';
 
@@ -166,18 +166,18 @@ export const getNutritionRecommendations = onCall(
       type: 'nutrition',
       content,
       structuredData: structured,
-      prompt,
+      prompt
     });
 
     return { recommendationId, recommendations: structured };
-  },
+  }
 );
 
 export const refreshSpotifyToken = onCall(
   { secrets: [SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET], region: 'us-central1' },
   async (req) => {
     requireAuth(req.auth);
-    const { refreshToken } = req.data as { refreshToken: string };
+    const { refreshToken } = req.data;
     if (!refreshToken) {
       throw new HttpsError('invalid-argument', 'refreshToken required');
     }
@@ -190,12 +190,12 @@ export const refreshSpotifyToken = onCall(
       method: 'POST',
       headers: {
         Authorization: `Basic ${basic}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-      }).toString(),
+        refresh_token: refreshToken
+      }).toString()
     });
 
     if (!res.ok) {
@@ -203,49 +203,49 @@ export const refreshSpotifyToken = onCall(
       throw new HttpsError('internal', `Spotify refresh failed: ${body}`);
     }
 
-    const data = (await res.json()) as {
-      access_token: string;
-      expires_in: number;
-      refresh_token?: string;
-    };
+    const data = await res.json();
+
+
+
+
 
     return {
       accessToken: data.access_token,
       expiresIn: data.expires_in,
-      refreshToken: data.refresh_token,
+      refreshToken: data.refresh_token
     };
-  },
+  }
 );
 
 export const sendWorkoutReminder = onCall(
   { region: 'us-central1' },
   async (req) => {
     requireAuth(req.auth);
-    const { userId, message } = req.data as { userId: string; message: string };
+    const { userId, message } = req.data;
     if (!userId || !message) {
       throw new HttpsError('invalid-argument', 'userId and message required');
     }
 
     const db = getFirestore();
-    const devicesSnap = await db
-      .collection('users')
-      .doc(userId)
-      .collection('devices')
-      .get();
+    const devicesSnap = await db.
+    collection('users').
+    doc(userId).
+    collection('devices').
+    get();
 
-    const tokens = devicesSnap.docs
-      .map((d) => d.data().token | undefined)
-      .filter((t): t is string => !!t);
+    const tokens = devicesSnap.docs.
+    map((d) => d.data().token | undefined).
+    filter((t) => !!t);
 
     if (tokens.length === 0) return { sent: 0 };
 
     const response = await getMessaging().sendEachForMulticast({
       tokens,
-      notification: { title: 'Zown HQ', body: message },
+      notification: { title: 'Zown HQ', body: message }
     });
 
     return { sent: response.successCount, failed: response.failureCount };
-  },
+  }
 );
 
 export const onWorkoutComplete = onDocumentCreated(
@@ -262,48 +262,48 @@ export const onWorkoutComplete = onDocumentCreated(
     await statsRef.set(
       {
         totalWorkouts: FieldValue.increment(1),
-        totalMinutes: FieldValue.increment((data.duration) ?? 0),
-        lastWorkoutAt: FieldValue.serverTimestamp(),
+        totalMinutes: FieldValue.increment(data.duration ?? 0),
+        lastWorkoutAt: FieldValue.serverTimestamp()
       },
-      { merge: true },
+      { merge: true }
     );
 
-    const goalsSnap = await db
-      .collection('goals')
-      .where('userId', '==', userId)
-      .where('completed', '==', false)
-      .get();
+    const goalsSnap = await db.
+    collection('goals').
+    where('userId', '==', userId).
+    where('completed', '==', false).
+    get();
 
     const batch = db.batch();
     for (const doc of goalsSnap.docs) {
       const g = doc.data();
       if (g.type === 'general_fitness' || g.type === 'endurance') {
-        const next = (g.current) + 1;
+        const next = g.current + 1;
         batch.update(doc.ref, {
           current: next,
-          completed: next >= (g.target),
+          completed: next >= g.target
         });
       }
     }
     await batch.commit();
 
-    const devicesSnap = await db
-      .collection('users')
-      .doc(userId)
-      .collection('devices')
-      .get();
-    const tokens = devicesSnap.docs
-      .map((d) => d.data().token | undefined)
-      .filter((t): t is string => !!t);
+    const devicesSnap = await db.
+    collection('users').
+    doc(userId).
+    collection('devices').
+    get();
+    const tokens = devicesSnap.docs.
+    map((d) => d.data().token | undefined).
+    filter((t) => !!t);
 
     if (tokens.length > 0) {
       await getMessaging().sendEachForMulticast({
         tokens,
         notification: {
           title: 'Workout complete 💪',
-          body: 'Great work! Your stats have been updated.',
-        },
+          body: 'Great work! Your stats have been updated.'
+        }
       });
     }
-  },
+  }
 );

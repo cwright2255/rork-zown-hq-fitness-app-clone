@@ -54,11 +54,11 @@ export default function AdminPanel() {
         clearCart();
       }
       await AsyncStorage.multiRemove([
-        'zown-user-storage',
-        'zown-exp-storage',
-        'zown-shop-storage',
-        'workout-storage',
-      ]);
+      'zown-user-storage',
+      'zown-exp-storage',
+      'zown-shop-storage',
+      'workout-storage']
+      );
       if (expStore?.initializeExpSystem) {
         expStore.initializeExpSystem();
       }
@@ -121,25 +121,25 @@ export default function AdminPanel() {
           <Text style={styles.note}>Platform: {Platform.OS}</Text>
         </View>
       </ScrollView>
-    </View>
-  );
+    </View>);
+
 }
 
 function ActionButton({ label, onPress, disabled }) {
   return (
-    <TouchableOpacity 
-      style={[styles.button, disabled ? styles.buttonDisabled : undefined]} 
-      onPress={onPress} 
-      disabled={disabled} 
-      accessibilityRole="button" 
-      accessibilityLabel={label} 
-      testID={`admin-action-${label.toLowerCase().replace(/\s+/g, '-')}`}
-    >
+    <TouchableOpacity
+      style={[styles.button, disabled ? styles.buttonDisabled : undefined]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={`admin-action-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      
       <View style={styles.buttonInner}>
         <Text style={styles.buttonLabel}>{label}</Text>
       </View>
-    </TouchableOpacity>
-  );
+    </TouchableOpacity>);
+
 }
 
 const styles = StyleSheet.create({
@@ -155,5 +155,5 @@ const styles = StyleSheet.create({
   icon: { width: 20, height: 20, justifyContent: 'center' },
   buttonLabel: { fontSize: 14, color: Colors.text.primary, fontWeight: '600' },
   buttonDisabled: { opacity: 0.6 },
-  note: { marginTop: 8, fontSize: 12, color: Colors.text.secondary },
+  note: { marginTop: 8, fontSize: 12, color: Colors.text.secondary }
 });

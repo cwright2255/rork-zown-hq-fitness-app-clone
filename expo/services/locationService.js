@@ -22,7 +22,7 @@ class LocationService {
             resolve(false);
             return;
           }
-          
+
           navigator.geolocation.getCurrentPosition(
             () => resolve(true),
             (error) => {
@@ -33,7 +33,7 @@ class LocationService {
           );
         });
       }
-      
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       return status === 'granted';
     } catch (error) {
@@ -75,16 +75,16 @@ class LocationService {
 
       // Get initial location
       const initialLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
+        accuracy: Location.Accuracy.BestForNavigation
       });
-      
+
       this.currentLocation = initialLocation;
       this.coordinates = [{
         latitude: initialLocation.coords.latitude,
         longitude: initialLocation.coords.longitude,
         timestamp: new Date().toISOString(),
         altitude: initialLocation.coords.altitude || undefined,
-        speed: initialLocation.coords.speed || undefined,
+        speed: initialLocation.coords.speed || undefined
       }];
 
       // Start watching location
@@ -92,7 +92,7 @@ class LocationService {
         {
           accuracy: Location.Accuracy.BestForNavigation,
           timeInterval: 1000, // Update every second
-          distanceInterval: 1, // Update every meter
+          distanceInterval: 1 // Update every meter
         },
         (location) => {
           this.handleLocationUpdate(location);
@@ -129,13 +129,13 @@ class LocationService {
               altitude: position.coords.altitude,
               speed: position.coords.speed,
               accuracy: position.coords.accuracy,
-              heading: position.coords.heading,
+              heading: position.coords.heading
             },
-            timestamp: position.timestamp,
+            timestamp: position.timestamp
           };
-          
+
           this.handleLocationUpdate(location);
-          
+
           if (!this.isTracking) {
             this.isTracking = true;
             this.notifyListeners();
@@ -149,10 +149,10 @@ class LocationService {
         {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 1000,
+          maximumAge: 1000
         }
       );
-      
+
       // Store watch ID for cleanup
       this.webWatchId = watchId;
     });
@@ -176,7 +176,7 @@ class LocationService {
       longitude: location.coords.longitude,
       timestamp: new Date().toISOString(),
       altitude: location.coords.altitude || undefined,
-      speed: location.coords.speed || undefined,
+      speed: location.coords.speed || undefined
     };
 
     // Calculate distance from previous point
@@ -210,11 +210,11 @@ class LocationService {
     const dLat = this.toRadians(lat2 - lat1);
     const dLon = this.toRadians(lon2 - lon1);
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(lat1)) *
-        Math.cos(this.toRadians(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(this.toRadians(lat1)) *
+    Math.cos(this.toRadians(lat2)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
@@ -230,7 +230,7 @@ class LocationService {
       currentLocation: this.currentLocation,
       distance: this.totalDistance,
       speed: this.currentLocation?.coords.speed || 0,
-      averageSpeed: this.speeds.length > 0 ? this.speeds.reduce((a, b) => a + b, 0) / this.speeds.length : 0,
+      averageSpeed: this.speeds.length > 0 ? this.speeds.reduce((a, b) => a + b, 0) / this.speeds.length : 0
     };
   }
 
@@ -246,7 +246,7 @@ class LocationService {
 
   notifyListeners() {
     const state = this.getState();
-    this.listeners.forEach(listener => listener(state));
+    this.listeners.forEach((listener) => listener(state));
   }
 
   reset() {
@@ -262,13 +262,13 @@ class LocationService {
     this.isTracking = true;
     const startLat = 37.78825;
     const startLon = -122.4324;
-    
+
     this.coordinates = [{
       latitude: startLat,
       longitude: startLon,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     }];
-    
+
     // Create a mock current location
     this.currentLocation = {
       coords: {
@@ -277,25 +277,25 @@ class LocationService {
         altitude: null,
         accuracy: 5,
         heading: null,
-        speed: null,
+        speed: null
       },
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
-    
+
     // Simulate movement every 2 seconds
     const interval = setInterval(() => {
       if (!this.isTracking) {
         clearInterval(interval);
         return;
       }
-      
+
       const lastCoord = this.coordinates[this.coordinates.length - 1];
       const newCoord = {
         latitude: lastCoord.latitude + (Math.random() - 0.5) * 0.0001,
         longitude: lastCoord.longitude + (Math.random() - 0.5) * 0.0001,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
-      
+
       // Update current location
       this.currentLocation = {
         coords: {
@@ -304,11 +304,11 @@ class LocationService {
           altitude: null,
           accuracy: 5,
           heading: null,
-          speed: 2.5, // Mock speed in m/s
+          speed: 2.5 // Mock speed in m/s
         },
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
-      
+
       const distance = this.calculateDistance(
         lastCoord.latitude,
         lastCoord.longitude,
@@ -316,7 +316,7 @@ class LocationService {
         newCoord.longitude
       );
       this.totalDistance += distance;
-      
+
       this.coordinates.push(newCoord);
       this.notifyListeners();
     }, 2000);
@@ -328,7 +328,7 @@ class LocationService {
         // For web, we can't check permissions the same way
         return 'undetermined';
       }
-      
+
       const { status } = await Location.getForegroundPermissionsAsync();
       return status;
     } catch (error) {

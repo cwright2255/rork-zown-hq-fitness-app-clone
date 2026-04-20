@@ -11,10 +11,10 @@ const withTimeout = async (p, ms, signal) => {
       if (signal && 'aborted' in signal && signal.aborted) return;
       reject(new Error('Request timed out'));
     }, ms);
-    p.then(v => {
+    p.then((v) => {
       clearTimeout(id);
       resolve(v);
-    }).catch(e => {
+    }).catch((e) => {
       clearTimeout(id);
       reject(e);
     });
@@ -30,7 +30,7 @@ const postLLM = async (messages, timeoutMs = 30000, retries = 1) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages }),
-        signal: controller.signal,
+        signal: controller.signal
       });
       const res = await withTimeout(req, timeoutMs, controller.signal);
       const data = await res.json();
@@ -39,7 +39,7 @@ const postLLM = async (messages, timeoutMs = 30000, retries = 1) => {
     } catch (e) {
       lastErr = e;
       if (attempt === retries) break;
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 400));
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('LLM request failed');
@@ -61,7 +61,7 @@ const normalizeExercise = (e, fallbackDifficulty, idx) => {
   const description = typeof e?.description === 'string' ? e.description : '';
   const muscleGroups = Array.isArray(e?.muscleGroups) ? e.muscleGroups.map((m) => String(m)) : [];
   const equipment = Array.isArray(e?.equipment) ? e.equipment.map((m) => String(m)) : [];
-  const difficulty = ['beginner','intermediate','advanced'].includes(e?.difficulty) ? e.difficulty : fallbackDifficulty;
+  const difficulty = ['beginner', 'intermediate', 'advanced'].includes(e?.difficulty) ? e.difficulty : fallbackDifficulty;
   const duration = Number.isFinite(e?.duration) ? Number(e.duration) : undefined;
   const imageUrl = typeof e?.imageUrl === 'string' && e.imageUrl ? e.imageUrl : 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500';
   return {
@@ -75,7 +75,7 @@ const normalizeExercise = (e, fallbackDifficulty, idx) => {
     imageUrl,
     difficulty,
     muscleGroups,
-    equipment,
+    equipment
   };
 };
 
@@ -88,7 +88,7 @@ const getWorkoutImage = (category) => {
     yoga: 'https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?w=500',
     pilates: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=500',
     crossfit: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=500',
-    bodyweight: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
+    bodyweight: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500'
   };
   const key = typeof category === 'string' ? category.toLowerCase() : '';
   return images[key] ?? 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500';
@@ -143,13 +143,13 @@ export const generateWorkoutPlan = async (request) => {
     const sys = {
       role: 'system',
       content:
-        'You are a professional fitness trainer. Respond with ONLY valid minified JSON matching the schema {"name":string,"description":string,"difficulty":"beginner"|"intermediate"|"advanced","duration":number,"category":string,"exercises":[{"name":string,"description":string,"muscleGroups":string[],"sets":number,"reps":number,"duration"?:number,"restTime":number,"equipment":string[],"difficulty"?:"beginner"|"intermediate"|"advanced"}]}. No markdown, no code fences. If TodayRecovery indicates low recovery (mood<=2 or energy<=2 or stress>=4 or sleep<=2), favor deload, technique, mobility, zone2 and reduce volume/intensity by 20-40% with longer rests. If high recovery (mood>=4 and energy>=4 and stress<=2 and sleep>=4), you may increase intensity/volume modestly (10-20%) while staying safe. Respect user dietary restrictions for intra/post-workout fueling suggestions if any are implied.',
+      'You are a professional fitness trainer. Respond with ONLY valid minified JSON matching the schema {"name":string,"description":string,"difficulty":"beginner"|"intermediate"|"advanced","duration":number,"category":string,"exercises":[{"name":string,"description":string,"muscleGroups":string[],"sets":number,"reps":number,"duration"?:number,"restTime":number,"equipment":string[],"difficulty"?:"beginner"|"intermediate"|"advanced"}]}. No markdown, no code fences. If TodayRecovery indicates low recovery (mood<=2 or energy<=2 or stress>=4 or sleep<=2), favor deload, technique, mobility, zone2 and reduce volume/intensity by 20-40% with longer rests. If high recovery (mood>=4 and energy>=4 and stress<=2 and sleep>=4), you may increase intensity/volume modestly (10-20%) while staying safe. Respect user dietary restrictions for intra/post-workout fueling suggestions if any are implied.'
     };
     const combinedGoals = (request.goals && request.goals.length > 0 ? request.goals : userCtx.goals) ?? [];
     const usr = {
       role: 'user',
       content:
-        `Create a workout plan. Level: ${request.fitnessLevel}. Goals: ${combinedGoals.join(', ')}. Duration: ${request.duration} minutes. Equipment: ${request.equipment.length>0?request.equipment.join(', '):'none'}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${userCtx.restrictions.length>0?`DietaryRestrictions:${userCtx.restrictions.join(', ')}.`:''} Include 4-8 exercises and ensure realistic rest times and reps. ${recoveryNote}`,
+      `Create a workout plan. Level: ${request.fitnessLevel}. Goals: ${combinedGoals.join(', ')}. Duration: ${request.duration} minutes. Equipment: ${request.equipment.length > 0 ? request.equipment.join(', ') : 'none'}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${userCtx.restrictions.length > 0 ? `DietaryRestrictions:${userCtx.restrictions.join(', ')}.` : ''} Include 4-8 exercises and ensure realistic rest times and reps. ${recoveryNote}`
     };
 
     const data = await postLLM([sys, usr], 35000, 1);
@@ -157,13 +157,13 @@ export const generateWorkoutPlan = async (request) => {
     const parsed = parseJSONSafe(raw);
     const name = typeof parsed?.name === 'string' && parsed.name ? parsed.name : 'Personalized Workout';
     const description = typeof parsed?.description === 'string' ? parsed.description : '';
-    const difficulty = ['beginner','intermediate','advanced'].includes(parsed?.difficulty) ? parsed.difficulty : request.fitnessLevel;
+    const difficulty = ['beginner', 'intermediate', 'advanced'].includes(parsed?.difficulty) ? parsed.difficulty : request.fitnessLevel;
     const duration = Number.isFinite(parsed?.duration) ? Number(parsed.duration) : request.duration;
     const category = typeof parsed?.category === 'string' && parsed.category ? parsed.category : 'strength';
     const exercisesSource = Array.isArray(parsed?.exercises) ? parsed.exercises : [];
     const exercises = exercisesSource.slice(0, 12).map((e, i) => normalizeExercise(e, difficulty, i));
     const equipment = Array.isArray(parsed?.equipment) ? parsed.equipment.map((x) => String(x)) : request.equipment;
-    const muscleGroups = Array.from(new Set(exercises.flatMap(e => e.muscleGroups))).slice(0, 8);
+    const muscleGroups = Array.from(new Set(exercises.flatMap((e) => e.muscleGroups))).slice(0, 8);
     const calories = Math.max(50, Math.round((duration || 30) * (difficulty === 'advanced' ? 9 : difficulty === 'intermediate' ? 7 : 5)));
 
     const workout = {
@@ -179,7 +179,7 @@ export const generateWorkoutPlan = async (request) => {
       muscleGroups,
       calories,
       xpReward: calculateXpReward(difficulty, duration),
-      isCustom: false,
+      isCustom: false
     };
 
     try {
@@ -192,7 +192,7 @@ export const generateWorkoutPlan = async (request) => {
           multiplier: 1.0,
           date: new Date().toISOString().split('T')[0],
           description: `Created ${workout.name} workout plan`,
-          completed: true,
+          completed: true
         });
       }
     } catch (e) {
@@ -207,11 +207,11 @@ export const generateWorkoutPlan = async (request) => {
 };
 
 export const generateNutritionAdvice = async (
-  goals,
-  currentWeight,
-  targetWeight,
-  dietaryRestrictions
-) => {
+goals,
+currentWeight,
+targetWeight,
+dietaryRestrictions) =>
+{
   try {
     let recoveryNote = '';
     let readiness = 'medium';
@@ -234,12 +234,12 @@ export const generateNutritionAdvice = async (
     const sys = {
       role: 'system',
       content:
-        'You are a certified nutritionist. Use TodayRecovery if provided to autoregulate nutrition. Rules: High readiness -> raise carbs by 10-20% (focus starches around training), modestly lower fats, keep protein ~1.6-2.2 g/kg. Low readiness -> emphasize recovery foods (omega-3, berries, leafy greens, turmeric/ginger), keep protein ~1.8-2.2 g/kg, shift carbs to lower-GI and earlier in day, add electrolytes and fluids, limit caffeine late. Medium -> balanced split. Respect restrictions. Output 120-180 words, terse bullet-like lines. Include: daily calories, macro split with gram targets, fueling timing, 3-5 food ideas, 2 tips adapted to readiness. No preamble.',
+      'You are a certified nutritionist. Use TodayRecovery if provided to autoregulate nutrition. Rules: High readiness -> raise carbs by 10-20% (focus starches around training), modestly lower fats, keep protein ~1.6-2.2 g/kg. Low readiness -> emphasize recovery foods (omega-3, berries, leafy greens, turmeric/ginger), keep protein ~1.8-2.2 g/kg, shift carbs to lower-GI and earlier in day, add electrolytes and fluids, limit caffeine late. Medium -> balanced split. Respect restrictions. Output 120-180 words, terse bullet-like lines. Include: daily calories, macro split with gram targets, fueling timing, 3-5 food ideas, 2 tips adapted to readiness. No preamble.'
     };
     const usr = {
       role: 'user',
       content:
-        `Goals: ${finalGoals.join(', ')}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${currentWeight?`Current: ${currentWeight}kg. `:''}${targetWeight?`Target: ${targetWeight}kg. `:''}${finalRestrictions.length>0?`Restrictions: ${finalRestrictions.join(', ')}. `:''}${recoveryNote} Provide precise, safe, practical guidance for today.`,
+      `Goals: ${finalGoals.join(', ')}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${currentWeight ? `Current: ${currentWeight}kg. ` : ''}${targetWeight ? `Target: ${targetWeight}kg. ` : ''}${finalRestrictions.length > 0 ? `Restrictions: ${finalRestrictions.join(', ')}. ` : ''}${recoveryNote} Provide precise, safe, practical guidance for today.`
     };
 
     const data = await postLLM([sys, usr], 28000, 1);
@@ -253,7 +253,7 @@ export const generateNutritionAdvice = async (
           multiplier: 1.0,
           date: new Date().toISOString().split('T')[0],
           description: `Received nutrition advice (${readiness} readiness)`,
-          completed: true,
+          completed: true
         });
       }
     } catch (e) {
@@ -289,7 +289,7 @@ export const getAIDailyTargets = async (params) => {
     const sys = {
       role: 'system',
       content:
-        'You are a sports nutrition coach. Return ONLY minified JSON matching {"calories":number,"protein":number,"carbs":number,"fat":number,"water":number,"rationale"?:string}. Use readiness to auto-regulate: high -> +10-20% carbs and calories, slight fat down; low -> carbs -10-20% (prefer low-GI), increase water/electrolytes by 250-500ml, keep protein 1.8-2.2 g/kg; medium -> balanced. Respect dietary restrictions. No text outside JSON.'
+      'You are a sports nutrition coach. Return ONLY minified JSON matching {"calories":number,"protein":number,"carbs":number,"fat":number,"water":number,"rationale"?:string}. Use readiness to auto-regulate: high -> +10-20% carbs and calories, slight fat down; low -> carbs -10-20% (prefer low-GI), increase water/electrolytes by 250-500ml, keep protein 1.8-2.2 g/kg; medium -> balanced. Respect dietary restrictions. No text outside JSON.'
     };
 
     const usr = {
@@ -308,7 +308,7 @@ export const getAIDailyTargets = async (params) => {
         carbs: Math.max(0, Math.round(parsed.carbs)),
         fat: Math.max(0, Math.round(parsed.fat)),
         water: Math.max(1500, Math.round(parsed.water ?? 2000)),
-        rationale: typeof parsed.rationale === 'string' ? parsed.rationale : undefined,
+        rationale: typeof parsed.rationale === 'string' ? parsed.rationale : undefined
       };
     }
     throw new Error('Invalid AI targets');
@@ -322,7 +322,7 @@ export const getAIDailyTargets = async (params) => {
       carbs: 220,
       fat: 65,
       water: 2200,
-      rationale: 'Fallback defaults',
+      rationale: 'Fallback defaults'
     };
   }
 };
@@ -332,7 +332,7 @@ export const getAIMacroSplitForPreset = async (params) => {
     const sys = {
       role: 'system',
       content:
-        'Return ONLY minified JSON {"protein":number,"carbs":number,"fat":number,"note"?:string}. Compute grams for the given calories and named preset: balanced, highProtein, lowCarb, keto, carbLoad, recovery. Typical ratios: balanced 30/40/30, highProtein 40/35/25, lowCarb 35/25/40, keto 25/5/70, carbLoad 25/60/15, recovery 30/50/20. No text outside JSON.'
+      'Return ONLY minified JSON {"protein":number,"carbs":number,"fat":number,"note"?:string}. Compute grams for the given calories and named preset: balanced, highProtein, lowCarb, keto, carbLoad, recovery. Typical ratios: balanced 30/40/30, highProtein 40/35/25, lowCarb 35/25/40, keto 25/5/70, carbLoad 25/60/15, recovery 30/50/20. No text outside JSON.'
     };
     const usr = {
       role: 'user',
@@ -346,7 +346,7 @@ export const getAIMacroSplitForPreset = async (params) => {
         protein: Math.max(0, Math.round(parsed.protein)),
         carbs: Math.max(0, Math.round(parsed.carbs)),
         fat: Math.max(0, Math.round(parsed.fat)),
-        note: typeof parsed.note === 'string' ? parsed.note : undefined,
+        note: typeof parsed.note === 'string' ? parsed.note : undefined
       };
     }
     throw new Error('Invalid macro JSON');
@@ -359,30 +359,30 @@ export const getAIMacroSplitForPreset = async (params) => {
       lowCarb: { p: 0.35, c: 0.25, f: 0.40 },
       keto: { p: 0.25, c: 0.05, f: 0.70 },
       carbLoad: { p: 0.25, c: 0.60, f: 0.15 },
-      recovery: { p: 0.30, c: 0.50, f: 0.20 },
+      recovery: { p: 0.30, c: 0.50, f: 0.20 }
     };
     const r = ratios[params.preset];
     return {
-      protein: Math.round((cal * r.p) / 4),
-      carbs: Math.round((cal * r.c) / 4),
-      fat: Math.round((cal * r.f) / 9),
-      note: 'Local fallback',
+      protein: Math.round(cal * r.p / 4),
+      carbs: Math.round(cal * r.c / 4),
+      fat: Math.round(cal * r.f / 9),
+      note: 'Local fallback'
     };
   }
 };
 
 export const getAIWorkoutPlan = async (
-  fitnessLevel,
-  goal,
-  duration,
-  equipment
-) => {
+fitnessLevel,
+goal,
+duration,
+equipment) =>
+{
   try {
     const workout = await generateWorkoutPlan({
-      fitnessLevel: ['beginner','intermediate','advanced'].includes(fitnessLevel) ? fitnessLevel : 'beginner',
+      fitnessLevel: ['beginner', 'intermediate', 'advanced'].includes(fitnessLevel) ? fitnessLevel : 'beginner',
       goals: [goal],
       duration,
-      equipment,
+      equipment
     });
     return workout;
   } catch (error) {
@@ -397,7 +397,7 @@ export const getFitnessMetrics = async (_userId) => {
       steps: { daily: 8500, weekly: 52000, monthly: 220000 },
       sleep: { duration: 7.5, quality: 'good', deepSleep: 2.3, remSleep: 1.8 },
       activity: { activeMinutes: 45, caloriesBurned: 350, standingHours: 8 },
-      heartRate: { resting: 65, average: 72, max: 145 },
+      heartRate: { resting: 65, average: 72, max: 145 }
     };
   } catch (error) {
     console.error('Error getting fitness metrics', error);

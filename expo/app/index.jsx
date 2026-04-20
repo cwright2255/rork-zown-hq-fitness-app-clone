@@ -16,11 +16,11 @@ function IndexContent() {
 
   useEffect(() => {
     let mounted = true;
-    
+
     const handleSpotifyCallback = async () => {
       const code = params.code || (Platform.OS === 'web' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('code') : null);
       const state = params.state || (Platform.OS === 'web' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('state') : null);
-      
+
       if (code) {
         console.log('[Index] Spotify callback detected, processing...');
         setHandlingSpotify(true);
@@ -28,11 +28,11 @@ function IndexContent() {
           const currentUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : `?code=${code}&state=${state}`;
           const success = await spotifyService.handleAuthorizationCodeCallback(currentUrl);
           console.log('[Index] Spotify auth result:', success);
-          
+
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
             window.history.replaceState({}, document.title, window.location.pathname);
           }
-          
+
           if (mounted) {
             router.replace('/profile/settings');
           }
@@ -45,12 +45,12 @@ function IndexContent() {
       }
       return false;
     };
-    
+
     (async () => {
       try {
         const wasSpotifyCallback = await handleSpotifyCallback();
         if (wasSpotifyCallback) return;
-        
+
         console.log('[Index] Checking authentication status');
         const authed = await authService.isAuthenticated();
         console.log('[Index] Authentication status:', authed);
@@ -85,6 +85,6 @@ export default function Index() {
   return (
     <ErrorBoundary>
       <IndexContent />
-    </ErrorBoundary>
-  );
+    </ErrorBoundary>);
+
 }

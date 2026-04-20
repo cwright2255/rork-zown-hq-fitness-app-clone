@@ -5,22 +5,22 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 
 const CLIENT_ID =
-  process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? 'cb884c0e045d4683bd3f0b38cb0e151e';
+process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? 'cb884c0e045d4683bd3f0b38cb0e151e';
 
 const SCOPES = [
-  'user-read-playback-state',
-  'user-modify-playback-state',
-  'user-read-currently-playing',
-  'playlist-read-private',
-  'playlist-read-collaborative',
-  'streaming',
-  'user-read-email',
-  'user-read-private',
-];
+'user-read-playback-state',
+'user-modify-playback-state',
+'user-read-currently-playing',
+'playlist-read-private',
+'playlist-read-collaborative',
+'streaming',
+'user-read-email',
+'user-read-private'];
+
 
 const DISCOVERY = {
   authorizationEndpoint: 'https://accounts.spotify.com/authorize',
-  tokenEndpoint: 'https://accounts.spotify.com/api/token',
+  tokenEndpoint: 'https://accounts.spotify.com/api/token'
 };
 
 const TOKEN_KEY = 'spotify_tokens_v1';
@@ -29,7 +29,7 @@ const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 function getRedirectUri() {
   if (IS_EXPO_GO) {
-    return AuthSession.makeRedirectUri({ useProxy: true } as never);
+    return AuthSession.makeRedirectUri({ useProxy: true });
   }
   return AuthSession.makeRedirectUri({ scheme: 'zownhq', path: 'spotify-callback' });
 }
@@ -53,15 +53,15 @@ export async function clearTokens() {
 }
 
 async function refreshAccessToken(refreshToken) {
-  const fn = httpsCallable<
-    { refreshToken: string },
-    { accessToken: string; expiresIn: number; refreshToken?: string }
-  >(functions, 'refreshSpotifyToken');
+  const fn = httpsCallable(
+
+
+    functions, 'refreshSpotifyToken');
   const res = await fn({ refreshToken });
   const tokens = {
     accessToken: res.data.accessToken,
     refreshToken: res.data.refreshToken ?? refreshToken,
-    expiresAt: Date.now() + res.data.expiresIn * 1000,
+    expiresAt: Date.now() + res.data.expiresIn * 1000
   };
   await saveTokens(tokens);
   return tokens;
@@ -83,10 +83,10 @@ export async function authenticate() {
     scopes,
     usePKCE: true,
     redirectUri,
-    responseType: AuthSession.ResponseType.Code,
+    responseType: AuthSession.ResponseType.Code
   });
   await request.makeAuthUrlAsync(DISCOVERY);
-  const result = await request.promptAsync(DISCOVERY, IS_EXPO_GO ? ({ useProxy: true } as never) : undefined);
+  const result = await request.promptAsync(DISCOVERY, IS_EXPO_GO ? { useProxy: true } : undefined);
 
   if (result.type !== 'success' || !result.params.code) {
     return null;
@@ -97,15 +97,15 @@ export async function authenticate() {
       clientId,
       code: result.params.code,
       redirectUri,
-      extraParams: { code_verifier: request.codeVerifier ?? '' },
+      extraParams: { code_verifier: request.codeVerifier ?? '' }
     },
-    DISCOVERY,
+    DISCOVERY
   );
 
   const tokens = {
     accessToken: tokenResult.accessToken,
     refreshToken: tokenResult.refreshToken,
-    expiresAt: Date.now() + (tokenResult.expiresIn ?? 3600) * 1000,
+    expiresAt: Date.now() + (tokenResult.expiresIn ?? 3600) * 1000
   };
   await saveTokens(tokens);
   return tokens;
@@ -115,47 +115,47 @@ async function spotifyFetch(token, path) {
   const validToken = token || (await getValidAccessToken());
   if (!validToken) throw new Error('No Spotify access token');
   const res = await fetch(`https://api.spotify.com/v1${path}`, {
-    headers: { Authorization: `Bearer ${validToken}` },
+    headers: { Authorization: `Bearer ${validToken}` }
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Spotify API ${res.status}: ${body}`);
   }
-  return (await res.json());
+  return await res.json();
 }
 
-export interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  album: { name: string; images: { url: string }[] };
-  duration_ms: number;
-  uri: string;
-}
+
+
+
+
+
+
+
+
 
 export async function searchTracks(
-  accessToken,
-  query,
-) {
-  const data = await spotifyFetch<{ tracks: { items: SpotifyTrack[] } }>(
+accessToken,
+query)
+{
+  const data = await spotifyFetch(
     accessToken,
-    `/search?type=track&limit=20&q=${encodeURIComponent(query)}`,
+    `/search?type=track&limit=20&q=${encodeURIComponent(query)}`
   );
   return data.tracks.items;
 }
 
 export async function getUserPlaylists(
-  accessToken,
-) {
-  const data = await spotifyFetch<{
-    items: Array<{
-      id: string;
-      name: string;
-      description?: string;
-      tracks: { total: number };
-      images: { url: string }[];
-    }>;
-  }>(accessToken, '/me/playlists?limit=50');
+accessToken)
+{
+  const data = await spotifyFetch(
+
+
+
+
+
+
+
+    accessToken, '/me/playlists?limit=50');
 
   return data.items.map((p) => ({
     id: p.id,
@@ -164,17 +164,17 @@ export async function getUserPlaylists(
     description: p.description,
     trackCount: p.tracks.total,
     imageUrl: p.images[0]?.url,
-    savedAt: new Date(),
+    savedAt: new Date()
   }));
 }
 
 export async function getPlaylistTracks(
-  accessToken,
-  playlistId,
-) {
-  const data = await spotifyFetch<{
-    items: Array<{ track: SpotifyTrack }>;
-  }>(accessToken, `/playlists/${playlistId}/tracks?limit=100`);
+accessToken,
+playlistId)
+{
+  const data = await spotifyFetch(
+
+    accessToken, `/playlists/${playlistId}/tracks?limit=100`);
   return data.items.map((i) => i.track).filter(Boolean);
 }
 

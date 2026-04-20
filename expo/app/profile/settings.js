@@ -15,20 +15,20 @@ import { spotifyService } from '@/services/spotifyService';
 export default function SettingsScreen() {
   const { user, updateUserPreferences, logout } = useUserStore();
   const { dailyGoals, updateDailyGoals } = useNutritionStore();
-  const { 
-    isConnected: isSpotifyConnected, 
-    user: spotifyUser, 
+  const {
+    isConnected: isSpotifyConnected,
+    user: spotifyUser,
     disconnectSpotify,
     musicPreferences,
-    updateMusicPreferences,
+    updateMusicPreferences
   } = useSpotifyStore();
-  
+
   const [isConnecting, setIsConnecting] = useState(false);
-  
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     user?.preferences.notifications?.workouts || false
   );
-  
+
   const [caloriesGoal, setCaloriesGoal] = useState(
     dailyGoals.calories.toString()
   );
@@ -41,10 +41,10 @@ export default function SettingsScreen() {
   const [fatGoal, setFatGoal] = useState(
     dailyGoals.fat.toString()
   );
-  
+
   const handleToggleNotifications = (value) => {
     setNotificationsEnabled(value);
-    updateUserPreferences({ 
+    updateUserPreferences({
       notifications: {
         workouts: value,
         nutrition: user?.preferences.notifications?.nutrition || false,
@@ -52,31 +52,31 @@ export default function SettingsScreen() {
       }
     });
   };
-  
+
   const handleSaveNutritionGoals = () => {
     // Validate inputs
     if (!caloriesGoal || !proteinGoal || !carbsGoal || !fatGoal) {
       Alert.alert('Error', 'Please enter all nutrition goals');
       return;
     }
-    
+
     // Update nutrition goals
     updateDailyGoals({
       calories: parseInt(caloriesGoal),
       protein: parseInt(proteinGoal),
       carbs: parseInt(carbsGoal),
-      fat: parseInt(fatGoal),
+      fat: parseInt(fatGoal)
     });
-    
+
     // Show success message
     Alert.alert('Success', 'Nutrition goals updated successfully');
   };
-  
+
   const handleConnectSpotify = async () => {
     try {
       console.log('Initiating Spotify connection...');
       setIsConnecting(true);
-      
+
       if (Platform.OS === 'web') {
         const success = await spotifyService.authenticateWithPopup();
         if (success) {
@@ -88,21 +88,21 @@ export default function SettingsScreen() {
         setIsConnecting(false);
         return;
       }
-      
+
       const authUrl = await spotifyService.getAuthorizationUrl();
       Alert.alert(
         'Connect Spotify',
         'You will be redirected to Spotify to authorize this app.',
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => setIsConnecting(false) },
-          {
-            text: 'Continue',
-            onPress: async () => {
-              await Linking.openURL(authUrl);
-              setIsConnecting(false);
-            }
+        { text: 'Cancel', style: 'cancel', onPress: () => setIsConnecting(false) },
+        {
+          text: 'Continue',
+          onPress: async () => {
+            await Linking.openURL(authUrl);
+            setIsConnecting(false);
           }
-        ]
+        }]
+
       );
     } catch (error) {
       console.error('Failed to initiate Spotify connection:', error);
@@ -110,60 +110,60 @@ export default function SettingsScreen() {
       setIsConnecting(false);
     }
   };
-  
+
   const handleDisconnectSpotify = () => {
     Alert.alert(
       'Disconnect Spotify',
       'Are you sure you want to disconnect your Spotify account?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Disconnect', 
-          style: 'destructive',
-          onPress: async () => {
-            await disconnectSpotify();
-            Alert.alert('Success', 'Spotify account disconnected');
-          }
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Disconnect',
+        style: 'destructive',
+        onPress: async () => {
+          await disconnectSpotify();
+          Alert.alert('Success', 'Spotify account disconnected');
         }
-      ]
+      }]
+
     );
   };
-  
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
       'Are you sure you want to log out?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('[Settings] Starting logout process');
-              
-              // Clear auth service token first
-              await authService.logout();
-              
-              // Clear user store and persisted data
-              await logout();
-              
-              console.log('[Settings] Logout completed, navigating to start screen');
-              
-              // Force a complete app reset by navigating to index first, then start
-              router.replace('/');
-              
-            } catch (e) {
-              console.error('[Settings] Logout error:', e);
-              // Even if there's an error, still navigate to start screen
-              router.replace('/start');
-            }
-          },
-        },
-      ],
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            console.log('[Settings] Starting logout process');
+
+            // Clear auth service token first
+            await authService.logout();
+
+            // Clear user store and persisted data
+            await logout();
+
+            console.log('[Settings] Logout completed, navigating to start screen');
+
+            // Force a complete app reset by navigating to index first, then start
+            router.replace('/');
+
+          } catch (e) {
+            console.error('[Settings] Logout error:', e);
+            // Even if there's an error, still navigate to start screen
+            router.replace('/start');
+          }
+        }
+      }]
+
     );
   };
-  
+
   const handleAbout = () => {
     Alert.alert(
       "About Zown HQ",
@@ -171,7 +171,7 @@ export default function SettingsScreen() {
       [{ text: "OK" }]
     );
   };
-  
+
   const handleHelp = () => {
     Alert.alert(
       "Help & Support",
@@ -179,7 +179,7 @@ export default function SettingsScreen() {
       [{ text: "OK" }]
     );
   };
-  
+
   const handlePrivacy = () => {
     Alert.alert(
       "Privacy Policy",
@@ -187,24 +187,24 @@ export default function SettingsScreen() {
       [{ text: "OK" }]
     );
   };
-  
+
   if (!user) {
     return (
       <View style={styles.loadingContainer}>
         <Text>Loading...</Text>
-      </View>
-    );
+      </View>);
+
   }
-  
+
   return (
     <>
       <Stack.Screen options={{ title: 'Settings' }} />
       
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
+        
         {/* Notifications */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>
@@ -218,8 +218,8 @@ export default function SettingsScreen() {
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
               trackColor={{ false: Colors.inactive, true: Colors.primary }}
-              thumbColor={Colors.card}
-            />
+              thumbColor={Colors.card} />
+            
           </View>
         </View>
 
@@ -227,8 +227,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Music Integration</Text>
           
-          {isSpotifyConnected ? (
-            <Card variant="elevated" style={styles.spotifyConnectedCard}>
+          {isSpotifyConnected ?
+          <Card variant="elevated" style={styles.spotifyConnectedCard}>
               <View style={styles.spotifyConnectedHeader}>
                 <View style={styles.spotifyConnectedInfo}>
                   <Music size={24} color="#1DB954" />
@@ -239,10 +239,10 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity 
-                  style={styles.disconnectButton}
-                  onPress={handleDisconnectSpotify}
-                >
+                <TouchableOpacity
+                style={styles.disconnectButton}
+                onPress={handleDisconnectSpotify}>
+                
                   <Text style={styles.disconnectButtonText}>Disconnect</Text>
                 </TouchableOpacity>
               </View>
@@ -267,16 +267,16 @@ export default function SettingsScreen() {
                 <View style={styles.preferenceItem}>
                   <Text style={styles.preferenceLabel}>Explicit Content</Text>
                   <Switch
-                    value={musicPreferences.explicitContent}
-                    onValueChange={(value) => updateMusicPreferences({ explicitContent: value })}
-                    trackColor={{ false: Colors.inactive, true: Colors.primary }}
-                    thumbColor={Colors.card}
-                  />
+                  value={musicPreferences.explicitContent}
+                  onValueChange={(value) => updateMusicPreferences({ explicitContent: value })}
+                  trackColor={{ false: Colors.inactive, true: Colors.primary }}
+                  thumbColor={Colors.card} />
+                
                 </View>
               </View>
-            </Card>
-          ) : (
-            <Card variant="outlined" style={styles.spotifyDisconnectedCard}>
+            </Card> :
+
+          <Card variant="outlined" style={styles.spotifyDisconnectedCard}>
               <View style={styles.spotifyDisconnectedContent}>
                 <Music size={32} color={Colors.text.tertiary} />
                 <Text style={styles.spotifyDisconnectedTitle}>Connect Spotify</Text>
@@ -285,22 +285,22 @@ export default function SettingsScreen() {
                 </Text>
                 <View style={styles.spotifyButtons}>
                   <Button
-                    title={isConnecting ? "Connecting..." : "Connect Spotify"}
-                    onPress={handleConnectSpotify}
-                    style={styles.connectSpotifyButton}
-                    leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
-                    disabled={isConnecting}
-                  />
+                  title={isConnecting ? "Connecting..." : "Connect Spotify"}
+                  onPress={handleConnectSpotify}
+                  style={styles.connectSpotifyButton}
+                  leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
+                  disabled={isConnecting} />
+                
                   <Button
-                    title="Test Integration"
-                    onPress={() => router.push('/spotify-integration')}
-                    variant="outline"
-                    style={styles.testButton}
-                  />
+                  title="Test Integration"
+                  onPress={() => router.push('/spotify-integration')}
+                  variant="outline"
+                  style={styles.testButton} />
+                
                 </View>
               </View>
             </Card>
-          )}
+          }
         </View>
         
         {/* Nutrition Goals */}
@@ -312,38 +312,38 @@ export default function SettingsScreen() {
             value={caloriesGoal}
             onChangeText={setCaloriesGoal}
             placeholder="Enter daily calorie goal"
-            keyboardType="number-pad"
-          />
+            keyboardType="number-pad" />
+          
           
           <Input
             label="Protein (g)"
             value={proteinGoal}
             onChangeText={setProteinGoal}
             placeholder="Enter protein goal"
-            keyboardType="number-pad"
-          />
+            keyboardType="number-pad" />
+          
           
           <Input
             label="Carbs (g)"
             value={carbsGoal}
             onChangeText={setCarbsGoal}
             placeholder="Enter carbs goal"
-            keyboardType="number-pad"
-          />
+            keyboardType="number-pad" />
+          
           
           <Input
             label="Fat (g)"
             value={fatGoal}
             onChangeText={setFatGoal}
             placeholder="Enter fat goal"
-            keyboardType="number-pad"
-          />
+            keyboardType="number-pad" />
+          
           
           <Button
             title="Save Nutrition Goals"
             onPress={handleSaveNutritionGoals}
-            style={styles.saveButton}
-          />
+            style={styles.saveButton} />
+          
         </View>
         
         {/* Account */}
@@ -356,8 +356,8 @@ export default function SettingsScreen() {
             variant="outline"
             leftIcon={<LogOut size={20} color={Colors.error} />}
             style={styles.logoutButton}
-            textStyle={styles.logoutButtonText}
-          />
+            textStyle={styles.logoutButtonText} />
+          
         </View>
         
         {/* About */}
@@ -370,8 +370,8 @@ export default function SettingsScreen() {
             variant="outline"
             leftIcon={<Info size={20} color={Colors.text.primary} />}
             style={styles.textButton}
-            textStyle={styles.textButtonText}
-          />
+            textStyle={styles.textButtonText} />
+          
           
           <Button
             title="Help & Support"
@@ -379,8 +379,8 @@ export default function SettingsScreen() {
             variant="outline"
             leftIcon={<HelpCircle size={20} color={Colors.text.primary} />}
             style={styles.textButton}
-            textStyle={styles.textButtonText}
-          />
+            textStyle={styles.textButtonText} />
+          
           
           <Button
             title="Privacy Policy"
@@ -388,59 +388,59 @@ export default function SettingsScreen() {
             variant="outline"
             leftIcon={<Lock size={20} color={Colors.text.primary} />}
             style={styles.textButton}
-            textStyle={styles.textButtonText}
-          />
+            textStyle={styles.textButtonText} />
+          
         </View>
         
         <Text style={styles.versionText}>Version 1.0.0</Text>
       </ScrollView>
-    </>
-  );
+    </>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 32
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   section: {
     marginBottom: 24,
     backgroundColor: Colors.card,
     borderRadius: 12,
-    padding: 16,
+    padding: 16
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 16
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 12
   },
   settingInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   settingText: {
     fontSize: 16,
     color: Colors.text.primary,
-    marginLeft: 12,
+    marginLeft: 12
   },
   spotifyConnectedCard: {
-    padding: 0,
+    padding: 0
   },
   spotifyConnectedHeader: {
     flexDirection: 'row',
@@ -448,24 +448,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.border
   },
   spotifyConnectedInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   spotifyConnectedText: {
-    marginLeft: 12,
+    marginLeft: 12
   },
   spotifyConnectedTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   spotifyConnectedSubtitle: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: 2
   },
   disconnectButton: {
     paddingHorizontal: 12,
@@ -473,88 +473,88 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: Colors.background,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.border
   },
   disconnectButtonText: {
     fontSize: 14,
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   musicPreferencesContainer: {
-    padding: 16,
+    padding: 16
   },
   musicPreferencesTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 12
   },
   preferenceItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   preferenceLabel: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.text.secondary
   },
   preferenceValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.text.primary
   },
   spotifyDisconnectedCard: {
-    padding: 0,
+    padding: 0
   },
   spotifyDisconnectedContent: {
     alignItems: 'center',
-    padding: 24,
+    padding: 24
   },
   spotifyDisconnectedTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
     marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 8
   },
   spotifyDisconnectedDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 16
   },
   spotifyButtons: {
-    gap: 12,
+    gap: 12
   },
   connectSpotifyButton: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 24
   },
   testButton: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 24
   },
   saveButton: {
-    marginTop: 16,
+    marginTop: 16
   },
   logoutButton: {
-    borderColor: Colors.error,
+    borderColor: Colors.error
   },
   logoutButtonText: {
-    color: Colors.error,
+    color: Colors.error
   },
   textButton: {
     justifyContent: 'flex-start',
     paddingVertical: 12,
     marginVertical: 4,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background
   },
   textButtonText: {
     color: Colors.text.primary,
-    fontSize: 16,
+    fontSize: 16
   },
   versionText: {
     fontSize: 14,
     color: Colors.text.tertiary,
     textAlign: 'center',
-    marginTop: 16,
-  },
+    marginTop: 16
+  }
 });

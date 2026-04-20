@@ -10,13 +10,13 @@ import {
   Platform,
   ScrollView,
   Image,
-  ActivityIndicator,
-} from 'react-native';
+  ActivityIndicator } from
+'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Eye, EyeOff, Mail, Lock, Apple } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
-import { authService, AuthProvider } from '@/services/authService';
+import { authService } from '@/services/authService';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
   const [showMFA, setShowMFA] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<AuthProvider | null>(null);
+  const [socialLoading, setSocialLoading] = useState(null);
 
   const { setUser } = useUserStore();
 
@@ -45,7 +45,7 @@ export default function LoginScreen() {
         setUser(result.user);
         // For existing users logging in, assume they've completed onboarding
         // In a real app, this would be determined by user data from the server
-        (useUserStore.getState()).completeOnboarding();
+        useUserStore.getState().completeOnboarding();
         router.replace('/hq');
       }
     } catch (error) {
@@ -64,7 +64,7 @@ export default function LoginScreen() {
       setUser(result.user);
       // For social login, assume existing users have completed onboarding
       // In a real app, this would be determined by user data from the server
-      (useUserStore.getState()).completeOnboarding();
+      useUserStore.getState().completeOnboarding();
       router.replace('/hq');
     } catch (e) {
       console.error('[Social Login] Error', e);
@@ -85,7 +85,7 @@ export default function LoginScreen() {
       const result = await authService.verifyMFA(email, mfaCode);
       setUser(result.user);
       // For MFA users, assume they've completed onboarding
-      (useUserStore.getState()).completeOnboarding();
+      useUserStore.getState().completeOnboarding();
       router.replace('/hq');
     } catch {
       Alert.alert('Verification Failed', 'Invalid verification code');
@@ -98,10 +98,10 @@ export default function LoginScreen() {
     return (
       <SafeAreaView style={styles.mfaContainer}>
         <Stack.Screen options={{ title: 'Verify' }} />
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
+          style={styles.keyboardView}>
+          
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.mfaHeader}>
               <Text style={styles.mfaTitle}>Two-Factor Authentication</Text>
@@ -120,15 +120,15 @@ export default function LoginScreen() {
                   onChangeText={setMfaCode}
                   keyboardType="number-pad"
                   maxLength={6}
-                  textAlign="center"
-                />
+                  textAlign="center" />
+                
               </View>
 
               <TouchableOpacity
                 style={[styles.primaryPill, isLoading && styles.disabled]}
                 onPress={handleMFAVerification}
-                disabled={isLoading}
-              >
+                disabled={isLoading}>
+                
                 <Text style={styles.primaryPillText}>
                   {isLoading ? 'Verifying...' : 'Verify'}
                 </Text>
@@ -136,15 +136,15 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={styles.linkButton}
-                onPress={() => setShowMFA(false)}
-              >
+                onPress={() => setShowMFA(false)}>
+                
                 <Text style={styles.linkLight}>Back to Login</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
+      </SafeAreaView>);
+
   }
 
   return (
@@ -153,23 +153,23 @@ export default function LoginScreen() {
       <View style={styles.diagonalHeader}>
         <View style={styles.whiteSlice} />
         <View style={styles.logoCenterContainer}>
-          <Image 
+          <Image
             source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/vweh81504p0fox25qu1wk' }}
-            style={styles.logoCenter} 
+            style={styles.logoCenter}
             testID="login-logo-zown"
             resizeMode="contain"
-            accessibilityLabel="ZOWN Logo"
-          />
+            accessibilityLabel="ZOWN Logo" />
+          
         </View>
         <View style={styles.headerContent}>
           <Text style={styles.brandWord}>OWN THE DAY</Text>
         </View>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+        style={styles.keyboardView}>
+        
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.form} testID="login-form">
             <View style={styles.inputUnderline}>
@@ -181,8 +181,8 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
-                autoCapitalize="none"
-              />
+                autoCapitalize="none" />
+              
             </View>
 
             <View style={styles.inputUnderline}>
@@ -193,14 +193,14 @@ export default function LoginScreen() {
                 placeholderTextColor="#9CA3AF"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
+                secureTextEntry={!showPassword} />
+              
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                {showPassword ? (
-                  <EyeOff size={18} color={'#9CA3AF'} />
-                ) : (
-                  <Eye size={18} color={'#9CA3AF'} />
-                )}
+                {showPassword ?
+                <EyeOff size={18} color={'#9CA3AF'} /> :
+
+                <Eye size={18} color={'#9CA3AF'} />
+                }
               </TouchableOpacity>
             </View>
 
@@ -208,11 +208,11 @@ export default function LoginScreen() {
               testID="emailSignInButton"
               style={[styles.primaryPill, isLoading && styles.disabled]}
               onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? <ActivityIndicator color="#111827" /> : (
-                <Text style={styles.primaryPillText}>Enter</Text>
-              )}
+              disabled={isLoading}>
+              
+              {isLoading ? <ActivityIndicator color="#111827" /> :
+              <Text style={styles.primaryPillText}>Enter</Text>
+              }
             </TouchableOpacity>
 
             <View style={styles.socialRow}>
@@ -220,64 +220,64 @@ export default function LoginScreen() {
                 testID="googleSignIn"
                 style={styles.outlinePill}
                 onPress={() => handleSocial('google')}
-                disabled={socialLoading === 'google'}
-              >
-                {socialLoading === 'google' ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
+                disabled={socialLoading === 'google'}>
+                
+                {socialLoading === 'google' ?
+                <ActivityIndicator color="#fff" /> :
+
+                <>
                     <Image source={{ uri: 'https://cdn.simpleicons.org/google/FFF' }} style={styles.socialIcon} />
                     <Text style={styles.outlineText}>Google</Text>
                   </>
-                )}
+                }
               </TouchableOpacity>
 
-              {Platform.OS !== 'web' && (
-                <TouchableOpacity
-                  testID="appleSignIn"
-                  style={styles.outlinePill}
-                  onPress={() => handleSocial('apple')}
-                  disabled={socialLoading === 'apple'}
-                >
-                  {socialLoading === 'apple' ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
+              {Platform.OS !== 'web' &&
+              <TouchableOpacity
+                testID="appleSignIn"
+                style={styles.outlinePill}
+                onPress={() => handleSocial('apple')}
+                disabled={socialLoading === 'apple'}>
+                
+                  {socialLoading === 'apple' ?
+                <ActivityIndicator color="#fff" /> :
+
+                <>
                       <Apple size={18} color={'#fff'} />
                       <Text style={styles.outlineText}>Apple</Text>
                     </>
-                  )}
+                }
                 </TouchableOpacity>
-              )}
+              }
 
               <TouchableOpacity
                 testID="metaSignIn"
                 style={styles.outlinePill}
                 onPress={() => handleSocial('meta')}
-                disabled={socialLoading === 'meta'}
-              >
-                {socialLoading === 'meta' ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
+                disabled={socialLoading === 'meta'}>
+                
+                {socialLoading === 'meta' ?
+                <ActivityIndicator color="#fff" /> :
+
+                <>
                     <Image source={{ uri: 'https://cdn.simpleicons.org/meta/FFF' }} style={styles.socialIcon} />
                     <Text style={styles.outlineText}>Meta</Text>
                   </>
-                )}
+                }
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.push('/auth/forgot-password')}
-            >
+              onPress={() => router.push('/auth/forgot-password')}>
+              
               <Text style={styles.linkLight}>Forgot Password?</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.push('/auth/register')}
-            >
+              onPress={() => router.push('/auth/register')}>
+              
               <Text style={styles.linkLight}>
                 Don&apos;t have an account? <Text style={styles.linkStrong}>Sign Up</Text>
               </Text>
@@ -285,24 +285,24 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+    </SafeAreaView>);
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000'
   },
   mfaContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000'
   },
   diagonalHeader: {
     height: 220,
     position: 'relative',
     backgroundColor: '#000',
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   whiteSlice: {
     position: 'absolute',
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     right: -60,
     height: 360,
     backgroundColor: '#fff',
-    transform: [{ rotate: '-18deg' }],
+    transform: [{ rotate: '-18deg' }]
   },
   logoCenterContainer: {
     position: 'absolute',
@@ -322,52 +322,52 @@ const styles = StyleSheet.create({
     zIndex: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ translateY: -24 }],
+    transform: [{ translateY: -24 }]
   },
   logoCenter: {
     width: 200,
-    height: 60,
+    height: 60
   },
   headerContent: {
     position: 'absolute',
     right: 16,
     bottom: -12,
     zIndex: 2,
-    alignItems: 'flex-end',
+    alignItems: 'flex-end'
   },
   brandWord: {
     color: '#fff',
     fontSize: 42,
-    fontWeight: '900' as const,
+    fontWeight: '900',
     letterSpacing: 1,
-    textAlign: 'right' as const,
-    maxWidth: 260,
+    textAlign: 'right',
+    maxWidth: 260
   },
   keyboardView: {
-    flex: 1,
+    flex: 1
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    padding: 24
   },
   form: {
-    gap: 16,
+    gap: 16
   },
   inlineIcon: {
-    marginRight: 8,
+    marginRight: 8
   },
   inputUnderline: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
-    paddingVertical: 6,
+    paddingVertical: 6
   },
   inputDark: {
     flex: 1,
     fontSize: 16,
     color: '#fff',
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   primaryPill: {
     height: 56,
@@ -375,12 +375,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 8
   },
   primaryPillText: {
     color: '#111827',
     fontSize: 16,
-    fontWeight: '800' as const,
+    fontWeight: '800'
   },
   outlinePill: {
     flex: 1,
@@ -391,48 +391,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 8
   },
   outlineText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: '600'
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.6
   },
   linkButton: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   linkLight: {
     color: '#E5E7EB',
-    fontSize: 13,
+    fontSize: 13
   },
   linkStrong: {
     color: '#fff',
-    fontWeight: '700' as const,
+    fontWeight: '700'
   },
   socialRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12
   },
   socialIcon: {
     width: 18,
-    height: 18,
+    height: 18
   },
   mfaHeader: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 24
   },
   mfaTitle: {
     fontSize: 24,
-    fontWeight: '800' as const,
+    fontWeight: '800',
     color: '#fff',
-    marginBottom: 6,
+    marginBottom: 6
   },
   mfaSubtitle: {
     fontSize: 14,
-    color: '#D1D5DB',
-  },
+    color: '#D1D5DB'
+  }
 });
