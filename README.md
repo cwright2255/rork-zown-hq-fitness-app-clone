@@ -198,3 +198,39 @@ The app scheme is `zownhq`. Supported deep links:
 - `zownhq://ai-coach/:recommendationId` — open an AI Coach recommendation
 - `zownhq://profile` — open the profile screen
 - `zownhq://spotify-callback` — Spotify OAuth redirect
+
+## Expo Go — Stable QR Code
+
+Every push to `main` triggers an automatic Expo publish via GitHub Actions. Once published, the app is available in Expo Go at:
+
+**@cwright2255/zown-hq**
+
+Scan with the Expo Go app on iOS or Android:
+
+[![Expo QR](https://qr.expo.dev/expo-go?owner=cwright2255&slug=zown-hq&releaseChannel=default&host=exp.host)](https://expo.dev/@cwright2255/zown-hq)
+
+Or open directly: [expo.dev/@cwright2255/zown-hq](https://expo.dev/@cwright2255/zown-hq)
+
+### GitHub Secrets Required
+
+Before the workflow runs successfully, add these secrets to the repo at:
+**Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Description |
+|---|---|
+| `EXPO_TOKEN` | Get from expo.dev → Account Settings → Access Tokens |
+| `EXPO_PUBLIC_FIREBASE_API_KEY` | Firebase web API key |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | `zown-3c512.firebaseapp.com` |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | `zown-3c512` |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | `zown-3c512.firebasestorage.app` |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `431690627943` |
+| `EXPO_PUBLIC_FIREBASE_APP_ID` | Firebase iOS/Android app ID |
+| `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID (optional) |
+| `EXPO_PUBLIC_SPOTIFY_CLIENT_ID` | `cb884c0e045d4683bd3f0b38cb0e151e` |
+| `EXPO_PUBLIC_SPOTIFY_REDIRECT_URI` | `zownhq://spotify-callback` |
+| `EXPO_PUBLIC_PASSIO_API_KEY` | Get new key from platform.passiolife.com |
+| `EXPO_PUBLIC_ROOK_CLIENT_UUID` | `78e6b253-ee09-43bf-b89b-a2983a59de06` |
+| `EXPO_PUBLIC_ROOK_SECRET` | `ZownHQ2026` |
+| `EXPO_PUBLIC_ROOK_ENVIRONMENT` | `sandbox` or `production` |
+| `EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY` | `prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5` |
+| `EXPO_PUBLIC_API_BASE_URL` | (optional) Firebase Cloud Functions base URL override |

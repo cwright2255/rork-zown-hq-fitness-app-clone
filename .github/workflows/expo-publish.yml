@@ -1,0 +1,51 @@
+name: Expo Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    name: Publish to Expo Go
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: expo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: expo/package-lock.json
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli@latest
+
+      - name: Publish to Expo
+        run: npx expo publish --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+          EXPO_PUBLIC_SPOTIFY_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_ID }}
+          EXPO_PUBLIC_SPOTIFY_REDIRECT_URI: ${{ secrets.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI }}
+          EXPO_PUBLIC_PASSIO_API_KEY: ${{ secrets.EXPO_PUBLIC_PASSIO_API_KEY }}
+          EXPO_PUBLIC_ROOK_CLIENT_UUID: ${{ secrets.EXPO_PUBLIC_ROOK_CLIENT_UUID }}
+          EXPO_PUBLIC_ROOK_SECRET: ${{ secrets.EXPO_PUBLIC_ROOK_SECRET }}
+          EXPO_PUBLIC_ROOK_ENVIRONMENT: ${{ secrets.EXPO_PUBLIC_ROOK_ENVIRONMENT }}
+          EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
