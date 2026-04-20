@@ -287,6 +287,7 @@ export default function RootLayout() {
                 <Stack.Screen name="mood-tracking" />
                 <Stack.Screen name="health-assessment" />
                 <Stack.Screen name="wearables" />
+                <Stack.Screen name="rook-connect" />
                 <Stack.Screen name="support" />
                 <Stack.Screen name="order-tracking" />
                 <Stack.Screen name="leaderboard" />

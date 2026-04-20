@@ -62,3 +62,6 @@ eas build --platform ios --profile development
 ```
 
 ROOK Sandbox credentials are pre-configured. Visit [clients.portal.tryrook.io](https://www.clients.portal.tryrook.io/) to generate Production credentials when ready.
+
+### ROOK Connection Page
+The ROOK Connection Page (the `/rook-connect` route) is a web-based screen rendered in a `react-native-webview` and **works in Expo Go** — users can connect Garmin, Fitbit, Oura, Whoop, etc. through the hosted page. Full on-device wearable data sync (Apple Health / Health Connect) still requires a dev client build.

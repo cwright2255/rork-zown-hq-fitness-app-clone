@@ -5,6 +5,7 @@ export const linking = {
       workout: 'workout/:workoutId',
       'ai-coach': 'ai-coach/:recommendationId',
       profile: 'profile',
+      'rook-connect': 'rook-connect',
     },
   },
 };

@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Typography, Radius } from '../constants/tokens';
 import { useWearables } from '../hooks/useWearables';
 
 export function WearablesCard({ userId }) {
+  const router = useRouter();
   const {
     isLoading,
     hasPermissions,
@@ -15,6 +17,16 @@ export function WearablesCard({ userId }) {
     isExpoGo,
   } = useWearables(userId);
 
+  const manageDevicesButton = (
+    <TouchableOpacity
+      style={styles.manageButton}
+      onPress={() => router.push('/rook-connect')}
+      accessibilityLabel="Manage connected wearable devices"
+    >
+      <Text style={styles.manageButtonText}>Manage Connected Devices</Text>
+    </TouchableOpacity>
+  );
+
   if (isExpoGo) {
     return (
       <View style={styles.card}>
@@ -22,6 +34,7 @@ export function WearablesCard({ userId }) {
         <Text style={styles.subtitle}>
           Available in the full dev client build. Run `eas build --platform ios --profile development` to enable Apple Health sync.
         </Text>
+        {manageDevicesButton}
       </View>
     );
   }
@@ -43,6 +56,7 @@ export function WearablesCard({ userId }) {
             <Text style={styles.buttonText}>Connect Apple Health</Text>
           )}
         </TouchableOpacity>
+        {manageDevicesButton}
       </View>
     );
   }
@@ -76,6 +90,7 @@ export function WearablesCard({ userId }) {
           <Text style={[styles.buttonText, { color: Colors.primary }]}>Sync Now</Text>
         )}
       </TouchableOpacity>
+      {manageDevicesButton}
     </View>
   );
 }
@@ -133,5 +148,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.semibold,
+  },
+  manageButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  manageButtonText: {
+    color: Colors.primary,
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.medium,
+    textDecorationLine: 'underline',
   },
 });

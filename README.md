@@ -98,6 +98,12 @@ HealthKit entitlement is configured in `app.json`. No additional Xcode setup is 
 ### Health Connect (Android)
 Health Connect permissions are declared via the ROOK SDK manifest merge. No manual `AndroidManifest.xml` edits needed.
 
+### Connection Page
+Users connect their wearable devices via the ROOK-hosted Connection Page, which opens as an in-app WebView at:
+`https://connections.rook-connect.review/client_uuid/{UUID}/user_id/{USER_ID}?theme=dark`
+
+Navigate to it in the app via `WearablesCard` → "Manage Connected Devices" or directly via the `/rook-connect` route.
+
 ## Run
 
 ```bash
