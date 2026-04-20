@@ -147,7 +147,12 @@
       "policy": "sdkVersion"
     },
     "extra": {
-      "eas": {}
+      "eas": {
+        "projectId": "97962c67-b686-4470-9dd8-8e874d90b279"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/97962c67-b686-4470-9dd8-8e874d90b279"
     }
   }
 }
