@@ -32,9 +32,9 @@
       "bundleIdentifier": "com.zownhq.app",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
+        "NSPhotoLibraryUsageDescription": "Used for profile photo upload",
+        "NSCameraUsageDescription": "Used for profile photo upload",
+        "NSMicrophoneUsageDescription": "Used for workout audio features",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
@@ -55,9 +55,14 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "zownhq" }
+            {
+              "scheme": "zownhq"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [
@@ -127,6 +132,15 @@
     "experiments": {
       "typedRoutes": true
     },
-    "owner": "cwright2255"
+    "owner": "cwright2255",
+    "sdkVersion": "54.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/zown-hq",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
