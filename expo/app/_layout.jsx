@@ -12,7 +12,6 @@ import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 import { useShopStore } from '@/store/shopStore';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import { ErrorBoundary } from '@/components/LoadingScreen';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -362,3 +361,34 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   }
 });
+
+export class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[ZownHQ] Crash:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#fff' }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#000' }}>Something went wrong</Text>
+          <Text style={{ color: '#666', textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
+            {String(this.state.error)}
+          </Text>
+          <TouchableOpacity
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
