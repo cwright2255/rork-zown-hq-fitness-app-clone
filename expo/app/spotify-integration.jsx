@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Music, Play, Pause, Settings, RefreshCw, Loader } from 'lucide-react-native';
-import * from 'expo-haptics';
+import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';

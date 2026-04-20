@@ -19,7 +19,7 @@ import {
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Play, Pause, SkipForward, ChevronLeft, Clock, Award, Heart, Volume2, ChevronUp, ChevronDown, X, Camera, Music, Info, MapPin, Loader2 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
-import * from 'expo-haptics';
+import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import Button from '@/components/Button';
 import ProgressBar from '@/components/ProgressBar';

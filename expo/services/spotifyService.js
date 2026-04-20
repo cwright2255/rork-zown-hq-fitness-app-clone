@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import * from 'expo-web-browser';
+import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 

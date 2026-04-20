@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import * from 'expo-notifications';
+import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';

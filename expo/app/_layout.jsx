@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font';
-import * from 'expo-splash-screen';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Bell, Menu, ShoppingCart } from 'lucide-react-native';
@@ -13,7 +13,7 @@ import { useUserStore } from '@/store/userStore';
 import { useShopStore } from '@/store/shopStore';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { ErrorBoundary } from '@/components/LoadingScreen';
-import * from 'expo-linking';
+import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { trpc, trpcClient } from '@/lib/trpc';
@@ -45,28 +45,14 @@ function RookWrapper({ children }) {
   }
 }
 
-  pathname: string;
-  cartItemCount: number;
-  isOnboarded: boolean;
-};
-
-};
-
-};
-
-};
-
-  onClose: () => void;
-};
-
-const TypedHamburgerMenu = HamburgerMenu.ComponentType;
+const TypedHamburgerMenu = HamburgerMenu;
 
 const RootLayoutNav = React.memo(function RootLayoutNav({
   toggleMenu,
   pathname,
   cartItemCount,
   isOnboarded,
-}: RootLayoutNavProps) {
+}) {
   const isShopPage = useMemo(() => pathname === '/shop' || pathname.startsWith('/shop/'), [pathname]);
 
   const shouldShowNav = useMemo(

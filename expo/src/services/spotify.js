@@ -1,5 +1,5 @@
-import * from 'expo-auth-session';
-import * from 'expo-secure-store';
+import * as AuthSession from 'expo-auth-session';
+import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Settings, Award, TrendingUp, LogOut, ChevronRight, Camera, BarChart, Calendar, User, Edit, Activity, Crown } from 'lucide-react-native';
-import * from 'expo-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import LevelProgress from '@/components/LevelProgress';

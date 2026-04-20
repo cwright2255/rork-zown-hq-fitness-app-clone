@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Animated, Platform, ScrollView } from 'react-native';
 import { Play, Pause, Music, Volume2, Loader, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react-native';
-import * from 'expo-haptics';
+import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
