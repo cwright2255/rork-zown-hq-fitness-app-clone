@@ -28,7 +28,8 @@ export default function BarcodeScanScreen() {
       
       // Mock barcode lookup - in a real app, you'd use a service like Open Food Facts API
       // For demo purposes, we'll simulate a lookup with AI
-      const aiResponse = await fetch('https://toolkit.rork.com/text/llm/', {
+      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
+      const aiResponse = await fetch(`${apiBase}/text/llm/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

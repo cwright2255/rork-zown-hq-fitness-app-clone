@@ -2,7 +2,8 @@ import { useExpStore } from '@/store/expStore';
 import { wearableService } from '@/services/wearableService';
 import { useUserStore } from '@/store/userStore';
 
-const LLM_URL = 'https://toolkit.rork.com/text/llm/';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
+const LLM_URL = `${API_BASE_URL}/text/llm/`;
 
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {

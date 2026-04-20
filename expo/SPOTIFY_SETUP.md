@@ -13,7 +13,7 @@ This app uses Spotify's Client Credentials Flow to access public music data for 
    - **App Name**: Your fitness app name
    - **App Description**: Brief description of your app
    - **Website**: Your app's website (can be localhost for development)
-   - **Redirect URI**: Add `https://rork.com/spotify-callback` and `myapp://spotify-callback`
+   - **Redirect URI**: Add `zownhq://spotify-callback`
 5. Accept the terms and create the app
 
 ### 2. Get Your Credentials
@@ -44,11 +44,9 @@ yarn start
 bun start
 ```
 
-### 4. Set Up Callback Page (Required for User Authentication)
+### 4. Deep-link Callback
 
-For user authentication features, you need to set up a callback page at `https://rork.com/spotify-callback`.
-
-See `SPOTIFY_CALLBACK_SETUP.md` for detailed instructions.
+User authentication uses the `zownhq://spotify-callback` deep link scheme — no external hosting is required. The scheme is registered in `app.json`. Rebuild the dev client after changes (`eas build --profile development`) for the scheme to take effect.
 
 ## What This Enables
 

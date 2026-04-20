@@ -1,90 +1,43 @@
 # Spotify Callback Setup
 
 ## Overview
-Since Spotify requires a `.com` domain for redirect URIs, we use `https://rork.com/spotify-callback` as our callback URL.
+Spotify authentication uses the native deep-link scheme `zownhq://spotify-callback`. No external HTML callback page needs to be hosted — the app intercepts the redirect directly.
 
 ## Required Setup
 
 ### 1. Spotify App Configuration
-In your Spotify app settings at https://developer.spotify.com/dashboard:
+In your Spotify app settings at https://developer.spotify.com/dashboard, add this redirect URI:
 
-Add this redirect URI:
-- `https://rork.com/spotify-callback`
-- `myapp://spotify-callback` (for mobile deep linking)
-
-### 2. Callback Page at rork.com
-The following HTML page should be hosted at `https://rork.com/spotify-callback`:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Spotify Callback</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-        <h2>Connecting to Spotify...</h2>
-        <p>Please wait while we complete the authentication process.</p>
-    </div>
-
-    <script>
-        // Extract the access token from URL fragment
-        const urlFragment = window.location.hash;
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        console.log('Spotify callback page - URL fragment:', urlFragment);
-        console.log('Spotify callback page - URL search:', window.location.search);
-        
-        // Check for errors
-        const error = urlParams.get('error');
-        if (error) {
-            console.error('Spotify authentication error:', error);
-            const errorDescription = urlParams.get('error_description') || 'Unknown error';
-            console.error('Error description:', errorDescription);
-            
-            // Redirect back to app with error
-            const appUrl = 'https://your-app-domain.com/spotify-callback?error=' + encodeURIComponent(error);
-            window.location.href = appUrl;
-            return;
-        }
-        
-        // If we have a fragment (implicit grant flow)
-        if (urlFragment) {
-            // Redirect back to the app with the token in the URL
-            const appUrl = 'https://your-app-domain.com/spotify-callback' + urlFragment;
-            console.log('Redirecting to app with token:', appUrl);
-            window.location.href = appUrl;
-        } else {
-            console.log('No URL fragment found, redirecting to app home');
-            window.location.href = 'https://your-app-domain.com/';
-        }
-    </script>
-</body>
-</html>
+```
+zownhq://spotify-callback
 ```
 
-### 3. Update App Domain
-Replace `https://your-app-domain.com` in the callback page with your actual app domain.
+### 2. Deep Link Registration
+The `zownhq` scheme is registered in `expo/app.json` under `expo.scheme` and in the iOS/Android linking config. It maps to the `app/spotify-callback.jsx` route.
+
+### 3. Environment Variables
+```
+EXPO_PUBLIC_SPOTIFY_REDIRECT_URI=zownhq://spotify-callback
+```
 
 ## How It Works
 
-1. User clicks "Connect Spotify" in the app
-2. App redirects to Spotify authorization URL with `redirect_uri=https://rork.com/spotify-callback`
-3. User authorizes the app on Spotify
-4. Spotify redirects to `https://rork.com/spotify-callback` with access token in URL fragment
-5. The callback page extracts the token and redirects back to your app
-6. Your app's `/spotify-callback` route handles the token and completes authentication
+1. User taps "Connect Spotify" in the app
+2. App opens Spotify authorization URL with `redirect_uri=zownhq://spotify-callback` and PKCE challenge
+3. User authorizes on Spotify
+4. Spotify redirects to `zownhq://spotify-callback?code=...&state=...`
+5. Expo Router routes the deep link to `app/spotify-callback.jsx`
+6. The callback route exchanges the code for tokens (via the `refreshSpotifyToken` Firebase Function or backend proxy) and stores them
 
 ## Testing
 
-1. Make sure the callback page is live at `https://rork.com/spotify-callback`
-2. Add the redirect URI to your Spotify app settings
+1. Add the redirect URI to your Spotify app dashboard
+2. Build a dev client with `eas build --profile development` (the scheme only works on a real build, not Expo Go for deep links from an external browser)
 3. Test the "Connect Spotify" flow in your app
 
 ## Security Notes
 
-- The callback page should be served over HTTPS
-- The access token is only passed through URL fragments, which are not sent to the server
-- Consider adding additional validation in the callback page if needed
+- The client secret is stored in Firebase Secret Manager (`SPOTIFY_CLIENT_SECRET`) — never in client code
+- The integration uses Authorization Code flow with PKCE for user auth
+- A `state` parameter is used for CSRF protection
+- Access tokens are stored securely via AsyncStorage

@@ -55,7 +55,7 @@
 ### Spotify Setup
 - Client ID: `a8f6b1b642d24d36b978f0c96585ac13`
 - Client Secret: `b7e8c2d753f14e47a089f1d97686bd24`
-- Redirect URI: `https://rork.com/spotify-callback.html`
+- Redirect URI: `zownhq://spotify-callback`
 
 ### Performance Monitoring
 - Enabled in development mode only

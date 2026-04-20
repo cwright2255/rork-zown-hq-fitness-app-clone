@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 // Radar API configuration
-const RADAR_PUBLISHABLE_KEY = 'prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659';
+const RADAR_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY;
 const RADAR_BASE_URL = 'https://api.radar.io/v1';
 
 export class RadarService {

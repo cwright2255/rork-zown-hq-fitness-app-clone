@@ -3,7 +3,8 @@ import * as Clipboard from 'expo-clipboard';
 
 class RecipeExtractionService {
   constructor() {
-    this.AI_API_URL = 'https://toolkit.rork.com/text/llm/';
+    const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
+    this.AI_API_URL = `${apiBase}/text/llm/`;
   }
 
   async extractRecipeFromUrl(url) {

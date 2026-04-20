@@ -101,18 +101,8 @@ class SpotifyService {
       return hostedCallbackUri;
     }
 
-    const browserHref = typeof window !== 'undefined' ? window.location.href : '';
-    const browserOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-    const inRorkHostedPreview = browserHref.includes('/p/') || browserOrigin.includes('rork.app');
-
-    if (inRorkHostedPreview) {
-      console.log('SpotifyService: Using hosted redirect URI:', hostedCallbackUri);
-      return hostedCallbackUri;
-    }
-
-    const localRedirect = `${browserOrigin || 'http://localhost:8081'}/spotify-callback`;
-    console.log('SpotifyService: Using local web redirect URI:', localRedirect);
-    return localRedirect;
+    console.log('SpotifyService: Using app scheme redirect URI:', hostedCallbackUri);
+    return hostedCallbackUri;
   }
 
   private async autoInitialize() {

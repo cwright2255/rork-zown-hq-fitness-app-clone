@@ -34,8 +34,8 @@
 ### 1. Spotify App Configuration
 In your Spotify Developer Dashboard:
 1. Add redirect URIs:
-   - `https://rork.com/spotify-callback`
-   - `myapp://spotify-callback`
+   - `zownhq://spotify-callback`
+   - `zownhq://spotify-callback`
 2. Note your Client ID and Client Secret
 
 ### 2. Environment Variables
@@ -45,7 +45,7 @@ EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_actual_client_secret_here
 ```
 
 ### 3. Callback Page Setup
-Create an HTML page at `https://rork.com/spotify-callback` that:
+Create an HTML page at `zownhq://spotify-callback` that:
 1. Extracts the access token from the URL fragment
 2. Redirects back to your app with the token
 3. Handles errors appropriately
@@ -84,7 +84,7 @@ See `SPOTIFY_CALLBACK_SETUP.md` for the complete HTML code.
 ### Common Issues
 
 1. **\"Invalid redirect URI\" error**
-   - Ensure `https://rork.com/spotify-callback` is added to your Spotify app
+   - Ensure `zownhq://spotify-callback` is added to your Spotify app
    - Check that the callback page is live and accessible
 
 2. **\"Connect Spotify\" button not working**
@@ -107,11 +107,11 @@ See `SPOTIFY_CALLBACK_SETUP.md` for the complete HTML code.
 
 ### Web
 - ✅ Full support with redirect-based authentication
-- ✅ Callback handling via `https://rork.com/spotify-callback`
+- ✅ Callback handling via `zownhq://spotify-callback`
 - ✅ Fallback mechanisms for different scenarios
 
 ### Mobile
-- ✅ Deep linking support with `myapp://spotify-callback`
+- ✅ Deep linking support with `zownhq://spotify-callback`
 - ✅ Native app integration
 - ✅ Proper mobile UX considerations
 
@@ -146,7 +146,7 @@ See `SPOTIFY_CALLBACK_SETUP.md` for the complete HTML code.
 
 ## 📋 Next Steps
 
-1. **Set up the callback page** at `https://rork.com/spotify-callback`
+1. **Set up the callback page** at `zownhq://spotify-callback`
 2. **Configure your Spotify app** with the correct redirect URIs
 3. **Add your Client Secret** to the environment variables
 4. **Test the integration** using the provided test pages

@@ -35,7 +35,8 @@ export default function FoodScanScreen() {
         
         try {
           // Call AI service for food recognition
-          const aiResponse = await fetch('https://toolkit.rork.com/text/llm/', {
+          const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
+          const aiResponse = await fetch(`${apiBase}/text/llm/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
