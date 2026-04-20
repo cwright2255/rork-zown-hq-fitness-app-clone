@@ -3,9 +3,6 @@
     "version": ">= 16.0.0",
     "appVersionSource": "remote"
   },
-  "updates": {
-    "sourceDir": "."
-  },
   "build": {
     "development": {
       "developmentClient": true,
@@ -80,19 +77,6 @@
         "EXPO_PUBLIC_ROOK_SECRET": "ZownHQ2026",
         "EXPO_PUBLIC_ROOK_ENVIRONMENT": "production",
         "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
-      }
-    }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "carlton.v.wright.jr@gmail.com",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
-      "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "internal"
       }
     }
   }
