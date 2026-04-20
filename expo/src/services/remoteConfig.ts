@@ -14,47 +14,32 @@ const DEFAULTS: FeatureFlags = {
   newWorkoutUIEnabled: false,
 };
 
-let loaded: FeatureFlags = { ...DEFAULTS };
-let initialized = false;
 let remoteConfig: any = null;
 
-export async function fetchAndActivate(): Promise<void> {
-  if (initialized) return;
-  initialized = true;
-  if (IS_EXPO_GO) {
-    loaded = { ...DEFAULTS };
-    return;
-  }
+export const fetchAndActivate = async (): Promise<void> => {
+  if (IS_EXPO_GO) return;
   try {
-    // @ts-ignore - optional peer dependency, loaded only when installed
-    const mod: any = await import('@react-native-firebase/remote-config').catch(() => null);
-    if (!mod?.default) {
-      loaded = { ...DEFAULTS };
-      return;
-    }
-    remoteConfig = mod.default();
-    await remoteConfig.setDefaults({
-      aiCoachEnabled: DEFAULTS.aiCoachEnabled,
-      spotifyEnabled: DEFAULTS.spotifyEnabled,
-      newWorkoutUIEnabled: DEFAULTS.newWorkoutUIEnabled,
-    });
-    await remoteConfig.setConfigSettings({ minimumFetchIntervalMillis: 60 * 60 * 1000 });
-    await remoteConfig.fetchAndActivate();
+    const { getRemoteConfig, fetchAndActivate: firebaseFetchAndActivate } =
+      await import('firebase/remote-config');
+    const app = (await import('../config/firebase')).default;
+    remoteConfig = getRemoteConfig(app);
+    remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
+    remoteConfig.defaultConfig = DEFAULTS as any;
+    await firebaseFetchAndActivate(remoteConfig);
+  } catch {}
+};
 
-    loaded = {
-      aiCoachEnabled: remoteConfig.getValue('aiCoachEnabled').asBoolean(),
-      spotifyEnabled: remoteConfig.getValue('spotifyEnabled').asBoolean(),
-      newWorkoutUIEnabled: remoteConfig.getValue('newWorkoutUIEnabled').asBoolean(),
-    };
+export const getFeatureFlag = <K extends keyof FeatureFlags>(
+  key: K,
+  defaultValue?: FeatureFlags[K],
+): FeatureFlags[K] => {
+  if (!remoteConfig) return (DEFAULTS[key] ?? defaultValue) as FeatureFlags[K];
+  try {
+    const { getValue } = require('firebase/remote-config');
+    return getValue(remoteConfig, key as string).asBoolean() as FeatureFlags[K];
   } catch {
-    loaded = { ...DEFAULTS };
+    return (DEFAULTS[key] ?? defaultValue) as FeatureFlags[K];
   }
-}
+};
 
-export function getFeatureFlag<K extends keyof FeatureFlags>(key: K): FeatureFlags[K] {
-  return loaded[key];
-}
-
-export function getAllFeatureFlags(): FeatureFlags {
-  return { ...loaded };
-}
+export const getAllFeatureFlags = (): FeatureFlags => ({ ...DEFAULTS });

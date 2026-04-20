@@ -1,130 +1,93 @@
 import {
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendPasswordResetEmail,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
   onAuthStateChanged as firebaseOnAuthStateChanged,
-  updateProfile,
-  User,
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
+  updateProfile,
+  User,
   UserCredential,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import type { UserProfile } from '../types/firestore';
+import Constants from 'expo-constants';
 
-const USERS_COLLECTION = 'users';
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
-async function ensureUserProfile(
-  user: User,
-  extra?: Partial<UserProfile>,
-): Promise<void> {
-  const ref = doc(db, USERS_COLLECTION, user.uid);
-  const snap = await getDoc(ref);
-  if (snap.exists()) return;
-
-  const profile = {
-    uid: user.uid,
-    email: user.email ?? '',
-    displayName: user.displayName ?? extra?.displayName ?? '',
-    photoURL: user.photoURL ?? extra?.photoURL ?? null,
-    fitnessLevel: extra?.fitnessLevel ?? 'beginner',
-    goals: extra?.goals ?? [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  await setDoc(ref, profile);
-}
-
-export async function signInWithEmail(
+export const signInWithEmail = async (
   email: string,
   password: string,
-): Promise<UserCredential> {
+): Promise<UserCredential> => {
   return signInWithEmailAndPassword(auth, email, password);
-}
+};
 
-export async function signUpWithEmail(
+export const signUpWithEmail = async (
   email: string,
   password: string,
   displayName: string,
-): Promise<UserCredential> {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  if (displayName) {
-    await updateProfile(cred.user, { displayName });
-  }
-  await ensureUserProfile(cred.user, { displayName });
-  return cred;
-}
+): Promise<UserCredential> => {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(result.user, { displayName });
+  await setDoc(doc(db, 'users', result.user.uid), {
+    uid: result.user.uid,
+    email,
+    displayName,
+    fitnessLevel: 'beginner',
+    goals: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return result;
+};
 
-export async function signInWithGoogle(): Promise<UserCredential> {
+export const signInWithGoogle = async (): Promise<UserCredential> => {
+  if (IS_EXPO_GO) {
+    throw new Error(
+      'Google Sign-In is not available in Expo Go. Please use email/password or build a dev client.',
+    );
+  }
   try {
-    // @ts-ignore - optional peer dependency, loaded only when installed in a native build
-    const mod: any = await import('@react-native-google-signin/google-signin').catch(() => null);
-    if (!mod?.GoogleSignin) {
-      throw new Error(
-        'Google Sign-In is not available in this build. Install @react-native-google-signin/google-signin and rebuild the app.',
-      );
-    }
-    const { GoogleSignin } = mod;
-    await GoogleSignin.hasPlayServices?.();
-    const userInfo = await GoogleSignin.signIn();
-    const idToken: string | undefined =
-      userInfo?.idToken ?? userInfo?.data?.idToken;
-    if (!idToken) throw new Error('Google Sign-In returned no idToken');
+    const GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
+    await GoogleSignin.hasPlayServices();
+    const { idToken } = await GoogleSignin.signIn();
     const credential = GoogleAuthProvider.credential(idToken);
-    const cred = await signInWithCredential(auth, credential);
-    await ensureUserProfile(cred.user);
-    return cred;
-  } catch (err) {
-    if (err instanceof Error) throw err;
-    throw new Error('Google Sign-In failed');
+    return signInWithCredential(auth, credential);
+  } catch {
+    throw new Error('Google Sign-In unavailable. Please use email/password login.');
   }
-}
+};
 
-export async function signInWithApple(): Promise<UserCredential> {
+export const signInWithApple = async (): Promise<UserCredential> => {
+  if (IS_EXPO_GO) {
+    throw new Error(
+      'Apple Sign-In is not available in Expo Go. Please use email/password or build a dev client.',
+    );
+  }
   try {
-    // @ts-ignore - optional peer dependency, loaded only when installed in a native build
-    const mod: any = await import('@invertase/react-native-apple-authentication').catch(() => null);
-    if (!mod?.appleAuth) {
-      throw new Error(
-        'Apple Sign-In is not available in this build. Install @invertase/react-native-apple-authentication and rebuild the app.',
-      );
-    }
-    const { appleAuth } = mod;
-    const response = await appleAuth.performRequest({
+    const appleAuth = require('@invertase/react-native-apple-authentication').default;
+    const appleAuthRequestResponse = await appleAuth.performRequest({
       requestedOperation: appleAuth.Operation.LOGIN,
       requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
     });
-    const { identityToken, nonce } = response;
-    if (!identityToken) throw new Error('Apple Sign-In returned no identityToken');
+    const { identityToken, nonce } = appleAuthRequestResponse;
     const provider = new OAuthProvider('apple.com');
-    const credential = provider.credential({ idToken: identityToken, rawNonce: nonce });
-    const cred = await signInWithCredential(auth, credential);
-    await ensureUserProfile(cred.user);
-    return cred;
-  } catch (err) {
-    if (err instanceof Error) throw err;
-    throw new Error('Apple Sign-In failed');
+    const credential = provider.credential({ idToken: identityToken!, rawNonce: nonce });
+    return signInWithCredential(auth, credential);
+  } catch {
+    throw new Error('Apple Sign-In unavailable. Please use email/password login.');
   }
-}
+};
 
-export async function sendPasswordReset(email: string): Promise<void> {
-  await sendPasswordResetEmail(auth, email);
-}
+export const sendPasswordReset = (email: string): Promise<void> =>
+  sendPasswordResetEmail(auth, email);
 
-export async function signOut(): Promise<void> {
-  await firebaseSignOut(auth);
-}
+export const signOut = (): Promise<void> => firebaseSignOut(auth);
 
-export function onAuthStateChanged(
-  callback: (user: User | null) => void,
-): () => void {
-  return firebaseOnAuthStateChanged(auth, callback);
-}
+export const onAuthStateChanged = (
+  callback: Parameters<typeof firebaseOnAuthStateChanged>[1],
+): (() => void) => firebaseOnAuthStateChanged(auth, callback);
 
-export function getCurrentUser(): User | null {
-  return auth.currentUser;
-}
+export const getCurrentUser = (): User | null => auth.currentUser;

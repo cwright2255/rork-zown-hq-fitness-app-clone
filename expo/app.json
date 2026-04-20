@@ -84,8 +84,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics",
       [
         "expo-router",
         {
@@ -141,6 +139,11 @@
       "url": "https://u.expo.dev/zown-hq",
       "enabled": true,
       "fallbackToCacheTimeout": 0
+    },
+    "extra": {
+      "eas": {
+        "projectId": "zown-hq"
+      }
     }
   }
 }
