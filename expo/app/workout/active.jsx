@@ -19,7 +19,6 @@ import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Play, Pause, Clock, Award, Heart, X, Camera, Music, MapPin, Loader2 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
-import Colors from '@/constants/colors';
 
 
 
@@ -483,7 +482,7 @@ export default function ActiveWorkoutScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <MapPin size={64} color={Colors.text.secondary} />
+          <MapPin size={64} color={'#999999'} />
           <Text style={styles.permissionTitle}>Location Permission Required</Text>
           <Text style={styles.permissionText}>
             GPS tracking is required for running workouts. Please enable location services in your device settings to continue.
@@ -740,13 +739,13 @@ export default function ActiveWorkoutScreen() {
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Clock size={24} color={Colors.primary} />
+              <Clock size={24} color={'#FFFFFF'} />
               <Text style={styles.summaryStatValue}>{mode === 'run' || mode === 'running' ? formatTime(runStats.time) : `${workout?.duration} min`}</Text>
               <Text style={styles.summaryStatLabel}>Duration</Text>
             </View>
             
             <View style={styles.statItem}>
-              <Award size={24} color={Colors.primary} />
+              <Award size={24} color={'#FFFFFF'} />
               <Text style={styles.summaryStatValue}>+{mode === 'run' || mode === 'running' ? runningSession?.xpReward || 50 : workout?.xpReward || 0}</Text>
               <Text style={styles.summaryStatLabel}>XP Earned</Text>
             </View>
@@ -754,13 +753,13 @@ export default function ActiveWorkoutScreen() {
             {(mode === 'run' || mode === 'running') &&
             <>
                 <View style={styles.statItem}>
-                  <MapPin size={24} color={Colors.primary} />
+                  <MapPin size={24} color={'#FFFFFF'} />
                   <Text style={styles.summaryStatValue}>{locationState.distance.toFixed(2)} km</Text>
                   <Text style={styles.summaryStatLabel}>Distance</Text>
                 </View>
                 
                 <View style={styles.statItem}>
-                  <Heart size={24} color={Colors.primary} />
+                  <Heart size={24} color={'#FFFFFF'} />
                   <Text style={styles.summaryStatValue}>{Math.round(runStats.calories)}</Text>
                   <Text style={styles.summaryStatLabel}>Calories</Text>
                 </View>
@@ -1015,7 +1014,7 @@ export default function ActiveWorkoutScreen() {
             
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
-                <MapPin size={48} color={Colors.primary} style={styles.permissionIcon} />
+                <MapPin size={48} color={'#FFFFFF'} style={styles.permissionIcon} />
                 <Text style={styles.modalTitle}>Location Permission Required</Text>
                 <Text style={styles.modalText}>
                   We need access to your location to track your run with GPS. This allows us to:
@@ -1030,7 +1029,7 @@ export default function ActiveWorkoutScreen() {
                 
                 {locationPermission === 'loading' ?
                 <View style={styles.loadingContainer}>
-                    <Loader2 size={24} color={Colors.primary} />
+                    <Loader2 size={24} color={'#FFFFFF'} />
                     <Text style={styles.loadingText}>Requesting permission...</Text>
                   </View> :
 
@@ -1066,7 +1065,7 @@ export default function ActiveWorkoutScreen() {
                 <View style={styles.musicModalHeader}>
                   <Text style={styles.musicModalTitle}>Music</Text>
                   <TouchableOpacity onPress={() => setShowMusicPlayer(false)} testID="close-music-modal">
-                    <X size={24} color={Colors.text.primary} />
+                    <X size={24} color={'#FFFFFF'} />
                   </TouchableOpacity>
                 </View>
                 <SpotifyMusicPlayer
@@ -1134,27 +1133,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#000000',
     padding: 20
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: '#999999',
     marginBottom: 20
   },
   backButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8
   },
   backButtonText: {
-    color: Colors.text.inverse,
+    color: '#000000',
     fontWeight: '600'
   },
   activeWorkoutContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: '#000000'
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -1166,7 +1165,7 @@ const styles = StyleSheet.create({
   exerciseTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     textAlign: 'center'
   },
 
@@ -1187,13 +1186,13 @@ const styles = StyleSheet.create({
   },
   topStatLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     marginBottom: 4
   },
   topStatValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#333'
+    color: '#FFFFFF'
   },
   mainExerciseImage: {
     width: '100%',
@@ -1213,13 +1212,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 16,
-    color: '#666',
+    color: '#999999',
     marginBottom: 8
   },
   statValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     marginTop: -30
   },
   setsContainer: {
@@ -1228,7 +1227,7 @@ const styles = StyleSheet.create({
   },
   setsLabel: {
     fontSize: 16,
-    color: '#666',
+    color: '#999999',
     marginBottom: 16
   },
   setsRow: {
@@ -1244,36 +1243,36 @@ const styles = StyleSheet.create({
     borderWidth: 2
   },
   activeSet: {
-    backgroundColor: '#333',
-    borderColor: '#333'
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF'
   },
   completedSet: {
-    backgroundColor: '#e0e0e0',
-    borderColor: '#e0e0e0'
+    backgroundColor: '#2A2A2A',
+    borderColor: '#2A2A2A'
   },
   inactiveSet: {
     backgroundColor: 'transparent',
-    borderColor: '#e0e0e0'
+    borderColor: '#2A2A2A'
   },
   setNumber: {
     fontSize: 16,
     fontWeight: '600'
   },
   activeSetText: {
-    color: '#fff'
+    color: '#000000'
   },
   completedSetText: {
-    color: '#666'
+    color: '#999999'
   },
   inactiveSetText: {
-    color: '#999'
+    color: '#666666'
   },
   timerSection: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
@@ -1293,7 +1292,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#2A2A2A',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -1303,24 +1304,27 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     marginBottom: 4
   },
   timerText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#333'
+    fontSize: 48,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -1
   },
   skipButtonNew: {
-    backgroundColor: Colors.primary,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 24
+    borderRadius: 28
   },
   skipButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: '700'
   },
   runContainer: {
     flex: 1,
@@ -1446,7 +1450,7 @@ const styles = StyleSheet.create({
   pauseBar: {
     width: 4,
     height: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderRadius: 2
   },
   musicButton: {
@@ -1473,7 +1477,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   musicModalContent: {
-    backgroundColor: Colors.background,
+    backgroundColor: '#000000',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1488,7 +1492,7 @@ const styles = StyleSheet.create({
   musicModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   musicPlayerInModal: {
     marginBottom: 0
@@ -1496,7 +1500,7 @@ const styles = StyleSheet.create({
 
   completeContainer: {
     flex: 1,
-    backgroundColor: '#fff'
+    backgroundColor: '#1A1A1A'
   },
   completeHeader: {
     paddingHorizontal: 20,
@@ -1506,13 +1510,13 @@ const styles = StyleSheet.create({
   completeTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 8,
     textAlign: 'center'
   },
   completeSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#999999',
     textAlign: 'center'
   },
   photoContainer: {
@@ -1530,7 +1534,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)'
   },
   addPhotoText: {
-    color: Colors.primary,
+    color: '#FFFFFF',
     marginTop: 8,
     fontSize: 16,
     fontWeight: '600'
@@ -1545,7 +1549,7 @@ const styles = StyleSheet.create({
   workoutTimeText: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 10
   },
@@ -1568,7 +1572,7 @@ const styles = StyleSheet.create({
     borderRadius: 2
   },
   completionPercentText: {
-    color: '#666',
+    color: '#999999',
     fontSize: 12
   },
   commentContainer: {
@@ -1579,7 +1583,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
     borderRadius: 16,
     padding: 16,
-    color: '#333',
+    color: '#FFFFFF',
     fontSize: 16,
     minHeight: 100
   },
@@ -1590,7 +1594,7 @@ const styles = StyleSheet.create({
   feelingsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 12
   },
   feelingsScrollView: {
@@ -1604,10 +1608,10 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   selectedFeelingButton: {
-    backgroundColor: Colors.primary
+    backgroundColor: '#FFFFFF'
   },
   feelingText: {
-    color: '#333',
+    color: '#FFFFFF',
     fontWeight: '600'
   },
   selectedFeelingText: {
@@ -1626,12 +1630,12 @@ const styles = StyleSheet.create({
   publicActivityTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4
   },
   publicActivityDescription: {
     fontSize: 12,
-    color: '#666'
+    color: '#999999'
   },
   toggleContainer: {
     width: 50,
@@ -1652,15 +1656,15 @@ const styles = StyleSheet.create({
     borderRadius: 13
   },
   toggleCircleActive: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     alignSelf: 'flex-end'
   },
   toggleCircleInactive: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     alignSelf: 'flex-start'
   },
   finishedButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     paddingVertical: 16,
     borderRadius: 30,
     marginHorizontal: 20,
@@ -1692,12 +1696,12 @@ const styles = StyleSheet.create({
   summaryStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     marginVertical: 8
   },
   summaryStatLabel: {
     fontSize: 14,
-    color: '#666'
+    color: '#999999'
   },
 
   finishButton: {
@@ -1711,12 +1715,12 @@ const styles = StyleSheet.create({
   fullWorkoutTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4
   },
   fullWorkoutSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#999999',
     marginBottom: 16,
     textAlign: 'right'
   },
@@ -1738,7 +1742,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
     borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.primary
+    borderLeftColor: '#FFFFFF'
   },
   exerciseListImage: {
     width: 70,
@@ -1752,12 +1756,12 @@ const styles = StyleSheet.create({
   exerciseListName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4
   },
   exerciseListSpecs: {
     fontSize: 14,
-    color: '#666'
+    color: '#999999'
   },
   // Modal styles
   modalOverlay: {
@@ -1768,7 +1772,7 @@ const styles = StyleSheet.create({
     padding: 20
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     padding: 24,
     width: '90%',
@@ -1783,13 +1787,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 12,
     textAlign: 'center'
   },
   modalText: {
     fontSize: 16,
-    color: '#666',
+    color: '#999999',
     marginBottom: 24,
     textAlign: 'center'
   },
@@ -1801,7 +1805,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   continueButton: {
-    backgroundColor: Colors.primary
+    backgroundColor: '#FFFFFF'
   },
   continueButtonText: {
     color: '#fff',
@@ -1812,7 +1816,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 240, 255, 0.8)'
   },
   finishWorkoutText: {
-    color: '#333',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1842,12 +1846,12 @@ const styles = StyleSheet.create({
   runStatValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.primary,
+    color: '#FFFFFF',
     marginBottom: 4
   },
   runStatLabel: {
     fontSize: 12,
-    color: '#666'
+    color: '#999999'
   },
   mapContainer: {
     flex: 1,
@@ -1864,20 +1868,20 @@ const styles = StyleSheet.create({
   webMapText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 12
   },
   webMapSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     textAlign: 'center',
     marginBottom: 4
   },
   noSpotifyConnectionText: {
     textAlign: 'center',
     padding: 16,
-    color: '#666',
+    color: '#999999',
     fontSize: 14
   },
   progressIndicator: {
@@ -1889,7 +1893,7 @@ const styles = StyleSheet.create({
   },
   progressIndicatorFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     borderRadius: 2
   },
   // Next workouts preview styles
@@ -1898,7 +1902,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     shadowColor: '#000',
@@ -1920,7 +1924,7 @@ const styles = StyleSheet.create({
   previewHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#ddd',
+    backgroundColor: '#2A2A2A',
     borderRadius: 2,
     position: 'absolute',
     top: 8,
@@ -1930,7 +1934,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     flex: 1,
     textAlign: 'center'
   },
@@ -1944,7 +1948,7 @@ const styles = StyleSheet.create({
   },
   closePreviewText: {
     fontSize: 20,
-    color: '#666',
+    color: '#999999',
     fontWeight: '300'
   },
   previewContent: {
@@ -1970,17 +1974,17 @@ const styles = StyleSheet.create({
   nextWorkoutName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4
   },
   nextWorkoutDetails: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     marginBottom: 2
   },
   nextWorkoutCategory: {
     fontSize: 12,
-    color: Colors.primary,
+    color: '#FFFFFF',
     textTransform: 'uppercase',
     fontWeight: '500'
   },
@@ -1990,7 +1994,7 @@ const styles = StyleSheet.create({
   nextWorkoutXp: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary
+    color: '#FFFFFF'
   },
   swipeIndicator: {
     alignItems: 'center',
@@ -1999,13 +2003,13 @@ const styles = StyleSheet.create({
   swipeHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#ddd',
+    backgroundColor: '#2A2A2A',
     borderRadius: 2,
     marginBottom: 8
   },
   swipeText: {
     fontSize: 12,
-    color: '#999',
+    color: '#666666',
     textAlign: 'center'
   },
   previewOverlay: {
@@ -2034,13 +2038,13 @@ const styles = StyleSheet.create({
   },
   setTrackingFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     borderRadius: 3
   },
   setTrackingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666'
+    color: '#999999'
   },
   // Running session header styles
   runningHeader: {
@@ -2053,24 +2057,24 @@ const styles = StyleSheet.create({
   runningTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4
   },
   runningDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     lineHeight: 18
   },
   // Web map fallback styles
   webMapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 8
   },
   webMapSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     marginBottom: 16
   },
   webMapStats: {
@@ -2078,29 +2082,29 @@ const styles = StyleSheet.create({
   },
   webMapStat: {
     fontSize: 14,
-    color: '#333',
+    color: '#FFFFFF',
     marginBottom: 4
   },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Colors.spacing.xl
+    paddingHorizontal: 24
   },
   permissionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.text.primary,
-    marginTop: Colors.spacing.lg,
-    marginBottom: Colors.spacing.md,
+    color: '#FFFFFF',
+    marginTop: 20,
+    marginBottom: 12,
     textAlign: 'center'
   },
   permissionText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: '#999999',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: Colors.spacing.xl
+    marginBottom: 24
   },
   permissionIcon: {
     marginBottom: 16,
@@ -2112,7 +2116,7 @@ const styles = StyleSheet.create({
   },
   permissionFeature: {
     fontSize: 14,
-    color: '#666',
+    color: '#999999',
     marginBottom: 8,
     lineHeight: 20
   },

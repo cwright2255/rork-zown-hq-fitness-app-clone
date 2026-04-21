@@ -6,8 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Dimensions } from
-'react-native';
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import {
@@ -16,13 +15,14 @@ import {
   Flame,
   Clock,
   Award,
-  BarChart3,
   Heart,
   Scale,
   Dumbbell,
-  Footprints } from
-'lucide-react-native';
-import Colors from '@/constants/colors';
+  Footprints,
+} from 'lucide-react-native';
+import { colors, radius, spacing, typography } from '@/constants/theme';
+import StatCard from '@/components/StatCard';
+import ScreenHeader from '@/components/ScreenHeader';
 import { useAnalyticsStore } from '@/store/analyticsStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import {
@@ -31,8 +31,6 @@ import {
 } from '@/services/muscleVisualizerService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
-
-const { width } = Dimensions.get('window');
 
 export default function AnalyticsScreen() {
   const [timeRange, setTimeRange] = useState('month');
@@ -51,9 +49,7 @@ export default function AnalyticsScreen() {
     const all = [];
     recent.forEach((w) => {
       const list = w.targetMuscles || w.muscleGroups || [];
-      list.forEach((m) => {
-        if (m) all.push(m);
-      });
+      list.forEach((m) => m && all.push(m));
     });
     const normalized = normalizeMuscleNames(all);
     return Array.from(new Set(normalized));
@@ -65,49 +61,13 @@ export default function AnalyticsScreen() {
   );
 
   const timeRanges = [
-  { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' },
-  { key: 'year', label: 'Year' }];
+    { key: 'week', label: 'Week' },
+    { key: 'month', label: 'Month' },
+    { key: 'year', label: 'Year' },
+  ];
 
-
-  const StatCard = ({
-    title,
-    value,
-    change,
-    icon,
-    color = Colors.primary
-
-
-
-
-
-
-  }) =>
-  <View style={styles.statCard}>
-      <View style={styles.statHeader}>
-        <View style={[styles.statIcon, { backgroundColor: color + '20' }]}>
-          {icon}
-        </View>
-        <Text style={[styles.statChange, { color }]}>{change}</Text>
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statTitle}>{title}</Text>
-    </View>;
-
-
-  const ProgressBar = ({
-    label,
-    value,
-    maxValue,
-    color = Colors.primary
-
-
-
-
-
-  }) => {
-    const percentage = Math.min(value / maxValue * 100, 100);
-
+  const ProgressBar = ({ label, value, maxValue, color = colors.text }) => {
+    const percentage = Math.min((value / maxValue) * 100, 100);
     return (
       <View style={styles.progressItem}>
         <View style={styles.progressHeader}>
@@ -115,56 +75,53 @@ export default function AnalyticsScreen() {
           <Text style={styles.progressValue}>{value}/{maxValue}</Text>
         </View>
         <View style={styles.progressBarContainer}>
-          <View
-            style={[
-            styles.progressBarFill,
-            { width: `${percentage}%`, backgroundColor: color }]
-            } />
-          
+          <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: color }]} />
         </View>
-      </View>);
-
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Analytics', headerShown: false }} />
-      
-      <View style={styles.header}>
-        <Text style={styles.title}>Analytics</Text>
-        <BarChart3 size={24} color={Colors.primary} />
-      </View>
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.timeRangeContainer}>
-        {timeRanges.map((range) =>
-        <TouchableOpacity
-          key={range.key}
-          style={[
-          styles.timeRangeButton,
-          timeRange === range.key && styles.activeTimeRange]
-          }
-          onPress={() => setTimeRange(range.key)}>
-          
-            <Text
-            style={[
-            styles.timeRangeText,
-            timeRange === range.key && styles.activeTimeRangeText]
-            }>
-            
-              {range.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <ScreenHeader title="Analytics" subtitle="YOUR PROGRESS" />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* This Week Header */}
-        <Text style={styles.weekHeader}>This Week</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
+        <View style={styles.statsRow}>
+          <StatCard
+            value={analytics.workoutsCompleted.toString()}
+            label="Workouts"
+            icon={<Activity size={16} color={colors.text} />}
+          />
+          <StatCard
+            value={analytics.caloriesBurned.toLocaleString()}
+            label="Calories"
+            icon={<Flame size={16} color={colors.orange} />}
+          />
+          <StatCard
+            value={analytics.streakDays.toString()}
+            label="Streak"
+            icon={<Award size={16} color={colors.purple} />}
+          />
+        </View>
 
-        {/* Current Plan Row */}
+        <View style={styles.pillRow}>
+          {timeRanges.map((range) => (
+            <TouchableOpacity
+              key={range.key}
+              style={[styles.pill, timeRange === range.key && styles.pillActive]}
+              onPress={() => setTimeRange(range.key)}>
+              <Text style={[styles.pillText, timeRange === range.key && styles.pillTextActive]}>
+                {range.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <View style={styles.planRow}>
           <View>
-            <Text style={styles.planLabel}>Current Plan</Text>
+            <Text style={styles.planLabel}>CURRENT PLAN</Text>
             <Text style={styles.planValue}>Personal</Text>
           </View>
           <TouchableOpacity style={styles.upgradePill}>
@@ -172,37 +129,35 @@ export default function AnalyticsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Activity Type Tiles */}
         <View style={styles.activityTiles}>
           <View style={styles.activityTile}>
-            <Heart size={22} color={Colors.text.primary} />
+            <Heart size={22} color={colors.text} />
             <Text style={styles.activityTileLabel}>Cardio</Text>
           </View>
           <View style={styles.activityTile}>
-            <Scale size={22} color={Colors.text.primary} />
+            <Scale size={22} color={colors.text} />
             <Text style={styles.activityTileLabel}>Weight</Text>
           </View>
           <View style={styles.activityTile}>
-            <Dumbbell size={22} color={Colors.text.primary} />
+            <Dumbbell size={22} color={colors.text} />
             <Text style={styles.activityTileLabel}>Gym</Text>
           </View>
         </View>
 
-        {/* Run Session Card */}
         <View style={styles.runCard}>
           <View style={styles.runIcon}>
-            <Footprints size={28} color={Colors.text.primary} />
+            <Footprints size={28} color={colors.text} />
           </View>
           <View style={styles.runBody}>
             <Text style={styles.runTitle}>Run Session</Text>
             <View style={styles.runStats}>
               <View style={styles.runStat}>
                 <Text style={styles.runStatValue}>1h 33m</Text>
-                <Text style={styles.runStatLabel}>Time</Text>
+                <Text style={styles.runStatLabel}>TIME</Text>
               </View>
               <View style={styles.runStat}>
                 <Text style={styles.runStatValue}>970</Text>
-                <Text style={styles.runStatLabel}>cal</Text>
+                <Text style={styles.runStatLabel}>CAL</Text>
               </View>
               <View style={styles.runStat}>
                 <Text style={styles.runStatValue}>7.5</Text>
@@ -212,535 +167,295 @@ export default function AnalyticsScreen() {
           </View>
         </View>
 
-        {/* Key Metrics */}
-        <View style={styles.statsGrid}>
-          <StatCard
-            title="Workouts Completed"
-            value={analytics.workoutsCompleted.toString()}
-            change={`+${analytics.workoutGrowth}%`}
-            icon={<Activity size={20} color={Colors.primary} />} />
-          
-          
-          <StatCard
-            title="Calories Burned"
-            value={analytics.caloriesBurned.toLocaleString()}
-            change={`+${analytics.calorieGrowth}%`}
-            icon={<Flame size={20} color="#F59E0B" />}
-            color="#F59E0B" />
-          
-          
-          <StatCard
-            title="Active Minutes"
-            value={analytics.activeMinutes.toString()}
-            change={`+${analytics.activeGrowth}%`}
-            icon={<Clock size={20} color="#10B981" />}
-            color="#10B981" />
-          
-          
-          <StatCard
-            title="Streak Days"
-            value={analytics.streakDays.toString()}
-            change={`+${analytics.streakGrowth}%`}
-            icon={<Award size={20} color="#8B5CF6" />}
-            color="#8B5CF6" />
-          
-        </View>
-
-        {/* Goal Progress */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Goal Progress</Text>
-          <View style={styles.progressContainer}>
-            <ProgressBar
-              label="Weekly Workouts"
-              value={analytics.weeklyWorkouts}
-              maxValue={5}
-              color={Colors.primary} />
-            
-            <ProgressBar
-              label="Daily Calories"
-              value={analytics.dailyCalories}
-              maxValue={2000}
-              color="#F59E0B" />
-            
-            <ProgressBar
-              label="Water Intake (L)"
-              value={analytics.waterIntake}
-              maxValue={8}
-              color="#06B6D4" />
-            
-            <ProgressBar
-              label="Sleep Hours"
-              value={analytics.sleepHours}
-              maxValue={8}
-              color="#8B5CF6" />
-            
-          </View>
-        </View>
-
-        {/* Activity Breakdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity Breakdown</Text>
-          <View style={styles.activityGrid}>
-            {analytics.activityBreakdown.map((activity, index) =>
-            <View key={index} style={styles.activityItem}>
-                <View style={styles.activityHeader}>
-                  <Text style={styles.activityName}>{activity.name}</Text>
-                  <Text style={styles.activityPercentage}>{activity.percentage}%</Text>
-                </View>
-                <View style={styles.activityBarContainer}>
-                  <View
-                  style={[
-                  styles.activityBar,
-                  {
-                    width: `${activity.percentage}%`,
-                    backgroundColor: activity.color
-                  }]
-                  } />
-                
-                </View>
-                <Text style={styles.activityTime}>{activity.time} minutes</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Weekly Trends */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weekly Trends</Text>
-          <View style={styles.trendsContainer}>
-            {analytics.weeklyTrends.map((day, index) =>
-            <View key={index} style={styles.trendDay}>
-                <Text style={styles.trendDayLabel}>{day.day}</Text>
-                <View style={styles.trendBar}>
-                  <View
-                  style={[
-                  styles.trendBarFill,
-                  {
-                    height: `${day.value / Math.max(...analytics.weeklyTrends.map((d) => d.value)) * 100}%`,
-                    backgroundColor: Colors.primary
-                  }]
-                  } />
-                
-                </View>
-                <Text style={styles.trendValue}>{day.value}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Achievements This Period */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Achievements</Text>
-          <View style={styles.achievementsContainer}>
-            {analytics.recentAchievements.map((achievement, index) =>
-            <View key={index} style={styles.achievementItem}>
-                <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                <View style={styles.achievementInfo}>
-                  <Text style={styles.achievementTitle}>{achievement.title}</Text>
-                  <Text style={styles.achievementDate}>{achievement.date}</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Insights */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Insights</Text>
-          <View style={styles.insightsContainer}>
-            {analytics.insights.map((insight, index) =>
-            <View key={index} style={styles.insightItem}>
-                <TrendingUp size={16} color={Colors.primary} />
-                <Text style={styles.insightText}>{insight}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Weekly Muscle Heatmap */}
-        <View style={styles.section}>
-          <Text style={styles.heatmapHeader}>This Week's Muscle Activity</Text>
-          {heatmapUrl && !heatmapError ? (
-            <Image
-              source={{ uri: heatmapUrl }}
-              style={styles.heatmapImage}
-              resizeMode="contain"
-              onError={() => setHeatmapError(true)} />
-          ) : (
-            <View style={styles.heatmapPlaceholder}>
-              <Text style={styles.heatmapPlaceholderText}>
-                Log workouts to see your muscle heatmap
-              </Text>
+        <Text style={styles.sectionLabel}>ACTIVE MINUTES</Text>
+        <View style={styles.card}>
+          <View style={styles.rowSplit}>
+            <View style={styles.rowIcon}>
+              <Clock size={20} color={colors.green} />
             </View>
-          )}
+            <Text style={styles.rowValue}>{analytics.activeMinutes}</Text>
+            <Text style={styles.rowDelta}>+{analytics.activeGrowth}%</Text>
+          </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>);
 
+        <Text style={styles.sectionLabel}>GOAL PROGRESS</Text>
+        <View style={styles.card}>
+          <ProgressBar label="Weekly Workouts" value={analytics.weeklyWorkouts} maxValue={5} color={colors.text} />
+          <ProgressBar label="Daily Calories" value={analytics.dailyCalories} maxValue={2000} color={colors.orange} />
+          <ProgressBar label="Water Intake (L)" value={analytics.waterIntake} maxValue={8} color={colors.blue} />
+          <ProgressBar label="Sleep Hours" value={analytics.sleepHours} maxValue={8} color={colors.purple} />
+        </View>
+
+        <Text style={styles.sectionLabel}>ACTIVITY BREAKDOWN</Text>
+        <View style={styles.card}>
+          {analytics.activityBreakdown.map((activity, index) => (
+            <View key={index} style={styles.activityItem}>
+              <View style={styles.activityHeader}>
+                <Text style={styles.activityName}>{activity.name}</Text>
+                <Text style={styles.activityPercentage}>{activity.percentage}%</Text>
+              </View>
+              <View style={styles.activityBarContainer}>
+                <View style={[styles.activityBar, { width: `${activity.percentage}%`, backgroundColor: activity.color }]} />
+              </View>
+              <Text style={styles.activityTime}>{activity.time} minutes</Text>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>WEEKLY TRENDS</Text>
+        <View style={styles.card}>
+          <View style={styles.trendsContainer}>
+            {analytics.weeklyTrends.map((day, index) => {
+              const max = Math.max(...analytics.weeklyTrends.map((d) => d.value));
+              return (
+                <View key={index} style={styles.trendDay}>
+                  <View style={styles.trendBar}>
+                    <View style={[styles.trendBarFill, { height: `${(day.value / max) * 100}%` }]} />
+                  </View>
+                  <Text style={styles.trendDayLabel}>{day.day}</Text>
+                  <Text style={styles.trendValue}>{day.value}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>RECENT ACHIEVEMENTS</Text>
+        <View style={styles.card}>
+          {analytics.recentAchievements.map((achievement, index) => (
+            <View key={index} style={styles.achievementItem}>
+              <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+              <View style={styles.achievementInfo}>
+                <Text style={styles.achievementTitle}>{achievement.title}</Text>
+                <Text style={styles.achievementDate}>{achievement.date}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>INSIGHTS</Text>
+        <View style={styles.card}>
+          {analytics.insights.map((insight, index) => (
+            <View key={index} style={styles.insightItem}>
+              <TrendingUp size={16} color={colors.green} />
+              <Text style={styles.insightText}>{insight}</Text>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>THIS WEEK'S MUSCLE ACTIVITY</Text>
+        {heatmapUrl && !heatmapError ? (
+          <Image
+            source={{ uri: heatmapUrl }}
+            style={styles.heatmapImage}
+            resizeMode="contain"
+            onError={() => setHeatmapError(true)}
+          />
+        ) : (
+          <View style={styles.heatmapPlaceholder}>
+            <Text style={styles.heatmapPlaceholderText}>
+              Log workouts to see your muscle heatmap
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { flex: 1, paddingHorizontal: spacing.lg },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  pill: {
     flex: 1,
-    backgroundColor: Colors.background
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text.primary
+  pillActive: {
+    backgroundColor: colors.text,
+    borderColor: colors.text,
   },
-  timeRangeContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20
+  pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  pillTextActive: { color: '#000' },
+  sectionLabel: {
+    ...typography.label,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
   },
-  timeRangeButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    alignItems: 'center'
+  card: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.base,
+    gap: spacing.base,
   },
-  activeTimeRange: {
-    backgroundColor: Colors.primary
-  },
-  timeRangeText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.secondary
-  },
-  activeTimeRangeText: {
-    color: 'white'
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24
-  },
-  statCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    width: (width - 52) / 2
-  },
-  statHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  statIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  statChange: {
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  statTitle: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  section: {
-    marginBottom: 24
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 16
-  },
-  progressContainer: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    gap: 16
-  },
-  progressItem: {
-    gap: 8
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  progressLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.primary
-  },
-  progressValue: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: Colors.background,
-    borderRadius: 4,
-    overflow: 'hidden'
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4
-  },
-  activityGrid: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    gap: 16
-  },
-  activityItem: {
-    gap: 8
-  },
-  activityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  activityName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.primary
-  },
-  activityPercentage: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text.primary
-  },
-  activityBarContainer: {
-    height: 6,
-    backgroundColor: Colors.background,
-    borderRadius: 3,
-    overflow: 'hidden'
-  },
-  activityBar: {
-    height: '100%',
-    borderRadius: 3
-  },
-  activityTime: {
-    fontSize: 11,
-    color: Colors.text.secondary
-  },
-  trendsContainer: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end'
-  },
-  trendDay: {
-    alignItems: 'center',
-    gap: 8
-  },
-  trendDayLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  trendBar: {
-    width: 24,
-    height: 60,
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    justifyContent: 'flex-end',
-    overflow: 'hidden'
-  },
-  trendBarFill: {
-    width: '100%',
-    borderRadius: 12,
-    minHeight: 4
-  },
-  trendValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.text.primary
-  },
-  achievementsContainer: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    gap: 12
-  },
-  achievementItem: {
+  rowSplit: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12
+    gap: spacing.md,
   },
-  achievementIcon: {
-    fontSize: 24
+  rowIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center',
   },
-  achievementInfo: {
-    flex: 1
-  },
-  achievementTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.primary,
-    marginBottom: 2
-  },
-  achievementDate: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  insightsContainer: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    gap: 12
-  },
-  insightItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.text.primary,
-    lineHeight: 20
-  },
-  weekHeader: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: Colors.text.primary,
-    marginBottom: 16,
-    marginTop: 4
-  },
+  rowValue: { flex: 1, ...typography.h3 },
+  rowDelta: { ...typography.bodySmall, color: colors.green, fontWeight: '700' },
   planRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.base,
+    marginBottom: spacing.md,
   },
-  planLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    fontWeight: '600'
-  },
-  planValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.text.primary,
-    marginTop: 2
-  },
+  planLabel: { ...typography.label },
+  planValue: { ...typography.h3, marginTop: 4 },
   upgradePill: {
-    backgroundColor: '#000',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999
+    backgroundColor: colors.text,
+    paddingHorizontal: spacing.base,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
   },
-  upgradePillText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 13
-  },
+  upgradePillText: { color: '#000', fontWeight: '700', fontSize: 13 },
   activityTiles: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   activityTile: {
     flex: 1,
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.base,
     alignItems: 'center',
-    gap: 8
+    gap: spacing.sm,
   },
-  activityTileLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.text.primary
-  },
+  activityTileLabel: { ...typography.caption, color: colors.text, textTransform: 'uppercase' },
   runCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24
+    gap: spacing.base,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.base,
   },
   runIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center'
+    width: 56, height: 56, borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center',
   },
   runBody: { flex: 1 },
-  runTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.text.primary,
-    marginBottom: 8
-  },
-  runStats: {
-    flexDirection: 'row',
-    gap: 16
-  },
+  runTitle: { ...typography.h4, marginBottom: spacing.sm },
+  runStats: { flexDirection: 'row', gap: spacing.base },
   runStat: { alignItems: 'flex-start' },
-  runStatValue: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: Colors.text.primary
+  runStatValue: { ...typography.h4, color: colors.text },
+  runStatLabel: { ...typography.caption, marginTop: 2 },
+  progressItem: { gap: 8 },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  runStatLabel: {
-    fontSize: 10,
-    color: Colors.text.secondary,
-    fontWeight: '600'
+  progressLabel: { ...typography.body, fontWeight: '600' },
+  progressValue: { ...typography.bodySmall },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: colors.progressTrack,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
-  heatmapHeader: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12
+  progressBarFill: { height: '100%', borderRadius: 4 },
+  activityItem: { gap: 8 },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
+  activityName: { ...typography.body, fontWeight: '600' },
+  activityPercentage: { ...typography.bodySmall, color: colors.text, fontWeight: '700' },
+  activityBarContainer: {
+    height: 6,
+    backgroundColor: colors.progressTrack,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  activityBar: { height: '100%', borderRadius: 3 },
+  activityTime: { ...typography.caption },
+  trendsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  trendDay: { alignItems: 'center', gap: 6 },
+  trendBar: {
+    width: 24,
+    height: 80,
+    backgroundColor: colors.progressTrack,
+    borderRadius: 12,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  trendBarFill: {
+    width: '100%',
+    backgroundColor: colors.text,
+    borderRadius: 12,
+    minHeight: 4,
+  },
+  trendDayLabel: { ...typography.caption },
+  trendValue: { ...typography.caption, color: colors.text, fontWeight: '700' },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  achievementIcon: { fontSize: 24 },
+  achievementInfo: { flex: 1 },
+  achievementTitle: { ...typography.body, fontWeight: '600' },
+  achievementDate: { ...typography.bodySmall },
+  insightItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  insightText: { flex: 1, ...typography.body, fontWeight: '500' },
   heatmapImage: {
     width: '100%',
-    height: 220,
-    backgroundColor: '#111',
-    borderRadius: 12
+    height: 260,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
   },
   heatmapPlaceholder: {
     width: '100%',
     height: 220,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#2A2A2A'
+    borderColor: colors.border,
   },
-  heatmapPlaceholderText: {
-    color: '#999',
-    fontSize: 13,
-    fontWeight: '600'
-  }
+  heatmapPlaceholderText: { ...typography.bodySmall },
 });

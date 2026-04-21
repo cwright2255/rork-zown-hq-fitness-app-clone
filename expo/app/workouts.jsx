@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
+import ScreenHeader from '@/components/ScreenHeader';
 import { useExerciseStore } from '@/store/exerciseStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
@@ -89,16 +90,19 @@ export default function WorkoutsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.header}>
-        <Text style={styles.title}>WORKOUTS</Text>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => router.push('/workout/create')}
-          accessibilityLabel="Create workout"
-        >
-          <Plus size={18} color={colors.text} />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Workouts"
+        subtitle="PICK YOUR MISSION"
+        rightAction={
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => router.push('/workout/create')}
+            accessibilityLabel="Create workout"
+          >
+            <Plus size={18} color={colors.text} />
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.searchWrap}>
         <Search size={16} color={colors.textSecondary} />
@@ -159,9 +163,9 @@ export default function WorkoutsScreen() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color={colors.bg} />
+                  <ActivityIndicator color={colors.text} />
                 ) : (
-                  <Text style={styles.loadMoreText}>LOAD MORE</Text>
+                  <Text style={styles.loadMoreText}>Load More</Text>
                 )}
               </TouchableOpacity>
             ) : null
@@ -272,18 +276,18 @@ const styles = StyleSheet.create({
   loadMore: {
     marginTop: spacing.lg,
     paddingVertical: 14,
-    borderRadius: radius.full,
-    backgroundColor: colors.text,
+    borderRadius: radius.pill,
+    backgroundColor: 'transparent',
     alignItems: 'center',
   },
-  loadMoreText: { color: colors.bg, fontWeight: '900', letterSpacing: 1.5, fontSize: 12 },
+  loadMoreText: { color: colors.text, fontWeight: '700', fontSize: 14 },
   fab: {
     position: 'absolute',
     right: spacing.lg,
     bottom: spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',

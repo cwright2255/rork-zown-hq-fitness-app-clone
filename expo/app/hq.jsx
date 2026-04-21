@@ -17,6 +17,8 @@ import {
   Square,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
+import StatCard from '@/components/StatCard';
+import ScreenHeader from '@/components/ScreenHeader';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
@@ -169,30 +171,29 @@ export default function HQScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.greetingName}>{firstName}</Text>
-          </View>
+      <ScreenHeader
+        title={`Hi, ${firstName}`}
+        subtitle="OWN THE DAY"
+        rightAction={
           <TouchableOpacity style={styles.xpBadge} onPress={() => router.push('/exp-dashboard')} activeOpacity={0.8}>
             <Text style={styles.xpLevel}>LVL {level}</Text>
-            <Text style={styles.xpValue}>{xp.toLocaleString()} XP</Text>
+            <Text style={styles.xpValue}>{xp.toLocaleString()}</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.chipsRow}>
-          <StatChip value={String(goalReach)} label="Goal Reach" />
-          <StatChip value={String(taskComplete)} label="Task Complete" />
+        }
+      />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.statsRow}>
+          <StatCard value="8,432" label="Steps" icon={<TrendingUp size={16} color={colors.text} />} />
+          <StatCard value="614" label="Kcal" icon={<Flame size={16} color={colors.text} />} />
+          <StatCard value="72" label="BPM" icon={<Heart size={16} color={colors.text} />} />
         </View>
 
         <Text style={styles.sectionLabel}>THIS WEEK</Text>
         <WeeklyChart />
 
-        <View style={styles.statsRow}>
-          <Stat icon={TrendingUp} value="8,432" label="STEPS" />
-          <Stat icon={Flame} value="614" label="KCAL" />
-          <Stat icon={Heart} value="72" label="BPM" />
+        <View style={styles.chipsRow}>
+          <StatChip value={String(goalReach)} label="Goal Reach" />
+          <StatChip value={String(taskComplete)} label="Task Complete" />
         </View>
 
         <Text style={styles.sectionLabel}>TODAY&apos;S MISSION</Text>
@@ -258,17 +259,18 @@ export default function HQScreen() {
           <ChevronRight size={18} color={colors.text} />
         </TouchableOpacity>
 
-        <View style={styles.upgradeCard}>
+        <TouchableOpacity style={styles.upgradeCard} onPress={() => router.push('/champion-pass')} activeOpacity={0.9}>
           <View style={styles.upgradeImage}>
             <Flame size={28} color={colors.text} />
           </View>
           <View style={styles.upgradeBody}>
-            <Text style={styles.upgradeText}>Need more workout tips and solutions?</Text>
-            <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/champion-pass')} activeOpacity={0.85}>
+            <Text style={styles.upgradeLabel}>CHAMPION PASS</Text>
+            <Text style={styles.upgradeText}>Unlock premium workouts, coaching & nutrition plans.</Text>
+            <View style={styles.upgradeBtn}>
               <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
-            </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -449,7 +451,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   upgradeBody: { flex: 1, gap: spacing.sm },
-  upgradeText: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  upgradeLabel: { ...typography.label, color: colors.text, letterSpacing: 1 },
+  upgradeText: { color: colors.textSecondary, fontSize: 13, fontWeight: '500', lineHeight: 18 },
   upgradeBtn: {
     alignSelf: 'flex-start',
     backgroundColor: colors.text,

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Pla
 import { router } from 'expo-router';
 import { Settings, Award, LogOut, ChevronRight, Camera, BarChart, User, Edit, Activity, Crown } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import LevelProgress from '@/components/LevelProgress';
 import AchievementCard from '@/components/AchievementCard';
@@ -248,7 +247,7 @@ export default function ProfileScreen() {
           style={styles.profileImage} />
         
           <TouchableOpacity style={styles.cameraButton} onPress={handlePickPhoto}>
-            <Camera size={16} color={Colors.text.inverse} />
+            <Camera size={16} color={'#000000'} />
           </TouchableOpacity>
         </View>
         
@@ -278,7 +277,7 @@ export default function ProfileScreen() {
         style={styles.settingsButton}
         onPress={() => router.push('/profile/settings')}>
         
-          <Settings size={20} color={Colors.text.primary} />
+          <Settings size={20} color={'#FFFFFF'} />
         </TouchableOpacity>
       </View>
       
@@ -294,7 +293,7 @@ export default function ProfileScreen() {
         
         <View style={styles.championPassProgress}>
           <View style={styles.championPassHeader}>
-            <Award size={16} color={Colors.primary} />
+            <Award size={16} color={'#FFFFFF'} />
             <Text style={styles.championPassText}>Champion Pass Progress</Text>
           </View>
           <View style={styles.championPassBar}>
@@ -344,12 +343,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/progress?tab=achievements')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.warning}20` }]}>
-              <Award size={20} color={Colors.warning} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${'#F97316'}20` }]}>
+              <Award size={20} color={'#F97316'} />
             </View>
             <Text style={styles.menuItemText}>Achievements</Text>
           </View>
-          <ChevronRight size={20} color={Colors.text.tertiary} />
+          <ChevronRight size={20} color={'#666666'} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -359,12 +358,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/champion-pass')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.primary}20` }]}>
-              <Crown size={20} color={Colors.primary} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${'#FFFFFF'}20` }]}>
+              <Crown size={20} color={'#FFFFFF'} />
             </View>
             <Text style={styles.menuItemText}>Champion Pass</Text>
           </View>
-          <ChevronRight size={20} color={Colors.text.tertiary} />
+          <ChevronRight size={20} color={'#666666'} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -374,12 +373,12 @@ export default function ProfileScreen() {
         onPress={() => setActiveTab('exp')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.success}20` }]}>
-              <Activity size={20} color={Colors.success} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${'#22C55E'}20` }]}>
+              <Activity size={20} color={'#22C55E'} />
             </View>
             <Text style={styles.menuItemText}>EXP Dashboard</Text>
           </View>
-          <ChevronRight size={20} color={Colors.text.tertiary} />
+          <ChevronRight size={20} color={'#666666'} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -389,12 +388,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/settings')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${Colors.text.secondary}20` }]}>
-              <Settings size={20} color={Colors.text.secondary} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${'#999999'}20` }]}>
+              <Settings size={20} color={'#999999'} />
             </View>
             <Text style={styles.menuItemText}>Settings</Text>
           </View>
-          <ChevronRight size={20} color={Colors.text.tertiary} />
+          <ChevronRight size={20} color={'#666666'} />
         </TouchableOpacity>
       </Card>
       
@@ -406,7 +405,7 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>See All</Text>
-          <ChevronRight size={16} color={Colors.primary} />
+          <ChevronRight size={16} color={'#FFFFFF'} />
         </TouchableOpacity>
       </View>
       
@@ -435,7 +434,7 @@ export default function ProfileScreen() {
           style={styles.seeAllButton}>
           
               <Text style={styles.seeAllText}>See All</Text>
-              <ChevronRight size={16} color={Colors.primary} />
+              <ChevronRight size={16} color={'#FFFFFF'} />
             </TouchableOpacity>
           </View>
           
@@ -462,14 +461,14 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>View Dashboard</Text>
-          <ChevronRight size={16} color={Colors.primary} />
+          <ChevronRight size={16} color={'#FFFFFF'} />
         </TouchableOpacity>
       </View>
       
       <Card variant="elevated" style={styles.expSummaryCard}>
         <View style={styles.expSummaryHeader}>
           <View style={styles.expSummaryHeaderLeft}>
-            <Award size={20} color={Colors.primary} />
+            <Award size={20} color={'#FFFFFF'} />
             <Text style={styles.expSummaryTitle}>Level {user.level}</Text>
           </View>
           <Text style={styles.expSummaryTotal}>{(user.xp || user.exp || 0).toLocaleString()} XP</Text>
@@ -490,7 +489,7 @@ export default function ProfileScreen() {
           <Text style={styles.seeAllText}>
             {showMeasurementForm ? 'Hide' : 'Update'}
           </Text>
-          <Edit size={16} color={Colors.primary} />
+          <Edit size={16} color={'#FFFFFF'} />
         </TouchableOpacity>
       </View>
       
@@ -585,7 +584,7 @@ export default function ProfileScreen() {
             </View> :
 
       <View style={styles.photoPlaceholder}>
-              <Camera size={32} color={Colors.text.tertiary} />
+              <Camera size={32} color={'#666666'} />
               <Text style={styles.photoPlaceholderText}>
                 Add a progress photo
               </Text>
@@ -648,7 +647,7 @@ export default function ProfileScreen() {
           onPress={() => setActiveTab('progress')}>
           
                 <Text style={styles.viewHistoryText}>View History</Text>
-                <ChevronRight size={16} color={Colors.primary} />
+                <ChevronRight size={16} color={'#FFFFFF'} />
               </TouchableOpacity>
             </View> :
 
@@ -704,7 +703,7 @@ export default function ProfileScreen() {
         );
       }}>
       
-        <LogOut size={20} color={Colors.error} />
+        <LogOut size={20} color={'#EF4444'} />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </>;
@@ -925,7 +924,7 @@ export default function ProfileScreen() {
       
       <View style={styles.expHeader}>
         <View style={styles.expHeaderContent}>
-          <Award size={28} color={Colors.primary} />
+          <Award size={28} color={'#FFFFFF'} />
           <View style={styles.expHeaderTextContainer}>
             <Text style={styles.expHeaderTitle}>Level {user.level}</Text>
             <Text style={styles.expHeaderSubtitle}>{(user.xp || user.exp).toLocaleString()} XP Total</Text>
@@ -984,7 +983,7 @@ export default function ProfileScreen() {
       onPress={() => router.push('/exp-dashboard')}>
       
         <Text style={styles.viewFullDashboardText}>View Full EXP Dashboard</Text>
-        <ChevronRight size={16} color={Colors.primary} />
+        <ChevronRight size={16} color={'#FFFFFF'} />
       </TouchableOpacity>
     </>;
 
@@ -996,7 +995,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'profile' && styles.activeTabButton]}
           onPress={() => setActiveTab('profile')}>
           
-          <User size={20} color={activeTab === 'profile' ? Colors.primary : Colors.text.secondary} />
+          <User size={20} color={activeTab === 'profile' ? '#FFFFFF' : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'profile' && styles.activeTabButtonText]}>
             Profile
           </Text>
@@ -1006,7 +1005,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'progress' && styles.activeTabButton]}
           onPress={() => setActiveTab('progress')}>
           
-          <BarChart size={20} color={activeTab === 'progress' ? Colors.primary : Colors.text.secondary} />
+          <BarChart size={20} color={activeTab === 'progress' ? '#FFFFFF' : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'progress' && styles.activeTabButtonText]}>
             Progress
           </Text>
@@ -1016,7 +1015,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'badges' && styles.activeTabButton]}
           onPress={() => setActiveTab('badges')}>
           
-          <Award size={20} color={activeTab === 'badges' ? Colors.primary : Colors.text.secondary} />
+          <Award size={20} color={activeTab === 'badges' ? '#FFFFFF' : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'badges' && styles.activeTabButtonText]}>
             Badges
           </Text>
@@ -1026,7 +1025,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'exp' && styles.activeTabButton]}
           onPress={() => setActiveTab('exp')}>
           
-          <Activity size={20} color={activeTab === 'exp' ? Colors.primary : Colors.text.secondary} />
+          <Activity size={20} color={activeTab === 'exp' ? '#FFFFFF' : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'exp' && styles.activeTabButtonText]}>
             EXP
           </Text>
@@ -1062,11 +1061,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#000000'
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#000000'
   },
   content: {
     padding: 16,
@@ -1079,10 +1078,10 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
+    backgroundColor: '#1A1A1A',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border
+    borderBottomColor: '#2A2A2A'
   },
   tabButton: {
     flex: 1,
@@ -1094,15 +1093,15 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary
+    borderBottomColor: '#FFFFFF'
   },
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.text.secondary
+    color: '#999999'
   },
   activeTabButtonText: {
-    color: Colors.primary,
+    color: '#FFFFFF',
     fontWeight: '600'
   },
   tabHeader: {
@@ -1114,14 +1113,14 @@ const styles = StyleSheet.create({
   tabTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   backButton: {
     padding: 8
   },
   backButtonText: {
     fontSize: 14,
-    color: Colors.primary
+    color: '#FFFFFF'
   },
   profileHeader: {
     flexDirection: 'row',
@@ -1142,14 +1141,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     width: 28,
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.card
+    borderColor: '#1A1A1A'
   },
   profileInfo: {
     flex: 1
@@ -1163,7 +1162,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   tierBadge: {
     paddingHorizontal: 8,
@@ -1176,7 +1175,7 @@ const styles = StyleSheet.create({
   },
   profileMemberSince: {
     fontSize: 14,
-    color: Colors.text.secondary
+    color: '#999999'
   },
   settingsButton: {
     padding: 8
@@ -1190,7 +1189,7 @@ const styles = StyleSheet.create({
   championPassProgress: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border
+    borderTopColor: '#2A2A2A'
   },
   championPassHeader: {
     flexDirection: 'row',
@@ -1200,23 +1199,23 @@ const styles = StyleSheet.create({
   championPassText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     marginLeft: 8
   },
   championPassBar: {
     height: 6,
-    backgroundColor: `${Colors.primary}20`,
+    backgroundColor: `${'#FFFFFF'}20`,
     borderRadius: 3,
     marginBottom: 4
   },
   championPassFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     borderRadius: 3
   },
   championPassPercentage: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: '#999999',
     textAlign: 'right'
   },
   statsCard: {
@@ -1235,17 +1234,17 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     marginBottom: 4
   },
   statLabel: {
     fontSize: 14,
-    color: Colors.text.secondary
+    color: '#999999'
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.border
+    backgroundColor: '#2A2A2A'
   },
   menuCard: {
     marginBottom: 24
@@ -1263,19 +1262,19 @@ const styles = StyleSheet.create({
   menuItemIcon: {
     width: 40,
     height: 40,
-    borderRadius: Colors.radius.xlarge,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Colors.spacing.md
+    marginRight: 12
   },
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   menuDivider: {
     height: 1,
-    backgroundColor: Colors.border
+    backgroundColor: '#2A2A2A'
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1286,7 +1285,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     marginBottom: 12
   },
   seeAllButton: {
@@ -1295,7 +1294,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: '#FFFFFF',
     marginRight: 4
   },
   emptyCard: {
@@ -1305,7 +1304,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: '#999999',
     textAlign: 'center',
     marginBottom: 16
   },
@@ -1322,7 +1321,7 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.error,
+    color: '#EF4444',
     marginLeft: 8
   },
   badgesCard: {
@@ -1347,7 +1346,7 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.text.secondary,
+    color: '#999999',
     marginTop: 16,
     marginBottom: 8
   },
@@ -1358,35 +1357,35 @@ const styles = StyleSheet.create({
   photo: {
     width: 200,
     height: 200,
-    borderRadius: Colors.radius.medium,
-    marginBottom: Colors.spacing.lg
+    borderRadius: 12,
+    marginBottom: 20
   },
   changePhotoButton: {
-    paddingVertical: Colors.spacing.sm,
-    paddingHorizontal: Colors.spacing.lg,
-    borderRadius: Colors.radius.medium,
-    backgroundColor: Colors.background,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#000000',
     borderWidth: 1,
-    borderColor: Colors.border
+    borderColor: '#2A2A2A'
   },
   changePhotoText: {
     fontSize: 14,
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   photoPlaceholder: {
     height: 200,
-    borderRadius: Colors.radius.medium,
-    backgroundColor: Colors.background,
+    borderRadius: 12,
+    backgroundColor: '#000000',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#2A2A2A',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Colors.spacing.lg
+    marginBottom: 20
   },
   photoPlaceholderText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: '#999999',
     marginTop: 8,
     marginBottom: 16
   },
@@ -1417,16 +1416,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border
+    borderBottomColor: '#2A2A2A'
   },
   progressLabel: {
     fontSize: 16,
-    color: Colors.text.secondary
+    color: '#999999'
   },
   progressValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   viewHistoryButton: {
     flexDirection: 'row',
@@ -1436,7 +1435,7 @@ const styles = StyleSheet.create({
   },
   viewHistoryText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: '#FFFFFF',
     marginRight: 4
   },
   noProgressContainer: {
@@ -1445,7 +1444,7 @@ const styles = StyleSheet.create({
   },
   noProgressText: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: '#999999',
     textAlign: 'center',
     marginBottom: 16
   },
@@ -1458,24 +1457,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: '#2A2A2A',
     paddingBottom: 8
   },
   progressEntryDate: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   latestBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Colors.spacing.sm,
-    paddingVertical: Colors.spacing.sm,
-    borderRadius: Colors.radius.small
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 8
   },
   latestBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.text.inverse
+    color: '#000000'
   },
   progressEntryContent: {
     flexDirection: 'row'
@@ -1490,34 +1489,34 @@ const styles = StyleSheet.create({
   },
   progressEntryLabel: {
     fontSize: 14,
-    color: Colors.text.secondary
+    color: '#999999'
   },
   progressEntryValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   progressEntryPhoto: {
     width: 100,
     height: 100,
-    borderRadius: Colors.radius.medium,
-    marginLeft: Colors.spacing.lg
+    borderRadius: 12,
+    marginLeft: 20
   },
   progressEntryNotes: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border
+    borderTopColor: '#2A2A2A'
   },
   progressEntryNotesLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.secondary,
+    color: '#999999',
     marginBottom: 4
   },
   progressEntryNotesText: {
     fontSize: 14,
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   badgesStatsCard: {
     marginBottom: 16
@@ -1535,22 +1534,22 @@ const styles = StyleSheet.create({
   badgesStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     marginBottom: 4
   },
   badgesStatLabel: {
     fontSize: 14,
-    color: Colors.text.secondary
+    color: '#999999'
   },
   badgesStatDivider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.border
+    backgroundColor: '#2A2A2A'
   },
   badgesCategoryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     marginBottom: 12,
     marginTop: 8
   },
@@ -1565,10 +1564,10 @@ const styles = StyleSheet.create({
   },
   // EXP Dashboard styles
   expHeader: {
-    backgroundColor: Colors.card,
-    padding: Colors.spacing.lg,
-    borderRadius: Colors.radius.medium,
-    marginBottom: Colors.spacing.lg
+    backgroundColor: '#1A1A1A',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20
   },
   expHeaderContent: {
     flexDirection: 'row',
@@ -1580,11 +1579,11 @@ const styles = StyleSheet.create({
   expHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text.primary
+    color: '#FFFFFF'
   },
   expHeaderSubtitle: {
     fontSize: 14,
-    color: Colors.text.secondary
+    color: '#999999'
   },
   section: {
     marginBottom: 16
@@ -1595,9 +1594,9 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
-    borderRadius: Colors.radius.medium,
-    padding: Colors.spacing.md // Reduced padding
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 12 // Reduced padding
   },
   summaryItem: {
     flex: 1,
@@ -1606,18 +1605,18 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18, // Reduced font size
     fontWeight: '700',
-    color: Colors.primary,
+    color: '#FFFFFF',
     marginBottom: 4
   },
   summaryLabel: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: '#999999',
     textAlign: 'center'
   },
   summaryDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: Colors.border,
+    backgroundColor: '#2A2A2A',
     marginHorizontal: 8
   },
   viewFullDashboardButton: {
@@ -1631,7 +1630,7 @@ const styles = StyleSheet.create({
   viewFullDashboardText: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.primary,
+    color: '#FFFFFF',
     marginRight: 4
   },
   // EXP Summary Card
@@ -1645,7 +1644,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border
+    borderBottomColor: '#2A2A2A'
   },
   expSummaryHeaderLeft: {
     flexDirection: 'row',
@@ -1654,12 +1653,12 @@ const styles = StyleSheet.create({
   expSummaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     marginLeft: 8
   },
   expSummaryTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.primary
+    color: '#FFFFFF'
   }
 });

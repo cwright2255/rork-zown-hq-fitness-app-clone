@@ -1,11 +1,28 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  Alert,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Bell, Lock, HelpCircle, Info, LogOut, Music, ExternalLink } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import Button from '@/components/Button';
-import Input from '@/components/Input';
-import Card from '@/components/Card';
+import {
+  Bell,
+  Lock,
+  HelpCircle,
+  Info,
+  LogOut,
+  Music,
+  ChevronRight,
+} from 'lucide-react-native';
+import { colors, typography, spacing, radius } from '@/constants/theme';
+import ScreenHeader from '@/components/ScreenHeader';
+import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -22,55 +39,41 @@ export default function SettingsScreen() {
     user: spotifyUser,
     disconnectSpotify,
     musicPreferences,
-    updateMusicPreferences
+    updateMusicPreferences,
   } = useSpotifyStore();
 
   const [isConnecting, setIsConnecting] = useState(false);
-
   const [notificationsEnabled, setNotificationsEnabled] = useState(
-    user?.preferences.notifications?.workouts || false
+    user?.preferences?.notifications?.workouts || false
   );
 
-  const [caloriesGoal, setCaloriesGoal] = useState(
-    dailyGoals.calories.toString()
-  );
-  const [proteinGoal, setProteinGoal] = useState(
-    dailyGoals.protein.toString()
-  );
-  const [carbsGoal, setCarbsGoal] = useState(
-    dailyGoals.carbs.toString()
-  );
-  const [fatGoal, setFatGoal] = useState(
-    dailyGoals.fat.toString()
-  );
+  const [caloriesGoal, setCaloriesGoal] = useState(String(dailyGoals.calories));
+  const [proteinGoal, setProteinGoal] = useState(String(dailyGoals.protein));
+  const [carbsGoal, setCarbsGoal] = useState(String(dailyGoals.carbs));
+  const [fatGoal, setFatGoal] = useState(String(dailyGoals.fat));
 
   const handleToggleNotifications = (value) => {
     setNotificationsEnabled(value);
     updateUserPreferences({
       notifications: {
         workouts: value,
-        nutrition: user?.preferences.notifications?.nutrition || false,
-        social: user?.preferences.notifications?.social || false
-      }
+        nutrition: user?.preferences?.notifications?.nutrition || false,
+        social: user?.preferences?.notifications?.social || false,
+      },
     });
   };
 
   const handleSaveNutritionGoals = () => {
-    // Validate inputs
     if (!caloriesGoal || !proteinGoal || !carbsGoal || !fatGoal) {
       Alert.alert('Error', 'Please enter all nutrition goals');
       return;
     }
-
-    // Update nutrition goals
     updateDailyGoals({
-      calories: parseInt(caloriesGoal),
-      protein: parseInt(proteinGoal),
-      carbs: parseInt(carbsGoal),
-      fat: parseInt(fatGoal)
+      calories: parseInt(caloriesGoal, 10),
+      protein: parseInt(proteinGoal, 10),
+      carbs: parseInt(carbsGoal, 10),
+      fat: parseInt(fatGoal, 10),
     });
-
-    // Show success message
     Alert.alert('Success', 'Nutrition goals updated successfully');
   };
 
@@ -95,445 +98,344 @@ export default function SettingsScreen() {
       'Disconnect Spotify',
       'Are you sure you want to disconnect your Spotify account?',
       [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Disconnect',
-        style: 'destructive',
-        onPress: async () => {
-          await disconnectSpotify();
-          Alert.alert('Success', 'Spotify account disconnected');
-        }
-      }]
-
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disconnect',
+          style: 'destructive',
+          onPress: async () => {
+            await disconnectSpotify();
+            Alert.alert('Success', 'Spotify account disconnected');
+          },
+        },
+      ]
     );
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to log out?',
-      [
+    Alert.alert('Logout', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
           try {
-            console.log('[Settings] Starting logout process');
-
-            // Clear auth service token first
             await authService.logout();
-
-            // Clear user store and persisted data
             await logout();
-
-            console.log('[Settings] Logout completed, navigating to start screen');
-
-            // Force a complete app reset by navigating to index first, then start
             router.replace('/');
-
           } catch (e) {
             console.error('[Settings] Logout error:', e);
-            // Even if there's an error, still navigate to start screen
             router.replace('/start');
           }
-        }
-      }]
-
-    );
+        },
+      },
+    ]);
   };
 
   const handleAbout = () => {
     Alert.alert(
-      "About Zown HQ",
-      "Zown HQ is a fitness app designed to help you achieve your fitness goals through personalized workouts, nutrition tracking, and progress monitoring.\n\nVersion 1.0.0",
-      [{ text: "OK" }]
+      'About ZOWN HQ',
+      'ZOWN HQ is a fitness app designed to help you achieve your fitness goals through personalized workouts, nutrition tracking, and progress monitoring.\n\nVersion 1.0.0',
+      [{ text: 'OK' }]
     );
   };
 
   const handleHelp = () => {
     Alert.alert(
-      "Help & Support",
-      "For help and support, please contact us at support@zownhq.com or visit our website at www.zownhq.com.",
-      [{ text: "OK" }]
+      'Help & Support',
+      'For help and support, please contact us at support@zownhq.com or visit www.zownhq.com.',
+      [{ text: 'OK' }]
     );
   };
 
   const handlePrivacy = () => {
     Alert.alert(
-      "Privacy Policy",
-      "This is a demo app. In a real app, this would display the privacy policy.",
-      [{ text: "OK" }]
+      'Privacy Policy',
+      'This is a demo app. In production this would display the privacy policy.',
+      [{ text: 'OK' }]
     );
   };
 
   if (!user) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
-      </View>);
-
+      <SafeAreaView style={styles.safe}>
+        <Text style={styles.loadingText}>Loading…</Text>
+      </SafeAreaView>
+    );
   }
 
+  const renderRow = (Icon, label, onPress, rightNode) => (
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.rowIcon}>
+        <Icon size={18} color={colors.text} />
+      </View>
+      <Text style={styles.rowLabel}>{label}</Text>
+      {rightNode ?? <ChevronRight size={18} color={colors.textSecondary} />}
+    </TouchableOpacity>
+  );
+
   return (
-    <>
-      <Stack.Screen options={{ title: 'Settings' }} />
-      
+    <SafeAreaView style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Settings" subtitle="PREFERENCES" showBack />
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
-        
-        {/* Notifications */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Bell size={20} color={Colors.text.secondary} />
-              <Text style={styles.settingText}>Push Notifications</Text>
-            </View>
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
+        <View style={styles.card}>
+          {renderRow(
+            Bell,
+            'Push Notifications',
+            () => handleToggleNotifications(!notificationsEnabled),
             <Switch
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
-              trackColor={{ false: Colors.inactive, true: Colors.primary }}
-              thumbColor={Colors.card} />
-            
-          </View>
+              trackColor={{ false: colors.border, true: colors.text }}
+              thumbColor={notificationsEnabled ? colors.bg : colors.textSecondary}
+            />
+          )}
         </View>
 
-        {/* Spotify Integration */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Music Integration</Text>
-          
-          {isSpotifyConnected ?
-          <Card variant="elevated" style={styles.spotifyConnectedCard}>
-              <View style={styles.spotifyConnectedHeader}>
-                <View style={styles.spotifyConnectedInfo}>
-                  <Music size={24} color="#1DB954" />
-                  <View style={styles.spotifyConnectedText}>
-                    <Text style={styles.spotifyConnectedTitle}>Spotify Connected</Text>
-                    <Text style={styles.spotifyConnectedSubtitle}>
-                      {spotifyUser?.display_name || 'Connected'}
-                    </Text>
+        <Text style={styles.sectionLabel}>MUSIC</Text>
+        <View style={styles.card}>
+          {isSpotifyConnected ? (
+            <>
+              <View style={styles.spotifyHeader}>
+                <View style={styles.spotifyInfo}>
+                  <Music size={22} color={colors.spotify} />
+                  <View style={{ marginLeft: spacing.md }}>
+                    <Text style={styles.spotifyTitle}>Spotify Connected</Text>
+                    <Text style={styles.spotifySub}>{spotifyUser?.display_name || 'Connected'}</Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                style={styles.disconnectButton}
-                onPress={handleDisconnectSpotify}>
-                
-                  <Text style={styles.disconnectButtonText}>Disconnect</Text>
+                <TouchableOpacity style={styles.disconnectBtn} onPress={handleDisconnectSpotify}>
+                  <Text style={styles.disconnectBtnText}>Disconnect</Text>
                 </TouchableOpacity>
               </View>
-              
-              <View style={styles.musicPreferencesContainer}>
-                <Text style={styles.musicPreferencesTitle}>Music Preferences</Text>
-                
-                <View style={styles.preferenceItem}>
-                  <Text style={styles.preferenceLabel}>Energy Level</Text>
-                  <Text style={styles.preferenceValue}>
-                    {Math.round(musicPreferences.energyLevel * 100)}%
-                  </Text>
-                </View>
-                
-                <View style={styles.preferenceItem}>
-                  <Text style={styles.preferenceLabel}>Tempo Range</Text>
-                  <Text style={styles.preferenceValue}>
-                    {musicPreferences.tempoRange.min}-{musicPreferences.tempoRange.max} BPM
-                  </Text>
-                </View>
-                
-                <View style={styles.preferenceItem}>
-                  <Text style={styles.preferenceLabel}>Explicit Content</Text>
-                  <Switch
-                  value={musicPreferences.explicitContent}
-                  onValueChange={(value) => updateMusicPreferences({ explicitContent: value })}
-                  trackColor={{ false: Colors.inactive, true: Colors.primary }}
-                  thumbColor={Colors.card} />
-                
-                </View>
-              </View>
-            </Card> :
 
-          <Card variant="outlined" style={styles.spotifyDisconnectedCard}>
-              <View style={styles.spotifyDisconnectedContent}>
-                <Music size={32} color={Colors.text.tertiary} />
-                <Text style={styles.spotifyDisconnectedTitle}>Connect Spotify</Text>
-                <Text style={styles.spotifyDisconnectedDescription}>
-                  Connect your Spotify account to play music during workouts and get personalized recommendations.
+              <View style={styles.divider} />
+
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>Energy Level</Text>
+                <Text style={styles.prefValue}>
+                  {Math.round((musicPreferences?.energyLevel ?? 0.5) * 100)}%
                 </Text>
-                <View style={styles.spotifyButtons}>
-                  <Button
-                  title={isConnecting ? "Connecting..." : "Connect Spotify"}
-                  onPress={handleConnectSpotify}
-                  style={styles.connectSpotifyButton}
-                  leftIcon={<ExternalLink size={16} color={Colors.text.inverse} />}
-                  disabled={isConnecting} />
-                
-                  <Button
-                  title="Test Integration"
-                  onPress={() => router.push('/spotify-integration')}
-                  variant="outline"
-                  style={styles.testButton} />
-                
-                </View>
               </View>
-            </Card>
-          }
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>Tempo Range</Text>
+                <Text style={styles.prefValue}>
+                  {musicPreferences?.tempoRange?.min ?? 0}-{musicPreferences?.tempoRange?.max ?? 0} BPM
+                </Text>
+              </View>
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>Explicit Content</Text>
+                <Switch
+                  value={!!musicPreferences?.explicitContent}
+                  onValueChange={(value) => updateMusicPreferences({ explicitContent: value })}
+                  trackColor={{ false: colors.border, true: colors.text }}
+                  thumbColor={musicPreferences?.explicitContent ? colors.bg : colors.textSecondary}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={styles.spotifyConnectCard}>
+              <Music size={28} color={colors.spotify} />
+              <Text style={styles.spotifyConnectTitle}>Connect Spotify</Text>
+              <Text style={styles.spotifyConnectDesc}>
+                Play music during workouts and get personalized recommendations.
+              </Text>
+              <TouchableOpacity
+                style={styles.connectPill}
+                onPress={handleConnectSpotify}
+                disabled={isConnecting}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.connectPillText}>
+                  {isConnecting ? 'Connecting…' : 'Connect'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-        
-        {/* Nutrition Goals */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nutrition Goals</Text>
-          
-          <Input
-            label="Daily Calories"
-            value={caloriesGoal}
-            onChangeText={setCaloriesGoal}
-            placeholder="Enter daily calorie goal"
-            keyboardType="number-pad" />
-          
-          
-          <Input
-            label="Protein (g)"
-            value={proteinGoal}
-            onChangeText={setProteinGoal}
-            placeholder="Enter protein goal"
-            keyboardType="number-pad" />
-          
-          
-          <Input
-            label="Carbs (g)"
-            value={carbsGoal}
-            onChangeText={setCarbsGoal}
-            placeholder="Enter carbs goal"
-            keyboardType="number-pad" />
-          
-          
-          <Input
-            label="Fat (g)"
-            value={fatGoal}
-            onChangeText={setFatGoal}
-            placeholder="Enter fat goal"
-            keyboardType="number-pad" />
-          
-          
-          <Button
-            title="Save Nutrition Goals"
-            onPress={handleSaveNutritionGoals}
-            style={styles.saveButton} />
-          
+
+        <Text style={styles.sectionLabel}>NUTRITION GOALS</Text>
+        <View style={styles.card}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Daily Calories</Text>
+            <TextInput
+              style={styles.input}
+              value={caloriesGoal}
+              onChangeText={setCaloriesGoal}
+              keyboardType="number-pad"
+              placeholder="2000"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Protein (g)</Text>
+            <TextInput
+              style={styles.input}
+              value={proteinGoal}
+              onChangeText={setProteinGoal}
+              keyboardType="number-pad"
+              placeholder="150"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Carbs (g)</Text>
+            <TextInput
+              style={styles.input}
+              value={carbsGoal}
+              onChangeText={setCarbsGoal}
+              keyboardType="number-pad"
+              placeholder="200"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Fat (g)</Text>
+            <TextInput
+              style={styles.input}
+              value={fatGoal}
+              onChangeText={setFatGoal}
+              keyboardType="number-pad"
+              placeholder="70"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          <PrimaryButton title="Save Goals" onPress={handleSaveNutritionGoals} />
         </View>
-        
-        {/* Account */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <Button
-            title="Logout"
-            onPress={handleLogout}
-            variant="outline"
-            leftIcon={<LogOut size={20} color={Colors.error} />}
-            style={styles.logoutButton}
-            textStyle={styles.logoutButtonText} />
-          
+
+        <Text style={styles.sectionLabel}>ABOUT</Text>
+        <View style={styles.card}>
+          {renderRow(Info, 'About ZOWN HQ', handleAbout)}
+          <View style={styles.divider} />
+          {renderRow(HelpCircle, 'Help & Support', handleHelp)}
+          <View style={styles.divider} />
+          {renderRow(Lock, 'Privacy Policy', handlePrivacy)}
         </View>
-        
-        {/* About */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          
-          <Button
-            title="About Zown HQ"
-            onPress={handleAbout}
-            variant="outline"
-            leftIcon={<Info size={20} color={Colors.text.primary} />}
-            style={styles.textButton}
-            textStyle={styles.textButtonText} />
-          
-          
-          <Button
-            title="Help & Support"
-            onPress={handleHelp}
-            variant="outline"
-            leftIcon={<HelpCircle size={20} color={Colors.text.primary} />}
-            style={styles.textButton}
-            textStyle={styles.textButtonText} />
-          
-          
-          <Button
-            title="Privacy Policy"
-            onPress={handlePrivacy}
-            variant="outline"
-            leftIcon={<Lock size={20} color={Colors.text.primary} />}
-            style={styles.textButton}
-            textStyle={styles.textButtonText} />
-          
+
+        <Text style={styles.sectionLabel}>ACCOUNT</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.logoutRow} onPress={handleLogout} activeOpacity={0.85}>
+            <LogOut size={18} color={colors.red} />
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
         </View>
-        
+
         <Text style={styles.versionText}>Version 1.0.0</Text>
       </ScrollView>
-    </>);
-
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
+  safe: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1 },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  loadingText: { ...typography.body, textAlign: 'center', marginTop: spacing.xl },
+
+  sectionLabel: {
+    ...typography.label,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 32
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  section: {
-    marginBottom: 24,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 16
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 16
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  settingText: {
-    fontSize: 16,
-    color: Colors.text.primary,
-    marginLeft: 12
-  },
-  spotifyConnectedCard: {
-    padding: 0
-  },
-  spotifyConnectedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border
-  },
-  spotifyConnectedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  spotifyConnectedText: {
-    marginLeft: 12
-  },
-  spotifyConnectedTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary
-  },
-  spotifyConnectedSubtitle: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginTop: 2
-  },
-  disconnectButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: Colors.background,
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: Colors.border
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.md,
   },
-  disconnectButtonText: {
-    fontSize: 14,
-    color: Colors.text.primary
-  },
-  musicPreferencesContainer: {
-    padding: 16
-  },
-  musicPreferencesTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 12
-  },
-  preferenceItem: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  rowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowLabel: { ...typography.body, flex: 1, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: colors.border },
+
+  spotifyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  spotifyInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  spotifyTitle: { ...typography.body, fontWeight: '700' },
+  spotifySub: { ...typography.bodySmall, marginTop: 2 },
+  disconnectBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  disconnectBtnText: { ...typography.caption, color: colors.text, fontWeight: '700' },
+  prefRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8
+    justifyContent: 'space-between',
   },
-  preferenceLabel: {
-    fontSize: 14,
-    color: Colors.text.secondary
-  },
-  preferenceValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.primary
-  },
-  spotifyDisconnectedCard: {
-    padding: 0
-  },
-  spotifyDisconnectedContent: {
+  prefLabel: { ...typography.body, color: colors.textSecondary },
+  prefValue: { ...typography.body, fontWeight: '700' },
+
+  spotifyConnectCard: {
     alignItems: 'center',
-    padding: 24
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
   },
-  spotifyDisconnectedTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginTop: 12,
-    marginBottom: 8
-  },
-  spotifyDisconnectedDescription: {
-    fontSize: 14,
-    color: Colors.text.secondary,
+  spotifyConnectTitle: { ...typography.h3 },
+  spotifyConnectDesc: {
+    ...typography.bodySmall,
     textAlign: 'center',
-    marginBottom: 16
+    marginBottom: spacing.sm,
   },
-  spotifyButtons: {
-    gap: 12
-  },
-  connectSpotifyButton: {
-    paddingHorizontal: 24
-  },
-  testButton: {
-    paddingHorizontal: 24
-  },
-  saveButton: {
-    marginTop: 16
-  },
-  logoutButton: {
-    borderColor: Colors.error
-  },
-  logoutButtonText: {
-    color: Colors.error
-  },
-  textButton: {
-    justifyContent: 'flex-start',
+  connectPill: {
+    backgroundColor: colors.spotify,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 12,
-    marginVertical: 4,
-    backgroundColor: Colors.background
+    borderRadius: radius.pill,
   },
-  textButtonText: {
-    color: Colors.text.primary,
-    fontSize: 16
+  connectPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+
+  inputGroup: { gap: 6 },
+  inputLabel: { ...typography.label },
+  input: {
+    height: 56,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    color: colors.text,
+    fontSize: 15,
   },
+
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  logoutText: { ...typography.body, color: colors.red, fontWeight: '700' },
+
   versionText: {
-    fontSize: 14,
-    color: Colors.text.tertiary,
+    ...typography.caption,
     textAlign: 'center',
-    marginTop: 16
-  }
+    marginTop: spacing.xl,
+  },
 });
