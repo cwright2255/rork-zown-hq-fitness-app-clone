@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Mail } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { authService } from '@/services/authService';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -15,11 +16,16 @@ export default function ForgotPasswordScreen() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await authService.sendPasswordReset(email);
       Alert.alert('Email sent', 'Check your inbox for reset instructions.');
       router.back();
-    }, 1000);
+    } catch (error) {
+      console.error('[ForgotPassword] Failed', error);
+      Alert.alert('Reset Failed', error?.message || 'Please try again');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

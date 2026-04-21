@@ -59,8 +59,9 @@ export default function RegisterScreen() {
       const result = await authService.register(name, email, password);
       setUser(result.user);
       router.replace('/onboarding');
-    } catch {
-      Alert.alert('Registration Failed', 'Please try again');
+    } catch (error) {
+      console.error('[Register] Failed', error);
+      Alert.alert('Registration Failed', error?.message || 'Please try again');
     } finally {
       setIsLoading(false);
     }
