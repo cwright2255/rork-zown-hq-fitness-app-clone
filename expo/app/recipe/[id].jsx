@@ -29,6 +29,8 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useNutritionStore } from '@/store/nutritionStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const { width } = Dimensions.get('window');
 

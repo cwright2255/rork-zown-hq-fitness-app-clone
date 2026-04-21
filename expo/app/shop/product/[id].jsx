@@ -36,6 +36,8 @@ import { useProgressStore } from '@/store/progressStore';
 import Colors from '@/constants/colors';
 import ProductCard from '@/components/ProductCard';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width, height } = Dimensions.get('window');
 
 export default function ProductDetailScreen() {

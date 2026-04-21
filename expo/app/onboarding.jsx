@@ -9,6 +9,8 @@ import Input from '@/components/Input';
 import Card from '@/components/Card';
 import { useUserStore } from '@/store/userStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const OnboardingScreen = () => {
   const { setUser, completeOnboarding } = useUserStore();

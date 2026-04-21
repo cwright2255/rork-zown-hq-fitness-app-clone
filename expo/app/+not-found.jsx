@@ -1,6 +1,8 @@
 import { Link, Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function NotFoundScreen() {
   return (
     <>

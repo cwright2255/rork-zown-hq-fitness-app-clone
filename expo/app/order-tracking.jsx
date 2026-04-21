@@ -13,6 +13,8 @@ import { Package, Truck, CheckCircle, Clock, MapPin } from 'lucide-react-native'
 import Colors from '@/constants/colors';
 import { useOrderStore } from '@/store/orderStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function OrderTrackingScreen() {
   const { orders } = useOrderStore();

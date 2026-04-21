@@ -19,6 +19,8 @@ import Button from '@/components/Button';
 
 import { wearableService } from '@/services/wearableService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 
 

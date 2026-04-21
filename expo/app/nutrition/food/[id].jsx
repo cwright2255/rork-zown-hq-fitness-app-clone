@@ -9,6 +9,8 @@ import ProgressBar from '@/components/ProgressBar';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { getFoodById } from '@/services/passioService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 
 

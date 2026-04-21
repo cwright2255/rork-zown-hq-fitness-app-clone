@@ -5,6 +5,8 @@ import { Stack, router } from 'expo-router';
 import { Flame, Dumbbell, Target, Zap, Users, Lock, Clock } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const SEASONS = [
   {
     name: 'Season 01',

@@ -5,6 +5,8 @@ import { Stack } from 'expo-router';
 import { Search, Users, Globe, Trophy } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const DATA = [
   { id: '1', name: 'Sarah Johnson', pts: 1250, isMe: false, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200' },
   { id: '2', name: 'Michael Chen', pts: 1180, isMe: false, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' },

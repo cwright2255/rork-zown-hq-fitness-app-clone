@@ -15,10 +15,16 @@ import {
   Flame,
   Clock,
   Award,
-  BarChart3 } from
+  BarChart3,
+  Heart,
+  Scale,
+  Dumbbell,
+  Footprints } from
 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useAnalyticsStore } from '@/store/analyticsStore';
+
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const { width } = Dimensions.get('window');
 
@@ -122,6 +128,60 @@ export default function AnalyticsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* This Week Header */}
+        <Text style={styles.weekHeader}>This Week</Text>
+
+        {/* Current Plan Row */}
+        <View style={styles.planRow}>
+          <View>
+            <Text style={styles.planLabel}>Current Plan</Text>
+            <Text style={styles.planValue}>Personal</Text>
+          </View>
+          <TouchableOpacity style={styles.upgradePill}>
+            <Text style={styles.upgradePillText}>Upgrade</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Activity Type Tiles */}
+        <View style={styles.activityTiles}>
+          <View style={styles.activityTile}>
+            <Heart size={22} color={Colors.text.primary} />
+            <Text style={styles.activityTileLabel}>Cardio</Text>
+          </View>
+          <View style={styles.activityTile}>
+            <Scale size={22} color={Colors.text.primary} />
+            <Text style={styles.activityTileLabel}>Weight</Text>
+          </View>
+          <View style={styles.activityTile}>
+            <Dumbbell size={22} color={Colors.text.primary} />
+            <Text style={styles.activityTileLabel}>Gym</Text>
+          </View>
+        </View>
+
+        {/* Run Session Card */}
+        <View style={styles.runCard}>
+          <View style={styles.runIcon}>
+            <Footprints size={28} color={Colors.text.primary} />
+          </View>
+          <View style={styles.runBody}>
+            <Text style={styles.runTitle}>Run Session</Text>
+            <View style={styles.runStats}>
+              <View style={styles.runStat}>
+                <Text style={styles.runStatValue}>1h 33m</Text>
+                <Text style={styles.runStatLabel}>Time</Text>
+              </View>
+              <View style={styles.runStat}>
+                <Text style={styles.runStatValue}>970</Text>
+                <Text style={styles.runStatLabel}>cal</Text>
+              </View>
+              <View style={styles.runStat}>
+                <Text style={styles.runStatValue}>7.5</Text>
+                <Text style={styles.runStatLabel}>KM</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Key Metrics */}
         <View style={styles.statsGrid}>
           <StatCard
@@ -512,5 +572,100 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text.primary,
     lineHeight: 20
+  },
+  weekHeader: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: Colors.text.primary,
+    marginBottom: 16,
+    marginTop: 4
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16
+  },
+  planLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    fontWeight: '600'
+  },
+  planValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.text.primary,
+    marginTop: 2
+  },
+  upgradePill: {
+    backgroundColor: '#000',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999
+  },
+  upgradePillText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13
+  },
+  activityTiles: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16
+  },
+  activityTile: {
+    flex: 1,
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8
+  },
+  activityTileLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.text.primary
+  },
+  runCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24
+  },
+  runIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  runBody: { flex: 1 },
+  runTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.text.primary,
+    marginBottom: 8
+  },
+  runStats: {
+    flexDirection: 'row',
+    gap: 16
+  },
+  runStat: { alignItems: 'flex-start' },
+  runStatValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: Colors.text.primary
+  },
+  runStatLabel: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    fontWeight: '600'
   }
 });

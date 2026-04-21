@@ -6,6 +6,8 @@ import { Mail } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { authService } from '@/services/authService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);

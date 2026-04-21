@@ -9,6 +9,8 @@ import { useUserStore } from '@/store/userStore';
 import ExerciseItem from '@/components/ExerciseItem';
 import Colors from '@/constants/colors';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width } = Dimensions.get('window');
 
 // Mock workout data for fallback

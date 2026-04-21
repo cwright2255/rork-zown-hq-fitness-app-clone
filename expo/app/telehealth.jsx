@@ -14,6 +14,8 @@ import { Video, Calendar, Clock, Star } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useTelehealthStore } from '@/store/telehealthStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function TelehealthScreen() {
   const [activeTab, setActiveTab] = useState('consultations');
 

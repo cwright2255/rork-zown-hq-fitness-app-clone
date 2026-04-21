@@ -5,6 +5,8 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 import Colors from '@/constants/colors';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function SpotifyRedirect() {
   const router = useRouter();
   const params = useLocalSearchParams();

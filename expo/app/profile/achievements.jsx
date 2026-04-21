@@ -7,6 +7,8 @@ import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useAchievementStore } from '@/store/achievementStore';
 import { useUserStore } from '@/store/userStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const BADGE_ICONS = [Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell, Award];
 
 function ProgressRing({ percent = 0, size = 160, stroke = 6 }) {

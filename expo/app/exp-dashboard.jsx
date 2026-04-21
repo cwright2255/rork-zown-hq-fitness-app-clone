@@ -12,6 +12,8 @@ import BottomNavigation from '@/components/BottomNavigation';
 import OptimizedScrollView from '@/components/OptimizedScrollView';
 import { performanceMonitor } from '@/utils/performanceOptimizations';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function ExpDashboardScreen() {
   const [activeTab, setActiveTab] = useState('overview');
   const { user } = useUserStore();

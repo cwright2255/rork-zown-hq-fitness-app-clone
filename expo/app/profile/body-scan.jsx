@@ -8,6 +8,8 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useProgressStore } from '@/store/progressStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function BodyScanScreen() {
   const { addEntry } = useProgressStore();
 

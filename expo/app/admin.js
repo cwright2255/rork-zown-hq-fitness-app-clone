@@ -9,6 +9,8 @@ import { useAnalyticsStore } from '@/store/analyticsStore';
 import { useExpStore } from '@/store/expStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function AdminPanel() {
   const userStore = useUserStore();
   const user = userStore?.user;

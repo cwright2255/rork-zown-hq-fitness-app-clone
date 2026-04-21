@@ -1,35 +1,17 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { Home, Dumbbell, Utensils, ShoppingBag, User } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
 
 const tabs = [
-{
-  name: 'HQ',
-  icon,
-  route: '/hq'
-},
-{
-  name: 'Workouts',
-  icon,
-  route: '/workouts'
-},
-{
-  name: 'Nutrition',
-  icon,
-  route: '/nutrition'
-},
-{
-  name: 'Shop',
-  icon,
-  route: '/shop'
-},
-{
-  name: 'Profile',
-  icon,
-  route: '/profile'
-}];
+  { name: 'HQ', icon: Home, route: '/hq' },
+  { name: 'Workouts', icon: Dumbbell, route: '/workouts' },
+  { name: 'Nutrition', icon: Utensils, route: '/nutrition' },
+  { name: 'Shop', icon: ShoppingBag, route: '/shop' },
+  { name: 'Profile', icon: User, route: '/profile' },
+];
 
 
 const TabItem = React.memo(function TabItem({ tab, isActive, onPress }) {

@@ -14,6 +14,8 @@ import { Bluetooth, Smartphone, Watch, Heart, Activity } from 'lucide-react-nati
 import Colors from '@/constants/colors';
 import { wearableService } from '@/services/wearableService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function WearablesScreen() {
   const [availableDevices, setAvailableDevices] = useState([]);
   const [connectedDevices, setConnectedDevices] = useState([]);

@@ -8,6 +8,8 @@ import { useShopStore } from '@/store/shopStore';
 
 import BottomNavigation from '@/components/BottomNavigation';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function CartScreen() {
 
 

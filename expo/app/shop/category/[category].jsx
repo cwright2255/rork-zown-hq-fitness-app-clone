@@ -8,6 +8,8 @@ import ProductCard from '@/components/ProductCard';
 import Colors from '@/constants/colors';
 import { Shirt } from 'lucide-react-native';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function CategoryScreen() {
   const { category } = useLocalSearchParams();
   const router = useRouter();

@@ -26,6 +26,8 @@ import ExpActivityList from '@/components/ExpActivityList';
 import { getSubscriptionPlan } from '@/constants/subscriptionPlans';
 import { authService } from '@/services/authService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function ProfileScreen() {
   const { user, logout, upgradeSubscription } = useUserStore();
 

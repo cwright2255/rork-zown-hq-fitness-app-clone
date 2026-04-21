@@ -10,6 +10,8 @@ import {
 import { router, Stack } from 'expo-router';
 import { ErrorBoundary } from '@/components/LoadingScreen';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 function StartScreenContent() {
   const screenH = useMemo(() => Dimensions.get('window').height, []);
   const [animating, setAnimating] = useState(false);

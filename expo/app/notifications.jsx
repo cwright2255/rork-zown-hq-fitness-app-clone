@@ -15,6 +15,8 @@ import Colors from '@/constants/colors';
 import { notificationService } from '@/services/notificationService';
 import { useUserStore } from '@/store/userStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 
 

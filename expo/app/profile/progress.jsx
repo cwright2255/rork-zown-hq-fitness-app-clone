@@ -19,6 +19,8 @@ import AchievementCard from '@/components/AchievementCard';
 
 import { useProgressStore } from '@/store/progressStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function ProgressTrackerScreen() {
   const params = useLocalSearchParams();
   const initialTab = params.tab || 'champion';

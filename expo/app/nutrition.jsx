@@ -10,6 +10,8 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import HydrationTracker from '@/components/HydrationTracker';
 import { getAIDailyTargets, getAIMacroSplitForPreset } from '@/services/aiService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width } = Dimensions.get('window');
 
 export default function NutritionScreen() {

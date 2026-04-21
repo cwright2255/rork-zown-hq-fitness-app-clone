@@ -13,11 +13,18 @@ import {
   TrendingUp,
   ChevronRight,
   Play,
+  CheckSquare,
+  Square,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEK_VALUES = [40, 65, 50, 80, 70, 55, 90];
 
 function Stat({ icon: Icon, value, label }) {
   return (
@@ -38,6 +45,47 @@ function QuickAction({ icon: Icon, label, onPress }) {
         <Icon size={22} color={colors.text} />
       </View>
       <Text style={styles.qaLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function StatChip({ value, label }) {
+  return (
+    <View style={styles.chip}>
+      <Text style={styles.chipValue}>{value}</Text>
+      <Text style={styles.chipLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function WeeklyChart() {
+  const todayIdx = new Date().getDay();
+  return (
+    <View style={styles.chartCard}>
+      <View style={styles.chartBars}>
+        {WEEK_VALUES.map((v, i) => {
+          const isToday = i === todayIdx;
+          return (
+            <View key={i} style={styles.chartCol}>
+              <View style={[styles.bar, { height: v, backgroundColor: isToday ? colors.text : 'transparent', borderColor: isToday ? colors.text : colors.border }]} />
+              <Text style={[styles.chartDay, isToday && styles.chartDayActive]}>{DAYS[i]}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function TaskRow({ name, done, onPress }) {
+  const Icon = done ? CheckSquare : Square;
+  return (
+    <TouchableOpacity style={styles.taskRow} onPress={onPress} activeOpacity={0.8}>
+      <Icon size={22} color={done ? colors.text : colors.textSecondary} />
+      <View style={styles.taskThumb}>
+        <Dumbbell size={18} color={colors.text} />
+      </View>
+      <Text style={[styles.taskName, done && styles.taskNameDone]} numberOfLines={1}>{name}</Text>
     </TouchableOpacity>
   );
 }
@@ -66,11 +114,27 @@ export default function HQScreen() {
 
   const level = user?.level || getLevel() || 1;
   const xp = user?.exp || user?.xp || expSystem?.totalExp || 27975;
+  const firstName = (user?.name || 'Champion').split(' ')[0];
 
   const todaysMission = useMemo(() => {
     const list = workouts || [];
     return list[0] || { id: 'default', name: 'Full Body Burn', duration: 32, difficulty: 'INTENSE' };
   }, [workouts]);
+
+  const taskItems = useMemo(() => {
+    const list = (workouts || []).slice(0, 4);
+    if (list.length === 0) {
+      return [
+        { id: '1', name: 'Full Body Burn', done: true },
+        { id: '2', name: 'Morning Cardio', done: false },
+        { id: '3', name: 'Core Strength', done: false },
+      ];
+    }
+    return list.map((w, i) => ({ id: w.id, name: w.name, done: i === 0 }));
+  }, [workouts]);
+
+  const goalReach = user?.stats?.goalsReached || 156;
+  const taskComplete = user?.stats?.tasksComplete || 153;
 
   const onStartMission = useCallback(() => {
     if (todaysMission?.id) router.push(`/workout/${todaysMission.id}`);
@@ -81,15 +145,23 @@ export default function HQScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.hello}>HELLO, {(user?.name || 'ATHLETE').split(' ')[0].toUpperCase()}</Text>
-            <Text style={styles.title}>ZOWN HQ</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>Good Morning,</Text>
+            <Text style={styles.greetingName}>{firstName}</Text>
           </View>
           <TouchableOpacity style={styles.xpBadge} onPress={() => router.push('/exp-dashboard')} activeOpacity={0.8}>
             <Text style={styles.xpLevel}>LVL {level}</Text>
             <Text style={styles.xpValue}>{xp.toLocaleString()} XP</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.chipsRow}>
+          <StatChip value={String(goalReach)} label="Goal Reach" />
+          <StatChip value={String(taskComplete)} label="Task Complete" />
+        </View>
+
+        <Text style={styles.sectionLabel}>THIS WEEK</Text>
+        <WeeklyChart />
 
         <View style={styles.statsRow}>
           <Stat icon={TrendingUp} value="8,432" label="STEPS" />
@@ -114,6 +186,18 @@ export default function HQScreen() {
             </View>
           </View>
         </TouchableOpacity>
+
+        <View style={styles.taskHeader}>
+          <Text style={styles.sectionLabel}>TASK TODAY</Text>
+          <TouchableOpacity onPress={() => router.push('/workouts')}>
+            <Text style={styles.showAll}>Show all</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.taskList}>
+          {taskItems.map((t) => (
+            <TaskRow key={t.id} name={t.name} done={t.done} onPress={() => router.push(`/workout/${t.id}`)} />
+          ))}
+        </View>
 
         <Text style={styles.sectionLabel}>QUICK ACTIONS</Text>
         <View style={styles.qaGrid}>
@@ -141,6 +225,18 @@ export default function HQScreen() {
           <Text style={styles.leaderLinkText}>VIEW LEADERBOARD</Text>
           <ChevronRight size={18} color={colors.text} />
         </TouchableOpacity>
+
+        <View style={styles.upgradeCard}>
+          <View style={styles.upgradeImage}>
+            <Flame size={28} color={colors.text} />
+          </View>
+          <View style={styles.upgradeBody}>
+            <Text style={styles.upgradeText}>Need more workout tips and solutions?</Text>
+            <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/champion-pass')} activeOpacity={0.85}>
+              <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,8 +246,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
-  hello: { ...typography.label, marginBottom: spacing.xs },
-  title: { ...typography.h1, fontSize: 36 },
+  greeting: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
+  greetingName: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: 0.5 },
   xpBadge: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -163,6 +259,30 @@ const styles = StyleSheet.create({
   },
   xpLevel: { ...typography.label, color: colors.textSecondary },
   xpValue: { ...typography.body, fontWeight: '800' },
+  chipsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
+  chip: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  chipValue: { fontSize: 28, fontWeight: '900', color: colors.text },
+  chipLabel: { ...typography.label, marginTop: 2 },
+  chartCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  chartBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 110 },
+  chartCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  bar: { width: 14, borderRadius: 7, borderWidth: 1, marginBottom: spacing.sm },
+  chartDay: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
+  chartDayActive: { color: colors.text },
   statsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
   stat: {
     flex: 1,
@@ -208,6 +328,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
   },
   playBtnText: { color: colors.bg, fontWeight: '900', letterSpacing: 1 },
+  taskHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  showAll: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  taskList: { gap: spacing.sm, marginBottom: spacing.xl },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  taskThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskName: { ...typography.body, fontWeight: '800', flex: 1 },
+  taskNameDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
   qa: {
     width: '48%',
@@ -251,6 +394,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
+    marginBottom: spacing.xl,
   },
   leaderLinkText: { ...typography.body, fontWeight: '800', letterSpacing: 1 },
+  upgradeCard: {
+    flexDirection: 'row',
+    backgroundColor: '#111',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.md,
+    alignItems: 'center',
+  },
+  upgradeImage: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeBody: { flex: 1, gap: spacing.sm },
+  upgradeText: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  upgradeBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.text,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+  },
+  upgradeBtnText: { color: colors.bg, fontWeight: '900', fontSize: 12 },
 });

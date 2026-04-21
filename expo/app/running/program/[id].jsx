@@ -11,6 +11,8 @@ import Badge from '@/components/Badge';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const { width } = Dimensions.get('window');
 

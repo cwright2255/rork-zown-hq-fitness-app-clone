@@ -7,6 +7,8 @@ import ProductCard from '@/components/ProductCard';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width, height: windowHeight } = Dimensions.get('window');
 
 export default function ShopScreen() {

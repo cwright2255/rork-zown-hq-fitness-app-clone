@@ -9,6 +9,8 @@ import ProgressBar from '@/components/ProgressBar';
 import { useUserStore } from '@/store/userStore';
 import { useChampionPassStore } from '@/store/championPassStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width } = Dimensions.get('window');
 
 export default function ChampionPassScreen() {

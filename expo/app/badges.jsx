@@ -25,6 +25,8 @@ import Colors from '@/constants/colors';
 import BadgeItem from '@/components/BadgeItem';
 import { useBadgeStore } from '@/store/badgeStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width } = Dimensions.get('window');
 const BADGE_SIZE = (width - 60) / 3;
 

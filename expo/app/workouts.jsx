@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Plus, Search, Dumbbell, Zap, Flame, Heart, Activity } from 'lucide-react-native';
+import { Plus, Search, Dumbbell, Zap, Flame, Heart, Activity, CheckSquare, Square } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useWorkoutStore } from '@/store/workoutStore';
+
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const FILTERS = [
   { label: 'All', value: 'all' },
@@ -12,6 +14,12 @@ const FILTERS = [
   { label: 'Cardio', value: 'cardio', Icon: Heart },
   { label: 'HIIT', value: 'hiit', Icon: Flame },
   { label: 'Yoga', value: 'yoga', Icon: Activity },
+];
+
+const STATUS_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Complete', value: 'complete' },
+  { label: 'Pending', value: 'pending' },
 ];
 
 const FALLBACK_WORKOUTS = [
@@ -24,23 +32,33 @@ const FALLBACK_WORKOUTS = [
 ];
 
 function WorkoutCard({ workout }) {
+  const done = !!workout.completed;
+  const CheckIcon = done ? CheckSquare : Square;
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => router.push(`/workout/${workout.id}`)}
       activeOpacity={0.85}
     >
-      <View style={styles.cardTop}>
-        <Text style={styles.cardLabel}>{(workout.category || 'WORKOUT').toUpperCase()}</Text>
-        <View style={styles.cardPill}>
-          <Text style={styles.cardPillText}>{workout.difficulty || 'MODERATE'}</Text>
+      <View style={styles.cardRow}>
+        <CheckIcon size={22} color={done ? colors.text : colors.textSecondary} />
+        <View style={styles.cardThumb}>
+          <Dumbbell size={18} color={colors.text} />
         </View>
-      </View>
-      <Text style={styles.cardTitle} numberOfLines={2}>{workout.name}</Text>
-      <View style={styles.cardBottom}>
-        <Text style={styles.cardMeta}>{workout.duration || 30} MIN</Text>
-        <View style={styles.cardCta}>
-          <Text style={styles.cardCtaText}>START</Text>
+        <View style={styles.cardBody}>
+          <View style={styles.cardTop}>
+            <Text style={styles.cardLabel}>{(workout.category || 'WORKOUT').toUpperCase()}</Text>
+            <View style={styles.cardPill}>
+              <Text style={styles.cardPillText}>{workout.difficulty || 'MODERATE'}</Text>
+            </View>
+          </View>
+          <Text style={[styles.cardTitle, done && styles.cardTitleDone]} numberOfLines={2}>{workout.name}</Text>
+          <View style={styles.cardBottom}>
+            <Text style={styles.cardMeta}>{workout.duration || 30} MIN</Text>
+            <View style={styles.cardCta}>
+              <Text style={styles.cardCtaText}>{done ? 'DONE' : 'START'}</Text>
+            </View>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -50,6 +68,7 @@ function WorkoutCard({ workout }) {
 export default function WorkoutsScreen() {
   const { workouts, initializeDefaultWorkouts } = useWorkoutStore();
   const [filter, setFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -61,9 +80,11 @@ export default function WorkoutsScreen() {
 
   const list = useMemo(() => {
     const base = (workouts && workouts.length > 0) ? workouts : FALLBACK_WORKOUTS;
-    if (filter === 'all') return base;
-    return base.filter((w) => (w.category || '').toLowerCase() === filter);
-  }, [workouts, filter]);
+    let filtered = filter === 'all' ? base : base.filter((w) => (w.category || '').toLowerCase() === filter);
+    if (statusFilter === 'complete') filtered = filtered.filter((w) => !!w.completed);
+    else if (statusFilter === 'pending') filtered = filtered.filter((w) => !w.completed);
+    return filtered;
+  }, [workouts, filter, statusFilter]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -73,6 +94,22 @@ export default function WorkoutsScreen() {
         <TouchableOpacity style={styles.iconBtn} accessibilityLabel="Search">
           <Search size={18} color={colors.text} />
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.statusRow}>
+        {STATUS_FILTERS.map(({ label, value }) => {
+          const active = statusFilter === value;
+          return (
+            <TouchableOpacity
+              key={value}
+              onPress={() => setStatusFilter(value)}
+              style={[styles.statusPill, active && styles.statusPillActive]}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.statusPillText, active && styles.statusPillTextActive]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -141,6 +178,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  statusRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  statusPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  statusPillActive: { backgroundColor: colors.text, borderColor: colors.text },
+  statusPillText: { ...typography.caption, fontWeight: '700', color: colors.textSecondary },
+  statusPillTextActive: { color: colors.bg },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  cardThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBody: { flex: 1 },
+  cardTitleDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
   filters: { paddingHorizontal: spacing.lg, gap: spacing.sm, paddingVertical: spacing.sm, flexDirection: 'row' },
   filterPill: {
     flexDirection: 'row',

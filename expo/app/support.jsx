@@ -23,6 +23,8 @@ import {
 'lucide-react-native';
 import Colors from '@/constants/colors';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function SupportScreen() {
   const [activeTab, setActiveTab] = useState('help');
   const [contactForm, setContactForm] = useState({

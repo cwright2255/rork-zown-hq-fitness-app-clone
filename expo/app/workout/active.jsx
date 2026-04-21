@@ -32,6 +32,8 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 
 import locationService from '@/services/locationService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 
 

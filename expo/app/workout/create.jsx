@@ -9,6 +9,8 @@ import Card from '@/components/Card';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useAchievementStore } from '@/store/achievementStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function CreateWorkoutScreen() {
   const { addWorkout } = useWorkoutStore();

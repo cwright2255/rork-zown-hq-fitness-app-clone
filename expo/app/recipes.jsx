@@ -10,6 +10,8 @@ import GroceryList from '@/components/GroceryList';
 
 import { useRecipeStore } from '@/store/recipeStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const { width } = Dimensions.get('window');
 
 // Mock data for recipes

@@ -20,6 +20,8 @@ import SpotifyEmbedPlayer from '@/components/SpotifyEmbedPlayer';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function SpotifyIntegration() {
   const {

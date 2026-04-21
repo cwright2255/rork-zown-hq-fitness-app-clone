@@ -5,6 +5,8 @@ import { spotifyService } from '@/services/spotifyService';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import Colors from '@/constants/colors';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function SpotifyCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();

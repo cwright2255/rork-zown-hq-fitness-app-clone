@@ -18,6 +18,8 @@ import { Eye, EyeOff, Mail, Lock, User, Apple } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
     name: '',

@@ -12,6 +12,8 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { authService } from '@/services/authService';
 import { spotifyService } from '@/services/spotifyService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function SettingsScreen() {
   const { user, updateUserPreferences, logout } = useUserStore();
   const { dailyGoals, updateDailyGoals } = useNutritionStore();

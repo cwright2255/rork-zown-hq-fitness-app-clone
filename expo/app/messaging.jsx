@@ -16,6 +16,8 @@ import { Send, Search, Plus, Phone, Video, MoreHorizontal } from 'lucide-react-n
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 
 

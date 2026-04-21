@@ -7,6 +7,8 @@ import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function BarcodeScanScreen() {
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();

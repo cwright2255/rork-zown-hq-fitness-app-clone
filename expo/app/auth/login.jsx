@@ -19,6 +19,8 @@ import Constants from 'expo-constants';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 export default function LoginScreen() {

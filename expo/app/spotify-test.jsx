@@ -17,6 +17,8 @@ import Button from '@/components/Button';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function SpotifyTest() {
   const { isConnected, user, connectSpotifyImplicit } = useSpotifyStore();
   const [testResults, setTestResults] = useState([]);

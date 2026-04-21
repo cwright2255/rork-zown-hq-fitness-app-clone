@@ -7,6 +7,8 @@ import FoodItem from '@/components/FoodItem';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { searchFoods, testPassioConnection, getAvailableTools } from '@/services/passioService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function SearchFoodScreen() {
   const { mealId, scannedFood } = useLocalSearchParams();
   const { addFoodToMeal, recentFoods: storeRecentFoods } = useNutritionStore();

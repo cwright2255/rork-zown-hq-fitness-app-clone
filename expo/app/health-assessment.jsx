@@ -8,6 +8,8 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { wearableService } from '@/services/wearableService';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 export default function HealthAssessmentScreen() {
   const [connectedDevices, setConnectedDevices] = useState([]);
   const [latestData, setLatestData] = useState(null);

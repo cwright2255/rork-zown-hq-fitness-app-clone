@@ -12,6 +12,8 @@ import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import SpotifyMusicPlayer from '@/components/SpotifyMusicPlayer';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function RunningSessionDetailScreen() {
   const params = useLocalSearchParams();

@@ -13,6 +13,8 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../src/stores/authStore';
 import { Colors, Spacing, Typography, Radius } from '../src/constants/tokens';
 
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 const ROOK_CLIENT_UUID = '78e6b253-ee09-43bf-b89b-a2983a59de06';
 
 export default function RookConnectScreen() {
