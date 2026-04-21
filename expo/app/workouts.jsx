@@ -1,124 +1,125 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Plus, Search, Dumbbell, Zap, Flame, Heart, Activity, CheckSquare, Square } from 'lucide-react-native';
+import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
-import { useWorkoutStore } from '@/store/workoutStore';
+import { useExerciseStore } from '@/store/exerciseStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Strength', value: 'strength', Icon: Dumbbell },
+  { label: 'All', value: '' },
+  { label: 'Strength', value: 'upper arms|back|chest|shoulders', Icon: Dumbbell },
   { label: 'Cardio', value: 'cardio', Icon: Heart },
-  { label: 'HIIT', value: 'hiit', Icon: Flame },
-  { label: 'Yoga', value: 'yoga', Icon: Activity },
+  { label: 'Upper Body', value: 'chest|shoulders|upper arms|back', Icon: ArrowUp },
+  { label: 'Lower Body', value: 'upper legs|lower legs', Icon: ArrowDown },
 ];
 
-const STATUS_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Complete', value: 'complete' },
-  { label: 'Pending', value: 'pending' },
-];
-
-const FALLBACK_WORKOUTS = [
-  { id: 'fb1', name: 'Full Body Burn', duration: 32, difficulty: 'INTENSE', category: 'hiit' },
-  { id: 'fb2', name: 'Upper Body Power', duration: 45, difficulty: 'HARD', category: 'strength' },
-  { id: 'fb3', name: '5K Run', duration: 28, difficulty: 'MODERATE', category: 'cardio' },
-  { id: 'fb4', name: 'Core Crusher', duration: 20, difficulty: 'INTENSE', category: 'hiit' },
-  { id: 'fb5', name: 'Morning Flow', duration: 35, difficulty: 'EASY', category: 'yoga' },
-  { id: 'fb6', name: 'Leg Day', duration: 50, difficulty: 'HARD', category: 'strength' },
-];
-
-function WorkoutCard({ workout }) {
-  const done = !!workout.completed;
-  const CheckIcon = done ? CheckSquare : Square;
+function ExerciseRow({ exercise }) {
+  const equipment = (exercise.equipments || [])[0] || '';
+  const target = (exercise.targetMuscles || [])[0] || '';
   return (
     <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/workout/${workout.id}`)}
+      style={styles.row}
+      onPress={() => router.push({ pathname: '/workout/[id]', params: { id: exercise.exerciseId } })}
       activeOpacity={0.85}
     >
-      <View style={styles.cardRow}>
-        <CheckIcon size={22} color={done ? colors.text : colors.textSecondary} />
-        <View style={styles.cardThumb}>
+      {exercise.gifUrl ? (
+        <Image source={{ uri: exercise.gifUrl }} style={styles.thumb} resizeMode="cover" />
+      ) : (
+        <View style={[styles.thumb, styles.thumbFallback]}>
           <Dumbbell size={18} color={colors.text} />
         </View>
-        <View style={styles.cardBody}>
-          <View style={styles.cardTop}>
-            <Text style={styles.cardLabel}>{(workout.category || 'WORKOUT').toUpperCase()}</Text>
-            <View style={styles.cardPill}>
-              <Text style={styles.cardPillText}>{workout.difficulty || 'MODERATE'}</Text>
-            </View>
-          </View>
-          <Text style={[styles.cardTitle, done && styles.cardTitleDone]} numberOfLines={2}>{workout.name}</Text>
-          <View style={styles.cardBottom}>
-            <Text style={styles.cardMeta}>{workout.duration || 30} MIN</Text>
-            <View style={styles.cardCta}>
-              <Text style={styles.cardCtaText}>{done ? 'DONE' : 'START'}</Text>
-            </View>
-          </View>
+      )}
+      <View style={styles.rowBody}>
+        <Text style={styles.rowTitle} numberOfLines={2}>{exercise.name}</Text>
+        <View style={styles.rowTags}>
+          {!!equipment && <Text style={styles.rowTag}>{equipment}</Text>}
+          {!!target && <Text style={styles.rowTag}>• {target}</Text>}
         </View>
       </View>
+      <ChevronRight size={18} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 }
 
 export default function WorkoutsScreen() {
-  const { workouts, initializeDefaultWorkouts } = useWorkoutStore();
-  const [filter, setFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const initialized = useRef(false);
+  const {
+    exercises,
+    filteredExercises,
+    isLoading,
+    hasNextPage,
+    filters,
+    loadExercises,
+    loadEquipments,
+    loadMuscles,
+    setFilter,
+  } = useExerciseStore();
+
+  const [activePill, setActivePill] = useState('');
 
   useEffect(() => {
-    if ((!workouts || workouts.length === 0) && !initialized.current) {
-      initialized.current = true;
-      requestAnimationFrame(() => initializeDefaultWorkouts());
+    if (exercises.length === 0) {
+      loadExercises(true);
     }
-  }, [workouts, initializeDefaultWorkouts]);
+    loadEquipments();
+    loadMuscles();
+  }, []);
 
-  const list = useMemo(() => {
-    const base = (workouts && workouts.length > 0) ? workouts : FALLBACK_WORKOUTS;
-    let filtered = filter === 'all' ? base : base.filter((w) => (w.category || '').toLowerCase() === filter);
-    if (statusFilter === 'complete') filtered = filtered.filter((w) => !!w.completed);
-    else if (statusFilter === 'pending') filtered = filtered.filter((w) => !w.completed);
-    return filtered;
-  }, [workouts, filter, statusFilter]);
+  const list = (filters.query || filters.bodyPart || filters.equipment || filters.muscle)
+    ? filteredExercises
+    : exercises;
+
+  const onPressPill = (value) => {
+    setActivePill(value);
+    setFilter('bodyPart', value);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Text style={styles.title}>WORKOUTS</Text>
-        <TouchableOpacity style={styles.iconBtn} accessibilityLabel="Search">
-          <Search size={18} color={colors.text} />
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => router.push('/workout/create')}
+          accessibilityLabel="Create workout"
+        >
+          <Plus size={18} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.statusRow}>
-        {STATUS_FILTERS.map(({ label, value }) => {
-          const active = statusFilter === value;
-          return (
-            <TouchableOpacity
-              key={value}
-              onPress={() => setStatusFilter(value)}
-              style={[styles.statusPill, active && styles.statusPillActive]}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.statusPillText, active && styles.statusPillTextActive]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={styles.searchWrap}>
+        <Search size={16} color={colors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search exercises"
+          placeholderTextColor={colors.textMuted}
+          value={filters.query}
+          onChangeText={(text) => setFilter('query', text)}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
         {FILTERS.map(({ label, value, Icon }) => {
-          const active = filter === value;
+          const active = activePill === value;
           return (
             <TouchableOpacity
-              key={value}
-              onPress={() => setFilter(value)}
+              key={label}
+              onPress={() => onPressPill(value)}
               style={[styles.filterPill, active && styles.filterPillActive]}
               activeOpacity={0.85}
             >
@@ -129,21 +130,44 @@ export default function WorkoutsScreen() {
         })}
       </ScrollView>
 
-      <FlatList
-        data={list}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => <WorkoutCard workout={item} />}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Zap size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No workouts</Text>
-            <Text style={styles.emptyText}>Try a different filter.</Text>
-          </View>
-        }
-      />
+      {isLoading && list.length === 0 ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={colors.text} />
+          <Text style={styles.loadingText}>Loading exercises…</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={list}
+          keyExtractor={(item) => String(item.exerciseId)}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => <ExerciseRow exercise={item} />}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Dumbbell size={40} color={colors.textMuted} />
+              <Text style={styles.emptyTitle}>No exercises</Text>
+              <Text style={styles.emptyText}>Try a different search or filter.</Text>
+            </View>
+          }
+          ListFooterComponent={
+            hasNextPage ? (
+              <TouchableOpacity
+                style={styles.loadMore}
+                onPress={() => loadExercises(false)}
+                activeOpacity={0.85}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={colors.bg} />
+                ) : (
+                  <Text style={styles.loadMoreText}>LOAD MORE</Text>
+                )}
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      )}
 
       <TouchableOpacity
         style={styles.fab}
@@ -178,35 +202,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusRow: {
+  searchWrap: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-  },
-  statusPill: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: radius.full,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
   },
-  statusPillActive: { backgroundColor: colors.text, borderColor: colors.text },
-  statusPillText: { ...typography.caption, fontWeight: '700', color: colors.textSecondary },
-  statusPillTextActive: { color: colors.bg },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  cardThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    padding: 0,
   },
-  cardBody: { flex: 1 },
-  cardTitleDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
-  filters: { paddingHorizontal: spacing.lg, gap: spacing.sm, paddingVertical: spacing.sm, flexDirection: 'row' },
+  filters: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+  },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,36 +243,40 @@ const styles = StyleSheet.create({
   filterText: { ...typography.caption, fontWeight: '700', color: colors.textSecondary },
   filterTextActive: { color: colors.bg },
   listContent: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
-  card: {
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-  cardLabel: { ...typography.label },
-  cardPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.text,
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
   },
-  cardPillText: { ...typography.caption, fontWeight: '800', color: colors.text, fontSize: 10, letterSpacing: 1 },
-  cardTitle: { fontSize: 22, fontWeight: '900', color: colors.text, marginBottom: spacing.md },
-  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardMeta: { ...typography.body, fontWeight: '700', color: colors.textSecondary },
-  cardCta: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.text,
-  },
-  cardCtaText: { color: colors.bg, fontWeight: '900', letterSpacing: 1, fontSize: 12 },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center' },
+  rowBody: { flex: 1 },
+  rowTitle: { fontSize: 15, fontWeight: '700', color: colors.text, textTransform: 'capitalize' },
+  rowTags: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  rowTag: { fontSize: 12, color: colors.textSecondary, textTransform: 'capitalize' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  loadingText: { ...typography.caption },
   empty: { alignItems: 'center', padding: spacing.xl, gap: spacing.sm },
   emptyTitle: { ...typography.h3, marginTop: spacing.sm },
   emptyText: { ...typography.caption },
+  loadMore: {
+    marginTop: spacing.lg,
+    paddingVertical: 14,
+    borderRadius: radius.full,
+    backgroundColor: colors.text,
+    alignItems: 'center',
+  },
+  loadMoreText: { color: colors.bg, fontWeight: '900', letterSpacing: 1.5, fontSize: 12 },
   fab: {
     position: 'absolute',
     right: spacing.lg,

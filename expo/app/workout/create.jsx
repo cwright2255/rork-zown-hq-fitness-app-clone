@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  SafeAreaView,
+} from 'react-native';
 import { router, Stack } from 'expo-router';
-import { Plus, Trash } from 'lucide-react-native';
+import { Plus, Trash, Search, X, BookOpen } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Card from '@/components/Card';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useAchievementStore } from '@/store/achievementStore';
+import { useExerciseStore } from '@/store/exerciseStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -15,6 +29,23 @@ export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBo
 export default function CreateWorkoutScreen() {
   const { addWorkout } = useWorkoutStore();
   const { updateAchievementProgress } = useAchievementStore();
+  const {
+    exercises: libraryExercises,
+    filteredExercises: libraryFiltered,
+    isLoading: libraryLoading,
+    hasNextPage: libraryHasNextPage,
+    filters: libraryFilters,
+    loadExercises: loadLibraryExercises,
+    setFilter: setLibraryFilter,
+  } = useExerciseStore();
+
+  const [pickerVisible, setPickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (pickerVisible && libraryExercises.length === 0) {
+      loadLibraryExercises(true);
+    }
+  }, [pickerVisible]);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -64,6 +95,33 @@ export default function CreateWorkoutScreen() {
       equipment: []
     }]
     );
+  };
+
+  const handlePickFromLibrary = (libExercise) => {
+    const equipments = Array.isArray(libExercise.equipments) ? libExercise.equipments : [];
+    const muscles = Array.isArray(libExercise.targetMuscles) ? libExercise.targetMuscles : [];
+    const description = Array.isArray(libExercise.instructions)
+      ? libExercise.instructions.slice(0, 2).map((s) => String(s).replace(/^Step:\d+\s*/i, '')).join(' ')
+      : '';
+    const newEx = {
+      name: libExercise.name || '',
+      description,
+      muscleGroups: muscles,
+      sets: 3,
+      reps: 10,
+      restTime: 60,
+      equipment: equipments,
+    };
+    setExercises((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && !last.name?.trim()) {
+        const copy = [...prev];
+        copy[copy.length - 1] = newEx;
+        return copy;
+      }
+      return [...prev, newEx];
+    });
+    setPickerVisible(false);
   };
 
   const handleRemoveExercise = (index) => {
@@ -352,13 +410,106 @@ export default function CreateWorkoutScreen() {
         )}
         
         <Button
-          title="Add Exercise"
+          title="Add Exercise from Library"
+          onPress={() => setPickerVisible(true)}
+          variant="primary"
+          leftIcon={<BookOpen size={20} color={Colors.text.inverse} />}
+          style={styles.addButton} />
+
+
+        <Button
+          title="Add Blank Exercise"
           onPress={handleAddExercise}
           variant="outline"
           leftIcon={<Plus size={20} color={Colors.primary} />}
           style={styles.addButton} />
-        
+
       </ScrollView>
+
+      <Modal
+        visible={pickerVisible}
+        animationType="slide"
+        onRequestClose={() => setPickerVisible(false)}
+      >
+        <SafeAreaView style={pickerStyles.safe}>
+          <View style={pickerStyles.header}>
+            <Text style={pickerStyles.headerTitle}>ADD EXERCISE</Text>
+            <TouchableOpacity
+              style={pickerStyles.closeBtn}
+              onPress={() => setPickerVisible(false)}
+              accessibilityLabel="Close"
+            >
+              <X size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={pickerStyles.searchWrap}>
+            <Search size={16} color="#999999" />
+            <TextInput
+              style={pickerStyles.searchInput}
+              placeholder="Search exercises"
+              placeholderTextColor="#555555"
+              value={libraryFilters.query}
+              onChangeText={(text) => setLibraryFilter('query', text)}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {libraryLoading && libraryExercises.length === 0 ? (
+            <View style={pickerStyles.loadingWrap}>
+              <ActivityIndicator color="#FFFFFF" />
+              <Text style={pickerStyles.loadingText}>Loading exercises…</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={(libraryFilters.query || libraryFilters.bodyPart || libraryFilters.equipment || libraryFilters.muscle) ? libraryFiltered : libraryExercises}
+              keyExtractor={(item) => String(item.exerciseId)}
+              contentContainerStyle={pickerStyles.listContent}
+              renderItem={({ item }) => {
+                const equipment = (item.equipments || [])[0] || '';
+                const target = (item.targetMuscles || [])[0] || '';
+                return (
+                  <TouchableOpacity
+                    style={pickerStyles.row}
+                    onPress={() => handlePickFromLibrary(item)}
+                    activeOpacity={0.85}
+                  >
+                    {item.gifUrl ? (
+                      <Image source={{ uri: item.gifUrl }} style={pickerStyles.thumb} resizeMode="cover" />
+                    ) : (
+                      <View style={pickerStyles.thumb} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={pickerStyles.rowTitle} numberOfLines={2}>{item.name}</Text>
+                      <Text style={pickerStyles.rowMeta} numberOfLines={1}>
+                        {[equipment, target].filter(Boolean).join(' • ')}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+              ListFooterComponent={
+                libraryHasNextPage ? (
+                  <TouchableOpacity
+                    style={pickerStyles.loadMore}
+                    onPress={() => loadLibraryExercises(false)}
+                    disabled={libraryLoading}
+                    activeOpacity={0.85}
+                  >
+                    {libraryLoading ? (
+                      <ActivityIndicator color="#000000" />
+                    ) : (
+                      <Text style={pickerStyles.loadMoreText}>LOAD MORE</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : null
+              }
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </>);
 
 }
@@ -480,4 +631,65 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 8
   }
+});
+
+const pickerStyles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#000000' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 9999,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+  },
+  searchInput: { flex: 1, color: '#FFFFFF', fontSize: 14, padding: 0 },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  loadingText: { color: '#999999', fontSize: 12 },
+  listContent: { padding: 24, paddingBottom: 48 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    padding: 12,
+  },
+  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: '#111111' },
+  rowTitle: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', textTransform: 'capitalize' },
+  rowMeta: { fontSize: 12, color: '#999999', marginTop: 4, textTransform: 'capitalize' },
+  loadMore: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 9999,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  loadMoreText: { color: '#000000', fontWeight: '900', letterSpacing: 1.5, fontSize: 12 },
 });
