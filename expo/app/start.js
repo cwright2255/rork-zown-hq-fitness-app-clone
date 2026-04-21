@@ -8,7 +8,6 @@ import {
   Easing } from
 'react-native';
 import { router, Stack } from 'expo-router';
-import LoginScreen from '@/app/auth/login';
 import { ErrorBoundary } from '@/components/LoadingScreen';
 
 function StartScreenContent() {
@@ -77,10 +76,6 @@ function StartScreenContent() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.layers}>
-        <View style={styles.loginUnderlay} pointerEvents="none" accessibilityElementsHidden>
-          <LoginScreen />
-        </View>
-
         <Animated.View
             style={[styles.whiteCover, { transform: [{ translateY: coverY }] }]}
             testID="startup-cover">
@@ -123,10 +118,6 @@ const styles = StyleSheet.create({
   },
   layers: {
     flex: 1
-  },
-  loginUnderlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0
   },
   whiteCover: {
     ...StyleSheet.absoluteFillObject,
