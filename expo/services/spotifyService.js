@@ -5,12 +5,20 @@ import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const makeSpotifyRedirectUri = () =>
-  AuthSession.makeRedirectUri({
-    scheme: 'zownhq',
-    path: 'spotify-callback',
-    preferLocalhost: false,
-  });
+// The EXACT URI registered in the Spotify Developer Dashboard.
+// Expo proxy URI for Expo Go; native scheme for standalone builds.
+const SPOTIFY_REDIRECT_URI_EXPO_PROXY = 'https://auth.expo.io/@carlton.v.wright.jr/zown';
+const SPOTIFY_REDIRECT_URI_NATIVE = 'zownhq://spotify-callback';
+
+const makeSpotifyRedirectUri = () => {
+  // Explicit env var always wins (set in CI/EAS)
+  const explicit = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
+  if (explicit) return explicit;
+  // In Expo Go, use the proxy URI registered on the dashboard
+  const { default: Constants } = require('expo-constants');
+  const isExpoGo = Constants.appOwnership === 'expo';
+  return isExpoGo ? SPOTIFY_REDIRECT_URI_EXPO_PROXY : SPOTIFY_REDIRECT_URI_NATIVE;
+};
 
 
 

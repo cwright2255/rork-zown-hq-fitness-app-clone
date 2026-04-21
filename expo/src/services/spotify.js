@@ -28,10 +28,11 @@ const TOKEN_KEY = 'spotify_tokens_v1';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 function getRedirectUri() {
-  if (IS_EXPO_GO) {
-    return AuthSession.makeRedirectUri({ useProxy: true });
-  }
-  return AuthSession.makeRedirectUri({ scheme: 'zownhq', path: 'spotify-callback' });
+  const explicit = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
+  if (explicit) return explicit;
+  // Expo proxy URI must match exactly what is registered in the Spotify Dashboard
+  if (IS_EXPO_GO) return 'https://auth.expo.io/@carlton.v.wright.jr/zown';
+  return 'zownhq://spotify-callback';
 }
 
 async function saveTokens(tokens) {
