@@ -361,7 +361,7 @@ export const useUserStore = create(
           console.error('[UserStore] Failed to clear storage during logout:', error);
         } finally {
           // Reset user state
-          set({ user, isOnboarded: false });
+          set({ user: null, isOnboarded: false });
           console.log('[UserStore] User state reset to logged out');
         }
       },

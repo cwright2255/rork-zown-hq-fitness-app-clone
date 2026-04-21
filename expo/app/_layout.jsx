@@ -6,7 +6,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Bell, Menu, ShoppingCart } from 'lucide-react-native';
-import Head from 'expo-router/head';
+// expo-router/head not available in this SDK version — web-only feature
+const Head = ({ children }) => null;
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
@@ -228,16 +229,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <SafeAreaProvider>
-            {Platform.OS === 'web' ?
-              <Head>
-                <link
-                  rel="stylesheet"
-                  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-                  crossOrigin="" />
-                
-              </Head> :
-              null}
+            {null /* web-only leaflet styles removed — not needed in Expo Go */}
             <View style={styles.container}>
               <StatusBar style="auto" />
 
