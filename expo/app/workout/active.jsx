@@ -24,6 +24,7 @@ import Colors from '@/constants/colors';
 
 
 import SpotifyMusicPlayer from '@/components/SpotifyMusicPlayer';
+import SpotifyEmbedPlayer from '@/components/SpotifyEmbedPlayer';
 import RunningMap from '@/components/RunningMap';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
@@ -105,6 +106,7 @@ export default function ActiveWorkoutScreen() {
   const [currentStream, setCurrentStream] = useState(null);
 
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [showSpotifyEmbed, setShowSpotifyEmbed] = useState(false);
 
   // Next workouts preview state
   const [previewHeight] = useState(new Animated.Value(0));
@@ -1058,7 +1060,7 @@ export default function ActiveWorkoutScreen() {
             transparent={true}
             animationType="slide"
             onRequestClose={() => setShowMusicPlayer(false)}>
-            
+
             <View style={styles.musicModalOverlay}>
               <View style={styles.musicModalContent}>
                 <View style={styles.musicModalHeader}>
@@ -1070,7 +1072,40 @@ export default function ActiveWorkoutScreen() {
                 <SpotifyMusicPlayer
                   workoutType={getWorkoutType()}
                   style={styles.musicPlayerInModal} />
-                
+
+              </View>
+            </View>
+          </Modal>
+
+          {/* Floating Spotify Music FAB */}
+          <TouchableOpacity
+            style={styles.spotifyFab}
+            onPress={() => setShowSpotifyEmbed(true)}
+            testID="spotify-embed-fab"
+            activeOpacity={0.85}>
+            <Music size={18} color="#fff" />
+            <Text style={styles.spotifyFabText}>Music</Text>
+          </TouchableOpacity>
+
+          {/* Spotify Embed Modal */}
+          <Modal
+            visible={showSpotifyEmbed}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowSpotifyEmbed(false)}>
+            <View style={styles.spotifyEmbedOverlay}>
+              <View style={styles.spotifyEmbedSheet}>
+                <View style={styles.spotifyEmbedHeader}>
+                  <Text style={styles.spotifyEmbedTitle}>Workout Music</Text>
+                  <TouchableOpacity onPress={() => setShowSpotifyEmbed(false)} testID="close-spotify-embed">
+                    <X size={22} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <SpotifyEmbedPlayer
+                  type="playlist"
+                  playlistId="37i9dQZF1DX76Wlfdnj7AP"
+                  trackName="Beast Mode"
+                  artistName="Spotify Workout Playlist" />
               </View>
             </View>
           </Modal>
@@ -2080,5 +2115,57 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
     lineHeight: 20
+  },
+  spotifyFab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    backgroundColor: '#1DB954',
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 999
+  },
+  spotifyFabText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.3
+  },
+  spotifyEmbedOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end'
+  },
+  spotifyEmbedSheet: {
+    backgroundColor: '#000',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    paddingBottom: 32,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#2A2A2A'
+  },
+  spotifyEmbedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingBottom: 12
+  },
+  spotifyEmbedTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700'
   }
 });

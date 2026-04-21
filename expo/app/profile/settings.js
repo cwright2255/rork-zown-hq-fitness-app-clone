@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Bell, Lock, HelpCircle, Info, LogOut, Music, ExternalLink } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -76,20 +76,16 @@ export default function SettingsScreen() {
 
   const handleConnectSpotify = async () => {
     try {
-      console.log('Initiating Spotify connection...');
       setIsConnecting(true);
-
       const success = await spotifyService.authenticateWithPopup();
       if (success) {
         Alert.alert('Success', 'Spotify connected successfully!');
-        router.replace('/profile/settings');
       } else {
-        Alert.alert('Info', 'Spotify authentication was canceled or failed.');
+        Alert.alert('Info', 'Spotify authentication was cancelled.');
       }
-      setIsConnecting(false);
     } catch (error) {
-      console.error('Failed to initiate Spotify connection:', error);
-      Alert.alert('Error', `Failed to connect to Spotify: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Alert.alert('Error', `Failed to connect Spotify: ${error?.message || 'Unknown error'}`);
+    } finally {
       setIsConnecting(false);
     }
   };

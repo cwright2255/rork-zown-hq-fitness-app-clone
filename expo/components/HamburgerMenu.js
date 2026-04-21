@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, Dimensions, ScrollView, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { X, Home, Dumbbell, Utensils, TrendingUp, ShoppingBag, Trophy, Soup, User, MessageCircle, Brain, Heart, Activity, LogOut } from 'lucide-react-native';
+import { X, Home, Dumbbell, Utensils, TrendingUp, ShoppingBag, Trophy, Soup, User, MessageCircle, Brain, Heart, Activity, LogOut, Music } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
@@ -64,6 +64,11 @@ const menuItems = [
   icon: <Activity size={24} color={Colors.text.primary} />,
   label: 'Wearables',
   route: '/wearables'
+},
+{
+  icon: <Music size={24} color="#1DB954" />,
+  label: 'Spotify',
+  route: '/spotify-integration'
 },
 {
   icon: <User size={24} color={Colors.text.primary} />,

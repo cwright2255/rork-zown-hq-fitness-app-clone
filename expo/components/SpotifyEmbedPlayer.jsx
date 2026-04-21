@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { X, Minimize2, Maximize2 } from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { colors } from '@/constants/theme';
 
-function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, compact = false }) {
+const SPOTIFY_EMBED_ACCESS_TOKEN = 'CEA04C0C-5C3F462C-A802EEF4-6F9ED74A';
+const DEFAULT_WORKOUT_PLAYLIST_ID = '37i9dQZF1DX76Wlfdnj7AP';
+
+function buildEmbedUrl({ trackId, playlistId, type }) {
+  const kind = type || (playlistId ? 'playlist' : 'track');
+  const id = playlistId || trackId || DEFAULT_WORKOUT_PLAYLIST_ID;
+  return `https://open.spotify.com/embed/${kind}/${id}?utm_source=generator&theme=0&access_token=${SPOTIFY_EMBED_ACCESS_TOKEN}`;
+}
+
+function SpotifyEmbedPlayerNative({ trackId, playlistId, type, trackName, artistName, onClose, compact = false }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(!compact);
 
-  const embedUrl = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
+  const embedUrl = buildEmbedUrl({ trackId, playlistId, type });
   const height = isExpanded ? 352 : 80;
 
   let WebViewComponent = null;
@@ -18,7 +27,6 @@ function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, com
       <View style={[styles.container, { height: 80 }]}>
         <Text style={styles.errorText}>WebView not available</Text>
       </View>);
-
   }
 
   return (
@@ -26,25 +34,26 @@ function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, com
       <View style={styles.header}>
         <View style={styles.headerInfo}>
           {trackName &&
-          <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
+            <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
           }
           {artistName &&
-          <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
+            <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
+          }
+          {!trackName && !artistName &&
+            <Text style={styles.headerTrackName} numberOfLines={1}>Workout Music</Text>
           }
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setIsExpanded(!isExpanded)}>
-            
             {isExpanded ?
-            <Minimize2 size={16} color="#fff" /> :
-
-            <Maximize2 size={16} color="#fff" />
+              <Minimize2 size={16} color="#fff" /> :
+              <Maximize2 size={16} color="#fff" />
             }
           </TouchableOpacity>
           {onClose &&
-          <TouchableOpacity style={styles.headerButton} onPress={onClose}>
+            <TouchableOpacity style={styles.headerButton} onPress={onClose}>
               <X size={16} color="#fff" />
             </TouchableOpacity>
           }
@@ -52,7 +61,7 @@ function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, com
       </View>
       <View style={[styles.webviewContainer, { height }]}>
         {isLoading &&
-        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingOverlay}>
             <ActivityIndicator size="small" color="#1DB954" />
             <Text style={styles.loadingText}>Loading player...</Text>
           </View>
@@ -68,17 +77,15 @@ function SpotifyEmbedPlayerNative({ trackId, trackName, artistName, onClose, com
           scrollEnabled={false}
           bounces={false}
           originWhitelist={['*']} />
-        
       </View>
     </View>);
-
 }
 
-function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compact = false }) {
+function SpotifyEmbedPlayerWeb({ trackId, playlistId, type, trackName, artistName, onClose, compact = false }) {
   const [isExpanded, setIsExpanded] = useState(!compact);
   const [isLoading, setIsLoading] = useState(true);
 
-  const embedUrl = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
+  const embedUrl = buildEmbedUrl({ trackId, playlistId, type });
   const height = isExpanded ? 352 : 80;
 
   return (
@@ -86,25 +93,26 @@ function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compac
       <View style={styles.header}>
         <View style={styles.headerInfo}>
           {trackName &&
-          <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
+            <Text style={styles.headerTrackName} numberOfLines={1}>{trackName}</Text>
           }
           {artistName &&
-          <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
+            <Text style={styles.headerArtistName} numberOfLines={1}>{artistName}</Text>
+          }
+          {!trackName && !artistName &&
+            <Text style={styles.headerTrackName} numberOfLines={1}>Workout Music</Text>
           }
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setIsExpanded(!isExpanded)}>
-            
             {isExpanded ?
-            <Minimize2 size={16} color="#fff" /> :
-
-            <Maximize2 size={16} color="#fff" />
+              <Minimize2 size={16} color="#fff" /> :
+              <Maximize2 size={16} color="#fff" />
             }
           </TouchableOpacity>
           {onClose &&
-          <TouchableOpacity style={styles.headerButton} onPress={onClose}>
+            <TouchableOpacity style={styles.headerButton} onPress={onClose}>
               <X size={16} color="#fff" />
             </TouchableOpacity>
           }
@@ -112,7 +120,7 @@ function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compac
       </View>
       <View style={[styles.webviewContainer, { height }]}>
         {isLoading &&
-        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingOverlay}>
             <ActivityIndicator size="small" color="#1DB954" />
             <Text style={styles.loadingText}>Loading player...</Text>
           </View>
@@ -126,10 +134,8 @@ function SpotifyEmbedPlayerWeb({ trackId, trackName, artistName, onClose, compac
           loading="lazy"
           style={{ borderRadius: 12, border: 'none' }}
           onLoad={() => setIsLoading(false)} />
-        
       </View>
     </View>);
-
 }
 
 export default function SpotifyEmbedPlayer(props) {
@@ -143,7 +149,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#111',
+    backgroundColor: colors.surface,
     marginBottom: 12
   },
   header: {
@@ -152,7 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 14,
     height: 40,
-    backgroundColor: '#1a1a1a'
+    backgroundColor: colors.card
   },
   headerInfo: {
     flex: 1,
@@ -192,7 +198,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#111',
+    backgroundColor: colors.surface,
     zIndex: 10,
     gap: 8
   },
@@ -202,7 +208,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: Colors.text.secondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     padding: 20
   }
