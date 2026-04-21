@@ -1,550 +1,196 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  Image,
-  Dimensions } from
-'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { Search, Users, MessageCircle, Trophy, Plus, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import { useCommunityStore } from '@/store/communityStore';
+import { Stack, router } from 'expo-router';
+import { Flame, Dumbbell, Target, Zap, Users, Lock, Clock } from 'lucide-react-native';
+import { colors, typography, spacing, radius } from '@/constants/theme';
 
-const { width } = Dimensions.get('window');
+const SEASONS = [
+  {
+    name: 'Season 01',
+    status: 'Completed',
+    locked: false,
+    challenges: [
+      { icon: Flame, title: 'Streak Mode', percent: 100 },
+      { icon: Dumbbell, title: 'Iron Grind', percent: 100 },
+      { icon: Target, title: 'Precision', percent: 85 },
+      { icon: Zap, title: 'Sprint It', percent: 72 },
+    ],
+  },
+  {
+    name: 'Season 02',
+    status: 'In Progress',
+    locked: false,
+    challenges: [
+      { icon: Flame, title: 'Cardio King', percent: 58 },
+      { icon: Dumbbell, title: 'Strength PR', percent: 33 },
+      { icon: Target, title: 'Form Focus', percent: 42 },
+      { icon: Zap, title: 'HIIT Blitz', percent: 12 },
+    ],
+  },
+  {
+    name: 'Season 03',
+    status: 'Starts in 14d 06h',
+    locked: true,
+    challenges: [],
+  },
+];
 
 export default function CommunityScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('feed');
-  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
-  const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
-
-  const { posts, groups, challenges } = useCommunityStore();
-
-
-
-
-
-  // Handle group carousel scroll
-  const handleGroupScroll = useCallback((event) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (width * 0.8));
-    setCurrentGroupIndex(index);
-  }, []);
-
-  // Handle challenge carousel scroll
-  const handleChallengeScroll = useCallback((event) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (width * 0.8));
-    setCurrentChallengeIndex(index);
-  }, []);
-
-  // Navigate group carousel
-  const navigateGroup = useCallback((direction) => {
-    if (direction === 'prev') {
-      setCurrentGroupIndex((prev) => prev === 0 ? groups.length - 1 : prev - 1);
-    } else {
-      setCurrentGroupIndex((prev) => (prev + 1) % groups.length);
-    }
-  }, [groups.length]);
-
-  // Navigate challenge carousel
-  const navigateChallenge = useCallback((direction) => {
-    if (direction === 'prev') {
-      setCurrentChallengeIndex((prev) => prev === 0 ? challenges.length - 1 : prev - 1);
-    } else {
-      setCurrentChallengeIndex((prev) => (prev + 1) % challenges.length);
-    }
-  }, [challenges.length]);
-
-  const renderFeed = () =>
-  <ScrollView style={styles.content}>
-      {posts.map((post) =>
-    <View key={post.id} style={styles.postCard}>
-          <View style={styles.postHeader}>
-            <Image source={{ uri: post.user.avatar }} style={styles.avatar} />
-            <View style={styles.postUserInfo}>
-              <Text style={styles.postUserName}>{post.user.name}</Text>
-              <Text style={styles.postTime}>{post.timeAgo}</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.postContent}>{post.content}</Text>
-          
-          {post.image &&
-      <Image source={{ uri: post.image }} style={styles.postImage} />
-      }
-          
-          <View style={styles.postActions}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionText}>👍 {post.likes}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <MessageCircle size={16} color={Colors.text.secondary} />
-              <Text style={styles.actionText}>{post.comments}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-    )}
-    </ScrollView>;
-
-
-  const renderGroups = () =>
-  <View style={styles.content}>
-      <View style={styles.carouselHeader}>
-        <Text style={styles.carouselTitle}>Fitness Groups</Text>
-        <View style={styles.carouselControls}>
-          <TouchableOpacity
-          style={styles.carouselButton}
-          onPress={() => navigateGroup('prev')}>
-          
-            <ChevronLeft size={16} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-          style={styles.carouselButton}
-          onPress={() => navigateGroup('next')}>
-          
-            <ChevronRight size={16} color={Colors.text.primary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.carouselContainer}>
-        <ScrollView
-        horizontal
-        pagingEnabled
-        snapToInterval={width * 0.8 + 16}
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.groupsContainer}
-        onMomentumScrollEnd={handleGroupScroll}>
-        
-          {groups.map((group) =>
-        <TouchableOpacity key={group.id} style={styles.groupCard}>
-              <Image source={{ uri: group.image }} style={styles.groupImage} />
-              <View style={styles.groupInfo}>
-                <Text style={styles.groupName}>{group.name}</Text>
-                <Text style={styles.groupDescription}>{group.description}</Text>
-                <View style={styles.groupStats}>
-                  <Users size={14} color={Colors.text.secondary} />
-                  <Text style={styles.groupMembers}>{group.members} members</Text>
-                </View>
-                <TouchableOpacity style={styles.joinGroupButton}>
-                  <Text style={styles.joinGroupButtonText}>Join Group</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-        )}
-        </ScrollView>
-
-        {/* Carousel Indicators */}
-        <View style={styles.indicatorsContainer}>
-          {groups.map((_, index) =>
-        <TouchableOpacity
-          key={index}
-          style={[
-          styles.indicator,
-          currentGroupIndex === index && styles.activeIndicator]
-          }
-          onPress={() => setCurrentGroupIndex(index)} />
-
-        )}
-        </View>
-      </View>
-    </View>;
-
-
-  const renderChallenges = () =>
-  <View style={styles.content}>
-      <View style={styles.carouselHeader}>
-        <Text style={styles.carouselTitle}>Active Challenges</Text>
-        <View style={styles.carouselControls}>
-          <TouchableOpacity
-          style={styles.carouselButton}
-          onPress={() => navigateChallenge('prev')}>
-          
-            <ChevronLeft size={16} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-          style={styles.carouselButton}
-          onPress={() => navigateChallenge('next')}>
-          
-            <ChevronRight size={16} color={Colors.text.primary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.carouselContainer}>
-        <ScrollView
-        horizontal
-        pagingEnabled
-        snapToInterval={width * 0.8 + 16}
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.challengesContainer}
-        onMomentumScrollEnd={handleChallengeScroll}>
-        
-          {challenges.map((challenge) =>
-        <View key={challenge.id} style={styles.challengeCard}>
-              <View style={styles.challengeHeader}>
-                <Trophy size={20} color={Colors.primary} />
-                <Text style={styles.challengeTitle}>{challenge.title}</Text>
-              </View>
-              
-              <Text style={styles.challengeDescription}>{challenge.description}</Text>
-              
-              <View style={styles.challengeStats}>
-                <Text style={styles.challengeParticipants}>
-                  {challenge.participants} participants
-                </Text>
-                <Text style={styles.challengeTimeLeft}>
-                  {challenge.timeLeft} left
-                </Text>
-              </View>
-              
-              <TouchableOpacity style={styles.joinButton}>
-                <Text style={styles.joinButtonText}>Join Challenge</Text>
-              </TouchableOpacity>
-            </View>
-        )}
-        </ScrollView>
-
-        {/* Carousel Indicators */}
-        <View style={styles.indicatorsContainer}>
-          {challenges.map((_, index) =>
-        <TouchableOpacity
-          key={index}
-          style={[
-          styles.indicator,
-          currentChallengeIndex === index && styles.activeIndicator]
-          }
-          onPress={() => setCurrentChallengeIndex(index)} />
-
-        )}
-        </View>
-      </View>
-    </View>;
-
+  const totalActive = useMemo(() => SEASONS.reduce((sum, s) => sum + s.challenges.filter((c) => c.percent < 100).length, 0), []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Community', headerShown: false }} />
-      
-      <View style={styles.header}>
-        <Text style={styles.title}>Community</Text>
-        <TouchableOpacity style={styles.createButton}>
-          <Plus size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search community..."
-          value={searchQuery}
-          onChangeText={setSearchQuery} />
-        
-      </View>
-
-      <View style={styles.tabContainer}>
-        {['feed', 'groups', 'challenges'].map((tab) =>
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tab, activeTab === tab && styles.activeTab]}
-          onPress={() => setActiveTab(tab)}>
-          
-            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
+    <SafeAreaView style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>CHALLENGES</Text>
+          <TouchableOpacity
+            style={styles.friendsBtn}
+            onPress={() => router.push('/leaderboard')}
+            accessibilityLabel="Friends"
+          >
+            <Users size={16} color={colors.text} />
+            <Text style={styles.friendsText}>Friends</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
 
-      {activeTab === 'feed' && renderFeed()}
-      {activeTab === 'groups' && renderGroups()}
-      {activeTab === 'challenges' && renderChallenges()}
-    </SafeAreaView>);
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>ACTIVE CHALLENGES</Text>
+          <Text style={styles.summaryValue}>{totalActive}</Text>
+        </View>
 
+        {SEASONS.map((season) => (
+          <View key={season.name} style={styles.season}>
+            <View style={styles.seasonHeader}>
+              <Text style={styles.seasonName}>{season.name}</Text>
+              <View style={[styles.statusPill, season.locked && styles.statusPillLocked]}>
+                {season.locked ? (
+                  <Clock size={12} color={colors.textSecondary} />
+                ) : season.status === 'Completed' ? (
+                  <View style={styles.dotCompleted} />
+                ) : (
+                  <View style={styles.dotActive} />
+                )}
+                <Text style={styles.statusText}>{season.status}</Text>
+              </View>
+            </View>
+
+            {season.locked ? (
+              <View style={styles.lockedCard}>
+                <Lock size={28} color={colors.textMuted} />
+                <Text style={styles.lockedText}>Unlocks when timer ends</Text>
+              </View>
+            ) : (
+              <View style={styles.grid}>
+                {season.challenges.map((c, i) => {
+                  const Icon = c.icon;
+                  return (
+                    <TouchableOpacity key={i} style={styles.card} activeOpacity={0.8}>
+                      <View style={styles.iconCircle}>
+                        <Icon size={20} color={colors.text} />
+                      </View>
+                      <Text style={styles.cardTitle} numberOfLines={1}>{c.title}</Text>
+                      <View style={styles.track}>
+                        <View style={[styles.fill, { width: `${c.percent}%` }]} />
+                      </View>
+                      <View style={styles.cardFooter}>
+                        <Text style={styles.pct}>{c.percent}%</Text>
+                        <TouchableOpacity>
+                          <Text style={styles.trackLink}>Track Friends</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text.primary
-  },
-  createButton: {
-    backgroundColor: Colors.primary,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  searchContainer: {
+  safe: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  title: { ...typography.h1 },
+  friendsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.backgroundSecondary,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48
-  },
-  searchIcon: {
-    marginRight: 12
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.text.primary
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 16
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-    marginHorizontal: 4
-  },
-  activeTab: {
-    backgroundColor: Colors.primary
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.secondary
-  },
-  activeTabText: {
-    color: 'white'
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20
-  },
-  carouselHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16
-  },
-  carouselTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text.primary
-  },
-  carouselControls: {
-    flexDirection: 'row',
-    gap: 8
-  },
-  carouselButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: Colors.border
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
-  carouselContainer: {
-    marginBottom: 24
+  friendsText: { ...typography.caption, color: colors.text, fontWeight: '700' },
+  summaryCard: {
+    padding: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.xl,
   },
-  groupsContainer: {
-    paddingLeft: 16,
-    paddingRight: 16
-  },
-  challengesContainer: {
-    paddingLeft: 16,
-    paddingRight: 16
-  },
-  indicatorsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.inactive,
-    marginHorizontal: 4
-  },
-  activeIndicator: {
-    backgroundColor: Colors.primary,
-    width: 10,
-    height: 10,
-    borderRadius: 5
-  },
-  postCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16
-  },
-  postHeader: {
+  summaryLabel: { ...typography.label, marginBottom: spacing.xs },
+  summaryValue: { fontSize: 48, fontWeight: '900', color: colors.text, letterSpacing: 1 },
+  season: { marginBottom: spacing.xl },
+  seasonHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  seasonName: { ...typography.h3, letterSpacing: 1, textTransform: 'uppercase' },
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  avatar: {
+  statusPillLocked: { opacity: 0.8 },
+  dotActive: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text },
+  dotCompleted: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.textSecondary },
+  statusText: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  card: {
+    width: '48%',
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  iconCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 12
-  },
-  postUserInfo: {
-    flex: 1
-  },
-  postUserName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary
-  },
-  postTime: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  postContent: {
-    fontSize: 14,
-    color: Colors.text.primary,
-    lineHeight: 20,
-    marginBottom: 12
-  },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 12
-  },
-  postActions: {
-    flexDirection: 'row',
-    gap: 16
-  },
-  actionButton: {
-    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
-    gap: 4
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
-  actionText: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  groupCard: {
-    width: width * 0.8,
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 16
-  },
-  groupImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 12
-  },
-  groupInfo: {
-    flex: 1
-  },
-  groupName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  groupDescription: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginBottom: 8
-  },
-  groupStats: {
-    flexDirection: 'row',
+  cardTitle: { ...typography.body, fontWeight: '700', marginBottom: spacing.sm },
+  track: { height: 4, borderRadius: radius.full, backgroundColor: colors.progressTrack, overflow: 'hidden' },
+  fill: { height: '100%', backgroundColor: colors.progressFill, borderRadius: radius.full },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
+  pct: { ...typography.caption, color: colors.text, fontWeight: '700' },
+  trackLink: { ...typography.caption, color: colors.textSecondary, fontWeight: '600', textDecorationLine: 'underline' },
+  lockedCard: {
+    padding: spacing.xl,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 12
+    gap: spacing.sm,
   },
-  groupMembers: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  joinGroupButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center'
-  },
-  joinGroupButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500'
-  },
-  challengeCard: {
-    width: width * 0.8,
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 16
-  },
-  challengeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8
-  },
-  challengeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary
-  },
-  challengeDescription: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 12
-  },
-  challengeStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12
-  },
-  challengeParticipants: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  challengeTimeLeft: {
-    fontSize: 12,
-    color: Colors.primary,
-    fontWeight: '500'
-  },
-  joinButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center'
-  },
-  joinButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500'
-  }
+  lockedText: { ...typography.caption },
 });

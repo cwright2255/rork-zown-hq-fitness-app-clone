@@ -1,12 +1,48 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+// CRITICAL: ErrorBoundary is exported FIRST — before any other imports that could
+// throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
+// loading this route, and if any later top-level import/execution fails,
+// the rest of the module never runs. Defining ErrorBoundary here guarantees
+// the export exists no matter what else happens below.
+export class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[ZownHQ] Crash:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#000' }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#fff' }}>Something went wrong</Text>
+          <Text style={{ color: '#999', textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
+            {String(this.state.error)}
+          </Text>
+          <TouchableOpacity
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{ backgroundColor: '#fff', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
+            <Text style={{ color: '#000', fontWeight: '700' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 import { Stack, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Bell, Menu, ShoppingCart } from 'lucide-react-native';
-// expo-router/head not available in this SDK version — web-only feature
 const Head = ({ children }) => null;
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
@@ -354,33 +390,3 @@ const styles = StyleSheet.create({
   }
 });
 
-export class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error('[ZownHQ] Crash:', error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#fff' }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#000' }}>Something went wrong</Text>
-          <Text style={{ color: '#666', textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
-            {String(this.state.error)}
-          </Text>
-          <TouchableOpacity
-            onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
-            <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
