@@ -79,33 +79,14 @@ export default function SettingsScreen() {
       console.log('Initiating Spotify connection...');
       setIsConnecting(true);
 
-      if (Platform.OS === 'web') {
-        const success = await spotifyService.authenticateWithPopup();
-        if (success) {
-          Alert.alert('Success', 'Spotify connected successfully!');
-          router.replace('/profile/settings');
-        } else {
-          Alert.alert('Info', 'Spotify authentication was canceled or failed.');
-        }
-        setIsConnecting(false);
-        return;
+      const success = await spotifyService.authenticateWithPopup();
+      if (success) {
+        Alert.alert('Success', 'Spotify connected successfully!');
+        router.replace('/profile/settings');
+      } else {
+        Alert.alert('Info', 'Spotify authentication was canceled or failed.');
       }
-
-      const authUrl = await spotifyService.getAuthorizationUrl();
-      Alert.alert(
-        'Connect Spotify',
-        'You will be redirected to Spotify to authorize this app.',
-        [
-        { text: 'Cancel', style: 'cancel', onPress: () => setIsConnecting(false) },
-        {
-          text: 'Continue',
-          onPress: async () => {
-            await Linking.openURL(authUrl);
-            setIsConnecting(false);
-          }
-        }]
-
-      );
+      setIsConnecting(false);
     } catch (error) {
       console.error('Failed to initiate Spotify connection:', error);
       Alert.alert('Error', `Failed to connect to Spotify: ${error instanceof Error ? error.message : 'Unknown error'}`);

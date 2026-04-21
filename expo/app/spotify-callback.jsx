@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { spotifyService } from '@/services/spotifyService';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import Colors from '@/constants/colors';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 

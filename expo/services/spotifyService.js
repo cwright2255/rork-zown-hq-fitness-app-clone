@@ -1,8 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const makeSpotifyRedirectUri = () =>
+  AuthSession.makeRedirectUri({
+    scheme: 'zownhq',
+    path: 'spotify-callback',
+    preferLocalhost: false,
+  });
 
 
 
@@ -67,9 +75,9 @@ class SpotifyService {
   apiBaseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || '';
   clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
   projectId = process.env.EXPO_PUBLIC_PROJECT_ID || 'n6dgejrmm3wincmkq5smp';
-  nativeRedirectUri = 'zownhq://spotify-callback';
-  hostedWebRedirectUri = 'zownhq://spotify-callback';
-  hostedNativeCallbackUri = 'zownhq://spotify-callback';
+  nativeRedirectUri = makeSpotifyRedirectUri();
+  hostedWebRedirectUri = makeSpotifyRedirectUri();
+  hostedNativeCallbackUri = makeSpotifyRedirectUri();
   redirectUri = this.computeRedirectUri();
   token = null;
   refreshToken = null;
@@ -94,15 +102,9 @@ class SpotifyService {
       return explicitRedirect;
     }
 
-    const hostedCallbackUri = 'zownhq://spotify-callback';
-
-    if (Platform.OS !== 'web') {
-      console.log('SpotifyService: Using native app scheme redirect URI:', hostedCallbackUri);
-      return hostedCallbackUri;
-    }
-
-    console.log('SpotifyService: Using app scheme redirect URI:', hostedCallbackUri);
-    return hostedCallbackUri;
+    const resolved = makeSpotifyRedirectUri();
+    console.log('SpotifyService: Using makeRedirectUri() value:', resolved);
+    return resolved;
   }
 
   async autoInitialize() {
