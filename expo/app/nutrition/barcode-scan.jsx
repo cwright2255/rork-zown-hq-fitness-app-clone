@@ -1,575 +1,192 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import { X, ScanLine, RotateCcw, Loader2, CheckCircle, Package } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
+import { ScanLine } from 'lucide-react-native';
+import ScreenHeader from '@/components/ScreenHeader';
+import PrimaryButton from '@/components/PrimaryButton';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function BarcodeScanScreen() {
-  const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(true);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const cameraRef = useRef(null);
 
-  const toggleCameraFacing = useCallback(() => {
-    setFacing((current) => current === 'back' ? 'front' : 'back');
-  }, []);
-
   const lookupBarcode = useCallback(async (barcode) => {
     setIsLookingUp(true);
     setIsScanning(false);
-
     try {
-      console.log('Looking up barcode:', barcode);
-
-      // Mock barcode lookup - in a real app, you'd use a service like Open Food Facts API
-      // For demo purposes, we'll simulate a lookup with AI
       const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
-      const aiResponse = await fetch(`${apiBase}/text/llm/`, {
+      const res = await fetch(`${apiBase}/text/llm/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [
-          {
-            role: 'system',
-            content: 'You are a food database expert. Given a barcode number, provide nutritional information for a common food product. Return ONLY a JSON object with: name, brand (optional), calories, protein, carbs, fat (all per 100g), servingSize, and barcode. If barcode is not recognized, create a plausible food product.'
-          },
-          {
-            role: 'user',
-            content: `Look up nutritional information for barcode: ${barcode}`
-          }]
-
-        })
+            { role: 'system', content: 'You are a food database expert. Given a barcode number, provide nutritional information for a common food product. Return ONLY a JSON object with: name, brand (optional), calories, protein, carbs, fat (all per 100g), servingSize, and barcode. If barcode is not recognized, create a plausible food product.' },
+            { role: 'user', content: `Look up nutritional information for barcode: ${barcode}` },
+          ],
+        }),
       });
-
-      const aiResult = await aiResponse.json();
-      console.log('Barcode lookup result:', aiResult);
-
+      const json = await res.json();
       try {
-        const productData = JSON.parse(aiResult.completion);
-        if (productData && productData.name) {
-          setScanResult({
-            ...productData,
-            barcode: barcode
-          });
+        const data = JSON.parse(json.completion);
+        if (data?.name) {
+          setScanResult({ ...data, barcode });
         } else {
-          throw new Error('Product not found');
+          throw new Error('not found');
         }
-      } catch (parseError) {
-        console.error('Failed to parse barcode response:', parseError);
-        Alert.alert(
-          'Product Not Found',
-          'This barcode is not in our database. You can still add the food manually.',
-          [
+      } catch (e) {
+        Alert.alert('Product Not Found', 'This barcode is not in our database.', [
           { text: 'Try Again', onPress: () => setIsScanning(true) },
-          { text: 'Manual Entry', onPress: () => router.push('/nutrition/search') }]
-
-        );
+          { text: 'Manual Entry', onPress: () => router.push('/nutrition/search') },
+        ]);
       }
-    } catch (error) {
-      console.error('Barcode lookup error:', error);
-      Alert.alert(
-        'Lookup Failed',
-        'Failed to look up the barcode. Please check your connection and try again.',
-        [
+    } catch (e) {
+      Alert.alert('Lookup Failed', 'Please check connection and try again.', [
         { text: 'Try Again', onPress: () => setIsScanning(true) },
-        { text: 'Manual Entry', onPress: () => router.push('/nutrition/search') }]
-
-      );
+      ]);
     } finally {
       setIsLookingUp(false);
     }
   }, []);
 
-  const handleBarcodeScanned = useCallback(({ type, data }) => {
+  const handleBarcodeScanned = useCallback(({ data }) => {
     if (!isScanning) return;
-
-    console.log('Barcode scanned:', { type, data });
     lookupBarcode(data);
   }, [isScanning, lookupBarcode]);
 
-  const addToMeal = useCallback(() => {
+  const addToMeal = () => {
     if (!scanResult) return;
-
-    // Navigate back to nutrition page with the scanned product data
     router.push({
       pathname: '/nutrition/search',
-      params: {
-        scannedFood: JSON.stringify(scanResult)
-      }
+      params: { scannedFood: JSON.stringify(scanResult) },
     });
-  }, [scanResult]);
-
-  const scanAgain = useCallback(() => {
-    setScanResult(null);
-    setIsScanning(true);
-  }, []);
+  };
 
   if (!permission) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Loader2 size={32} color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading camera...</Text>
-        </View>
-      </SafeAreaView>);
-
+        <ScreenHeader title="Scan Barcode" showBack />
+        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+      </SafeAreaView>
+    );
   }
 
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <ScanLine size={64} color={Colors.text.secondary} />
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
-          <Text style={styles.permissionText}>
-            We need access to your camera to scan barcodes on food packages for nutrition tracking.
+        <ScreenHeader title="Scan Barcode" showBack />
+        <View style={styles.permWrap}>
+          <ScanLine size={64} color="#666" />
+          <Text style={styles.permTitle}>Camera Permission Required</Text>
+          <Text style={styles.permText}>
+            We need camera access to scan barcodes on food packages.
           </Text>
-          <Button
-            title="Grant Permission"
-            onPress={requestPermission}
-            style={styles.permissionButton} />
-          
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}>
-            
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
+          <PrimaryButton title="Grant Permission" onPress={requestPermission} />
         </View>
-      </SafeAreaView>);
-
+      </SafeAreaView>
+    );
   }
 
   if (scanResult) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => router.back()}>
-            
-            <X size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Product Found</Text>
-          <View style={styles.placeholder} />
-        </View>
-        
-        <View style={styles.resultContainer}>
-          <Card variant="elevated" style={styles.resultCard}>
-            <View style={styles.successIcon}>
-              <CheckCircle size={48} color={Colors.success} />
-            </View>
-            
+        <ScreenHeader title="Product Found" showBack />
+        <View style={{ padding: 16 }}>
+          <View style={styles.resultCard}>
             <Text style={styles.productName}>{scanResult.name}</Text>
-            {scanResult.brand &&
-            <Text style={styles.brandName}>{scanResult.brand}</Text>
-            }
+            {scanResult.brand ? <Text style={styles.brandName}>{scanResult.brand}</Text> : null}
             <Text style={styles.barcodeText}>Barcode: {scanResult.barcode}</Text>
-            
-            <View style={styles.nutritionInfo}>
-              <Text style={styles.nutritionTitle}>Nutrition (per {scanResult.servingSize})</Text>
-              
-              <View style={styles.nutritionGrid}>
-                <View style={styles.nutritionItem}>
-                  <Text style={styles.nutritionValue}>{scanResult.calories}</Text>
-                  <Text style={styles.nutritionLabel}>Calories</Text>
+            <View style={styles.divider} />
+            <View style={styles.nutritionGrid}>
+              {[
+                { v: scanResult.calories, l: 'Calories' },
+                { v: `${scanResult.protein}g`, l: 'Protein' },
+                { v: `${scanResult.carbs}g`, l: 'Carbs' },
+                { v: `${scanResult.fat}g`, l: 'Fat' },
+              ].map((n, i) => (
+                <View key={i} style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{n.v}</Text>
+                  <Text style={styles.nutritionLabel}>{n.l}</Text>
                 </View>
-                
-                <View style={styles.nutritionItem}>
-                  <Text style={styles.nutritionValue}>{scanResult.protein}g</Text>
-                  <Text style={styles.nutritionLabel}>Protein</Text>
-                </View>
-                
-                <View style={styles.nutritionItem}>
-                  <Text style={styles.nutritionValue}>{scanResult.carbs}g</Text>
-                  <Text style={styles.nutritionLabel}>Carbs</Text>
-                </View>
-                
-                <View style={styles.nutritionItem}>
-                  <Text style={styles.nutritionValue}>{scanResult.fat}g</Text>
-                  <Text style={styles.nutritionLabel}>Fat</Text>
-                </View>
-              </View>
+              ))}
             </View>
-            
-            <View style={styles.actionButtons}>
-              <Button
-                title="Add to Meal"
-                onPress={addToMeal}
-                style={styles.addButton} />
-              
-              
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={scanAgain}>
-                
-                <Text style={styles.retryButtonText}>Scan Another</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
+          </View>
+          <View style={{ gap: 12, marginTop: 16 }}>
+            <PrimaryButton title="Add to Log" onPress={addToMeal} />
+            <PrimaryButton title="Scan Another" variant="outline" onPress={() => { setScanResult(null); setIsScanning(true); }} />
+          </View>
         </View>
-      </SafeAreaView>);
-
+      </SafeAreaView>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => router.back()}>
-          
-          <X size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Scan Barcode</Text>
-        <TouchableOpacity
-          style={styles.flipButton}
-          onPress={toggleCameraFacing}>
-          
-          <RotateCcw size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-      </View>
-      
-      {Platform.OS !== 'web' ?
+    <View style={styles.container}>
       <CameraView
         ref={cameraRef}
         style={styles.camera}
-        facing={facing}
+        facing="back"
+        onBarcodeScanned={handleBarcodeScanned}
         barcodeScannerSettings={{
-          barcodeTypes: ['upc_a', 'upc_e', 'ean13', 'ean8', 'code128', 'code39']
-        }}
-        onBarcodeScanned={isScanning ? handleBarcodeScanned : undefined}>
-        
-          <View style={styles.cameraOverlay}>
-            <View style={styles.scanArea}>
-              <View style={styles.scanFrame}>
-                <View style={[styles.corner, styles.topLeft]} />
-                <View style={[styles.corner, styles.topRight]} />
-                <View style={[styles.corner, styles.bottomLeft]} />
-                <View style={[styles.corner, styles.bottomRight]} />
-                
-                <View style={styles.scanLine} />
-              </View>
-            </View>
-            
-            <View style={styles.instructionContainer}>
-              {isLookingUp ?
-            <View style={styles.lookupContainer}>
-                  <Loader2 size={32} color={Colors.text.inverse} />
-                  <Text style={styles.lookupText}>Looking up product...</Text>
-                </View> :
-
-            <>
-                  <Package size={32} color={Colors.text.inverse} />
-                  <Text style={styles.instructionText}>
-                    Position the barcode within the frame
-                  </Text>
-                  <Text style={styles.subInstructionText}>
-                    Make sure the barcode is clearly visible and well-lit
-                  </Text>
-                </>
-            }
-            </View>
+          barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'qr', 'code128'],
+        }}>
+        <View style={styles.overlay}>
+          <ScreenHeader title="Scan Barcode" showBack transparent />
+          <View style={styles.scanArea}>
+            <View style={styles.scanFrame} />
+            <Text style={styles.hint}>Point camera at barcode</Text>
           </View>
-        </CameraView> :
-
-      <View style={styles.webFallback}>
-          <ScanLine size={64} color={Colors.text.secondary} />
-          <Text style={styles.webFallbackTitle}>Barcode Scanner Not Available</Text>
-          <Text style={styles.webFallbackText}>
-            Barcode scanning is not available on web. Please use the mobile app for this feature.
-          </Text>
-          <Button
-          title="Go Back"
-          onPress={() => router.back()}
-          style={styles.webFallbackButton} />
-        
+          {isLookingUp ? (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator color="#fff" size="large" />
+              <Text style={styles.loadingText}>Looking up product...</Text>
+            </View>
+          ) : null}
         </View>
-      }
-    </SafeAreaView>);
-
+      </CameraView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Colors.spacing.lg,
-    paddingVertical: Colors.spacing.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Colors.radius.large,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.inverse
-  },
-  flipButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Colors.radius.large,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  placeholder: {
-    width: 40
-  },
-  camera: {
-    flex: 1
-  },
-  cameraOverlay: {
-    flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 120,
-    paddingBottom: 80
-  },
-  scanArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  camera: { flex: 1 },
+  overlay: { flex: 1 },
+  scanArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scanFrame: {
-    width: 280,
-    height: 180,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center'
+    width: 260, height: 160,
+    borderWidth: 2, borderColor: '#fff', borderRadius: 16,
   },
-  corner: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderColor: Colors.primary,
-    borderWidth: 3
+  hint: { color: '#fff', marginTop: 16, fontSize: 14 },
+  loadingOverlay: {
+    position: 'absolute', inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0
-  },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0
-  },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderTopWidth: 0
-  },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderTopWidth: 0
-  },
-  scanLine: {
-    width: '80%',
-    height: 2,
-    backgroundColor: Colors.primary,
-    opacity: 0.8
-  },
-  instructionContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: Colors.spacing.xl,
-    paddingVertical: Colors.spacing.lg,
-    borderRadius: Colors.radius.large,
-    marginHorizontal: Colors.spacing.lg,
-    alignItems: 'center'
-  },
-  instructionText: {
-    color: Colors.text.inverse,
-    fontSize: 18,
-    textAlign: 'center',
-    fontWeight: '600',
-    marginTop: Colors.spacing.md
-  },
-  subInstructionText: {
-    color: Colors.text.inverse,
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: Colors.spacing.sm,
-    opacity: 0.8
-  },
-  lookupContainer: {
-    alignItems: 'center'
-  },
-  lookupText: {
-    color: Colors.text.inverse,
-    fontSize: 16,
-    marginTop: Colors.spacing.sm,
-    fontWeight: '500'
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.text.secondary,
-    marginTop: Colors.spacing.md
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Colors.spacing.xl
-  },
-  permissionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginTop: Colors.spacing.lg,
-    marginBottom: Colors.spacing.md,
-    textAlign: 'center'
-  },
-  permissionText: {
-    fontSize: 16,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: Colors.spacing.xl
-  },
-  permissionButton: {
-    marginBottom: Colors.spacing.lg
-  },
-  backButton: {
-    paddingVertical: Colors.spacing.md
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: Colors.primary,
-    fontWeight: '500'
-  },
-  resultContainer: {
-    flex: 1,
-    padding: Colors.spacing.lg,
-    justifyContent: 'center'
-  },
+  loadingText: { color: '#fff', marginTop: 12 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  permWrap: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  permTitle: { fontSize: 20, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  permText: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 },
   resultCard: {
-    padding: Colors.spacing.xl,
-    alignItems: 'center'
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 20,
   },
-  successIcon: {
-    marginBottom: Colors.spacing.lg
-  },
-  productName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Colors.spacing.xs
-  },
-  brandName: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: Colors.spacing.sm
-  },
-  barcodeText: {
-    fontSize: 14,
-    color: Colors.text.tertiary,
-    marginBottom: Colors.spacing.xl
-  },
-  nutritionInfo: {
-    width: '100%',
-    marginBottom: Colors.spacing.xl
-  },
-  nutritionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: Colors.spacing.lg,
-    textAlign: 'center'
-  },
-  nutritionGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around'
-  },
+  productName: { fontSize: 22, fontWeight: '700', color: '#fff' },
+  brandName: { fontSize: 14, color: '#999', marginTop: 4 },
+  barcodeText: { fontSize: 12, color: '#666', marginTop: 8 },
+  divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 16 },
+  nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   nutritionItem: {
-    alignItems: 'center'
-  },
-  nutritionValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.primary,
-    marginBottom: Colors.spacing.xs
-  },
-  nutritionLabel: {
-    fontSize: 14,
-    color: Colors.text.secondary
-  },
-  actionButtons: {
-    width: '100%',
-    gap: Colors.spacing.md
-  },
-  addButton: {
-    marginBottom: 0
-  },
-  retryButton: {
-    paddingVertical: Colors.spacing.md,
-    alignItems: 'center'
-  },
-  retryButtonText: {
-    fontSize: 16,
-    color: Colors.primary,
-    fontWeight: '500'
-  },
-  webFallback: {
-    flex: 1,
-    justifyContent: 'center',
+    flex: 1, minWidth: '45%',
+    padding: 12,
+    borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 12,
     alignItems: 'center',
-    paddingHorizontal: Colors.spacing.xl
   },
-  webFallbackTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginTop: Colors.spacing.lg,
-    marginBottom: Colors.spacing.md,
-    textAlign: 'center'
-  },
-  webFallbackText: {
-    fontSize: 16,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: Colors.spacing.xl
-  },
-  webFallbackButton: {
-    marginBottom: 0
-  }
+  nutritionValue: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  nutritionLabel: { color: '#999', fontSize: 12, marginTop: 2 },
 });

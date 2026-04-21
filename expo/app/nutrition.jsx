@@ -1,958 +1,227 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Plus, Search, ChevronRight, Utensils, Coffee, Apple, Egg, Camera, ScanLine, Flame } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import Card from '@/components/Card';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
+import ScreenHeader from '@/components/ScreenHeader';
+import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
-import NutritionSummary from '@/components/NutritionSummary';
 import { useNutritionStore } from '@/store/nutritionStore';
-import HydrationTracker from '@/components/HydrationTracker';
-import { getAIDailyTargets, getAIMacroSplitForPreset } from '@/services/aiService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const { width } = Dimensions.get('window');
-
 export default function NutritionScreen() {
-  const { addMeal, getMealsByDate, getWaterIntake, updateWaterIntake, dailyGoals, updateDailyGoals } = useNutritionStore();
+  const { getMealsByDate, dailyGoals, addMeal } = useNutritionStore();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [waterAmount, setWaterAmount] = useState(0);
-  const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0);
-  const [preset, setPreset] = useState('balanced');
-  const [targetPreset, setTargetPreset] = useState('maintenance');
-  const [aiLoadingTargets, setAiLoadingTargets] = useState(false);
-  const [aiLoadingMacros, setAiLoadingMacros] = useState(false);
-  const [aiNote, setAiNote] = useState(undefined);
 
-  // Mock recipes data for carousel
-  const recipes = [
-  {
-    id: '1',
-    title: 'Healthy Breakfast Bowl',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
-    calories: 320,
-    prepTime: 15
-  },
-  {
-    id: '2',
-    title: 'Vegetable Stir Fry',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500',
-    calories: 420,
-    prepTime: 25
-  },
-  {
-    id: '3',
-    title: 'Grilled Salmon Salad',
-    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
-    calories: 380,
-    prepTime: 20
-  },
-  {
-    id: '4',
-    title: 'Quinoa Power Bowl',
-    image: 'https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?w=500',
-    calories: 450,
-    prepTime: 30
-  }];
+  const dateKey = selectedDate.toISOString().split('T')[0];
+  const meals = getMealsByDate(dateKey);
 
-
-  // Get today's meals
-  const todayMeals = getMealsByDate(selectedDate.toISOString().split('T')[0]);
-
-  // Load water intake
-  useEffect(() => {
-    const dateString = selectedDate.toISOString().split('T')[0];
-    const intake = getWaterIntake(dateString);
-    setWaterAmount(intake || 0);
-  }, [selectedDate, getWaterIntake]);
-
-  // On first mount, fetch AI daily targets based on default targetPreset
-  useEffect(() => {
-    const run = async () => {
-      try {
-        setAiLoadingTargets(true);
-        setAiNote(undefined);
-        const goalsMap = {
-          fatLoss: ['fat loss'],
-          maintenance: ['maintenance'],
-          muscleGain: ['muscle gain'],
-          enduranceDay: ['endurance', 'training day'],
-          recoveryDay: ['recovery', 'rest day'],
-          custom: ['balanced']
-        };
-        const result = await getAIDailyTargets({
-          goals: goalsMap[targetPreset],
-          activityLevel: targetPreset === 'enduranceDay' ? 'high' : targetPreset === 'recoveryDay' ? 'low' : 'moderate',
-          dietaryRestrictions: []
-        });
-        updateDailyGoals({
-          calories: result.calories,
-          protein: result.protein,
-          carbs: result.carbs,
-          fat: result.fat,
-          water: result.water
-        });
-        setAiNote(result.rationale);
-        setWaterAmount(result.water);
-      } catch (e) {
-        console.error('[Nutrition] AI targets init failed', e);
-      } finally {
-        setAiLoadingTargets(false);
-      }
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Auto-scroll recipes carousel with performance optimization
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentRecipeIndex((prevIndex) => (prevIndex + 1) % recipes.length);
-    }, 5000); // Increased interval to reduce CPU usage
-
-    return () => clearInterval(interval);
-  }, [recipes.length]);
-
-  // Handle water intake updates - using useCallback to prevent recreation on each render
-  const handleWaterUpdate = useCallback((amount) => {
-    const dateString = selectedDate.toISOString().split('T')[0];
-    setWaterAmount(amount);
-    updateWaterIntake(dateString, amount);
-  }, [selectedDate, updateWaterIntake]);
-
-  // Handle recipe scroll
-  const handleRecipeScroll = useCallback((event) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (width * 0.8));
-    setCurrentRecipeIndex(index);
-  }, []);
-
-  // Format date for display
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
+  const totals = useMemo(() => {
+    let c = 0, p = 0, cb = 0, f = 0;
+    meals.forEach(m => {
+      (m.foods || []).forEach(fo => {
+        c += fo.calories || 0;
+        p += fo.protein || 0;
+        cb += fo.carbs || 0;
+        f += fo.fat || 0;
+      });
     });
+    return { calories: c, protein: p, carbs: cb, fat: f };
+  }, [meals]);
+
+  const caloriesRemaining = Math.max(0, (dailyGoals?.calories || 2000) - totals.calories);
+
+  const shiftDate = (days) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(d);
   };
 
-  // Navigate to previous day
-  const goToPreviousDay = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 1);
-    setSelectedDate(newDate);
-  };
-
-  // Navigate to next day
-  const goToNextDay = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 1);
-    setSelectedDate(newDate);
-  };
-
-  // Check if selected date is today
-  const isToday = (date) => {
+  const formatDate = (d) => {
     const today = new Date();
-    return date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  // Meal type icons
-  const getMealIcon = (mealType) => {
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
-        return <Coffee size={20} color={Colors.warning} />;
-      case 'lunch':
-        return <Utensils size={20} color={Colors.primary} />;
-      case 'dinner':
-        return <Utensils size={20} color={Colors.secondary} />;
-      case 'snack':
-        return <Apple size={20} color={Colors.success} />;
-      default:
-        return <Egg size={20} color={Colors.text.secondary} />;
+  const mealTypes = [
+    { name: 'Breakfast', time: '08:00' },
+    { name: 'Lunch', time: '13:00' },
+    { name: 'Dinner', time: '19:00' },
+    { name: 'Snacks', time: '16:00' },
+  ];
+
+  const getMealForType = (name) => meals.find(m => m.name?.toLowerCase() === name.toLowerCase());
+
+  const handleAddMealType = (type) => {
+    const existing = getMealForType(type.name);
+    if (existing) {
+      router.push({ pathname: '/nutrition/search', params: { mealId: existing.id } });
+    } else {
+      const newMeal = {
+        id: Date.now().toString(),
+        name: type.name,
+        foods: [],
+        time: type.time,
+        date: dateKey,
+      };
+      addMeal(newMeal);
+      router.push({ pathname: '/nutrition/search', params: { mealId: newMeal.id } });
     }
   };
 
+  const sumMealCalories = (meal) =>
+    (meal?.foods || []).reduce((sum, fo) => sum + (fo.calories || 0), 0);
+
   return (
     <View style={styles.container}>
-      {/* Date Navigation */}
-      <View style={styles.dateNavigation}>
-        <TouchableOpacity onPress={goToPreviousDay} style={styles.dateButton}>
-          <Text style={styles.dateButtonText}>←</Text>
-        </TouchableOpacity>
-        
-        <Text style={styles.dateText}>
-          {isToday(selectedDate) ? 'Today' : formatDate(selectedDate)}
-        </Text>
-        
-        <TouchableOpacity
-          onPress={goToNextDay}
-          style={[
-          styles.dateButton,
-          isToday(selectedDate) && styles.disabledDateButton]
-          }
-          disabled={isToday(selectedDate)}>
-          
-          <Text
-            style={[
-            styles.dateButtonText,
-            isToday(selectedDate) && styles.disabledDateButtonText]
-            }>
-            
-            →
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}>
-        
-        {/* Target Presets */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Daily Targets</Text>
-        </View>
-        <View style={styles.targetToggles} testID="targetToggles">
-          {
-          [
-          { key: 'fatLoss', label: 'Fat Loss', cal: 1800, water: 2500 },
-          { key: 'maintenance', label: 'Maintain', cal: 2000, water: 2200 },
-          { key: 'muscleGain', label: 'Muscle', cal: 2400, water: 2400 },
-          { key: 'enduranceDay', label: 'Endurance', cal: 2600, water: 2800 },
-          { key: 'recoveryDay', label: 'Recovery', cal: 2000, water: 2600 }].
+      <ScreenHeader title="Nutrition" />
 
-          map(({ key, label, cal, water }) => {
-            const isActive = targetPreset === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                testID={`targetPreset-${key}`}
-                style={[styles.macroButton, isActive && styles.macroButtonActive]}
-                disabled={aiLoadingTargets}
-                onPress={async () => {
-                  try {
-                    console.log('[TargetPreset] pressed', key, cal, water);
-                    setTargetPreset(key);
-                    setAiLoadingTargets(true);
-                    setAiNote(undefined);
-                    const goalsMap = {
-                      fatLoss: ['fat loss'],
-                      maintenance: ['maintenance'],
-                      muscleGain: ['muscle gain'],
-                      enduranceDay: ['endurance', 'training day'],
-                      recoveryDay: ['recovery', 'rest day'],
-                      custom: ['balanced']
-                    };
-                    const result = await getAIDailyTargets({
-                      goals: goalsMap[key],
-                      activityLevel: key === 'enduranceDay' ? 'high' : key === 'recoveryDay' ? 'low' : 'moderate',
-                      dietaryRestrictions: []
-                    });
-                    updateDailyGoals({
-                      calories: result.calories,
-                      protein: result.protein,
-                      carbs: result.carbs,
-                      fat: result.fat,
-                      water: result.water
-                    });
-                    setWaterAmount(result.water);
-                    setAiNote(result.rationale);
-                  } catch (e) {
-                    console.error('Failed to set target preset via AI, falling back', e);
-                    const newGoals = { calories: cal, water };
-                    updateDailyGoals(newGoals);
-                  } finally {
-                    setAiLoadingTargets(false);
-                  }
-                }}>
-                
-                {aiLoadingTargets && isActive ?
-                <ActivityIndicator size="small" color={Colors.text.inverse} /> :
-
-                <Flame size={14} color={isActive ? Colors.text.inverse : Colors.primary} />
-                }
-                <Text style={[styles.macroButtonText, isActive && styles.macroButtonTextActive]}>{label}</Text>
-              </TouchableOpacity>);
-
-          })}
-        </View>
-
-        {/* Nutrition Summary */}
-        <NutritionSummary date={selectedDate.toISOString().split('T')[0]} />
-
-        {/* Quick Macro Tweaks */}
-        <View style={styles.macroToggles} testID="macroToggles">
-          {
-          [
-          { key: 'balanced', label: 'Balanced', icon: <Apple size={14} color={Colors.primary} /> },
-          { key: 'highProtein', label: 'High P', icon: <Egg size={14} color={Colors.success} /> },
-          { key: 'lowCarb', label: 'Low C', icon: <Utensils size={14} color={Colors.warning} /> },
-          { key: 'keto', label: 'Keto', icon: <Flame size={14} color={Colors.secondary} /> },
-          { key: 'carbLoad', label: 'Carb+', icon: <Flame size={14} color={Colors.primary} /> },
-          { key: 'recovery', label: 'Recovery', icon: <Apple size={14} color={Colors.success} /> }].
-
-          map(({ key, label, icon }) => {
-            const isActive = preset === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                testID={`macroPreset-${key}`}
-                style={[styles.macroButton, isActive && styles.macroButtonActive]}
-                disabled={aiLoadingMacros}
-                onPress={async () => {
-                  try {
-                    console.log('[MacroPreset] pressed', key);
-                    setPreset(key);
-                    setAiLoadingMacros(true);
-                    setAiNote(undefined);
-                    const cal = dailyGoals?.calories ?? 2000;
-                    const result = await getAIMacroSplitForPreset({ preset: key, calories: cal });
-                    updateDailyGoals({ protein: result.protein, carbs: result.carbs, fat: result.fat });
-                    setAiNote(result.note);
-                  } catch (e) {
-                    console.error('Failed to set macro preset via AI, fallback to local', e);
-                    const cal = dailyGoals?.calories ?? 2000;
-                    const ratios = {
-                      balanced: { p: 0.30, c: 0.40, f: 0.30 },
-                      highProtein: { p: 0.40, c: 0.35, f: 0.25 },
-                      lowCarb: { p: 0.35, c: 0.25, f: 0.40 },
-                      keto: { p: 0.25, c: 0.05, f: 0.70 },
-                      carbLoad: { p: 0.25, c: 0.60, f: 0.15 },
-                      recovery: { p: 0.30, c: 0.50, f: 0.20 }
-                    };
-                    const r = ratios[key];
-                    updateDailyGoals({
-                      protein: Math.round(cal * r.p / 4),
-                      carbs: Math.round(cal * r.c / 4),
-                      fat: Math.round(cal * r.f / 9)
-                    });
-                  } finally {
-                    setAiLoadingMacros(false);
-                  }
-                }}>
-                
-                {aiLoadingMacros && isActive ?
-                <ActivityIndicator size="small" color={isActive ? Colors.text.inverse : Colors.primary} /> :
-
-                React.cloneElement(icon, {
-                  size: 14,
-                  color: isActive ?
-                  Colors.text.inverse :
-                  icon.ReactElement.props?.color ?? Colors.primary
-                })
-                }
-                <Text style={[styles.macroButtonText, isActive && styles.macroButtonTextActive]}>{label}</Text>
-              </TouchableOpacity>);
-
-          })}
-        </View>
-        
-        {/* AI note / rationale */}
-        {aiNote ?
-        <Text style={styles.aiNote} numberOfLines={3} testID="aiRationale">{aiNote}</Text> :
-        null}
-
-        {/* Hydration Tracker */}
-        <HydrationTracker
-          onUpdate={handleWaterUpdate}
-          initialAmount={waterAmount} />
-        
-        
-        {/* Meals Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Meals</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => router.push('/nutrition/search')}>
-            
-            <Plus size={16} color={Colors.text.inverse} />
-            <Text style={styles.addButtonText}>Add Food</Text>
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 160 }}>
+        <View style={styles.dateRow}>
+          <TouchableOpacity onPress={() => shiftDate(-1)} style={styles.dateBtn} hitSlop={8}>
+            <ChevronLeft size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
+          <TouchableOpacity onPress={() => shiftDate(1)} style={styles.dateBtn} hitSlop={8}>
+            <ChevronRight size={22} color="#fff" />
           </TouchableOpacity>
         </View>
-        
-        {/* Meal Cards */}
-        {todayMeals.length > 0 ?
-        todayMeals.map((meal) =>
-        <Card key={meal.id} variant="elevated" style={styles.mealCard}>
-              <View style={styles.mealHeader}>
-                <View style={styles.mealTitleContainer}>
-                  {getMealIcon(meal.name)}
-                  <Text style={styles.mealTitle}>{meal.name}</Text>
-                </View>
-                <Text style={styles.mealTime}>{meal.time}</Text>
-              </View>
-              
-              <View style={styles.mealDivider} />
-              
-              {meal.foods.map((food) =>
-          <TouchableOpacity
-            key={food.id}
-            style={styles.foodItem}
-            onPress={() => router.push(`/nutrition/food/${food.id}`)}>
-            
-                  {food.imageUrl ?
-            <Image
-              source={{ uri: food.imageUrl }}
-              style={styles.foodImage} /> :
 
-
-            <View style={styles.foodImagePlaceholder}>
-                      <Utensils size={16} color={Colors.text.tertiary} />
-                    </View>
-            }
-                  
-                  <View style={styles.foodInfo}>
-                    <Text style={styles.foodName}>{food.name}</Text>
-                    <Text style={styles.foodServing}>{food.servingSize}</Text>
-                  </View>
-                  
-                  <View style={styles.foodNutrition}>
-                    <Text style={styles.caloriesText}>{food.calories} cal</Text>
-                    <View style={styles.macrosContainer}>
-                      <Text style={styles.macroText}>P: {food.protein}g</Text>
-                      <Text style={styles.macroText}>C: {food.carbs}g</Text>
-                      <Text style={styles.macroText}>F: {food.fat}g</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-          )}
-              
-              <TouchableOpacity
-            style={styles.addFoodButton}
-            onPress={() => router.push({
-              pathname: '/nutrition/search',
-              params: { mealId: meal.id }
-            })}>
-            
-                <Plus size={16} color={Colors.primary} />
-                <Text style={styles.addFoodText}>Add Food to {meal.name}</Text>
-              </TouchableOpacity>
-            </Card>
-        ) :
-
-        <Card variant="outlined" style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
-              No meals recorded for this day. Add your first meal to start tracking your nutrition.
-            </Text>
-            <TouchableOpacity
-            style={styles.addMealButton}
-            onPress={() => router.push('/nutrition/search')}>
-            
-              <Plus size={16} color={Colors.text.inverse} />
-              <Text style={styles.addMealButtonText}>Add First Meal</Text>
-            </TouchableOpacity>
-          </Card>
-        }
-        
-        {/* Quick Add Meal Buttons */}
-        <View style={styles.quickAddContainer}>
-          <TouchableOpacity
-            style={styles.quickAddButton}
-            onPress={() => {
-              const newMeal = {
-                id: Date.now().toString(),
-                name: 'Breakfast',
-                foods: [],
-                time: '08:00',
-                date: selectedDate.toISOString().split('T')[0]
-              };
-              addMeal(newMeal);
-            }}>
-            
-            <Coffee size={20} color={Colors.warning} />
-            <Text style={styles.quickAddText}>Breakfast</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickAddButton}
-            onPress={() => {
-              const newMeal = {
-                id: Date.now().toString(),
-                name: 'Lunch',
-                foods: [],
-                time: '13:00',
-                date: selectedDate.toISOString().split('T')[0]
-              };
-              addMeal(newMeal);
-            }}>
-            
-            <Utensils size={20} color={Colors.primary} />
-            <Text style={styles.quickAddText}>Lunch</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickAddButton}
-            onPress={() => {
-              const newMeal = {
-                id: Date.now().toString(),
-                name: 'Dinner',
-                foods: [],
-                time: '19:00',
-                date: selectedDate.toISOString().split('T')[0]
-              };
-              addMeal(newMeal);
-            }}>
-            
-            <Utensils size={20} color={Colors.secondary} />
-            <Text style={styles.quickAddText}>Dinner</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickAddButton}
-            onPress={() => {
-              const newMeal = {
-                id: Date.now().toString(),
-                name: 'Snack',
-                foods: [],
-                time: '16:00',
-                date: selectedDate.toISOString().split('T')[0]
-              };
-              addMeal(newMeal);
-            }}>
-            
-            <Apple size={20} color={Colors.success} />
-            <Text style={styles.quickAddText}>Snack</Text>
-          </TouchableOpacity>
+        <View style={styles.calCard}>
+          <Text style={styles.calNumber}>{caloriesRemaining}</Text>
+          <Text style={styles.calLabel}>kcal remaining</Text>
         </View>
-        
-        {/* Recipes Carousel Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recommended Recipes</Text>
-          <TouchableOpacity
-            style={styles.seeAllButton}
-            onPress={() => router.push('/recipes')}>
-            
-            <Text style={styles.seeAllText}>See All</Text>
-            <ChevronRight size={16} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.carouselContainer}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            snapToInterval={width * 0.8 + 16}
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recipesContainer}
-            onMomentumScrollEnd={handleRecipeScroll}
-            removeClippedSubviews={true}>
-            
-            {recipes.map((recipe, index) =>
-            <TouchableOpacity
-              key={recipe.id}
-              style={styles.recipeCard}
-              onPress={() => router.push(`/recipe/${recipe.id}`)}>
-              
-                <Image
-                source={{ uri: recipe.image }}
-                style={styles.recipeImage} />
-              
-                <View style={styles.recipeInfo}>
-                  <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                  <View style={styles.recipeDetails}>
-                    <Text style={styles.recipeCalories}>{recipe.calories} cal</Text>
-                    <Text style={styles.recipePrepTime}>{recipe.prepTime} min</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-          
-          {/* Carousel Indicators */}
-          <View style={styles.indicatorsContainer}>
-            {recipes.map((_, index) =>
-            <View
-              key={index}
-              style={[
-              styles.indicator,
-              currentRecipeIndex === index && styles.activeIndicator]
-              } />
 
-            )}
+        <View style={styles.macroRow}>
+          <View style={[styles.macroChip, { borderLeftColor: '#3B82F6' }]}>
+            <Text style={styles.macroVal}>{Math.round(totals.protein)}g</Text>
+            <Text style={styles.macroLabel}>Protein</Text>
+          </View>
+          <View style={[styles.macroChip, { borderLeftColor: '#F97316' }]}>
+            <Text style={styles.macroVal}>{Math.round(totals.carbs)}g</Text>
+            <Text style={styles.macroLabel}>Carbs</Text>
+          </View>
+          <View style={[styles.macroChip, { borderLeftColor: '#A855F7' }]}>
+            <Text style={styles.macroVal}>{Math.round(totals.fat)}g</Text>
+            <Text style={styles.macroLabel}>Fat</Text>
           </View>
         </View>
-        
-        {/* Extra space for bottom navigation */}
-        <View style={{ height: 80 }} />
-      </ScrollView>
-      
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.scanButton}
-          onPress={() => router.push('/nutrition/scan')}>
-          
-          <Camera size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.barcodeButton}
-          onPress={() => router.push('/nutrition/barcode-scan')}>
-          
-          <ScanLine size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.searchButton}
-          onPress={() => router.push('/nutrition/search')}>
-          
-          <Search size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-      </View>
-      
-      <BottomNavigation />
-    </View>);
 
+        <Text style={styles.sectionLabel}>Meals</Text>
+
+        {mealTypes.map((type) => {
+          const meal = getMealForType(type.name);
+          const cals = sumMealCalories(meal);
+          return (
+            <View key={type.name} style={styles.mealCard}>
+              <View style={styles.mealHeader}>
+                <Text style={styles.mealName}>{type.name}</Text>
+                <View style={styles.calBadge}>
+                  <Text style={styles.calBadgeText}>{cals} kcal</Text>
+                </View>
+              </View>
+              {meal?.foods?.length ? (
+                <View style={styles.foodList}>
+                  {meal.foods.map((fo) => (
+                    <TouchableOpacity
+                      key={fo.id}
+                      style={styles.foodRow}
+                      onPress={() => router.push(`/nutrition/food/${fo.id}`)}>
+                      <Text style={styles.foodName}>{fo.name}</Text>
+                      <Text style={styles.foodCal}>{fo.calories} kcal</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+              <TouchableOpacity
+                style={styles.addFoodBtn}
+                onPress={() => handleAddMealType(type)}>
+                <Plus size={16} color="#fff" />
+                <Text style={styles.addFoodText}>Add Food</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      <View style={styles.bottomBar}>
+        <PrimaryButton
+          title="Log Food"
+          onPress={() => router.push('/nutrition/search')}
+        />
+      </View>
+
+      <BottomNavigation />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
-  },
-  dateNavigation: {
+  container: { flex: 1, backgroundColor: '#000' },
+  scroll: { flex: 1, paddingHorizontal: 16 },
+  dateRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'space-between',
     paddingVertical: 12,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border
   },
-  dateButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Colors.radius.xlarge,
-    backgroundColor: Colors.background,
-    justifyContent: 'center',
-    alignItems: 'center'
+  dateBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    alignItems: 'center', justifyContent: 'center',
   },
-  dateButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary
+  dateText: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  calCard: {
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16,
+    padding: 24, alignItems: 'center',
+    marginTop: 8, marginBottom: 16,
   },
-  disabledDateButton: {
-    backgroundColor: Colors.inactive
-  },
-  disabledDateButtonText: {
-    color: Colors.text.tertiary
-  },
-  dateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary
-  },
-  content: {
+  calNumber: { fontSize: 48, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  calLabel: { fontSize: 14, color: '#999', marginTop: 4 },
+  macroRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  macroChip: {
     flex: 1,
-    padding: 16
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1, borderColor: '#2A2A2A',
+    borderLeftWidth: 4,
+    borderRadius: 16,
+    padding: 12,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 8
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text.primary
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Colors.spacing.md,
-    paddingVertical: Colors.spacing.xs + 2,
-    borderRadius: Colors.radius.large
-  },
-  addButtonText: {
-    color: Colors.text.inverse,
-    fontWeight: '600',
-    marginLeft: 4
+  macroVal: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  macroLabel: { fontSize: 12, color: '#999', marginTop: 2 },
+  sectionLabel: {
+    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
+    textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 4,
   },
   mealCard: {
-    marginBottom: 16
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16,
+    padding: 16, marginBottom: 12,
   },
-  mealHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12
+  mealHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  mealName: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  calBadge: {
+    backgroundColor: 'rgba(34,197,94,0.15)',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  mealTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center'
+  calBadgeText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
+  foodList: { marginTop: 12 },
+  foodRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: '#2A2A2A',
   },
-  mealTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginLeft: 8
+  foodName: { color: '#fff', fontSize: 14, flex: 1 },
+  foodCal: { color: '#999', fontSize: 13 },
+  addFoodBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, marginTop: 12, paddingVertical: 10,
   },
-  mealTime: {
-    fontSize: 14,
-    color: Colors.text.secondary
+  addFoodText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  bottomBar: {
+    position: 'absolute', left: 16, right: 16, bottom: 84,
   },
-  mealDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: 16
-  },
-  foodItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border
-  },
-  foodImage: {
-    width: 40,
-    height: 40,
-    borderRadius: Colors.radius.small
-  },
-  foodImagePlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: Colors.radius.small,
-    backgroundColor: Colors.background,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  foodInfo: {
-    flex: 1,
-    marginLeft: 12
-  },
-  foodName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  foodServing: {
-    fontSize: 14,
-    color: Colors.text.secondary
-  },
-  foodNutrition: {
-    alignItems: 'flex-end'
-  },
-  caloriesText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  macrosContainer: {
-    flexDirection: 'row'
-  },
-  macroText: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginLeft: 8
-  },
-  addFoodButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12
-  },
-  addFoodText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '500',
-    marginLeft: 4
-  },
-  emptyCard: {
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16
-  },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: 16
-  },
-  addMealButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Colors.spacing.lg,
-    paddingVertical: Colors.spacing.sm,
-    borderRadius: Colors.radius.medium
-  },
-  addMealButtonText: {
-    color: Colors.text.inverse,
-    fontWeight: '600',
-    marginLeft: 4
-  },
-  quickAddContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24
-  },
-  quickAddButton: {
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    paddingVertical: Colors.spacing.md,
-    paddingHorizontal: Colors.spacing.sm,
-    borderRadius: Colors.radius.medium,
-    width: '23%'
-  },
-  quickAddText: {
-    fontSize: 12,
-    color: Colors.text.primary,
-    marginTop: 4
-  },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: Colors.primary,
-    marginRight: 4
-  },
-  carouselContainer: {
-    marginBottom: 16
-  },
-  recipesContainer: {
-    paddingLeft: 16,
-    paddingRight: 16
-  },
-  recipeCard: {
-    width: width * 0.8,
-    marginRight: 16,
-    borderRadius: Colors.radius.medium,
-    overflow: 'hidden',
-    backgroundColor: Colors.card
-  },
-  recipeImage: {
-    width: '100%',
-    height: 120
-  },
-  recipeInfo: {
-    padding: 12
-  },
-  recipeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 8
-  },
-  recipeDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  recipeCalories: {
-    fontSize: 14,
-    color: Colors.text.secondary
-  },
-  recipePrepTime: {
-    fontSize: 14,
-    color: Colors.text.secondary
-  },
-  indicatorsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.inactive,
-    marginHorizontal: 4
-  },
-  activeIndicator: {
-    backgroundColor: Colors.primary,
-    width: 10,
-    height: 10,
-    borderRadius: 5
-  },
-  targetToggles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12
-  },
-  macroToggles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16
-  },
-  macroButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: Colors.radius.large,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginRight: 8,
-    marginBottom: 8
-  },
-  macroButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary
-  },
-  macroButtonText: {
-    marginLeft: 6,
-    fontSize: 12,
-    color: Colors.text.primary,
-    fontWeight: '600'
-  },
-  macroButtonTextActive: {
-    color: Colors.text.inverse
-  },
-  aiNote: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginBottom: 12
-  },
-  actionButtons: {
-    position: 'absolute',
-    right: Colors.spacing.lg,
-    bottom: 120,
-    flexDirection: 'column',
-    gap: 12
-  },
-  scanButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Colors.shadow.large
-  },
-  barcodeButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.warning,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Colors.shadow.large
-  },
-  searchButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Colors.shadow.large
-  }
 });

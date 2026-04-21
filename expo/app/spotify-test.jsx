@@ -1,210 +1,100 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-
-
-  Platform } from
-'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { TestTube } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
+import ScreenHeader from '@/components/ScreenHeader';
+import PrimaryButton from '@/components/PrimaryButton';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-export default function SpotifyTest() {
-  const { isConnected, user, connectSpotifyImplicit } = useSpotifyStore();
-  const [testResults, setTestResults] = useState([]);
+export default function SpotifyTestScreen() {
+  const { isConnected, user } = useSpotifyStore();
+  const [results, setResults] = useState([]);
 
-  const addTestResult = (result) => {
-    setTestResults((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
+  const log = (msg) => {
+    setResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
   };
 
   const testAuthUrl = async () => {
     try {
-      const url = await spotifyService.getAuthorizationUrl();
-      addTestResult(`✅ Auth URL generated: ${String(url).substring(0, 100)}...`);
-      console.log('Full auth URL:', url);
-    } catch (error) {
-      addTestResult(`❌ Auth URL failed: ${error instanceof Error ? error.message : String(error)}`);
+      const url = spotifyService?.getAuthUrl?.();
+      log(`Auth URL: ${url ? 'OK' : 'not configured'}`);
+    } catch (e) {
+      log(`Auth URL error: ${e.message}`);
     }
   };
 
-  const testCallbackHandling = async () => {
-    // Simulate a callback with test data
-    const testFragment = 'access_token=test_token&token_type=Bearer&expires_in=3600&state=test_state';
+  const testConnection = async () => {
     try {
-      const result = await connectSpotifyImplicit('#' + testFragment);
-      addTestResult(`${result ? '✅' : '❌'} Callback handling: ${result ? 'Success' : 'Failed'}`);
-    } catch (error) {
-      addTestResult(`❌ Callback handling failed: ${error instanceof Error ? error.message : String(error)}`);
+      const profile = await spotifyService?.getCurrentUser?.();
+      log(`Profile: ${profile?.display_name || 'none'}`);
+    } catch (e) {
+      log(`Profile error: ${e.message}`);
     }
   };
 
-  const testServiceStatus = () => {
-    try {
-      const status = spotifyService.getServiceStatus();
-      addTestResult(`✅ Service status: ${JSON.stringify(status, null, 2)}`);
-      console.log('Service status:', status);
-    } catch (error) {
-      addTestResult(`❌ Service status failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
-  const clearResults = () => {
-    setTestResults([]);
-  };
+  const clearResults = () => setResults([]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: 'Spotify Integration Test',
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text.primary
-        }} />
-      
-      
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <Card variant="elevated" style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <TestTube size={24} color={Colors.primary} />
-            <Text style={styles.statusTitle}>Integration Test Suite</Text>
+    <View style={styles.container}>
+      <ScreenHeader title="Spotify Test" showBack />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        <View style={styles.statusCard}>
+          <View style={styles.iconWrap}>
+            <TestTube size={24} color="#fff" />
           </View>
-          
-          <Text style={styles.statusText}>
-            Connection Status: {isConnected ? '✅ Connected' : '❌ Not Connected'}
+          <Text style={styles.title}>Connection Status</Text>
+          <Text style={styles.sub}>
+            {isConnected ? 'Connected' : 'Disconnected'}
+            {user?.display_name ? ` · ${user.display_name}` : ''}
           </Text>
-          
-          {user &&
-          <Text style={styles.statusText}>
-              User: {user.display_name || user.id}
-            </Text>
-          }
-        </Card>
+          <Text style={styles.sub}>Platform: {Platform.OS}</Text>
+        </View>
 
-        <Card variant="elevated" style={styles.testCard}>
-          <Text style={styles.sectionTitle}>Test Functions</Text>
-          
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Test Auth URL"
-              onPress={testAuthUrl}
-              variant="primary"
-              style={styles.testButton} />
-            
-            
-            <Button
-              title="Test Callback"
-              onPress={testCallbackHandling}
-              variant="secondary"
-              style={styles.testButton} />
-            
-            
-            <Button
-              title="Service Status"
-              onPress={testServiceStatus}
-              variant="outline"
-              style={styles.testButton} />
-            
-            
-            <Button
-              title="Clear Results"
-              onPress={clearResults}
-              variant="danger"
-              style={styles.testButton} />
-            
-          </View>
-        </Card>
+        <Text style={styles.sectionLabel}>Tests</Text>
+        <PrimaryButton title="Test Auth URL" variant="outline" onPress={testAuthUrl} />
+        <View style={{ height: 8 }} />
+        <PrimaryButton title="Test Connection" variant="outline" onPress={testConnection} />
+        <View style={{ height: 8 }} />
+        <PrimaryButton title="Clear Results" variant="ghost" onPress={clearResults} />
 
-        <Card variant="elevated" style={styles.resultsCard}>
-          <Text style={styles.sectionTitle}>Test Results</Text>
-          
-          {testResults.length === 0 ?
-          <Text style={styles.noResultsText}>No test results yet</Text> :
-
-          <ScrollView style={styles.resultsScroll} nestedScrollEnabled>
-              {testResults.map((result, index) =>
-            <Text key={index} style={styles.resultText}>
-                  {result}
-                </Text>
-            )}
-            </ScrollView>
-          }
-        </Card>
+        <Text style={styles.sectionLabel}>Results</Text>
+        <View style={styles.logCard}>
+          {results.length === 0 ? (
+            <Text style={styles.muted}>No test output yet.</Text>
+          ) : (
+            results.map((r, i) => (
+              <Text key={i} style={styles.logLine}>{r}</Text>
+            ))
+          )}
+        </View>
       </ScrollView>
-    </SafeAreaView>);
-
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16
-  },
+  container: { flex: 1, backgroundColor: '#000' },
   statusCard: {
-    marginBottom: 16
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20,
   },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12
+  iconWrap: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: '#2A2A2A',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  statusTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginLeft: 8
+  title: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  sub: { color: '#999', fontSize: 13, marginTop: 4 },
+  sectionLabel: {
+    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
+    textTransform: 'uppercase', color: '#999', marginBottom: 12, marginTop: 12,
   },
-  statusText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 4
+  logCard: {
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 14, minHeight: 120, gap: 4,
   },
-  testCard: {
-    marginBottom: 16
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 16
-  },
-  buttonContainer: {
-    gap: 12
-  },
-  testButton: {
-    marginBottom: 0
-  },
-  resultsCard: {
-    marginBottom: 16
-  },
-  noResultsText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 20
-  },
-  resultsScroll: {
-    maxHeight: 300
-  },
-  resultText: {
-    fontSize: 12,
-    color: Colors.text.primary,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    marginBottom: 4,
-    paddingVertical: 2
-  }
+  muted: { color: '#999', fontSize: 13 },
+  logLine: { color: '#fff', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
 });

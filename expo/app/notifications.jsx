@@ -1,328 +1,82 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Switch,
-  Alert } from
-'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { Bell, Clock, Users, Trophy, Droplets } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import { notificationService } from '@/services/notificationService';
-import { useUserStore } from '@/store/userStore';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Bell, Trophy, Droplets, Users } from 'lucide-react-native';
+import ScreenHeader from '@/components/ScreenHeader';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-
-
-
-
-
-
-
-
+const MOCK = [
+  { id: '1', icon: Trophy, title: 'Badge Earned', body: 'You unlocked the 7-Day Streak badge.', time: '2h ago', unread: true },
+  { id: '2', icon: Users, title: 'New Follower', body: 'Sarah started following you.', time: '5h ago', unread: true },
+  { id: '3', icon: Droplets, title: 'Hydration Reminder', body: 'Time for a glass of water.', time: 'Yesterday', unread: false },
+  { id: '4', icon: Bell, title: 'Workout Reminder', body: "Don't forget today's push session.", time: '2 days ago', unread: false },
+];
 
 export default function NotificationsScreen() {
-  const { user, setUser } = useUserStore();
-  const [settings, setSettings] = useState({
-    workouts: user?.preferences.notifications.workouts ?? true,
-    nutrition: user?.preferences.notifications.nutrition ?? true,
-    social: user?.preferences.notifications.social ?? true,
-    achievements: true,
-    reminders: true
-  });
-  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [items, setItems] = useState(MOCK);
 
-  useEffect(() => {
-    checkPermissions();
-    notificationService.setupNotificationHandler();
-  }, []);
-
-  const checkPermissions = async () => {
-    const granted = await notificationService.requestPermissions();
-    setPermissionGranted(granted);
-
-    if (!granted) {
-      Alert.alert(
-        'Notifications Disabled',
-        'Please enable notifications in your device settings to receive workout reminders and updates.',
-        [{ text: 'OK' }]
-      );
-    }
+  const handleMark = (id) => {
+    setItems(items.map(n => n.id === id ? { ...n, unread: false } : n));
   };
-
-  const updateSetting = (key, value) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-
-    // Update user preferences
-    if (user && (key === 'workouts' || key === 'nutrition' || key === 'social')) {
-      setUser({
-        ...user,
-        preferences: {
-          ...user.preferences,
-          notifications: {
-            ...user.preferences.notifications,
-            [key]: value
-          }
-        }
-      });
-    }
-  };
-
-  const scheduleTestNotification = async () => {
-    if (!permissionGranted) {
-      Alert.alert('Error', 'Notifications are not enabled');
-      return;
-    }
-
-    await notificationService.sendAchievementNotification('Test Achievement');
-    Alert.alert('Success', 'Test notification sent!');
-  };
-
-  const notificationTypes = [
-  {
-    key: 'workouts',
-    title: 'Workout Reminders',
-    description: 'Get notified about scheduled workouts and rest days',
-    icon: <Clock size={24} color={Colors.primary} />
-  },
-  {
-    key: 'nutrition',
-    title: 'Nutrition Tracking',
-    description: 'Reminders to log meals and track water intake',
-    icon: <Droplets size={24} color={Colors.primary} />
-  },
-  {
-    key: 'social',
-    title: 'Social Updates',
-    description: 'Likes, comments, and friend activity notifications',
-    icon: <Users size={24} color={Colors.primary} />
-  },
-  {
-    key: 'achievements',
-    title: 'Achievements & Badges',
-    description: 'Celebrate your fitness milestones and unlocked badges',
-    icon: <Trophy size={24} color={Colors.primary} />
-  },
-  {
-    key: 'reminders',
-    title: 'General Reminders',
-    description: 'Daily check-ins, hydration, and app usage reminders',
-    icon: <Bell size={24} color={Colors.primary} />
-  }];
-
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Notifications', headerShown: false }} />
-      
-      <View style={styles.header}>
-        <Text style={styles.title}>Notification Settings</Text>
-      </View>
-
-      <ScrollView style={styles.content}>
-        {!permissionGranted &&
-        <View style={styles.warningCard}>
-            <Bell size={24} color="#F59E0B" />
-            <View style={styles.warningContent}>
-              <Text style={styles.warningTitle}>Notifications Disabled</Text>
-              <Text style={styles.warningText}>
-                Enable notifications in your device settings to receive reminders and updates.
-              </Text>
-            </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Notifications" showBack />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        {items.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Bell size={40} color="#2A2A2A" />
+            <Text style={styles.empty}>No notifications yet</Text>
           </View>
-        }
-
-        <Text style={styles.sectionTitle}>Notification Types</Text>
-
-        {notificationTypes.map((type) =>
-        <View key={type.key} style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              {type.icon}
-              <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>{type.title}</Text>
-                <Text style={styles.settingDescription}>{type.description}</Text>
-              </View>
-            </View>
-            
-            <Switch
-            value={settings[type.key]}
-            onValueChange={(value) => updateSetting(type.key, value)}
-            trackColor={{ false: Colors.backgroundSecondary, true: Colors.primary + '40' }}
-            thumbColor={settings[type.key] ? Colors.primary : Colors.text.secondary} />
-          
-          </View>
+        ) : (
+          items.map(n => {
+            const Icon = n.icon || Bell;
+            return (
+              <TouchableOpacity
+                key={n.id}
+                onPress={() => handleMark(n.id)}
+                style={[styles.row, n.unread && styles.rowUnread]}>
+                <View style={styles.icon}>
+                  <Icon size={18} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.title}>{n.title}</Text>
+                  <Text style={styles.body} numberOfLines={2}>{n.body}</Text>
+                  <Text style={styles.time}>{n.time}</Text>
+                </View>
+                {n.unread ? <View style={styles.dot} /> : null}
+              </TouchableOpacity>
+            );
+          })
         )}
-
-        <View style={styles.scheduleSection}>
-          <Text style={styles.sectionTitle}>Quick Schedule</Text>
-          
-          <TouchableOpacity style={styles.scheduleButton}>
-            <Clock size={20} color={Colors.primary} />
-            <Text style={styles.scheduleButtonText}>Set Workout Reminders</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.scheduleButton}>
-            <Droplets size={20} color={Colors.primary} />
-            <Text style={styles.scheduleButtonText}>Schedule Hydration Reminders</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.testSection}>
-          <Text style={styles.sectionTitle}>Test Notifications</Text>
-          
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={scheduleTestNotification}>
-            
-            <Text style={styles.testButtonText}>Send Test Notification</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>About Notifications</Text>
-          <Text style={styles.infoText}>
-            Notifications help you stay on track with your fitness goals. You can customize 
-            which types of notifications you receive and when you receive them.
-          </Text>
-          <Text style={styles.infoText}>
-            • Workout reminders help maintain consistency{'\n'}
-            • Nutrition tracking keeps you accountable{'\n'}
-            • Social updates keep you connected with your fitness community{'\n'}
-            • Achievement notifications celebrate your progress
-          </Text>
-        </View>
       </ScrollView>
-    </SafeAreaView>);
-
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
+  container: { flex: 1, backgroundColor: '#000' },
+  row: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 14, marginBottom: 8,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16
+  rowUnread: { borderLeftWidth: 3, borderLeftColor: '#fff' },
+  icon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#2A2A2A',
+    alignItems: 'center', justifyContent: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text.primary
+  title: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  body: { color: '#999', fontSize: 13, lineHeight: 18, marginTop: 2 },
+  time: { color: '#666', fontSize: 11, marginTop: 4 },
+  dot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#fff', marginTop: 6,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20
+  emptyCard: {
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 40, alignItems: 'center', gap: 10,
   },
-  warningCard: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    flexDirection: 'row',
-    alignItems: 'flex-start'
-  },
-  warningContent: {
-    flex: 1,
-    marginLeft: 12
-  },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#92400E',
-    marginBottom: 4
-  },
-  warningText: {
-    fontSize: 14,
-    color: '#92400E',
-    lineHeight: 20
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 16,
-    marginTop: 8
-  },
-  settingItem: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1
-  },
-  settingText: {
-    marginLeft: 12,
-    flex: 1
-  },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  settingDescription: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    lineHeight: 16
-  },
-  scheduleSection: {
-    marginTop: 24
-  },
-  scheduleButton: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
-  },
-  scheduleButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.text.primary
-  },
-  testSection: {
-    marginTop: 24
-  },
-  testButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center'
-  },
-  testButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600'
-  },
-  infoSection: {
-    marginTop: 24,
-    marginBottom: 32
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 12
-  },
-  infoText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    lineHeight: 20,
-    marginBottom: 12
-  }
+  empty: { color: '#999', fontSize: 14 },
 });

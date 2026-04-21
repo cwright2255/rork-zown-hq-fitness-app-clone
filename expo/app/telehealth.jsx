@@ -1,358 +1,135 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  Alert } from
-'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { Video, Calendar, Clock, Star } from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Video, Calendar, Star } from 'lucide-react-native';
+import ScreenHeader from '@/components/ScreenHeader';
+import PrimaryButton from '@/components/PrimaryButton';
 import { useTelehealthStore } from '@/store/telehealthStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function TelehealthScreen() {
-  const [activeTab, setActiveTab] = useState('consultations');
+  const store = useTelehealthStore();
+  const doctors = store?.doctors || [];
+  const appointments = store?.appointments || [];
+  const [tab, setTab] = useState('providers');
 
-  const { doctors, appointments, resources, bookAppointment } = useTelehealthStore();
-
-
-
-
-
-
-  const handleBookAppointment = (doctorId, timeSlot) => {
-    Alert.alert(
-      'Book Appointment',
-      `Would you like to book an appointment for ${timeSlot}?`,
-      [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Book',
-        onPress: () => {
-          bookAppointment(doctorId, timeSlot);
-          Alert.alert('Success', 'Appointment booked successfully!');
-        }
-      }]
-
-    );
+  const handleBook = (doctor) => {
+    try {
+      if (store?.bookAppointment) {
+        store.bookAppointment(doctor.id, { date: new Date().toISOString() });
+      }
+      Alert.alert('Booked', `Appointment with ${doctor.name} requested.`);
+    } catch (e) {
+      Alert.alert('Error', 'Unable to book.');
+    }
   };
 
-  const renderConsultations = () =>
-  <ScrollView style={styles.content}>
-      <Text style={styles.sectionTitle}>Available Doctors</Text>
-      
-      {doctors.map((doctor) =>
-    <View key={doctor.id} style={styles.doctorCard}>
-          <Image source={{ uri: doctor.image }} style={styles.doctorImage} />
-          
-          <View style={styles.doctorInfo}>
-            <Text style={styles.doctorName}>{doctor.name}</Text>
-            <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
-            
-            <View style={styles.doctorRating}>
-              <Star size={14} color="#FFD700" fill="#FFD700" />
-              <Text style={styles.ratingText}>{doctor.rating}</Text>
-              <Text style={styles.reviewCount}>({doctor.reviews} reviews)</Text>
-            </View>
-            
-            <Text style={styles.doctorPrice}>${doctor.price}/session</Text>
-          </View>
-          
-          <View style={styles.doctorActions}>
-            <TouchableOpacity
-          style={styles.bookButton}
-          onPress={() => handleBookAppointment(doctor.id, 'Next Available')}>
-          
-              <Calendar size={16} color="white" />
-              <Text style={styles.bookButtonText}>Book</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-    )}
-
-      <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-      
-      {appointments.length === 0 ?
-    <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No upcoming appointments</Text>
-        </View> :
-
-    appointments.map((appointment) =>
-    <View key={appointment.id} style={styles.appointmentCard}>
-            <View style={styles.appointmentInfo}>
-              <Text style={styles.appointmentDoctor}>{appointment.doctorName}</Text>
-              <Text style={styles.appointmentDate}>{appointment.date}</Text>
-              <Text style={styles.appointmentTime}>{appointment.time}</Text>
-            </View>
-            
-            <TouchableOpacity style={styles.joinButton}>
-              <Video size={16} color="white" />
-              <Text style={styles.joinButtonText}>Join Call</Text>
-            </TouchableOpacity>
-          </View>
-    )
-    }
-    </ScrollView>;
-
-
-  const renderResources = () =>
-  <ScrollView style={styles.content}>
-      {resources.map((resource) =>
-    <TouchableOpacity key={resource.id} style={styles.resourceCard}>
-          <Image source={{ uri: resource.image }} style={styles.resourceImage} />
-          
-          <View style={styles.resourceInfo}>
-            <Text style={styles.resourceTitle}>{resource.title}</Text>
-            <Text style={styles.resourceDescription}>{resource.description}</Text>
-            
-            <View style={styles.resourceMeta}>
-              <Clock size={12} color={Colors.text.secondary} />
-              <Text style={styles.resourceDuration}>{resource.duration}</Text>
-              <Text style={styles.resourceCategory}>{resource.category}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-    )}
-    </ScrollView>;
-
-
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Telehealth', headerShown: false }} />
-      
-      <View style={styles.header}>
-        <Text style={styles.title}>Telehealth</Text>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Telehealth" showBack />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        <View style={styles.tabRow}>
+          {['providers', 'appointments'].map(t => {
+            const active = tab === t;
+            return (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setTab(t)}
+                style={[styles.tab, active && styles.tabActive]}>
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                  {t === 'providers' ? 'Providers' : 'Appointments'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-      <View style={styles.tabContainer}>
-        {['consultations', 'resources'].map((tab) =>
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tab, activeTab === tab && styles.activeTab]}
-          onPress={() => setActiveTab(tab)}>
-          
-            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
+        {tab === 'providers' ? (
+          doctors.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.empty}>No providers available.</Text>
+            </View>
+          ) : (
+            doctors.map(d => (
+              <View key={d.id} style={styles.card}>
+                <View style={styles.cardRow}>
+                  <View style={styles.avatar}>
+                    <Video size={20} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{d.name}</Text>
+                    <Text style={styles.specialty}>{d.specialty || 'General Practice'}</Text>
+                    {d.rating ? (
+                      <View style={styles.ratingRow}>
+                        <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                        <Text style={styles.ratingText}>{d.rating}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+                <View style={{ marginTop: 12 }}>
+                  <PrimaryButton
+                    title="Book Consultation"
+                    variant="outline"
+                    onPress={() => handleBook(d)}
+                  />
+                </View>
+              </View>
+            ))
+          )
+        ) : (
+          appointments.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.empty}>No appointments yet.</Text>
+            </View>
+          ) : (
+            appointments.map(a => (
+              <View key={a.id} style={styles.card}>
+                <View style={styles.cardRow}>
+                  <Calendar size={18} color="#fff" />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.name}>{a.doctorName || 'Appointment'}</Text>
+                    <Text style={styles.specialty}>
+                      {a.date ? new Date(a.date).toLocaleString() : 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )
         )}
-      </View>
-
-      {activeTab === 'consultations' && renderConsultations()}
-      {activeTab === 'resources' && renderResources()}
-    </SafeAreaView>);
-
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text.primary
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 16
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-    marginHorizontal: 4
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
-  activeTab: {
-    backgroundColor: Colors.primary
+  tabActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  tabText: { color: '#999', fontSize: 13, fontWeight: '600' },
+  tabTextActive: { color: '#000' },
+  card: {
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 16, marginBottom: 10,
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.secondary
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#2A2A2A',
+    alignItems: 'center', justifyContent: 'center',
   },
-  activeTabText: {
-    color: 'white'
+  name: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  specialty: { color: '#999', fontSize: 12, marginTop: 2 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  ratingText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
+  emptyCard: {
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 16,
-    marginTop: 8
-  },
-  doctorCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row'
-  },
-  doctorImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 16
-  },
-  doctorInfo: {
-    flex: 1
-  },
-  doctorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  doctorSpecialty: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 8
-  },
-  doctorRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 4
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text.primary
-  },
-  reviewCount: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  doctorPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.primary
-  },
-  doctorActions: {
-    justifyContent: 'center'
-  },
-  bookButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4
-  },
-  bookButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500'
-  },
-  emptyState: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center'
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: Colors.text.secondary
-  },
-  appointmentCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  appointmentInfo: {
-    flex: 1
-  },
-  appointmentDoctor: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  appointmentDate: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 2
-  },
-  appointmentTime: {
-    fontSize: 14,
-    color: Colors.text.secondary
-  },
-  joinButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4
-  },
-  joinButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500'
-  },
-  resourceCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row'
-  },
-  resourceImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 16
-  },
-  resourceInfo: {
-    flex: 1
-  },
-  resourceTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4
-  },
-  resourceDescription: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 8,
-    lineHeight: 20
-  },
-  resourceMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  resourceDuration: {
-    fontSize: 12,
-    color: Colors.text.secondary
-  },
-  resourceCategory: {
-    fontSize: 12,
-    color: Colors.primary,
-    fontWeight: '500'
-  }
+  empty: { color: '#999', fontSize: 14 },
 });

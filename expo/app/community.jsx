@@ -1,198 +1,132 @@
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
-import { Flame, Dumbbell, Target, Zap, Users, Lock, Clock } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '@/constants/theme';
+import { Heart, MessageCircle } from 'lucide-react-native';
+import ScreenHeader from '@/components/ScreenHeader';
+import PrimaryButton from '@/components/PrimaryButton';
+import BottomNavigation from '@/components/BottomNavigation';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const SEASONS = [
-  {
-    name: 'Season 01',
-    status: 'Completed',
-    locked: false,
-    challenges: [
-      { icon: Flame, title: 'Streak Mode', percent: 100 },
-      { icon: Dumbbell, title: 'Iron Grind', percent: 100 },
-      { icon: Target, title: 'Precision', percent: 85 },
-      { icon: Zap, title: 'Sprint It', percent: 72 },
-    ],
-  },
-  {
-    name: 'Season 02',
-    status: 'In Progress',
-    locked: false,
-    challenges: [
-      { icon: Flame, title: 'Cardio King', percent: 58 },
-      { icon: Dumbbell, title: 'Strength PR', percent: 33 },
-      { icon: Target, title: 'Form Focus', percent: 42 },
-      { icon: Zap, title: 'HIIT Blitz', percent: 12 },
-    ],
-  },
-  {
-    name: 'Season 03',
-    status: 'Starts in 14d 06h',
-    locked: true,
-    challenges: [],
-  },
+const FEED = [
+  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day — new PR on squats!' },
+  { id: '2', name: 'Sam R.', initials: 'SR', time: '5h', text: 'Morning 5k in under 22 min. Feeling unstoppable.' },
+  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe — drop yours below.' },
+];
+
+const CHALLENGES = [
+  { id: 'c1', name: '30-Day Cardio', participants: 412, daysLeft: 12 },
+  { id: 'c2', name: 'Strength PR Month', participants: 206, daysLeft: 21 },
+  { id: 'c3', name: 'Summer Shred', participants: 894, daysLeft: 34 },
 ];
 
 export default function CommunityScreen() {
-  const totalActive = useMemo(() => SEASONS.reduce((sum, s) => sum + s.challenges.filter((c) => c.percent < 100).length, 0), []);
+  const [tab, setTab] = useState('feed');
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>CHALLENGES</Text>
-          <TouchableOpacity
-            style={styles.friendsBtn}
-            onPress={() => router.push('/leaderboard')}
-            accessibilityLabel="Friends"
-          >
-            <Users size={16} color={colors.text} />
-            <Text style={styles.friendsText}>Friends</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Community" />
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>ACTIVE CHALLENGES</Text>
-          <Text style={styles.summaryValue}>{totalActive}</Text>
-        </View>
+      <View style={styles.tabs}>
+        {['feed', 'challenges'].map(t => {
+          const active = tab === t;
+          return (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setTab(t)}
+              style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}>
+              <Text style={[styles.tabText, { color: active ? '#000' : '#999' }]}>
+                {t === 'feed' ? 'Feed' : 'Challenges'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
-        {SEASONS.map((season) => (
-          <View key={season.name} style={styles.season}>
-            <View style={styles.seasonHeader}>
-              <Text style={styles.seasonName}>{season.name}</Text>
-              <View style={[styles.statusPill, season.locked && styles.statusPillLocked]}>
-                {season.locked ? (
-                  <Clock size={12} color={colors.textSecondary} />
-                ) : season.status === 'Completed' ? (
-                  <View style={styles.dotCompleted} />
-                ) : (
-                  <View style={styles.dotActive} />
-                )}
-                <Text style={styles.statusText}>{season.status}</Text>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        {tab === 'feed' ? (
+          FEED.map(post => (
+            <View key={post.id} style={styles.card}>
+              <View style={styles.postHeader}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{post.initials}</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.postName}>{post.name}</Text>
+                  <Text style={styles.postTime}>{post.time} ago</Text>
+                </View>
+              </View>
+              <Text style={styles.postText}>{post.text}</Text>
+              <View style={styles.postActions}>
+                <TouchableOpacity style={styles.action}>
+                  <Heart size={18} color="#999" />
+                  <Text style={styles.actionText}>Like</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.action}>
+                  <MessageCircle size={18} color="#999" />
+                  <Text style={styles.actionText}>Comment</Text>
+                </TouchableOpacity>
               </View>
             </View>
-
-            {season.locked ? (
-              <View style={styles.lockedCard}>
-                <Lock size={28} color={colors.textMuted} />
-                <Text style={styles.lockedText}>Unlocks when timer ends</Text>
+          ))
+        ) : (
+          CHALLENGES.map(c => (
+            <View key={c.id} style={styles.card}>
+              <View style={styles.challengeRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.challengeName}>{c.name}</Text>
+                  <Text style={styles.challengeMeta}>{c.participants} participants</Text>
+                </View>
+                <View style={styles.daysBadge}>
+                  <Text style={styles.daysText}>{c.daysLeft}d left</Text>
+                </View>
               </View>
-            ) : (
-              <View style={styles.grid}>
-                {season.challenges.map((c, i) => {
-                  const Icon = c.icon;
-                  return (
-                    <TouchableOpacity key={i} style={styles.card} activeOpacity={0.8}>
-                      <View style={styles.iconCircle}>
-                        <Icon size={20} color={colors.text} />
-                      </View>
-                      <Text style={styles.cardTitle} numberOfLines={1}>{c.title}</Text>
-                      <View style={styles.track}>
-                        <View style={[styles.fill, { width: `${c.percent}%` }]} />
-                      </View>
-                      <View style={styles.cardFooter}>
-                        <Text style={styles.pct}>{c.percent}%</Text>
-                        <TouchableOpacity>
-                          <Text style={styles.trackLink}>Track Friends</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={{ marginTop: 12 }}>
+                <PrimaryButton title="Join" variant="outline" style={{ height: 36 }} onPress={() => {}} />
               </View>
-            )}
-          </View>
-        ))}
+            </View>
+          ))
+        )}
       </ScrollView>
-    </SafeAreaView>
+
+      <BottomNavigation />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  title: { ...typography.h1 },
-  friendsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  friendsText: { ...typography.caption, color: colors.text, fontWeight: '700' },
-  summaryCard: {
-    padding: spacing.lg,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.xl,
-  },
-  summaryLabel: { ...typography.label, marginBottom: spacing.xs },
-  summaryValue: { fontSize: 48, fontWeight: '900', color: colors.text, letterSpacing: 1 },
-  season: { marginBottom: spacing.xl },
-  seasonHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  seasonName: { ...typography.h3, letterSpacing: 1, textTransform: 'uppercase' },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statusPillLocked: { opacity: 0.8 },
-  dotActive: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text },
-  dotCompleted: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.textSecondary },
-  statusText: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  container: { flex: 1, backgroundColor: '#000' },
+  tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
+  tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
+  tabActive: { backgroundColor: '#fff' },
+  tabInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  tabText: { fontSize: 13, fontWeight: '600' },
   card: {
-    width: '48%',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    borderRadius: 16, padding: 16, marginBottom: 12,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
+  postHeader: { flexDirection: 'row', alignItems: 'center' },
+  avatar: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#2A2A2A',
+    alignItems: 'center', justifyContent: 'center',
   },
-  cardTitle: { ...typography.body, fontWeight: '700', marginBottom: spacing.sm },
-  track: { height: 4, borderRadius: radius.full, backgroundColor: colors.progressTrack, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: colors.progressFill, borderRadius: radius.full },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
-  pct: { ...typography.caption, color: colors.text, fontWeight: '700' },
-  trackLink: { ...typography.caption, color: colors.textSecondary, fontWeight: '600', textDecorationLine: 'underline' },
-  lockedCard: {
-    padding: spacing.xl,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    gap: spacing.sm,
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  postName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  postTime: { color: '#666', fontSize: 12 },
+  postText: { color: '#fff', fontSize: 14, lineHeight: 20, marginTop: 10 },
+  postActions: {
+    flexDirection: 'row', gap: 20,
+    marginTop: 12, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: '#2A2A2A',
   },
-  lockedText: { ...typography.caption },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  actionText: { color: '#999', fontSize: 13 },
+  challengeRow: { flexDirection: 'row', alignItems: 'center' },
+  challengeName: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  challengeMeta: { color: '#999', fontSize: 13, marginTop: 2 },
+  daysBadge: {
+    backgroundColor: 'rgba(34,197,94,0.15)',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+  },
+  daysText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
 });
