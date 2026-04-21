@@ -149,36 +149,27 @@ const queryClient = new QueryClient({
   }
 });
 
-export default function RootLayout() {
+// Inner component — rendered INSIDE expo-router's navigation context
+// so usePathname() and router hooks are safe to call here.
+function RootLayoutInner() {
   const pathname = usePathname();
   const { isOnboarded } = useUserStore();
   const { cart } = useShopStore();
   const { connectSpotify, connectSpotifyImplicit } = useSpotifyStore();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const [fontsLoaded] = useFonts({});
 
   const cartItemCount = useMemo(() => cart.reduce((total, item) => total + item.quantity, 0), [cart]);
-
-  useEffect(() => {
-    if (fontsLoaded) {
-      void SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
 
   const handleDeepLink = useCallback(
     (event) => {
       const url = event.url;
       setTimeout(() => {
         void (async () => {
-          if (!url) {
-            return;
-          }
-
+          if (!url) return;
           try {
             const parsed = Linking.parse(url);
             const authCode = typeof parsed.queryParams?.code === 'string' ? parsed.queryParams.code : null;
             const fragment = url.includes('#') ? url.substring(url.indexOf('#')) : undefined;
-
             if (fragment?.includes('access_token')) {
               await connectSpotifyImplicit(fragment);
             } else if (authCode) {
@@ -187,12 +178,9 @@ export default function RootLayout() {
           } catch (error) {
             console.error('Error handling Spotify deep link:', error);
           }
-
           try {
             const result = await processAdminLink(url);
-            if (result.handled) {
-              console.log('[AdminLink] Command handled:', result.message);
-            }
+            if (result.handled) console.log('[AdminLink] Command handled:', result.message);
           } catch {
             console.log('[AdminLink] No admin command in link');
           }
@@ -204,139 +192,117 @@ export default function RootLayout() {
 
   useEffect(() => {
     const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    Linking.getInitialURL().
-    then((url) => {
-      if (url) {
-        handleDeepLink({ url });
-      }
-    }).
-    catch(console.error);
-
-    return () => {
-      subscription.remove();
-    };
+    Linking.getInitialURL()
+      .then((url) => { if (url) handleDeepLink({ url }); })
+      .catch(console.error);
+    return () => subscription.remove();
   }, [handleDeepLink]);
 
   useEffect(() => {
-    if (!fontsLoaded) {
-      return;
-    }
-
-    if (pathname === '/' || pathname === '/index' || pathname === '/start' || pathname.startsWith('/auth/') || pathname === '/spotify-callback') {
-      return;
-    }
-
+    if (pathname === '/' || pathname === '/index' || pathname === '/start' || pathname.startsWith('/auth/') || pathname === '/spotify-callback') return;
     const navigationFrame = requestAnimationFrame(() => {
       if (!isOnboarded && pathname !== '/start' && !pathname.startsWith('/auth/') && pathname !== '/' && pathname !== '/spotify-callback') {
         if (pathname !== '/onboarding') {
-          import('expo-router').
-          then(({ router }) => {
-            router.replace('/start');
-          }).
-          catch(console.error);
+          import('expo-router').then(({ router }) => router.replace('/start')).catch(console.error);
         }
       } else if (isOnboarded && pathname === '/start') {
-        import('expo-router').
-        then(({ router }) => {
-          router.replace('/hq');
-        }).
-        catch(console.error);
+        import('expo-router').then(({ router }) => router.replace('/hq')).catch(console.error);
       }
     });
-
     return () => cancelAnimationFrame(navigationFrame);
-  }, [fontsLoaded, isOnboarded, pathname]);
+  }, [isOnboarded, pathname]);
 
-  const toggleMenu = useCallback(() => {
-    setIsMenuVisible((prev) => !prev);
-  }, []);
+  const toggleMenu = useCallback(() => setIsMenuVisible((prev) => !prev), []);
+  const closeMenu = useCallback(() => setIsMenuVisible(false), []);
 
-  const closeMenu = useCallback(() => {
-    setIsMenuVisible(false);
-  }, []);
+  return (
+    <View style={styles.container}>
+      <StatusBar style="auto" />
+      <RootLayoutNav
+        toggleMenu={toggleMenu}
+        pathname={pathname}
+        cartItemCount={cartItemCount}
+        isOnboarded={isOnboarded} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.background }
+        }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="start" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="hq" />
+        <Stack.Screen name="workouts" />
+        <Stack.Screen name="nutrition" />
+        <Stack.Screen name="shop" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="community" />
+        <Stack.Screen name="telehealth" />
+        <Stack.Screen name="analytics" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="messaging" />
+        <Stack.Screen name="mood-tracking" />
+        <Stack.Screen name="health-assessment" />
+        <Stack.Screen name="wearables" />
+        <Stack.Screen name="rook-connect" />
+        <Stack.Screen name="support" />
+        <Stack.Screen name="order-tracking" />
+        <Stack.Screen name="leaderboard" />
+        <Stack.Screen name="recipes" />
+        <Stack.Screen name="champion-pass" />
+        <Stack.Screen name="exp-dashboard" />
+        <Stack.Screen name="auth/login" />
+        <Stack.Screen name="auth/register" />
+        <Stack.Screen name="auth/forgot-password" />
+        <Stack.Screen name="workout/[id]" />
+        <Stack.Screen name="workout/active" />
+        <Stack.Screen name="workout/create" />
+        <Stack.Screen name="nutrition/search" />
+        <Stack.Screen name="nutrition/food/[id]" />
+        <Stack.Screen name="shop/product/[id]" />
+        <Stack.Screen name="shop/cart" />
+        <Stack.Screen name="shop/collection/[id]" />
+        <Stack.Screen name="shop/category/[category]" />
+        <Stack.Screen name="profile/achievements" />
+        <Stack.Screen name="profile/progress" />
+        <Stack.Screen name="profile/settings" />
+        <Stack.Screen name="profile/body-scan" />
+        <Stack.Screen name="recipe/[id]" />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="spotify-integration" />
+        <Stack.Screen name="spotify-redirect" />
+        <Stack.Screen name="spotify-callback" />
+      </Stack>
+      <TypedHamburgerMenu isVisible={isMenuVisible} onClose={closeMenu} />
+    </View>
+  );
+}
 
-  if (!fontsLoaded) {
-    return null;
-  }
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({});
+
+  useEffect(() => {
+    if (fontsLoaded) void SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
 
   return (
     <RookWrapper>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <SafeAreaProvider>
-            {null /* web-only leaflet styles removed — not needed in Expo Go */}
-            <View style={styles.container}>
-              <StatusBar style="auto" />
-
-              <RootLayoutNav
-                  toggleMenu={toggleMenu}
-                  pathname={pathname}
-                  cartItemCount={cartItemCount}
-                  isOnboarded={isOnboarded} />
-                
-
-              <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: Colors.background }
-                  }}>
-                  
-                <Stack.Screen name="index" />
-                <Stack.Screen name="start" />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="hq" />
-                <Stack.Screen name="workouts" />
-                <Stack.Screen name="nutrition" />
-                <Stack.Screen name="shop" />
-                <Stack.Screen name="profile" />
-                <Stack.Screen name="community" />
-                <Stack.Screen name="telehealth" />
-                <Stack.Screen name="analytics" />
-                <Stack.Screen name="notifications" />
-                <Stack.Screen name="messaging" />
-                <Stack.Screen name="mood-tracking" />
-                <Stack.Screen name="health-assessment" />
-                <Stack.Screen name="wearables" />
-                <Stack.Screen name="rook-connect" />
-                <Stack.Screen name="support" />
-                <Stack.Screen name="order-tracking" />
-                <Stack.Screen name="leaderboard" />
-                <Stack.Screen name="recipes" />
-                <Stack.Screen name="champion-pass" />
-                <Stack.Screen name="exp-dashboard" />
-                <Stack.Screen name="auth/login" />
-                <Stack.Screen name="auth/register" />
-                <Stack.Screen name="auth/forgot-password" />
-                <Stack.Screen name="workout/[id]" />
-                <Stack.Screen name="workout/active" />
-                <Stack.Screen name="workout/create" />
-                <Stack.Screen name="nutrition/search" />
-                <Stack.Screen name="nutrition/food/[id]" />
-                <Stack.Screen name="shop/product/[id]" />
-                <Stack.Screen name="shop/cart" />
-                <Stack.Screen name="shop/collection/[id]" />
-                <Stack.Screen name="shop/category/[category]" />
-                <Stack.Screen name="profile/achievements" />
-                <Stack.Screen name="profile/progress" />
-                <Stack.Screen name="profile/settings" />
-                <Stack.Screen name="profile/body-scan" />
-                <Stack.Screen name="recipe/[id]" />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="admin" />
-                <Stack.Screen name="spotify-integration" />
-                <Stack.Screen name="spotify-redirect" />
-                <Stack.Screen name="spotify-callback" />
-              </Stack>
-
-              <TypedHamburgerMenu isVisible={isMenuVisible} onClose={closeMenu} />
-            </View>
+            <RootLayoutInner />
           </SafeAreaProvider>
         </ErrorBoundary>
       </QueryClientProvider>
-    </RookWrapper>);
-
+    </RookWrapper>
+  );
 }
+
+
+
 
 const styles = StyleSheet.create({
   container: {
