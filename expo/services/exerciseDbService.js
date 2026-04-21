@@ -31,6 +31,32 @@ export async function fetchMuscles() {
   return json.data || [];
 }
 
+const ASCEND_BASE = 'https://edb-with-videos-and-images-by-ascendapi.p.rapidapi.com/api/v1';
+const ASCEND_HOST = 'edb-with-videos-and-images-by-ascendapi.p.rapidapi.com';
+
+function getAscendHeaders() {
+  return {
+    'x-rapidapi-key': process.env.EXPO_PUBLIC_RAPIDAPI_KEY || '',
+    'x-rapidapi-host': ASCEND_HOST,
+  };
+}
+
+export async function fetchAscendExercises({ limit = 20, cursor = null, bodyPart = '', name = '' } = {}) {
+  let url = `${ASCEND_BASE}/exercises?limit=${limit}`;
+  if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
+  if (bodyPart) url += `&bodyPart=${encodeURIComponent(bodyPart)}`;
+  if (name) url += `&name=${encodeURIComponent(name)}`;
+  const res = await fetch(url, { headers: getAscendHeaders() });
+  if (!res.ok) throw new Error(`AscendAPI fetch failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchAscendBodyParts() {
+  const res = await fetch(`${ASCEND_BASE}/bodyparts`, { headers: getAscendHeaders() });
+  if (!res.ok) throw new Error(`AscendAPI fetch failed: ${res.status}`);
+  return res.json();
+}
+
 export function filterExercises(exercises, { query = '', equipment = '', bodyPart = '', muscle = '' } = {}) {
   const q = (query || '').toLowerCase().trim();
   const eq = (equipment || '').toLowerCase().trim();

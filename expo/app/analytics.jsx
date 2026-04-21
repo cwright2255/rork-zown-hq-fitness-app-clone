@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Image,
   Dimensions } from
 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +24,11 @@ import {
 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useAnalyticsStore } from '@/store/analyticsStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import {
+  getHeatmapVisualizeUrl,
+  normalizeMuscleNames,
+} from '@/services/muscleVisualizerService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -30,9 +36,33 @@ const { width } = Dimensions.get('window');
 
 export default function AnalyticsScreen() {
   const [timeRange, setTimeRange] = useState('month');
+  const [heatmapError, setHeatmapError] = useState(false);
   const { getAnalytics } = useAnalyticsStore();
+  const completedWorkouts = useWorkoutStore((s) => s.completedWorkouts) || [];
 
   const analytics = getAnalytics(timeRange);
+
+  const weeklyMuscles = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recent = completedWorkouts.filter((w) => {
+      const t = w.completedAt ? new Date(w.completedAt).getTime() : 0;
+      return t >= sevenDaysAgo;
+    });
+    const all = [];
+    recent.forEach((w) => {
+      const list = w.targetMuscles || w.muscleGroups || [];
+      list.forEach((m) => {
+        if (m) all.push(m);
+      });
+    });
+    const normalized = normalizeMuscleNames(all);
+    return Array.from(new Set(normalized));
+  }, [completedWorkouts]);
+
+  const heatmapUrl = useMemo(
+    () => getHeatmapVisualizeUrl({ muscles: weeklyMuscles }),
+    [weeklyMuscles]
+  );
 
   const timeRanges = [
   { key: 'week', label: 'Week' },
@@ -325,6 +355,24 @@ export default function AnalyticsScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Weekly Muscle Heatmap */}
+        <View style={styles.section}>
+          <Text style={styles.heatmapHeader}>This Week's Muscle Activity</Text>
+          {heatmapUrl && !heatmapError ? (
+            <Image
+              source={{ uri: heatmapUrl }}
+              style={styles.heatmapImage}
+              resizeMode="contain"
+              onError={() => setHeatmapError(true)} />
+          ) : (
+            <View style={styles.heatmapPlaceholder}>
+              <Text style={styles.heatmapPlaceholderText}>
+                Log workouts to see your muscle heatmap
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>);
@@ -666,6 +714,33 @@ const styles = StyleSheet.create({
   runStatLabel: {
     fontSize: 10,
     color: Colors.text.secondary,
+    fontWeight: '600'
+  },
+  heatmapHeader: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12
+  },
+  heatmapImage: {
+    width: '100%',
+    height: 220,
+    backgroundColor: '#111',
+    borderRadius: 12
+  },
+  heatmapPlaceholder: {
+    width: '100%',
+    height: 220,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#2A2A2A'
+  },
+  heatmapPlaceholderText: {
+    color: '#999',
+    fontSize: 13,
     fontWeight: '600'
   }
 });

@@ -20,6 +20,10 @@ import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import {
+  getMuscleVisualizeUrl,
+  normalizeMuscleNames,
+} from '@/services/muscleVisualizerService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -77,8 +81,10 @@ function WeeklyChart() {
   );
 }
 
-function TaskRow({ name, done, onPress }) {
+function TaskRow({ name, done, thumbUrl, onPress }) {
   const Icon = done ? CheckSquare : Square;
+  const [imgError, setImgError] = React.useState(false);
+  const showThumb = !!thumbUrl && !imgError;
   return (
     <TouchableOpacity style={styles.taskRow} onPress={onPress} activeOpacity={0.8}>
       <Icon size={22} color={done ? colors.text : colors.textSecondary} />
@@ -86,6 +92,14 @@ function TaskRow({ name, done, onPress }) {
         <Dumbbell size={18} color={colors.text} />
       </View>
       <Text style={[styles.taskName, done && styles.taskNameDone]} numberOfLines={1}>{name}</Text>
+      {showThumb && (
+        <Image
+          source={{ uri: thumbUrl }}
+          style={styles.muscleThumb}
+          resizeMode="contain"
+          onError={() => setImgError(true)}
+        />
+      )}
     </TouchableOpacity>
   );
 }
@@ -123,14 +137,26 @@ export default function HQScreen() {
 
   const taskItems = useMemo(() => {
     const list = (workouts || []).slice(0, 4);
+    const buildThumb = (muscles) => {
+      const normalized = normalizeMuscleNames(muscles || []);
+      return getMuscleVisualizeUrl({ muscles: normalized, color: '#E74C3C' });
+    };
     if (list.length === 0) {
       return [
-        { id: '1', name: 'Full Body Burn', done: true },
-        { id: '2', name: 'Morning Cardio', done: false },
-        { id: '3', name: 'Core Strength', done: false },
+        { id: '1', name: 'Full Body Burn', done: true, thumbUrl: buildThumb(['CHEST']) },
+        { id: '2', name: 'Morning Cardio', done: false, thumbUrl: buildThumb(['QUADS']) },
+        { id: '3', name: 'Core Strength', done: false, thumbUrl: buildThumb(['ABS']) },
       ];
     }
-    return list.map((w, i) => ({ id: w.id, name: w.name, done: i === 0 }));
+    return list.map((w, i) => {
+      const muscles = w.targetMuscles || w.muscleGroups || ['CHEST'];
+      return {
+        id: w.id,
+        name: w.name,
+        done: i === 0,
+        thumbUrl: buildThumb(muscles),
+      };
+    });
   }, [workouts]);
 
   const goalReach = user?.stats?.goalsReached || 156;
@@ -195,7 +221,13 @@ export default function HQScreen() {
         </View>
         <View style={styles.taskList}>
           {taskItems.map((t) => (
-            <TaskRow key={t.id} name={t.name} done={t.done} onPress={() => router.push(`/workout/${t.id}`)} />
+            <TaskRow
+              key={t.id}
+              name={t.name}
+              done={t.done}
+              thumbUrl={t.thumbUrl}
+              onPress={() => router.push(`/workout/${t.id}`)}
+            />
           ))}
         </View>
 
@@ -351,6 +383,7 @@ const styles = StyleSheet.create({
   },
   taskName: { ...typography.body, fontWeight: '800', flex: 1 },
   taskNameDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
+  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: '#111' },
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
   qa: {
     width: '48%',
