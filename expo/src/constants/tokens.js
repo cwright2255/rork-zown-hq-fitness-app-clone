@@ -1,3 +1,4 @@
+import { tokens } from '../../../theme/tokens';
 export const Colors = {
   primary: '#6C63FF',
   primaryDark: '#5A52D5',
@@ -10,7 +11,7 @@ export const Colors = {
   success: '#43D9AD',
   warning: '#FFB830',
   text: {
-    primary: '#FFFFFF',
+    primary: tokens.colors.background.default,
     secondary: '#A0A0C0',
     disabled: '#5A5A7A'
   },
