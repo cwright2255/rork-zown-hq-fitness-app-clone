@@ -93,20 +93,20 @@ const styles = StyleSheet.create({
   progressTrack: { height: 2, backgroundColor: tokens.colors.ink.darker },
   progressFill: { height: 2, backgroundColor: tokens.colors.background.default },
   stepLabel: {
-    color: '#999', fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
+    color: tokens.colors.sky.dark, fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', marginBottom: 12,
   },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 20,
   },
   question: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600', lineHeight: 24 },
   option: {
-    backgroundColor: '#0F0F0F', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darkest, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 12, padding: 16,
   },
   optionActive: { borderColor: tokens.colors.background.default, borderWidth: 2 },
-  optionText: { color: '#999', fontSize: 15, fontWeight: '500' },
+  optionText: { color: tokens.colors.sky.dark, fontSize: 15, fontWeight: '500' },
   optionTextActive: { color: tokens.colors.background.default, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

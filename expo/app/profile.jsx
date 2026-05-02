@@ -344,12 +344,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/progress?tab=achievements')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#F97316'}20` }]}>
-              <Award size={20} color={'#F97316'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.legacy.legacy_f97316}20` }]}>
+              <Award size={20} color={tokens.colors.legacy.legacy_f97316} />
             </View>
             <Text style={styles.menuItemText}>Achievements</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.ink.light} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -364,7 +364,7 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.menuItemText}>Champion Pass</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.ink.light} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -374,12 +374,12 @@ export default function ProfileScreen() {
         onPress={() => setActiveTab('exp')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#22C55E'}20` }]}>
-              <Activity size={20} color={'#22C55E'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.green.light}20` }]}>
+              <Activity size={20} color={tokens.colors.green.light} />
             </View>
             <Text style={styles.menuItemText}>EXP Dashboard</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.ink.light} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -389,12 +389,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/settings')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#999999'}20` }]}>
-              <Settings size={20} color={'#999999'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.sky.dark}20` }]}>
+              <Settings size={20} color={tokens.colors.sky.dark} />
             </View>
             <Text style={styles.menuItemText}>Settings</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.ink.light} />
         </TouchableOpacity>
       </Card>
       
@@ -585,7 +585,7 @@ export default function ProfileScreen() {
             </View> :
 
       <View style={styles.photoPlaceholder}>
-              <Camera size={32} color={'#666666'} />
+              <Camera size={32} color={tokens.colors.ink.light} />
               <Text style={styles.photoPlaceholderText}>
                 Add a progress photo
               </Text>
@@ -704,7 +704,7 @@ export default function ProfileScreen() {
         );
       }}>
       
-        <LogOut size={20} color={'#EF4444'} />
+        <LogOut size={20} color={tokens.colors.legacy.legacy_ef4444} />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </>;
@@ -996,7 +996,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'profile' && styles.activeTabButton]}
           onPress={() => setActiveTab('profile')}>
           
-          <User size={20} color={activeTab === 'profile' ? tokens.colors.background.default : '#999999'} />
+          <User size={20} color={activeTab === 'profile' ? tokens.colors.background.default : tokens.colors.sky.dark} />
           <Text style={[styles.tabButtonText, activeTab === 'profile' && styles.activeTabButtonText]}>
             Profile
           </Text>
@@ -1006,7 +1006,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'progress' && styles.activeTabButton]}
           onPress={() => setActiveTab('progress')}>
           
-          <BarChart size={20} color={activeTab === 'progress' ? tokens.colors.background.default : '#999999'} />
+          <BarChart size={20} color={activeTab === 'progress' ? tokens.colors.background.default : tokens.colors.sky.dark} />
           <Text style={[styles.tabButtonText, activeTab === 'progress' && styles.activeTabButtonText]}>
             Progress
           </Text>
@@ -1016,7 +1016,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'badges' && styles.activeTabButton]}
           onPress={() => setActiveTab('badges')}>
           
-          <Award size={20} color={activeTab === 'badges' ? tokens.colors.background.default : '#999999'} />
+          <Award size={20} color={activeTab === 'badges' ? tokens.colors.background.default : tokens.colors.sky.dark} />
           <Text style={[styles.tabButtonText, activeTab === 'badges' && styles.activeTabButtonText]}>
             Badges
           </Text>
@@ -1026,7 +1026,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'exp' && styles.activeTabButton]}
           onPress={() => setActiveTab('exp')}>
           
-          <Activity size={20} color={activeTab === 'exp' ? tokens.colors.background.default : '#999999'} />
+          <Activity size={20} color={activeTab === 'exp' ? tokens.colors.background.default : tokens.colors.sky.dark} />
           <Text style={[styles.tabButtonText, activeTab === 'exp' && styles.activeTabButtonText]}>
             EXP
           </Text>
@@ -1082,7 +1082,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.ink.darker,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A'
+    borderBottomColor: tokens.colors.legacy.darkSurface
   },
   tabButton: {
     flex: 1,
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   activeTabButtonText: {
     color: tokens.colors.background.default,
@@ -1176,7 +1176,7 @@ const styles = StyleSheet.create({
   },
   profileMemberSince: {
     fontSize: 14,
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   settingsButton: {
     padding: 8
@@ -1190,7 +1190,7 @@ const styles = StyleSheet.create({
   championPassProgress: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A2A'
+    borderTopColor: tokens.colors.legacy.darkSurface
   },
   championPassHeader: {
     flexDirection: 'row',
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
   },
   championPassPercentage: {
     fontSize: 12,
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     textAlign: 'right'
   },
   statsCard: {
@@ -1240,12 +1240,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#2A2A2A'
+    backgroundColor: tokens.colors.legacy.darkSurface
   },
   menuCard: {
     marginBottom: 24
@@ -1275,7 +1275,7 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#2A2A2A'
+    backgroundColor: tokens.colors.legacy.darkSurface
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1305,7 +1305,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     textAlign: 'center',
     marginBottom: 16
   },
@@ -1322,7 +1322,7 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#EF4444',
+    color: tokens.colors.legacy.legacy_ef4444,
     marginLeft: 8
   },
   badgesCard: {
@@ -1347,7 +1347,7 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     marginTop: 16,
     marginBottom: 8
   },
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: tokens.colors.grayscale.black,
     borderWidth: 1,
-    borderColor: '#2A2A2A'
+    borderColor: tokens.colors.legacy.darkSurface
   },
   changePhotoText: {
     fontSize: 14,
@@ -1378,7 +1378,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: tokens.colors.grayscale.black,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: tokens.colors.legacy.darkSurface,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1386,7 +1386,7 @@ const styles = StyleSheet.create({
   },
   photoPlaceholderText: {
     fontSize: 16,
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     marginTop: 8,
     marginBottom: 16
   },
@@ -1417,11 +1417,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A'
+    borderBottomColor: tokens.colors.legacy.darkSurface
   },
   progressLabel: {
     fontSize: 16,
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   progressValue: {
     fontSize: 16,
@@ -1445,7 +1445,7 @@ const styles = StyleSheet.create({
   },
   noProgressText: {
     fontSize: 14,
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     textAlign: 'center',
     marginBottom: 16
   },
@@ -1458,7 +1458,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
+    borderBottomColor: tokens.colors.legacy.darkSurface,
     paddingBottom: 8
   },
   progressEntryDate: {
@@ -1490,7 +1490,7 @@ const styles = StyleSheet.create({
   },
   progressEntryLabel: {
     fontSize: 14,
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   progressEntryValue: {
     fontSize: 14,
@@ -1507,12 +1507,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A2A'
+    borderTopColor: tokens.colors.legacy.darkSurface
   },
   progressEntryNotesLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     marginBottom: 4
   },
   progressEntryNotesText: {
@@ -1540,12 +1540,12 @@ const styles = StyleSheet.create({
   },
   badgesStatLabel: {
     fontSize: 14,
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   badgesStatDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#2A2A2A'
+    backgroundColor: tokens.colors.legacy.darkSurface
   },
   badgesCategoryTitle: {
     fontSize: 18,
@@ -1584,7 +1584,7 @@ const styles = StyleSheet.create({
   },
   expHeaderSubtitle: {
     fontSize: 14,
-    color: '#999999'
+    color: tokens.colors.sky.dark
   },
   section: {
     marginBottom: 16
@@ -1611,13 +1611,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#999999',
+    color: tokens.colors.sky.dark,
     textAlign: 'center'
   },
   summaryDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     marginHorizontal: 8
   },
   viewFullDashboardButton: {
@@ -1645,7 +1645,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A'
+    borderBottomColor: tokens.colors.legacy.darkSurface
   },
   expSummaryHeaderLeft: {
     flexDirection: 'row',

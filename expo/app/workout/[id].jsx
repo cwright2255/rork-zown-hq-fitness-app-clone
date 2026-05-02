@@ -24,11 +24,11 @@ export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBo
 const COLOR_BG = tokens.colors.grayscale.black;
 const COLOR_SURFACE = tokens.colors.ink.darker;
 const COLOR_CARD = tokens.colors.ink.darker;
-const COLOR_BORDER = '#2A2A2A';
+const COLOR_BORDER = tokens.colors.legacy.darkSurface;
 const COLOR_TEXT = tokens.colors.background.default;
-const COLOR_TEXT_SECONDARY = '#999';
-const COLOR_TARGET = '#E74C3C';
-const COLOR_SECONDARY = '#F39C12';
+const COLOR_TEXT_SECONDARY = tokens.colors.sky.dark;
+const COLOR_TARGET = tokens.colors.legacy.legacy_e74c3c;
+const COLOR_SECONDARY = tokens.colors.legacy.legacy_f39c12;
 
 export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
@@ -77,7 +77,7 @@ export default function WorkoutDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLOR_TEXT} />
-          <Text style={styles.loadingText}>Loading exerciseâ¦</Text>
+          <Text style={styles.loadingText}>Loading exerciseÃ¢ÂÂ¦</Text>
         </View>
       </SafeAreaView>
     );

@@ -43,7 +43,7 @@ export default function WearablesScreen() {
                 ) : null}
               </View>
               <View style={[styles.badge, d.connected ? styles.badgeConnected : styles.badgeDisconnected]}>
-                <Text style={[styles.badgeText, { color: d.connected ? '#22C55E' : '#999' }]}>
+                <Text style={[styles.badgeText, { color: d.connected ? tokens.colors.green.light : tokens.colors.sky.dark }]}>
                   {d.connected ? 'Connected' : 'Disconnected'}
                 </Text>
               </View>
@@ -78,24 +78,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8,
   },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   name: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
-  sub: { color: '#999', fontSize: 13, marginTop: 2 },
+  sub: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 2 },
   badge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
   badgeConnected: { backgroundColor: 'rgba(34,197,94,0.15)' },
-  badgeDisconnected: { backgroundColor: '#2A2A2A' },
+  badgeDisconnected: { backgroundColor: tokens.colors.legacy.darkSurface },
   badgeText: { fontSize: 12, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 12, marginTop: 10 },
   syncBtn: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999,
   },
   syncText: { color: tokens.colors.background.default, fontSize: 13, fontWeight: '600' },

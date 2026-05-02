@@ -62,7 +62,7 @@ export default function TelehealthScreen() {
                     <Text style={styles.specialty}>{d.specialty || 'General Practice'}</Text>
                     {d.rating ? (
                       <View style={styles.ratingRow}>
-                        <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                        <Star size={12} color=tokens.colors.legacy.legacy_f59e0b fill=tokens.colors.legacy.legacy_f59e0b />
                         <Text style={styles.ratingText}>{d.rating}</Text>
                       </View>
                     ) : null}
@@ -108,29 +108,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tab: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
   tabActive: { backgroundColor: tokens.colors.background.default, borderColor: tokens.colors.background.default },
-  tabText: { color: '#999', fontSize: 13, fontWeight: '600' },
+  tabText: { color: tokens.colors.sky.dark, fontSize: 13, fontWeight: '600' },
   tabTextActive: { color: tokens.colors.grayscale.black },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   name: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '600' },
-  specialty: { color: '#999', fontSize: 12, marginTop: 2 },
+  specialty: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  ratingText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
+  ratingText: { color: tokens.colors.legacy.legacy_f59e0b, fontSize: 12, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  empty: { color: '#999', fontSize: 14 },
+  empty: { color: tokens.colors.sky.dark, fontSize: 14 },
 });

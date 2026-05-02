@@ -48,7 +48,7 @@ export default function SpotifyTestScreen() {
           <Text style={styles.title}>Connection Status</Text>
           <Text style={styles.sub}>
             {isConnected ? 'Connected' : 'Disconnected'}
-            {user?.display_name ? ` Â· ${user.display_name}` : ''}
+            {user?.display_name ? ` ÃÂ· ${user.display_name}` : ''}
           </Text>
           <Text style={styles.sub}>Platform: {Platform.OS}</Text>
         </View>
@@ -78,24 +78,24 @@ export default function SpotifyTestScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   statusCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20,
   },
   iconWrap: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
   title: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '700' },
-  sub: { color: '#999', fontSize: 13, marginTop: 4 },
+  sub: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 12, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12, marginTop: 12,
   },
   logCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 14, minHeight: 120, gap: 4,
   },
-  muted: { color: '#999', fontSize: 13 },
+  muted: { color: tokens.colors.sky.dark, fontSize: 13 },
   logLine: { color: tokens.colors.background.default, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
 });

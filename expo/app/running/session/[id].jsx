@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   mapWrap: { width: '100%', height: 320, backgroundColor: tokens.colors.ink.darker },
   mapPh: { flex: 1 },
   statsCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 12,
   },
   statsRow: { flexDirection: 'row', gap: 12 },

@@ -97,7 +97,7 @@ export default function SpotifyIntegrationScreen() {
 
             <Text style={styles.sectionLabel}>Your Playlists</Text>
             {loading ? (
-              <Text style={styles.muted}>Loadingâ¦</Text>
+              <Text style={styles.muted}>LoadingÃ¢ÂÂ¦</Text>
             ) : playlists.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.muted}>No playlists yet.</Text>
@@ -131,25 +131,25 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', paddingVertical: 24 },
   iconWrap: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#1DB954',
+    backgroundColor: tokens.colors.green.base,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
   title: { color: tokens.colors.background.default, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
-  sub: { color: '#999', fontSize: 13, marginTop: 6, textAlign: 'center' },
+  sub: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 6, textAlign: 'center' },
   embedWrap: { marginBottom: 20 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 12, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12, marginTop: 12,
   },
   plRow: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 12, padding: 14, marginBottom: 8,
   },
   plName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  plMeta: { color: '#999', fontSize: 12, marginTop: 2 },
+  plMeta: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  muted: { color: '#999', fontSize: 13 },
+  muted: { color: tokens.colors.sky.dark, fontSize: 13 },
 });

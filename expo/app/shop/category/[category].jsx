@@ -60,5 +60,5 @@ export default function CategoryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: '#666', textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.ink.light, textAlign: 'center', marginTop: 40 },
 });

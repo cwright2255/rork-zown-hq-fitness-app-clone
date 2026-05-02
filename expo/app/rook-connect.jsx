@@ -50,9 +50,9 @@ const styles = StyleSheet.create({
   iconWrap: {
     alignSelf: 'center', marginTop: 40, marginBottom: 20,
     width: 140, height: 140, borderRadius: 70,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   title: { fontSize: 24, fontWeight: '700', color: tokens.colors.background.default, textAlign: 'center', letterSpacing: -0.5 },
-  desc: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 22, marginBottom: 20 },
+  desc: { fontSize: 14, color: tokens.colors.sky.dark, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
 });

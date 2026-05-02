@@ -32,7 +32,7 @@ export default function SupportScreen() {
               onPress={() => setOpen(isOpen ? null : i)}>
               <View style={styles.faqRow}>
                 <Text style={styles.faqQ}>{f.q}</Text>
-                {isOpen ? <ChevronUp size={18} color="#999" /> : <ChevronDown size={18} color="#999" />}
+                {isOpen ? <ChevronUp size={18} color=tokens.colors.sky.dark /> : <ChevronDown size={18} color=tokens.colors.sky.dark />}
               </View>
               {isOpen ? <Text style={styles.faqA}>{f.a}</Text> : null}
             </TouchableOpacity>
@@ -60,15 +60,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12,
   },
   faqCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16, marginBottom: 8,
   },
   faqRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   faqQ: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
-  faqA: { color: '#999', fontSize: 13, lineHeight: 19, marginTop: 10 },
+  faqA: { color: tokens.colors.sky.dark, fontSize: 13, lineHeight: 19, marginTop: 10 },
 });

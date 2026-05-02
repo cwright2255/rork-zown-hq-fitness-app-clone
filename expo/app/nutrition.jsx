@@ -94,15 +94,15 @@ export default function NutritionScreen() {
         </View>
 
         <View style={styles.macroRow}>
-          <View style={[styles.macroChip, { borderLeftColor: '#3B82F6' }]}>
+          <View style={[styles.macroChip, { borderLeftColor: tokens.colors.brand.lighter }]}>
             <Text style={styles.macroVal}>{Math.round(totals.protein)}g</Text>
             <Text style={styles.macroLabel}>Protein</Text>
           </View>
-          <View style={[styles.macroChip, { borderLeftColor: '#F97316' }]}>
+          <View style={[styles.macroChip, { borderLeftColor: tokens.colors.legacy.legacy_f97316 }]}>
             <Text style={styles.macroVal}>{Math.round(totals.carbs)}g</Text>
             <Text style={styles.macroLabel}>Carbs</Text>
           </View>
-          <View style={[styles.macroChip, { borderLeftColor: '#A855F7' }]}>
+          <View style={[styles.macroChip, { borderLeftColor: tokens.colors.legacy.legacy_a855f7 }]}>
             <Text style={styles.macroVal}>{Math.round(totals.fat)}g</Text>
             <Text style={styles.macroLabel}>Fat</Text>
           </View>
@@ -168,37 +168,37 @@ const styles = StyleSheet.create({
   },
   dateBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   dateText: { fontSize: 18, fontWeight: '600', color: tokens.colors.background.default },
   calCard: {
     backgroundColor: tokens.colors.ink.darker,
-    borderWidth: 1, borderColor: '#2A2A2A',
+    borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16,
     padding: 24, alignItems: 'center',
     marginTop: 8, marginBottom: 16,
   },
   calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.background.default, letterSpacing: -1 },
-  calLabel: { fontSize: 14, color: '#999', marginTop: 4 },
+  calLabel: { fontSize: 14, color: tokens.colors.sky.dark, marginTop: 4 },
   macroRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   macroChip: {
     flex: 1,
     backgroundColor: tokens.colors.ink.darker,
-    borderWidth: 1, borderColor: '#2A2A2A',
+    borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderLeftWidth: 4,
     borderRadius: 16,
     padding: 12,
   },
   macroVal: { fontSize: 16, fontWeight: '700', color: tokens.colors.background.default },
-  macroLabel: { fontSize: 12, color: '#999', marginTop: 2 },
+  macroLabel: { fontSize: 12, color: tokens.colors.sky.dark, marginTop: 2 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 4,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 4,
   },
   mealCard: {
     backgroundColor: tokens.colors.ink.darker,
-    borderWidth: 1, borderColor: '#2A2A2A',
+    borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16,
     padding: 16, marginBottom: 12,
   },
@@ -208,15 +208,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  calBadgeText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
+  calBadgeText: { color: tokens.colors.green.light, fontSize: 12, fontWeight: '600' },
   foodList: { marginTop: 12 },
   foodRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#2A2A2A',
+    borderBottomWidth: 1, borderBottomColor: tokens.colors.legacy.darkSurface,
   },
   foodName: { color: tokens.colors.background.default, fontSize: 14, flex: 1 },
-  foodCal: { color: '#999', fontSize: 13 },
+  foodCal: { color: tokens.colors.sky.dark, fontSize: 13 },
   addFoodBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, marginTop: 12, paddingVertical: 10,

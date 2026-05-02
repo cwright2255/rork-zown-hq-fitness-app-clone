@@ -95,7 +95,7 @@ export default function RunningProgramDetailScreen() {
                     <Text style={styles.sessionDesc} numberOfLines={1}>{s.description}</Text>
                   ) : null}
                 </View>
-                {s.completed ? <Check size={16} color="#22C55E" /> : null}
+                {s.completed ? <Check size={16} color=tokens.colors.green.light /> : null}
               </TouchableOpacity>
             ))}
           </View>
@@ -115,35 +115,35 @@ export default function RunningProgramDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: '#999' },
+  empty: { color: tokens.colors.sky.dark },
   title: { color: tokens.colors.background.default, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  desc: { color: '#999', fontSize: 14, lineHeight: 20, marginTop: 8 },
+  desc: { color: tokens.colors.sky.dark, fontSize: 14, lineHeight: 20, marginTop: 8 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
   metaChip: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
   },
-  metaText: { color: '#999', fontSize: 12, fontWeight: '600' },
+  metaText: { color: tokens.colors.sky.dark, fontSize: 12, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 24,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 24,
   },
   weekCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 14, marginBottom: 10,
   },
   weekLabel: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700', marginBottom: 10 },
   sessionRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 10, gap: 10,
-    borderTopWidth: 1, borderTopColor: '#2A2A2A',
+    borderTopWidth: 1, borderTopColor: tokens.colors.legacy.darkSurface,
   },
   dayBadge: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
-  dayText: { color: '#999', fontSize: 11, fontWeight: '600' },
+  dayText: { color: tokens.colors.sky.dark, fontSize: 11, fontWeight: '600' },
   sessionName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '500' },
-  sessionDesc: { color: '#999', fontSize: 12, marginTop: 2 },
+  sessionDesc: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

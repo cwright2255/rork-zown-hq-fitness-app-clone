@@ -93,43 +93,43 @@ export default function ChampionPassScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   heroCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20,
   },
   heroIcon: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   heroTitle: { color: tokens.colors.background.default, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
-  heroSub: { color: '#999', fontSize: 13, marginTop: 4, textAlign: 'center' },
+  heroSub: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 4, textAlign: 'center' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12,
   },
   tierCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
   tierCardActive: { borderColor: tokens.colors.background.default, borderWidth: 2 },
   tierBadge: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   tierBadgeText: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
   tierName: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '600' },
-  tierDesc: { color: '#999', fontSize: 12, marginTop: 2 },
+  tierDesc: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
   currentPill: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
   currentText: { color: tokens.colors.background.default, fontSize: 11, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  empty: { color: '#999', fontSize: 14 },
+  empty: { color: tokens.colors.sky.dark, fontSize: 14 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

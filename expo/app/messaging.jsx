@@ -10,7 +10,7 @@ const CONVERSATIONS = [
   { id: '1', name: 'Sarah Johnson', initials: 'SJ', last: 'Great workout today! Want to join me tomorrow?', time: '2m', unread: 2 },
   { id: '2', name: 'Morning Runners', initials: 'MR', last: 'Who is up for a 6 AM run?', time: '1h', unread: 0 },
   { id: '3', name: 'Alex Rodriguez', initials: 'AR', last: 'Congrats on completing Week 5!', time: '3h', unread: 1 },
-  { id: '4', name: 'Emma Wilson', initials: 'EW', last: 'Smoothie recipe incoming ð¥¤', time: '1d', unread: 0 },
+  { id: '4', name: 'Emma Wilson', initials: 'EW', last: 'Smoothie recipe incoming Ã°ÂÂ¥Â¤', time: '1d', unread: 0 },
 ];
 
 const MOCK_MESSAGES = [
@@ -62,7 +62,7 @@ export default function MessagingScreen() {
                 <Text style={m.own ? styles.bubbleOwnText : styles.bubbleOtherText}>
                   {m.text}
                 </Text>
-                <Text style={[styles.bubbleTime, m.own && { color: '#333' }]}>{m.time}</Text>
+                <Text style={[styles.bubbleTime, m.own && { color: tokens.colors.ink.dark }]}>{m.time}</Text>
               </View>
             </View>
           ))}
@@ -72,7 +72,7 @@ export default function MessagingScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Message..."
-            placeholderTextColor="#666"
+            placeholderTextColor=tokens.colors.ink.light
             style={styles.input}
           />
           <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
@@ -118,18 +118,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   convCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 12, marginBottom: 8,
   },
   avatar: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { color: tokens.colors.background.default, fontWeight: '700', fontSize: 14 },
   convName: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '600' },
-  convLast: { color: '#999', fontSize: 13, marginTop: 2 },
-  convTime: { color: '#666', fontSize: 12 },
+  convLast: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 2 },
+  convTime: { color: tokens.colors.ink.light, fontSize: 12 },
   unreadBadge: {
     marginTop: 4, backgroundColor: tokens.colors.background.default,
     minWidth: 22, height: 22, borderRadius: 11,
@@ -140,19 +140,19 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginBottom: 8 },
   bubble: { maxWidth: '75%', padding: 12, borderRadius: 16 },
   bubbleOwn: { backgroundColor: tokens.colors.background.default, borderBottomRightRadius: 4 },
-  bubbleOther: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A', borderBottomLeftRadius: 4 },
+  bubbleOther: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface, borderBottomLeftRadius: 4 },
   bubbleOwnText: { color: tokens.colors.grayscale.black, fontSize: 14 },
   bubbleOtherText: { color: tokens.colors.background.default, fontSize: 14 },
-  bubbleTime: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
+  bubbleTime: { fontSize: 10, color: tokens.colors.sky.dark, marginTop: 4, alignSelf: 'flex-end' },
   inputBar: {
     flexDirection: 'row', alignItems: 'center',
     padding: 12, gap: 8,
-    borderTopWidth: 1, borderTopColor: '#2A2A2A',
+    borderTopWidth: 1, borderTopColor: tokens.colors.legacy.darkSurface,
     backgroundColor: tokens.colors.grayscale.black,
   },
   input: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 24, paddingHorizontal: 16, height: 44,
     color: tokens.colors.background.default, fontSize: 14,
   },

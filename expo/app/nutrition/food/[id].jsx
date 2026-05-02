@@ -78,9 +78,9 @@ export default function FoodDetailScreen() {
   };
 
   const macros = [
-    { label: 'Protein', value: p, goal: dailyP, color: '#3B82F6' },
-    { label: 'Carbs', value: c, goal: dailyC, color: '#F97316' },
-    { label: 'Fat', value: fa, goal: dailyF, color: '#A855F7' },
+    { label: 'Protein', value: p, goal: dailyP, color: tokens.colors.brand.lighter },
+    { label: 'Carbs', value: c, goal: dailyC, color: tokens.colors.legacy.legacy_f97316 },
+    { label: 'Fat', value: fa, goal: dailyF, color: tokens.colors.legacy.legacy_a855f7 },
   ];
 
   return (
@@ -89,7 +89,7 @@ export default function FoodDetailScreen() {
         showBack
         rightAction={
           <TouchableOpacity onPress={toggleFav} hitSlop={8}>
-            <Heart size={22} color={isFav ? '#EF4444' : '#999'} fill={isFav ? '#EF4444' : 'transparent'} />
+            <Heart size={22} color={isFav ? tokens.colors.legacy.legacy_ef4444 : tokens.colors.sky.dark} fill={isFav ? tokens.colors.legacy.legacy_ef4444 : 'transparent'} />
           </TouchableOpacity>
         }
       />
@@ -145,7 +145,7 @@ export default function FoodDetailScreen() {
                 key={m.id}
                 style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
                 onPress={() => setSelectedMealId(m.id)}>
-                <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : '#999' }]}>
+                <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : tokens.colors.sky.dark }]}>
                   {m.name}
                 </Text>
               </TouchableOpacity>
@@ -165,39 +165,39 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
-  serving: { fontSize: 13, color: '#999', marginTop: 4 },
+  serving: { fontSize: 13, color: tokens.colors.sky.dark, marginTop: 4 },
   calWrap: { alignItems: 'center', marginVertical: 24 },
   calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.background.default, letterSpacing: -1 },
-  calLabel: { fontSize: 14, color: '#999', marginTop: 4 },
+  calLabel: { fontSize: 14, color: tokens.colors.sky.dark, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 12,
   },
   macroCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16,
   },
   macroRow: { marginBottom: 12 },
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   macroLabel: { color: tokens.colors.background.default, fontSize: 14 },
   macroValue: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  track: { height: 6, backgroundColor: '#2A2A2A', borderRadius: 3, overflow: 'hidden' },
+  track: { height: 6, backgroundColor: tokens.colors.legacy.darkSurface, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   stepBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   qtyText: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600' },
   mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
   pillActive: { backgroundColor: tokens.colors.background.default },
-  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface },
   pillText: { fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

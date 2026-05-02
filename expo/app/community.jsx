@@ -9,9 +9,9 @@ export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBo
 import { tokens } from '../../theme/tokens';
 
 const FEED = [
-  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day â new PR on squats!' },
+  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day Ã¢ÂÂ new PR on squats!' },
   { id: '2', name: 'Sam R.', initials: 'SR', time: '5h', text: 'Morning 5k in under 22 min. Feeling unstoppable.' },
-  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe â drop yours below.' },
+  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe Ã¢ÂÂ drop yours below.' },
 ];
 
 const CHALLENGES = [
@@ -35,7 +35,7 @@ export default function CommunityScreen() {
               key={t}
               onPress={() => setTab(t)}
               style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}>
-              <Text style={[styles.tabText, { color: active ? tokens.colors.grayscale.black : '#999' }]}>
+              <Text style={[styles.tabText, { color: active ? tokens.colors.grayscale.black : tokens.colors.sky.dark }]}>
                 {t === 'feed' ? 'Feed' : 'Challenges'}
               </Text>
             </TouchableOpacity>
@@ -59,11 +59,11 @@ export default function CommunityScreen() {
               <Text style={styles.postText}>{post.text}</Text>
               <View style={styles.postActions}>
                 <TouchableOpacity style={styles.action}>
-                  <Heart size={18} color="#999" />
+                  <Heart size={18} color=tokens.colors.sky.dark />
                   <Text style={styles.actionText}>Like</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.action}>
-                  <MessageCircle size={18} color="#999" />
+                  <MessageCircle size={18} color=tokens.colors.sky.dark />
                   <Text style={styles.actionText}>Comment</Text>
                 </TouchableOpacity>
               </View>
@@ -99,35 +99,35 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
   tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
   tabActive: { backgroundColor: tokens.colors.background.default },
-  tabInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
+  tabInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface },
   tabText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16, marginBottom: 12,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center' },
   avatar: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { color: tokens.colors.background.default, fontWeight: '700', fontSize: 13 },
   postName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  postTime: { color: '#666', fontSize: 12 },
+  postTime: { color: tokens.colors.ink.light, fontSize: 12 },
   postText: { color: tokens.colors.background.default, fontSize: 14, lineHeight: 20, marginTop: 10 },
   postActions: {
     flexDirection: 'row', gap: 20,
     marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: '#2A2A2A',
+    borderTopWidth: 1, borderTopColor: tokens.colors.legacy.darkSurface,
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionText: { color: '#999', fontSize: 13 },
+  actionText: { color: tokens.colors.sky.dark, fontSize: 13 },
   challengeRow: { flexDirection: 'row', alignItems: 'center' },
   challengeName: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
-  challengeMeta: { color: '#999', fontSize: 13, marginTop: 2 },
+  challengeMeta: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 2 },
   daysBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  daysText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
+  daysText: { color: tokens.colors.green.light, fontSize: 12, fontWeight: '600' },
 });

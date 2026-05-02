@@ -98,13 +98,13 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: '#666', textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.ink.light, textAlign: 'center', marginTop: 40 },
   banner: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, overflow: 'hidden',
     marginHorizontal: 16, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },
   bannerTitle: { color: tokens.colors.background.default, fontSize: 20, fontWeight: '700' },
-  bannerDesc: { color: '#999', fontSize: 13, marginTop: 4 },
+  bannerDesc: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 4 },
 });

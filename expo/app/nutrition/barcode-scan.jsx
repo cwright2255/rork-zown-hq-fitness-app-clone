@@ -81,7 +81,7 @@ export default function BarcodeScanScreen() {
       <SafeAreaView style={styles.container}>
         <ScreenHeader title="Scan Barcode" showBack />
         <View style={styles.permWrap}>
-          <ScanLine size={64} color="#666" />
+          <ScanLine size={64} color=tokens.colors.ink.light />
           <Text style={styles.permTitle}>Camera Permission Required</Text>
           <Text style={styles.permText}>
             We need camera access to scan barcodes on food packages.
@@ -172,22 +172,22 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   permWrap: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 16 },
   permTitle: { fontSize: 20, fontWeight: '700', color: tokens.colors.background.default, textAlign: 'center' },
-  permText: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 },
+  permText: { fontSize: 14, color: tokens.colors.sky.dark, textAlign: 'center', lineHeight: 20 },
   resultCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 20,
   },
   productName: { fontSize: 22, fontWeight: '700', color: tokens.colors.background.default },
-  brandName: { fontSize: 14, color: '#999', marginTop: 4 },
-  barcodeText: { fontSize: 12, color: '#666', marginTop: 8 },
-  divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 16 },
+  brandName: { fontSize: 14, color: tokens.colors.sky.dark, marginTop: 4 },
+  barcodeText: { fontSize: 12, color: tokens.colors.ink.light, marginTop: 8 },
+  divider: { height: 1, backgroundColor: tokens.colors.legacy.darkSurface, marginVertical: 16 },
   nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   nutritionItem: {
     flex: 1, minWidth: '45%',
     padding: 12,
-    borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 12,
+    borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface, borderRadius: 12,
     alignItems: 'center',
   },
   nutritionValue: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '700' },
-  nutritionLabel: { color: '#999', fontSize: 12, marginTop: 2 },
+  nutritionLabel: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
 });

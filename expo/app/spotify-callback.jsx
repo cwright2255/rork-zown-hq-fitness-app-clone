@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { spotifyService } from '@/services/spotifyService';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -147,7 +148,7 @@ export default function SpotifyCallback() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#1DB954" />
+      <ActivityIndicator size="large" color=tokens.colors.green.base />
       <Text style={styles.text}>{status}</Text>
       <Text style={styles.subtext}>Please wait...</Text>
     </View>);

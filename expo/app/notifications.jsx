@@ -26,7 +26,7 @@ export default function NotificationsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Bell size={40} color="#2A2A2A" />
+            <Bell size={40} color=tokens.colors.legacy.darkSurface />
             <Text style={styles.empty}>No notifications yet</Text>
           </View>
         ) : (
@@ -59,25 +59,25 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 14, marginBottom: 8,
   },
   rowUnread: { borderLeftWidth: 3, borderLeftColor: tokens.colors.background.default },
   icon: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center',
   },
   title: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  body: { color: '#999', fontSize: 13, lineHeight: 18, marginTop: 2 },
-  time: { color: '#666', fontSize: 11, marginTop: 4 },
+  body: { color: tokens.colors.sky.dark, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  time: { color: tokens.colors.ink.light, fontSize: 11, marginTop: 4 },
   dot: {
     width: 8, height: 8, borderRadius: 4,
     backgroundColor: tokens.colors.background.default, marginTop: 6,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 40, alignItems: 'center', gap: 10,
   },
-  empty: { color: '#999', fontSize: 14 },
+  empty: { color: tokens.colors.sky.dark, fontSize: 14 },
 });

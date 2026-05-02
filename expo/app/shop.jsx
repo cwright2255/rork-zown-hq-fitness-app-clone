@@ -71,7 +71,7 @@ export default function ShopScreen() {
                     key={c.value}
                     onPress={() => setCategory(c.value)}
                     style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}>
-                    <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : '#999' }]}>
+                    <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : tokens.colors.sky.dark }]}>
                       {c.label}
                     </Text>
                   </TouchableOpacity>
@@ -107,18 +107,18 @@ const styles = StyleSheet.create({
   },
   cartBadgeText: { color: tokens.colors.grayscale.black, fontSize: 10, fontWeight: '700' },
   banner: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 20, marginHorizontal: 16, marginBottom: 16,
   },
   bannerLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8,
   },
   bannerTitle: { fontSize: 22, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.3 },
   pillRow: { paddingHorizontal: 16, marginBottom: 12 },
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
   pillActive: { backgroundColor: tokens.colors.background.default },
-  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface },
   pillText: { fontSize: 13, fontWeight: '600' },
-  empty: { color: '#666', textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.ink.light, textAlign: 'center', marginTop: 40 },
 });

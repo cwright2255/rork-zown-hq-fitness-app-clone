@@ -46,7 +46,7 @@ export default function CartScreen() {
       <View style={styles.container}>
         <ScreenHeader title="Cart" showBack />
         <View style={styles.emptyWrap}>
-          <ShoppingBag size={80} color="#333" />
+          <ShoppingBag size={80} color=tokens.colors.ink.dark />
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <View style={{ width: '100%', marginTop: 24 }}>
             <PrimaryButton title="Browse Shop" onPress={() => router.push('/shop')} />
@@ -66,7 +66,7 @@ export default function CartScreen() {
             {item.product.imageUrl ? (
               <Image source={{ uri: item.product.imageUrl }} style={styles.thumb} />
             ) : (
-              <View style={[styles.thumb, { backgroundColor: '#2A2A2A' }]} />
+              <View style={[styles.thumb, { backgroundColor: tokens.colors.legacy.darkSurface }]} />
             )}
             <View style={styles.itemBody}>
               <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
@@ -93,7 +93,7 @@ export default function CartScreen() {
               </View>
             </View>
             <TouchableOpacity style={styles.remove} onPress={() => handleRemove(item.index)}>
-              <X size={16} color="#666" />
+              <X size={16} color=tokens.colors.ink.light />
             </TouchableOpacity>
           </View>
         ))}
@@ -118,7 +118,7 @@ export default function CartScreen() {
       <View style={styles.bottomBar}>
         <PrimaryButton
           title="Checkout"
-          onPress={() => Alert.alert('Checkout', 'Demo â checkout not implemented.')}
+          onPress={() => Alert.alert('Checkout', 'Demo Ã¢ÂÂ checkout not implemented.')}
         />
       </View>
     </View>
@@ -128,23 +128,23 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { color: '#999', fontSize: 16, marginTop: 16 },
+  emptyTitle: { color: tokens.colors.sky.dark, fontSize: 16, marginTop: 16 },
   itemCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 12, marginBottom: 10, gap: 12,
   },
   thumb: { width: 60, height: 60, borderRadius: 8 },
   itemBody: { flex: 1 },
   itemName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  itemVar: { color: '#999', fontSize: 12, marginTop: 2 },
+  itemVar: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
   itemFooter: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginTop: 8,
   },
   stepper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2A2A2A', borderRadius: 999, padding: 2,
+    backgroundColor: tokens.colors.legacy.darkSurface, borderRadius: 999, padding: 2,
   },
   stepBtn: {
     width: 28, height: 28, borderRadius: 14,
@@ -154,13 +154,13 @@ const styles = StyleSheet.create({
   itemPrice: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
   remove: { padding: 4 },
   summary: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16, marginTop: 8,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  summaryLabel: { color: '#999', fontSize: 14 },
+  summaryLabel: { color: tokens.colors.sky.dark, fontSize: 14 },
   summaryVal: { color: tokens.colors.background.default, fontSize: 14 },
-  divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 8 },
+  divider: { height: 1, backgroundColor: tokens.colors.legacy.darkSurface, marginVertical: 8 },
   totalLabel: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
   totalVal: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },

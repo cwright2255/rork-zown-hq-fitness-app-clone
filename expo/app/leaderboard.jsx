@@ -26,7 +26,7 @@ export default function LeaderboardScreen() {
   const Avatar = ({ uri, size = 40 }) => (
     <Image
       source={{ uri }}
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#2A2A2A' }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.colors.legacy.darkSurface }}
     />
   );
 
@@ -53,12 +53,12 @@ export default function LeaderboardScreen() {
             <Avatar uri={second?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{second?.name}</Text>
             <Text style={styles.podiumPts}>{second?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 80, backgroundColor: '#2A2A2A' }]}>
+            <View style={[styles.podiumBar, { height: 80, backgroundColor: tokens.colors.legacy.darkSurface }]}>
               <Text style={styles.podiumPlace}>2</Text>
             </View>
           </View>
           <View style={styles.podiumSpot}>
-            <Trophy size={20} color="#F59E0B" style={{ marginBottom: 4 }} />
+            <Trophy size={20} color=tokens.colors.legacy.legacy_f59e0b style={{ marginBottom: 4 }} />
             <Avatar uri={first?.avatar} size={72} />
             <Text style={styles.podiumName} numberOfLines={1}>{first?.name}</Text>
             <Text style={styles.podiumPts}>{first?.pts}</Text>
@@ -70,7 +70,7 @@ export default function LeaderboardScreen() {
             <Avatar uri={third?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{third?.name}</Text>
             <Text style={styles.podiumPts}>{third?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 60, backgroundColor: '#2A2A2A' }]}>
+            <View style={[styles.podiumBar, { height: 60, backgroundColor: tokens.colors.legacy.darkSurface }]}>
               <Text style={styles.podiumPlace}>3</Text>
             </View>
           </View>
@@ -96,11 +96,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   filters: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   filterPill: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
   filterPillActive: { backgroundColor: tokens.colors.background.default, borderColor: tokens.colors.background.default },
-  filterText: { color: '#999', fontSize: 13, fontWeight: '600' },
+  filterText: { color: tokens.colors.sky.dark, fontSize: 13, fontWeight: '600' },
   filterTextActive: { color: tokens.colors.grayscale.black },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     color: tokens.colors.background.default, fontSize: 12, fontWeight: '600', marginTop: 6,
     maxWidth: 80,
   },
-  podiumPts: { color: '#999', fontSize: 11, marginTop: 2 },
+  podiumPts: { color: tokens.colors.sky.dark, fontSize: 11, marginTop: 2 },
   podiumBar: {
     width: '100%', marginTop: 8,
     alignItems: 'center', justifyContent: 'center',
@@ -120,15 +120,15 @@ const styles = StyleSheet.create({
   podiumPlace: { color: tokens.colors.background.default, fontSize: 20, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 12, marginBottom: 8,
   },
   rowMe: { borderColor: tokens.colors.background.default, borderWidth: 2 },
-  rank: { color: '#999', fontSize: 14, fontWeight: '700', width: 24 },
-  name: { color: '#999', fontSize: 14, fontWeight: '500', flex: 1 },
+  rank: { color: tokens.colors.sky.dark, fontSize: 14, fontWeight: '700', width: 24 },
+  name: { color: tokens.colors.sky.dark, fontSize: 14, fontWeight: '500', flex: 1 },
   pts: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
 });

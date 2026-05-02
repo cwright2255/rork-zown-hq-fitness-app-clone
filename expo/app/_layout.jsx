@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST â before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST Ã¢ÂÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -23,7 +23,7 @@ export class ErrorBoundary extends React.Component {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.grayscale.black }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: tokens.colors.background.default }}>Something went wrong</Text>
-          <Text style={{ color: '#999', textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
+          <Text style={{ color: tokens.colors.sky.dark, textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
             {String(this.state.error)}
           </Text>
           <TouchableOpacity
@@ -150,7 +150,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component â rendered INSIDE expo-router's navigation context
+// Inner component Ã¢ÂÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 function RootLayoutInner() {
   const pathname = usePathname();

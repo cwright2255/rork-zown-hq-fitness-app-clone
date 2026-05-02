@@ -26,7 +26,7 @@ export default function BadgesScreen() {
       key={b.id}
       style={[styles.badge, isLocked && { opacity: 0.4 }]}>
       <View style={styles.badgeIcon}>
-        {isLocked ? <Lock size={24} color="#999" /> : <Award size={24} color=tokens.colors.background.default />}
+        {isLocked ? <Lock size={24} color=tokens.colors.sky.dark /> : <Award size={24} color=tokens.colors.background.default />}
       </View>
       <Text style={styles.badgeName} numberOfLines={2}>{b.name || b.title}</Text>
       {b.description ? (
@@ -57,18 +57,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12,
   },
-  empty: { color: '#999', fontSize: 14 },
+  empty: { color: tokens.colors.sky.dark, fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
     width: '31.5%',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 12, alignItems: 'center',
   },
   badgeIcon: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.legacy.darkSurface,
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
   badgeName: {
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   badgeDesc: {
-    color: '#999', fontSize: 10, textAlign: 'center', marginTop: 4,
+    color: tokens.colors.sky.dark, fontSize: 10, textAlign: 'center', marginTop: 4,
   },
 });

@@ -65,7 +65,7 @@ export default function ProductDetailScreen() {
           <Text style={styles.price}>${Number(currentPrice).toFixed(2)}</Text>
 
           <View style={styles.ratingRow}>
-            <Star size={14} color="#F59E0B" fill="#F59E0B" />
+            <Star size={14} color=tokens.colors.legacy.legacy_f59e0b fill=tokens.colors.legacy.legacy_f59e0b />
             <Text style={styles.rating}>{(product.rating ?? 0).toFixed(1)}</Text>
             <Text style={styles.reviews}>({product.reviewCount ?? 0} reviews)</Text>
           </View>
@@ -81,7 +81,7 @@ export default function ProductDetailScreen() {
                       key={v.id}
                       style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
                       onPress={() => setSelectedVariant(v)}>
-                      <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : '#999' }]}>
+                      <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : tokens.colors.sky.dark }]}>
                         {v.attributes?.size || v.name}
                       </Text>
                     </TouchableOpacity>
@@ -102,7 +102,7 @@ export default function ProductDetailScreen() {
                       key={v.id}
                       style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
                       onPress={() => setSelectedVariant(v)}>
-                      <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : '#999' }]}>
+                      <Text style={[styles.pillText, { color: active ? tokens.colors.grayscale.black : tokens.colors.sky.dark }]}>
                         {v.attributes?.color || v.name}
                       </Text>
                     </TouchableOpacity>
@@ -157,27 +157,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: '#999' },
+  empty: { color: tokens.colors.sky.dark },
   image: { width: '100%', height: 300, backgroundColor: tokens.colors.ink.darker },
   name: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
   price: { fontSize: 22, fontWeight: '700', color: tokens.colors.background.default, marginTop: 8 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
   rating: { color: tokens.colors.background.default, fontSize: 13, fontWeight: '600' },
-  reviews: { color: '#999', fontSize: 13 },
+  reviews: { color: tokens.colors.sky.dark, fontSize: 13 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 20,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 20,
   },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
   pillActive: { backgroundColor: tokens.colors.background.default },
-  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface },
   pillText: { fontSize: 13, fontWeight: '600' },
   descCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16,
   },
   descText: { color: tokens.colors.background.default, fontSize: 14, lineHeight: 20 },
-  expandHint: { color: '#999', fontSize: 12, marginTop: 8 },
+  expandHint: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 8 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

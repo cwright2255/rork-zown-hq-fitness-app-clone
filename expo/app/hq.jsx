@@ -142,7 +142,7 @@ export default function HQScreen() {
     const list = (workouts || []).slice(0, 4);
     const buildThumb = (muscles) => {
       const normalized = normalizeMuscleNames(muscles || []);
-      return getMuscleVisualizeUrl({ muscles: normalized, color: '#E74C3C' });
+      return getMuscleVisualizeUrl({ muscles: normalized, color: tokens.colors.legacy.legacy_e74c3c });
     };
     if (list.length === 0) {
       return [

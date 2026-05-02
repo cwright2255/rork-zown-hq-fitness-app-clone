@@ -6,7 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 import { tokens } from '../../theme/tokens';
 
-const MOODS = ['ð´', 'ð', 'ð', 'ð', 'ð'];
+const MOODS = ['Ã°ÂÂÂ´', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ'];
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export default function MoodTrackingScreen() {
@@ -16,8 +16,8 @@ export default function MoodTrackingScreen() {
   const weekHistory = [3, 2, 4, 3, 4, 4, 3];
 
   const moodColor = (v) => {
-    const colors = ['#666', '#EF4444', '#F97316', '#3B82F6', '#22C55E'];
-    return colors[v] || '#666';
+    const colors = [tokens.colors.ink.light, tokens.colors.legacy.legacy_ef4444, tokens.colors.legacy.legacy_f97316, tokens.colors.brand.lighter, tokens.colors.green.light];
+    return colors[v] || tokens.colors.ink.light;
   };
 
   const handleSave = () => {
@@ -51,7 +51,7 @@ export default function MoodTrackingScreen() {
           value={journal}
           onChangeText={setJournal}
           placeholder="How was your day?"
-          placeholderTextColor="#666"
+          placeholderTextColor=tokens.colors.ink.light
           multiline
           textAlignVertical="top"
         />
@@ -78,10 +78,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 12,
   },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16,
   },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -92,17 +92,17 @@ const styles = StyleSheet.create({
   moodBtnActive: { backgroundColor: tokens.colors.background.default },
   moodEmoji: { fontSize: 26 },
   input: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16,
     color: tokens.colors.background.default, fontSize: 15, minHeight: 120,
   },
   weekRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, padding: 16,
   },
   dayCol: { alignItems: 'center', gap: 6 },
   dayDot: { width: 16, height: 16, borderRadius: 8 },
-  dayLabel: { color: '#999', fontSize: 12 },
+  dayLabel: { color: tokens.colors.sky.dark, fontSize: 12 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });
