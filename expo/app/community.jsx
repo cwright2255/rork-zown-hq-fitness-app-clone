@@ -6,11 +6,12 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 const FEED = [
-  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day — new PR on squats!' },
+  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day â new PR on squats!' },
   { id: '2', name: 'Sam R.', initials: 'SR', time: '5h', text: 'Morning 5k in under 22 min. Feeling unstoppable.' },
-  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe — drop yours below.' },
+  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe â drop yours below.' },
 ];
 
 const CHALLENGES = [
@@ -34,7 +35,7 @@ export default function CommunityScreen() {
               key={t}
               onPress={() => setTab(t)}
               style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}>
-              <Text style={[styles.tabText, { color: active ? '#000' : '#999' }]}>
+              <Text style={[styles.tabText, { color: active ? tokens.colors.grayscale.black : '#999' }]}>
                 {t === 'feed' ? 'Feed' : 'Challenges'}
               </Text>
             </TouchableOpacity>
@@ -94,14 +95,14 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
   tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  tabActive: { backgroundColor: '#fff' },
-  tabInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  tabActive: { backgroundColor: tokens.colors.background.default },
+  tabInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   tabText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 12,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center' },
@@ -110,10 +111,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  postName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  avatarText: { color: tokens.colors.background.default, fontWeight: '700', fontSize: 13 },
+  postName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
   postTime: { color: '#666', fontSize: 12 },
-  postText: { color: '#fff', fontSize: 14, lineHeight: 20, marginTop: 10 },
+  postText: { color: tokens.colors.background.default, fontSize: 14, lineHeight: 20, marginTop: 10 },
   postActions: {
     flexDirection: 'row', gap: 20,
     marginTop: 12, paddingTop: 12,
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   actionText: { color: '#999', fontSize: 13 },
   challengeRow: { flexDirection: 'row', alignItems: 'center' },
-  challengeName: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  challengeName: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
   challengeMeta: { color: '#999', fontSize: 13, marginTop: 2 },
   daysBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',

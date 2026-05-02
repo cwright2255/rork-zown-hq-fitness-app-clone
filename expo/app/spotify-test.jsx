@@ -7,6 +7,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 export default function SpotifyTestScreen() {
   const { isConnected, user } = useSpotifyStore();
@@ -42,12 +43,12 @@ export default function SpotifyTestScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={styles.statusCard}>
           <View style={styles.iconWrap}>
-            <TestTube size={24} color="#fff" />
+            <TestTube size={24} color=tokens.colors.background.default />
           </View>
           <Text style={styles.title}>Connection Status</Text>
           <Text style={styles.sub}>
             {isConnected ? 'Connected' : 'Disconnected'}
-            {user?.display_name ? ` · ${user.display_name}` : ''}
+            {user?.display_name ? ` Â· ${user.display_name}` : ''}
           </Text>
           <Text style={styles.sub}>Platform: {Platform.OS}</Text>
         </View>
@@ -75,9 +76,9 @@ export default function SpotifyTestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   statusCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20,
   },
   iconWrap: {
@@ -85,16 +86,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  title: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '700' },
   sub: { color: '#999', fontSize: 13, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 12, marginTop: 12,
   },
   logCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, minHeight: 120, gap: 4,
   },
   muted: { color: '#999', fontSize: 13 },
-  logLine: { color: '#fff', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  logLine: { color: tokens.colors.background.default, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
 });

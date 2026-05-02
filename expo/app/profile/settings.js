@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -158,7 +159,7 @@ export default function SettingsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.loadingText}>Loading…</Text>
+        <Text style={styles.loadingText}>Loadingâ¦</Text>
       </SafeAreaView>
     );
   }
@@ -253,7 +254,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.connectPillText}>
-                  {isConnecting ? 'Connecting…' : 'Connect'}
+                  {isConnecting ? 'Connectingâ¦' : 'Connect'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.pill,
   },
-  connectPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+  connectPillText: { color: tokens.colors.background.default, fontWeight: '800', fontSize: 14 },
 
   inputGroup: { gap: 6 },
   inputLabel: { ...typography.label },

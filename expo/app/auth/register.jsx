@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
+import { tokens } from '../../../theme/tokens';
   View,
   Text,
   TextInput,
@@ -224,7 +225,7 @@ export default function RegisterScreen() {
                       activeOpacity={0.85}
                       style={[styles.goalCard, selected && styles.goalCardActive]}
                       onPress={() => setGoal(g.id)}>
-                      <Icon size={28} color={selected ? '#000' : colors.text} />
+                      <Icon size={28} color={selected ? tokens.colors.grayscale.black : colors.text} />
                       <Text style={[styles.goalLabel, selected && styles.goalLabelActive]}>
                         {g.label}
                       </Text>
@@ -253,7 +254,7 @@ export default function RegisterScreen() {
                       style={[styles.activityCard, selected && styles.activityCardActive]}
                       onPress={() => setActivityLevel(a.id)}>
                       <View style={[styles.activityIcon, selected && styles.activityIconActive]}>
-                        <Icon size={20} color={selected ? '#000' : colors.text} />
+                        <Icon size={20} color={selected ? tokens.colors.grayscale.black : colors.text} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.activityLabel}>{a.label}</Text>
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   goalLabel: { ...typography.h4, textAlign: 'center' },
-  goalLabelActive: { color: '#000' },
+  goalLabelActive: { color: tokens.colors.grayscale.black },
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',

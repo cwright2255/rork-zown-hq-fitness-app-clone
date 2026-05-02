@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
+import { tokens } from '../../theme/tokens';
   View,
   StyleSheet,
   Pressable,
@@ -116,14 +117,14 @@ export default function StartScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   layers: {
     flex: 1
   },
   whiteCover: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.background.default,
     zIndex: 1
   },
   pressArea: {

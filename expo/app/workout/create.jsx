@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -315,7 +316,7 @@ export default function CreateWorkoutScreen() {
         <PrimaryButton
           title="Add Exercise from Library"
           onPress={() => setPickerVisible(true)}
-          leftIcon={<BookOpen size={18} color="#000" />}
+          leftIcon={<BookOpen size={18} color=tokens.colors.grayscale.black />}
           style={styles.addBtn}
         />
 
@@ -364,7 +365,7 @@ export default function CreateWorkoutScreen() {
           {libraryLoading && libraryExercises.length === 0 ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={colors.text} />
-              <Text style={styles.loadingText}>Loading exercises…</Text>
+              <Text style={styles.loadingText}>Loading exercisesâ¦</Text>
             </View>
           ) : (
             <FlatList
@@ -389,7 +390,7 @@ export default function CreateWorkoutScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.libTitle} numberOfLines={2}>{item.name}</Text>
                       <Text style={styles.libMeta} numberOfLines={1}>
-                        {[equipment, target].filter(Boolean).join(' • ')}
+                        {[equipment, target].filter(Boolean).join(' â¢ ')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
   },
   pillActive: { backgroundColor: colors.text, borderColor: colors.text },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: '#000' },
+  pillTextActive: { color: tokens.colors.grayscale.black },
   exercisesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

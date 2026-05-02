@@ -9,6 +9,7 @@ import Card from '@/components/Card';
 import { useProgressStore } from '@/store/progressStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../../theme/tokens';
 
 export default function BodyScanScreen() {
   const { addEntry } = useProgressStore();
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
     aspectRatio: 3 / 4,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   camera: {
     width: '100%',

@@ -6,6 +6,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useExpStore } from '@/store/expStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 export default function ExpDashboardScreen() {
   const store = useExpStore();
@@ -69,7 +70,7 @@ export default function ExpDashboardScreen() {
           activities.map((a, i) => (
             <View key={a.id || i} style={styles.activityRow}>
               <View style={styles.activityIcon}>
-                <TrendingUp size={16} color="#fff" />
+                <TrendingUp size={16} color=tokens.colors.background.default />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.activityName}>{a.description || a.name || 'Activity'}</Text>
@@ -86,39 +87,39 @@ export default function ExpDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   levelCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
   levelLabel: { color: '#999', fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
-  levelNumber: { color: '#fff', fontSize: 72, fontWeight: '700', letterSpacing: -1 },
+  levelNumber: { color: tokens.colors.background.default, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
   progressTrack: {
     width: '100%', height: 6, backgroundColor: '#2A2A2A',
     borderRadius: 3, marginTop: 12, overflow: 'hidden',
   },
-  progressFill: { height: 6, backgroundColor: '#fff', borderRadius: 3 },
+  progressFill: { height: 6, backgroundColor: tokens.colors.background.default, borderRadius: 3 },
   progressText: { color: '#999', fontSize: 12, marginTop: 8 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, alignItems: 'center',
   },
-  statValue: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  statValue: { color: tokens.colors.background.default, fontSize: 24, fontWeight: '700' },
   statLabel: { color: '#999', fontSize: 12, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginTop: 24, marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
   empty: { color: '#999', fontSize: 14 },
   activityRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 8,
   },
   activityIcon: {
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  activityName: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  activityName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '500' },
   activityDate: { color: '#999', fontSize: 12, marginTop: 2 },
   activityXp: { color: '#22C55E', fontSize: 14, fontWeight: '700' },
 });

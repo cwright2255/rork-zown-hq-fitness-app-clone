@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -20,11 +21,11 @@ import {
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const COLOR_BG = '#000';
-const COLOR_SURFACE = '#111';
-const COLOR_CARD = '#1A1A1A';
+const COLOR_BG = tokens.colors.grayscale.black;
+const COLOR_SURFACE = tokens.colors.ink.darker;
+const COLOR_CARD = tokens.colors.ink.darker;
 const COLOR_BORDER = '#2A2A2A';
-const COLOR_TEXT = '#fff';
+const COLOR_TEXT = tokens.colors.background.default;
 const COLOR_TEXT_SECONDARY = '#999';
 const COLOR_TARGET = '#E74C3C';
 const COLOR_SECONDARY = '#F39C12';
@@ -76,7 +77,7 @@ export default function WorkoutDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLOR_TEXT} />
-          <Text style={styles.loadingText}>Loading exercise…</Text>
+          <Text style={styles.loadingText}>Loading exerciseâ¦</Text>
         </View>
       </SafeAreaView>
     );
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  muscleTagText: { color: '#fff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  muscleTagText: { color: tokens.colors.background.default, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   secondaryText: { color: COLOR_TEXT_SECONDARY, fontSize: 13 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   equipTag: {

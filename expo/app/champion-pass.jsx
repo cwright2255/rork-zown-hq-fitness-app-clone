@@ -6,6 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useChampionPassStore } from '@/store/championPassStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 export default function ChampionPassScreen() {
   const store = useChampionPassStore();
@@ -38,7 +39,7 @@ export default function ChampionPassScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
         <View style={styles.heroCard}>
           <View style={styles.heroIcon}>
-            <Award size={32} color="#fff" />
+            <Award size={32} color=tokens.colors.background.default />
           </View>
           <Text style={styles.heroTitle}>
             {isPremium ? 'Premium Champion' : 'Champion Pass'}
@@ -90,9 +91,9 @@ export default function ChampionPassScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   heroCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20,
   },
   heroIcon: {
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
+  heroTitle: { color: tokens.colors.background.default, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
   heroSub: { color: '#999', fontSize: 13, marginTop: 4, textAlign: 'center' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -108,25 +109,25 @@ const styles = StyleSheet.create({
   },
   tierCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
-  tierCardActive: { borderColor: '#fff', borderWidth: 2 },
+  tierCardActive: { borderColor: tokens.colors.background.default, borderWidth: 2 },
   tierBadge: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  tierBadgeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  tierName: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  tierBadgeText: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
+  tierName: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '600' },
   tierDesc: { color: '#999', fontSize: 12, marginTop: 2 },
   currentPill: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  currentText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  currentText: { color: tokens.colors.background.default, fontSize: 11, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
   empty: { color: '#999', fontSize: 14 },

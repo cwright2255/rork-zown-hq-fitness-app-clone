@@ -8,6 +8,7 @@ import RunningMap from '@/components/RunningMap';
 import { useWorkoutStore } from '@/store/workoutStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../../../theme/tokens';
 
 export default function RunningSessionDetailScreen() {
   const params = useLocalSearchParams();
@@ -67,11 +68,11 @@ export default function RunningSessionDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  mapWrap: { width: '100%', height: 320, backgroundColor: '#1A1A1A' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  mapWrap: { width: '100%', height: 320, backgroundColor: tokens.colors.ink.darker },
   mapPh: { flex: 1 },
   statsCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12,
   },
   statsRow: { flexDirection: 'row', gap: 12 },

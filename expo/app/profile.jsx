@@ -26,6 +26,7 @@ import { getSubscriptionPlan } from '@/constants/subscriptionPlans';
 import { authService } from '@/services/authService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 export default function ProfileScreen() {
   const { user, logout, upgradeSubscription } = useUserStore();
@@ -247,7 +248,7 @@ export default function ProfileScreen() {
           style={styles.profileImage} />
         
           <TouchableOpacity style={styles.cameraButton} onPress={handlePickPhoto}>
-            <Camera size={16} color={'#000000'} />
+            <Camera size={16} color={tokens.colors.grayscale.black} />
           </TouchableOpacity>
         </View>
         
@@ -277,7 +278,7 @@ export default function ProfileScreen() {
         style={styles.settingsButton}
         onPress={() => router.push('/profile/settings')}>
         
-          <Settings size={20} color={'#FFFFFF'} />
+          <Settings size={20} color={tokens.colors.background.default} />
         </TouchableOpacity>
       </View>
       
@@ -293,7 +294,7 @@ export default function ProfileScreen() {
         
         <View style={styles.championPassProgress}>
           <View style={styles.championPassHeader}>
-            <Award size={16} color={'#FFFFFF'} />
+            <Award size={16} color={tokens.colors.background.default} />
             <Text style={styles.championPassText}>Champion Pass Progress</Text>
           </View>
           <View style={styles.championPassBar}>
@@ -358,8 +359,8 @@ export default function ProfileScreen() {
         onPress={() => router.push('/champion-pass')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#FFFFFF'}20` }]}>
-              <Crown size={20} color={'#FFFFFF'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.background.default}20` }]}>
+              <Crown size={20} color={tokens.colors.background.default} />
             </View>
             <Text style={styles.menuItemText}>Champion Pass</Text>
           </View>
@@ -405,7 +406,7 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>See All</Text>
-          <ChevronRight size={16} color={'#FFFFFF'} />
+          <ChevronRight size={16} color={tokens.colors.background.default} />
         </TouchableOpacity>
       </View>
       
@@ -434,7 +435,7 @@ export default function ProfileScreen() {
           style={styles.seeAllButton}>
           
               <Text style={styles.seeAllText}>See All</Text>
-              <ChevronRight size={16} color={'#FFFFFF'} />
+              <ChevronRight size={16} color={tokens.colors.background.default} />
             </TouchableOpacity>
           </View>
           
@@ -461,14 +462,14 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>View Dashboard</Text>
-          <ChevronRight size={16} color={'#FFFFFF'} />
+          <ChevronRight size={16} color={tokens.colors.background.default} />
         </TouchableOpacity>
       </View>
       
       <Card variant="elevated" style={styles.expSummaryCard}>
         <View style={styles.expSummaryHeader}>
           <View style={styles.expSummaryHeaderLeft}>
-            <Award size={20} color={'#FFFFFF'} />
+            <Award size={20} color={tokens.colors.background.default} />
             <Text style={styles.expSummaryTitle}>Level {user.level}</Text>
           </View>
           <Text style={styles.expSummaryTotal}>{(user.xp || user.exp || 0).toLocaleString()} XP</Text>
@@ -489,7 +490,7 @@ export default function ProfileScreen() {
           <Text style={styles.seeAllText}>
             {showMeasurementForm ? 'Hide' : 'Update'}
           </Text>
-          <Edit size={16} color={'#FFFFFF'} />
+          <Edit size={16} color={tokens.colors.background.default} />
         </TouchableOpacity>
       </View>
       
@@ -647,7 +648,7 @@ export default function ProfileScreen() {
           onPress={() => setActiveTab('progress')}>
           
                 <Text style={styles.viewHistoryText}>View History</Text>
-                <ChevronRight size={16} color={'#FFFFFF'} />
+                <ChevronRight size={16} color={tokens.colors.background.default} />
               </TouchableOpacity>
             </View> :
 
@@ -924,7 +925,7 @@ export default function ProfileScreen() {
       
       <View style={styles.expHeader}>
         <View style={styles.expHeaderContent}>
-          <Award size={28} color={'#FFFFFF'} />
+          <Award size={28} color={tokens.colors.background.default} />
           <View style={styles.expHeaderTextContainer}>
             <Text style={styles.expHeaderTitle}>Level {user.level}</Text>
             <Text style={styles.expHeaderSubtitle}>{(user.xp || user.exp).toLocaleString()} XP Total</Text>
@@ -983,7 +984,7 @@ export default function ProfileScreen() {
       onPress={() => router.push('/exp-dashboard')}>
       
         <Text style={styles.viewFullDashboardText}>View Full EXP Dashboard</Text>
-        <ChevronRight size={16} color={'#FFFFFF'} />
+        <ChevronRight size={16} color={tokens.colors.background.default} />
       </TouchableOpacity>
     </>;
 
@@ -995,7 +996,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'profile' && styles.activeTabButton]}
           onPress={() => setActiveTab('profile')}>
           
-          <User size={20} color={activeTab === 'profile' ? '#FFFFFF' : '#999999'} />
+          <User size={20} color={activeTab === 'profile' ? tokens.colors.background.default : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'profile' && styles.activeTabButtonText]}>
             Profile
           </Text>
@@ -1005,7 +1006,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'progress' && styles.activeTabButton]}
           onPress={() => setActiveTab('progress')}>
           
-          <BarChart size={20} color={activeTab === 'progress' ? '#FFFFFF' : '#999999'} />
+          <BarChart size={20} color={activeTab === 'progress' ? tokens.colors.background.default : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'progress' && styles.activeTabButtonText]}>
             Progress
           </Text>
@@ -1015,7 +1016,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'badges' && styles.activeTabButton]}
           onPress={() => setActiveTab('badges')}>
           
-          <Award size={20} color={activeTab === 'badges' ? '#FFFFFF' : '#999999'} />
+          <Award size={20} color={activeTab === 'badges' ? tokens.colors.background.default : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'badges' && styles.activeTabButtonText]}>
             Badges
           </Text>
@@ -1025,7 +1026,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'exp' && styles.activeTabButton]}
           onPress={() => setActiveTab('exp')}>
           
-          <Activity size={20} color={activeTab === 'exp' ? '#FFFFFF' : '#999999'} />
+          <Activity size={20} color={activeTab === 'exp' ? tokens.colors.background.default : '#999999'} />
           <Text style={[styles.tabButtonText, activeTab === 'exp' && styles.activeTabButtonText]}>
             EXP
           </Text>
@@ -1061,11 +1062,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   content: {
     padding: 16,
@@ -1078,7 +1079,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#2A2A2A'
@@ -1093,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: '#FFFFFF'
+    borderBottomColor: tokens.colors.background.default
   },
   tabButtonText: {
     fontSize: 14,
@@ -1101,7 +1102,7 @@ const styles = StyleSheet.create({
     color: '#999999'
   },
   activeTabButtonText: {
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     fontWeight: '600'
   },
   tabHeader: {
@@ -1113,14 +1114,14 @@ const styles = StyleSheet.create({
   tabTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   backButton: {
     padding: 8
   },
   backButtonText: {
     fontSize: 14,
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   profileHeader: {
     flexDirection: 'row',
@@ -1141,14 +1142,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     width: 28,
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#1A1A1A'
+    borderColor: tokens.colors.ink.darker
   },
   profileInfo: {
     flex: 1
@@ -1162,7 +1163,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   tierBadge: {
     paddingHorizontal: 8,
@@ -1199,18 +1200,18 @@ const styles = StyleSheet.create({
   championPassText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginLeft: 8
   },
   championPassBar: {
     height: 6,
-    backgroundColor: `${'#FFFFFF'}20`,
+    backgroundColor: `${tokens.colors.background.default}20`,
     borderRadius: 3,
     marginBottom: 4
   },
   championPassFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     borderRadius: 3
   },
   championPassPercentage: {
@@ -1234,7 +1235,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   statLabel: {
@@ -1270,7 +1271,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   menuDivider: {
     height: 1,
@@ -1285,7 +1286,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 12
   },
   seeAllButton: {
@@ -1294,7 +1295,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginRight: 4
   },
   emptyCard: {
@@ -1364,18 +1365,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: '#000000',
+    backgroundColor: tokens.colors.grayscale.black,
     borderWidth: 1,
     borderColor: '#2A2A2A'
   },
   changePhotoText: {
     fontSize: 14,
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   photoPlaceholder: {
     height: 200,
     borderRadius: 12,
-    backgroundColor: '#000000',
+    backgroundColor: tokens.colors.grayscale.black,
     borderWidth: 1,
     borderColor: '#2A2A2A',
     borderStyle: 'dashed',
@@ -1425,7 +1426,7 @@ const styles = StyleSheet.create({
   progressValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   viewHistoryButton: {
     flexDirection: 'row',
@@ -1435,7 +1436,7 @@ const styles = StyleSheet.create({
   },
   viewHistoryText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginRight: 4
   },
   noProgressContainer: {
@@ -1463,10 +1464,10 @@ const styles = StyleSheet.create({
   progressEntryDate: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   latestBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 8
@@ -1474,7 +1475,7 @@ const styles = StyleSheet.create({
   latestBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#000000'
+    color: tokens.colors.grayscale.black
   },
   progressEntryContent: {
     flexDirection: 'row'
@@ -1494,7 +1495,7 @@ const styles = StyleSheet.create({
   progressEntryValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   progressEntryPhoto: {
     width: 100,
@@ -1516,7 +1517,7 @@ const styles = StyleSheet.create({
   },
   progressEntryNotesText: {
     fontSize: 14,
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   badgesStatsCard: {
     marginBottom: 16
@@ -1534,7 +1535,7 @@ const styles = StyleSheet.create({
   badgesStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   badgesStatLabel: {
@@ -1549,7 +1550,7 @@ const styles = StyleSheet.create({
   badgesCategoryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 12,
     marginTop: 8
   },
@@ -1564,7 +1565,7 @@ const styles = StyleSheet.create({
   },
   // EXP Dashboard styles
   expHeader: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     padding: 20,
     borderRadius: 12,
     marginBottom: 20
@@ -1579,7 +1580,7 @@ const styles = StyleSheet.create({
   expHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   expHeaderSubtitle: {
     fontSize: 14,
@@ -1594,7 +1595,7 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderRadius: 12,
     padding: 12 // Reduced padding
   },
@@ -1605,7 +1606,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18, // Reduced font size
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   summaryLabel: {
@@ -1630,7 +1631,7 @@ const styles = StyleSheet.create({
   viewFullDashboardText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginRight: 4
   },
   // EXP Summary Card
@@ -1653,12 +1654,12 @@ const styles = StyleSheet.create({
   expSummaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginLeft: 8
   },
   expSummaryTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   }
 });

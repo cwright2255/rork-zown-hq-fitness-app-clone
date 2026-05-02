@@ -6,6 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 export default function WearablesScreen() {
   const [devices, setDevices] = useState([
@@ -74,17 +75,17 @@ export default function WearablesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8,
   },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  name: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  name: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
   sub: { color: '#999', fontSize: 13, marginTop: 2 },
   badge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
@@ -97,6 +98,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999,
   },
-  syncText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  syncText: { color: tokens.colors.background.default, fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
 });

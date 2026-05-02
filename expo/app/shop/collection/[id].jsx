@@ -6,6 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import { useShopStore } from '@/store/shopStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../../../theme/tokens';
 
 export default function CollectionScreen() {
   const { id } = useLocalSearchParams();
@@ -39,7 +40,7 @@ export default function CollectionScreen() {
     return (
       <View style={styles.container}>
         <ScreenHeader showBack />
-        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.center}><ActivityIndicator color=tokens.colors.background.default /></View>
       </View>
     );
   }
@@ -95,15 +96,15 @@ export default function CollectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: '#666', textAlign: 'center', marginTop: 40 },
   banner: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, overflow: 'hidden',
     marginHorizontal: 16, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },
-  bannerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  bannerTitle: { color: tokens.colors.background.default, fontSize: 20, fontWeight: '700' },
   bannerDesc: { color: '#999', fontSize: 13, marginTop: 4 },
 });

@@ -7,6 +7,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useShopStore } from '@/store/shopStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../../theme/tokens';
 
 export default function CartScreen() {
   const { products, cart, removeFromCart, updateCartItemQuantity, getCartTotal } = useShopStore();
@@ -77,13 +78,13 @@ export default function CartScreen() {
                   <TouchableOpacity
                     style={styles.stepBtn}
                     onPress={() => handleQty(item.index, item.quantity - 1)}>
-                    <Minus size={14} color="#fff" />
+                    <Minus size={14} color=tokens.colors.background.default />
                   </TouchableOpacity>
                   <Text style={styles.qtyText}>{item.quantity}</Text>
                   <TouchableOpacity
                     style={styles.stepBtn}
                     onPress={() => handleQty(item.index, item.quantity + 1)}>
-                    <Plus size={14} color="#fff" />
+                    <Plus size={14} color=tokens.colors.background.default />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.itemPrice}>
@@ -117,7 +118,7 @@ export default function CartScreen() {
       <View style={styles.bottomBar}>
         <PrimaryButton
           title="Checkout"
-          onPress={() => Alert.alert('Checkout', 'Demo — checkout not implemented.')}
+          onPress={() => Alert.alert('Checkout', 'Demo â checkout not implemented.')}
         />
       </View>
     </View>
@@ -125,17 +126,17 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyTitle: { color: '#999', fontSize: 16, marginTop: 16 },
   itemCard: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, marginBottom: 10, gap: 12,
   },
   thumb: { width: 60, height: 60, borderRadius: 8 },
   itemBody: { flex: 1 },
-  itemName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  itemName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
   itemVar: { color: '#999', fontSize: 12, marginTop: 2 },
   itemFooter: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -149,18 +150,18 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
-  qtyText: { color: '#fff', fontSize: 13, fontWeight: '600', paddingHorizontal: 8 },
-  itemPrice: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  qtyText: { color: tokens.colors.background.default, fontSize: 13, fontWeight: '600', paddingHorizontal: 8 },
+  itemPrice: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
   remove: { padding: 4 },
   summary: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginTop: 8,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   summaryLabel: { color: '#999', fontSize: 14 },
-  summaryVal: { color: '#fff', fontSize: 14 },
+  summaryVal: { color: tokens.colors.background.default, fontSize: 14 },
   divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 8 },
-  totalLabel: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  totalVal: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  totalLabel: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
+  totalVal: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

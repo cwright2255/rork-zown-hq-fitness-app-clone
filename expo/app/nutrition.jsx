@@ -8,6 +8,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 export default function NutritionScreen() {
   const { getMealsByDate, dailyGoals, addMeal } = useNutritionStore();
@@ -79,11 +80,11 @@ export default function NutritionScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 160 }}>
         <View style={styles.dateRow}>
           <TouchableOpacity onPress={() => shiftDate(-1)} style={styles.dateBtn} hitSlop={8}>
-            <ChevronLeft size={22} color="#fff" />
+            <ChevronLeft size={22} color=tokens.colors.background.default />
           </TouchableOpacity>
           <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
           <TouchableOpacity onPress={() => shiftDate(1)} style={styles.dateBtn} hitSlop={8}>
-            <ChevronRight size={22} color="#fff" />
+            <ChevronRight size={22} color=tokens.colors.background.default />
           </TouchableOpacity>
         </View>
 
@@ -136,7 +137,7 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 style={styles.addFoodBtn}
                 onPress={() => handleAddMealType(type)}>
-                <Plus size={16} color="#fff" />
+                <Plus size={16} color=tokens.colors.background.default />
                 <Text style={styles.addFoodText}>Add Food</Text>
               </TouchableOpacity>
             </View>
@@ -157,7 +158,7 @@ export default function NutritionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   scroll: { flex: 1, paddingHorizontal: 16 },
   dateRow: {
     flexDirection: 'row',
@@ -167,42 +168,42 @@ const styles = StyleSheet.create({
   },
   dateBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  dateText: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  dateText: { fontSize: 18, fontWeight: '600', color: tokens.colors.background.default },
   calCard: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16,
     padding: 24, alignItems: 'center',
     marginTop: 8, marginBottom: 16,
   },
-  calNumber: { fontSize: 48, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.background.default, letterSpacing: -1 },
   calLabel: { fontSize: 14, color: '#999', marginTop: 4 },
   macroRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   macroChip: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderLeftWidth: 4,
     borderRadius: 16,
     padding: 12,
   },
-  macroVal: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  macroVal: { fontSize: 16, fontWeight: '700', color: tokens.colors.background.default },
   macroLabel: { fontSize: 12, color: '#999', marginTop: 2 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 4,
   },
   mealCard: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16,
     padding: 16, marginBottom: 12,
   },
   mealHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mealName: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  mealName: { fontSize: 16, fontWeight: '600', color: tokens.colors.background.default },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
@@ -214,13 +215,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: '#2A2A2A',
   },
-  foodName: { color: '#fff', fontSize: 14, flex: 1 },
+  foodName: { color: tokens.colors.background.default, fontSize: 14, flex: 1 },
   foodCal: { color: '#999', fontSize: 13 },
   addFoodBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, marginTop: 12, paddingVertical: 10,
   },
-  addFoodText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  addFoodText: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '500' },
   bottomBar: {
     position: 'absolute', left: 16, right: 16, bottom: 84,
   },

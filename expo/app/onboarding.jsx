@@ -9,6 +9,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 const SLIDES = [
   {
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: '#000' },
+  pillTextActive: { color: tokens.colors.grayscale.black },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',

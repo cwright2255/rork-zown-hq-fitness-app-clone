@@ -6,6 +6,7 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { searchFoods } from '@/services/passioService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../../theme/tokens';
 
 export default function SearchFoodScreen() {
   const { mealId, scannedFood } = useLocalSearchParams();
@@ -117,7 +118,7 @@ export default function SearchFoodScreen() {
         </View>
       ) : loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color=tokens.colors.background.default />
         </View>
       ) : (
         <FlatList
@@ -145,30 +146,30 @@ export default function SearchFoodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   searchWrap: { padding: 16 },
   input: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 12, height: 52, paddingHorizontal: 16,
-    color: '#fff', fontSize: 15,
+    color: tokens.colors.background.default, fontSize: 15,
   },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8,
   },
   chip: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 999, marginRight: 8,
   },
   chipText: { color: '#999', fontSize: 13, fontWeight: '500' },
   foodCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 10,
   },
-  foodName: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  foodName: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '500' },
   foodServing: { color: '#999', fontSize: 13, marginTop: 2 },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',

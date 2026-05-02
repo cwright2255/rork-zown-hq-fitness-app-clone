@@ -5,6 +5,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 const FAQS = [
   { q: 'How do I track my workouts?', a: 'Navigate to the Workouts tab, select a program, and tap "Start" to begin tracking.' },
@@ -56,18 +57,18 @@ export default function SupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 12,
   },
   faqCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 8,
   },
   faqRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  faqQ: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
+  faqQ: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
   faqA: { color: '#999', fontSize: 13, lineHeight: 19, marginTop: 10 },
 });
