@@ -1,18 +1,19 @@
+import { tokens } from '../../theme/tokens';
 export const colors = {
-  bg: '#000000',
-  surface: '#111111',
-  card: '#1A1A1A',
+  bg: tokens.colors.grayscale.black,
+  surface: tokens.colors.ink.darker,
+  card: tokens.colors.ink.darker,
   cardElevated: '#222222',
   border: '#2A2A2A',
   borderLight: '#333333',
-  text: '#FFFFFF',
+  text: tokens.colors.background.default,
   textSecondary: '#999999',
   textTertiary: '#666666',
   textMuted: '#555555',
-  accent: '#FFFFFF',
+  accent: tokens.colors.background.default,
   accentAlt: '#E0E0E0',
   accentDim: 'rgba(255,255,255,0.08)',
-  progressFill: '#FFFFFF',
+  progressFill: tokens.colors.background.default,
   progressTrack: '#2A2A2A',
   green: '#22C55E',
   greenDim: 'rgba(34,197,94,0.15)',
@@ -33,19 +34,19 @@ export const colors = {
 };
 
 export const typography = {
-  hero: { fontSize: 36, fontWeight: '800', letterSpacing: -1, color: '#fff' },
-  h1: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: '#fff' },
-  h2: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: '#fff' },
-  h3: { fontSize: 18, fontWeight: '600', color: '#fff' },
-  h4: { fontSize: 16, fontWeight: '600', color: '#fff' },
-  body: { fontSize: 15, fontWeight: '400', lineHeight: 22, color: '#fff' },
+  hero: { fontSize: 36, fontWeight: '800', letterSpacing: -1, color: tokens.colors.background.default },
+  h1: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: tokens.colors.background.default },
+  h2: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: tokens.colors.background.default },
+  h3: { fontSize: 18, fontWeight: '600', color: tokens.colors.background.default },
+  h4: { fontSize: 16, fontWeight: '600', color: tokens.colors.background.default },
+  body: { fontSize: 15, fontWeight: '400', lineHeight: 22, color: tokens.colors.background.default },
   bodySmall: { fontSize: 13, fontWeight: '400', lineHeight: 18, color: '#999' },
   caption: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5, color: '#666' },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', color: '#999' },
   button: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
   buttonSmall: { fontSize: 14, fontWeight: '600' },
-  number: { fontSize: 32, fontWeight: '800', letterSpacing: -1, color: '#fff' },
-  numberSmall: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  number: { fontSize: 32, fontWeight: '800', letterSpacing: -1, color: tokens.colors.background.default },
+  numberSmall: { fontSize: 20, fontWeight: '700', color: tokens.colors.background.default },
 };
 
 export const spacing = {
@@ -71,14 +72,14 @@ export const radius = {
 
 export const shadows = {
   card: {
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   modal: {
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.5,
     shadowRadius: 16,

@@ -1,8 +1,9 @@
+import { tokens } from '../../theme/tokens';
 const Colors = {
   // Primary brand colors - black and white theme
-  primary: '#000000',
+  primary: tokens.colors.grayscale.black,
   primaryLight: '#333333',
-  primaryDark: '#000000',
+  primaryDark: tokens.colors.grayscale.black,
 
   // Secondary colors
   secondary: '#666666',
@@ -10,37 +11,37 @@ const Colors = {
   secondaryDark: '#444444',
 
   // Background colors
-  background: '#FFFFFF',
+  background: tokens.colors.background.default,
   backgroundSecondary: '#F5F5F5',
   backgroundTertiary: '#EEEEEE',
 
   // Text colors
   text: {
-    primary: '#000000',
+    primary: tokens.colors.grayscale.black,
     secondary: '#666666',
     tertiary: '#888888',
-    inverse: '#FFFFFF'
+    inverse: tokens.colors.background.default
   },
 
   // Card and surface colors
-  card: '#FFFFFF',
+  card: tokens.colors.background.default,
   surface: '#F5F5F5',
 
   // Border colors
   border: '#DDDDDD',
 
   // Status colors
-  success: '#000000',
+  success: tokens.colors.grayscale.black,
   warning: '#666666',
   error: '#333333',
-  info: '#000000',
+  info: tokens.colors.grayscale.black,
 
   // Inactive/disabled
   inactive: '#CCCCCC',
 
   // Running-specific colors
   running: {
-    primary: '#000000',
+    primary: tokens.colors.grayscale.black,
     secondary: '#333333',
     distance: '#666666',
     pace: '#444444',
@@ -55,14 +56,14 @@ const Colors = {
       text: '#333333'
     },
     standard: {
-      primary: '#000000',
+      primary: tokens.colors.grayscale.black,
       background: '#F5F5F5',
-      text: '#000000'
+      text: tokens.colors.grayscale.black
     },
     elite: {
       primary: '#333333',
       background: '#EEEEEE',
-      text: '#000000'
+      text: tokens.colors.grayscale.black
     }
   },
 
@@ -88,21 +89,21 @@ const Colors = {
   // Shadows
   shadow: {
     small: {
-      shadowColor: '#000',
+      shadowColor: tokens.colors.grayscale.black,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 1
     },
     medium: {
-      shadowColor: '#000',
+      shadowColor: tokens.colors.grayscale.black,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2
     },
     large: {
-      shadowColor: '#000',
+      shadowColor: tokens.colors.grayscale.black,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.15,
       shadowRadius: 8,
