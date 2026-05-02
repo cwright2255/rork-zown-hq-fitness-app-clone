@@ -1,3 +1,4 @@
+import { tokens } from '../theme/tokens';
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -24,7 +25,7 @@ module.exports = {
         success: '#43D9AD',
         warning: '#FFB830',
         border: '#2A2A4A',
-        'text-primary': '#FFFFFF',
+        'text-primary': tokens.colors.background.default,
         'text-secondary': '#A0A0C0',
         'text-disabled': '#5A5A7A',
       },
