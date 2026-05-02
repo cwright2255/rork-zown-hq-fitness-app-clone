@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { tokens } from '../../theme/tokens';
 
 export const useAnalyticsStore = create(() => ({
   getAnalytics: (timeRange) => {
@@ -57,25 +58,25 @@ export const useAnalyticsStore = create(() => ({
         name: 'Strength Training',
         percentage: 45,
         time: 324,
-        color: '#3B82F6'
+        color: tokens.colors.brand.lighter
       },
       {
         name: 'Cardio',
         percentage: 30,
         time: 216,
-        color: '#10B981'
+        color: tokens.colors.green.base
       },
       {
         name: 'Yoga',
         percentage: 15,
         time: 108,
-        color: '#8B5CF6'
+        color: tokens.colors.primary.base
       },
       {
         name: 'Flexibility',
         percentage: 10,
         time: 72,
-        color: '#F59E0B'
+        color: tokens.colors.legacy.legacy_f59e0b
       }],
 
       weeklyTrends: [
@@ -90,17 +91,17 @@ export const useAnalyticsStore = create(() => ({
       recentAchievements: [
       {
         title: 'Workout Streak Master',
-        icon: '🔥',
+        icon: 'ð¥',
         date: '2 days ago'
       },
       {
         title: 'Calorie Crusher',
-        icon: '💪',
+        icon: 'ðª',
         date: '5 days ago'
       },
       {
         title: 'Early Bird',
-        icon: '🌅',
+        icon: 'ð',
         date: '1 week ago'
       }],
 

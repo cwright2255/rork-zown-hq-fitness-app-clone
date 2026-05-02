@@ -1,21 +1,21 @@
 import { tokens } from '../../../theme/tokens';
 export const Colors = {
-  primary: '#6C63FF',
-  primaryDark: '#5A52D5',
-  secondary: '#FF6584',
-  accent: '#43D9AD',
-  background: '#0F0F1A',
-  surface: '#1A1A2E',
-  surfaceElevated: '#252540',
-  error: '#FF4D6D',
-  success: '#43D9AD',
-  warning: '#FFB830',
+  primary: tokens.colors.brand.primary,
+  primaryDark: tokens.colors.brand.base,
+  secondary: tokens.colors.red.light,
+  accent: tokens.colors.legacy.legacy_43d9ad,
+  background: tokens.colors.ink.darkest,
+  surface: tokens.colors.legacy.darkSurfaceDeep,
+  surfaceElevated: tokens.colors.legacy.darkSurface,
+  error: tokens.colors.red.light,
+  success: tokens.colors.legacy.legacy_43d9ad,
+  warning: tokens.colors.legacy.legacy_ffb830,
   text: {
     primary: tokens.colors.background.default,
-    secondary: '#A0A0C0',
-    disabled: '#5A5A7A'
+    secondary: tokens.colors.text.lighter,
+    disabled: tokens.colors.text.dark
   },
-  border: '#2A2A4A'
+  border: tokens.colors.legacy.darkSurface
 };
 
 export const Spacing = {

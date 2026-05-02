@@ -1,3 +1,4 @@
+import { tokens } from '../../theme/tokens';
 const MUSCLE_VIZ_BASE = 'https://muscle-visualizer-api.p.rapidapi.com/api/v1';
 const RAPIDAPI_KEY = process.env.EXPO_PUBLIC_RAPIDAPI_KEY;
 
@@ -9,7 +10,7 @@ export function normalizeMuscleNames(muscles = []) {
 
 export function getMuscleVisualizeUrl({
   muscles = [],
-  color = '#E74C3C',
+  color = tokens.colors.legacy.legacy_e74c3c,
   gender = 'male',
   size = 'small',
 } = {}) {

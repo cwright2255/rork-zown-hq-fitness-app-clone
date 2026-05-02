@@ -2,67 +2,67 @@ import { tokens } from '../../theme/tokens';
 const Colors = {
   // Primary brand colors - black and white theme
   primary: tokens.colors.grayscale.black,
-  primaryLight: '#333333',
+  primaryLight: tokens.colors.ink.dark,
   primaryDark: tokens.colors.grayscale.black,
 
   // Secondary colors
-  secondary: '#666666',
-  secondaryLight: '#888888',
-  secondaryDark: '#444444',
+  secondary: tokens.colors.ink.light,
+  secondaryLight: tokens.colors.ink.lighter,
+  secondaryDark: tokens.colors.ink.base,
 
   // Background colors
   background: tokens.colors.background.default,
-  backgroundSecondary: '#F5F5F5',
-  backgroundTertiary: '#EEEEEE',
+  backgroundSecondary: tokens.colors.sky.lighter,
+  backgroundTertiary: tokens.colors.sky.lighter,
 
   // Text colors
   text: {
     primary: tokens.colors.grayscale.black,
-    secondary: '#666666',
-    tertiary: '#888888',
+    secondary: tokens.colors.ink.light,
+    tertiary: tokens.colors.ink.lighter,
     inverse: tokens.colors.background.default
   },
 
   // Card and surface colors
   card: tokens.colors.background.default,
-  surface: '#F5F5F5',
+  surface: tokens.colors.sky.lighter,
 
   // Border colors
-  border: '#DDDDDD',
+  border: tokens.colors.sky.light,
 
   // Status colors
   success: tokens.colors.grayscale.black,
-  warning: '#666666',
-  error: '#333333',
+  warning: tokens.colors.ink.light,
+  error: tokens.colors.ink.dark,
   info: tokens.colors.grayscale.black,
 
   // Inactive/disabled
-  inactive: '#CCCCCC',
+  inactive: tokens.colors.sky.base,
 
   // Running-specific colors
   running: {
     primary: tokens.colors.grayscale.black,
-    secondary: '#333333',
-    distance: '#666666',
-    pace: '#444444',
-    calories: '#222222'
+    secondary: tokens.colors.ink.dark,
+    distance: tokens.colors.ink.light,
+    pace: tokens.colors.ink.base,
+    calories: tokens.colors.legacy.darkSurface
   },
 
   // Subscription tier colors
   subscription: {
     free: {
-      primary: '#666666',
-      background: '#F0F0F0',
-      text: '#333333'
+      primary: tokens.colors.ink.light,
+      background: tokens.colors.sky.lighter,
+      text: tokens.colors.ink.dark
     },
     standard: {
       primary: tokens.colors.grayscale.black,
-      background: '#F5F5F5',
+      background: tokens.colors.sky.lighter,
       text: tokens.colors.grayscale.black
     },
     elite: {
-      primary: '#333333',
-      background: '#EEEEEE',
+      primary: tokens.colors.ink.dark,
+      background: tokens.colors.sky.lighter,
       text: tokens.colors.grayscale.black
     }
   },

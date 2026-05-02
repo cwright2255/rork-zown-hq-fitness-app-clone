@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedAdminProcedure } from "../../create-context";
+import { tokens } from '../../../../../theme/tokens';
 
 let CONFIG = {
   maintenanceMode: false,
   featureFlags: {},
   theme: {
-    primary: "#0ea5e9",
-    accent: "#22c55e"
+    primary: tokens.colors.3rd_party.twitter.base,
+    accent: tokens.colors.green.light
   }
 };
 
