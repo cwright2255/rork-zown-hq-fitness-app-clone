@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import SpotifyEmbedPlayer from '@/components/SpotifyEmbedPlayer';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
+import { tokens } from '../../theme/tokens';
 
 
 export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
@@ -263,7 +264,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
                   onPress={() => handleTrackPress(track)}>
                   
                     {isActive ?
-                  <Pause size={14} color="#fff" /> :
+                  <Pause size={14} color=tokens.colors.background.default /> :
 
                   <Play size={14} color={Colors.text.primary} style={{ marginLeft: 1 }} />
                   }
