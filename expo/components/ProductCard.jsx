@@ -14,7 +14,7 @@ const ProductCard = ({ product, onPress, onAddToCart, compact = false }) => {
       <View style={styles.imageWrap}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
         <TouchableOpacity style={styles.heart} hitSlop={8} onPress={(e) => e.stopPropagation?.()}>
-          <Heart size={18} color="#666" />
+          <Heart size={18} color=tokens.colors.ink.light />
         </TouchableOpacity>
       </View>
       <View style={styles.body}>
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: tokens.colors.ink.darker,
-    borderWidth: 1, borderColor: '#2A2A2A',
+    borderWidth: 1, borderColor: tokens.colors.legacy.darkSurface,
     borderRadius: 16, overflow: 'hidden',
   },
   compact: { width: 160 },

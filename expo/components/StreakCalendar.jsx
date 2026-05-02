@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useUserStore } from '@/store/userStore';
+import { tokens } from '../../theme/tokens';
 
 
 
@@ -83,14 +84,14 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: tokens.colors.text.base,
     marginBottom: 4
   },
   dayIndicator: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#e5e7eb'
+    backgroundColor: tokens.colors.sky.light
   },
   compactDayIndicator: {
     width: 8,
@@ -98,11 +99,11 @@ const styles = StyleSheet.create({
     borderRadius: 4
   },
   completedDay: {
-    backgroundColor: '#6366f1'
+    backgroundColor: tokens.colors.brand.base
   },
   todayIndicator: {
     borderWidth: 2,
-    borderColor: '#6366f1'
+    borderColor: tokens.colors.brand.base
   }
 });
 

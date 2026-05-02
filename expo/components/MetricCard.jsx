@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Activity, Droplets, Flame, Footprints, Moon, Heart, BatteryCharging, Scale, Beef, Dumbbell, Stars } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 const MetricCard = ({ title, value, target, unit, icon }) => {
   const progress = Math.min(value / target, 1);
@@ -9,29 +10,29 @@ const MetricCard = ({ title, value, target, unit, icon }) => {
   const renderIcon = () => {
     switch (icon) {
       case 'activity':
-        return <Activity size={24} color="#6366f1" />;
+        return <Activity size={24} color=tokens.colors.brand.base />;
       case 'droplets':
-        return <Droplets size={24} color="#0ea5e9" />;
+        return <Droplets size={24} color=tokens.colors.3rd_party.twitter.base />;
       case 'flame':
-        return <Flame size={24} color="#ef4444" />;
+        return <Flame size={24} color=tokens.colors.legacy.legacy_ef4444 />;
       case 'footprints':
-        return <Footprints size={24} color="#10b981" />;
+        return <Footprints size={24} color=tokens.colors.green.base />;
       case 'stairs':
-        return <Stars size={24} color="#10b981" />;
+        return <Stars size={24} color=tokens.colors.green.base />;
       case 'moon':
-        return <Moon size={24} color="#8b5cf6" />;
+        return <Moon size={24} color=tokens.colors.primary.base />;
       case 'heart':
-        return <Heart size={24} color="#ec4899" />;
+        return <Heart size={24} color=tokens.colors.fuschia.100 />;
       case 'battery-charging':
-        return <BatteryCharging size={24} color="#f59e0b" />;
+        return <BatteryCharging size={24} color=tokens.colors.legacy.legacy_f59e0b />;
       case 'scale':
-        return <Scale size={24} color="#64748b" />;
+        return <Scale size={24} color=tokens.colors.text.base />;
       case 'beef':
-        return <Beef size={24} color="#84cc16" />;
+        return <Beef size={24} color=tokens.colors.green.light />;
       case 'dumbbell':
-        return <Dumbbell size={24} color="#8b5cf6" />;
+        return <Dumbbell size={24} color=tokens.colors.primary.base />;
       default:
-        return <Activity size={24} color="#6366f1" />;
+        return <Activity size={24} color=tokens.colors.brand.base />;
     }
   };
 

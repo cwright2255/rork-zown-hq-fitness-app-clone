@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 
 const BadgeItem = ({
@@ -12,15 +13,15 @@ const BadgeItem = ({
   const getBadgeColor = (rarity) => {
     switch (rarity) {
       case 'common':
-        return '#6E6E6E';
+        return tokens.colors.ink.light;
       case 'uncommon':
-        return '#2ECC71';
+        return tokens.colors.green.base;
       case 'rare':
-        return '#3498DB';
+        return tokens.colors.3rd_party.twitter.base;
       case 'epic':
-        return '#9B59B6';
+        return tokens.colors.legacy.legacy_9b59b6;
       case 'legendary':
-        return '#F1C40F';
+        return tokens.colors.yellow.base;
       default:
         return Colors.text.tertiary;
     }

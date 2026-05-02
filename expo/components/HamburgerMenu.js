@@ -67,7 +67,7 @@ const menuItems = [
   route: '/wearables'
 },
 {
-  icon: <Music size={24} color="#1DB954" />,
+  icon: <Music size={24} color=tokens.colors.green.base />,
   label: 'Spotify',
   route: '/spotify-integration'
 },

@@ -63,7 +63,7 @@ function SpotifyEmbedPlayerNative({ trackId, playlistId, type, trackName, artist
       <View style={[styles.webviewContainer, { height }]}>
         {isLoading &&
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="small" color="#1DB954" />
+            <ActivityIndicator size="small" color=tokens.colors.green.base />
             <Text style={styles.loadingText}>Loading player...</Text>
           </View>
         }
@@ -122,7 +122,7 @@ function SpotifyEmbedPlayerWeb({ trackId, playlistId, type, trackName, artistNam
       <View style={[styles.webviewContainer, { height }]}>
         {isLoading &&
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="small" color="#1DB954" />
+            <ActivityIndicator size="small" color=tokens.colors.green.base />
             <Text style={styles.loadingText}>Loading player...</Text>
           </View>
         }

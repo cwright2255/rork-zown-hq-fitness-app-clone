@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 
 const ExpBreakdownChart = ({ breakdown }) => {
@@ -18,11 +19,11 @@ const ExpBreakdownChart = ({ breakdown }) => {
 
   // Define colors for each category
   const categoryColors = {
-    mainMissions: '#6366F1', // Indigo
-    sideMissions: '#8B5CF6', // Purple
-    meals: '#10B981', // Green
-    workouts: '#F59E0B', // Amber
-    events: '#EF4444' // Red
+    mainMissions: tokens.colors.brand.base, // Indigo
+    sideMissions: tokens.colors.primary.base, // Purple
+    meals: tokens.colors.green.base, // Green
+    workouts: tokens.colors.legacy.legacy_f59e0b, // Amber
+    events: tokens.colors.legacy.legacy_ef4444 // Red
   };
 
   return (

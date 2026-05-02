@@ -4,6 +4,7 @@ import Colors from '@/constants/colors';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
 import { useNutritionStore } from '@/store/nutritionStore';
+import { tokens } from '../../theme/tokens';
 
 
 
@@ -92,12 +93,12 @@ const NutritionSummary = ({
   // Get color for Nutri-Score
   const getNutriScoreColor = (score) => {
     switch (score) {
-      case 'A':return '#1E8F4E'; // Dark green
-      case 'B':return '#4CAF50'; // Green
-      case 'C':return '#FFEB3B'; // Yellow
-      case 'D':return '#FF9800'; // Orange
-      case 'E':return '#F44336'; // Red
-      default:return '#757575'; // Grey
+      case 'A':return tokens.colors.green.darkest; // Dark green
+      case 'B':return tokens.colors.green.base; // Green
+      case 'C':return tokens.colors.yellow.base; // Yellow
+      case 'D':return tokens.colors.legacy.legacy_ff9800; // Orange
+      case 'E':return tokens.colors.legacy.legacy_f44336; // Red
+      default:return tokens.colors.ink.lighter; // Grey
     }
   };
 
@@ -138,7 +139,7 @@ const NutritionSummary = ({
           <ProgressBar
             progress={proteinProgress}
             height={6}
-            progressColor="#4CAF50" />
+            progressColor=tokens.colors.green.base />
           
         </View>
         
@@ -152,7 +153,7 @@ const NutritionSummary = ({
           <ProgressBar
             progress={carbsProgress}
             height={6}
-            progressColor="#2196F3" />
+            progressColor=tokens.colors.3rd_party.twitter.dark />
           
         </View>
         
@@ -166,7 +167,7 @@ const NutritionSummary = ({
           <ProgressBar
             progress={fatProgress}
             height={6}
-            progressColor="#FF9800" />
+            progressColor=tokens.colors.legacy.legacy_ff9800 />
           
         </View>
       </View>

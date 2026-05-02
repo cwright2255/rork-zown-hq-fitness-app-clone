@@ -5,6 +5,7 @@ import Colors from '@/constants/colors';
 
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { useRenderOptimization } from '@/utils/renderOptimizer';
+import { tokens } from '../../theme/tokens';
 
 const ExpActivityItem = memo(function ExpActivityItem({ activity }) {
   // Format date
@@ -27,7 +28,7 @@ const ExpActivityItem = memo(function ExpActivityItem({ activity }) {
         return <MapPin size={20} color={Colors.primary} />;
       case 'meal':
         if (activity.subtype && activity.subtype === 'hydration') {
-          return <Droplet size={20} color="#3498db" />;
+          return <Droplet size={20} color=tokens.colors.3rd_party.twitter.base />;
         }
         return <Utensils size={20} color={Colors.success} />;
       case 'workout':

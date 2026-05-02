@@ -7,15 +7,15 @@ import { tokens } from '../../theme/tokens';
 // Ensure Colors.running exists
 if (!Colors.running) {
   Colors.running = {
-    primary: '#007AFF',
-    secondary: '#5AC8FA',
-    distance: '#34C759',
-    pace: '#FF9500',
-    calories: '#FF3B30'
+    primary: tokens.colors.3rd_party.facebook.base,
+    secondary: tokens.colors.blue.light,
+    distance: tokens.colors.green.light,
+    pace: tokens.colors.legacy.legacy_ff9500,
+    calories: tokens.colors.legacy.legacy_ff3b30
   };
 }
 if (!Colors.success) {
-  Colors.success = '#34C759';
+  Colors.success = tokens.colors.green.light;
 }
 
 export default function RunningMap({
@@ -109,7 +109,7 @@ export default function RunningMap({
       const latLngs = coordinates.map((coord) => [coord.latitude, coord.longitude]);
 
       const newRoutePath = L.polyline(latLngs, {
-        color: '#00ff88',
+        color: tokens.colors.legacy.legacy_00ff88,
         weight: 4,
         opacity: 0.8,
         smoothFactor: 1
@@ -210,7 +210,7 @@ export default function RunningMap({
     if (coordinates.length === 0) {
       return (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>ð</Text>
+          <Text style={styles.noDataText}>Ã°ÂÂÂ</Text>
           <Text style={styles.noDataSubtext}>Waiting for GPS signal...</Text>
           <Text style={styles.noDataHint}>Press START to begin tracking</Text>
         </View>);
@@ -359,12 +359,12 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: tokens.colors.ink.dark,
     marginBottom: 4
   },
   mapSubtitle: {
     fontSize: 12,
-    color: '#666',
+    color: tokens.colors.ink.light,
     textAlign: 'center'
   },
   mapContent: {
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
     minHeight: 200,
-    backgroundColor: '#2a2a2a'
+    backgroundColor: tokens.colors.legacy.darkSurface
   },
   noDataText: {
     fontSize: 48,
@@ -413,12 +413,12 @@ const styles = StyleSheet.create({
   routeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: tokens.colors.ink.dark,
     marginBottom: 2
   },
   routeSubtitle: {
     fontSize: 11,
-    color: '#666'
+    color: tokens.colors.ink.light
   },
   routeVisualization: {
     flex: 1,
@@ -443,10 +443,10 @@ const styles = StyleSheet.create({
   routeLineSegment: {
     position: 'absolute',
     height: 3,
-    backgroundColor: '#00ff88',
+    backgroundColor: tokens.colors.legacy.legacy_00ff88,
     borderRadius: 1.5,
     opacity: 0.9,
-    shadowColor: '#00ff88',
+    shadowColor: tokens.colors.legacy.legacy_00ff88,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 2,
@@ -457,47 +457,47 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#00ff88',
-    shadowColor: '#00ff88',
+    backgroundColor: tokens.colors.legacy.legacy_00ff88,
+    shadowColor: tokens.colors.legacy.legacy_00ff88,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 2,
     elevation: 2
   },
   startPoint: {
-    backgroundColor: '#00ff88',
+    backgroundColor: tokens.colors.legacy.legacy_00ff88,
     width: 12,
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
     borderColor: tokens.colors.background.default,
-    shadowColor: '#00ff88',
+    shadowColor: tokens.colors.legacy.legacy_00ff88,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
     elevation: 4
   },
   endPoint: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: tokens.colors.legacy.legacy_ff6b6b,
     width: 10,
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
     borderColor: tokens.colors.background.default,
-    shadowColor: '#ff6b6b',
+    shadowColor: tokens.colors.legacy.legacy_ff6b6b,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
     elevation: 4
   },
   currentPoint: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: tokens.colors.legacy.legacy_ff6b6b,
     width: 14,
     height: 14,
     borderRadius: 7,
     borderWidth: 3,
     borderColor: tokens.colors.background.default,
-    shadowColor: '#ff6b6b',
+    shadowColor: tokens.colors.legacy.legacy_ff6b6b,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 6,
@@ -521,10 +521,10 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#007AFF',
+    backgroundColor: tokens.colors.3rd_party.facebook.base,
     borderWidth: 3,
     borderColor: tokens.colors.background.default,
-    shadowColor: '#007AFF',
+    shadowColor: tokens.colors.3rd_party.facebook.base,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
@@ -553,12 +553,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: tokens.colors.ink.dark,
     marginBottom: 2
   },
   statLabel: {
     fontSize: 10,
-    color: '#666',
+    color: tokens.colors.ink.light,
     textAlign: 'center',
     textTransform: 'uppercase'
   },
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#333',
+    color: tokens.colors.ink.dark,
     marginBottom: 6
   },
   debugInfo: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: 10,
-    color: '#666',
+    color: tokens.colors.ink.light,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
   // Map-like background patterns
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2a2a2a'
+    backgroundColor: tokens.colors.legacy.darkSurface
   },
   parkArea: {
     position: 'absolute',
