@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { tokens } from '../../theme/tokens';
+import { ThemeProvider } from '../../theme/ThemeProvider';
 
 // CRITICAL: ErrorBoundary is exported FIRST Ã¢ÂÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
@@ -294,7 +295,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <SafeAreaProvider>
-            <RootLayoutInner />
+            <ThemeProvider>
+              <RootLayoutInner />
+            </ThemeProvider>
           </SafeAreaProvider>
         </ErrorBoundary>
       </QueryClientProvider>
