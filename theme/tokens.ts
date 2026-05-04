@@ -12,7 +12,7 @@
  */
 
 export const colors = {
-  "3rd_party": {
+  "third_party": {
     facebook: {
       base: "#0078FF",
       dark: "#0067DB"
