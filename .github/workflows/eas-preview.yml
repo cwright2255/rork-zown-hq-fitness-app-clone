@@ -45,7 +45,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install JS dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Resolve EAS branch name
         id: branch
