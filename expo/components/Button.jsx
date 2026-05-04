@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 const Button = React.memo(({
   title,
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: {
       width: 0,
       height: 2

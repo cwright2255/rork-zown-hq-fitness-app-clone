@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Heart } from 'lucide-react-native';
+import { tokens } from '../../theme/tokens';
 
 const ProductCard = ({ product, onPress, onAddToCart, compact = false }) => {
   const { name, price, imageUrl } = product;
@@ -27,13 +28,13 @@ const ProductCard = ({ product, onPress, onAddToCart, compact = false }) => {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, overflow: 'hidden',
   },
   compact: { width: 160 },
   imageWrap: { position: 'relative' },
-  image: { width: '100%', height: 160, backgroundColor: '#0A0A0A' },
+  image: { width: '100%', height: 160, backgroundColor: tokens.colors.ink.darkest },
   heart: {
     position: 'absolute', top: 10, right: 10,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -41,8 +42,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   body: { padding: 12 },
-  name: { color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  price: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  name: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  price: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
 });
 
 export default ProductCard;
