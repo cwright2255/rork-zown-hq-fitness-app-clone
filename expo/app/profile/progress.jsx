@@ -15,6 +15,7 @@ import ChampionPassTier from '@/components/ChampionPassTier';
 import StreakCalendar from '@/components/StreakCalendar';
 import BadgeItem from '@/components/BadgeItem';
 import AchievementCard from '@/components/AchievementCard';
+import { tokens } from '../../../theme/tokens';
 
 
 import { useProgressStore } from '@/store/progressStore';
@@ -388,9 +389,9 @@ export default function ProgressTrackerScreen() {
         
         <View style={styles.streakTips}>
           <Text style={styles.streakTipsTitle}>Streak Tips:</Text>
-          <Text style={styles.streakTip}>• Complete at least one workout every day to maintain your streak</Text>
-          <Text style={styles.streakTip}>• Longer streaks earn you more XP and special badges</Text>
-          <Text style={styles.streakTip}>• If you miss a day, your streak will reset to zero</Text>
+          <Text style={styles.streakTip}>â¢ Complete at least one workout every day to maintain your streak</Text>
+          <Text style={styles.streakTip}>â¢ Longer streaks earn you more XP and special badges</Text>
+          <Text style={styles.streakTip}>â¢ If you miss a day, your streak will reset to zero</Text>
         </View>
         
         <View style={styles.streakRewards}>
@@ -1307,7 +1308,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,

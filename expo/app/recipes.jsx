@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useRecipeStore } from '@/store/recipeStore';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -121,20 +122,20 @@ export default function RecipesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   pillRow: { paddingHorizontal: 16, paddingVertical: 8, maxHeight: 56 },
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
-  pillActive: { backgroundColor: '#fff' },
-  pillInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.background.default },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, marginBottom: 12, overflow: 'hidden',
   },
   image: { width: '100%', height: 160 },
   imagePh: { backgroundColor: '#2A2A2A' },
   cardBody: { padding: 14 },
-  cardName: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  cardName: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999 },
   chipText: { fontSize: 11, fontWeight: '600' },

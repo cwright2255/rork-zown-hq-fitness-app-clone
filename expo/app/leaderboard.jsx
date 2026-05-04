@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Trophy } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -61,8 +62,8 @@ export default function LeaderboardScreen() {
             <Avatar uri={first?.avatar} size={72} />
             <Text style={styles.podiumName} numberOfLines={1}>{first?.name}</Text>
             <Text style={styles.podiumPts}>{first?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 110, backgroundColor: '#fff' }]}>
-              <Text style={[styles.podiumPlace, { color: '#000' }]}>1</Text>
+            <View style={[styles.podiumBar, { height: 110, backgroundColor: tokens.colors.background.default }]}>
+              <Text style={[styles.podiumPlace, { color: tokens.colors.grayscale.black }]}>1</Text>
             </View>
           </View>
           <View style={styles.podiumSpot}>
@@ -80,7 +81,7 @@ export default function LeaderboardScreen() {
           <View key={u.id} style={[styles.row, u.isMe && styles.rowMe]}>
             <Text style={styles.rank}>{idx + 4}</Text>
             <Avatar uri={u.avatar} />
-            <Text style={[styles.name, u.isMe && { color: '#fff', fontWeight: '700' }]}>
+            <Text style={[styles.name, u.isMe && { color: tokens.colors.background.default, fontWeight: '700' }]}>
               {u.name}
             </Text>
             <Text style={styles.pts}>{u.pts}</Text>
@@ -92,22 +93,22 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   filters: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   filterPill: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
-  filterPillActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  filterPillActive: { backgroundColor: tokens.colors.background.default, borderColor: tokens.colors.background.default },
   filterText: { color: '#999', fontSize: 13, fontWeight: '600' },
-  filterTextActive: { color: '#000' },
+  filterTextActive: { color: tokens.colors.grayscale.black },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'center', gap: 12, marginBottom: 24,
   },
   podiumSpot: { alignItems: 'center', flex: 1 },
   podiumName: {
-    color: '#fff', fontSize: 12, fontWeight: '600', marginTop: 6,
+    color: tokens.colors.background.default, fontSize: 12, fontWeight: '600', marginTop: 6,
     maxWidth: 80,
   },
   podiumPts: { color: '#999', fontSize: 11, marginTop: 2 },
@@ -116,18 +117,18 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderTopLeftRadius: 12, borderTopRightRadius: 12,
   },
-  podiumPlace: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  podiumPlace: { color: tokens.colors.background.default, fontSize: 20, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 12,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, marginBottom: 8,
   },
-  rowMe: { borderColor: '#fff', borderWidth: 2 },
+  rowMe: { borderColor: tokens.colors.background.default, borderWidth: 2 },
   rank: { color: '#999', fontSize: 14, fontWeight: '700', width: 24 },
   name: { color: '#999', fontSize: 14, fontWeight: '500', flex: 1 },
-  pts: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  pts: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
 });

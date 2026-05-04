@@ -21,6 +21,7 @@ import Button from '@/components/Button';
 import BadgeItem from '@/components/BadgeItem';
 import ExpBreakdownChart from '@/components/ExpBreakdownChart';
 import ExpActivityList from '@/components/ExpActivityList';
+import { tokens } from '../../theme/tokens';
 
 import { getSubscriptionPlan } from '@/constants/subscriptionPlans';
 import { authService } from '@/services/authService';
@@ -1061,11 +1062,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   content: {
     padding: 16,
@@ -1078,7 +1079,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#2A2A2A'
@@ -1093,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: '#FFFFFF'
+    borderBottomColor: tokens.colors.background.default
   },
   tabButtonText: {
     fontSize: 14,
@@ -1101,7 +1102,7 @@ const styles = StyleSheet.create({
     color: '#999999'
   },
   activeTabButtonText: {
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     fontWeight: '600'
   },
   tabHeader: {
@@ -1113,14 +1114,14 @@ const styles = StyleSheet.create({
   tabTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   backButton: {
     padding: 8
   },
   backButtonText: {
     fontSize: 14,
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   profileHeader: {
     flexDirection: 'row',
@@ -1141,14 +1142,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     width: 28,
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#1A1A1A'
+    borderColor: tokens.colors.ink.darker
   },
   profileInfo: {
     flex: 1
@@ -1162,7 +1163,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   tierBadge: {
     paddingHorizontal: 8,
@@ -1199,7 +1200,7 @@ const styles = StyleSheet.create({
   championPassText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginLeft: 8
   },
   championPassBar: {
@@ -1210,7 +1211,7 @@ const styles = StyleSheet.create({
   },
   championPassFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     borderRadius: 3
   },
   championPassPercentage: {
@@ -1234,7 +1235,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   statLabel: {
@@ -1270,7 +1271,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   menuDivider: {
     height: 1,
@@ -1285,7 +1286,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 12
   },
   seeAllButton: {
@@ -1294,7 +1295,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginRight: 4
   },
   emptyCard: {
@@ -1364,18 +1365,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: '#000000',
+    backgroundColor: tokens.colors.grayscale.black,
     borderWidth: 1,
     borderColor: '#2A2A2A'
   },
   changePhotoText: {
     fontSize: 14,
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   photoPlaceholder: {
     height: 200,
     borderRadius: 12,
-    backgroundColor: '#000000',
+    backgroundColor: tokens.colors.grayscale.black,
     borderWidth: 1,
     borderColor: '#2A2A2A',
     borderStyle: 'dashed',
@@ -1425,7 +1426,7 @@ const styles = StyleSheet.create({
   progressValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   viewHistoryButton: {
     flexDirection: 'row',
@@ -1435,7 +1436,7 @@ const styles = StyleSheet.create({
   },
   viewHistoryText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginRight: 4
   },
   noProgressContainer: {
@@ -1463,10 +1464,10 @@ const styles = StyleSheet.create({
   progressEntryDate: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   latestBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 8
@@ -1474,7 +1475,7 @@ const styles = StyleSheet.create({
   latestBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#000000'
+    color: tokens.colors.grayscale.black
   },
   progressEntryContent: {
     flexDirection: 'row'
@@ -1494,7 +1495,7 @@ const styles = StyleSheet.create({
   progressEntryValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   progressEntryPhoto: {
     width: 100,
@@ -1516,7 +1517,7 @@ const styles = StyleSheet.create({
   },
   progressEntryNotesText: {
     fontSize: 14,
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   badgesStatsCard: {
     marginBottom: 16
@@ -1534,7 +1535,7 @@ const styles = StyleSheet.create({
   badgesStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   badgesStatLabel: {
@@ -1549,7 +1550,7 @@ const styles = StyleSheet.create({
   badgesCategoryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 12,
     marginTop: 8
   },
@@ -1564,7 +1565,7 @@ const styles = StyleSheet.create({
   },
   // EXP Dashboard styles
   expHeader: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     padding: 20,
     borderRadius: 12,
     marginBottom: 20
@@ -1579,7 +1580,7 @@ const styles = StyleSheet.create({
   expHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   expHeaderSubtitle: {
     fontSize: 14,
@@ -1594,7 +1595,7 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderRadius: 12,
     padding: 12 // Reduced padding
   },
@@ -1605,7 +1606,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18, // Reduced font size
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   summaryLabel: {
@@ -1630,7 +1631,7 @@ const styles = StyleSheet.create({
   viewFullDashboardText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginRight: 4
   },
   // EXP Summary Card
@@ -1653,12 +1654,12 @@ const styles = StyleSheet.create({
   expSummaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginLeft: 8
   },
   expSummaryTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   }
 });

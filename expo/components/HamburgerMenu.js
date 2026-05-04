@@ -5,6 +5,7 @@ import { X, Home, Dumbbell, Utensils, TrendingUp, ShoppingBag, Trophy, Soup, Use
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
+import { tokens } from '../../theme/tokens';
 
 const { width } = Dimensions.get('window');
 
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     height: '100%',
     backgroundColor: Colors.card,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

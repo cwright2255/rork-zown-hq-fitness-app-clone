@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { Bell, Trophy, Droplets, Users } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -37,7 +38,7 @@ export default function NotificationsScreen() {
                 onPress={() => handleMark(n.id)}
                 style={[styles.row, n.unread && styles.rowUnread]}>
                 <View style={styles.icon}>
-                  <Icon size={18} color="#fff" />
+                  <Icon size={18} color={tokens.colors.background.default} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{n.title}</Text>
@@ -55,27 +56,27 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 8,
   },
-  rowUnread: { borderLeftWidth: 3, borderLeftColor: '#fff' },
+  rowUnread: { borderLeftWidth: 3, borderLeftColor: tokens.colors.background.default },
   icon: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  title: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
   body: { color: '#999', fontSize: 13, lineHeight: 18, marginTop: 2 },
   time: { color: '#666', fontSize: 11, marginTop: 4 },
   dot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#fff', marginTop: 6,
+    backgroundColor: tokens.colors.background.default, marginTop: 6,
   },
   emptyCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 40, alignItems: 'center', gap: 10,
   },
   empty: { color: '#999', fontSize: 14 },

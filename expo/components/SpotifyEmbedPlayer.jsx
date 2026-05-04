@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { X, Minimize2, Maximize2 } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
+import { tokens } from '../../theme/tokens';
 
 const SPOTIFY_EMBED_ACCESS_TOKEN = 'CEA04C0C-5C3F462C-A802EEF4-6F9ED74A';
 const DEFAULT_WORKOUT_PLAYLIST_ID = '37i9dQZF1DX76Wlfdnj7AP';
@@ -48,13 +49,13 @@ function SpotifyEmbedPlayerNative({ trackId, playlistId, type, trackName, artist
             style={styles.headerButton}
             onPress={() => setIsExpanded(!isExpanded)}>
             {isExpanded ?
-              <Minimize2 size={16} color="#fff" /> :
-              <Maximize2 size={16} color="#fff" />
+              <Minimize2 size={16} color={tokens.colors.background.default} /> :
+              <Maximize2 size={16} color={tokens.colors.background.default} />
             }
           </TouchableOpacity>
           {onClose &&
             <TouchableOpacity style={styles.headerButton} onPress={onClose}>
-              <X size={16} color="#fff" />
+              <X size={16} color={tokens.colors.background.default} />
             </TouchableOpacity>
           }
         </View>
@@ -107,13 +108,13 @@ function SpotifyEmbedPlayerWeb({ trackId, playlistId, type, trackName, artistNam
             style={styles.headerButton}
             onPress={() => setIsExpanded(!isExpanded)}>
             {isExpanded ?
-              <Minimize2 size={16} color="#fff" /> :
-              <Maximize2 size={16} color="#fff" />
+              <Minimize2 size={16} color={tokens.colors.background.default} /> :
+              <Maximize2 size={16} color={tokens.colors.background.default} />
             }
           </TouchableOpacity>
           {onClose &&
             <TouchableOpacity style={styles.headerButton} onPress={onClose}>
-              <X size={16} color="#fff" />
+              <X size={16} color={tokens.colors.background.default} />
             </TouchableOpacity>
           }
         </View>
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   headerTrackName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff'
+    color: tokens.colors.background.default
   },
   headerArtistName: {
     fontSize: 11,
