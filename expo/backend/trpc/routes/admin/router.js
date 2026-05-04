@@ -6,7 +6,7 @@ let CONFIG = {
   maintenanceMode: false,
   featureFlags: {},
   theme: {
-    primary: tokens.colors.3rd_party.twitter.base,
+    primary: tokens.colors.third_party.twitter.base,
     accent: tokens.colors.green.light
   }
 };

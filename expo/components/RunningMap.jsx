@@ -7,7 +7,7 @@ import { tokens } from '../../theme/tokens';
 // Ensure Colors.running exists
 if (!Colors.running) {
   Colors.running = {
-    primary: tokens.colors.3rd_party.facebook.base,
+    primary: tokens.colors.third_party.facebook.base,
     secondary: tokens.colors.blue.light,
     distance: tokens.colors.green.light,
     pace: tokens.colors.legacy.legacy_ff9500,
@@ -210,7 +210,7 @@ export default function RunningMap({
     if (coordinates.length === 0) {
       return (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>Ã°ÂÂÂ</Text>
+          <Text style={styles.noDataText}>ÃÂ°ÃÂÃÂÃÂ</Text>
           <Text style={styles.noDataSubtext}>Waiting for GPS signal...</Text>
           <Text style={styles.noDataHint}>Press START to begin tracking</Text>
         </View>);
@@ -521,10 +521,10 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: tokens.colors.3rd_party.facebook.base,
+    backgroundColor: tokens.colors.third_party.facebook.base,
     borderWidth: 3,
     borderColor: tokens.colors.background.default,
-    shadowColor: tokens.colors.3rd_party.facebook.base,
+    shadowColor: tokens.colors.third_party.facebook.base,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,

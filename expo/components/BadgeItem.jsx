@@ -17,7 +17,7 @@ const BadgeItem = ({
       case 'uncommon':
         return tokens.colors.green.base;
       case 'rare':
-        return tokens.colors.3rd_party.twitter.base;
+        return tokens.colors.third_party.twitter.base;
       case 'epic':
         return tokens.colors.legacy.legacy_9b59b6;
       case 'legendary':

@@ -12,7 +12,7 @@ const MetricCard = ({ title, value, target, unit, icon }) => {
       case 'activity':
         return <Activity size={24} color=tokens.colors.brand.base />;
       case 'droplets':
-        return <Droplets size={24} color=tokens.colors.3rd_party.twitter.base />;
+        return <Droplets size={24} color=tokens.colors.third_party.twitter.base />;
       case 'flame':
         return <Flame size={24} color=tokens.colors.legacy.legacy_ef4444 />;
       case 'footprints':

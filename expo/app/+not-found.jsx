@@ -36,6 +36,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: tokens.colors.3rd_party.twitter.dark
+    color: tokens.colors.third_party.twitter.dark
   }
 });

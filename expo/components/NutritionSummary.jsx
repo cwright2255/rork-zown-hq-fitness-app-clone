@@ -153,7 +153,7 @@ const NutritionSummary = ({
           <ProgressBar
             progress={carbsProgress}
             height={6}
-            progressColor=tokens.colors.3rd_party.twitter.dark />
+            progressColor=tokens.colors.third_party.twitter.dark />
           
         </View>
         

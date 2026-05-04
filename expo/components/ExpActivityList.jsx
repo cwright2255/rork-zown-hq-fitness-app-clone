@@ -28,7 +28,7 @@ const ExpActivityItem = memo(function ExpActivityItem({ activity }) {
         return <MapPin size={20} color={Colors.primary} />;
       case 'meal':
         if (activity.subtype && activity.subtype === 'hydration') {
-          return <Droplet size={20} color=tokens.colors.3rd_party.twitter.base />;
+          return <Droplet size={20} color=tokens.colors.third_party.twitter.base />;
         }
         return <Utensils size={20} color={Colors.success} />;
       case 'workout':
