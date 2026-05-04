@@ -73,7 +73,7 @@ jobs:
           fi
 
       - name: Publish JS update to EAS
-        run: eas update --branch "${{ steps.branch.outputs.name }}" --channel preview --message "${{ steps.message.outputs.text }}" --non-interactive
+        run: eas update --branch "${{ steps.branch.outputs.name }}" --message "${{ steps.message.outputs.text }}" --non-interactive
 
       - name: Comment QR + preview link on PR
         if: github.event_name == 'pull_request'
