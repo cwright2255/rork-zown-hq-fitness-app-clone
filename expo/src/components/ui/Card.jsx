@@ -36,6 +36,7 @@ export function Card({
       </TouchableOpacity>);
 
   }
+import { tokens } from '../../../../theme/tokens';
 
   return (
     <View accessibilityLabel={accessibilityLabel} style={containerStyle} {...rest}>
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border
   },
   shadow: {
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
