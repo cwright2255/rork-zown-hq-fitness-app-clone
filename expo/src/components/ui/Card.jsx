@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-import { tokens } from '../../../../theme/tokens';
   StyleSheet,
   TouchableOpacity,
   View } from
@@ -37,6 +36,7 @@ export function Card({
       </TouchableOpacity>);
 
   }
+import { tokens } from '../../../../theme/tokens';
 
   return (
     <View accessibilityLabel={accessibilityLabel} style={containerStyle} {...rest}>

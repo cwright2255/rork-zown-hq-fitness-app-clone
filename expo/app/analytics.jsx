@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-import { tokens } from '../../theme/tokens';
   View,
   Text,
   ScrollView,
@@ -8,6 +7,7 @@ import { tokens } from '../../theme/tokens';
   StyleSheet,
   Image,
 } from 'react-native';
+import { tokens } from '../../theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import {

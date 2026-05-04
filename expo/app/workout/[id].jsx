@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -9,6 +8,7 @@ import { tokens } from '../../../theme/tokens';
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { tokens } from '../../../theme/tokens';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
@@ -77,7 +77,7 @@ export default function WorkoutDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLOR_TEXT} />
-          <Text style={styles.loadingText}>Loading exerciseÃ¢ÂÂ¦</Text>
+          <Text style={styles.loadingText}>Loading exerciseÃÂ¢ÃÂÃÂ¦</Text>
         </View>
       </SafeAreaView>
     );

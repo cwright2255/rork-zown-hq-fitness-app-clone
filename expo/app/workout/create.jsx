@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -13,6 +12,7 @@ import { tokens } from '../../../theme/tokens';
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { tokens } from '../../../theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Plus, Trash, Search, X, BookOpen } from 'lucide-react-native';
@@ -365,7 +365,7 @@ export default function CreateWorkoutScreen() {
           {libraryLoading && libraryExercises.length === 0 ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={colors.text} />
-              <Text style={styles.loadingText}>Loading exercisesâ¦</Text>
+              <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
             </View>
           ) : (
             <FlatList
@@ -390,7 +390,7 @@ export default function CreateWorkoutScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.libTitle} numberOfLines={2}>{item.name}</Text>
                       <Text style={styles.libMeta} numberOfLines={1}>
-                        {[equipment, target].filter(Boolean).join(' â¢ ')}
+                        {[equipment, target].filter(Boolean).join(' Ã¢ÂÂ¢ ')}
                       </Text>
                     </View>
                   </TouchableOpacity>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-import { tokens } from '../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -11,6 +10,7 @@ import { tokens } from '../../theme/tokens';
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { tokens } from '../../theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 'lucide-react-native';
@@ -48,7 +48,7 @@ function ExerciseRow({ exercise }) {
         <Text style={styles.rowTitle} numberOfLines={2}>{exercise.name}</Text>
         <View style={styles.rowTags}>
           {!!equipment && <Text style={styles.rowTag}>{equipment}</Text>}
-          {!!target && <Text style={styles.rowTag}>â¢ {target}</Text>}
+          {!!target && <Text style={styles.rowTag}>Ã¢ÂÂ¢ {target}</Text>}
         </View>
       </View>
       <ChevronRight size={18} color={colors.textSecondary} />
@@ -138,7 +138,7 @@ export default function WorkoutsScreen() {
       {isLoading && list.length === 0 ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={colors.text} />
-          <Text style={styles.loadingText}>Loading exercisesâ¦</Text>
+          <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
         </View>
       ) : (
         <FlatList

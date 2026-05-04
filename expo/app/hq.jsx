@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import {
-import { tokens } from '../../theme/tokens';
   Dumbbell,
   Utensils,
   Users,
@@ -17,6 +16,7 @@ import { tokens } from '../../theme/tokens';
   CheckSquare,
   Square,
 } from 'lucide-react-native';
+import { tokens } from '../../theme/tokens';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import StatCard from '@/components/StatCard';
 import ScreenHeader from '@/components/ScreenHeader';

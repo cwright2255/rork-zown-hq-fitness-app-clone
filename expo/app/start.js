@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-import { tokens } from '../../theme/tokens';
   View,
   StyleSheet,
   Pressable,
@@ -67,6 +66,7 @@ function StartScreenContent() {
             } catch (fallbackError) {
               console.error('[StartScreen] Fallback navigation error', fallbackError);
             }
+import { tokens } from '../../theme/tokens';
           }, 100);
         }
       }

@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-import { tokens } from '../../../theme/tokens';
   View,
   Text,
   TextInput,
@@ -11,6 +10,7 @@ import { tokens } from '../../../theme/tokens';
   Platform,
   ScrollView,
 } from 'react-native';
+import { tokens } from '../../../theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Eye, EyeOff, Mail, Lock, User, ChevronLeft, Target, Dumbbell, Flame, TrendingUp, Activity, Zap } from 'lucide-react-native';

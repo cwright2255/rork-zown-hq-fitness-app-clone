@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -123,6 +122,7 @@ export default function ActiveWorkoutScreen() {
           // Wait for initialization
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
+import { tokens } from '../../../theme/tokens';
 
         if (mode === 'running' && sessionId && programId) {
           // Handle running session
@@ -614,7 +614,7 @@ export default function ActiveWorkoutScreen() {
           <View style={styles.previewHandle} />
           <Text style={styles.previewTitle}>Next Workouts</Text>
           <TouchableOpacity onPress={closePreview} style={styles.closePreviewButton}>
-            <Text style={styles.closePreviewText}>ÃÂ</Text>
+            <Text style={styles.closePreviewText}>ÃÂÃÂ</Text>
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.previewContent} showsVerticalScrollIndicator={false}>
@@ -634,7 +634,7 @@ export default function ActiveWorkoutScreen() {
               <View style={styles.nextWorkoutInfo}>
                 <Text style={styles.nextWorkoutName}>{nextWorkout.name}</Text>
                 <Text style={styles.nextWorkoutDetails}>
-                  {nextWorkout.duration} min Ã¢ÂÂ¢ {nextWorkout.difficulty}
+                  {nextWorkout.duration} min ÃÂ¢ÃÂÃÂ¢ {nextWorkout.difficulty}
                 </Text>
                 <Text style={styles.nextWorkoutCategory}>{nextWorkout.category}</Text>
               </View>
@@ -1022,10 +1022,10 @@ export default function ActiveWorkoutScreen() {
                 </Text>
                 
                 <View style={styles.permissionFeatures}>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Track your running route</Text>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Calculate distance and pace</Text>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Show your progress on a map</Text>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Provide accurate workout data</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Track your running route</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Calculate distance and pace</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Show your progress on a map</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Provide accurate workout data</Text>
                 </View>
                 
                 {locationPermission === 'loading' ?

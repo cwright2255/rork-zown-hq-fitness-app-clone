@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-import { tokens } from '../../../theme/tokens';
   View,
   Text,
   StyleSheet,
@@ -10,6 +9,7 @@ import { tokens } from '../../../theme/tokens';
   TouchableOpacity,
   TextInput,
 } from 'react-native';
+import { tokens } from '../../../theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import {
@@ -159,7 +159,7 @@ export default function SettingsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.loadingText}>Loadingâ¦</Text>
+        <Text style={styles.loadingText}>LoadingÃ¢ÂÂ¦</Text>
       </SafeAreaView>
     );
   }
@@ -254,7 +254,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.connectPillText}>
-                  {isConnecting ? 'Connectingâ¦' : 'Connect'}
+                  {isConnecting ? 'ConnectingÃ¢ÂÂ¦' : 'Connect'}
                 </Text>
               </TouchableOpacity>
             </View>
