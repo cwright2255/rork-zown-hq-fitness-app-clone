@@ -7,6 +7,7 @@ import Colors from '@/constants/colors';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useProgressStore } from '@/store/progressStore';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
     aspectRatio: 3 / 4,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   camera: {
     width: '100%',

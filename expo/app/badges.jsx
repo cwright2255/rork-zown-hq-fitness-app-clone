@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Award, Lock } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useBadgeStore } from '@/store/badgeStore';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -25,7 +26,7 @@ export default function BadgesScreen() {
       key={b.id}
       style={[styles.badge, isLocked && { opacity: 0.4 }]}>
       <View style={styles.badgeIcon}>
-        {isLocked ? <Lock size={24} color="#999" /> : <Award size={24} color="#fff" />}
+        {isLocked ? <Lock size={24} color="#999" /> : <Award size={24} color={tokens.colors.background.default} />}
       </View>
       <Text style={styles.badgeName} numberOfLines={2}>{b.name || b.title}</Text>
       {b.description ? (
@@ -53,7 +54,7 @@ export default function BadgesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 12,
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
     width: '31.5%',
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, alignItems: 'center',
   },
   badgeIcon: {
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
   badgeName: {
-    color: '#fff', fontSize: 12, fontWeight: '600',
+    color: tokens.colors.background.default, fontSize: 12, fontWeight: '600',
     textAlign: 'center',
   },
   badgeDesc: {

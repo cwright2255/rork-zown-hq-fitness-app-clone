@@ -6,6 +6,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { getFoodById } from '@/services/passioService';
+import { tokens } from '../../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -36,7 +37,7 @@ export default function FoodDetailScreen() {
     return (
       <View style={styles.container}>
         <ScreenHeader showBack />
-        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.center}><ActivityIndicator color={tokens.colors.background.default} /></View>
       </View>
     );
   }
@@ -125,13 +126,13 @@ export default function FoodDetailScreen() {
           <TouchableOpacity
             style={styles.stepBtn}
             onPress={() => setQuantity(Math.max(0.5, quantity - 0.5))}>
-            <Minus size={18} color="#fff" />
+            <Minus size={18} color={tokens.colors.background.default} />
           </TouchableOpacity>
           <Text style={styles.qtyText}>{quantity}x</Text>
           <TouchableOpacity
             style={styles.stepBtn}
             onPress={() => setQuantity(quantity + 0.5)}>
-            <Plus size={18} color="#fff" />
+            <Plus size={18} color={tokens.colors.background.default} />
           </TouchableOpacity>
         </View>
 
@@ -161,29 +162,29 @@ export default function FoodDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
   serving: { fontSize: 13, color: '#999', marginTop: 4 },
   calWrap: { alignItems: 'center', marginVertical: 24 },
-  calNumber: { fontSize: 48, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.background.default, letterSpacing: -1 },
   calLabel: { fontSize: 14, color: '#999', marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 12,
   },
   macroCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   macroRow: { marginBottom: 12 },
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  macroLabel: { color: '#fff', fontSize: 14 },
-  macroValue: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  macroLabel: { color: tokens.colors.background.default, fontSize: 14 },
+  macroValue: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
   track: { height: 6, backgroundColor: '#2A2A2A', borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
@@ -192,11 +193,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  qtyText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  qtyText: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600' },
   mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
-  pillActive: { backgroundColor: '#fff' },
-  pillInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.background.default },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

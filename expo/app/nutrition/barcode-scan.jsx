@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { ScanLine } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -70,7 +71,7 @@ export default function BarcodeScanScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ScreenHeader title="Scan Barcode" showBack />
-        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.center}><ActivityIndicator color={tokens.colors.background.default} /></View>
       </SafeAreaView>
     );
   }
@@ -142,7 +143,7 @@ export default function BarcodeScanScreen() {
           </View>
           {isLookingUp ? (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator color="#fff" size="large" />
+              <ActivityIndicator color={tokens.colors.background.default} size="large" />
               <Text style={styles.loadingText}>Looking up product...</Text>
             </View>
           ) : null}
@@ -153,30 +154,30 @@ export default function BarcodeScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   camera: { flex: 1 },
   overlay: { flex: 1 },
   scanArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scanFrame: {
     width: 260, height: 160,
-    borderWidth: 2, borderColor: '#fff', borderRadius: 16,
+    borderWidth: 2, borderColor: tokens.colors.background.default, borderRadius: 16,
   },
-  hint: { color: '#fff', marginTop: 16, fontSize: 14 },
+  hint: { color: tokens.colors.background.default, marginTop: 16, fontSize: 14 },
   loadingOverlay: {
     position: 'absolute', inset: 0,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center', justifyContent: 'center',
   },
-  loadingText: { color: '#fff', marginTop: 12 },
+  loadingText: { color: tokens.colors.background.default, marginTop: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   permWrap: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  permTitle: { fontSize: 20, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  permTitle: { fontSize: 20, fontWeight: '700', color: tokens.colors.background.default, textAlign: 'center' },
   permText: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 },
   resultCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20,
   },
-  productName: { fontSize: 22, fontWeight: '700', color: '#fff' },
+  productName: { fontSize: 22, fontWeight: '700', color: tokens.colors.background.default },
   brandName: { fontSize: 14, color: '#999', marginTop: 4 },
   barcodeText: { fontSize: 12, color: '#666', marginTop: 8 },
   divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 16 },
@@ -187,6 +188,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 12,
     alignItems: 'center',
   },
-  nutritionValue: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  nutritionValue: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '700' },
   nutritionLabel: { color: '#999', fontSize: 12, marginTop: 2 },
 });

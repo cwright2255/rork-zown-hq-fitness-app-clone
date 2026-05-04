@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-nati
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -88,24 +89,24 @@ export default function HealthAssessmentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  progressTrack: { height: 2, backgroundColor: '#1A1A1A' },
-  progressFill: { height: 2, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  progressTrack: { height: 2, backgroundColor: tokens.colors.ink.darker },
+  progressFill: { height: 2, backgroundColor: tokens.colors.background.default },
   stepLabel: {
     color: '#999', fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', marginBottom: 12,
   },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20,
   },
-  question: { color: '#fff', fontSize: 18, fontWeight: '600', lineHeight: 24 },
+  question: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600', lineHeight: 24 },
   option: {
     backgroundColor: '#0F0F0F', borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 12, padding: 16,
   },
-  optionActive: { borderColor: '#fff', borderWidth: 2 },
+  optionActive: { borderColor: tokens.colors.background.default, borderWidth: 2 },
   optionText: { color: '#999', fontSize: 15, fontWeight: '500' },
-  optionTextActive: { color: '#fff', fontWeight: '600' },
+  optionTextActive: { color: tokens.colors.background.default, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

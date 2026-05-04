@@ -66,6 +66,7 @@ function StartScreenContent() {
             } catch (fallbackError) {
               console.error('[StartScreen] Fallback navigation error', fallbackError);
             }
+import { tokens } from '../../theme/tokens';
           }, 100);
         }
       }
@@ -116,14 +117,14 @@ export default function StartScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   layers: {
     flex: 1
   },
   whiteCover: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.background.default,
     zIndex: 1
   },
   pressArea: {

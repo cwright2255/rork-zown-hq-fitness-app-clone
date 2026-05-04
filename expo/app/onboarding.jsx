@@ -7,6 +7,7 @@ import { ChevronLeft, Scan } from 'lucide-react-native';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: '#000' },
+  pillTextActive: { color: tokens.colors.grayscale.black },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',

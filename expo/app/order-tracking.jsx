@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { Check } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useOrderStore } from '@/store/orderStore';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -69,7 +70,7 @@ export default function OrderTrackingScreen() {
                           styles.dot,
                           ev.completed ? styles.dotDone : styles.dotPending,
                         ]}>
-                        {ev.completed ? <Check size={12} color="#000" /> : null}
+                        {ev.completed ? <Check size={12} color={tokens.colors.grayscale.black} /> : null}
                       </View>
                       {!isLast ? (
                         <View style={[styles.line, ev.completed && styles.lineDone]} />
@@ -96,21 +97,21 @@ export default function OrderTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: '#999' },
   tabs: { paddingHorizontal: 16, paddingVertical: 8, maxHeight: 60 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
-  tabActive: { backgroundColor: '#fff' },
-  tabInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  tabActive: { backgroundColor: tokens.colors.background.default },
+  tabInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   tabText: { fontSize: 13, fontWeight: '600' },
   orderCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
-  orderNum: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  orderNum: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '700' },
   orderDate: { color: '#999', fontSize: 13, marginTop: 4 },
-  orderTotal: { color: '#fff', fontSize: 14, marginTop: 8 },
+  orderTotal: { color: tokens.colors.background.default, fontSize: 14, marginTop: 8 },
   statusBadge: {
     alignSelf: 'flex-start', marginTop: 8,
     backgroundColor: 'rgba(34,197,94,0.15)',
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 20,
   },
   timelineCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   timelineRow: { flexDirection: 'row', minHeight: 60 },
@@ -131,12 +132,12 @@ const styles = StyleSheet.create({
     width: 20, height: 20, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  dotDone: { backgroundColor: '#fff' },
+  dotDone: { backgroundColor: tokens.colors.background.default },
   dotPending: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#333' },
   line: { flex: 1, width: 2, backgroundColor: '#333', marginTop: 2 },
-  lineDone: { backgroundColor: '#fff' },
+  lineDone: { backgroundColor: tokens.colors.background.default },
   timelineContent: { flex: 1, paddingBottom: 16, paddingLeft: 8 },
-  stepName: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  stepName: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '500' },
   stepDesc: { color: '#999', fontSize: 13, marginTop: 2 },
   stepTime: { color: '#666', fontSize: 11, marginTop: 4 },
 });

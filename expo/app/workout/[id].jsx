@@ -17,6 +17,7 @@ import {
   getWorkoutVisualizeUrl,
   normalizeMuscleNames,
 } from '@/services/muscleVisualizerService';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -76,7 +77,7 @@ export default function WorkoutDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLOR_TEXT} />
-          <Text style={styles.loadingText}>Loading exercise…</Text>
+          <Text style={styles.loadingText}>Loading exerciseâ¦</Text>
         </View>
       </SafeAreaView>
     );
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  muscleTagText: { color: '#fff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  muscleTagText: { color: tokens.colors.background.default, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   secondaryText: { color: COLOR_TEXT_SECONDARY, fontSize: 13 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   equipTag: {
