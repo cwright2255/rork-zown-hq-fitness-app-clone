@@ -1,7 +1,7 @@
 /**
- * Fitleus design tokens — auto-generated.
+ * Fitleus design tokens  auto-generated.
  *
- * Source: Figma file "Fitleus – Fitness Mobile App UI Kit"
+ * Source: Figma file "Fitleus  Fitness Mobile App UI Kit"
  * File key: KHk1iWcXDRTCqY5mQhMYbE
  * Extracted: 2026-05-01T19:44:07.897Z
  * Source style count: 95 (FILL/TEXT/EFFECT)
@@ -30,7 +30,8 @@ export const colors = {
     darkest: "#1F83A9",
     light: "#5ECEFA",
     lighter: "#84DAFB",
-    lightest: "#D5F2FE"
+    lightest: "#D5F2FE",
+    base_9b5: "#9B59B6"
   },
   brand: {
     base: "#4564EE",
@@ -51,7 +52,10 @@ export const colors = {
     darkest: "#198155",
     light: "#4CD471",
     lighter: "#7DDE86",
-    lightest: "#ECFCE5"
+    lightest: "#ECFCE5",
+    base_00f: "#00FF88",
+    base_43d: "#43D9AD",
+    base_84c: "#84CC16"
   },
   ink: {
     base: "#404446",
@@ -69,7 +73,10 @@ export const colors = {
     darkest: "#AD0F39",
     light: "#FF4C7B",
     lighter: "#FF769A",
-    lightest: "#FFD0DD"
+    lightest: "#FFD0DD",
+    base_f44: "#F44336",
+    base_f97: "#F97316",
+    base_ff6: "#FF6B6B"
   },
   sky: {
     base: "#CDCFD0",
@@ -99,6 +106,9 @@ export const colors = {
     light: "#FFDF67",
     lighter: "#FFE78A",
     lightest: "#FFF7D7"
+  },
+  orange: {
+    light: "#F59E0B"
   }
 } as const;
 

@@ -26,9 +26,9 @@ import {
   getMuscleVisualizeUrl,
   normalizeMuscleNames,
 } from '@/services/muscleVisualizerService';
-import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEK_VALUES = [40, 65, 50, 80, 70, 55, 90];
@@ -142,7 +142,7 @@ export default function HQScreen() {
     const list = (workouts || []).slice(0, 4);
     const buildThumb = (muscles) => {
       const normalized = normalizeMuscleNames(muscles || []);
-      return getMuscleVisualizeUrl({ muscles: normalized, color: '#E74C3C' });
+      return getMuscleVisualizeUrl({ muscles: normalized, color: tokens.colors.red.base_ff6 });
     };
     if (list.length === 0) {
       return [

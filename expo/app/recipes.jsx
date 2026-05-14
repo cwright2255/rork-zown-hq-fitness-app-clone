@@ -99,16 +99,16 @@ export default function RecipesScreen() {
               <Text style={styles.cardName}>{item.name}</Text>
               <View style={styles.macroRow}>
                 <View style={[styles.chip, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
-                  <Text style={[styles.chipText, { color: '#3B82F6' }]}>{item.protein}g P</Text>
+                  <Text style={[styles.chipText, { color: tokens.colors.brand.lighter }]}>{item.protein}g P</Text>
                 </View>
                 <View style={[styles.chip, { backgroundColor: 'rgba(249,115,22,0.15)' }]}>
-                  <Text style={[styles.chipText, { color: '#F97316' }]}>{item.carbs}g C</Text>
+                  <Text style={[styles.chipText, { color: tokens.colors.red.base_f97 }]}>{item.carbs}g C</Text>
                 </View>
                 <View style={[styles.chip, { backgroundColor: 'rgba(168,85,247,0.15)' }]}>
-                  <Text style={[styles.chipText, { color: '#A855F7' }]}>{item.fat}g F</Text>
+                  <Text style={[styles.chipText, { color: tokens.colors.primary.base }]}>{item.fat}g F</Text>
                 </View>
                 <View style={[styles.chip, { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
-                  <Text style={[styles.chipText, { color: '#22C55E' }]}>{item.calories} kcal</Text>
+                  <Text style={[styles.chipText, { color: tokens.colors.green.light }]}>{item.calories} kcal</Text>
                 </View>
               </View>
             </View>
@@ -126,14 +126,14 @@ const styles = StyleSheet.create({
   pillRow: { paddingHorizontal: 16, paddingVertical: 8, maxHeight: 56 },
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
   pillActive: { backgroundColor: tokens.colors.background.default },
-  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker },
   pillText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
     borderRadius: 16, marginBottom: 12, overflow: 'hidden',
   },
   image: { width: '100%', height: 160 },
-  imagePh: { backgroundColor: '#2A2A2A' },
+  imagePh: { backgroundColor: tokens.colors.ink.darker },
   cardBody: { padding: 14 },
   cardName: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600' },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
