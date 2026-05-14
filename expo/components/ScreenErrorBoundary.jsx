@@ -32,7 +32,7 @@ export class ScreenErrorBoundary extends React.Component {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.grayscale.black },
   title: { fontSize: 18, fontWeight: '700', color: tokens.colors.background.default, marginBottom: 8 },
-  message: { fontSize: 13, color: '#999', textAlign: 'center', marginBottom: 24 },
+  message: { fontSize: 13, color: tokens.colors.sky.dark, textAlign: 'center', marginBottom: 24 },
   button: { backgroundColor: tokens.colors.background.default, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 },
   buttonText: { color: tokens.colors.grayscale.black, fontWeight: '700' },
 });
