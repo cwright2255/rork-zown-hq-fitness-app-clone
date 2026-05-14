@@ -29,6 +29,7 @@ import {
   getHeatmapVisualizeUrl,
   normalizeMuscleNames,
 } from '@/services/muscleVisualizerService';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: '#000' },
+  pillTextActive: { color: tokens.colors.grayscale.black },
   sectionLabel: {
     ...typography.label,
     marginTop: spacing.lg,
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: radius.pill,
   },
-  upgradePillText: { color: '#000', fontWeight: '700', fontSize: 13 },
+  upgradePillText: { color: tokens.colors.grayscale.black, fontWeight: '700', fontSize: 13 },
   activityTiles: {
     flexDirection: 'row',
     gap: spacing.md,

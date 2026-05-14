@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { tokens } from '../../theme/tokens';
 
 import Colors from '@/constants/colors';
 
@@ -209,7 +210,7 @@ export default function RunningMap({
     if (coordinates.length === 0) {
       return (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>📍</Text>
+          <Text style={styles.noDataText}>ð</Text>
           <Text style={styles.noDataSubtext}>Waiting for GPS signal...</Text>
           <Text style={styles.noDataHint}>Press START to begin tracking</Text>
         </View>);
@@ -338,7 +339,7 @@ export default function RunningMap({
 const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: tokens.colors.ink.darker,
     borderRadius: 0,
     overflow: 'hidden',
     position: 'relative'
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
   webMapDiv: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1a1a1a'
+    backgroundColor: tokens.colors.ink.darker
   },
   mapHeader: {
     padding: 16,
@@ -421,7 +422,7 @@ const styles = StyleSheet.create({
   },
   routeVisualization: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: tokens.colors.ink.darker,
     position: 'relative',
     overflow: 'hidden'
   },
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: tokens.colors.background.default,
     shadowColor: '#00ff88',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -482,7 +483,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: tokens.colors.background.default,
     shadowColor: '#ff6b6b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: tokens.colors.background.default,
     shadowColor: '#ff6b6b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -522,7 +523,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#007AFF',
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: tokens.colors.background.default,
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     padding: 12,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#1a1a1a'
+    backgroundColor: tokens.colors.ink.darker
   },
   mapBaseLayer: {
     position: 'absolute',
@@ -631,7 +632,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: tokens.colors.ink.darker,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000
@@ -639,13 +640,13 @@ const styles = StyleSheet.create({
   mapLoadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: tokens.colors.background.default,
     textAlign: 'center'
   },
   currentLocationText: {
     fontSize: 8,
     fontWeight: '600',
-    color: '#fff',
+    color: tokens.colors.background.default,
     marginTop: 4,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -671,7 +672,7 @@ const styles = StyleSheet.create({
   distanceMarkerText: {
     fontSize: 8,
     fontWeight: '600',
-    color: '#fff',
+    color: tokens.colors.background.default,
     textAlign: 'center'
   },
   parkPattern: {

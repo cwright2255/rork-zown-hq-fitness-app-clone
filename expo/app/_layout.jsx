@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST — before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST â before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -20,15 +21,15 @@ export class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#000' }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#fff' }}>Something went wrong</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.grayscale.black }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: tokens.colors.background.default }}>Something went wrong</Text>
           <Text style={{ color: '#999', textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
             {String(this.state.error)}
           </Text>
           <TouchableOpacity
             onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor: '#fff', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
-            <Text style={{ color: '#000', fontWeight: '700' }}>Try Again</Text>
+            style={{ backgroundColor: tokens.colors.background.default, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
+            <Text style={{ color: tokens.colors.grayscale.black, fontWeight: '700' }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -149,7 +150,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component — rendered INSIDE expo-router's navigation context
+// Inner component â rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 function RootLayoutInner() {
   const pathname = usePathname();

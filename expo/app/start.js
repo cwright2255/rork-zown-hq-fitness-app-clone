@@ -11,6 +11,7 @@ import { router, Stack } from 'expo-router';
 import { ErrorBoundary } from '@/components/LoadingScreen';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 function StartScreenContent() {
   const screenH = useMemo(() => Dimensions.get('window').height, []);
@@ -116,14 +117,14 @@ export default function StartScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   layers: {
     flex: 1
   },
   whiteCover: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.background.default,
     zIndex: 1
   },
   pressArea: {

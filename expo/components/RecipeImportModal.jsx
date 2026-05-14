@@ -5,6 +5,7 @@ import Colors from '@/constants/colors';
 import Button from '@/components/Button';
 import recipeExtractionService from '@/services/recipeExtractionService';
 import { useRecipeStore } from '@/store/recipeStore';
+import { tokens } from '../../theme/tokens';
 
 export default function RecipeImportModal({ visible, onClose, onSuccess }) {
   const [activeTab, setActiveTab] = useState('url');
@@ -215,7 +216,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
         <View style={styles.supportedPlatforms}>
           <Text style={styles.supportedTitle}>Supported Platforms</Text>
           <Text style={styles.supportedText}>
-            Instagram • TikTok • YouTube • Pinterest • Facebook • Recipe Websites
+            Instagram â¢ TikTok â¢ YouTube â¢ Pinterest â¢ Facebook â¢ Recipe Websites
           </Text>
         </View>
       </View>
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: Colors.background,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

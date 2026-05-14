@@ -26,6 +26,7 @@ import {
   getMuscleVisualizeUrl,
   normalizeMuscleNames,
 } from '@/services/muscleVisualizerService';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
   },
   taskName: { ...typography.body, fontWeight: '800', flex: 1 },
   taskNameDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
-  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: '#111' },
+  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: tokens.colors.ink.darker },
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
   qa: {
     width: '48%',
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
   leaderLinkText: { ...typography.body, fontWeight: '800', letterSpacing: 1 },
   upgradeCard: {
     flexDirection: 'row',
-    backgroundColor: '#111',
+    backgroundColor: tokens.colors.ink.darker,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,

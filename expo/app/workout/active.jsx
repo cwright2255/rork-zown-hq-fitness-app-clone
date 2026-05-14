@@ -122,6 +122,7 @@ export default function ActiveWorkoutScreen() {
           // Wait for initialization
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
+import { tokens } from '../../../theme/tokens';
 
         if (mode === 'running' && sessionId && programId) {
           // Handle running session
@@ -613,7 +614,7 @@ export default function ActiveWorkoutScreen() {
           <View style={styles.previewHandle} />
           <Text style={styles.previewTitle}>Next Workouts</Text>
           <TouchableOpacity onPress={closePreview} style={styles.closePreviewButton}>
-            <Text style={styles.closePreviewText}>×</Text>
+            <Text style={styles.closePreviewText}>Ã</Text>
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.previewContent} showsVerticalScrollIndicator={false}>
@@ -633,7 +634,7 @@ export default function ActiveWorkoutScreen() {
               <View style={styles.nextWorkoutInfo}>
                 <Text style={styles.nextWorkoutName}>{nextWorkout.name}</Text>
                 <Text style={styles.nextWorkoutDetails}>
-                  {nextWorkout.duration} min • {nextWorkout.difficulty}
+                  {nextWorkout.duration} min â¢ {nextWorkout.difficulty}
                 </Text>
                 <Text style={styles.nextWorkoutCategory}>{nextWorkout.category}</Text>
               </View>
@@ -671,7 +672,7 @@ export default function ActiveWorkoutScreen() {
           
           <View style={styles.photoContainer}>
             <TouchableOpacity style={styles.addPhotoButton}>
-              <Camera size={32} color="#fff" />
+              <Camera size={32} color={tokens.colors.background.default} />
               <Text style={styles.addPhotoText}>Add a Photo</Text>
             </TouchableOpacity>
           </View>
@@ -1021,10 +1022,10 @@ export default function ActiveWorkoutScreen() {
                 </Text>
                 
                 <View style={styles.permissionFeatures}>
-                  <Text style={styles.permissionFeature}>• Track your running route</Text>
-                  <Text style={styles.permissionFeature}>• Calculate distance and pace</Text>
-                  <Text style={styles.permissionFeature}>• Show your progress on a map</Text>
-                  <Text style={styles.permissionFeature}>• Provide accurate workout data</Text>
+                  <Text style={styles.permissionFeature}>â¢ Track your running route</Text>
+                  <Text style={styles.permissionFeature}>â¢ Calculate distance and pace</Text>
+                  <Text style={styles.permissionFeature}>â¢ Show your progress on a map</Text>
+                  <Text style={styles.permissionFeature}>â¢ Provide accurate workout data</Text>
                 </View>
                 
                 {locationPermission === 'loading' ?
@@ -1082,7 +1083,7 @@ export default function ActiveWorkoutScreen() {
             onPress={() => setShowSpotifyEmbed(true)}
             testID="spotify-embed-fab"
             activeOpacity={0.85}>
-            <Music size={18} color="#fff" />
+            <Music size={18} color={tokens.colors.background.default} />
             <Text style={styles.spotifyFabText}>Music</Text>
           </TouchableOpacity>
 
@@ -1097,7 +1098,7 @@ export default function ActiveWorkoutScreen() {
                 <View style={styles.spotifyEmbedHeader}>
                   <Text style={styles.spotifyEmbedTitle}>Workout Music</Text>
                   <TouchableOpacity onPress={() => setShowSpotifyEmbed(false)} testID="close-spotify-embed">
-                    <X size={22} color="#fff" />
+                    <X size={22} color={tokens.colors.background.default} />
                   </TouchableOpacity>
                 </View>
                 <SpotifyEmbedPlayer
@@ -1127,13 +1128,13 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a'
+    backgroundColor: tokens.colors.ink.darker
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: tokens.colors.grayscale.black,
     padding: 20
   },
   loadingText: {
@@ -1142,18 +1143,18 @@ const styles = StyleSheet.create({
     marginBottom: 20
   },
   backButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8
   },
   backButtonText: {
-    color: '#000000',
+    color: tokens.colors.grayscale.black,
     fontWeight: '600'
   },
   activeWorkoutContainer: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: tokens.colors.grayscale.black
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -1165,7 +1166,7 @@ const styles = StyleSheet.create({
   exerciseTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     textAlign: 'center'
   },
 
@@ -1192,7 +1193,7 @@ const styles = StyleSheet.create({
   topStatValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   mainExerciseImage: {
     width: '100%',
@@ -1218,7 +1219,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginTop: -30
   },
   setsContainer: {
@@ -1243,8 +1244,8 @@ const styles = StyleSheet.create({
     borderWidth: 2
   },
   activeSet: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#FFFFFF'
+    backgroundColor: tokens.colors.background.default,
+    borderColor: tokens.colors.background.default
   },
   completedSet: {
     backgroundColor: '#2A2A2A',
@@ -1259,7 +1260,7 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   activeSetText: {
-    color: '#000000'
+    color: tokens.colors.grayscale.black
   },
   completedSetText: {
     color: '#999999'
@@ -1272,12 +1273,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -1310,7 +1311,7 @@ const styles = StyleSheet.create({
   timerText: {
     fontSize: 48,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     letterSpacing: -1
   },
   skipButtonNew: {
@@ -1322,13 +1323,13 @@ const styles = StyleSheet.create({
     borderRadius: 28
   },
   skipButtonText: {
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     fontSize: 14,
     fontWeight: '700'
   },
   runContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a'
+    backgroundColor: tokens.colors.ink.darker
   },
   // Full screen running UI styles
   fullScreenMapContainer: {
@@ -1355,7 +1356,7 @@ const styles = StyleSheet.create({
   runningTopStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: tokens.colors.background.default,
     marginBottom: 2
   },
   runningTopStatLabel: {
@@ -1395,7 +1396,7 @@ const styles = StyleSheet.create({
   bottomStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: tokens.colors.background.default,
     marginBottom: 2
   },
   bottomStatLabel: {
@@ -1411,7 +1412,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1440,7 +1441,7 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#fff',
+    color: tokens.colors.background.default,
     letterSpacing: 1
   },
   pauseIcon: {
@@ -1450,7 +1451,7 @@ const styles = StyleSheet.create({
   pauseBar: {
     width: 4,
     height: 20,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderRadius: 2
   },
   musicButton: {
@@ -1460,7 +1461,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1477,7 +1478,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   musicModalContent: {
-    backgroundColor: '#000000',
+    backgroundColor: tokens.colors.grayscale.black,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1492,7 +1493,7 @@ const styles = StyleSheet.create({
   musicModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   musicPlayerInModal: {
     marginBottom: 0
@@ -1500,7 +1501,7 @@ const styles = StyleSheet.create({
 
   completeContainer: {
     flex: 1,
-    backgroundColor: '#1A1A1A'
+    backgroundColor: tokens.colors.ink.darker
   },
   completeHeader: {
     paddingHorizontal: 20,
@@ -1510,7 +1511,7 @@ const styles = StyleSheet.create({
   completeTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 8,
     textAlign: 'center'
   },
@@ -1534,7 +1535,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)'
   },
   addPhotoText: {
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginTop: 8,
     fontSize: 16,
     fontWeight: '600'
@@ -1549,7 +1550,7 @@ const styles = StyleSheet.create({
   workoutTimeText: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     textAlign: 'center',
     marginBottom: 10
   },
@@ -1583,7 +1584,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
     borderRadius: 16,
     padding: 16,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     fontSize: 16,
     minHeight: 100
   },
@@ -1594,7 +1595,7 @@ const styles = StyleSheet.create({
   feelingsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 12
   },
   feelingsScrollView: {
@@ -1608,14 +1609,14 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   selectedFeelingButton: {
-    backgroundColor: '#FFFFFF'
+    backgroundColor: tokens.colors.background.default
   },
   feelingText: {
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     fontWeight: '600'
   },
   selectedFeelingText: {
-    color: '#fff'
+    color: tokens.colors.background.default
   },
   publicActivityContainer: {
     flexDirection: 'row',
@@ -1630,7 +1631,7 @@ const styles = StyleSheet.create({
   publicActivityTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   publicActivityDescription: {
@@ -1656,15 +1657,15 @@ const styles = StyleSheet.create({
     borderRadius: 13
   },
   toggleCircleActive: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     alignSelf: 'flex-end'
   },
   toggleCircleInactive: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     alignSelf: 'flex-start'
   },
   finishedButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     paddingVertical: 16,
     borderRadius: 30,
     marginHorizontal: 20,
@@ -1672,7 +1673,7 @@ const styles = StyleSheet.create({
     marginTop: 20
   },
   finishedButtonText: {
-    color: '#fff',
+    color: tokens.colors.background.default,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center'
@@ -1696,7 +1697,7 @@ const styles = StyleSheet.create({
   summaryStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginVertical: 8
   },
   summaryStatLabel: {
@@ -1715,7 +1716,7 @@ const styles = StyleSheet.create({
   fullWorkoutTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   fullWorkoutSubtitle: {
@@ -1742,7 +1743,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
     borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#FFFFFF'
+    borderLeftColor: tokens.colors.background.default
   },
   exerciseListImage: {
     width: 70,
@@ -1756,7 +1757,7 @@ const styles = StyleSheet.create({
   exerciseListName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   exerciseListSpecs: {
@@ -1772,13 +1773,13 @@ const styles = StyleSheet.create({
     padding: 20
   },
   modalContent: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderRadius: 16,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1787,7 +1788,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 12,
     textAlign: 'center'
   },
@@ -1805,10 +1806,10 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   continueButton: {
-    backgroundColor: '#FFFFFF'
+    backgroundColor: tokens.colors.background.default
   },
   continueButtonText: {
-    color: '#fff',
+    color: tokens.colors.background.default,
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1816,7 +1817,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 240, 255, 0.8)'
   },
   finishWorkoutText: {
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1846,7 +1847,7 @@ const styles = StyleSheet.create({
   runStatValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   runStatLabel: {
@@ -1868,7 +1869,7 @@ const styles = StyleSheet.create({
   webMapText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     textAlign: 'center',
     marginBottom: 12
   },
@@ -1893,7 +1894,7 @@ const styles = StyleSheet.create({
   },
   progressIndicatorFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     borderRadius: 2
   },
   // Next workouts preview styles
@@ -1902,10 +1903,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: tokens.colors.ink.darker,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1934,7 +1935,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     flex: 1,
     textAlign: 'center'
   },
@@ -1974,7 +1975,7 @@ const styles = StyleSheet.create({
   nextWorkoutName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   nextWorkoutDetails: {
@@ -1984,7 +1985,7 @@ const styles = StyleSheet.create({
   },
   nextWorkoutCategory: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     textTransform: 'uppercase',
     fontWeight: '500'
   },
@@ -1994,7 +1995,7 @@ const styles = StyleSheet.create({
   nextWorkoutXp: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF'
+    color: tokens.colors.background.default
   },
   swipeIndicator: {
     alignItems: 'center',
@@ -2038,7 +2039,7 @@ const styles = StyleSheet.create({
   },
   setTrackingFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background.default,
     borderRadius: 3
   },
   setTrackingText: {
@@ -2057,7 +2058,7 @@ const styles = StyleSheet.create({
   runningTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   runningDescription: {
@@ -2069,7 +2070,7 @@ const styles = StyleSheet.create({
   webMapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 8
   },
   webMapSubtitle: {
@@ -2082,7 +2083,7 @@ const styles = StyleSheet.create({
   },
   webMapStat: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginBottom: 4
   },
   permissionContainer: {
@@ -2094,7 +2095,7 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: tokens.colors.background.default,
     marginTop: 20,
     marginBottom: 12,
     textAlign: 'center'
@@ -2131,7 +2132,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2139,7 +2140,7 @@ const styles = StyleSheet.create({
     zIndex: 999
   },
   spotifyFabText: {
-    color: '#fff',
+    color: tokens.colors.background.default,
     fontWeight: '700',
     fontSize: 14,
     letterSpacing: 0.3
@@ -2150,7 +2151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   spotifyEmbedSheet: {
-    backgroundColor: '#000',
+    backgroundColor: tokens.colors.grayscale.black,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
@@ -2168,7 +2169,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   spotifyEmbedTitle: {
-    color: '#fff',
+    color: tokens.colors.background.default,
     fontSize: 18,
     fontWeight: '700'
   }
