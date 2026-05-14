@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const MOODS = ['😴', '😔', '😐', '🙂', '😁'];
+const MOODS = ['ð´', 'ð', 'ð', 'ð', 'ð'];
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export default function MoodTrackingScreen() {
@@ -74,13 +75,13 @@ export default function MoodTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 12,
   },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -88,16 +89,16 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
   },
-  moodBtnActive: { backgroundColor: '#fff' },
+  moodBtnActive: { backgroundColor: tokens.colors.background.default },
   moodEmoji: { fontSize: 26 },
   input: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
-    color: '#fff', fontSize: 15, minHeight: 120,
+    color: tokens.colors.background.default, fontSize: 15, minHeight: 120,
   },
   weekRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   dayCol: { alignItems: 'center', gap: 6 },

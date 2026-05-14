@@ -6,6 +6,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProductCard from '@/components/ProductCard';
 import { useShopStore } from '@/store/shopStore';
+import { tokens } from '../../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -153,15 +154,15 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: '#999' },
-  image: { width: '100%', height: 300, backgroundColor: '#1A1A1A' },
-  name: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
-  price: { fontSize: 22, fontWeight: '700', color: '#fff', marginTop: 8 },
+  image: { width: '100%', height: 300, backgroundColor: tokens.colors.ink.darker },
+  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
+  price: { fontSize: 22, fontWeight: '700', color: tokens.colors.background.default, marginTop: 8 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
-  rating: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  rating: { color: tokens.colors.background.default, fontSize: 13, fontWeight: '600' },
   reviews: { color: '#999', fontSize: 13 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -169,14 +170,14 @@ const styles = StyleSheet.create({
   },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
-  pillActive: { backgroundColor: '#fff' },
-  pillInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.background.default },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
   descCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
-  descText: { color: '#fff', fontSize: 14, lineHeight: 20 },
+  descText: { color: tokens.colors.background.default, fontSize: 14, lineHeight: 20 },
   expandHint: { color: '#999', fontSize: 12, marginTop: 8 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

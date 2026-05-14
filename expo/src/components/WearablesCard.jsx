@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Typography, Radius } from '../constants/tokens';
 import { useWearables } from '../hooks/useWearables';
+import { tokens } from '../../../theme/tokens';
 
 export function WearablesCard({ userId }) {
   const router = useRouter();
@@ -51,7 +52,7 @@ export function WearablesCard({ userId }) {
           accessibilityLabel="Connect Apple Health">
           
           {isLoading ?
-          <ActivityIndicator color="#fff" size="small" /> :
+          <ActivityIndicator color={tokens.colors.background.default} size="small" /> :
 
           <Text style={styles.buttonText}>Connect Apple Health</Text>
           }
@@ -66,15 +67,15 @@ export function WearablesCard({ userId }) {
       <Text style={styles.title}>Today's Health</Text>
       <View style={styles.metricsRow}>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{todaySteps ?? '—'}</Text>
+          <Text style={styles.metricValue}>{todaySteps ?? 'â'}</Text>
           <Text style={styles.metricLabel}>Steps</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{todayCalories ?? '—'}</Text>
+          <Text style={styles.metricValue}>{todayCalories ?? 'â'}</Text>
           <Text style={styles.metricLabel}>Calories</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{todaySleep ?? '—'}</Text>
+          <Text style={styles.metricValue}>{todaySleep ?? 'â'}</Text>
           <Text style={styles.metricLabel}>Sleep hrs</Text>
         </View>
       </View>
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary
   },
   buttonText: {
-    color: '#fff',
+    color: tokens.colors.background.default,
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.semibold
   },

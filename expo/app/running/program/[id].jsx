@@ -5,6 +5,7 @@ import { Check } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { tokens } from '../../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -112,14 +113,14 @@ export default function RunningProgramDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: '#999' },
-  title: { color: '#fff', fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  title: { color: tokens.colors.background.default, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   desc: { color: '#999', fontSize: 14, lineHeight: 20, marginTop: 8 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
   metaChip: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
   },
   metaText: { color: '#999', fontSize: 12, fontWeight: '600' },
@@ -128,10 +129,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 24,
   },
   weekCard: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 10,
   },
-  weekLabel: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  weekLabel: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700', marginBottom: 10 },
   sessionRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 10, gap: 10,
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   dayText: { color: '#999', fontSize: 11, fontWeight: '600' },
-  sessionName: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  sessionName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '500' },
   sessionDesc: { color: '#999', fontSize: 12, marginTop: 2 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

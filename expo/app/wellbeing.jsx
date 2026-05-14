@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const MOODS = ['😴', '😔', '😐', '🙂', '😁'];
+const MOODS = ['ð´', 'ð', 'ð', 'ð', 'ð'];
 const STRESS = ['Low', 'Medium', 'High'];
 
 export default function WellbeingScreen() {
@@ -34,7 +35,7 @@ export default function WellbeingScreen() {
             })}
           </View>
           <TouchableOpacity onPress={() => router.push('/mood-tracking')}>
-            <Text style={styles.link}>Track your mood →</Text>
+            <Text style={styles.link}>Track your mood â</Text>
           </TouchableOpacity>
         </View>
 
@@ -69,29 +70,29 @@ export default function WellbeingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20, marginBottom: 12,
   },
-  cardTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 16 },
+  cardTitle: { color: tokens.colors.background.default, fontSize: 16, fontWeight: '600', marginBottom: 16 },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   moodBtn: {
     width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
   },
-  moodBtnActive: { backgroundColor: '#fff' },
+  moodBtnActive: { backgroundColor: tokens.colors.background.default },
   moodEmoji: { fontSize: 24 },
   link: { color: '#999', fontSize: 13, marginTop: 8 },
   label: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8,
   },
-  bigNum: { fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.background.default, letterSpacing: -0.5 },
   sub: { color: '#999', fontSize: 14, marginTop: 2 },
   pillRow: { flexDirection: 'row', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  pillActive: { backgroundColor: '#fff' },
-  pillInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.background.default },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
 });

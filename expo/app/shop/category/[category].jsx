@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import ProductCard from '@/components/ProductCard';
 import { useShopStore } from '@/store/shopStore';
+import { tokens } from '../../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -32,7 +33,7 @@ export default function CategoryScreen() {
       <ScreenHeader title={title} showBack />
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={tokens.colors.background.default} />
         </View>
       ) : (
         <FlatList
@@ -57,7 +58,7 @@ export default function CategoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: '#666', textAlign: 'center', marginTop: 40 },
 });

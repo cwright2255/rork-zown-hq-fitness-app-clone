@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { tokens } from '../../theme/tokens';
 
 export class ScreenErrorBoundary extends React.Component {
   constructor(props) {
@@ -29,11 +30,11 @@ export class ScreenErrorBoundary extends React.Component {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#000' },
-  title: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.grayscale.black },
+  title: { fontSize: 18, fontWeight: '700', color: tokens.colors.background.default, marginBottom: 8 },
   message: { fontSize: 13, color: '#999', textAlign: 'center', marginBottom: 24 },
-  button: { backgroundColor: '#fff', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 },
-  buttonText: { color: '#000', fontWeight: '700' },
+  button: { backgroundColor: tokens.colors.background.default, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 },
+  buttonText: { color: tokens.colors.grayscale.black, fontWeight: '700' },
 });
 
 export default ScreenErrorBoundary;
