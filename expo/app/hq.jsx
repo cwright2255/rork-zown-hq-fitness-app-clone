@@ -26,9 +26,9 @@ import {
   getMuscleVisualizeUrl,
   normalizeMuscleNames,
 } from '@/services/muscleVisualizerService';
-import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../theme/tokens';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEK_VALUES = [40, 65, 50, 80, 70, 55, 90];

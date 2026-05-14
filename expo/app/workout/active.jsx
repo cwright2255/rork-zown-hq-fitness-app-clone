@@ -33,6 +33,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import locationService from '@/services/locationService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { tokens } from '../../../theme/tokens';
 
 
 
@@ -122,7 +123,6 @@ export default function ActiveWorkoutScreen() {
           // Wait for initialization
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
-import { tokens } from '../../../theme/tokens';
 
         if (mode === 'running' && sessionId && programId) {
           // Handle running session
