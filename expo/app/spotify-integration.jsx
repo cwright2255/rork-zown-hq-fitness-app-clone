@@ -67,7 +67,7 @@ export default function SpotifyIntegrationScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={styles.hero}>
           <View style={styles.iconWrap}>
-            <Music size={40} color={tokens.colors.background.default} />
+            <Music size={40} color={tokens.colors.darkNavy.background} />
           </View>
           <Text style={styles.title}>
             {isConnected ? 'Connected to Spotify' : 'Connect Spotify'}
@@ -127,29 +127,29 @@ export default function SpotifyIntegrationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   hero: { alignItems: 'center', paddingVertical: 24 },
   iconWrap: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: tokens.colors.green.base,
+    backgroundColor: '#1DB954',
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  title: { color: tokens.colors.background.default, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
-  sub: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 6, textAlign: 'center' },
+  title: { color: tokens.colors.darkNavy.background, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
+  sub: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 6, textAlign: 'center' },
   embedWrap: { marginBottom: 20 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 12, marginTop: 12,
   },
   plRow: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 12, padding: 14, marginBottom: 8,
   },
-  plName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  plMeta: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
+  plName: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600' },
+  plMeta: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 2 },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  muted: { color: tokens.colors.sky.dark, fontSize: 13 },
+  muted: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13 },
 });

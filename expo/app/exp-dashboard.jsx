@@ -70,7 +70,7 @@ export default function ExpDashboardScreen() {
           activities.map((a, i) => (
             <View key={a.id || i} style={styles.activityRow}>
               <View style={styles.activityIcon}>
-                <TrendingUp size={16} color={tokens.colors.background.default} />
+                <TrendingUp size={16} color={tokens.colors.darkNavy.background} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.activityName}>{a.description || a.name || 'Activity'}</Text>
@@ -87,47 +87,47 @@ export default function ExpDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   levelCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  levelLabel: { color: tokens.colors.sky.dark, fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
-  levelNumber: { color: tokens.colors.background.default, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
+  levelLabel: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
+  levelNumber: { color: tokens.colors.darkNavy.background, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
   progressTrack: {
-    width: '100%', height: 6, backgroundColor: tokens.colors.ink.darker,
+    width: '100%', height: 6, backgroundColor: '#2A2A2A',
     borderRadius: 3, marginTop: 12, overflow: 'hidden',
   },
-  progressFill: { height: 6, backgroundColor: tokens.colors.background.default, borderRadius: 3 },
-  progressText: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 8 },
+  progressFill: { height: 6, backgroundColor: tokens.colors.darkNavy.background, borderRadius: 3 },
+  progressText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 8 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, alignItems: 'center',
   },
-  statValue: { color: tokens.colors.background.default, fontSize: 24, fontWeight: '700' },
-  statLabel: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 4 },
+  statValue: { color: tokens.colors.darkNavy.background, fontSize: 24, fontWeight: '700' },
+  statLabel: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginTop: 24, marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginTop: 24, marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  empty: { color: tokens.colors.sky.dark, fontSize: 14 },
+  empty: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14 },
   activityRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 8,
   },
   activityIcon: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  activityName: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '500' },
-  activityDate: { color: tokens.colors.sky.dark, fontSize: 12, marginTop: 2 },
-  activityXp: { color: tokens.colors.green.light, fontSize: 14, fontWeight: '700' },
+  activityName: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '500' },
+  activityDate: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 2 },
+  activityXp: { color: '#22C55E', fontSize: 14, fontWeight: '700' },
 });

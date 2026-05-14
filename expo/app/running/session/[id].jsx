@@ -68,11 +68,11 @@ export default function RunningSessionDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
-  mapWrap: { width: '100%', height: 320, backgroundColor: tokens.colors.ink.darker },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  mapWrap: { width: '100%', height: 320, backgroundColor: tokens.colors.darkNavy.text.primary },
   mapPh: { flex: 1 },
   statsCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12,
   },
   statsRow: { flexDirection: 'row', gap: 12 },

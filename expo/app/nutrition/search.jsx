@@ -76,7 +76,7 @@ export default function SearchFoodScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search foods..."
-          placeholderTextColor={tokens.colors.ink.light}
+          placeholderTextColor={tokens.colors.darkNavy.text.secondary}
           autoFocus
         />
       </View>
@@ -118,7 +118,7 @@ export default function SearchFoodScreen() {
         </View>
       ) : loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.background.default} />
+          <ActivityIndicator color={tokens.colors.darkNavy.background} />
         </View>
       ) : (
         <FlatList
@@ -146,36 +146,36 @@ export default function SearchFoodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   searchWrap: { padding: 16 },
   input: {
-    backgroundColor: tokens.colors.ink.darker,
-    borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
+    borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 12, height: 52, paddingHorizontal: 16,
-    color: tokens.colors.background.default, fontSize: 15,
+    color: tokens.colors.darkNavy.background, fontSize: 15,
   },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8,
   },
   chip: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 999, marginRight: 8,
   },
-  chipText: { color: tokens.colors.sky.dark, fontSize: 13, fontWeight: '500' },
+  chipText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, fontWeight: '500' },
   foodCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 10,
   },
-  foodName: { color: tokens.colors.background.default, fontSize: 15, fontWeight: '500' },
-  foodServing: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 2 },
+  foodName: { color: tokens.colors.darkNavy.background, fontSize: 15, fontWeight: '500' },
+  foodServing: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 2 },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  calBadgeText: { color: tokens.colors.green.light, fontSize: 12, fontWeight: '600' },
+  calBadgeText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { color: tokens.colors.ink.light, textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.darkNavy.text.secondary, textAlign: 'center', marginTop: 40 },
 });

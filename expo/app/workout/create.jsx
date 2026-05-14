@@ -316,7 +316,7 @@ export default function CreateWorkoutScreen() {
         <PrimaryButton
           title="Add Exercise from Library"
           onPress={() => setPickerVisible(true)}
-          leftIcon={<BookOpen size={18} color={tokens.colors.grayscale.black} />}
+          leftIcon={<BookOpen size={18} color={tokens.colors.darkNavy.text.primary} />}
           style={styles.addBtn}
         />
 
@@ -365,7 +365,7 @@ export default function CreateWorkoutScreen() {
           {libraryLoading && libraryExercises.length === 0 ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={colors.text} />
-              <Text style={styles.loadingText}>Loading exercisesâ¦</Text>
+              <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
             </View>
           ) : (
             <FlatList
@@ -390,7 +390,7 @@ export default function CreateWorkoutScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.libTitle} numberOfLines={2}>{item.name}</Text>
                       <Text style={styles.libMeta} numberOfLines={1}>
-                        {[equipment, target].filter(Boolean).join(' â¢ ')}
+                        {[equipment, target].filter(Boolean).join(' Ã¢ÂÂ¢ ')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
   pillActive: { backgroundColor: colors.text, borderColor: colors.text },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: tokens.colors.grayscale.black },
+  pillTextActive: { color: tokens.colors.darkNavy.text.primary },
   exercisesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

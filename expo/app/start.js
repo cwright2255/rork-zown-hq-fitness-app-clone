@@ -117,14 +117,14 @@ export default function StartScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: tokens.colors.grayscale.black
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   layers: {
     flex: 1
   },
   whiteCover: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: tokens.colors.background.default,
+    backgroundColor: tokens.colors.darkNavy.background,
     zIndex: 1
   },
   pressArea: {

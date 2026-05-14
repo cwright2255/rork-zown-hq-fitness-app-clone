@@ -109,7 +109,7 @@ export default function RunningMap({
       const latLngs = coordinates.map((coord) => [coord.latitude, coord.longitude]);
 
       const newRoutePath = L.polyline(latLngs, {
-        color: tokens.colors.green.base_00f,
+        color: '#00ff88',
         weight: 4,
         opacity: 0.8,
         smoothFactor: 1
@@ -339,7 +339,7 @@ export default function RunningMap({
 const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderRadius: 0,
     overflow: 'hidden',
     position: 'relative'
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   webMapDiv: {
     width: '100%',
     height: '100%',
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   mapHeader: {
     padding: 16,
@@ -359,12 +359,12 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.ink.dark,
+    color: tokens.colors.darkNavy.text.primary,
     marginBottom: 4
   },
   mapSubtitle: {
     fontSize: 12,
-    color: tokens.colors.ink.light,
+    color: tokens.colors.darkNavy.text.secondary,
     textAlign: 'center'
   },
   mapContent: {
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
     minHeight: 200,
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: '#2a2a2a'
   },
   noDataText: {
     fontSize: 48,
@@ -413,16 +413,16 @@ const styles = StyleSheet.create({
   routeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.ink.dark,
+    color: tokens.colors.darkNavy.text.primary,
     marginBottom: 2
   },
   routeSubtitle: {
     fontSize: 11,
-    color: tokens.colors.ink.light
+    color: tokens.colors.darkNavy.text.secondary
   },
   routeVisualization: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     position: 'relative',
     overflow: 'hidden'
   },
@@ -443,10 +443,10 @@ const styles = StyleSheet.create({
   routeLineSegment: {
     position: 'absolute',
     height: 3,
-    backgroundColor: tokens.colors.green.base_00f,
+    backgroundColor: '#00ff88',
     borderRadius: 1.5,
     opacity: 0.9,
-    shadowColor: tokens.colors.green.base_00f,
+    shadowColor: '#00ff88',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 2,
@@ -457,47 +457,47 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: tokens.colors.green.base_00f,
-    shadowColor: tokens.colors.green.base_00f,
+    backgroundColor: '#00ff88',
+    shadowColor: '#00ff88',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 2,
     elevation: 2
   },
   startPoint: {
-    backgroundColor: tokens.colors.green.base_00f,
+    backgroundColor: '#00ff88',
     width: 12,
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: tokens.colors.background.default,
-    shadowColor: tokens.colors.green.base_00f,
+    borderColor: tokens.colors.darkNavy.background,
+    shadowColor: '#00ff88',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
     elevation: 4
   },
   endPoint: {
-    backgroundColor: tokens.colors.red.base_ff6,
+    backgroundColor: '#ff6b6b',
     width: 10,
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: tokens.colors.background.default,
-    shadowColor: tokens.colors.red.base_ff6,
+    borderColor: tokens.colors.darkNavy.background,
+    shadowColor: '#ff6b6b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
     elevation: 4
   },
   currentPoint: {
-    backgroundColor: tokens.colors.red.base_ff6,
+    backgroundColor: '#ff6b6b',
     width: 14,
     height: 14,
     borderRadius: 7,
     borderWidth: 3,
-    borderColor: tokens.colors.background.default,
-    shadowColor: tokens.colors.red.base_ff6,
+    borderColor: tokens.colors.darkNavy.background,
+    shadowColor: '#ff6b6b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 6,
@@ -521,10 +521,10 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: tokens.colors["3rd_party"].facebook.base,
+    backgroundColor: '#007AFF',
     borderWidth: 3,
-    borderColor: tokens.colors.background.default,
-    shadowColor: tokens.colors["3rd_party"].facebook.base,
+    borderColor: tokens.colors.darkNavy.background,
+    shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     padding: 12,
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -553,12 +553,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.ink.dark,
+    color: tokens.colors.darkNavy.text.primary,
     marginBottom: 2
   },
   statLabel: {
     fontSize: 10,
-    color: tokens.colors.ink.light,
+    color: tokens.colors.darkNavy.text.secondary,
     textAlign: 'center',
     textTransform: 'uppercase'
   },
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: tokens.colors.ink.dark,
+    color: tokens.colors.darkNavy.text.primary,
     marginBottom: 6
   },
   debugInfo: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: 10,
-    color: tokens.colors.ink.light,
+    color: tokens.colors.darkNavy.text.secondary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
   // Map-like background patterns
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   mapBaseLayer: {
     position: 'absolute',
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: '#2a2a2a'
   },
   parkArea: {
     position: 'absolute',
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000
@@ -640,13 +640,13 @@ const styles = StyleSheet.create({
   mapLoadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     textAlign: 'center'
   },
   currentLocationText: {
     fontSize: 8,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginTop: 4,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   distanceMarkerText: {
     fontSize: 8,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     textAlign: 'center'
   },
   parkPattern: {

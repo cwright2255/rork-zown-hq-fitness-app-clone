@@ -48,7 +48,7 @@ function ExerciseRow({ exercise }) {
         <Text style={styles.rowTitle} numberOfLines={2}>{exercise.name}</Text>
         <View style={styles.rowTags}>
           {!!equipment && <Text style={styles.rowTag}>{equipment}</Text>}
-          {!!target && <Text style={styles.rowTag}>â¢ {target}</Text>}
+          {!!target && <Text style={styles.rowTag}>Ã¢ÂÂ¢ {target}</Text>}
         </View>
       </View>
       <ChevronRight size={18} color={colors.textSecondary} />
@@ -138,7 +138,7 @@ export default function WorkoutsScreen() {
       {isLoading && list.length === 0 ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={colors.text} />
-          <Text style={styles.loadingText}>Loading exercisesâ¦</Text>
+          <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
         </View>
       ) : (
         <FlatList
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
