@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { colors, radius, typography } from '@/constants/theme';
+import { tokens } from '../../theme/tokens';
 
 export default function PrimaryButton({
   title,
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
 const variantStyles = {
   primary: {
     container: { backgroundColor: colors.text },
-    label: { color: '#000' },
+    label: { color: tokens.colors.grayscale.black },
   },
   outline: {
     container: {
@@ -98,11 +99,11 @@ const variantStyles = {
   },
   danger: {
     container: { backgroundColor: colors.red },
-    label: { color: '#fff' },
+    label: { color: tokens.colors.background.default },
   },
   spotify: {
     container: { backgroundColor: colors.spotify },
-    label: { color: '#fff' },
+    label: { color: tokens.colors.background.default },
   },
   dark: {
     container: {

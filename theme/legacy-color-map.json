@@ -1,0 +1,22 @@
+{
+  "#000": "colors.grayscale.black",
+  "#000000": "colors.grayscale.black",
+  "#0A0A0A": "colors.ink.darkest",
+  "#111": "colors.ink.darker",
+  "#111111": "colors.ink.darker",
+  "#1A1A1A": "colors.ink.darker",
+  "#202325": "colors.ink.darker",
+  "#303437": "colors.ink.dark",
+  "#3053EC": "colors.brand.darkest",
+  "#3056F5": "colors.brand.primary",
+  "#404446": "colors.ink.base",
+  "#4564EE": "colors.brand.base",
+  "#5975F0": "colors.brand.light",
+  "#CDCFD0": "colors.sky.base",
+  "#E3E5E5": "colors.sky.light",
+  "#F2F4F5": "colors.sky.lighter",
+  "#F5F6F8": "colors.surface.default",
+  "#F7F9FA": "colors.sky.lightest",
+  "#FFF": "colors.background.default",
+  "#FFFFFF": "colors.background.default"
+}

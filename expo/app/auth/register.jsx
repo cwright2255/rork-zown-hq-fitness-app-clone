@@ -17,6 +17,7 @@ import { colors, radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   goalLabel: { ...typography.h4, textAlign: 'center' },
-  goalLabelActive: { color: '#000' },
+  goalLabelActive: { color: tokens.colors.grayscale.black },
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',

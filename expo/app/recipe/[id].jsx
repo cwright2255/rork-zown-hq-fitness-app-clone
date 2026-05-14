@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -116,7 +117,7 @@ export default function RecipeDetailScreen() {
         <View style={{ padding: 16 }}>
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.meta}>
-            {recipe.prepTime} min · Serves {recipe.servings}
+            {recipe.prepTime} min Â· Serves {recipe.servings}
           </Text>
 
           <View style={styles.macroRow}>
@@ -162,12 +163,12 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: '#999' },
   image: { width: '100%', height: 260 },
-  imagePh: { backgroundColor: '#1A1A1A' },
-  title: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+  imagePh: { backgroundColor: tokens.colors.ink.darker },
+  title: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
   meta: { color: '#999', fontSize: 13, marginTop: 6 },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 8 },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
@@ -177,22 +178,22 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: '#999', marginBottom: 8, marginTop: 20,
   },
   card: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   ingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff', marginRight: 10 },
-  ingText: { color: '#fff', fontSize: 14, flex: 1 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.background.default, marginRight: 10 },
+  ingText: { color: tokens.colors.background.default, fontSize: 14, flex: 1 },
   stepCard: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 8,
     alignItems: 'flex-start', gap: 12,
   },
   stepNum: {
-    color: '#fff', fontSize: 18, fontWeight: '700',
+    color: tokens.colors.background.default, fontSize: 18, fontWeight: '700',
     width: 28, textAlign: 'center',
   },
-  stepText: { color: '#fff', fontSize: 14, flex: 1, lineHeight: 20 },
+  stepText: { color: tokens.colors.background.default, fontSize: 14, flex: 1, lineHeight: 20 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

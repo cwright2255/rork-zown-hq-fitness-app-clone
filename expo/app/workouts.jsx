@@ -16,6 +16,7 @@ import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useExerciseStore } from '@/store/exerciseStore';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -47,7 +48,7 @@ function ExerciseRow({ exercise }) {
         <Text style={styles.rowTitle} numberOfLines={2}>{exercise.name}</Text>
         <View style={styles.rowTags}>
           {!!equipment && <Text style={styles.rowTag}>{equipment}</Text>}
-          {!!target && <Text style={styles.rowTag}>• {target}</Text>}
+          {!!target && <Text style={styles.rowTag}>â¢ {target}</Text>}
         </View>
       </View>
       <ChevronRight size={18} color={colors.textSecondary} />
@@ -137,7 +138,7 @@ export default function WorkoutsScreen() {
       {isLoading && list.length === 0 ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={colors.text} />
-          <Text style={styles.loadingText}>Loading exercises…</Text>
+          <Text style={styles.loadingText}>Loading exercisesâ¦</Text>
         </View>
       ) : (
         <FlatList
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: tokens.colors.grayscale.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

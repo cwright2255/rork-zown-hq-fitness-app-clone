@@ -6,6 +6,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import ProductCard from '@/components/ProductCard';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useShopStore } from '@/store/shopStore';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -39,7 +40,7 @@ export default function ShopScreen() {
           <TouchableOpacity
             onPress={() => router.push('/shop/cart')}
             style={styles.cartBtn} hitSlop={8}>
-            <ShoppingBag size={22} color="#fff" />
+            <ShoppingBag size={22} color={tokens.colors.background.default} />
             {cartCount > 0 ? (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cartCount}</Text>
@@ -96,28 +97,28 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   cartBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   cartBadge: {
     position: 'absolute', top: 4, right: 4,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.background.default,
     minWidth: 18, height: 18, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
   },
-  cartBadgeText: { color: '#000', fontSize: 10, fontWeight: '700' },
+  cartBadgeText: { color: tokens.colors.grayscale.black, fontSize: 10, fontWeight: '700' },
   banner: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20, marginHorizontal: 16, marginBottom: 16,
   },
   bannerLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999', marginBottom: 8,
   },
-  bannerTitle: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  bannerTitle: { fontSize: 22, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.3 },
   pillRow: { paddingHorizontal: 16, marginBottom: 12 },
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
-  pillActive: { backgroundColor: '#fff' },
-  pillInactive: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.background.default },
+  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
   empty: { color: '#666', textAlign: 'center', marginTop: 40 },
 });

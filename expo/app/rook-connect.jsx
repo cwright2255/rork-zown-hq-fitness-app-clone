@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Alert, Linking } from 'react-native
 import { Activity } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -30,7 +31,7 @@ export default function RookConnectScreen() {
       <ScreenHeader title="Connect Health Data" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.iconWrap}>
-          <Activity size={80} color="#fff" />
+          <Activity size={80} color={tokens.colors.background.default} />
         </View>
         <Text style={styles.title}>Connect with ROOK</Text>
         <Text style={styles.desc}>
@@ -44,14 +45,14 @@ export default function RookConnectScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
   scroll: { padding: 24, alignItems: 'stretch', gap: 20 },
   iconWrap: {
     alignSelf: 'center', marginTop: 40, marginBottom: 20,
     width: 140, height: 140, borderRadius: 70,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff', textAlign: 'center', letterSpacing: -0.5 },
+  title: { fontSize: 24, fontWeight: '700', color: tokens.colors.background.default, textAlign: 'center', letterSpacing: -0.5 },
   desc: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 22, marginBottom: 20 },
 });
