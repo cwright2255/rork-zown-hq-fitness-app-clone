@@ -33,7 +33,7 @@ export default function CategoryScreen() {
       <ScreenHeader title={title} showBack />
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.background.default} />
+          <ActivityIndicator color={tokens.colors.darkNavy.background} />
         </View>
       ) : (
         <FlatList
@@ -58,7 +58,7 @@ export default function CategoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.ink.light, textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.darkNavy.text.secondary, textAlign: 'center', marginTop: 40 },
 });

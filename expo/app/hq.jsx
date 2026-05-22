@@ -142,7 +142,7 @@ export default function HQScreen() {
     const list = (workouts || []).slice(0, 4);
     const buildThumb = (muscles) => {
       const normalized = normalizeMuscleNames(muscles || []);
-      return getMuscleVisualizeUrl({ muscles: normalized, color: tokens.colors.red.base_ff6 });
+      return getMuscleVisualizeUrl({ muscles: normalized, color: '#E74C3C' });
     };
     if (list.length === 0) {
       return [
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   taskName: { ...typography.body, fontWeight: '800', flex: 1 },
   taskNameDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
-  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: tokens.colors.ink.darker },
+  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: tokens.colors.darkNavy.text.primary },
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
   qa: {
     width: '48%',
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   leaderLinkText: { ...typography.body, fontWeight: '800', letterSpacing: 1 },
   upgradeCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,

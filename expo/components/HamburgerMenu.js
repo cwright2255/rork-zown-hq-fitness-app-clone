@@ -67,7 +67,7 @@ const menuItems = [
   route: '/wearables'
 },
 {
-  icon: <Music size={24} color={tokens.colors.green.base} />,
+  icon: <Music size={24} color="#1DB954" />,
   label: 'Spotify',
   route: '/spotify-integration'
 },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     height: '100%',
     backgroundColor: Colors.card,
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

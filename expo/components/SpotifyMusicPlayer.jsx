@@ -131,7 +131,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
       <Card variant="outlined" style={[styles.container, style]}>
         <View style={styles.disconnectedContainer}>
           <View style={styles.iconCircle}>
-            <Music size={28} color={tokens.colors.green.base} />
+            <Music size={28} color="#1DB954" />
           </View>
           <Text style={styles.disconnectedTitle}>Music Player</Text>
           <Text style={styles.disconnectedText}>
@@ -168,11 +168,11 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
         onPress={handlePlayFirst}
         activeOpacity={0.8}>
         
-          <Volume2 size={18} color={tokens.colors.green.base} />
+          <Volume2 size={18} color="#1DB954" />
           <Text style={styles.quickPlayText}>
             Tap to play ({recommendations.length} tracks)
           </Text>
-          <Play size={16} color={tokens.colors.green.base} />
+          <Play size={16} color="#1DB954" />
         </TouchableOpacity>
       }
 
@@ -183,7 +183,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
           </Text>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={loadRecommendations} disabled={isLoadingRecommendations} style={styles.refreshBtn}>
-              <RefreshCw size={14} color={tokens.colors.green.base} />
+              <RefreshCw size={14} color="#1DB954" />
               <Text style={styles.refreshText}>
                 {isLoadingRecommendations ? 'Loading...' : 'Refresh'}
               </Text>
@@ -264,7 +264,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
                   onPress={() => handleTrackPress(track)}>
                   
                     {isActive ?
-                  <Pause size={14} color={tokens.colors.background.default} /> :
+                  <Pause size={14} color={tokens.colors.darkNavy.background} /> :
 
                   <Play size={14} color={Colors.text.primary} style={{ marginLeft: 1 }} />
                   }
@@ -278,7 +278,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
             <Music size={24} color={Colors.text.tertiary} />
             <Text style={styles.noTracksText}>No tracks found. Tap Refresh to try again.</Text>
             <TouchableOpacity style={styles.retryButton} onPress={loadRecommendations}>
-              <RefreshCw size={14} color={tokens.colors.green.base} />
+              <RefreshCw size={14} color="#1DB954" />
               <Text style={styles.retryText}>Refresh</Text>
             </TouchableOpacity>
           </View> :
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   connectButton: {
-    backgroundColor: tokens.colors.green.base,
+    backgroundColor: '#1DB954',
     borderRadius: 24,
     paddingHorizontal: 28
   },
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   quickPlayText: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.green.base
+    color: '#1DB954'
   },
   recommendationsContainer: {
     backgroundColor: Colors.card,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   refreshText: {
     fontSize: 13,
-    color: tokens.colors.green.base,
+    color: '#1DB954',
     fontWeight: '600'
   },
   toggleListBtn: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   eqBar: {
     width: 3,
     borderRadius: 1.5,
-    backgroundColor: tokens.colors.green.base
+    backgroundColor: '#1DB954'
   },
   eqBar1: {
     height: 8
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   trackAlbumArtActive: {
     borderWidth: 1.5,
-    borderColor: tokens.colors.green.base
+    borderColor: '#1DB954'
   },
   trackDetails: {
     flex: 1
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: 2
   },
   trackItemNameActive: {
-    color: tokens.colors.green.base
+    color: '#1DB954'
   },
   trackItemArtist: {
     fontSize: 12,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     marginLeft: 8
   },
   trackPlayBtnActive: {
-    backgroundColor: tokens.colors.green.base
+    backgroundColor: '#1DB954'
   },
   emptyContainer: {
     alignItems: 'center',
@@ -502,6 +502,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.colors.green.base
+    color: '#1DB954'
   }
 });

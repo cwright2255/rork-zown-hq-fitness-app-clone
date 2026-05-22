@@ -159,7 +159,7 @@ export default function SettingsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.loadingText}>Loadingâ¦</Text>
+        <Text style={styles.loadingText}>LoadingÃ¢ÂÂ¦</Text>
       </SafeAreaView>
     );
   }
@@ -254,7 +254,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.connectPillText}>
-                  {isConnecting ? 'Connectingâ¦' : 'Connect'}
+                  {isConnecting ? 'ConnectingÃ¢ÂÂ¦' : 'Connect'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.pill,
   },
-  connectPillText: { color: tokens.colors.background.default, fontWeight: '800', fontSize: 14 },
+  connectPillText: { color: tokens.colors.darkNavy.background, fontWeight: '800', fontSize: 14 },
 
   inputGroup: { gap: 6 },
   inputLabel: { ...typography.label },

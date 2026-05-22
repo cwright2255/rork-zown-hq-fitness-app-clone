@@ -122,16 +122,16 @@ export default function RecipeDetailScreen() {
 
           <View style={styles.macroRow}>
             <View style={[styles.chip, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
-              <Text style={[styles.chipText, { color: tokens.colors.brand.lighter }]}>{recipe.protein}g P</Text>
+              <Text style={[styles.chipText, { color: '#3B82F6' }]}>{recipe.protein}g P</Text>
             </View>
             <View style={[styles.chip, { backgroundColor: 'rgba(249,115,22,0.15)' }]}>
-              <Text style={[styles.chipText, { color: tokens.colors.red.base_f97 }]}>{recipe.carbs}g C</Text>
+              <Text style={[styles.chipText, { color: '#F97316' }]}>{recipe.carbs}g C</Text>
             </View>
             <View style={[styles.chip, { backgroundColor: 'rgba(168,85,247,0.15)' }]}>
-              <Text style={[styles.chipText, { color: tokens.colors.primary.base }]}>{recipe.fat}g F</Text>
+              <Text style={[styles.chipText, { color: '#A855F7' }]}>{recipe.fat}g F</Text>
             </View>
             <View style={[styles.chip, { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
-              <Text style={[styles.chipText, { color: tokens.colors.green.light }]}>{recipe.calories} kcal</Text>
+              <Text style={[styles.chipText, { color: '#22C55E' }]}>{recipe.calories} kcal</Text>
             </View>
           </View>
 
@@ -163,37 +163,37 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.sky.dark },
+  empty: { color: tokens.colors.darkNavy.text.tertiary },
   image: { width: '100%', height: 260 },
-  imagePh: { backgroundColor: tokens.colors.ink.darker },
-  title: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
-  meta: { color: tokens.colors.sky.dark, fontSize: 13, marginTop: 6 },
+  imagePh: { backgroundColor: tokens.colors.darkNavy.text.primary },
+  title: { fontSize: 28, fontWeight: '700', color: tokens.colors.darkNavy.background, letterSpacing: -0.5 },
+  meta: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 6 },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 8 },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
   chipText: { fontSize: 12, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 20,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8, marginTop: 20,
   },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   ingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.background.default, marginRight: 10 },
-  ingText: { color: tokens.colors.background.default, fontSize: 14, flex: 1 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.darkNavy.background, marginRight: 10 },
+  ingText: { color: tokens.colors.darkNavy.background, fontSize: 14, flex: 1 },
   stepCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 8,
     alignItems: 'flex-start', gap: 12,
   },
   stepNum: {
-    color: tokens.colors.background.default, fontSize: 18, fontWeight: '700',
+    color: tokens.colors.darkNavy.background, fontSize: 18, fontWeight: '700',
     width: 28, textAlign: 'center',
   },
-  stepText: { color: tokens.colors.background.default, fontSize: 14, flex: 1, lineHeight: 20 },
+  stepText: { color: tokens.colors.darkNavy.background, fontSize: 14, flex: 1, lineHeight: 20 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

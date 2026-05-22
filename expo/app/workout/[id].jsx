@@ -77,7 +77,7 @@ export default function WorkoutDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={COLOR_TEXT} />
-          <Text style={styles.loadingText}>Loading exerciseâ¦</Text>
+          <Text style={styles.loadingText}>Loading exerciseÃ¢ÂÂ¦</Text>
         </View>
       </SafeAreaView>
     );
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  muscleTagText: { color: tokens.colors.background.default, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  muscleTagText: { color: tokens.colors.darkNavy.background, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   secondaryText: { color: COLOR_TEXT_SECONDARY, fontSize: 13 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   equipTag: {

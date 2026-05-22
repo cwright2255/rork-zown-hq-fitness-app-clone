@@ -216,7 +216,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
         <View style={styles.supportedPlatforms}>
           <Text style={styles.supportedTitle}>Supported Platforms</Text>
           <Text style={styles.supportedText}>
-            Instagram â¢ TikTok â¢ YouTube â¢ Pinterest â¢ Facebook â¢ Recipe Websites
+            Instagram Ã¢ÂÂ¢ TikTok Ã¢ÂÂ¢ YouTube Ã¢ÂÂ¢ Pinterest Ã¢ÂÂ¢ Facebook Ã¢ÂÂ¢ Recipe Websites
           </Text>
         </View>
       </View>
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: Colors.background,
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

@@ -51,7 +51,7 @@ export default function MoodTrackingScreen() {
           value={journal}
           onChangeText={setJournal}
           placeholder="How was your day?"
-          placeholderTextColor={tokens.colors.ink.light}
+          placeholderTextColor={tokens.colors.darkNavy.text.secondary}
           multiline
           textAlignVertical="top"
         />
@@ -75,13 +75,13 @@ export default function MoodTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8, marginTop: 12,
   },
   card: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -89,20 +89,20 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
   },
-  moodBtnActive: { backgroundColor: tokens.colors.background.default },
+  moodBtnActive: { backgroundColor: tokens.colors.darkNavy.background },
   moodEmoji: { fontSize: 26 },
   input: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
-    color: tokens.colors.background.default, fontSize: 15, minHeight: 120,
+    color: tokens.colors.darkNavy.background, fontSize: 15, minHeight: 120,
   },
   weekRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   dayCol: { alignItems: 'center', gap: 6 },
   dayDot: { width: 16, height: 16, borderRadius: 8 },
-  dayLabel: { color: tokens.colors.sky.dark, fontSize: 12 },
+  dayLabel: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

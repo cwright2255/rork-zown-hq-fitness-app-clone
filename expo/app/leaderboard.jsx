@@ -26,7 +26,7 @@ export default function LeaderboardScreen() {
   const Avatar = ({ uri, size = 40 }) => (
     <Image
       source={{ uri }}
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.colors.ink.darker }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#2A2A2A' }}
     />
   );
 
@@ -53,24 +53,24 @@ export default function LeaderboardScreen() {
             <Avatar uri={second?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{second?.name}</Text>
             <Text style={styles.podiumPts}>{second?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 80, backgroundColor: tokens.colors.ink.darker }]}>
+            <View style={[styles.podiumBar, { height: 80, backgroundColor: '#2A2A2A' }]}>
               <Text style={styles.podiumPlace}>2</Text>
             </View>
           </View>
           <View style={styles.podiumSpot}>
-            <Trophy size={20} color={tokens.colors.orange.light} style={{ marginBottom: 4 }} />
+            <Trophy size={20} color="#F59E0B" style={{ marginBottom: 4 }} />
             <Avatar uri={first?.avatar} size={72} />
             <Text style={styles.podiumName} numberOfLines={1}>{first?.name}</Text>
             <Text style={styles.podiumPts}>{first?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 110, backgroundColor: tokens.colors.background.default }]}>
-              <Text style={[styles.podiumPlace, { color: tokens.colors.grayscale.black }]}>1</Text>
+            <View style={[styles.podiumBar, { height: 110, backgroundColor: tokens.colors.darkNavy.background }]}>
+              <Text style={[styles.podiumPlace, { color: tokens.colors.darkNavy.text.primary }]}>1</Text>
             </View>
           </View>
           <View style={styles.podiumSpot}>
             <Avatar uri={third?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{third?.name}</Text>
             <Text style={styles.podiumPts}>{third?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 60, backgroundColor: tokens.colors.ink.darker }]}>
+            <View style={[styles.podiumBar, { height: 60, backgroundColor: '#2A2A2A' }]}>
               <Text style={styles.podiumPlace}>3</Text>
             </View>
           </View>
@@ -81,7 +81,7 @@ export default function LeaderboardScreen() {
           <View key={u.id} style={[styles.row, u.isMe && styles.rowMe]}>
             <Text style={styles.rank}>{idx + 4}</Text>
             <Avatar uri={u.avatar} />
-            <Text style={[styles.name, u.isMe && { color: tokens.colors.background.default, fontWeight: '700' }]}>
+            <Text style={[styles.name, u.isMe && { color: tokens.colors.darkNavy.background, fontWeight: '700' }]}>
               {u.name}
             </Text>
             <Text style={styles.pts}>{u.pts}</Text>
@@ -93,42 +93,42 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   filters: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   filterPill: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
-  filterPillActive: { backgroundColor: tokens.colors.background.default, borderColor: tokens.colors.background.default },
-  filterText: { color: tokens.colors.sky.dark, fontSize: 13, fontWeight: '600' },
-  filterTextActive: { color: tokens.colors.grayscale.black },
+  filterPillActive: { backgroundColor: tokens.colors.darkNavy.background, borderColor: tokens.colors.darkNavy.background },
+  filterText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, fontWeight: '600' },
+  filterTextActive: { color: tokens.colors.darkNavy.text.primary },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'center', gap: 12, marginBottom: 24,
   },
   podiumSpot: { alignItems: 'center', flex: 1 },
   podiumName: {
-    color: tokens.colors.background.default, fontSize: 12, fontWeight: '600', marginTop: 6,
+    color: tokens.colors.darkNavy.background, fontSize: 12, fontWeight: '600', marginTop: 6,
     maxWidth: 80,
   },
-  podiumPts: { color: tokens.colors.sky.dark, fontSize: 11, marginTop: 2 },
+  podiumPts: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 11, marginTop: 2 },
   podiumBar: {
     width: '100%', marginTop: 8,
     alignItems: 'center', justifyContent: 'center',
     borderTopLeftRadius: 12, borderTopRightRadius: 12,
   },
-  podiumPlace: { color: tokens.colors.background.default, fontSize: 20, fontWeight: '700' },
+  podiumPlace: { color: tokens.colors.darkNavy.background, fontSize: 20, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 12,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, marginBottom: 8,
   },
-  rowMe: { borderColor: tokens.colors.background.default, borderWidth: 2 },
-  rank: { color: tokens.colors.sky.dark, fontSize: 14, fontWeight: '700', width: 24 },
-  name: { color: tokens.colors.sky.dark, fontSize: 14, fontWeight: '500', flex: 1 },
-  pts: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '700' },
+  rowMe: { borderColor: tokens.colors.darkNavy.background, borderWidth: 2 },
+  rank: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14, fontWeight: '700', width: 24 },
+  name: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14, fontWeight: '500', flex: 1 },
+  pts: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '700' },
 });

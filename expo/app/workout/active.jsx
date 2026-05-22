@@ -614,7 +614,7 @@ export default function ActiveWorkoutScreen() {
           <View style={styles.previewHandle} />
           <Text style={styles.previewTitle}>Next Workouts</Text>
           <TouchableOpacity onPress={closePreview} style={styles.closePreviewButton}>
-            <Text style={styles.closePreviewText}>ÃÂ</Text>
+            <Text style={styles.closePreviewText}>ÃÂÃÂ</Text>
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.previewContent} showsVerticalScrollIndicator={false}>
@@ -634,7 +634,7 @@ export default function ActiveWorkoutScreen() {
               <View style={styles.nextWorkoutInfo}>
                 <Text style={styles.nextWorkoutName}>{nextWorkout.name}</Text>
                 <Text style={styles.nextWorkoutDetails}>
-                  {nextWorkout.duration} min Ã¢ÂÂ¢ {nextWorkout.difficulty}
+                  {nextWorkout.duration} min ÃÂ¢ÃÂÃÂ¢ {nextWorkout.difficulty}
                 </Text>
                 <Text style={styles.nextWorkoutCategory}>{nextWorkout.category}</Text>
               </View>
@@ -672,7 +672,7 @@ export default function ActiveWorkoutScreen() {
           
           <View style={styles.photoContainer}>
             <TouchableOpacity style={styles.addPhotoButton}>
-              <Camera size={32} color={tokens.colors.background.default} />
+              <Camera size={32} color={tokens.colors.darkNavy.background} />
               <Text style={styles.addPhotoText}>Add a Photo</Text>
             </TouchableOpacity>
           </View>
@@ -693,7 +693,7 @@ export default function ActiveWorkoutScreen() {
             <TextInput
               style={styles.commentInput}
               placeholder="Tap to add a comment"
-              placeholderTextColor={tokens.colors.ink.lighter}
+              placeholderTextColor="#888"
               multiline
               value={comment}
               onChangeText={setComment} />
@@ -860,9 +860,9 @@ export default function ActiveWorkoutScreen() {
                   onPress={toggleTimer}>
                   
                     {isActive ?
-                  <Pause size={24} color={tokens.colors.ink.dark} /> :
+                  <Pause size={24} color={tokens.colors.darkNavy.text.primary} /> :
 
-                  <Play size={24} color={tokens.colors.ink.dark} />
+                  <Play size={24} color={tokens.colors.darkNavy.text.primary} />
                   }
                   </TouchableOpacity>
                   
@@ -917,7 +917,7 @@ export default function ActiveWorkoutScreen() {
                 <View style={styles.controlPanelOverlay}>
                   {/* Exit Button */}
                   <TouchableOpacity style={styles.exitButtonRun} onPress={handleExitPress}>
-                    <X size={24} color={tokens.colors.ink.dark} />
+                    <X size={24} color={tokens.colors.darkNavy.text.primary} />
                   </TouchableOpacity>
                   
                   {/* Start/Pause Button */}
@@ -1022,10 +1022,10 @@ export default function ActiveWorkoutScreen() {
                 </Text>
                 
                 <View style={styles.permissionFeatures}>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Track your running route</Text>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Calculate distance and pace</Text>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Show your progress on a map</Text>
-                  <Text style={styles.permissionFeature}>Ã¢ÂÂ¢ Provide accurate workout data</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Track your running route</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Calculate distance and pace</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Show your progress on a map</Text>
+                  <Text style={styles.permissionFeature}>ÃÂ¢ÃÂÃÂ¢ Provide accurate workout data</Text>
                 </View>
                 
                 {locationPermission === 'loading' ?
@@ -1083,7 +1083,7 @@ export default function ActiveWorkoutScreen() {
             onPress={() => setShowSpotifyEmbed(true)}
             testID="spotify-embed-fab"
             activeOpacity={0.85}>
-            <Music size={18} color={tokens.colors.background.default} />
+            <Music size={18} color={tokens.colors.darkNavy.background} />
             <Text style={styles.spotifyFabText}>Music</Text>
           </TouchableOpacity>
 
@@ -1098,7 +1098,7 @@ export default function ActiveWorkoutScreen() {
                 <View style={styles.spotifyEmbedHeader}>
                   <Text style={styles.spotifyEmbedTitle}>Workout Music</Text>
                   <TouchableOpacity onPress={() => setShowSpotifyEmbed(false)} testID="close-spotify-embed">
-                    <X size={22} color={tokens.colors.background.default} />
+                    <X size={22} color={tokens.colors.darkNavy.background} />
                   </TouchableOpacity>
                 </View>
                 <SpotifyEmbedPlayer
@@ -1128,33 +1128,33 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: tokens.colors.grayscale.black,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     padding: 20
   },
   loadingText: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 20
   },
   backButton: {
-    backgroundColor: tokens.colors.background.default,
+    backgroundColor: tokens.colors.darkNavy.background,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8
   },
   backButtonText: {
-    color: tokens.colors.grayscale.black,
+    color: tokens.colors.darkNavy.text.primary,
     fontWeight: '600'
   },
   activeWorkoutContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.grayscale.black
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -1166,7 +1166,7 @@ const styles = StyleSheet.create({
   exerciseTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     textAlign: 'center'
   },
 
@@ -1187,13 +1187,13 @@ const styles = StyleSheet.create({
   },
   topStatLabel: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 4
   },
   topStatValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: tokens.colors.background.default
+    color: tokens.colors.darkNavy.background
   },
   mainExerciseImage: {
     width: '100%',
@@ -1213,13 +1213,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 8
   },
   statValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginTop: -30
   },
   setsContainer: {
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
   },
   setsLabel: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 16
   },
   setsRow: {
@@ -1244,41 +1244,41 @@ const styles = StyleSheet.create({
     borderWidth: 2
   },
   activeSet: {
-    backgroundColor: tokens.colors.background.default,
-    borderColor: tokens.colors.background.default
+    backgroundColor: tokens.colors.darkNavy.background,
+    borderColor: tokens.colors.darkNavy.background
   },
   completedSet: {
-    backgroundColor: tokens.colors.ink.darker,
-    borderColor: tokens.colors.ink.darker
+    backgroundColor: '#2A2A2A',
+    borderColor: '#2A2A2A'
   },
   inactiveSet: {
     backgroundColor: 'transparent',
-    borderColor: tokens.colors.ink.darker
+    borderColor: '#2A2A2A'
   },
   setNumber: {
     fontSize: 16,
     fontWeight: '600'
   },
   activeSetText: {
-    color: tokens.colors.grayscale.black
+    color: tokens.colors.darkNavy.text.primary
   },
   completedSetText: {
-    color: tokens.colors.sky.dark
+    color: tokens.colors.darkNavy.text.tertiary
   },
   inactiveSetText: {
-    color: tokens.colors.ink.light
+    color: tokens.colors.darkNavy.text.secondary
   },
   timerSection: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -1293,9 +1293,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: '#2A2A2A',
     borderWidth: 1,
-    borderColor: tokens.colors.ink.darker,
+    borderColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -1305,31 +1305,31 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 4
   },
   timerText: {
     fontSize: 48,
     fontWeight: '800',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     letterSpacing: -1
   },
   skipButtonNew: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: tokens.colors.ink.darker,
+    borderColor: '#2A2A2A',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 28
   },
   skipButtonText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: 14,
     fontWeight: '700'
   },
   runContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   // Full screen running UI styles
   fullScreenMapContainer: {
@@ -1356,7 +1356,7 @@ const styles = StyleSheet.create({
   runningTopStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 2
   },
   runningTopStatLabel: {
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
   bottomStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 2
   },
   bottomStatLabel: {
@@ -1412,7 +1412,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1422,10 +1422,10 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: tokens.colors.green.base_00f,
+    backgroundColor: '#00ff88',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.colors.green.base_00f,
+    shadowColor: '#00ff88',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -1434,14 +1434,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)'
   },
   pauseButtonActive: {
-    backgroundColor: tokens.colors.red.base_ff6,
-    shadowColor: tokens.colors.red.base_ff6,
+    backgroundColor: '#ff6b6b',
+    shadowColor: '#ff6b6b',
     borderColor: 'rgba(255, 255, 255, 0.3)'
   },
   startButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     letterSpacing: 1
   },
   pauseIcon: {
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
   pauseBar: {
     width: 4,
     height: 20,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderRadius: 2
   },
   musicButton: {
@@ -1461,7 +1461,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1470,7 +1470,7 @@ const styles = StyleSheet.create({
   musicButtonActive: {
     backgroundColor: 'rgba(29, 185, 84, 0.15)',
     borderWidth: 2,
-    borderColor: tokens.colors.green.base
+    borderColor: '#1DB954'
   },
   musicModalOverlay: {
     flex: 1,
@@ -1478,7 +1478,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   musicModalContent: {
-    backgroundColor: tokens.colors.grayscale.black,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1493,7 +1493,7 @@ const styles = StyleSheet.create({
   musicModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.background.default
+    color: tokens.colors.darkNavy.background
   },
   musicPlayerInModal: {
     marginBottom: 0
@@ -1501,7 +1501,7 @@ const styles = StyleSheet.create({
 
   completeContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.ink.darker
+    backgroundColor: tokens.colors.darkNavy.text.primary
   },
   completeHeader: {
     paddingHorizontal: 20,
@@ -1511,13 +1511,13 @@ const styles = StyleSheet.create({
   completeTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 8,
     textAlign: 'center'
   },
   completeSubtitle: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     textAlign: 'center'
   },
   photoContainer: {
@@ -1535,7 +1535,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)'
   },
   addPhotoText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginTop: 8,
     fontSize: 16,
     fontWeight: '600'
@@ -1550,7 +1550,7 @@ const styles = StyleSheet.create({
   workoutTimeText: {
     fontSize: 36,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     textAlign: 'center',
     marginBottom: 10
   },
@@ -1569,11 +1569,11 @@ const styles = StyleSheet.create({
   },
   completionProgressFill: {
     height: '100%',
-    backgroundColor: tokens.colors.green.base,
+    backgroundColor: '#4CAF50',
     borderRadius: 2
   },
   completionPercentText: {
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     fontSize: 12
   },
   commentContainer: {
@@ -1584,7 +1584,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
     borderRadius: 16,
     padding: 16,
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: 16,
     minHeight: 100
   },
@@ -1595,7 +1595,7 @@ const styles = StyleSheet.create({
   feelingsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 12
   },
   feelingsScrollView: {
@@ -1609,14 +1609,14 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   selectedFeelingButton: {
-    backgroundColor: tokens.colors.background.default
+    backgroundColor: tokens.colors.darkNavy.background
   },
   feelingText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontWeight: '600'
   },
   selectedFeelingText: {
-    color: tokens.colors.background.default
+    color: tokens.colors.darkNavy.background
   },
   publicActivityContainer: {
     flexDirection: 'row',
@@ -1631,12 +1631,12 @@ const styles = StyleSheet.create({
   publicActivityTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   publicActivityDescription: {
     fontSize: 12,
-    color: tokens.colors.sky.dark
+    color: tokens.colors.darkNavy.text.tertiary
   },
   toggleContainer: {
     width: 50,
@@ -1646,7 +1646,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   toggleActive: {
-    backgroundColor: tokens.colors.green.base
+    backgroundColor: '#4CAF50'
   },
   toggleInactive: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)'
@@ -1657,15 +1657,15 @@ const styles = StyleSheet.create({
     borderRadius: 13
   },
   toggleCircleActive: {
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     alignSelf: 'flex-end'
   },
   toggleCircleInactive: {
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     alignSelf: 'flex-start'
   },
   finishedButton: {
-    backgroundColor: tokens.colors.background.default,
+    backgroundColor: tokens.colors.darkNavy.background,
     paddingVertical: 16,
     borderRadius: 30,
     marginHorizontal: 20,
@@ -1673,7 +1673,7 @@ const styles = StyleSheet.create({
     marginTop: 20
   },
   finishedButtonText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center'
@@ -1697,12 +1697,12 @@ const styles = StyleSheet.create({
   summaryStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginVertical: 8
   },
   summaryStatLabel: {
     fontSize: 14,
-    color: tokens.colors.sky.dark
+    color: tokens.colors.darkNavy.text.tertiary
   },
 
   finishButton: {
@@ -1716,12 +1716,12 @@ const styles = StyleSheet.create({
   fullWorkoutTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   fullWorkoutSubtitle: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 16,
     textAlign: 'right'
   },
@@ -1743,7 +1743,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
     borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: tokens.colors.background.default
+    borderLeftColor: tokens.colors.darkNavy.background
   },
   exerciseListImage: {
     width: 70,
@@ -1757,12 +1757,12 @@ const styles = StyleSheet.create({
   exerciseListName: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   exerciseListSpecs: {
     fontSize: 14,
-    color: tokens.colors.sky.dark
+    color: tokens.colors.darkNavy.text.tertiary
   },
   // Modal styles
   modalOverlay: {
@@ -1773,13 +1773,13 @@ const styles = StyleSheet.create({
     padding: 20
   },
   modalContent: {
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderRadius: 16,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1788,13 +1788,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 12,
     textAlign: 'center'
   },
   modalText: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 24,
     textAlign: 'center'
   },
@@ -1806,10 +1806,10 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   continueButton: {
-    backgroundColor: tokens.colors.background.default
+    backgroundColor: tokens.colors.darkNavy.background
   },
   continueButtonText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1817,7 +1817,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 240, 255, 0.8)'
   },
   finishWorkoutText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1847,12 +1847,12 @@ const styles = StyleSheet.create({
   runStatValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   runStatLabel: {
     fontSize: 12,
-    color: tokens.colors.sky.dark
+    color: tokens.colors.darkNavy.text.tertiary
   },
   mapContainer: {
     flex: 1,
@@ -1869,20 +1869,20 @@ const styles = StyleSheet.create({
   webMapText: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     textAlign: 'center',
     marginBottom: 12
   },
   webMapSubtext: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     textAlign: 'center',
     marginBottom: 4
   },
   noSpotifyConnectionText: {
     textAlign: 'center',
     padding: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     fontSize: 14
   },
   progressIndicator: {
@@ -1894,7 +1894,7 @@ const styles = StyleSheet.create({
   },
   progressIndicatorFill: {
     height: '100%',
-    backgroundColor: tokens.colors.background.default,
+    backgroundColor: tokens.colors.darkNavy.background,
     borderRadius: 2
   },
   // Next workouts preview styles
@@ -1903,10 +1903,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1925,7 +1925,7 @@ const styles = StyleSheet.create({
   previewHandle: {
     width: 40,
     height: 4,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: '#2A2A2A',
     borderRadius: 2,
     position: 'absolute',
     top: 8,
@@ -1935,7 +1935,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     flex: 1,
     textAlign: 'center'
   },
@@ -1949,7 +1949,7 @@ const styles = StyleSheet.create({
   },
   closePreviewText: {
     fontSize: 20,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     fontWeight: '300'
   },
   previewContent: {
@@ -1975,17 +1975,17 @@ const styles = StyleSheet.create({
   nextWorkoutName: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   nextWorkoutDetails: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 2
   },
   nextWorkoutCategory: {
     fontSize: 12,
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     textTransform: 'uppercase',
     fontWeight: '500'
   },
@@ -1995,7 +1995,7 @@ const styles = StyleSheet.create({
   nextWorkoutXp: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.background.default
+    color: tokens.colors.darkNavy.background
   },
   swipeIndicator: {
     alignItems: 'center',
@@ -2004,13 +2004,13 @@ const styles = StyleSheet.create({
   swipeHandle: {
     width: 40,
     height: 4,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: '#2A2A2A',
     borderRadius: 2,
     marginBottom: 8
   },
   swipeText: {
     fontSize: 12,
-    color: tokens.colors.ink.light,
+    color: tokens.colors.darkNavy.text.secondary,
     textAlign: 'center'
   },
   previewOverlay: {
@@ -2039,13 +2039,13 @@ const styles = StyleSheet.create({
   },
   setTrackingFill: {
     height: '100%',
-    backgroundColor: tokens.colors.background.default,
+    backgroundColor: tokens.colors.darkNavy.background,
     borderRadius: 3
   },
   setTrackingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.sky.dark
+    color: tokens.colors.darkNavy.text.tertiary
   },
   // Running session header styles
   runningHeader: {
@@ -2058,24 +2058,24 @@ const styles = StyleSheet.create({
   runningTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   runningDescription: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     lineHeight: 18
   },
   // Web map fallback styles
   webMapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 8
   },
   webMapSubtitle: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 16
   },
   webMapStats: {
@@ -2083,7 +2083,7 @@ const styles = StyleSheet.create({
   },
   webMapStat: {
     fontSize: 14,
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginBottom: 4
   },
   permissionContainer: {
@@ -2095,14 +2095,14 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     marginTop: 20,
     marginBottom: 12,
     textAlign: 'center'
   },
   permissionText: {
     fontSize: 16,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24
@@ -2117,7 +2117,7 @@ const styles = StyleSheet.create({
   },
   permissionFeature: {
     fontSize: 14,
-    color: tokens.colors.sky.dark,
+    color: tokens.colors.darkNavy.text.tertiary,
     marginBottom: 8,
     lineHeight: 20
   },
@@ -2125,14 +2125,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 24,
-    backgroundColor: tokens.colors.green.base,
+    backgroundColor: '#1DB954',
     borderRadius: 28,
     paddingHorizontal: 18,
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    shadowColor: tokens.colors.grayscale.black,
+    shadowColor: tokens.colors.darkNavy.text.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2140,7 +2140,7 @@ const styles = StyleSheet.create({
     zIndex: 999
   },
   spotifyFabText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontWeight: '700',
     fontSize: 14,
     letterSpacing: 0.3
@@ -2151,7 +2151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   spotifyEmbedSheet: {
-    backgroundColor: tokens.colors.grayscale.black,
+    backgroundColor: tokens.colors.darkNavy.text.primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
@@ -2159,7 +2159,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: tokens.colors.ink.darker
+    borderColor: '#2A2A2A'
   },
   spotifyEmbedHeader: {
     flexDirection: 'row',
@@ -2169,7 +2169,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   spotifyEmbedTitle: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: 18,
     fontWeight: '700'
   }

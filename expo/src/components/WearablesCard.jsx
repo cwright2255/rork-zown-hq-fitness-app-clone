@@ -52,7 +52,7 @@ export function WearablesCard({ userId }) {
           accessibilityLabel="Connect Apple Health">
           
           {isLoading ?
-          <ActivityIndicator color={tokens.colors.background.default} size="small" /> :
+          <ActivityIndicator color={tokens.colors.darkNavy.background} size="small" /> :
 
           <Text style={styles.buttonText}>Connect Apple Health</Text>
           }
@@ -67,15 +67,15 @@ export function WearablesCard({ userId }) {
       <Text style={styles.title}>Today's Health</Text>
       <View style={styles.metricsRow}>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{todaySteps ?? 'â'}</Text>
+          <Text style={styles.metricValue}>{todaySteps ?? 'Ã¢ÂÂ'}</Text>
           <Text style={styles.metricLabel}>Steps</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{todayCalories ?? 'â'}</Text>
+          <Text style={styles.metricValue}>{todayCalories ?? 'Ã¢ÂÂ'}</Text>
           <Text style={styles.metricLabel}>Calories</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{todaySleep ?? 'â'}</Text>
+          <Text style={styles.metricValue}>{todaySleep ?? 'Ã¢ÂÂ'}</Text>
           <Text style={styles.metricLabel}>Sleep hrs</Text>
         </View>
       </View>
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary
   },
   buttonText: {
-    color: tokens.colors.background.default,
+    color: tokens.colors.darkNavy.background,
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.semibold
   },

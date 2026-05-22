@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
 const variantStyles = {
   primary: {
     container: { backgroundColor: colors.text },
-    label: { color: tokens.colors.grayscale.black },
+    label: { color: tokens.colors.darkNavy.text.primary },
   },
   outline: {
     container: {
@@ -99,11 +99,11 @@ const variantStyles = {
   },
   danger: {
     container: { backgroundColor: colors.red },
-    label: { color: tokens.colors.background.default },
+    label: { color: tokens.colors.darkNavy.background },
   },
   spotify: {
     container: { backgroundColor: colors.spotify },
-    label: { color: tokens.colors.background.default },
+    label: { color: tokens.colors.darkNavy.background },
   },
   dark: {
     container: {

@@ -37,7 +37,7 @@ export default function FoodDetailScreen() {
     return (
       <View style={styles.container}>
         <ScreenHeader showBack />
-        <View style={styles.center}><ActivityIndicator color={tokens.colors.background.default} /></View>
+        <View style={styles.center}><ActivityIndicator color={tokens.colors.darkNavy.background} /></View>
       </View>
     );
   }
@@ -78,9 +78,9 @@ export default function FoodDetailScreen() {
   };
 
   const macros = [
-    { label: 'Protein', value: p, goal: dailyP, color: tokens.colors.brand.lighter },
-    { label: 'Carbs', value: c, goal: dailyC, color: tokens.colors.red.base_f97 },
-    { label: 'Fat', value: fa, goal: dailyF, color: tokens.colors.primary.base },
+    { label: 'Protein', value: p, goal: dailyP, color: '#3B82F6' },
+    { label: 'Carbs', value: c, goal: dailyC, color: '#F97316' },
+    { label: 'Fat', value: fa, goal: dailyF, color: '#A855F7' },
   ];
 
   return (
@@ -126,13 +126,13 @@ export default function FoodDetailScreen() {
           <TouchableOpacity
             style={styles.stepBtn}
             onPress={() => setQuantity(Math.max(0.5, quantity - 0.5))}>
-            <Minus size={18} color={tokens.colors.background.default} />
+            <Minus size={18} color={tokens.colors.darkNavy.background} />
           </TouchableOpacity>
           <Text style={styles.qtyText}>{quantity}x</Text>
           <TouchableOpacity
             style={styles.stepBtn}
             onPress={() => setQuantity(quantity + 0.5)}>
-            <Plus size={18} color={tokens.colors.background.default} />
+            <Plus size={18} color={tokens.colors.darkNavy.background} />
           </TouchableOpacity>
         </View>
 
@@ -162,42 +162,42 @@ export default function FoodDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.background.default, letterSpacing: -0.5 },
-  serving: { fontSize: 13, color: tokens.colors.sky.dark, marginTop: 4 },
+  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.darkNavy.background, letterSpacing: -0.5 },
+  serving: { fontSize: 13, color: tokens.colors.darkNavy.text.tertiary, marginTop: 4 },
   calWrap: { alignItems: 'center', marginVertical: 24 },
-  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.background.default, letterSpacing: -1 },
-  calLabel: { fontSize: 14, color: tokens.colors.sky.dark, marginTop: 4 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.darkNavy.background, letterSpacing: -1 },
+  calLabel: { fontSize: 14, color: tokens.colors.darkNavy.text.tertiary, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.sky.dark, marginBottom: 8, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8, marginTop: 12,
   },
   macroCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   macroRow: { marginBottom: 12 },
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  macroLabel: { color: tokens.colors.background.default, fontSize: 14 },
-  macroValue: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  track: { height: 6, backgroundColor: tokens.colors.ink.darker, borderRadius: 3, overflow: 'hidden' },
+  macroLabel: { color: tokens.colors.darkNavy.background, fontSize: 14 },
+  macroValue: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600' },
+  track: { height: 6, backgroundColor: '#2A2A2A', borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   stepBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  qtyText: { color: tokens.colors.background.default, fontSize: 18, fontWeight: '600' },
+  qtyText: { color: tokens.colors.darkNavy.background, fontSize: 18, fontWeight: '600' },
   mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
-  pillActive: { backgroundColor: tokens.colors.background.default },
-  pillInactive: { backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker },
+  pillActive: { backgroundColor: tokens.colors.darkNavy.background },
+  pillInactive: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

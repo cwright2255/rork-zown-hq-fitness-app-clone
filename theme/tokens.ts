@@ -110,6 +110,33 @@ export const colors = {
   orange: {
     light: "#F59E0B"
   }
+,
+  darkNavy: {
+    background: "#0A0E1A",
+    surface: "#141824",
+    surfaceElevated: "#1A2030",
+    border: "#2A3A4A",
+    accent: {
+      orange: "#FF5722",
+      orangeLight: "#FF7043",
+      cyan: "#00D4FF",
+      cyanLight: "#4DE8FF",
+      purple: "#8B5CF6",
+      success: "#22C55E",
+      warning: "#F59E0B",
+      error: "#EF4444"
+    },
+    text: {
+      primary: "#FFFFFF",
+      secondary: "#9BA3B5",
+      tertiary: "#6B7280",
+      inverse: "#0A0E1A"
+    },
+    gradient: {
+      start: "#0D1117",
+      end: "#0A0E1A"
+    }
+  }
 } as const;
 
 export const typography = {

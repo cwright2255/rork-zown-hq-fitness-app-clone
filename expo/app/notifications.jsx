@@ -26,7 +26,7 @@ export default function NotificationsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Bell size={40} color={tokens.colors.ink.darker} />
+            <Bell size={40} color="#2A2A2A" />
             <Text style={styles.empty}>No notifications yet</Text>
           </View>
         ) : (
@@ -38,7 +38,7 @@ export default function NotificationsScreen() {
                 onPress={() => handleMark(n.id)}
                 style={[styles.row, n.unread && styles.rowUnread]}>
                 <View style={styles.icon}>
-                  <Icon size={18} color={tokens.colors.background.default} />
+                  <Icon size={18} color={tokens.colors.darkNavy.background} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{n.title}</Text>
@@ -56,28 +56,28 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.grayscale.black },
+  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 8,
   },
-  rowUnread: { borderLeftWidth: 3, borderLeftColor: tokens.colors.background.default },
+  rowUnread: { borderLeftWidth: 3, borderLeftColor: tokens.colors.darkNavy.background },
   icon: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: tokens.colors.ink.darker,
+    backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { color: tokens.colors.background.default, fontSize: 14, fontWeight: '600' },
-  body: { color: tokens.colors.sky.dark, fontSize: 13, lineHeight: 18, marginTop: 2 },
-  time: { color: tokens.colors.ink.light, fontSize: 11, marginTop: 4 },
+  title: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600' },
+  body: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  time: { color: tokens.colors.darkNavy.text.secondary, fontSize: 11, marginTop: 4 },
   dot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: tokens.colors.background.default, marginTop: 6,
+    backgroundColor: tokens.colors.darkNavy.background, marginTop: 6,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.ink.darker, borderWidth: 1, borderColor: tokens.colors.ink.darker,
+    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 40, alignItems: 'center', gap: 10,
   },
-  empty: { color: tokens.colors.sky.dark, fontSize: 14 },
+  empty: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14 },
 });
