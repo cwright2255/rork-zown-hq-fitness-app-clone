@@ -717,6 +717,15 @@ export const themes = {
 } as const;
 
 // âââ Convenience Barrel ââââââââââââââââââââââââââââââââââââââ
+// ─── ThemeProvider Compatibility ───────────────────────────────
+export const darkTheme = darkColors;
+export const lightTheme = lightColors;
+export type Theme = typeof lightColors;
+export type ThemeMode = ThemeName;
+export function getTheme(mode: ThemeMode): Theme {
+  return mode === 'dark' ? darkColors : lightColors;
+}
+
 export const tokens = {
   colors: lightColors,
   darkColors,
