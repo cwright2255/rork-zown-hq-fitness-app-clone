@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 export const ROOK_CONFIG = {
   clientUUID: process.env.EXPO_PUBLIC_ROOK_CLIENT_UUID ?? '78e6b253-ee09-43bf-b89b-a2983a59de06',
