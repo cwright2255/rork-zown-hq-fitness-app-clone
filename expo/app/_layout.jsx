@@ -21,15 +21,15 @@ export class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.darkNavy.text.primary }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: tokens.colors.darkNavy.background }}>Something went wrong</Text>
-          <Text style={{ color: tokens.colors.darkNavy.text.tertiary, textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.dark_navy.text_primary }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: tokens.colors.dark_navy.bg_primary }}>Something went wrong</Text>
+          <Text style={{ color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
             {String(this.state.error)}
           </Text>
           <TouchableOpacity
             onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor: tokens.colors.darkNavy.background, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
-            <Text style={{ color: tokens.colors.darkNavy.text.primary, fontWeight: '700' }}>Try Again</Text>
+            style={{ backgroundColor: tokens.colors.dark_navy.bg_primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
+            <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700' }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -58,7 +58,7 @@ import { ROOK_CONFIG } from '../src/services/wearables';
 
 void SplashScreen.preventAutoHideAsync();
 
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 function RookWrapper({ children }) {
   if (IS_EXPO_GO) return children;
