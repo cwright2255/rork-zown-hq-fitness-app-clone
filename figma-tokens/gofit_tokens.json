@@ -1,0 +1,110 @@
+{
+  "_meta": {
+    "source": "Gofit - Fitness & Workout App UI Kit (Preview) (Copy)",
+    "fileKey": "1ny3185B0kFt9sR4TkZx9P",
+    "extractedAt": "2026-06-02T16:00:00Z",
+    "method": "document-tree-walk (no named styles)"
+  },
+  "colors": {
+    "primary": {
+      "hex": "#304FFE",
+      "occurrences": 121
+    },
+    "white": {
+      "hex": "#FFFFFF",
+      "occurrences": 100
+    },
+    "black": {
+      "hex": "#000000",
+      "occurrences": 35
+    },
+    "gray900": {
+      "hex": "#212121",
+      "occurrences": 33
+    },
+    "gray300": {
+      "hex": "#DADADA",
+      "occurrences": 24
+    },
+    "yellow": {
+      "hex": "#FFD300",
+      "occurrences": 19
+    },
+    "gray400": {
+      "hex": "#E0E0E0",
+      "occurrences": 16
+    },
+    "gray200": {
+      "hex": "#EEEEEE",
+      "occurrences": 14
+    },
+    "purple": {
+      "hex": "#6842FF",
+      "occurrences": 14
+    },
+    "gray800": {
+      "hex": "#35383F",
+      "occurrences": 11
+    },
+    "gray700": {
+      "hex": "#424242",
+      "occurrences": 8
+    },
+    "gray350": {
+      "hex": "#D9D9D9",
+      "occurrences": 8
+    },
+    "darkNavy": {
+      "hex": "#130F26",
+      "occurrences": 4
+    },
+    "darkCharcoal": {
+      "hex": "#1F222A",
+      "occurrences": 4
+    },
+    "gray100": {
+      "hex": "#FAFAFA",
+      "occurrences": 4
+    },
+    "darkest": {
+      "hex": "#181A20",
+      "occurrences": 3
+    },
+    "gray500": {
+      "hex": "#BDBDBD",
+      "occurrences": 3
+    },
+    "gray150": {
+      "hex": "#F5F5F5",
+      "occurrences": 2
+    },
+    "gray450": {
+      "hex": "#C4C4C4",
+      "occurrences": 2
+    },
+    "gray600": {
+      "hex": "#9E9E9E",
+      "occurrences": 2
+    },
+    "gray650": {
+      "hex": "#616161",
+      "occurrences": 2
+    },
+    "purpleLight": {
+      "hex": "#F0ECFF",
+      "occurrences": 1
+    },
+    "darkSlate": {
+      "hex": "#262A35",
+      "occurrences": 1
+    },
+    "skyBlue": {
+      "hex": "#50B0FF",
+      "occurrences": 1
+    },
+    "offWhite": {
+      "hex": "#FEFFFF",
+      "occurrences": 1
+    }
+  }
+}

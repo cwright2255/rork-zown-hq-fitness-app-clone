@@ -1,48 +1,79 @@
 /**
- * Fitleus design tokens  auto-generated.
+ * Fitleus design tokens - auto-generated from three Figma sources.
  *
- * Source: Figma file "Fitleus  Fitness Mobile App UI Kit"
- * File key: KHk1iWcXDRTCqY5mQhMYbE
- * Extracted: 2026-05-01T19:44:07.897Z
- * Source style count: 95 (FILL/TEXT/EFFECT)
- * Resolved: 54 colors, 40 typography, 4 shadows
- * Spacing/radius defaults applied (no spacing/* or radius/* styles found in source).
+ * Sources:
+ *   1. Fitleus - Fitness Mobile App UI Kit (qDQfQ2a21AfgxcqWrBk5Ya)
+ *      51 color styles, 40 typography styles, 4 effect styles
+ *   2. Free Fitness App UI Kit (kdpHT75MhQdS0iF2OPKYZ4)
+ *      25 color styles, 12 typography styles
+ *   3. Gofit - Fitness & Workout App UI Kit (1ny3185B0kFt9sR4TkZx9P)
+ *      25 unique colors extracted via document-tree walk
  *
+ * Extracted: 2026-06-02
  * Do not edit by hand. Re-run the Fitleus extraction agent to regenerate.
  */
 
-export const colors = {
-  "3rd_party": {
-    facebook: {
-      base: "#0078FF",
-      dark: "#0067DB"
-    },
-    twitter: {
-      base: "#1DA1F2",
-      dark: "#0C90E1"
-    }
+// âââ Light Theme Colors ââââââââââââââââââââââââââââââââââââââ
+export const lightColors = {
+  _3rd_party: {
+    facebook_base: "#0078FF",
+    facebook_dark: "#0067DB",
+    twitter_base: "#1DA1F2",
+    twitter_dark: "#0C90E1"
   },
   background: {
-    default: "#FFFFFF"
+    default: "#FFFFFF",
+    secondary: "#F7F9FA"
   },
   blue: {
     base: "#2EC0F9",
     darkest: "#1F83A9",
     light: "#5ECEFA",
     lighter: "#84DAFB",
-    lightest: "#D5F2FE",
-    base_9b5: "#9B59B6"
+    lightest: "#D5F2FE"
   },
   brand: {
     base: "#4564EE",
     darkest: "#3053EC",
     light: "#5975F0",
     lighter: "#6E87F2",
-    lightest: "#C3CCF4",
-    primary: "#3056F5"
+    lightest: "#C3CCF4"
+  },
+  cyan: {
+    cyan: "#69E0C7"
+  },
+  dark_navy: {
+    bg_card: "#262A35",
+    bg_input: "#1F222A",
+    bg_primary: "#181A20",
+    bg_secondary: "#1F222A",
+    border: "#35383F",
+    divider: "#35383F",
+    icon_active: "#FFFFFF",
+    icon_inactive: "#9E9E9E",
+    primary: "#304FFE",
+    primary_light: "#F0ECFF",
+    tab_active: "#304FFE",
+    text_hint: "#616161",
+    text_muted: "#9E9E9E",
+    text_primary: "#FFFFFF",
+    text_secondary: "#E0E0E0"
   },
   fuschia: {
-    "100": "#EF5DA8"
+    _100: "#EF5DA8"
+  },
+  gofit: {
+    primary: "#304FFE",
+    purple: "#6842FF",
+    purple_light: "#F0ECFF",
+    sky_blue: "#50B0FF",
+    yellow: "#FFD300"
+  },
+  gold: {
+    gold: "#FFB432"
+  },
+  gray: {
+    gray: "#9F9F9F"
   },
   grayscale: {
     black: "#000000"
@@ -52,10 +83,7 @@ export const colors = {
     darkest: "#198155",
     light: "#4CD471",
     lighter: "#7DDE86",
-    lightest: "#ECFCE5",
-    base_00f: "#00FF88",
-    base_43d: "#43D9AD",
-    base_84c: "#84CC16"
+    lightest: "#ECFCE5"
   },
   ink: {
     base: "#404446",
@@ -65,6 +93,15 @@ export const colors = {
     light: "#6C7072",
     lighter: "#72777A"
   },
+  navy: {
+    _100: "#161626"
+  },
+  orange: {
+    orange: "#F15223"
+  },
+  pink: {
+    pink: "#FF7D7D"
+  },
   primary: {
     base: "#6B4EFF"
   },
@@ -73,10 +110,7 @@ export const colors = {
     darkest: "#AD0F39",
     light: "#FF4C7B",
     lighter: "#FF769A",
-    lightest: "#FFD0DD",
-    base_f44: "#F44336",
-    base_f97: "#F97316",
-    base_ff6: "#FF6B6B"
+    lightest: "#FFD0DD"
   },
   sky: {
     base: "#CDCFD0",
@@ -86,8 +120,13 @@ export const colors = {
     lightest: "#F7F9FA",
     white: "#FFFFFF"
   },
+  socials: {
+    facebook: "#1D4BFF"
+  },
   surface: {
-    default: "#F5F6F8"
+    card: "#FFFFFF",
+    default: "#F5F6F8",
+    elevated: "#FFFFFF"
   },
   text: {
     base: "#6D7289",
@@ -106,88 +145,155 @@ export const colors = {
     light: "#FFDF67",
     lighter: "#FFE78A",
     lightest: "#FFF7D7"
-  },
-  orange: {
-    light: "#F59E0B"
-  }
-,
-  darkNavy: {
-    background: "#0A0E1A",
-    surface: "#141824",
-    surfaceElevated: "#1A2030",
-    border: "#2A3A4A",
-    accent: {
-      orange: "#FF5722",
-      orangeLight: "#FF7043",
-      cyan: "#00D4FF",
-      cyanLight: "#4DE8FF",
-      purple: "#8B5CF6",
-      success: "#22C55E",
-      warning: "#F59E0B",
-      error: "#EF4444"
-    },
-    text: {
-      primary: "#FFFFFF",
-      secondary: "#9BA3B5",
-      tertiary: "#6B7280",
-      inverse: "#0A0E1A"
-    },
-    gradient: {
-      start: "#0D1117",
-      end: "#0A0E1A"
-    }
   }
 } as const;
 
+// âââ Dark Theme Colors âââââââââââââââââââââââââââââââââââââââ
+export const darkColors = {
+  _3rd_party: {
+    facebook_base: "#0078FF",
+    facebook_dark: "#0067DB",
+    twitter_base: "#1DA1F2",
+    twitter_dark: "#0C90E1"
+  },
+  background: {
+    default: "#121212",
+    secondary: "#1E1E1E"
+  },
+  blue: {
+    base: "#2EC0F9",
+    darkest: "#1F83A9",
+    light: "#5ECEFA",
+    lighter: "#84DAFB",
+    lightest: "#D5F2FE"
+  },
+  brand: {
+    base: "#4564EE",
+    darkest: "#3053EC",
+    light: "#5975F0",
+    lighter: "#6E87F2",
+    lightest: "#C3CCF4"
+  },
+  cyan: {
+    cyan: "#69E0C7"
+  },
+  dark_navy: {
+    bg_card: "#262A35",
+    bg_input: "#1F222A",
+    bg_primary: "#181A20",
+    bg_secondary: "#1F222A",
+    border: "#35383F",
+    divider: "#35383F",
+    icon_active: "#FFFFFF",
+    icon_inactive: "#9E9E9E",
+    primary: "#304FFE",
+    primary_light: "#F0ECFF",
+    tab_active: "#304FFE",
+    text_hint: "#616161",
+    text_muted: "#9E9E9E",
+    text_primary: "#FFFFFF",
+    text_secondary: "#E0E0E0"
+  },
+  fuschia: {
+    _100: "#EF5DA8"
+  },
+  gofit: {
+    primary: "#304FFE",
+    purple: "#6842FF",
+    purple_light: "#F0ECFF",
+    sky_blue: "#50B0FF",
+    yellow: "#FFD300"
+  },
+  gold: {
+    gold: "#FFB432"
+  },
+  gray: {
+    gray: "#9F9F9F"
+  },
+  grayscale: {
+    black: "#FFFFFF"
+  },
+  green: {
+    base: "#23C16B",
+    darkest: "#198155",
+    light: "#4CD471",
+    lighter: "#7DDE86",
+    lightest: "#ECFCE5"
+  },
+  ink: {
+    base: "#B0B0B0",
+    dark: "#CCCCCC",
+    darker: "#E0E0E0",
+    darkest: "#F5F5F5",
+    light: "#888888",
+    lighter: "#999999"
+  },
+  navy: {
+    _100: "#161626"
+  },
+  orange: {
+    orange: "#F15223"
+  },
+  pink: {
+    pink: "#FF7D7D"
+  },
+  primary: {
+    base: "#6B4EFF"
+  },
+  red: {
+    base: "#FF1654",
+    darkest: "#AD0F39",
+    light: "#FF4C7B",
+    lighter: "#FF769A",
+    lightest: "#FFD0DD"
+  },
+  sky: {
+    base: "#444444",
+    dark: "#555555",
+    light: "#333333",
+    lighter: "#2A2A2A",
+    lightest: "#222222",
+    white: "#1A1A1A"
+  },
+  socials: {
+    facebook: "#1D4BFF"
+  },
+  surface: {
+    card: "#252525",
+    default: "#1E1E1E",
+    elevated: "#2C2C2C"
+  },
+  text: {
+    base: "#B0B0B0",
+    dark: "#CCCCCC",
+    darker: "#E0E0E0",
+    darkest: "#F5F5F5",
+    light: "#999999",
+    lighter: "#777777"
+  },
+  vivid_sky_blue: {
+    base: "#36D3F5"
+  },
+  yellow: {
+    base: "#FFD639",
+    darkest: "#AD9227",
+    light: "#FFDF67",
+    lighter: "#FFE78A",
+    lightest: "#FFF7D7"
+  }
+} as const;
+
+// âââ Backward-compatible alias (defaults to light) âââââââââââ
+export const colors = lightColors;
+
+// âââ Typography ââââââââââââââââââââââââââââââââââââââââââââââ
 export const typography = {
-  _small_one_liner_regular: {
-    fontFamily: "Inter",
+  small_tight_regular: {
+    fontFamily: "Rubik",
     fontSize: 14,
     fontWeight: 400,
     letterSpacing: 0,
-    lineHeight: 14
-  },
-  large_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 18
-  },
-  large_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 18
-  },
-  large_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 18
-  },
-  large_normal_bold: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  large_normal_medium: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  large_normal_regular: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 24
+    lineHeight: 16
   },
   large_tight_bold: {
     fontFamily: "Rubik",
@@ -210,37 +316,30 @@ export const typography = {
     letterSpacing: 0,
     lineHeight: 20
   },
-  regular_none_bold: {
+  tiny_tight_medium: {
     fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  regular_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 500,
     letterSpacing: 0,
-    lineHeight: 16
+    lineHeight: 14
   },
-  regular_none_regular: {
+  tiny_tight_bold: {
     fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  regular_normal_bold: {
-    fontFamily: "Rubik",
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 700,
     letterSpacing: 0,
-    lineHeight: 24
+    lineHeight: 14
   },
-  regular_normal_medium: {
+  tiny_tight_regular: {
     fontFamily: "Rubik",
-    fontSize: 16,
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  large_normal_medium: {
+    fontFamily: "Rubik",
+    fontSize: 18,
     fontWeight: 500,
     letterSpacing: 0,
     lineHeight: 24
@@ -252,47 +351,12 @@ export const typography = {
     letterSpacing: 0,
     lineHeight: 24
   },
-  regular_tight_bold: {
+  large_normal_bold: {
     fontFamily: "Rubik",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 700,
     letterSpacing: 0,
-    lineHeight: 20
-  },
-  regular_tight_medium: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  regular_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  small_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  small_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  small_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 14
+    lineHeight: 24
   },
   small_normal_bold: {
     fontFamily: "Rubik",
@@ -308,68 +372,33 @@ export const typography = {
     letterSpacing: 0,
     lineHeight: 20
   },
-  small_normal_regular: {
+  regular_normal_medium: {
     fontFamily: "Rubik",
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  large_normal_regular: {
+    fontFamily: "Rubik",
+    fontSize: 18,
     fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  large_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 18
+  },
+  regular_tight_medium: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 500,
     letterSpacing: 0,
     lineHeight: 20
-  },
-  small_tight_bold: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  small_tight_medium: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  small_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  tiny_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 12
-  },
-  tiny_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 12
-  },
-  tiny_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 12
-  },
-  tiny_normal_bold: {
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  tiny_normal_medium: {
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 16
   },
   tiny_normal_regular: {
     fontFamily: "Inter",
@@ -378,33 +407,19 @@ export const typography = {
     letterSpacing: 0,
     lineHeight: 16
   },
-  tiny_tight_bold: {
+  regular_tight_bold: {
     fontFamily: "Rubik",
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 700,
     letterSpacing: 0,
-    lineHeight: 14
+    lineHeight: 20
   },
-  tiny_tight_medium: {
+  regular_normal_bold: {
     fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  tiny_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  title1: {
-    fontFamily: "Rubik",
-    fontSize: 48,
+    fontSize: 16,
     fontWeight: 700,
     letterSpacing: 0,
-    lineHeight: 56
+    lineHeight: 24
   },
   title2: {
     fontFamily: "Rubik",
@@ -413,87 +428,301 @@ export const typography = {
     letterSpacing: 0,
     lineHeight: 36
   },
+  regular_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  large_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 18
+  },
+  regular_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  tiny_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 12
+  },
+  large_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 18
+  },
+  small_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  _small_one_liner_regular: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  small_tight_medium: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  small_tight_bold: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  small_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  tiny_normal_medium: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  tiny_normal_bold: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  tiny_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 12
+  },
+  tiny_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 12
+  },
+  title1: {
+    fontFamily: "Rubik",
+    fontSize: 48,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 56
+  },
   title3: {
     fontFamily: "Rubik",
     fontSize: 24,
     fontWeight: 700,
     letterSpacing: 0,
     lineHeight: 32
+  },
+  small_normal_regular: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  regular_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  regular_tight_regular: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  small_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  ff_headline_06: {
+    fontFamily: "Circular Std",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  ff_headline_05: {
+    fontFamily: "Circular Std",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 26
+  },
+  ff_paragraph_03: {
+    fontFamily: "Circular Std",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  ff_headline_bold_h4: {
+    fontFamily: "Roboto",
+    fontSize: 28,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 33
+  },
+  ff_body_body1: {
+    fontFamily: "Roboto",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0.5,
+    lineHeight: 23
+  },
+  ff_paragraph_04: {
+    fontFamily: "Circular Std",
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  ff_headline_04: {
+    fontFamily: "Circular Std",
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 28
+  },
+  ff_paragraph_02: {
+    fontFamily: "Circular Std",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 26
+  },
+  ff_headline_01: {
+    fontFamily: "Circular Std",
+    fontSize: 36,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 46
+  },
+  ff_headline_07: {
+    fontFamily: "Circular Std",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  ff_headline_02: {
+    fontFamily: "Circular Std",
+    fontSize: 24,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 34
+  },
+  ff_paragraph_01: {
+    fontFamily: "Circular Std",
+    fontSize: 18,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 28
   }
 } as const;
 
-export const spacing = {
-  "2xl": 32,
-  "3xl": 48,
-  lg: 16,
-  md: 12,
-  sm: 8,
-  xl: 24,
-  xs: 4
-} as const;
-
-export const radius = {
-  full: 9999,
-  lg: 12,
-  md: 8,
-  none: 0,
-  sm: 4,
-  xl: 16
-} as const;
-
+// âââ Shadows âââââââââââââââââââââââââââââââââââââââââââââââââ
 export const shadows = {
-  large: {
-    elevation: 12,
+  shadow_large: {
     shadowColor: "#141414",
-    shadowOffset: {
-      height: 1,
-      width: 0
-    },
-    shadowOpacity: 0.07999999821186066,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
     shadowRadius: 24,
-    spread: 8
-  },
-  medium: {
-    elevation: 4,
-    shadowColor: "#141414",
-    shadowOffset: {
-      height: 1,
-      width: 0
-    },
-    shadowOpacity: 0.07999999821186066,
-    shadowRadius: 8,
-    spread: 2
+    elevation: 12
   },
   sample: {
-    elevation: 7,
     shadowColor: "#000000",
-    shadowOffset: {
-      height: 4.223656177520752,
-      width: 0
-    },
-    shadowOpacity: 0.05000000074505807,
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 14.078854560852053,
-    spread: 0
+    elevation: 7
   },
-  small: {
-    elevation: 4,
+  shadow_small: {
     shadowColor: "#141414",
-    shadowOffset: {
-      height: 0,
-      width: 0
-    },
-    shadowOpacity: 0.07999999821186066,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 0 },
     shadowRadius: 8,
-    spread: 0
-  }
+    elevation: 4
+  },
+  shadow_medium: {
+    shadowColor: "#141414",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 8,
+    elevation: 4
+  },
 } as const;
 
-export type ThemeTokens = {
-  colors: typeof colors;
-  typography: typeof typography;
-  spacing: typeof spacing;
-  radius: typeof radius;
-  shadows: typeof shadows;
-};
+// âââ Spacing âââââââââââââââââââââââââââââââââââââââââââââââââ
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48
+} as const;
 
-export const tokens: ThemeTokens = { colors, typography, spacing, radius, shadows };
+// âââ Border Radius âââââââââââââââââââââââââââââââââââââââââââ
+export const radius = {
+  none: 0,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999
+} as const;
+
+// âââ Theme Type ââââââââââââââââââââââââââââââââââââââââââââââ
+export type ThemeColors = typeof lightColors;
+export type ThemeName = 'light' | 'dark';
+
+export const themes = {
+  light: lightColors,
+  dark: darkColors,
+} as const;
+
+// âââ Convenience Barrel ââââââââââââââââââââââââââââââââââââââ
+export const tokens = {
+  colors: lightColors,
+  darkColors,
+  typography,
+  shadows,
+  spacing,
+  radius,
+  themes,
+} as const;

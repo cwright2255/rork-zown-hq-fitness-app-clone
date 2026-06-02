@@ -1,0 +1,642 @@
+{
+  "meta": {
+    "generatedAt": "2026-06-02T16:00:00Z",
+    "sources": [
+      {
+        "name": "Gofit - Fitness & Workout App UI Kit (Preview) (Copy)",
+        "fileKey": "1ny3185B0kFt9sR4TkZx9P",
+        "namedStyles": 0,
+        "extractedVia": "document-tree-walk"
+      },
+      {
+        "name": "Fitleus - Fitness Mobile App UI Kit (Copy)",
+        "fileKey": "qDQfQ2a21AfgxcqWrBk5Ya",
+        "namedStyles": 95,
+        "extractedVia": "styles-map + node-resolution"
+      },
+      {
+        "name": "Free Fitness App UI Kit (Community) (Copy)",
+        "fileKey": "kdpHT75MhQdS0iF2OPKYZ4",
+        "namedStyles": 61,
+        "extractedVia": "styles-map + node-resolution"
+      }
+    ]
+  },
+  "fitleus": {
+    "colors": {
+      "Ink": {
+        "Base": "#404446",
+        "Lighter": "#72777A",
+        "Darkest": "#090A0A",
+        "Dark": "#303437",
+        "Darker": "#202325",
+        "Light": "#6C7072"
+      },
+      "Sky": {
+        "Lightest": "#F7F9FA",
+        "Base": "#CDCFD0",
+        "White": "#FFFFFF",
+        "Light": "#E3E5E5",
+        "Lighter": "#F2F4F5",
+        "Dark": "#979C9E"
+      },
+      "Text": {
+        "Darkest": "#2F3556",
+        "Darker": "#444967",
+        "Dark": "#595D78",
+        "Base": "#6D7289",
+        "Light": "#82869A",
+        "Lighter": "#979AAA"
+      },
+      "Fuschia": {
+        "100": "#EF5DA8"
+      },
+      "Vivid Sky Blue": {
+        "Base": "#36D3F5"
+      },
+      "Blue": {
+        "Darkest": "#1F83A9",
+        "Base": "#2EC0F9",
+        "Light": "#5ECEFA",
+        "Lighter": "#84DAFB",
+        "Lightest": "#D5F2FE"
+      },
+      "3rd Party": {
+        "Facebook/Base": "#0078FF",
+        "Facebook/Dark": "#0067DB",
+        "Twitter/Base": "#1DA1F2",
+        "Twitter/Dark": "#0C90E1"
+      },
+      "Primary": {
+        "Base": "#6B4EFF"
+      },
+      "Red": {
+        "Base": "#FF1654",
+        "Light": "#FF4C7B",
+        "Lighter": "#FF769A",
+        "Lightest": "#FFD0DD",
+        "Darkest": "#AD0F39"
+      },
+      "Grayscale": {
+        "Black": "#000000"
+      },
+      "Green": {
+        "Base": "#23C16B",
+        "Lightest": "#ECFCE5",
+        "Lighter": "#7DDE86",
+        "Light": "#4CD471",
+        "Darkest": "#198155"
+      },
+      "Yellow": {
+        "Base": "#FFD639",
+        "Lightest": "#FFF7D7",
+        "Lighter": "#FFE78A",
+        "Light": "#FFDF67",
+        "Darkest": "#AD9227"
+      },
+      "Brand": {
+        "Base": "#4564EE",
+        "Lightest": "#C3CCF4",
+        "Lighter": "#6E87F2",
+        "Light": "#5975F0",
+        "Darkest": "#3053EC"
+      }
+    },
+    "typography": {
+      "small_tight_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 400,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "large_tight_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 700,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "large_tight_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 500,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "large_tight_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 400,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "tiny_tight_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 12,
+        "fontWeight": 500,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      },
+      "tiny_tight_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 12,
+        "fontWeight": 700,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      },
+      "tiny_tight_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 12,
+        "fontWeight": 400,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      },
+      "large_normal_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 500,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "regular_normal_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "large_normal_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 700,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "small_normal_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 700,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "small_normal_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 500,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "regular_normal_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 500,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "large_normal_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 400,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "large_none_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 400,
+        "lineHeight": 18,
+        "letterSpacing": 0
+      },
+      "regular_tight_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 500,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "tiny_normal_regular": {
+        "fontFamily": "Inter",
+        "fontSize": 12,
+        "fontWeight": 400,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "regular_tight_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 700,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "regular_normal_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 700,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "title2": {
+        "fontFamily": "Rubik",
+        "fontSize": 32,
+        "fontWeight": 700,
+        "lineHeight": 36,
+        "letterSpacing": 0
+      },
+      "regular_none_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 700,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "large_none_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 500,
+        "lineHeight": 18,
+        "letterSpacing": 0
+      },
+      "regular_none_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "tiny_none_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 12,
+        "fontWeight": 400,
+        "lineHeight": 12,
+        "letterSpacing": 0
+      },
+      "large_none_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 18,
+        "fontWeight": 700,
+        "lineHeight": 18,
+        "letterSpacing": 0
+      },
+      "small_none_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 700,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      },
+      "_small_one_liner_regular": {
+        "fontFamily": "Inter",
+        "fontSize": 14,
+        "fontWeight": 400,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      },
+      "small_tight_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 500,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "small_tight_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 700,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "small_none_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 500,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      },
+      "tiny_normal_medium": {
+        "fontFamily": "Inter",
+        "fontSize": 12,
+        "fontWeight": 500,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "tiny_normal_bold": {
+        "fontFamily": "Inter",
+        "fontSize": 12,
+        "fontWeight": 700,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "tiny_none_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 12,
+        "fontWeight": 500,
+        "lineHeight": 12,
+        "letterSpacing": 0
+      },
+      "tiny_none_bold": {
+        "fontFamily": "Rubik",
+        "fontSize": 12,
+        "fontWeight": 700,
+        "lineHeight": 12,
+        "letterSpacing": 0
+      },
+      "title1": {
+        "fontFamily": "Rubik",
+        "fontSize": 48,
+        "fontWeight": 700,
+        "lineHeight": 56,
+        "letterSpacing": 0
+      },
+      "title3": {
+        "fontFamily": "Rubik",
+        "fontSize": 24,
+        "fontWeight": 700,
+        "lineHeight": 32,
+        "letterSpacing": 0
+      },
+      "small_normal_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 400,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "regular_none_medium": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 500,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "regular_tight_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "small_none_regular": {
+        "fontFamily": "Rubik",
+        "fontSize": 14,
+        "fontWeight": 400,
+        "lineHeight": 14,
+        "letterSpacing": 0
+      }
+    },
+    "effects": {
+      "shadow_large": {
+        "type": "dropShadow",
+        "color": "#141414",
+        "opacity": 0.08,
+        "offsetX": 0,
+        "offsetY": 1,
+        "radius": 24,
+        "spread": 8
+      },
+      "sample": {
+        "type": "dropShadow",
+        "color": "#000000",
+        "opacity": 0.05,
+        "offsetX": 0,
+        "offsetY": 4.223656177520752,
+        "radius": 14.078854560852053,
+        "spread": 0
+      },
+      "shadow_small": {
+        "type": "dropShadow",
+        "color": "#141414",
+        "opacity": 0.04,
+        "offsetX": 0,
+        "offsetY": 0,
+        "radius": 1,
+        "spread": 0
+      },
+      "shadow_medium": {
+        "type": "dropShadow",
+        "color": "#141414",
+        "opacity": 0.08,
+        "offsetX": 0,
+        "offsetY": 0,
+        "radius": 1,
+        "spread": 0
+      }
+    }
+  },
+  "freeFitness": {
+    "colors": {
+      "Colors": {
+        "Black/20%": "#040415",
+        "White/100%": "#FFFFFF",
+        "Black/100%": "#040415",
+        "Black/40%": "#040415",
+        "Orange/100%": "#F15223",
+        "Gold/100%": "#FFB432",
+        "Pink/100%": "#FF7D7D",
+        "Purple/100%": "#5041AB",
+        "Cyan/100%": "#69E0C7",
+        "Navy-blue/100%": "#161626",
+        "Gray/100%": "#9F9F9F",
+        "Gray/40%": "#9F9F9F",
+        "White/5%": "#FFFFFF"
+      },
+      "other": {
+        "new": "#000000"
+      },
+      "Socials": {
+        "Facebook": "#1D4BFF"
+      }
+    },
+    "typography": {
+      "headline_06": {
+        "fontFamily": "Circular Std",
+        "fontSize": 14,
+        "fontWeight": 700,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "headline_05": {
+        "fontFamily": "Circular Std",
+        "fontSize": 16,
+        "fontWeight": 700,
+        "lineHeight": 26,
+        "letterSpacing": 0
+      },
+      "paragraph_03": {
+        "fontFamily": "Circular Std",
+        "fontSize": 14,
+        "fontWeight": 400,
+        "lineHeight": 24,
+        "letterSpacing": 0
+      },
+      "headline_bold___h4": {
+        "fontFamily": "Roboto",
+        "fontSize": 28,
+        "fontWeight": 700,
+        "lineHeight": 32.8125,
+        "letterSpacing": 0
+      },
+      "body_body1": {
+        "fontFamily": "Roboto",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 23,
+        "letterSpacing": 0.5
+      },
+      "paragraph_04": {
+        "fontFamily": "Circular Std",
+        "fontSize": 12,
+        "fontWeight": 400,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "headline_04": {
+        "fontFamily": "Circular Std",
+        "fontSize": 18,
+        "fontWeight": 700,
+        "lineHeight": 28,
+        "letterSpacing": 0
+      },
+      "paragraph_02": {
+        "fontFamily": "Circular Std",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 26,
+        "letterSpacing": 0
+      },
+      "headline_01": {
+        "fontFamily": "Circular Std",
+        "fontSize": 36,
+        "fontWeight": 700,
+        "lineHeight": 46,
+        "letterSpacing": 0
+      },
+      "headline_07": {
+        "fontFamily": "Circular Std",
+        "fontSize": 12,
+        "fontWeight": 700,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      },
+      "headline_02": {
+        "fontFamily": "Circular Std",
+        "fontSize": 24,
+        "fontWeight": 700,
+        "lineHeight": 34,
+        "letterSpacing": 0
+      },
+      "paragraph_01": {
+        "fontFamily": "Circular Std",
+        "fontSize": 18,
+        "fontWeight": 400,
+        "lineHeight": 28,
+        "letterSpacing": 0
+      }
+    },
+    "effects": {}
+  },
+  "gofit": {
+    "colorPalette": [
+      {
+        "hex": "#304FFE",
+        "occurrences": 121
+      },
+      {
+        "hex": "#FFFFFF",
+        "occurrences": 100
+      },
+      {
+        "hex": "#000000",
+        "occurrences": 35
+      },
+      {
+        "hex": "#212121",
+        "occurrences": 33
+      },
+      {
+        "hex": "#DADADA",
+        "occurrences": 24
+      },
+      {
+        "hex": "#FFD300",
+        "occurrences": 19
+      },
+      {
+        "hex": "#E0E0E0",
+        "occurrences": 16
+      },
+      {
+        "hex": "#EEEEEE",
+        "occurrences": 14
+      },
+      {
+        "hex": "#6842FF",
+        "occurrences": 14
+      },
+      {
+        "hex": "#35383F",
+        "occurrences": 11
+      },
+      {
+        "hex": "#424242",
+        "occurrences": 8
+      },
+      {
+        "hex": "#D9D9D9",
+        "occurrences": 8
+      },
+      {
+        "hex": "#130F26",
+        "occurrences": 4
+      },
+      {
+        "hex": "#1F222A",
+        "occurrences": 4
+      },
+      {
+        "hex": "#FAFAFA",
+        "occurrences": 4
+      },
+      {
+        "hex": "#181A20",
+        "occurrences": 3
+      },
+      {
+        "hex": "#BDBDBD",
+        "occurrences": 3
+      },
+      {
+        "hex": "#F5F5F5",
+        "occurrences": 2
+      },
+      {
+        "hex": "#C4C4C4",
+        "occurrences": 2
+      },
+      {
+        "hex": "#9E9E9E",
+        "occurrences": 2
+      },
+      {
+        "hex": "#616161",
+        "occurrences": 2
+      },
+      {
+        "hex": "#F0ECFF",
+        "occurrences": 1
+      },
+      {
+        "hex": "#262A35",
+        "occurrences": 1
+      },
+      {
+        "hex": "#50B0FF",
+        "occurrences": 1
+      },
+      {
+        "hex": "#FEFFFF",
+        "occurrences": 1
+      }
+    ]
+  }
+}
