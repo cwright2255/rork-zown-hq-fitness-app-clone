@@ -1,1 +1,728 @@
-Ly8gQXV0by1nZW5lcmF0ZWQgZnJvbSB0d28gZml0bmVzcyBVSSBraXQgc291cmNlcyBwbHVzIFpvd24gYnJhbmQgYXNzZXRzLgovLyBTb3VyY2Ugbm90ZXM6IEZpZ21hIEFQSSBhY2Nlc3MgZm9yIHRoZSBjb21tdW5pdHkgZmlsZXMgd2FzIHVuYXZhaWxhYmxlIGluIHRoaXMgYnVpbGQsCi8vIHNvIHB1YmxpYyBraXQgc2NyZWVuc2hvdHMvZGVzY3JpcHRpb25zIHdlcmUgdXNlZCBhcyB0aGUgZmFsbGJhY2sgZXh0cmFjdGlvbiBzb3VyY2UuCgpleHBvcnQgdHlwZSBUaGVtZU1vZGUgPSAnZGFyaycgfCAnbGlnaHQnOwoKdHlwZSBDb2xvclNjYWxlID0gewogIGJhY2tncm91bmQ6IHN0cmluZzsKICBiYWNrZ3JvdW5kRWxldmF0ZWQ6IHN0cmluZzsKICBzdXJmYWNlOiBzdHJpbmc7CiAgc3VyZmFjZUFsdDogc3RyaW5nOwogIGNhcmQ6IHN0cmluZzsKICBjYXJkUHJlc3NlZDogc3RyaW5nOwogIGJvcmRlcjogc3RyaW5nOwogIGRpdmlkZXI6IHN0cmluZzsKICB0ZXh0OiB7CiAgICBwcmltYXJ5OiBzdHJpbmc7CiAgICBzZWNvbmRhcnk6IHN0cmluZzsKICAgIHRlcnRpYXJ5OiBzdHJpbmc7CiAgICBpbnZlcnNlOiBzdHJpbmc7CiAgICBkaXNhYmxlZDogc3RyaW5nOwogIH07CiAgaWNvbjogewogICAgcHJpbWFyeTogc3RyaW5nOwogICAgc2Vjb25kYXJ5OiBzdHJpbmc7CiAgICBtdXRlZDogc3RyaW5nOwogIH07CiAgYWNjZW50OiB0eXBlb2YgYWNjZW50OwogIHN0YXR1czogdHlwZW9mIHN0YXR1czsKfTsKCmV4cG9ydCBjb25zdCBicmFuZCA9IHsKICBuYW1lOiAnWm93bicsCiAgLy8gRXh0cmFjdGVkIGZyb20gZG93bmxvYWRlZCBEcml2ZSBsb2dvIGFzc2V0czogcHJpbWFyaWx5IG1vbm9jaHJvbWUgYmxhY2svd2hpdGUgbWFya3MuCiAgaW5rOiAnIzExMTExMScsCiAgZ3JhcGhpdGU6ICcjM0YzRjQ2JywKICBtaXN0OiAnI0Y3RjdGOCcsCiAgd2hpdGU6ICcjRkZGRkZGJywKfSBhcyBjb25zdDsKCmV4cG9ydCBjb25zdCBhY2NlbnQgPSB7CiAgb3JhbmdlOiAnI0ZGN0ExQScsCiAgb3JhbmdlU29mdDogJyNGRkU3RDInLAogIGN5YW46ICcjMjJEM0VFJywKICBjeWFuU29mdDogJyNEOEZBRkYnLAogIGdyZWVuOiAnIzM0RDM5OScsCiAgZ3JlZW5Tb2Z0OiAnI0RERkJFRicsCiAgcmVkOiAnI0VGNDQ0NCcsCiAgcmVkU29mdDogJyNGRUUyRTInLAogIHB1cnBsZTogJyM4QjVDRjYnLAogIHllbGxvdzogJyNGQUNDMTUnLAp9IGFzIGNvbnN0OwoKZXhwb3J0IGNvbnN0IHN0YXR1cyA9IHsKICBzdWNjZXNzOiBhY2NlbnQuZ3JlZW4sCiAgd2FybmluZzogYWNjZW50LnllbGxvdywKICBkYW5nZXI6IGFjY2VudC5yZWQsCiAgaW5mbzogYWNjZW50LmN5YW4sCn0gYXMgY29uc3Q7CgpleHBvcnQgY29uc3QgY29sb3JzID0gewogIGJyYW5kLAogIGFjY2VudCwKICBzdGF0dXMsCiAgZGFyazogewogICAgYmFja2dyb3VuZDogJyMwQTBFMUEnLAogICAgYmFja2dyb3VuZEVsZXZhdGVkOiAnIzBGMTcyQScsCiAgICBzdXJmYWNlOiAnIzExMTgyNycsCiAgICBzdXJmYWNlQWx0OiAnIzE3MjAzMycsCiAgICBjYXJkOiAnIzFCMjQzNicsCiAgICBjYXJkUHJlc3NlZDogJyMyNDMwNDQnLAogICAgYm9yZGVyOiAnIzJBMzQ0OCcsCiAgICBkaXZpZGVyOiAnIzIwMkEzRCcsCiAgICB0ZXh0OiB7CiAgICAgIHByaW1hcnk6ICcjRjhGQUZDJywKICAgICAgc2Vjb25kYXJ5OiAnI0NCRDVFMScsCiAgICAgIHRlcnRpYXJ5OiAnIzk0QTNCOCcsCiAgICAgIGludmVyc2U6ICcjMEEwRTFBJywKICAgICAgZGlzYWJsZWQ6ICcjNjQ3NDhCJywKICAgIH0sCiAgICBpY29uOiB7CiAgICAgIHByaW1hcnk6ICcjRjhGQUZDJywKICAgICAgc2Vjb25kYXJ5OiAnI0NCRDVFMScsCiAgICAgIG11dGVkOiAnIzY0NzQ4QicsCiAgICB9LAogICAgYWNjZW50LAogICAgc3RhdHVzLAogIH0sCiAgbGlnaHQ6IHsKICAgIGJhY2tncm91bmQ6ICcjRkZGRkZGJywKICAgIGJhY2tncm91bmRFbGV2YXRlZDogJyNGOEZBRkMnLAogICAgc3VyZmFjZTogJyNGNEY2RkEnLAogICAgc3VyZmFjZUFsdDogJyNFRUYyRjcnLAogICAgY2FyZDogJyNGRkZGRkYnLAogICAgY2FyZFByZXNzZWQ6ICcjRUVGMkY3JywKICAgIGJvcmRlcjogJyNFMkU4RjAnLAogICAgZGl2aWRlcjogJyNFNUU3RUInLAogICAgdGV4dDogewogICAgICBwcmltYXJ5OiAnIzBGMTcyQScsCiAgICAgIHNlY29uZGFyeTogJyMzMzQxNTUnLAogICAgICB0ZXJ0aWFyeTogJyM2NDc0OEInLAogICAgICBpbnZlcnNlOiAnI0ZGRkZGRicsCiAgICAgIGRpc2FibGVkOiAnIzk0QTNCOCcsCiAgICB9LAogICAgaWNvbjogewogICAgICBwcmltYXJ5OiAnIzBGMTcyQScsCiAgICAgIHNlY29uZGFyeTogJyM0NzU1NjknLAogICAgICBtdXRlZDogJyM5NEEzQjgnLAogICAgfSwKICAgIGFjY2VudCwKICAgIHN0YXR1cywKICB9LAp9IGFzIGNvbnN0OwoKZXhwb3J0IGNvbnN0IHR5cG9ncmFwaHkgPSB7CiAgZmFtaWx5OiB7CiAgICByZWd1bGFyOiAnSW50ZXItUmVndWxhcicsCiAgICBtZWRpdW06ICdJbnRlci1NZWRpdW0nLAogICAgc2VtaWJvbGQ6ICdJbnRlci1TZW1pQm9sZCcsCiAgICBib2xkOiAnSW50ZXItQm9sZCcsCiAgICBzeXN0ZW06ICdTeXN0ZW0nLAogIH0sCiAgc2l6ZTogewogICAgeHM6IDExLAogICAgc206IDEyLAogICAgYm9keVNtOiAxNCwKICAgIGJvZHk6IDE2LAogICAgYm9keUxnOiAxOCwKICAgIHRpdGxlU206IDIwLAogICAgdGl0bGU6IDI0LAogICAgaGVhZGxpbmU6IDI4LAogICAgZGlzcGxheVNtOiAzMiwKICAgIGRpc3BsYXk6IDQwLAogIH0sCiAgbGluZUhlaWdodDogewogICAgeHM6IDE0LAogICAgc206IDE2LAogICAgYm9keVNtOiAyMCwKICAgIGJvZHk6IDI0LAogICAgYm9keUxnOiAyOCwKICAgIHRpdGxlU206IDI4LAogICAgdGl0bGU6IDMyLAogICAgaGVhZGxpbmU6IDM2LAogICAgZGlzcGxheVNtOiA0MCwKICAgIGRpc3BsYXk6IDQ4LAogIH0sCiAgd2VpZ2h0OiB7CiAgICByZWd1bGFyOiAnNDAwJywKICAgIG1lZGl1bTogJzUwMCcsCiAgICBzZW1pYm9sZDogJzYwMCcsCiAgICBib2xkOiAnNzAwJywKICAgIGV4dHJhQm9sZDogJzgwMCcsCiAgfSwKfSBhcyBjb25zdDsKCmV4cG9ydCBjb25zdCBzcGFjaW5nID0gewogIG5vbmU6IDAsCiAgeHhzOiAyLAogIHhzOiA0LAogIHNtOiA4LAogIG1kOiAxMiwKICBsZzogMTYsCiAgeGw6IDIwLAogICcyeGwnOiAyNCwKICAnM3hsJzogMzIsCiAgJzR4bCc6IDQwLAogICc1eGwnOiA0OCwKICAnNnhsJzogNjQsCn0gYXMgY29uc3Q7CgpleHBvcnQgY29uc3QgcmFkaXVzID0gewogIG5vbmU6IDAsCiAgeHM6IDQsCiAgc206IDgsCiAgbWQ6IDEyLAogIGxnOiAxNiwKICB4bDogMjAsCiAgcGlsbDogOTk5LAp9IGFzIGNvbnN0OwoKZXhwb3J0IGNvbnN0IHNoYWRvd3MgPSB7CiAgZGFyazogewogICAgc206IHsgc2hhZG93Q29sb3I6ICcjMDAwMDAwJywgc2hhZG93T3BhY2l0eTogMC4xOCwgc2hhZG93UmFkaXVzOiA4LCBzaGFkb3dPZmZzZXQ6IHsgd2lkdGg6IDAsIGhlaWdodDogNCB9LCBlbGV2YXRpb246IDMgfSwKICAgIG1kOiB7IHNoYWRvd0NvbG9yOiAnIzAwMDAwMCcsIHNoYWRvd09wYWNpdHk6IDAuMjgsIHNoYWRvd1JhZGl1czogMTYsIHNoYWRvd09mZnNldDogeyB3aWR0aDogMCwgaGVpZ2h0OiAxMCB9LCBlbGV2YXRpb246IDggfSwKICAgIGdsb3dPcmFuZ2U6IHsgc2hhZG93Q29sb3I6IGFjY2VudC5vcmFuZ2UsIHNoYWRvd09wYWNpdHk6IDAuMjgsIHNoYWRvd1JhZGl1czogMTgsIHNoYWRvd09mZnNldDogeyB3aWR0aDogMCwgaGVpZ2h0OiAwIH0sIGVsZXZhdGlvbjogNiB9LAogICAgZ2xvd0N5YW46IHsgc2hhZG93Q29sb3I6IGFjY2VudC5jeWFuLCBzaGFkb3dPcGFjaXR5OiAwLjI0LCBzaGFkb3dSYWRpdXM6IDE4LCBzaGFkb3dPZmZzZXQ6IHsgd2lkdGg6IDAsIGhlaWdodDogMCB9LCBlbGV2YXRpb246IDYgfSwKICB9LAogIGxpZ2h0OiB7CiAgICBzbTogeyBzaGFkb3dDb2xvcjogJyMwRjE3MkEnLCBzaGFkb3dPcGFjaXR5OiAwLjA4LCBzaGFkb3dSYWRpdXM6IDgsIHNoYWRvd09mZnNldDogeyB3aWR0aDogMCwgaGVpZ2h0OiA0IH0sIGVsZXZhdGlvbjogMiB9LAogICAgbWQ6IHsgc2hhZG93Q29sb3I6ICcjMEYxNzJBJywgc2hhZG93T3BhY2l0eTogMC4xMiwgc2hhZG93UmFkaXVzOiAxOCwgc2hhZG93T2Zmc2V0OiB7IHdpZHRoOiAwLCBoZWlnaHQ6IDEwIH0sIGVsZXZhdGlvbjogNiB9LAogICAgZ2xvd09yYW5nZTogeyBzaGFkb3dDb2xvcjogYWNjZW50Lm9yYW5nZSwgc2hhZG93T3BhY2l0eTogMC4xNiwgc2hhZG93UmFkaXVzOiAxNiwgc2hhZG93T2Zmc2V0OiB7IHdpZHRoOiAwLCBoZWlnaHQ6IDAgfSwgZWxldmF0aW9uOiA0IH0sCiAgICBnbG93Q3lhbjogeyBzaGFkb3dDb2xvcjogYWNjZW50LmN5YW4sIHNoYWRvd09wYWNpdHk6IDAuMTQsIHNoYWRvd1JhZGl1czogMTYsIHNoYWRvd09mZnNldDogeyB3aWR0aDogMCwgaGVpZ2h0OiAwIH0sIGVsZXZhdGlvbjogNCB9LAogIH0sCn0gYXMgY29uc3Q7CgpleHBvcnQgY29uc3QgZGFya1RoZW1lID0gewogIG1vZGU6ICdkYXJrJyBhcyBjb25zdCwKICBjb2xvcnM6IGNvbG9ycy5kYXJrLAogIGJyYW5kLAogIHR5cG9ncmFwaHksCiAgc3BhY2luZywKICByYWRpdXMsCiAgc2hhZG93czogc2hhZG93cy5kYXJrLAp9IGFzIGNvbnN0OwoKZXhwb3J0IGNvbnN0IGxpZ2h0VGhlbWUgPSB7CiAgbW9kZTogJ2xpZ2h0JyBhcyBjb25zdCwKICBjb2xvcnM6IGNvbG9ycy5saWdodCwKICBicmFuZCwKICB0eXBvZ3JhcGh5LAogIHNwYWNpbmcsCiAgcmFkaXVzLAogIHNoYWRvd3M6IHNoYWRvd3MubGlnaHQsCn0gYXMgY29uc3Q7CgpleHBvcnQgdHlwZSBUaGVtZSA9IHR5cGVvZiBkYXJrVGhlbWU7CgpleHBvcnQgY29uc3QgdGhlbWVzID0gewogIGRhcms6IGRhcmtUaGVtZSwKICBsaWdodDogbGlnaHRUaGVtZSwKfSBhcyBjb25zdDsKCmV4cG9ydCBjb25zdCBnZXRUaGVtZSA9IChtb2RlOiBUaGVtZU1vZGUpOiBUaGVtZSA9PiB0aGVtZXNbbW9kZV07Cg==
+/**
+ * Fitleus design tokens - auto-generated from three Figma sources.
+ *
+ * Sources:
+ *   1. Fitleus - Fitness Mobile App UI Kit (qDQfQ2a21AfgxcqWrBk5Ya)
+ *      51 color styles, 40 typography styles, 4 effect styles
+ *   2. Free Fitness App UI Kit (kdpHT75MhQdS0iF2OPKYZ4)
+ *      25 color styles, 12 typography styles
+ *   3. Gofit - Fitness & Workout App UI Kit (1ny3185B0kFt9sR4TkZx9P)
+ *      25 unique colors extracted via document-tree walk
+ *
+ * Extracted: 2026-06-02
+ * Do not edit by hand. Re-run the Fitleus extraction agent to regenerate.
+ */
+
+// âââ Light Theme Colors ââââââââââââââââââââââââââââââââââââââ
+export const lightColors = {
+  _3rd_party: {
+    facebook_base: "#0078FF",
+    facebook_dark: "#0067DB",
+    twitter_base: "#1DA1F2",
+    twitter_dark: "#0C90E1"
+  },
+  background: {
+    default: "#FFFFFF",
+    secondary: "#F7F9FA"
+  },
+  blue: {
+    base: "#2EC0F9",
+    darkest: "#1F83A9",
+    light: "#5ECEFA",
+    lighter: "#84DAFB",
+    lightest: "#D5F2FE"
+  },
+  brand: {
+    base: "#4564EE",
+    darkest: "#3053EC",
+    light: "#5975F0",
+    lighter: "#6E87F2",
+    lightest: "#C3CCF4"
+  },
+  cyan: {
+    cyan: "#69E0C7"
+  },
+  dark_navy: {
+    bg_card: "#262A35",
+    bg_input: "#1F222A",
+    bg_primary: "#181A20",
+    bg_secondary: "#1F222A",
+    border: "#35383F",
+    divider: "#35383F",
+    icon_active: "#FFFFFF",
+    icon_inactive: "#9E9E9E",
+    primary: "#304FFE",
+    primary_light: "#F0ECFF",
+    tab_active: "#304FFE",
+    text_hint: "#616161",
+    text_muted: "#9E9E9E",
+    text_primary: "#FFFFFF",
+    text_secondary: "#E0E0E0"
+  },
+  fuschia: {
+    _100: "#EF5DA8"
+  },
+  gofit: {
+    primary: "#304FFE",
+    purple: "#6842FF",
+    purple_light: "#F0ECFF",
+    sky_blue: "#50B0FF",
+    yellow: "#FFD300"
+  },
+  gold: {
+    gold: "#FFB432"
+  },
+  gray: {
+    gray: "#9F9F9F"
+  },
+  grayscale: {
+    black: "#000000"
+  },
+  green: {
+    base: "#23C16B",
+    darkest: "#198155",
+    light: "#4CD471",
+    lighter: "#7DDE86",
+    lightest: "#ECFCE5"
+  },
+  ink: {
+    base: "#404446",
+    dark: "#303437",
+    darker: "#202325",
+    darkest: "#090A0A",
+    light: "#6C7072",
+    lighter: "#72777A"
+  },
+  navy: {
+    _100: "#161626"
+  },
+  orange: {
+    orange: "#F15223"
+  },
+  pink: {
+    pink: "#FF7D7D"
+  },
+  primary: {
+    base: "#6B4EFF"
+  },
+  red: {
+    base: "#FF1654",
+    darkest: "#AD0F39",
+    light: "#FF4C7B",
+    lighter: "#FF769A",
+    lightest: "#FFD0DD"
+  },
+  sky: {
+    base: "#CDCFD0",
+    dark: "#979C9E",
+    light: "#E3E5E5",
+    lighter: "#F2F4F5",
+    lightest: "#F7F9FA",
+    white: "#FFFFFF"
+  },
+  socials: {
+    facebook: "#1D4BFF"
+  },
+  surface: {
+    card: "#FFFFFF",
+    default: "#F5F6F8",
+    elevated: "#FFFFFF"
+  },
+  text: {
+    base: "#6D7289",
+    dark: "#595D78",
+    darker: "#444967",
+    darkest: "#2F3556",
+    light: "#82869A",
+    lighter: "#979AAA"
+  },
+  vivid_sky_blue: {
+    base: "#36D3F5"
+  },
+  yellow: {
+    base: "#FFD639",
+    darkest: "#AD9227",
+    light: "#FFDF67",
+    lighter: "#FFE78A",
+    lightest: "#FFF7D7"
+  }
+} as const;
+
+// âââ Dark Theme Colors âââââââââââââââââââââââââââââââââââââââ
+export const darkColors = {
+  _3rd_party: {
+    facebook_base: "#0078FF",
+    facebook_dark: "#0067DB",
+    twitter_base: "#1DA1F2",
+    twitter_dark: "#0C90E1"
+  },
+  background: {
+    default: "#121212",
+    secondary: "#1E1E1E"
+  },
+  blue: {
+    base: "#2EC0F9",
+    darkest: "#1F83A9",
+    light: "#5ECEFA",
+    lighter: "#84DAFB",
+    lightest: "#D5F2FE"
+  },
+  brand: {
+    base: "#4564EE",
+    darkest: "#3053EC",
+    light: "#5975F0",
+    lighter: "#6E87F2",
+    lightest: "#C3CCF4"
+  },
+  cyan: {
+    cyan: "#69E0C7"
+  },
+  dark_navy: {
+    bg_card: "#262A35",
+    bg_input: "#1F222A",
+    bg_primary: "#181A20",
+    bg_secondary: "#1F222A",
+    border: "#35383F",
+    divider: "#35383F",
+    icon_active: "#FFFFFF",
+    icon_inactive: "#9E9E9E",
+    primary: "#304FFE",
+    primary_light: "#F0ECFF",
+    tab_active: "#304FFE",
+    text_hint: "#616161",
+    text_muted: "#9E9E9E",
+    text_primary: "#FFFFFF",
+    text_secondary: "#E0E0E0"
+  },
+  fuschia: {
+    _100: "#EF5DA8"
+  },
+  gofit: {
+    primary: "#304FFE",
+    purple: "#6842FF",
+    purple_light: "#F0ECFF",
+    sky_blue: "#50B0FF",
+    yellow: "#FFD300"
+  },
+  gold: {
+    gold: "#FFB432"
+  },
+  gray: {
+    gray: "#9F9F9F"
+  },
+  grayscale: {
+    black: "#FFFFFF"
+  },
+  green: {
+    base: "#23C16B",
+    darkest: "#198155",
+    light: "#4CD471",
+    lighter: "#7DDE86",
+    lightest: "#ECFCE5"
+  },
+  ink: {
+    base: "#B0B0B0",
+    dark: "#CCCCCC",
+    darker: "#E0E0E0",
+    darkest: "#F5F5F5",
+    light: "#888888",
+    lighter: "#999999"
+  },
+  navy: {
+    _100: "#161626"
+  },
+  orange: {
+    orange: "#F15223"
+  },
+  pink: {
+    pink: "#FF7D7D"
+  },
+  primary: {
+    base: "#6B4EFF"
+  },
+  red: {
+    base: "#FF1654",
+    darkest: "#AD0F39",
+    light: "#FF4C7B",
+    lighter: "#FF769A",
+    lightest: "#FFD0DD"
+  },
+  sky: {
+    base: "#444444",
+    dark: "#555555",
+    light: "#333333",
+    lighter: "#2A2A2A",
+    lightest: "#222222",
+    white: "#1A1A1A"
+  },
+  socials: {
+    facebook: "#1D4BFF"
+  },
+  surface: {
+    card: "#252525",
+    default: "#1E1E1E",
+    elevated: "#2C2C2C"
+  },
+  text: {
+    base: "#B0B0B0",
+    dark: "#CCCCCC",
+    darker: "#E0E0E0",
+    darkest: "#F5F5F5",
+    light: "#999999",
+    lighter: "#777777"
+  },
+  vivid_sky_blue: {
+    base: "#36D3F5"
+  },
+  yellow: {
+    base: "#FFD639",
+    darkest: "#AD9227",
+    light: "#FFDF67",
+    lighter: "#FFE78A",
+    lightest: "#FFF7D7"
+  }
+} as const;
+
+// âââ Backward-compatible alias (defaults to light) âââââââââââ
+export const colors = lightColors;
+
+// âââ Typography ââââââââââââââââââââââââââââââââââââââââââââââ
+export const typography = {
+  small_tight_regular: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  large_tight_bold: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  large_tight_medium: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  large_tight_regular: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  tiny_tight_medium: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  tiny_tight_bold: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  tiny_tight_regular: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  large_normal_medium: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  regular_normal_regular: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  large_normal_bold: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  small_normal_bold: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  small_normal_medium: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  regular_normal_medium: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  large_normal_regular: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  large_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 18
+  },
+  regular_tight_medium: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  tiny_normal_regular: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  regular_tight_bold: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  regular_normal_bold: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  title2: {
+    fontFamily: "Rubik",
+    fontSize: 32,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 36
+  },
+  regular_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  large_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 18
+  },
+  regular_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  tiny_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 12
+  },
+  large_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 18
+  },
+  small_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  _small_one_liner_regular: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  small_tight_medium: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  small_tight_bold: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  small_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  tiny_normal_medium: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  tiny_normal_bold: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  tiny_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 12
+  },
+  tiny_none_bold: {
+    fontFamily: "Rubik",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 12
+  },
+  title1: {
+    fontFamily: "Rubik",
+    fontSize: 48,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 56
+  },
+  title3: {
+    fontFamily: "Rubik",
+    fontSize: 24,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 32
+  },
+  small_normal_regular: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  regular_none_medium: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 500,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  regular_tight_regular: {
+    fontFamily: "Rubik",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 20
+  },
+  small_none_regular: {
+    fontFamily: "Rubik",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 14
+  },
+  ff_headline_06: {
+    fontFamily: "Circular Std",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  ff_headline_05: {
+    fontFamily: "Circular Std",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 26
+  },
+  ff_paragraph_03: {
+    fontFamily: "Circular Std",
+    fontSize: 14,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 24
+  },
+  ff_headline_bold_h4: {
+    fontFamily: "Roboto",
+    fontSize: 28,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 33
+  },
+  ff_body_body1: {
+    fontFamily: "Roboto",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0.5,
+    lineHeight: 23
+  },
+  ff_paragraph_04: {
+    fontFamily: "Circular Std",
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  ff_headline_04: {
+    fontFamily: "Circular Std",
+    fontSize: 18,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 28
+  },
+  ff_paragraph_02: {
+    fontFamily: "Circular Std",
+    fontSize: 16,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 26
+  },
+  ff_headline_01: {
+    fontFamily: "Circular Std",
+    fontSize: 36,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 46
+  },
+  ff_headline_07: {
+    fontFamily: "Circular Std",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 16
+  },
+  ff_headline_02: {
+    fontFamily: "Circular Std",
+    fontSize: 24,
+    fontWeight: 700,
+    letterSpacing: 0,
+    lineHeight: 34
+  },
+  ff_paragraph_01: {
+    fontFamily: "Circular Std",
+    fontSize: 18,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 28
+  }
+} as const;
+
+// âââ Shadows âââââââââââââââââââââââââââââââââââââââââââââââââ
+export const shadows = {
+  shadow_large: {
+    shadowColor: "#141414",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 24,
+    elevation: 12
+  },
+  sample: {
+    shadowColor: "#000000",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 14.078854560852053,
+    elevation: 7
+  },
+  shadow_small: {
+    shadowColor: "#141414",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 8,
+    elevation: 4
+  },
+  shadow_medium: {
+    shadowColor: "#141414",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 8,
+    elevation: 4
+  },
+} as const;
+
+// âââ Spacing âââââââââââââââââââââââââââââââââââââââââââââââââ
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48
+} as const;
+
+// âââ Border Radius âââââââââââââââââââââââââââââââââââââââââââ
+export const radius = {
+  none: 0,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999
+} as const;
+
+// âââ Theme Type ââââââââââââââââââââââââââââââââââââââââââââââ
+export type ThemeColors = typeof lightColors;
+export type ThemeName = 'light' | 'dark';
+
+export const themes = {
+  light: lightColors,
+  dark: darkColors,
+} as const;
+
+// âââ Convenience Barrel ââââââââââââââââââââââââââââââââââââââ
+export const tokens = {
+  colors: lightColors,
+  darkColors,
+  typography,
+  shadows,
+  spacing,
+  radius,
+  themes,
+} as const;
