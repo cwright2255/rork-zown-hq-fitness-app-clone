@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { colors, spacing, typography } from '@/constants/theme';
+import { tokens } from '../../theme/tokens';
 
 export default function ScreenHeader({
   title,
@@ -29,7 +29,7 @@ export default function ScreenHeader({
       <View style={styles.left}>
         {showBack ? (
           <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8}>
-            <ChevronLeft size={24} color={colors.text} />
+            <ChevronLeft size={24} color={tokens.colors.dark_navy.text_primary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -48,12 +48,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
     minHeight: 56,
   },
   solid: {
-    backgroundColor: colors.bg,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
   },
   transparent: {
     backgroundColor: 'transparent',
@@ -73,15 +73,17 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: tokens.radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    ...typography.h2,
+    ...tokens.typography.heading_2_bold,
+    color: tokens.colors.dark_navy.text_primary,
   },
   subtitle: {
-    ...typography.caption,
-    marginTop: 2,
+    ...tokens.typography.xsmall_tight_regular,
+    color: tokens.colors.dark_navy.text_secondary,
+    marginTop: tokens.spacing.xs / 2,
   },
 });
