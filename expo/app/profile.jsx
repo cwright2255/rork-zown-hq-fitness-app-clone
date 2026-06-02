@@ -632,14 +632,14 @@ export default function ProfileScreen() {
               <View style={styles.progressItem}>
                 <Text style={styles.progressLabel}>Weight</Text>
                 <Text style={styles.progressValue}>
-                  {getLatestEntry()?.weight ? `${getLatestEntry()?.weight} kg` : 'Not recorded}
+                  {getLatestEntry()?.weight ? `${getLatestEntry()?.weight} kg` : 'Not recorded'}
                 </Text>
               </View>
               
               <View style={styles.progressItem}>
                 <Text style={styles.progressLabel}>Body Fat</Text>
                 <Text style={styles.progressValue}>
-                  {getLatestEntry()?.bodyFat ? `${getLatestEntry()?.bodyFat}%` : 'Not recorded}
+                  {getLatestEntry()?.bodyFat ? `${getLatestEntry()?.bodyFat}%` : 'Not recorded'}
                 </Text>
               </View>
               
@@ -1048,7 +1048,7 @@ export default function ProfileScreen() {
       {/* Subscription Upgrade Modal */}
       <SubscriptionUpgradeModal
         visible={showUpgradeModal}
-        currentTier={user.subscription?.tier || 'free}
+        currentTier={user.subscription?.tier || 'free'}
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={handleUpgrade} />
       
