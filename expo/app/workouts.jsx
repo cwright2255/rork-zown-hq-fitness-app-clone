@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '@/constants/theme';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useExerciseStore } from '@/store/exerciseStore';
 import { tokens } from '../../theme/tokens';
@@ -29,273 +28,270 @@ const FILTERS = [
 ];
 
 function ExerciseRow({ exercise }) {
-  const equipment = (exercise.equipments || [])[0] || '';
-  const target = (exercise.targetMuscles || [])[0] || '';
+  const equipment = (exercise.equipments || []).map((e) => e.name).join(', ') || 'Bodyweight';
+  const muscles = (exercise.primaryMuscles || []).map((m) => m.name).join(', ');
+
   return (
     <TouchableOpacity
-      style={styles.row}
-      onPress={() => router.push({ pathname: '/workout/[id]', params: { id: exercise.exerciseId } })}
-      activeOpacity={0.85}
-    >
+      style={styles.exerciseCard}
+      onPress={() => router.push({ pathname: '/workout/[id]', params: { id: exercise.id } })}
+      activeOpacity={0.7}>
       {exercise.gifUrl ? (
-        <Image source={{ uri: exercise.gifUrl }} style={styles.thumb} resizeMode="cover" />
+        <Image source={{ uri: exercise.gifUrl }} style={styles.exerciseImage} />
       ) : (
-        <View style={[styles.thumb, styles.thumbFallback]}>
-          <Dumbbell size={18} color={colors.text} />
+        <View style={styles.exercisePlaceholder}>
+          <Dumbbell size={24} color={tokens.colors.dark_navy.text_muted} />
         </View>
       )}
-      <View style={styles.rowBody}>
-        <Text style={styles.rowTitle} numberOfLines={2}>{exercise.name}</Text>
-        <View style={styles.rowTags}>
-          {!!equipment && <Text style={styles.rowTag}>{equipment}</Text>}
-          {!!target && <Text style={styles.rowTag}>Ã¢ÂÂ¢ {target}</Text>}
-        </View>
+      <View style={styles.exerciseInfo}>
+        <Text style={styles.exerciseName} numberOfLines={1}>
+          {exercise.name}
+        </Text>
+        <Text style={styles.exerciseMeta} numberOfLines={1}>
+          {muscles}
+        </Text>
+        <Text style={styles.exerciseEquipment} numberOfLines={1}>
+          {equipment}
+        </Text>
       </View>
-      <ChevronRight size={18} color={colors.textSecondary} />
+      <ChevronRight size={20} color={tokens.colors.dark_navy.text_muted} />
     </TouchableOpacity>
   );
 }
 
 export default function WorkoutsScreen() {
-  const {
-    exercises,
-    filteredExercises,
-    isLoading,
-    hasNextPage,
-    filters,
-    loadExercises,
-    loadEquipments,
-    loadMuscles,
-    setFilter,
-  } = useExerciseStore();
-
-  const [activePill, setActivePill] = useState('');
+  const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
+  const { exercises, loading, error, fetchExercises } = useExerciseStore();
 
   useEffect(() => {
-    if (exercises.length === 0) {
-      loadExercises(true);
+    if (!exercises || exercises.length === 0) {
+      fetchExercises();
     }
-    loadEquipments();
-    loadMuscles();
   }, []);
 
-  const list = (filters.query || filters.bodyPart || filters.equipment || filters.muscle)
-    ? filteredExercises
-    : exercises;
-
-  const onPressPill = (value) => {
-    setActivePill(value);
-    setFilter('bodyPart', value);
-  };
+  const filtered = React.useMemo(() => {
+    if (!exercises) return [];
+    let result = exercises;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.name?.toLowerCase().includes(q) ||
+          (e.primaryMuscles || []).some((m) => m.name?.toLowerCase().includes(q))
+      );
+    }
+    if (activeFilter) {
+      const parts = activeFilter.split('|');
+      result = result.filter((e) =>
+        (e.primaryMuscles || []).some((m) =>
+          parts.some((p) => m.name?.toLowerCase().includes(p))
+        )
+      );
+    }
+    return result;
+  }, [exercises, search, activeFilter]);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader
-        title="Workouts"
-        subtitle="PICK YOUR MISSION"
-        rightAction={
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/workout/create')}
-            accessibilityLabel="Create workout"
-          >
-            <Plus size={18} color={colors.text} />
-          </TouchableOpacity>
-        }
-      />
+      <ScreenHeader title="Workouts" rightAction={
+        <TouchableOpacity onPress={() => router.push('/workout/create')} hitSlop={8}>
+          <Plus size={24} color={tokens.colors.dark_navy.text_primary} />
+        </TouchableOpacity>
+      } />
 
-      <View style={styles.searchWrap}>
-        <Search size={16} color={colors.textSecondary} />
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <Search size={18} color={tokens.colors.dark_navy.text_muted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search exercises"
-          placeholderTextColor={colors.textMuted}
-          value={filters.query}
-          onChangeText={(text) => setFilter('query', text)}
-          autoCorrect={false}
-          autoCapitalize="none"
+          placeholder="Search exercises..."
+          placeholderTextColor={tokens.colors.dark_navy.text_hint}
+          value={search}
+          onChangeText={setSearch}
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        {FILTERS.map(({ label, value, Icon }) => {
-          const active = activePill === value;
+      {/* Filters */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterContent}>
+        {FILTERS.map((f) => {
+          const isActive = activeFilter === f.value;
           return (
             <TouchableOpacity
-              key={label}
-              onPress={() => onPressPill(value)}
-              style={[styles.filterPill, active && styles.filterPillActive]}
-              activeOpacity={0.85}
-            >
-              {Icon && <Icon size={14} color={active ? colors.bg : colors.textSecondary} />}
-              <Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text>
+              key={f.label}
+              style={[styles.filterChip, isActive && styles.filterChipActive]}
+              onPress={() => setActiveFilter(isActive ? '' : f.value)}>
+              {f.Icon ? (
+                <f.Icon
+                  size={14}
+                  color={isActive ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_secondary}
+                  style={{ marginRight: 4 }}
+                />
+              ) : null}
+              <Text style={[styles.filterLabel, isActive && styles.filterLabelActive]}>
+                {f.label}
+              </Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      {isLoading && list.length === 0 ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.text} />
-          <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
+      {/* List */}
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={tokens.colors.brand.base} />
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={fetchExercises}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={list}
-          keyExtractor={(item) => String(item.exerciseId)}
-          contentContainerStyle={styles.listContent}
+          data={filtered}
+          keyExtractor={(item) => item.id?.toString()}
           renderItem={({ item }) => <ExerciseRow exercise={item} />}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Dumbbell size={40} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>No exercises</Text>
-              <Text style={styles.emptyText}>Try a different search or filter.</Text>
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>No exercises found</Text>
             </View>
-          }
-          ListFooterComponent={
-            hasNextPage ? (
-              <TouchableOpacity
-                style={styles.loadMore}
-                onPress={() => loadExercises(false)}
-                activeOpacity={0.85}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={colors.text} />
-                ) : (
-                  <Text style={styles.loadMoreText}>Load More</Text>
-                )}
-              </TouchableOpacity>
-            ) : null
           }
         />
       )}
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/workout/create')}
-        activeOpacity={0.85}
-        accessibilityLabel="Create workout"
-      >
-        <Plus size={24} color={colors.bg} />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  header: {
+  container: {
+    flex: 1,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  title: { ...typography.h1 },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: tokens.colors.dark_navy.bg_input,
+    borderRadius: tokens.radius.md,
+    marginHorizontal: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.md,
+    height: 44,
+    marginBottom: tokens.spacing.sm,
   },
   searchInput: {
     flex: 1,
-    color: colors.text,
-    fontSize: 14,
-    padding: 0,
+    marginLeft: tokens.spacing.sm,
+    fontSize: 15,
+    color: tokens.colors.dark_navy.text_primary,
   },
-  filters: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
+  filterScroll: {
+    maxHeight: 48,
+    marginBottom: tokens.spacing.sm,
+  },
+  filterContent: {
+    paddingHorizontal: tokens.spacing.md,
+    gap: tokens.spacing.sm,
     flexDirection: 'row',
   },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.sm,
-  },
-  filterPillActive: { backgroundColor: colors.text, borderColor: colors.text },
-  filterText: { ...typography.caption, fontWeight: '700', color: colors.textSecondary },
-  filterTextActive: { color: colors.bg },
-  listContent: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
-  row: {
+  filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderRadius: tokens.radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    borderColor: tokens.colors.dark_navy.border,
   },
-  thumb: {
+  filterChipActive: {
+    backgroundColor: tokens.colors.brand.base,
+    borderColor: tokens.colors.brand.base,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: tokens.colors.dark_navy.text_secondary,
+  },
+  filterLabelActive: {
+    color: tokens.colors.dark_navy.text_primary,
+  },
+  listContent: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: 100,
+  },
+  exerciseCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.sm,
+  },
+  exerciseImage: {
     width: 56,
     height: 56,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.dark_navy.bg_input,
   },
-  thumbFallback: { alignItems: 'center', justifyContent: 'center' },
-  rowBody: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: '700', color: colors.text, textTransform: 'capitalize' },
-  rowTags: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
-  rowTag: { fontSize: 12, color: colors.textSecondary, textTransform: 'capitalize' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
-  loadingText: { ...typography.caption },
-  empty: { alignItems: 'center', padding: spacing.xl, gap: spacing.sm },
-  emptyTitle: { ...typography.h3, marginTop: spacing.sm },
-  emptyText: { ...typography.caption },
-  loadMore: {
-    marginTop: spacing.lg,
-    paddingVertical: 14,
-    borderRadius: radius.pill,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-  },
-  loadMoreText: { color: colors.text, fontWeight: '700', fontSize: 14 },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xl,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.text,
+  exercisePlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.dark_navy.bg_input,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: tokens.colors.darkNavy.text.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+  },
+  exerciseInfo: {
+    flex: 1,
+    marginLeft: tokens.spacing.md,
+  },
+  exerciseName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: tokens.colors.dark_navy.text_primary,
+    marginBottom: 2,
+  },
+  exerciseMeta: {
+    fontSize: 13,
+    color: tokens.colors.dark_navy.text_secondary,
+    marginBottom: 2,
+  },
+  exerciseEquipment: {
+    fontSize: 12,
+    color: tokens.colors.dark_navy.text_muted,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: tokens.spacing.xl,
+  },
+  errorText: {
+    fontSize: 15,
+    color: tokens.colors.red.base,
+    textAlign: 'center',
+    marginBottom: tokens.spacing.md,
+  },
+  retryBtn: {
+    backgroundColor: tokens.colors.brand.base,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
+    borderRadius: tokens.radius.md,
+  },
+  retryText: {
+    color: tokens.colors.dark_navy.text_primary,
+    fontWeight: '600',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: tokens.colors.dark_navy.text_muted,
   },
 });

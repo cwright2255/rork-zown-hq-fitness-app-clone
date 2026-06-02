@@ -2,8 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Home, Dumbbell, Utensils, ShoppingBag, User } from 'lucide-react-native';
-
-import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 const tabs = [
   { name: 'HQ', icon: Home, route: '/hq' },
@@ -12,7 +11,6 @@ const tabs = [
   { name: 'Shop', icon: ShoppingBag, route: '/shop' },
   { name: 'Profile', icon: User, route: '/profile' },
 ];
-
 
 const TabItem = React.memo(function TabItem({ tab, isActive, onPress }) {
   const Icon = tab.icon;
@@ -23,18 +21,17 @@ const TabItem = React.memo(function TabItem({ tab, isActive, onPress }) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Navigate to ${tab.name}`}>
-      
       <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
         <Icon
-          size={24}
-          color={isActive ? Colors.primary : Colors.text.secondary} />
-        
+          size={22}
+          color={isActive ? tokens.colors.brand.base : tokens.colors.dark_navy.text_muted}
+        />
       </View>
       <Text style={[styles.label, isActive && styles.activeLabel]}>
         {tab.name}
       </Text>
-    </TouchableOpacity>);
-
+    </TouchableOpacity>
+  );
 });
 
 const BottomNavigation = React.memo(function BottomNavigation() {
@@ -56,62 +53,75 @@ const BottomNavigation = React.memo(function BottomNavigation() {
   }, [pathname]);
 
   const tabsWithActiveState = useMemo(() =>
-  tabs.map((tab) => ({
-    ...tab,
-    isActive: tab.route === activeRoute
-  })),
-  [activeRoute]
+    tabs.map((tab) => ({
+      ...tab,
+      isActive: tab.route === activeRoute
+    })),
+    [activeRoute]
   );
 
   return (
-    <View style={styles.container}>
-      {tabsWithActiveState.map((tab) =>
-      <TabItem
-        key={tab.name}
-        tab={tab}
-        isActive={tab.isActive}
-        onPress={() => handleNavigation(tab.route)} />
-
-      )}
-    </View>);
-
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        {tabsWithActiveState.map((tab) =>
+          <TabItem
+            key={tab.name}
+            tab={tab}
+            isActive={tab.isActive}
+            onPress={() => handleNavigation(tab.route)}
+          />
+        )}
+      </View>
+    </View>
+  );
 });
 
 export default BottomNavigation;
 
 const styles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? tokens.spacing.lg : tokens.spacing.sm,
+    backgroundColor: 'transparent',
+  },
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-    paddingTop: 10,
-    paddingHorizontal: 8
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderRadius: tokens.radius.xl,
+    paddingVertical: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.sm,
+    ...tokens.shadows.shadow_medium,
+    borderWidth: 1,
+    borderColor: tokens.colors.dark_navy.border,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8
+    justifyContent: 'center',
+    paddingVertical: tokens.spacing.xs,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4
+    marginBottom: tokens.spacing.xs,
+    borderRadius: tokens.radius.lg,
   },
   activeIconContainer: {
-    backgroundColor: Colors.primary + '20',
-    borderRadius: 16
+    backgroundColor: tokens.colors.brand.base + '22',
+    borderRadius: tokens.radius.lg,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.text.secondary
+    ...tokens.typography.xsmall_tight_medium,
+    color: tokens.colors.dark_navy.text_muted,
   },
   activeLabel: {
-    color: Colors.primary,
-    fontWeight: '600'
-  }
+    ...tokens.typography.xsmall_tight_bold,
+    color: tokens.colors.brand.base,
+  },
 });

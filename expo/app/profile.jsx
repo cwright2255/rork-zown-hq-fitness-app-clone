@@ -248,7 +248,7 @@ export default function ProfileScreen() {
           style={styles.profileImage} />
         
           <TouchableOpacity style={styles.cameraButton} onPress={handlePickPhoto}>
-            <Camera size={16} color={'#000000'} />
+            <Camera size={16} color={tokens.colors.grayscale.black} />
           </TouchableOpacity>
         </View>
         
@@ -278,7 +278,7 @@ export default function ProfileScreen() {
         style={styles.settingsButton}
         onPress={() => router.push('/profile/settings')}>
         
-          <Settings size={20} color={'#FFFFFF'} />
+          <Settings size={20} color={tokens.colors.dark_navy.text_primary} />
         </TouchableOpacity>
       </View>
       
@@ -294,7 +294,7 @@ export default function ProfileScreen() {
         
         <View style={styles.championPassProgress}>
           <View style={styles.championPassHeader}>
-            <Award size={16} color={'#FFFFFF'} />
+            <Award size={16} color={tokens.colors.dark_navy.text_primary} />
             <Text style={styles.championPassText}>Champion Pass Progress</Text>
           </View>
           <View style={styles.championPassBar}>
@@ -344,12 +344,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/progress?tab=achievements')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#F97316'}20` }]}>
-              <Award size={20} color={'#F97316'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.yellow.base}20` }]}>
+              <Award size={20} color={tokens.colors.yellow.base} />
             </View>
             <Text style={styles.menuItemText}>Achievements</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -359,12 +359,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/champion-pass')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#FFFFFF'}20` }]}>
-              <Crown size={20} color={'#FFFFFF'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.dark_navy.text_primary}20` }]}>
+              <Crown size={20} color={tokens.colors.dark_navy.text_primary} />
             </View>
             <Text style={styles.menuItemText}>Champion Pass</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -374,12 +374,12 @@ export default function ProfileScreen() {
         onPress={() => setActiveTab('exp')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#22C55E'}20` }]}>
-              <Activity size={20} color={'#22C55E'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.green.base}20` }]}>
+              <Activity size={20} color={tokens.colors.green.base} />
             </View>
             <Text style={styles.menuItemText}>EXP Dashboard</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -389,12 +389,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/settings')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'#999999'}20` }]}>
-              <Settings size={20} color={'#999999'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.dark_navy.text_muted}20` }]}>
+              <Settings size={20} color={tokens.colors.dark_navy.text_muted} />
             </View>
             <Text style={styles.menuItemText}>Settings</Text>
           </View>
-          <ChevronRight size={20} color={'#666666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
       </Card>
       
@@ -406,7 +406,7 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>See All</Text>
-          <ChevronRight size={16} color={'#FFFFFF'} />
+          <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
         </TouchableOpacity>
       </View>
       
@@ -435,7 +435,7 @@ export default function ProfileScreen() {
           style={styles.seeAllButton}>
           
               <Text style={styles.seeAllText}>See All</Text>
-              <ChevronRight size={16} color={'#FFFFFF'} />
+              <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
             </TouchableOpacity>
           </View>
           
@@ -462,14 +462,14 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>View Dashboard</Text>
-          <ChevronRight size={16} color={'#FFFFFF'} />
+          <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
         </TouchableOpacity>
       </View>
       
       <Card variant="elevated" style={styles.expSummaryCard}>
         <View style={styles.expSummaryHeader}>
           <View style={styles.expSummaryHeaderLeft}>
-            <Award size={20} color={'#FFFFFF'} />
+            <Award size={20} color={tokens.colors.dark_navy.text_primary} />
             <Text style={styles.expSummaryTitle}>Level {user.level}</Text>
           </View>
           <Text style={styles.expSummaryTotal}>{(user.xp || user.exp || 0).toLocaleString()} XP</Text>
@@ -490,7 +490,7 @@ export default function ProfileScreen() {
           <Text style={styles.seeAllText}>
             {showMeasurementForm ? 'Hide' : 'Update'}
           </Text>
-          <Edit size={16} color={'#FFFFFF'} />
+          <Edit size={16} color={tokens.colors.dark_navy.text_primary} />
         </TouchableOpacity>
       </View>
       
@@ -585,7 +585,7 @@ export default function ProfileScreen() {
             </View> :
 
       <View style={styles.photoPlaceholder}>
-              <Camera size={32} color={'#666666'} />
+              <Camera size={32} color={tokens.colors.dark_navy.text_hint} />
               <Text style={styles.photoPlaceholderText}>
                 Add a progress photo
               </Text>
@@ -648,7 +648,7 @@ export default function ProfileScreen() {
           onPress={() => setActiveTab('progress')}>
           
                 <Text style={styles.viewHistoryText}>View History</Text>
-                <ChevronRight size={16} color={'#FFFFFF'} />
+                <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
               </TouchableOpacity>
             </View> :
 
@@ -704,7 +704,7 @@ export default function ProfileScreen() {
         );
       }}>
       
-        <LogOut size={20} color={'#EF4444'} />
+        <LogOut size={20} color={tokens.colors.red.base} />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </>;
@@ -925,7 +925,7 @@ export default function ProfileScreen() {
       
       <View style={styles.expHeader}>
         <View style={styles.expHeaderContent}>
-          <Award size={28} color={'#FFFFFF'} />
+          <Award size={28} color={tokens.colors.dark_navy.text_primary} />
           <View style={styles.expHeaderTextContainer}>
             <Text style={styles.expHeaderTitle}>Level {user.level}</Text>
             <Text style={styles.expHeaderSubtitle}>{(user.xp || user.exp).toLocaleString()} XP Total</Text>
@@ -984,7 +984,7 @@ export default function ProfileScreen() {
       onPress={() => router.push('/exp-dashboard')}>
       
         <Text style={styles.viewFullDashboardText}>View Full EXP Dashboard</Text>
-        <ChevronRight size={16} color={'#FFFFFF'} />
+        <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
       </TouchableOpacity>
     </>;
 
@@ -996,7 +996,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'profile' && styles.activeTabButton]}
           onPress={() => setActiveTab('profile')}>
           
-          <User size={20} color={activeTab === 'profile' ? '#FFFFFF' : '#999999'} />
+          <User size={20} color={activeTab === 'profile' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
           <Text style={[styles.tabButtonText, activeTab === 'profile' && styles.activeTabButtonText]}>
             Profile
           </Text>
@@ -1006,7 +1006,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'progress' && styles.activeTabButton]}
           onPress={() => setActiveTab('progress')}>
           
-          <BarChart size={20} color={activeTab === 'progress' ? '#FFFFFF' : '#999999'} />
+          <BarChart size={20} color={activeTab === 'progress' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
           <Text style={[styles.tabButtonText, activeTab === 'progress' && styles.activeTabButtonText]}>
             Progress
           </Text>
@@ -1016,7 +1016,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'badges' && styles.activeTabButton]}
           onPress={() => setActiveTab('badges')}>
           
-          <Award size={20} color={activeTab === 'badges' ? '#FFFFFF' : '#999999'} />
+          <Award size={20} color={activeTab === 'badges' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
           <Text style={[styles.tabButtonText, activeTab === 'badges' && styles.activeTabButtonText]}>
             Badges
           </Text>
@@ -1026,7 +1026,7 @@ export default function ProfileScreen() {
           style={[styles.tabButton, activeTab === 'exp' && styles.activeTabButton]}
           onPress={() => setActiveTab('exp')}>
           
-          <Activity size={20} color={activeTab === 'exp' ? '#FFFFFF' : '#999999'} />
+          <Activity size={20} color={activeTab === 'exp' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
           <Text style={[styles.tabButtonText, activeTab === 'exp' && styles.activeTabButtonText]}>
             EXP
           </Text>
@@ -1069,7 +1069,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.darkNavy.text.primary
   },
   content: {
-    padding: 16,
+    padding: tokens.spacing.md,
     paddingBottom: 80 // Extra padding for bottom navigation
   },
   loadingContainer: {
@@ -1080,14 +1080,14 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: tokens.colors.darkNavy.text.primary,
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A'
+    borderBottomColor: tokens.colors.dark_navy.bg_card
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.sm,
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8
@@ -1109,7 +1109,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   tabTitle: {
     fontSize: 20,
@@ -1117,7 +1117,7 @@ const styles = StyleSheet.create({
     color: tokens.colors.darkNavy.background
   },
   backButton: {
-    padding: 8
+    padding: tokens.spacing.sm
   },
   backButtonText: {
     fontSize: 14,
@@ -1126,7 +1126,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: tokens.spacing.lg,
     position: 'relative'
   },
   profileImageContainer: {
@@ -1168,7 +1168,7 @@ const styles = StyleSheet.create({
   tierBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12
+    borderRadius: tokens.radius.md
   },
   tierBadgeText: {
     fontSize: 12,
@@ -1179,23 +1179,23 @@ const styles = StyleSheet.create({
     color: tokens.colors.darkNavy.text.tertiary
   },
   settingsButton: {
-    padding: 8
+    padding: tokens.spacing.sm
   },
   levelProgressCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   levelProgressContainer: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   championPassProgress: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A2A'
+    borderTopColor: tokens.colors.dark_navy.bg_card
   },
   championPassHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   championPassText: {
     fontSize: 14,
@@ -1205,7 +1205,7 @@ const styles = StyleSheet.create({
   },
   championPassBar: {
     height: 6,
-    backgroundColor: `${'#FFFFFF'}20`,
+    backgroundColor: `${tokens.colors.dark_navy.text_primary}20`,
     borderRadius: 3,
     marginBottom: 4
   },
@@ -1220,7 +1220,7 @@ const styles = StyleSheet.create({
     textAlign: 'right'
   },
   statsCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   statsContainer: {
     flexDirection: 'row',
@@ -1245,16 +1245,16 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#2A2A2A'
+    backgroundColor: tokens.colors.dark_navy.bg_card
   },
   menuCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16
+    paddingVertical: tokens.spacing.md
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -1263,7 +1263,7 @@ const styles = StyleSheet.create({
   menuItemIcon: {
     width: 40,
     height: 40,
-    borderRadius: 24,
+    borderRadius: tokens.radius.xl,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12
@@ -1275,7 +1275,7 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#2A2A2A'
+    backgroundColor: tokens.colors.dark_navy.bg_card
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1299,43 +1299,43 @@ const styles = StyleSheet.create({
     marginRight: 4
   },
   emptyCard: {
-    padding: 16,
-    marginBottom: 24,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.lg,
     alignItems: 'center'
   },
   emptyText: {
     fontSize: 14,
     color: tokens.colors.darkNavy.text.tertiary,
     textAlign: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   recordButton: {
-    paddingHorizontal: 16
+    paddingHorizontal: tokens.spacing.md
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: tokens.spacing.md,
     marginTop: 8
   },
   logoutText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#EF4444',
+    color: tokens.colors.red.base,
     marginLeft: 8
   },
   badgesCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   badgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
-    padding: 8
+    padding: tokens.spacing.sm
   },
   measurementsCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   measurementRow: {
     flexDirection: 'row',
@@ -1348,26 +1348,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: tokens.colors.darkNavy.text.tertiary,
-    marginTop: 16,
-    marginBottom: 8
+    marginTop: tokens.spacing.md,
+    marginBottom: tokens.spacing.sm
   },
   photoContainer: {
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   photo: {
     width: 200,
     height: 200,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     marginBottom: 20
   },
   changePhotoButton: {
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.sm,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     backgroundColor: tokens.colors.darkNavy.text.primary,
     borderWidth: 1,
-    borderColor: '#2A2A2A'
+    borderColor: tokens.colors.dark_navy.border
   },
   changePhotoText: {
     fontSize: 14,
@@ -1375,10 +1375,10 @@ const styles = StyleSheet.create({
   },
   photoPlaceholder: {
     height: 200,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     backgroundColor: tokens.colors.darkNavy.text.primary,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: tokens.colors.dark_navy.border,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1388,7 +1388,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: tokens.colors.darkNavy.text.tertiary,
     marginTop: 8,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   photoButtons: {
     flexDirection: 'row',
@@ -1403,21 +1403,21 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     width: '100%',
-    marginTop: 16
+    marginTop: tokens.spacing.md
   },
   progressSummaryCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   progressSummary: {
-    padding: 8
+    padding: tokens.spacing.sm
   },
   progressItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A'
+    borderBottomColor: tokens.colors.dark_navy.bg_card
   },
   progressLabel: {
     fontSize: 16,
@@ -1432,7 +1432,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16
+    marginTop: tokens.spacing.md
   },
   viewHistoryText: {
     fontSize: 14,
@@ -1440,17 +1440,17 @@ const styles = StyleSheet.create({
     marginRight: 4
   },
   noProgressContainer: {
-    padding: 16,
+    padding: tokens.spacing.md,
     alignItems: 'center'
   },
   noProgressText: {
     fontSize: 14,
     color: tokens.colors.darkNavy.text.tertiary,
     textAlign: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   progressEntryCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   progressEntryHeader: {
     flexDirection: 'row',
@@ -1458,7 +1458,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
+    borderBottomColor: tokens.colors.dark_navy.bg_card,
     paddingBottom: 8
   },
   progressEntryDate: {
@@ -1469,8 +1469,8 @@ const styles = StyleSheet.create({
   latestBadge: {
     backgroundColor: tokens.colors.darkNavy.background,
     paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 8
+    paddingVertical: tokens.spacing.sm,
+    borderRadius: tokens.radius.sm
   },
   latestBadgeText: {
     fontSize: 12,
@@ -1500,14 +1500,14 @@ const styles = StyleSheet.create({
   progressEntryPhoto: {
     width: 100,
     height: 100,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     marginLeft: 20
   },
   progressEntryNotes: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A2A'
+    borderTopColor: tokens.colors.dark_navy.bg_card
   },
   progressEntryNotesLabel: {
     fontSize: 14,
@@ -1520,7 +1520,7 @@ const styles = StyleSheet.create({
     color: tokens.colors.darkNavy.background
   },
   badgesStatsCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   badgesStats: {
     flexDirection: 'row',
@@ -1545,7 +1545,7 @@ const styles = StyleSheet.create({
   badgesStatDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#2A2A2A'
+    backgroundColor: tokens.colors.dark_navy.bg_card
   },
   badgesCategoryTitle: {
     fontSize: 18,
@@ -1555,19 +1555,19 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   badgesCollectionCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   badgesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    padding: 8
+    padding: tokens.spacing.sm
   },
   // EXP Dashboard styles
   expHeader: {
     backgroundColor: tokens.colors.darkNavy.text.primary,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     marginBottom: 20
   },
   expHeaderContent: {
@@ -1587,7 +1587,7 @@ const styles = StyleSheet.create({
     color: tokens.colors.darkNavy.text.tertiary
   },
   section: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   compactLevelProgress: {
     height: 'auto',
@@ -1596,7 +1596,7 @@ const styles = StyleSheet.create({
   summaryContainer: {
     flexDirection: 'row',
     backgroundColor: tokens.colors.darkNavy.text.primary,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     padding: 12 // Reduced padding
   },
   summaryItem: {
@@ -1617,16 +1617,16 @@ const styles = StyleSheet.create({
   summaryDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     marginHorizontal: 8
   },
   viewFullDashboardButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: tokens.spacing.md,
     marginTop: 8,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   viewFullDashboardText: {
     fontSize: 16,
@@ -1636,16 +1636,16 @@ const styles = StyleSheet.create({
   },
   // EXP Summary Card
   expSummaryCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   expSummaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: tokens.spacing.md,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A'
+    borderBottomColor: tokens.colors.dark_navy.bg_card
   },
   expSummaryHeaderLeft: {
     flexDirection: 'row',
