@@ -16,7 +16,6 @@ import {
   CheckSquare,
   Square,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '@/constants/theme';
 import StatCard from '@/components/StatCard';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useUserStore } from '@/store/userStore';
@@ -35,9 +34,9 @@ const WEEK_VALUES = [40, 65, 50, 80, 70, 55, 90];
 
 function Stat({ icon: Icon, value, label }) {
   return (
-    <View style={styles.stat}>
+    <View style={styles.statItem}>
       <View style={styles.statIconWrap}>
-        <Icon size={16} color={colors.text} />
+        <Icon size={18} color={tokens.colors.brand.base} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -45,37 +44,30 @@ function Stat({ icon: Icon, value, label }) {
   );
 }
 
-function QuickAction({ icon: Icon, label, onPress }) {
-  return (
-    <TouchableOpacity style={styles.qa} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.qaIcon}>
-        <Icon size={22} color={colors.text} />
-      </View>
-      <Text style={styles.qaLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function StatChip({ value, label }) {
-  return (
-    <View style={styles.chip}>
-      <Text style={styles.chipValue}>{value}</Text>
-      <Text style={styles.chipLabel}>{label}</Text>
-    </View>
-  );
-}
-
 function WeeklyChart() {
-  const todayIdx = new Date().getDay();
+  const maxVal = Math.max(...WEEK_VALUES);
+  const today = new Date().getDay();
   return (
-    <View style={styles.chartCard}>
+    <View style={styles.chartContainer}>
+      <Text style={styles.sectionTitle}>Weekly Activity</Text>
       <View style={styles.chartBars}>
-        {WEEK_VALUES.map((v, i) => {
-          const isToday = i === todayIdx;
+        {DAYS.map((day, i) => {
+          const height = (WEEK_VALUES[i] / maxVal) * 100;
+          const isToday = i === today;
           return (
-            <View key={i} style={styles.chartCol}>
-              <View style={[styles.bar, { height: v, backgroundColor: isToday ? colors.text : 'transparent', borderColor: isToday ? colors.text : colors.border }]} />
-              <Text style={[styles.chartDay, isToday && styles.chartDayActive]}>{DAYS[i]}</Text>
+            <View key={day} style={styles.chartBarCol}>
+              <View style={styles.chartBarTrack}>
+                <View
+                  style={[
+                    styles.chartBarFill,
+                    { height: height + '%' },
+                    isToday && styles.chartBarToday,
+                  ]}
+                />
+              </View>
+              <Text style={[styles.chartDayLabel, isToday && styles.chartDayLabelActive]}>
+                {day}
+              </Text>
             </View>
           );
         })}
@@ -84,382 +76,327 @@ function WeeklyChart() {
   );
 }
 
-function TaskRow({ name, done, thumbUrl, onPress }) {
-  const Icon = done ? CheckSquare : Square;
-  const [imgError, setImgError] = React.useState(false);
-  const showThumb = !!thumbUrl && !imgError;
+function QuickAction({ icon: Icon, label, color, onPress }) {
   return (
-    <TouchableOpacity style={styles.taskRow} onPress={onPress} activeOpacity={0.8}>
-      <Icon size={22} color={done ? colors.text : colors.textSecondary} />
-      <View style={styles.taskThumb}>
-        <Dumbbell size={18} color={colors.text} />
+    <TouchableOpacity style={styles.quickAction} onPress={onPress}>
+      <View style={[styles.quickActionIcon, { backgroundColor: color + '20' }]}>
+        <Icon size={22} color={color} />
       </View>
-      <Text style={[styles.taskName, done && styles.taskNameDone]} numberOfLines={1}>{name}</Text>
-      {showThumb && (
-        <Image
-          source={{ uri: thumbUrl }}
-          style={styles.muscleThumb}
-          resizeMode="contain"
-          onError={() => setImgError(true)}
-        />
-      )}
+      <Text style={styles.quickActionLabel}>{label}</Text>
     </TouchableOpacity>
+  );
+}
+
+function DailyGoal({ label, current, target, done }) {
+  const pct = Math.min((current / target) * 100, 100);
+  return (
+    <View style={styles.goalRow}>
+      {done ? (
+        <CheckSquare size={20} color={tokens.colors.green.base} />
+      ) : (
+        <Square size={20} color={tokens.colors.dark_navy.text_muted} />
+      )}
+      <View style={styles.goalInfo}>
+        <Text style={styles.goalLabel}>{label}</Text>
+        <View style={styles.goalBarTrack}>
+          <View style={[styles.goalBarFill, { width: pct + '%' }]} />
+        </View>
+      </View>
+      <Text style={styles.goalCount}>
+        {current}/{target}
+      </Text>
+    </View>
   );
 }
 
 export default function HQScreen() {
   const router = useRouter();
-  const { user, initializeDefaultUser } = useUserStore();
-  const { expSystem, getLevel } = useExpStore();
-  const { workouts, initializeDefaultWorkouts } = useWorkoutStore();
-
-  const hasInitializedUser = useRef(false);
-  useEffect(() => {
-    if (!user && !hasInitializedUser.current) {
-      hasInitializedUser.current = true;
-      initializeDefaultUser();
-    }
-  }, [user, initializeDefaultUser]);
-
-  const hasInitializedWorkouts = useRef(false);
-  useEffect(() => {
-    if ((!workouts || workouts.length === 0) && !hasInitializedWorkouts.current) {
-      hasInitializedWorkouts.current = true;
-      requestAnimationFrame(() => initializeDefaultWorkouts());
-    }
+  const { user } = useUserStore();
+  const { totalExp, level } = useExpStore();
+  const { completedWorkouts } = useWorkoutStore();
+  const displayName = user?.name || 'Athlete';
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
   }, []);
 
-  const level = user?.level || getLevel() || 1;
-  const xp = user?.exp || user?.xp || expSystem?.totalExp || 27975;
-  const firstName = (user?.name || 'Champion').split(' ')[0];
+  const recentMuscles = useMemo(() => {
+    if (!completedWorkouts || completedWorkouts.length === 0) return [];
+    const last = completedWorkouts[completedWorkouts.length - 1];
+    return normalizeMuscleNames(last.targetMuscles || []);
+  }, [completedWorkouts]);
 
-  const todaysMission = useMemo(() => {
-    const list = workouts || [];
-    return list[0] || { id: 'default', name: 'Full Body Burn', duration: 32, difficulty: 'INTENSE' };
-  }, [workouts]);
-
-  const taskItems = useMemo(() => {
-    const list = (workouts || []).slice(0, 4);
-    const buildThumb = (muscles) => {
-      const normalized = normalizeMuscleNames(muscles || []);
-      return getMuscleVisualizeUrl({ muscles: normalized, color: '#E74C3C' });
-    };
-    if (list.length === 0) {
-      return [
-        { id: '1', name: 'Full Body Burn', done: true, thumbUrl: buildThumb(['CHEST']) },
-        { id: '2', name: 'Morning Cardio', done: false, thumbUrl: buildThumb(['QUADS']) },
-        { id: '3', name: 'Core Strength', done: false, thumbUrl: buildThumb(['ABS']) },
-      ];
-    }
-    return list.map((w, i) => {
-      const muscles = w.targetMuscles || w.muscleGroups || ['CHEST'];
-      return {
-        id: w.id,
-        name: w.name,
-        done: i === 0,
-        thumbUrl: buildThumb(muscles),
-      };
-    });
-  }, [workouts]);
-
-  const goalReach = user?.stats?.goalsReached || 156;
-  const taskComplete = user?.stats?.tasksComplete || 153;
-
-  const onStartMission = useCallback(() => {
-    if (todaysMission?.id) router.push(`/workout/${todaysMission.id}`);
-  }, [router, todaysMission]);
+  const muscleUrl = useMemo(
+    () => (recentMuscles.length > 0 ? getMuscleVisualizeUrl(recentMuscles) : null),
+    [recentMuscles]
+  );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader
-        title={`Hi, ${firstName}`}
-        subtitle="OWN THE DAY"
-        rightAction={
-          <TouchableOpacity style={styles.xpBadge} onPress={() => router.push('/exp-dashboard')} activeOpacity={0.8}>
-            <Text style={styles.xpLevel}>LVL {level}</Text>
-            <Text style={styles.xpValue}>{xp.toLocaleString()}</Text>
-          </TouchableOpacity>
-        }
-      />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.statsRow}>
-          <StatCard value="8,432" label="Steps" icon={<TrendingUp size={16} color={colors.text} />} />
-          <StatCard value="614" label="Kcal" icon={<Flame size={16} color={colors.text} />} />
-          <StatCard value="72" label="BPM" icon={<Heart size={16} color={colors.text} />} />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Greeting */}
+        <View style={styles.greetingRow}>
+          <View>
+            <Text style={styles.greetingText}>{greeting},</Text>
+            <Text style={styles.nameText}>{displayName}</Text>
+          </View>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelText}>Lv {level}</Text>
+          </View>
         </View>
 
-        <Text style={styles.sectionLabel}>THIS WEEK</Text>
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <Stat icon={Flame} value={completedWorkouts?.length || 0} label="Workouts" />
+          <Stat icon={TrendingUp} value={totalExp || 0} label="Total XP" />
+          <Stat icon={Heart} value="72" label="Avg BPM" />
+          <Stat icon={Moon} value="7.5h" label="Sleep" />
+        </View>
+
+        {/* Weekly Chart */}
         <WeeklyChart />
 
-        <View style={styles.chipsRow}>
-          <StatChip value={String(goalReach)} label="Goal Reach" />
-          <StatChip value={String(taskComplete)} label="Task Complete" />
+        {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <QuickAction
+            icon={Dumbbell}
+            label="Workouts"
+            color={tokens.colors.brand.base}
+            onPress={() => router.push('/workouts')}
+          />
+          <QuickAction
+            icon={Utensils}
+            label="Nutrition"
+            color={tokens.colors.green.base}
+            onPress={() => router.push('/nutrition')}
+          />
+          <QuickAction
+            icon={Users}
+            label="Community"
+            color={tokens.colors.blue.base}
+            onPress={() => router.push('/community')}
+          />
+          <QuickAction
+            icon={ShoppingBag}
+            label="Shop"
+            color={tokens.colors.yellow.base}
+            onPress={() => router.push('/shop')}
+          />
         </View>
 
-        <Text style={styles.sectionLabel}>TODAY&apos;S MISSION</Text>
-        <TouchableOpacity style={styles.missionCard} onPress={onStartMission} activeOpacity={0.85}>
-          <View style={styles.missionHeader}>
-            <Text style={styles.missionLabel}>LIVE SESSION</Text>
-            <View style={styles.missionPill}>
-              <Text style={styles.missionPillText}>{todaysMission?.difficulty || 'INTENSE'}</Text>
-            </View>
-          </View>
-          <Text style={styles.missionTitle} numberOfLines={2}>{todaysMission?.name || 'Full Body Burn'}</Text>
-          <View style={styles.missionFooter}>
-            <Text style={styles.missionMeta}>{todaysMission?.duration || 32} MIN</Text>
-            <View style={styles.playBtn}>
-              <Play size={16} color={colors.bg} fill={colors.bg} />
-              <Text style={styles.playBtnText}>START</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.taskHeader}>
-          <Text style={styles.sectionLabel}>TASK TODAY</Text>
-          <TouchableOpacity onPress={() => router.push('/workouts')}>
-            <Text style={styles.showAll}>Show all</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.taskList}>
-          {taskItems.map((t) => (
-            <TaskRow
-              key={t.id}
-              name={t.name}
-              done={t.done}
-              thumbUrl={t.thumbUrl}
-              onPress={() => router.push(`/workout/${t.id}`)}
-            />
-          ))}
+        {/* Daily Goals */}
+        <Text style={styles.sectionTitle}>Daily Goals</Text>
+        <View style={styles.card}>
+          <DailyGoal label="Complete a workout" current={completedWorkouts?.length || 0} target={1} done={(completedWorkouts?.length || 0) >= 1} />
+          <DailyGoal label="Drink 8 glasses of water" current={5} target={8} done={false} />
+          <DailyGoal label="Walk 10,000 steps" current={7200} target={10000} done={false} />
         </View>
 
-        <Text style={styles.sectionLabel}>QUICK ACTIONS</Text>
-        <View style={styles.qaGrid}>
-          <QuickAction icon={Dumbbell} label="Workouts" onPress={() => router.push('/workouts')} />
-          <QuickAction icon={Utensils} label="Nutrition" onPress={() => router.push('/nutrition')} />
-          <QuickAction icon={Users} label="Community" onPress={() => router.push('/community')} />
-          <QuickAction icon={ShoppingBag} label="Shop" onPress={() => router.push('/shop')} />
-        </View>
+        {/* Muscle Map */}
+        {muscleUrl ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recent Muscle Groups</Text>
+            <Image source={{ uri: muscleUrl }} style={styles.muscleImage} resizeMode="contain" />
+          </View>
+        ) : null}
 
-        <Text style={styles.sectionLabel}>WEARABLES</Text>
-        <View style={styles.wearRow}>
-          <View style={styles.wearCard}>
-            <Heart size={18} color={colors.text} />
-            <Text style={styles.wearValue}>72 bpm</Text>
-            <Text style={styles.wearLabel}>Resting HR</Text>
-          </View>
-          <View style={styles.wearCard}>
-            <Moon size={18} color={colors.text} />
-            <Text style={styles.wearValue}>7h 42m</Text>
-            <Text style={styles.wearLabel}>Sleep</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.leaderLink} onPress={() => router.push('/leaderboard')} activeOpacity={0.85}>
-          <Text style={styles.leaderLinkText}>VIEW LEADERBOARD</Text>
-          <ChevronRight size={18} color={colors.text} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.upgradeCard} onPress={() => router.push('/champion-pass')} activeOpacity={0.9}>
-          <View style={styles.upgradeImage}>
-            <Flame size={28} color={colors.text} />
-          </View>
-          <View style={styles.upgradeBody}>
-            <Text style={styles.upgradeLabel}>CHAMPION PASS</Text>
-            <Text style={styles.upgradeText}>Unlock premium workouts, coaching & nutrition plans.</Text>
-            <View style={styles.upgradeBtn}>
-              <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
-  greeting: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
-  greetingName: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: 0.5 },
-  xpBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  xpLevel: { ...typography.label, color: colors.textSecondary },
-  xpValue: { ...typography.body, fontWeight: '800' },
-  chipsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
-  chip: {
+  container: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
   },
-  chipValue: { fontSize: 28, fontWeight: '900', color: colors.text },
-  chipLabel: { ...typography.label, marginTop: 2 },
-  chartCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
+  scroll: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingTop: tokens.spacing.sm,
   },
-  chartBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 110 },
-  chartCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: 14, borderRadius: 7, borderWidth: 1, marginBottom: spacing.sm },
-  chartDay: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
-  chartDayActive: { color: colors.text },
-  statsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
-  stat: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    alignItems: 'flex-start',
-  },
-  statIconWrap: { marginBottom: spacing.sm },
-  statValue: { fontSize: 22, fontWeight: '900', color: colors.text },
-  statLabel: { ...typography.label, marginTop: 2 },
-  sectionLabel: { ...typography.label, marginBottom: spacing.md, marginTop: spacing.md },
-  missionCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  missionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-  missionLabel: { ...typography.label },
-  missionPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.text,
-  },
-  missionPillText: { ...typography.caption, fontWeight: '800', color: colors.text, fontSize: 10, letterSpacing: 1 },
-  missionTitle: { fontSize: 28, fontWeight: '900', color: colors.text, marginBottom: spacing.md },
-  missionFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  missionMeta: { ...typography.body, fontWeight: '700', color: colors.textSecondary },
-  playBtn: {
+  greetingRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-    backgroundColor: colors.text,
-  },
-  playBtnText: { color: colors.bg, fontWeight: '900', letterSpacing: 1 },
-  taskHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  showAll: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  taskList: { gap: spacing.sm, marginBottom: spacing.xl },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
-  taskThumb: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taskName: { ...typography.body, fontWeight: '800', flex: 1 },
-  taskNameDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
-  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: tokens.colors.darkNavy.text.primary },
-  qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
-  qa: {
-    width: '48%',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    minHeight: 96,
-  },
-  qaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  qaLabel: { ...typography.body, fontWeight: '800' },
-  wearRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
-  wearCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  wearValue: { fontSize: 20, fontWeight: '900', color: colors.text },
-  wearLabel: { ...typography.label },
-  leaderLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  leaderLinkText: { ...typography.body, fontWeight: '800', letterSpacing: 1 },
-  upgradeCard: {
-    flexDirection: 'row',
-    backgroundColor: tokens.colors.darkNavy.text.primary,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.md,
     alignItems: 'center',
+    marginBottom: tokens.spacing.lg,
   },
-  upgradeImage: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
+  greetingText: {
+    fontSize: 16,
+    color: tokens.colors.dark_navy.text_secondary,
+    fontWeight: '400',
+  },
+  nameText: {
+    fontSize: 26,
+    color: tokens.colors.dark_navy.text_primary,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  levelBadge: {
+    backgroundColor: tokens.colors.brand.base + '20',
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.xs,
+    borderRadius: tokens.radius.full,
+  },
+  levelText: {
+    color: tokens.colors.brand.base,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: tokens.spacing.lg,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: tokens.spacing.xs,
   },
-  upgradeBody: { flex: 1, gap: spacing.sm },
-  upgradeLabel: { ...typography.label, color: colors.text, letterSpacing: 1 },
-  upgradeText: { color: colors.textSecondary, fontSize: 13, fontWeight: '500', lineHeight: 18 },
-  upgradeBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.text,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: tokens.colors.dark_navy.text_primary,
   },
-  upgradeBtnText: { color: colors.bg, fontWeight: '900', fontSize: 12 },
+  statLabel: {
+    fontSize: 11,
+    color: tokens.colors.dark_navy.text_muted,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: tokens.colors.dark_navy.text_primary,
+    marginBottom: tokens.spacing.md,
+    marginTop: tokens.spacing.sm,
+  },
+  chartContainer: {
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.lg,
+  },
+  chartBars: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    height: 120,
+    marginTop: tokens.spacing.md,
+  },
+  chartBarCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  chartBarTrack: {
+    width: 28,
+    height: 100,
+    backgroundColor: tokens.colors.dark_navy.bg_input,
+    borderRadius: tokens.radius.sm,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  chartBarFill: {
+    width: '100%',
+    backgroundColor: tokens.colors.brand.base + '60',
+    borderRadius: tokens.radius.sm,
+  },
+  chartBarToday: {
+    backgroundColor: tokens.colors.brand.base,
+  },
+  chartDayLabel: {
+    fontSize: 11,
+    color: tokens.colors.dark_navy.text_muted,
+    marginTop: tokens.spacing.xs,
+  },
+  chartDayLabelActive: {
+    color: tokens.colors.brand.base,
+    fontWeight: '700',
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: tokens.spacing.sm,
+    marginBottom: tokens.spacing.lg,
+  },
+  quickAction: {
+    width: '48%',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.md,
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: tokens.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: tokens.spacing.sm,
+  },
+  quickActionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: tokens.colors.dark_navy.text_primary,
+  },
+  card: {
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.lg,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: tokens.colors.dark_navy.text_primary,
+    marginBottom: tokens.spacing.md,
+  },
+  goalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: tokens.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.dark_navy.divider,
+  },
+  goalInfo: {
+    flex: 1,
+    marginLeft: tokens.spacing.sm,
+  },
+  goalLabel: {
+    fontSize: 14,
+    color: tokens.colors.dark_navy.text_primary,
+    marginBottom: 4,
+  },
+  goalBarTrack: {
+    height: 6,
+    backgroundColor: tokens.colors.dark_navy.bg_input,
+    borderRadius: tokens.radius.full,
+    overflow: 'hidden',
+  },
+  goalBarFill: {
+    height: '100%',
+    backgroundColor: tokens.colors.green.base,
+    borderRadius: tokens.radius.full,
+  },
+  goalCount: {
+    fontSize: 12,
+    color: tokens.colors.dark_navy.text_muted,
+    marginLeft: tokens.spacing.sm,
+  },
+  muscleImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: tokens.radius.md,
+  },
 });
