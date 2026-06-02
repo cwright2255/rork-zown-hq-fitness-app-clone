@@ -248,7 +248,7 @@ export default function ProfileScreen() {
           style={styles.profileImage} />
         
           <TouchableOpacity style={styles.cameraButton} onPress={handlePickPhoto}>
-            <Camera size={16} color={'tokens.colors.grayscale.black'} />
+            <Camera size={16} color={tokens.colors.grayscale.black} />
           </TouchableOpacity>
         </View>
         
@@ -344,12 +344,12 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile/progress?tab=achievements')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'tokens.colors.yellow.base'}20` }]}>
-              <Award size={20} color={'tokens.colors.yellow.base'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.yellow.base}20` }]}>
+              <Award size={20} color={tokens.colors.yellow.base} />
             </View>
             <Text style={styles.menuItemText}>Achievements</Text>
           </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint}666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -364,7 +364,7 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.menuItemText}>Champion Pass</Text>
           </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint}666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -374,12 +374,12 @@ export default function ProfileScreen() {
         onPress={() => setActiveTab('exp')}>
         
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${'tokens.colors.green.base'}20` }]}>
-              <Activity size={20} color={'tokens.colors.green.base'} />
+            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.green.base}20` }]}>
+              <Activity size={20} color={tokens.colors.green.base} />
             </View>
             <Text style={styles.menuItemText}>EXP Dashboard</Text>
           </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint}666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
         
         <View style={styles.menuDivider} />
@@ -394,7 +394,7 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.menuItemText}>Settings</Text>
           </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint}666'} />
+          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
         </TouchableOpacity>
       </Card>
       
@@ -488,7 +488,7 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>
-            {showMeasurementForm ? 'Hide' : 'Update'}
+            {showMeasurementForm ? 'Hide' : 'Update}
           </Text>
           <Edit size={16} color={tokens.colors.dark_navy.text_primary} />
         </TouchableOpacity>
@@ -585,7 +585,7 @@ export default function ProfileScreen() {
             </View> :
 
       <View style={styles.photoPlaceholder}>
-              <Camera size={32} color={tokens.colors.dark_navy.text_hint}666'} />
+              <Camera size={32} color={tokens.colors.dark_navy.text_hint} />
               <Text style={styles.photoPlaceholderText}>
                 Add a progress photo
               </Text>
@@ -632,14 +632,14 @@ export default function ProfileScreen() {
               <View style={styles.progressItem}>
                 <Text style={styles.progressLabel}>Weight</Text>
                 <Text style={styles.progressValue}>
-                  {getLatestEntry()?.weight ? `${getLatestEntry()?.weight} kg` : 'Not recorded'}
+                  {getLatestEntry()?.weight ? `${getLatestEntry()?.weight} kg` : 'Not recorded}
                 </Text>
               </View>
               
               <View style={styles.progressItem}>
                 <Text style={styles.progressLabel}>Body Fat</Text>
                 <Text style={styles.progressValue}>
-                  {getLatestEntry()?.bodyFat ? `${getLatestEntry()?.bodyFat}%` : 'Not recorded'}
+                  {getLatestEntry()?.bodyFat ? `${getLatestEntry()?.bodyFat}%` : 'Not recorded}
                 </Text>
               </View>
               
@@ -704,7 +704,7 @@ export default function ProfileScreen() {
         );
       }}>
       
-        <LogOut size={20} color={'tokens.colors.red.base'} />
+        <LogOut size={20} color={tokens.colors.red.base} />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </>;
@@ -1048,7 +1048,7 @@ export default function ProfileScreen() {
       {/* Subscription Upgrade Modal */}
       <SubscriptionUpgradeModal
         visible={showUpgradeModal}
-        currentTier={user.subscription?.tier || 'free'}
+        currentTier={user.subscription?.tier || 'free}
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={handleUpgrade} />
       
@@ -1322,7 +1322,7 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '500',
-    color: 'tokens.colors.red.base',
+    color: tokens.colors.red.base,
     marginLeft: 8
   },
   badgesCard: {
