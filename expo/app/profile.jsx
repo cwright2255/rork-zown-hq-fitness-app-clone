@@ -488,7 +488,7 @@ export default function ProfileScreen() {
         style={styles.seeAllButton}>
         
           <Text style={styles.seeAllText}>
-            {showMeasurementForm ? 'Hide' : 'Update}
+            {showMeasurementForm ? 'Hide' : 'Update'}
           </Text>
           <Edit size={16} color={tokens.colors.dark_navy.text_primary} />
         </TouchableOpacity>
