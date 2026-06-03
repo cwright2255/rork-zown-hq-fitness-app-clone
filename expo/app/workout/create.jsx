@@ -316,7 +316,7 @@ export default function CreateWorkoutScreen() {
         <PrimaryButton
           title="Add Exercise from Library"
           onPress={() => setPickerVisible(true)}
-          leftIcon={<BookOpen size={18} color={tokens.colors.darkNavy.text.primary} />}
+          leftIcon={<BookOpen size={18} color={tokens.colors.dark_navy.text_primary} />}
           style={styles.addBtn}
         />
 
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
   pillActive: { backgroundColor: colors.text, borderColor: colors.text },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: tokens.colors.darkNavy.text.primary },
+  pillTextActive: { color: tokens.colors.dark_navy.text_primary },
   exercisesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

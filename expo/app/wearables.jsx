@@ -75,18 +75,18 @@ export default function WearablesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
   },
   card: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  name: { color: tokens.colors.darkNavy.background, fontSize: 16, fontWeight: '600' },
-  sub: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 2 },
+  name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
+  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
   badge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
@@ -98,6 +98,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999,
   },
-  syncText: { color: tokens.colors.darkNavy.background, fontSize: 13, fontWeight: '600' },
+  syncText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
 });

@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border
   },
   shadow: {
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

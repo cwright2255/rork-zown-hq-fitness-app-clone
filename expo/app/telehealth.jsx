@@ -55,7 +55,7 @@ export default function TelehealthScreen() {
               <View key={d.id} style={styles.card}>
                 <View style={styles.cardRow}>
                   <View style={styles.avatar}>
-                    <Video size={20} color={tokens.colors.darkNavy.background} />
+                    <Video size={20} color={tokens.colors.dark_navy.bg_primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.name}>{d.name}</Text>
@@ -87,7 +87,7 @@ export default function TelehealthScreen() {
             appointments.map(a => (
               <View key={a.id} style={styles.card}>
                 <View style={styles.cardRow}>
-                  <Calendar size={18} color={tokens.colors.darkNavy.background} />
+                  <Calendar size={18} color={tokens.colors.dark_navy.bg_primary} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.name}>{a.doctorName || 'Appointment'}</Text>
                     <Text style={styles.specialty}>
@@ -105,17 +105,17 @@ export default function TelehealthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tab: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
-  tabActive: { backgroundColor: tokens.colors.darkNavy.background, borderColor: tokens.colors.darkNavy.background },
-  tabText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, fontWeight: '600' },
-  tabTextActive: { color: tokens.colors.darkNavy.text.primary },
+  tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderColor: tokens.colors.dark_navy.bg_primary },
+  tabText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '600' },
+  tabTextActive: { color: tokens.colors.dark_navy.text_primary },
   card: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 10,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  name: { color: tokens.colors.darkNavy.background, fontSize: 15, fontWeight: '600' },
-  specialty: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 2 },
+  name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '600' },
+  specialty: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   ratingText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 24, alignItems: 'center',
   },
-  empty: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14 },
+  empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
 });

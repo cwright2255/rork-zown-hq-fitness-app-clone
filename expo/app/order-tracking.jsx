@@ -70,7 +70,7 @@ export default function OrderTrackingScreen() {
                           styles.dot,
                           ev.completed ? styles.dotDone : styles.dotPending,
                         ]}>
-                        {ev.completed ? <Check size={12} color={tokens.colors.darkNavy.text.primary} /> : null}
+                        {ev.completed ? <Check size={12} color={tokens.colors.dark_navy.text_primary} /> : null}
                       </View>
                       {!isLast ? (
                         <View style={[styles.line, ev.completed && styles.lineDone]} />
@@ -97,21 +97,21 @@ export default function OrderTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.darkNavy.text.tertiary },
+  empty: { color: tokens.colors.dark_navy.text_muted },
   tabs: { paddingHorizontal: 16, paddingVertical: 8, maxHeight: 60 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
-  tabActive: { backgroundColor: tokens.colors.darkNavy.background },
-  tabInactive: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  tabInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
   tabText: { fontSize: 13, fontWeight: '600' },
   orderCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
-  orderNum: { color: tokens.colors.darkNavy.background, fontSize: 18, fontWeight: '700' },
-  orderDate: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 4 },
-  orderTotal: { color: tokens.colors.darkNavy.background, fontSize: 14, marginTop: 8 },
+  orderNum: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
+  orderDate: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
+  orderTotal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, marginTop: 8 },
   statusBadge: {
     alignSelf: 'flex-start', marginTop: 8,
     backgroundColor: 'rgba(34,197,94,0.15)',
@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
   statusText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8, marginTop: 20,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 20,
   },
   timelineCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16,
   },
   timelineRow: { flexDirection: 'row', minHeight: 60 },
@@ -132,12 +132,12 @@ const styles = StyleSheet.create({
     width: 20, height: 20, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  dotDone: { backgroundColor: tokens.colors.darkNavy.background },
-  dotPending: { backgroundColor: 'transparent', borderWidth: 1, borderColor: tokens.colors.darkNavy.text.primary },
-  line: { flex: 1, width: 2, backgroundColor: tokens.colors.darkNavy.text.primary, marginTop: 2 },
-  lineDone: { backgroundColor: tokens.colors.darkNavy.background },
+  dotDone: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  dotPending: { backgroundColor: 'transparent', borderWidth: 1, borderColor: tokens.colors.dark_navy.text_primary },
+  line: { flex: 1, width: 2, backgroundColor: tokens.colors.dark_navy.text_primary, marginTop: 2 },
+  lineDone: { backgroundColor: tokens.colors.dark_navy.bg_primary },
   timelineContent: { flex: 1, paddingBottom: 16, paddingLeft: 8 },
-  stepName: { color: tokens.colors.darkNavy.background, fontSize: 15, fontWeight: '500' },
-  stepDesc: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 2 },
-  stepTime: { color: tokens.colors.darkNavy.text.secondary, fontSize: 11, marginTop: 4 },
+  stepName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '500' },
+  stepDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
+  stepTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 11, marginTop: 4 },
 });

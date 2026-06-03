@@ -264,7 +264,7 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
                   onPress={() => handleTrackPress(track)}>
                   
                     {isActive ?
-                  <Pause size={14} color={tokens.colors.darkNavy.background} /> :
+                  <Pause size={14} color={tokens.colors.dark_navy.bg_primary} /> :
 
                   <Play size={14} color={Colors.text.primary} style={{ marginLeft: 1 }} />
                   }

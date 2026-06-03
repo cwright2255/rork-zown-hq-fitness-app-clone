@@ -31,7 +31,7 @@ export default function RookConnectScreen() {
       <ScreenHeader title="Connect Health Data" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.iconWrap}>
-          <Activity size={80} color={tokens.colors.darkNavy.background} />
+          <Activity size={80} color={tokens.colors.dark_navy.bg_primary} />
         </View>
         <Text style={styles.title}>Connect with ROOK</Text>
         <Text style={styles.desc}>
@@ -45,14 +45,14 @@ export default function RookConnectScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   scroll: { padding: 24, alignItems: 'stretch', gap: 20 },
   iconWrap: {
     alignSelf: 'center', marginTop: 40, marginBottom: 20,
     width: 140, height: 140, borderRadius: 70,
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontSize: 24, fontWeight: '700', color: tokens.colors.darkNavy.background, textAlign: 'center', letterSpacing: -0.5 },
-  desc: { fontSize: 14, color: tokens.colors.darkNavy.text.tertiary, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, textAlign: 'center', letterSpacing: -0.5 },
+  desc: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
 });

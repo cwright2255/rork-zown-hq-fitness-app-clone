@@ -71,7 +71,7 @@ export default function BarcodeScanScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ScreenHeader title="Scan Barcode" showBack />
-        <View style={styles.center}><ActivityIndicator color={tokens.colors.darkNavy.background} /></View>
+        <View style={styles.center}><ActivityIndicator color={tokens.colors.dark_navy.bg_primary} /></View>
       </SafeAreaView>
     );
   }
@@ -81,7 +81,7 @@ export default function BarcodeScanScreen() {
       <SafeAreaView style={styles.container}>
         <ScreenHeader title="Scan Barcode" showBack />
         <View style={styles.permWrap}>
-          <ScanLine size={64} color={tokens.colors.darkNavy.text.secondary} />
+          <ScanLine size={64} color={tokens.colors.dark_navy.text_secondary} />
           <Text style={styles.permTitle}>Camera Permission Required</Text>
           <Text style={styles.permText}>
             We need camera access to scan barcodes on food packages.
@@ -143,7 +143,7 @@ export default function BarcodeScanScreen() {
           </View>
           {isLookingUp ? (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator color={tokens.colors.darkNavy.background} size="large" />
+              <ActivityIndicator color={tokens.colors.dark_navy.bg_primary} size="large" />
               <Text style={styles.loadingText}>Looking up product...</Text>
             </View>
           ) : null}
@@ -154,32 +154,32 @@ export default function BarcodeScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   camera: { flex: 1 },
   overlay: { flex: 1 },
   scanArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scanFrame: {
     width: 260, height: 160,
-    borderWidth: 2, borderColor: tokens.colors.darkNavy.background, borderRadius: 16,
+    borderWidth: 2, borderColor: tokens.colors.dark_navy.bg_primary, borderRadius: 16,
   },
-  hint: { color: tokens.colors.darkNavy.background, marginTop: 16, fontSize: 14 },
+  hint: { color: tokens.colors.dark_navy.bg_primary, marginTop: 16, fontSize: 14 },
   loadingOverlay: {
     position: 'absolute', inset: 0,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center', justifyContent: 'center',
   },
-  loadingText: { color: tokens.colors.darkNavy.background, marginTop: 12 },
+  loadingText: { color: tokens.colors.dark_navy.bg_primary, marginTop: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   permWrap: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  permTitle: { fontSize: 20, fontWeight: '700', color: tokens.colors.darkNavy.background, textAlign: 'center' },
-  permText: { fontSize: 14, color: tokens.colors.darkNavy.text.tertiary, textAlign: 'center', lineHeight: 20 },
+  permTitle: { fontSize: 20, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, textAlign: 'center' },
+  permText: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, textAlign: 'center', lineHeight: 20 },
   resultCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20,
   },
-  productName: { fontSize: 22, fontWeight: '700', color: tokens.colors.darkNavy.background },
-  brandName: { fontSize: 14, color: tokens.colors.darkNavy.text.tertiary, marginTop: 4 },
-  barcodeText: { fontSize: 12, color: tokens.colors.darkNavy.text.secondary, marginTop: 8 },
+  productName: { fontSize: 22, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary },
+  brandName: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
+  barcodeText: { fontSize: 12, color: tokens.colors.dark_navy.text_secondary, marginTop: 8 },
   divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 16 },
   nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   nutritionItem: {
@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 12,
     alignItems: 'center',
   },
-  nutritionValue: { color: tokens.colors.darkNavy.background, fontSize: 18, fontWeight: '700' },
-  nutritionLabel: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 2 },
+  nutritionValue: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
+  nutritionLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
 });

@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     height: '100%',
     backgroundColor: Colors.card,
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.pill,
   },
-  connectPillText: { color: tokens.colors.darkNavy.background, fontWeight: '800', fontSize: 14 },
+  connectPillText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '800', fontSize: 14 },
 
   inputGroup: { gap: 6 },
   inputLabel: { ...typography.label },

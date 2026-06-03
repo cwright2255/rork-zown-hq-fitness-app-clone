@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: Colors.background,
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

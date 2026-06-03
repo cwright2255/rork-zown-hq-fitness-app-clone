@@ -80,11 +80,11 @@ export default function NutritionScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 160 }}>
         <View style={styles.dateRow}>
           <TouchableOpacity onPress={() => shiftDate(-1)} style={styles.dateBtn} hitSlop={8}>
-            <ChevronLeft size={22} color={tokens.colors.darkNavy.background} />
+            <ChevronLeft size={22} color={tokens.colors.dark_navy.bg_primary} />
           </TouchableOpacity>
           <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
           <TouchableOpacity onPress={() => shiftDate(1)} style={styles.dateBtn} hitSlop={8}>
-            <ChevronRight size={22} color={tokens.colors.darkNavy.background} />
+            <ChevronRight size={22} color={tokens.colors.dark_navy.bg_primary} />
           </TouchableOpacity>
         </View>
 
@@ -137,7 +137,7 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 style={styles.addFoodBtn}
                 onPress={() => handleAddMealType(type)}>
-                <Plus size={16} color={tokens.colors.darkNavy.background} />
+                <Plus size={16} color={tokens.colors.dark_navy.bg_primary} />
                 <Text style={styles.addFoodText}>Add Food</Text>
               </TouchableOpacity>
             </View>
@@ -158,7 +158,7 @@ export default function NutritionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   scroll: { flex: 1, paddingHorizontal: 16 },
   dateRow: {
     flexDirection: 'row',
@@ -168,42 +168,42 @@ const styles = StyleSheet.create({
   },
   dateBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  dateText: { fontSize: 18, fontWeight: '600', color: tokens.colors.darkNavy.background },
+  dateText: { fontSize: 18, fontWeight: '600', color: tokens.colors.dark_navy.bg_primary },
   calCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16,
     padding: 24, alignItems: 'center',
     marginTop: 8, marginBottom: 16,
   },
-  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.darkNavy.background, letterSpacing: -1 },
-  calLabel: { fontSize: 14, color: tokens.colors.darkNavy.text.tertiary, marginTop: 4 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -1 },
+  calLabel: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
   macroRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   macroChip: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderLeftWidth: 4,
     borderRadius: 16,
     padding: 12,
   },
-  macroVal: { fontSize: 16, fontWeight: '700', color: tokens.colors.darkNavy.background },
-  macroLabel: { fontSize: 12, color: tokens.colors.darkNavy.text.tertiary, marginTop: 2 },
+  macroVal: { fontSize: 16, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary },
+  macroLabel: { fontSize: 12, color: tokens.colors.dark_navy.text_muted, marginTop: 2 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8, marginTop: 4,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 4,
   },
   mealCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16,
     padding: 16, marginBottom: 12,
   },
   mealHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mealName: { fontSize: 16, fontWeight: '600', color: tokens.colors.darkNavy.background },
+  mealName: { fontSize: 16, fontWeight: '600', color: tokens.colors.dark_navy.bg_primary },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
@@ -215,13 +215,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: '#2A2A2A',
   },
-  foodName: { color: tokens.colors.darkNavy.background, fontSize: 14, flex: 1 },
-  foodCal: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13 },
+  foodName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, flex: 1 },
+  foodCal: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
   addFoodBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, marginTop: 12, paddingVertical: 10,
   },
-  addFoodText: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '500' },
+  addFoodText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '500' },
   bottomBar: {
     position: 'absolute', left: 16, right: 16, bottom: 84,
   },

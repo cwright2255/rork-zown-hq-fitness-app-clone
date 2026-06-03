@@ -40,7 +40,7 @@ export default function CollectionScreen() {
     return (
       <View style={styles.container}>
         <ScreenHeader showBack />
-        <View style={styles.center}><ActivityIndicator color={tokens.colors.darkNavy.background} /></View>
+        <View style={styles.center}><ActivityIndicator color={tokens.colors.dark_navy.bg_primary} /></View>
       </View>
     );
   }
@@ -96,15 +96,15 @@ export default function CollectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.darkNavy.text.secondary, textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
   banner: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, overflow: 'hidden',
     marginHorizontal: 16, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },
-  bannerTitle: { color: tokens.colors.darkNavy.background, fontSize: 20, fontWeight: '700' },
-  bannerDesc: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 4 },
+  bannerTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 20, fontWeight: '700' },
+  bannerDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
 });

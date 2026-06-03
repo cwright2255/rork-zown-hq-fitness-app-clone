@@ -59,11 +59,11 @@ export default function CommunityScreen() {
               <Text style={styles.postText}>{post.text}</Text>
               <View style={styles.postActions}>
                 <TouchableOpacity style={styles.action}>
-                  <Heart size={18} color={tokens.colors.darkNavy.text.tertiary} />
+                  <Heart size={18} color={tokens.colors.dark_navy.text_muted} />
                   <Text style={styles.actionText}>Like</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.action}>
-                  <MessageCircle size={18} color={tokens.colors.darkNavy.text.tertiary} />
+                  <MessageCircle size={18} color={tokens.colors.dark_navy.text_muted} />
                   <Text style={styles.actionText}>Comment</Text>
                 </TouchableOpacity>
               </View>
@@ -95,14 +95,14 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
   tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  tabActive: { backgroundColor: tokens.colors.darkNavy.background },
-  tabInactive: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  tabInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
   tabText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 12,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center' },
@@ -111,20 +111,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: tokens.colors.darkNavy.background, fontWeight: '700', fontSize: 13 },
-  postName: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600' },
-  postTime: { color: tokens.colors.darkNavy.text.secondary, fontSize: 12 },
-  postText: { color: tokens.colors.darkNavy.background, fontSize: 14, lineHeight: 20, marginTop: 10 },
+  avatarText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 13 },
+  postName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  postTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 12 },
+  postText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, lineHeight: 20, marginTop: 10 },
   postActions: {
     flexDirection: 'row', gap: 20,
     marginTop: 12, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: '#2A2A2A',
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13 },
+  actionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
   challengeRow: { flexDirection: 'row', alignItems: 'center' },
-  challengeName: { color: tokens.colors.darkNavy.background, fontSize: 16, fontWeight: '600' },
-  challengeMeta: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 2 },
+  challengeName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
+  challengeMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
   daysBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,

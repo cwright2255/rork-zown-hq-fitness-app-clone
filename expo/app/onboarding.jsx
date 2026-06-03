@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: tokens.colors.darkNavy.text.primary },
+  pillTextActive: { color: tokens.colors.dark_navy.text_primary },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -62,7 +62,7 @@ export default function MessagingScreen() {
                 <Text style={m.own ? styles.bubbleOwnText : styles.bubbleOtherText}>
                   {m.text}
                 </Text>
-                <Text style={[styles.bubbleTime, m.own && { color: tokens.colors.darkNavy.text.primary }]}>{m.time}</Text>
+                <Text style={[styles.bubbleTime, m.own && { color: tokens.colors.dark_navy.text_primary }]}>{m.time}</Text>
               </View>
             </View>
           ))}
@@ -72,11 +72,11 @@ export default function MessagingScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Message..."
-            placeholderTextColor={tokens.colors.darkNavy.text.secondary}
+            placeholderTextColor={tokens.colors.dark_navy.text_secondary}
             style={styles.input}
           />
           <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-            <Send size={18} color={tokens.colors.darkNavy.text.primary} />
+            <Send size={18} color={tokens.colors.dark_navy.text_primary} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -115,10 +115,10 @@ export default function MessagingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   convCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, marginBottom: 8,
   },
   avatar: {
@@ -126,39 +126,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: tokens.colors.darkNavy.background, fontWeight: '700', fontSize: 14 },
-  convName: { color: tokens.colors.darkNavy.background, fontSize: 15, fontWeight: '600' },
-  convLast: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 2 },
-  convTime: { color: tokens.colors.darkNavy.text.secondary, fontSize: 12 },
+  avatarText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 14 },
+  convName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '600' },
+  convLast: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
+  convTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 12 },
   unreadBadge: {
-    marginTop: 4, backgroundColor: tokens.colors.darkNavy.background,
+    marginTop: 4, backgroundColor: tokens.colors.dark_navy.bg_primary,
     minWidth: 22, height: 22, borderRadius: 11,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
-  unreadText: { color: tokens.colors.darkNavy.text.primary, fontSize: 11, fontWeight: '700' },
+  unreadText: { color: tokens.colors.dark_navy.text_primary, fontSize: 11, fontWeight: '700' },
   threadScroll: { flex: 1 },
   bubbleRow: { flexDirection: 'row', marginBottom: 8 },
   bubble: { maxWidth: '75%', padding: 12, borderRadius: 16 },
-  bubbleOwn: { backgroundColor: tokens.colors.darkNavy.background, borderBottomRightRadius: 4 },
-  bubbleOther: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A', borderBottomLeftRadius: 4 },
-  bubbleOwnText: { color: tokens.colors.darkNavy.text.primary, fontSize: 14 },
-  bubbleOtherText: { color: tokens.colors.darkNavy.background, fontSize: 14 },
-  bubbleTime: { fontSize: 10, color: tokens.colors.darkNavy.text.tertiary, marginTop: 4, alignSelf: 'flex-end' },
+  bubbleOwn: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderBottomRightRadius: 4 },
+  bubbleOther: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A', borderBottomLeftRadius: 4 },
+  bubbleOwnText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14 },
+  bubbleOtherText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14 },
+  bubbleTime: { fontSize: 10, color: tokens.colors.dark_navy.text_muted, marginTop: 4, alignSelf: 'flex-end' },
   inputBar: {
     flexDirection: 'row', alignItems: 'center',
     padding: 12, gap: 8,
     borderTopWidth: 1, borderTopColor: '#2A2A2A',
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
   },
   input: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 24, paddingHorizontal: 16, height: 44,
-    color: tokens.colors.darkNavy.background, fontSize: 14,
+    color: tokens.colors.dark_navy.bg_primary, fontSize: 14,
   },
   sendBtn: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     alignItems: 'center', justifyContent: 'center',
   },
 });

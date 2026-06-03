@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: Colors.radius.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: {
       width: 0,
       height: 2

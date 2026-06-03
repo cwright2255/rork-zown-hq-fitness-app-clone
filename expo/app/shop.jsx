@@ -40,7 +40,7 @@ export default function ShopScreen() {
           <TouchableOpacity
             onPress={() => router.push('/shop/cart')}
             style={styles.cartBtn} hitSlop={8}>
-            <ShoppingBag size={22} color={tokens.colors.darkNavy.background} />
+            <ShoppingBag size={22} color={tokens.colors.dark_navy.bg_primary} />
             {cartCount > 0 ? (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cartCount}</Text>
@@ -97,28 +97,28 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   cartBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   cartBadge: {
     position: 'absolute', top: 4, right: 4,
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     minWidth: 18, height: 18, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
   },
-  cartBadgeText: { color: tokens.colors.darkNavy.text.primary, fontSize: 10, fontWeight: '700' },
+  cartBadgeText: { color: tokens.colors.dark_navy.text_primary, fontSize: 10, fontWeight: '700' },
   banner: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20, marginHorizontal: 16, marginBottom: 16,
   },
   bannerLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
   },
-  bannerTitle: { fontSize: 22, fontWeight: '700', color: tokens.colors.darkNavy.background, letterSpacing: -0.3 },
+  bannerTitle: { fontSize: 22, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.3 },
   pillRow: { paddingHorizontal: 16, marginBottom: 12 },
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
-  pillActive: { backgroundColor: tokens.colors.darkNavy.background },
-  pillInactive: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
-  empty: { color: tokens.colors.darkNavy.text.secondary, textAlign: 'center', marginTop: 40 },
+  empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
 });

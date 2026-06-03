@@ -32,7 +32,7 @@ export default function SupportScreen() {
               onPress={() => setOpen(isOpen ? null : i)}>
               <View style={styles.faqRow}>
                 <Text style={styles.faqQ}>{f.q}</Text>
-                {isOpen ? <ChevronUp size={18} color={tokens.colors.darkNavy.text.tertiary} /> : <ChevronDown size={18} color={tokens.colors.darkNavy.text.tertiary} />}
+                {isOpen ? <ChevronUp size={18} color={tokens.colors.dark_navy.text_muted} /> : <ChevronDown size={18} color={tokens.colors.dark_navy.text_muted} />}
               </View>
               {isOpen ? <Text style={styles.faqA}>{f.a}</Text> : null}
             </TouchableOpacity>
@@ -57,18 +57,18 @@ export default function SupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
   },
   faqCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginBottom: 8,
   },
   faqRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  faqQ: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
-  faqA: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, lineHeight: 19, marginTop: 10 },
+  faqQ: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
+  faqA: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, lineHeight: 19, marginTop: 10 },
 });

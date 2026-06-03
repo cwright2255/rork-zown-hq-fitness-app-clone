@@ -113,26 +113,26 @@ export default function RunningProgramDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.darkNavy.text.tertiary },
-  title: { color: tokens.colors.darkNavy.background, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  desc: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14, lineHeight: 20, marginTop: 8 },
+  empty: { color: tokens.colors.dark_navy.text_muted },
+  title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  desc: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, lineHeight: 20, marginTop: 8 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
   metaChip: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
   },
-  metaText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, fontWeight: '600' },
+  metaText: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8, marginTop: 24,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 24,
   },
   weekCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, marginBottom: 10,
   },
-  weekLabel: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  weekLabel: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700', marginBottom: 10 },
   sessionRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 10, gap: 10,
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
-  dayText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 11, fontWeight: '600' },
-  sessionName: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '500' },
-  sessionDesc: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 2 },
+  dayText: { color: tokens.colors.dark_navy.text_muted, fontSize: 11, fontWeight: '600' },
+  sessionName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '500' },
+  sessionDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

@@ -52,7 +52,7 @@ export function WearablesCard({ userId }) {
           accessibilityLabel="Connect Apple Health">
           
           {isLoading ?
-          <ActivityIndicator color={tokens.colors.darkNavy.background} size="small" /> :
+          <ActivityIndicator color={tokens.colors.dark_navy.bg_primary} size="small" /> :
 
           <Text style={styles.buttonText}>Connect Apple Health</Text>
           }
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary
   },
   buttonText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.semibold
   },

@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: tokens.colors.darkNavy.text.primary },
+  pillTextActive: { color: tokens.colors.dark_navy.text_primary },
   sectionLabel: {
     ...typography.label,
     marginTop: spacing.lg,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: radius.pill,
   },
-  upgradePillText: { color: tokens.colors.darkNavy.text.primary, fontWeight: '700', fontSize: 13 },
+  upgradePillText: { color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: 13 },
   activityTiles: {
     flexDirection: 'row',
     gap: spacing.md,

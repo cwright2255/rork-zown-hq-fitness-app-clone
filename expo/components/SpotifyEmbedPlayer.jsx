@@ -49,13 +49,13 @@ function SpotifyEmbedPlayerNative({ trackId, playlistId, type, trackName, artist
             style={styles.headerButton}
             onPress={() => setIsExpanded(!isExpanded)}>
             {isExpanded ?
-              <Minimize2 size={16} color={tokens.colors.darkNavy.background} /> :
-              <Maximize2 size={16} color={tokens.colors.darkNavy.background} />
+              <Minimize2 size={16} color={tokens.colors.dark_navy.bg_primary} /> :
+              <Maximize2 size={16} color={tokens.colors.dark_navy.bg_primary} />
             }
           </TouchableOpacity>
           {onClose &&
             <TouchableOpacity style={styles.headerButton} onPress={onClose}>
-              <X size={16} color={tokens.colors.darkNavy.background} />
+              <X size={16} color={tokens.colors.dark_navy.bg_primary} />
             </TouchableOpacity>
           }
         </View>
@@ -108,13 +108,13 @@ function SpotifyEmbedPlayerWeb({ trackId, playlistId, type, trackName, artistNam
             style={styles.headerButton}
             onPress={() => setIsExpanded(!isExpanded)}>
             {isExpanded ?
-              <Minimize2 size={16} color={tokens.colors.darkNavy.background} /> :
-              <Maximize2 size={16} color={tokens.colors.darkNavy.background} />
+              <Minimize2 size={16} color={tokens.colors.dark_navy.bg_primary} /> :
+              <Maximize2 size={16} color={tokens.colors.dark_navy.bg_primary} />
             }
           </TouchableOpacity>
           {onClose &&
             <TouchableOpacity style={styles.headerButton} onPress={onClose}>
-              <X size={16} color={tokens.colors.darkNavy.background} />
+              <X size={16} color={tokens.colors.dark_navy.bg_primary} />
             </TouchableOpacity>
           }
         </View>
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   headerTrackName: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   headerArtistName: {
     fontSize: 11,

@@ -46,7 +46,7 @@ export default function CartScreen() {
       <View style={styles.container}>
         <ScreenHeader title="Cart" showBack />
         <View style={styles.emptyWrap}>
-          <ShoppingBag size={80} color={tokens.colors.darkNavy.text.primary} />
+          <ShoppingBag size={80} color={tokens.colors.dark_navy.text_primary} />
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <View style={{ width: '100%', marginTop: 24 }}>
             <PrimaryButton title="Browse Shop" onPress={() => router.push('/shop')} />
@@ -78,13 +78,13 @@ export default function CartScreen() {
                   <TouchableOpacity
                     style={styles.stepBtn}
                     onPress={() => handleQty(item.index, item.quantity - 1)}>
-                    <Minus size={14} color={tokens.colors.darkNavy.background} />
+                    <Minus size={14} color={tokens.colors.dark_navy.bg_primary} />
                   </TouchableOpacity>
                   <Text style={styles.qtyText}>{item.quantity}</Text>
                   <TouchableOpacity
                     style={styles.stepBtn}
                     onPress={() => handleQty(item.index, item.quantity + 1)}>
-                    <Plus size={14} color={tokens.colors.darkNavy.background} />
+                    <Plus size={14} color={tokens.colors.dark_navy.bg_primary} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.itemPrice}>
@@ -93,7 +93,7 @@ export default function CartScreen() {
               </View>
             </View>
             <TouchableOpacity style={styles.remove} onPress={() => handleRemove(item.index)}>
-              <X size={16} color={tokens.colors.darkNavy.text.secondary} />
+              <X size={16} color={tokens.colors.dark_navy.text_secondary} />
             </TouchableOpacity>
           </View>
         ))}
@@ -126,18 +126,18 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 16, marginTop: 16 },
+  emptyTitle: { color: tokens.colors.dark_navy.text_muted, fontSize: 16, marginTop: 16 },
   itemCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, marginBottom: 10, gap: 12,
   },
   thumb: { width: 60, height: 60, borderRadius: 8 },
   itemBody: { flex: 1 },
-  itemName: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600' },
-  itemVar: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 12, marginTop: 2 },
+  itemName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  itemVar: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   itemFooter: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginTop: 8,
@@ -150,18 +150,18 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
-  qtyText: { color: tokens.colors.darkNavy.background, fontSize: 13, fontWeight: '600', paddingHorizontal: 8 },
-  itemPrice: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '700' },
+  qtyText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600', paddingHorizontal: 8 },
+  itemPrice: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700' },
   remove: { padding: 4 },
   summary: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 16, marginTop: 8,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  summaryLabel: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14 },
-  summaryVal: { color: tokens.colors.darkNavy.background, fontSize: 14 },
+  summaryLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
+  summaryVal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14 },
   divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 8 },
-  totalLabel: { color: tokens.colors.darkNavy.background, fontSize: 16, fontWeight: '600' },
-  totalVal: { color: tokens.colors.darkNavy.background, fontSize: 18, fontWeight: '600' },
+  totalLabel: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
+  totalVal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

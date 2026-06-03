@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   goalLabel: { ...typography.h4, textAlign: 'center' },
-  goalLabelActive: { color: tokens.colors.darkNavy.text.primary },
+  goalLabelActive: { color: tokens.colors.dark_navy.text_primary },
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',

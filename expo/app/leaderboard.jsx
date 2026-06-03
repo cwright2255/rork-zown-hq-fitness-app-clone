@@ -62,8 +62,8 @@ export default function LeaderboardScreen() {
             <Avatar uri={first?.avatar} size={72} />
             <Text style={styles.podiumName} numberOfLines={1}>{first?.name}</Text>
             <Text style={styles.podiumPts}>{first?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 110, backgroundColor: tokens.colors.darkNavy.background }]}>
-              <Text style={[styles.podiumPlace, { color: tokens.colors.darkNavy.text.primary }]}>1</Text>
+            <View style={[styles.podiumBar, { height: 110, backgroundColor: tokens.colors.dark_navy.bg_primary }]}>
+              <Text style={[styles.podiumPlace, { color: tokens.colors.dark_navy.text_primary }]}>1</Text>
             </View>
           </View>
           <View style={styles.podiumSpot}>
@@ -81,7 +81,7 @@ export default function LeaderboardScreen() {
           <View key={u.id} style={[styles.row, u.isMe && styles.rowMe]}>
             <Text style={styles.rank}>{idx + 4}</Text>
             <Avatar uri={u.avatar} />
-            <Text style={[styles.name, u.isMe && { color: tokens.colors.darkNavy.background, fontWeight: '700' }]}>
+            <Text style={[styles.name, u.isMe && { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700' }]}>
               {u.name}
             </Text>
             <Text style={styles.pts}>{u.pts}</Text>
@@ -93,42 +93,42 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   filters: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   filterPill: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
   },
-  filterPillActive: { backgroundColor: tokens.colors.darkNavy.background, borderColor: tokens.colors.darkNavy.background },
-  filterText: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, fontWeight: '600' },
-  filterTextActive: { color: tokens.colors.darkNavy.text.primary },
+  filterPillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderColor: tokens.colors.dark_navy.bg_primary },
+  filterText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '600' },
+  filterTextActive: { color: tokens.colors.dark_navy.text_primary },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'center', gap: 12, marginBottom: 24,
   },
   podiumSpot: { alignItems: 'center', flex: 1 },
   podiumName: {
-    color: tokens.colors.darkNavy.background, fontSize: 12, fontWeight: '600', marginTop: 6,
+    color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontWeight: '600', marginTop: 6,
     maxWidth: 80,
   },
-  podiumPts: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 11, marginTop: 2 },
+  podiumPts: { color: tokens.colors.dark_navy.text_muted, fontSize: 11, marginTop: 2 },
   podiumBar: {
     width: '100%', marginTop: 8,
     alignItems: 'center', justifyContent: 'center',
     borderTopLeftRadius: 12, borderTopRightRadius: 12,
   },
-  podiumPlace: { color: tokens.colors.darkNavy.background, fontSize: 20, fontWeight: '700' },
+  podiumPlace: { color: tokens.colors.dark_navy.bg_primary, fontSize: 20, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, marginBottom: 8,
   },
-  rowMe: { borderColor: tokens.colors.darkNavy.background, borderWidth: 2 },
-  rank: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14, fontWeight: '700', width: 24 },
-  name: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14, fontWeight: '500', flex: 1 },
-  pts: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '700' },
+  rowMe: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
+  rank: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '700', width: 24 },
+  name: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '500', flex: 1 },
+  pts: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700' },
 });

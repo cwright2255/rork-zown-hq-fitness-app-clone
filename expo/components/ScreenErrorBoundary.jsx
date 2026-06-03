@@ -30,11 +30,11 @@ export class ScreenErrorBoundary extends React.Component {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.darkNavy.text.primary },
-  title: { fontSize: 18, fontWeight: '700', color: tokens.colors.darkNavy.background, marginBottom: 8 },
-  message: { fontSize: 13, color: tokens.colors.darkNavy.text.tertiary, textAlign: 'center', marginBottom: 24 },
-  button: { backgroundColor: tokens.colors.darkNavy.background, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 },
-  buttonText: { color: tokens.colors.darkNavy.text.primary, fontWeight: '700' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.dark_navy.text_primary },
+  title: { fontSize: 18, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, marginBottom: 8 },
+  message: { fontSize: 13, color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginBottom: 24 },
+  button: { backgroundColor: tokens.colors.dark_navy.bg_primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 },
+  buttonText: { color: tokens.colors.dark_navy.text_primary, fontWeight: '700' },
 });
 
 export default ScreenErrorBoundary;

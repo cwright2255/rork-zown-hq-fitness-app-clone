@@ -70,29 +70,29 @@ export default function WellbeingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   card: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20, marginBottom: 12,
   },
-  cardTitle: { color: tokens.colors.darkNavy.background, fontSize: 16, fontWeight: '600', marginBottom: 16 },
+  cardTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600', marginBottom: 16 },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   moodBtn: {
     width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
   },
-  moodBtnActive: { backgroundColor: tokens.colors.darkNavy.background },
+  moodBtnActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
   moodEmoji: { fontSize: 24 },
-  link: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 8 },
+  link: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 8 },
   label: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
   },
-  bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.darkNavy.background, letterSpacing: -0.5 },
-  sub: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14, marginTop: 2 },
+  bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
+  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, marginTop: 2 },
   pillRow: { flexDirection: 'row', gap: 8 },
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  pillActive: { backgroundColor: tokens.colors.darkNavy.background },
-  pillInactive: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
 });

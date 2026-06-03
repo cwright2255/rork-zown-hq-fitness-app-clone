@@ -339,7 +339,7 @@ export default function RunningMap({
 const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderRadius: 0,
     overflow: 'hidden',
     position: 'relative'
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   webMapDiv: {
     width: '100%',
     height: '100%',
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   mapHeader: {
     padding: 16,
@@ -359,12 +359,12 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.text.primary,
+    color: tokens.colors.dark_navy.text_primary,
     marginBottom: 4
   },
   mapSubtitle: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.text.secondary,
+    color: tokens.colors.dark_navy.text_secondary,
     textAlign: 'center'
   },
   mapContent: {
@@ -413,16 +413,16 @@ const styles = StyleSheet.create({
   routeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.text.primary,
+    color: tokens.colors.dark_navy.text_primary,
     marginBottom: 2
   },
   routeSubtitle: {
     fontSize: 11,
-    color: tokens.colors.darkNavy.text.secondary
+    color: tokens.colors.dark_navy.text_secondary
   },
   routeVisualization: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     position: 'relative',
     overflow: 'hidden'
   },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: tokens.colors.darkNavy.background,
+    borderColor: tokens.colors.dark_navy.bg_primary,
     shadowColor: '#00ff88',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: tokens.colors.darkNavy.background,
+    borderColor: tokens.colors.dark_navy.bg_primary,
     shadowColor: '#ff6b6b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 3,
-    borderColor: tokens.colors.darkNavy.background,
+    borderColor: tokens.colors.dark_navy.bg_primary,
     shadowColor: '#ff6b6b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#007AFF',
     borderWidth: 3,
-    borderColor: tokens.colors.darkNavy.background,
+    borderColor: tokens.colors.dark_navy.bg_primary,
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     padding: 12,
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -553,12 +553,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.text.primary,
+    color: tokens.colors.dark_navy.text_primary,
     marginBottom: 2
   },
   statLabel: {
     fontSize: 10,
-    color: tokens.colors.darkNavy.text.secondary,
+    color: tokens.colors.dark_navy.text_secondary,
     textAlign: 'center',
     textTransform: 'uppercase'
   },
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.text.primary,
+    color: tokens.colors.dark_navy.text_primary,
     marginBottom: 6
   },
   debugInfo: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: 10,
-    color: tokens.colors.darkNavy.text.secondary,
+    color: tokens.colors.dark_navy.text_secondary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
   // Map-like background patterns
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   mapBaseLayer: {
     position: 'absolute',
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000
@@ -640,13 +640,13 @@ const styles = StyleSheet.create({
   mapLoadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     textAlign: 'center'
   },
   currentLocationText: {
     fontSize: 8,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginTop: 4,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   distanceMarkerText: {
     fontSize: 8,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     textAlign: 'center'
   },
   parkPattern: {

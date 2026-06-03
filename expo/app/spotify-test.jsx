@@ -43,7 +43,7 @@ export default function SpotifyTestScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={styles.statusCard}>
           <View style={styles.iconWrap}>
-            <TestTube size={24} color={tokens.colors.darkNavy.background} />
+            <TestTube size={24} color={tokens.colors.dark_navy.bg_primary} />
           </View>
           <Text style={styles.title}>Connection Status</Text>
           <Text style={styles.sub}>
@@ -76,9 +76,9 @@ export default function SpotifyTestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   statusCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20,
   },
   iconWrap: {
@@ -86,16 +86,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  title: { color: tokens.colors.darkNavy.background, fontSize: 18, fontWeight: '700' },
-  sub: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13, marginTop: 4 },
+  title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
+  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 12, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12, marginTop: 12,
   },
   logCard: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 14, minHeight: 120, gap: 4,
   },
-  muted: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 13 },
-  logLine: { color: tokens.colors.darkNavy.background, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  muted: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
+  logLine: { color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
 });

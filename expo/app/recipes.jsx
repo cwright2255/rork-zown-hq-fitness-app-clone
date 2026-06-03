@@ -122,20 +122,20 @@ export default function RecipesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   pillRow: { paddingHorizontal: 16, paddingVertical: 8, maxHeight: 56 },
   pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
-  pillActive: { backgroundColor: tokens.colors.darkNavy.background },
-  pillInactive: { backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
   pillText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, marginBottom: 12, overflow: 'hidden',
   },
   image: { width: '100%', height: 160 },
   imagePh: { backgroundColor: '#2A2A2A' },
   cardBody: { padding: 14 },
-  cardName: { color: tokens.colors.darkNavy.background, fontSize: 16, fontWeight: '600' },
+  cardName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999 },
   chipText: { fontSize: 11, fontWeight: '600' },

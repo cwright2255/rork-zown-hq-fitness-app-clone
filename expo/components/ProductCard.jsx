@@ -14,7 +14,7 @@ const ProductCard = ({ product, onPress, onAddToCart, compact = false }) => {
       <View style={styles.imageWrap}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
         <TouchableOpacity style={styles.heart} hitSlop={8} onPress={(e) => e.stopPropagation?.()}>
-          <Heart size={18} color={tokens.colors.darkNavy.text.secondary} />
+          <Heart size={18} color={tokens.colors.dark_navy.text_secondary} />
         </TouchableOpacity>
       </View>
       <View style={styles.body}>
@@ -28,13 +28,13 @@ const ProductCard = ({ product, onPress, onAddToCart, compact = false }) => {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, overflow: 'hidden',
   },
   compact: { width: 160 },
   imageWrap: { position: 'relative' },
-  image: { width: '100%', height: 160, backgroundColor: tokens.colors.darkNavy.text.primary },
+  image: { width: '100%', height: 160, backgroundColor: tokens.colors.dark_navy.text_primary },
   heart: {
     position: 'absolute', top: 10, right: 10,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   body: { padding: 12 },
-  name: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  price: { color: tokens.colors.darkNavy.background, fontSize: 14, fontWeight: '600' },
+  name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  price: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
 });
 
 export default ProductCard;

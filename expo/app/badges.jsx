@@ -26,7 +26,7 @@ export default function BadgesScreen() {
       key={b.id}
       style={[styles.badge, isLocked && { opacity: 0.4 }]}>
       <View style={styles.badgeIcon}>
-        {isLocked ? <Lock size={24} color={tokens.colors.darkNavy.text.tertiary} /> : <Award size={24} color={tokens.colors.darkNavy.background} />}
+        {isLocked ? <Lock size={24} color={tokens.colors.dark_navy.text_muted} /> : <Award size={24} color={tokens.colors.dark_navy.bg_primary} />}
       </View>
       <Text style={styles.badgeName} numberOfLines={2}>{b.name || b.title}</Text>
       {b.description ? (
@@ -54,16 +54,16 @@ export default function BadgesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.darkNavy.text.primary },
+  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.darkNavy.text.tertiary, marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
   },
-  empty: { color: tokens.colors.darkNavy.text.tertiary, fontSize: 14 },
+  empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
     width: '31.5%',
-    backgroundColor: tokens.colors.darkNavy.text.primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
     borderRadius: 16, padding: 12, alignItems: 'center',
   },
   badgeIcon: {
@@ -72,10 +72,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
   badgeName: {
-    color: tokens.colors.darkNavy.background, fontSize: 12, fontWeight: '600',
+    color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontWeight: '600',
     textAlign: 'center',
   },
   badgeDesc: {
-    color: tokens.colors.darkNavy.text.tertiary, fontSize: 10, textAlign: 'center', marginTop: 4,
+    color: tokens.colors.dark_navy.text_muted, fontSize: 10, textAlign: 'center', marginTop: 4,
   },
 });

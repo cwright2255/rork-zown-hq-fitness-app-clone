@@ -1062,11 +1062,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   container: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   content: {
     padding: tokens.spacing.md,
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     paddingVertical: tokens.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: tokens.colors.dark_navy.bg_card
@@ -1094,15 +1094,15 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: tokens.colors.darkNavy.background
+    borderBottomColor: tokens.colors.dark_navy.bg_primary
   },
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   activeTabButtonText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontWeight: '600'
   },
   tabHeader: {
@@ -1114,14 +1114,14 @@ const styles = StyleSheet.create({
   tabTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   backButton: {
     padding: tokens.spacing.sm
   },
   backButtonText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   profileHeader: {
     flexDirection: 'row',
@@ -1142,14 +1142,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     width: 28,
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: tokens.colors.darkNavy.text.primary
+    borderColor: tokens.colors.dark_navy.text_primary
   },
   profileInfo: {
     flex: 1
@@ -1163,7 +1163,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   tierBadge: {
     paddingHorizontal: 8,
@@ -1176,7 +1176,7 @@ const styles = StyleSheet.create({
   },
   profileMemberSince: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   settingsButton: {
     padding: tokens.spacing.sm
@@ -1200,7 +1200,7 @@ const styles = StyleSheet.create({
   championPassText: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginLeft: 8
   },
   championPassBar: {
@@ -1211,12 +1211,12 @@ const styles = StyleSheet.create({
   },
   championPassFill: {
     height: '100%',
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     borderRadius: 3
   },
   championPassPercentage: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'right'
   },
   statsCard: {
@@ -1235,12 +1235,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   statLabel: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   statDivider: {
     width: 1,
@@ -1271,7 +1271,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   menuDivider: {
     height: 1,
@@ -1286,7 +1286,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 12
   },
   seeAllButton: {
@@ -1295,7 +1295,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginRight: 4
   },
   emptyCard: {
@@ -1305,7 +1305,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center',
     marginBottom: tokens.spacing.md
   },
@@ -1347,7 +1347,7 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginTop: tokens.spacing.md,
     marginBottom: tokens.spacing.sm
   },
@@ -1365,18 +1365,18 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.sm,
     paddingHorizontal: 20,
     borderRadius: tokens.radius.md,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1,
     borderColor: tokens.colors.dark_navy.border
   },
   changePhotoText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   photoPlaceholder: {
     height: 200,
     borderRadius: tokens.radius.md,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1,
     borderColor: tokens.colors.dark_navy.border,
     borderStyle: 'dashed',
@@ -1386,7 +1386,7 @@ const styles = StyleSheet.create({
   },
   photoPlaceholderText: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginTop: 8,
     marginBottom: tokens.spacing.md
   },
@@ -1421,12 +1421,12 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   progressValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   viewHistoryButton: {
     flexDirection: 'row',
@@ -1436,7 +1436,7 @@ const styles = StyleSheet.create({
   },
   viewHistoryText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginRight: 4
   },
   noProgressContainer: {
@@ -1445,7 +1445,7 @@ const styles = StyleSheet.create({
   },
   noProgressText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center',
     marginBottom: tokens.spacing.md
   },
@@ -1464,10 +1464,10 @@ const styles = StyleSheet.create({
   progressEntryDate: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   latestBadge: {
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     paddingHorizontal: 8,
     paddingVertical: tokens.spacing.sm,
     borderRadius: tokens.radius.sm
@@ -1475,7 +1475,7 @@ const styles = StyleSheet.create({
   latestBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.text.primary
+    color: tokens.colors.dark_navy.text_primary
   },
   progressEntryContent: {
     flexDirection: 'row'
@@ -1490,12 +1490,12 @@ const styles = StyleSheet.create({
   },
   progressEntryLabel: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   progressEntryValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   progressEntryPhoto: {
     width: 100,
@@ -1512,12 +1512,12 @@ const styles = StyleSheet.create({
   progressEntryNotesLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 4
   },
   progressEntryNotesText: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   badgesStatsCard: {
     marginBottom: tokens.spacing.md
@@ -1535,12 +1535,12 @@ const styles = StyleSheet.create({
   badgesStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   badgesStatLabel: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   badgesStatDivider: {
     width: 1,
@@ -1550,7 +1550,7 @@ const styles = StyleSheet.create({
   badgesCategoryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 12,
     marginTop: 8
   },
@@ -1565,7 +1565,7 @@ const styles = StyleSheet.create({
   },
   // EXP Dashboard styles
   expHeader: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     padding: 20,
     borderRadius: tokens.radius.md,
     marginBottom: 20
@@ -1580,11 +1580,11 @@ const styles = StyleSheet.create({
   expHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   expHeaderSubtitle: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   section: {
     marginBottom: tokens.spacing.md
@@ -1595,7 +1595,7 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderRadius: tokens.radius.md,
     padding: 12 // Reduced padding
   },
@@ -1606,12 +1606,12 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18, // Reduced font size
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   summaryLabel: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center'
   },
   summaryDivider: {
@@ -1631,7 +1631,7 @@ const styles = StyleSheet.create({
   viewFullDashboardText: {
     fontSize: 16,
     fontWeight: '500',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginRight: 4
   },
   // EXP Summary Card
@@ -1654,12 +1654,12 @@ const styles = StyleSheet.create({
   expSummaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginLeft: 8
   },
   expSummaryTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   }
 });

@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     aspectRatio: 3 / 4,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   camera: {
     width: '100%',

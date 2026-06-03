@@ -672,7 +672,7 @@ export default function ActiveWorkoutScreen() {
           
           <View style={styles.photoContainer}>
             <TouchableOpacity style={styles.addPhotoButton}>
-              <Camera size={32} color={tokens.colors.darkNavy.background} />
+              <Camera size={32} color={tokens.colors.dark_navy.bg_primary} />
               <Text style={styles.addPhotoText}>Add a Photo</Text>
             </TouchableOpacity>
           </View>
@@ -860,9 +860,9 @@ export default function ActiveWorkoutScreen() {
                   onPress={toggleTimer}>
                   
                     {isActive ?
-                  <Pause size={24} color={tokens.colors.darkNavy.text.primary} /> :
+                  <Pause size={24} color={tokens.colors.dark_navy.text_primary} /> :
 
-                  <Play size={24} color={tokens.colors.darkNavy.text.primary} />
+                  <Play size={24} color={tokens.colors.dark_navy.text_primary} />
                   }
                   </TouchableOpacity>
                   
@@ -917,7 +917,7 @@ export default function ActiveWorkoutScreen() {
                 <View style={styles.controlPanelOverlay}>
                   {/* Exit Button */}
                   <TouchableOpacity style={styles.exitButtonRun} onPress={handleExitPress}>
-                    <X size={24} color={tokens.colors.darkNavy.text.primary} />
+                    <X size={24} color={tokens.colors.dark_navy.text_primary} />
                   </TouchableOpacity>
                   
                   {/* Start/Pause Button */}
@@ -1083,7 +1083,7 @@ export default function ActiveWorkoutScreen() {
             onPress={() => setShowSpotifyEmbed(true)}
             testID="spotify-embed-fab"
             activeOpacity={0.85}>
-            <Music size={18} color={tokens.colors.darkNavy.background} />
+            <Music size={18} color={tokens.colors.dark_navy.bg_primary} />
             <Text style={styles.spotifyFabText}>Music</Text>
           </TouchableOpacity>
 
@@ -1098,7 +1098,7 @@ export default function ActiveWorkoutScreen() {
                 <View style={styles.spotifyEmbedHeader}>
                   <Text style={styles.spotifyEmbedTitle}>Workout Music</Text>
                   <TouchableOpacity onPress={() => setShowSpotifyEmbed(false)} testID="close-spotify-embed">
-                    <X size={22} color={tokens.colors.darkNavy.background} />
+                    <X size={22} color={tokens.colors.dark_navy.bg_primary} />
                   </TouchableOpacity>
                 </View>
                 <SpotifyEmbedPlayer
@@ -1128,33 +1128,33 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     padding: 20
   },
   loadingText: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 20
   },
   backButton: {
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8
   },
   backButtonText: {
-    color: tokens.colors.darkNavy.text.primary,
+    color: tokens.colors.dark_navy.text_primary,
     fontWeight: '600'
   },
   activeWorkoutContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -1166,7 +1166,7 @@ const styles = StyleSheet.create({
   exerciseTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     textAlign: 'center'
   },
 
@@ -1187,13 +1187,13 @@ const styles = StyleSheet.create({
   },
   topStatLabel: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 4
   },
   topStatValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   mainExerciseImage: {
     width: '100%',
@@ -1213,13 +1213,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 8
   },
   statValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginTop: -30
   },
   setsContainer: {
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
   },
   setsLabel: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 16
   },
   setsRow: {
@@ -1244,8 +1244,8 @@ const styles = StyleSheet.create({
     borderWidth: 2
   },
   activeSet: {
-    backgroundColor: tokens.colors.darkNavy.background,
-    borderColor: tokens.colors.darkNavy.background
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
+    borderColor: tokens.colors.dark_navy.bg_primary
   },
   completedSet: {
     backgroundColor: '#2A2A2A',
@@ -1260,25 +1260,25 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   activeSetText: {
-    color: tokens.colors.darkNavy.text.primary
+    color: tokens.colors.dark_navy.text_primary
   },
   completedSetText: {
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   inactiveSetText: {
-    color: tokens.colors.darkNavy.text.secondary
+    color: tokens.colors.dark_navy.text_secondary
   },
   timerSection: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -1305,13 +1305,13 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 4
   },
   timerText: {
     fontSize: 48,
     fontWeight: '800',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     letterSpacing: -1
   },
   skipButtonNew: {
@@ -1323,13 +1323,13 @@ const styles = StyleSheet.create({
     borderRadius: 28
   },
   skipButtonText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: 14,
     fontWeight: '700'
   },
   runContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   // Full screen running UI styles
   fullScreenMapContainer: {
@@ -1356,7 +1356,7 @@ const styles = StyleSheet.create({
   runningTopStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 2
   },
   runningTopStatLabel: {
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
   bottomStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 2
   },
   bottomStatLabel: {
@@ -1412,7 +1412,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1441,7 +1441,7 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     letterSpacing: 1
   },
   pauseIcon: {
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
   pauseBar: {
     width: 4,
     height: 20,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderRadius: 2
   },
   musicButton: {
@@ -1461,7 +1461,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1478,7 +1478,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   musicModalContent: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1493,7 +1493,7 @@ const styles = StyleSheet.create({
   musicModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   musicPlayerInModal: {
     marginBottom: 0
@@ -1501,7 +1501,7 @@ const styles = StyleSheet.create({
 
   completeContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.darkNavy.text.primary
+    backgroundColor: tokens.colors.dark_navy.text_primary
   },
   completeHeader: {
     paddingHorizontal: 20,
@@ -1511,13 +1511,13 @@ const styles = StyleSheet.create({
   completeTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 8,
     textAlign: 'center'
   },
   completeSubtitle: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center'
   },
   photoContainer: {
@@ -1535,7 +1535,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)'
   },
   addPhotoText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginTop: 8,
     fontSize: 16,
     fontWeight: '600'
@@ -1550,7 +1550,7 @@ const styles = StyleSheet.create({
   workoutTimeText: {
     fontSize: 36,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     textAlign: 'center',
     marginBottom: 10
   },
@@ -1573,7 +1573,7 @@ const styles = StyleSheet.create({
     borderRadius: 2
   },
   completionPercentText: {
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     fontSize: 12
   },
   commentContainer: {
@@ -1584,7 +1584,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
     borderRadius: 16,
     padding: 16,
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: 16,
     minHeight: 100
   },
@@ -1595,7 +1595,7 @@ const styles = StyleSheet.create({
   feelingsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 12
   },
   feelingsScrollView: {
@@ -1609,14 +1609,14 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   selectedFeelingButton: {
-    backgroundColor: tokens.colors.darkNavy.background
+    backgroundColor: tokens.colors.dark_navy.bg_primary
   },
   feelingText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontWeight: '600'
   },
   selectedFeelingText: {
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   publicActivityContainer: {
     flexDirection: 'row',
@@ -1631,12 +1631,12 @@ const styles = StyleSheet.create({
   publicActivityTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   publicActivityDescription: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   toggleContainer: {
     width: 50,
@@ -1657,15 +1657,15 @@ const styles = StyleSheet.create({
     borderRadius: 13
   },
   toggleCircleActive: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     alignSelf: 'flex-end'
   },
   toggleCircleInactive: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     alignSelf: 'flex-start'
   },
   finishedButton: {
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     paddingVertical: 16,
     borderRadius: 30,
     marginHorizontal: 20,
@@ -1673,7 +1673,7 @@ const styles = StyleSheet.create({
     marginTop: 20
   },
   finishedButtonText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center'
@@ -1697,12 +1697,12 @@ const styles = StyleSheet.create({
   summaryStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginVertical: 8
   },
   summaryStatLabel: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
 
   finishButton: {
@@ -1716,12 +1716,12 @@ const styles = StyleSheet.create({
   fullWorkoutTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   fullWorkoutSubtitle: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 16,
     textAlign: 'right'
   },
@@ -1743,7 +1743,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
     borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: tokens.colors.darkNavy.background
+    borderLeftColor: tokens.colors.dark_navy.bg_primary
   },
   exerciseListImage: {
     width: 70,
@@ -1757,12 +1757,12 @@ const styles = StyleSheet.create({
   exerciseListName: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   exerciseListSpecs: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   // Modal styles
   modalOverlay: {
@@ -1773,13 +1773,13 @@ const styles = StyleSheet.create({
     padding: 20
   },
   modalContent: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderRadius: 16,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1788,13 +1788,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 12,
     textAlign: 'center'
   },
   modalText: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 24,
     textAlign: 'center'
   },
@@ -1806,10 +1806,10 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   continueButton: {
-    backgroundColor: tokens.colors.darkNavy.background
+    backgroundColor: tokens.colors.dark_navy.bg_primary
   },
   continueButtonText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1817,7 +1817,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 240, 255, 0.8)'
   },
   finishWorkoutText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: 16,
     fontWeight: '600'
   },
@@ -1847,12 +1847,12 @@ const styles = StyleSheet.create({
   runStatValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   runStatLabel: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   mapContainer: {
     flex: 1,
@@ -1869,20 +1869,20 @@ const styles = StyleSheet.create({
   webMapText: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     textAlign: 'center',
     marginBottom: 12
   },
   webMapSubtext: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center',
     marginBottom: 4
   },
   noSpotifyConnectionText: {
     textAlign: 'center',
     padding: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     fontSize: 14
   },
   progressIndicator: {
@@ -1894,7 +1894,7 @@ const styles = StyleSheet.create({
   },
   progressIndicatorFill: {
     height: '100%',
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     borderRadius: 2
   },
   // Next workouts preview styles
@@ -1903,10 +1903,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1935,7 +1935,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     flex: 1,
     textAlign: 'center'
   },
@@ -1949,7 +1949,7 @@ const styles = StyleSheet.create({
   },
   closePreviewText: {
     fontSize: 20,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     fontWeight: '300'
   },
   previewContent: {
@@ -1975,17 +1975,17 @@ const styles = StyleSheet.create({
   nextWorkoutName: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   nextWorkoutDetails: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 2
   },
   nextWorkoutCategory: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     textTransform: 'uppercase',
     fontWeight: '500'
   },
@@ -1995,7 +1995,7 @@ const styles = StyleSheet.create({
   nextWorkoutXp: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background
+    color: tokens.colors.dark_navy.bg_primary
   },
   swipeIndicator: {
     alignItems: 'center',
@@ -2010,7 +2010,7 @@ const styles = StyleSheet.create({
   },
   swipeText: {
     fontSize: 12,
-    color: tokens.colors.darkNavy.text.secondary,
+    color: tokens.colors.dark_navy.text_secondary,
     textAlign: 'center'
   },
   previewOverlay: {
@@ -2039,13 +2039,13 @@ const styles = StyleSheet.create({
   },
   setTrackingFill: {
     height: '100%',
-    backgroundColor: tokens.colors.darkNavy.background,
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
     borderRadius: 3
   },
   setTrackingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.text.tertiary
+    color: tokens.colors.dark_navy.text_muted
   },
   // Running session header styles
   runningHeader: {
@@ -2058,24 +2058,24 @@ const styles = StyleSheet.create({
   runningTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   runningDescription: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     lineHeight: 18
   },
   // Web map fallback styles
   webMapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 8
   },
   webMapSubtitle: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 16
   },
   webMapStats: {
@@ -2083,7 +2083,7 @@ const styles = StyleSheet.create({
   },
   webMapStat: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginBottom: 4
   },
   permissionContainer: {
@@ -2095,14 +2095,14 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     marginTop: 20,
     marginBottom: 12,
     textAlign: 'center'
   },
   permissionText: {
     fontSize: 16,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24
@@ -2117,7 +2117,7 @@ const styles = StyleSheet.create({
   },
   permissionFeature: {
     fontSize: 14,
-    color: tokens.colors.darkNavy.text.tertiary,
+    color: tokens.colors.dark_navy.text_muted,
     marginBottom: 8,
     lineHeight: 20
   },
@@ -2132,7 +2132,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    shadowColor: tokens.colors.darkNavy.text.primary,
+    shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2140,7 +2140,7 @@ const styles = StyleSheet.create({
     zIndex: 999
   },
   spotifyFabText: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontWeight: '700',
     fontSize: 14,
     letterSpacing: 0.3
@@ -2151,7 +2151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   spotifyEmbedSheet: {
-    backgroundColor: tokens.colors.darkNavy.text.primary,
+    backgroundColor: tokens.colors.dark_navy.text_primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
@@ -2169,7 +2169,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   spotifyEmbedTitle: {
-    color: tokens.colors.darkNavy.background,
+    color: tokens.colors.dark_navy.bg_primary,
     fontSize: 18,
     fontWeight: '700'
   }
