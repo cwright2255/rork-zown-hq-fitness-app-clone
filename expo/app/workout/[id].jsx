@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Modal,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,7 +16,7 @@ export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBo
 /* ── Placeholder exercise data ── */
 // TODO: Connect to real workout API / exerciseStore
 
-const PLACEHOLDER_EXERCISES = [
+const INITIAL_EXERCISES = [
   { id: 'e1', name: 'Jumping Jack', duration: '0:50', completed: true },
   { id: 'e2', name: 'High Knees', duration: '1:00', completed: true },
   { id: 'e3', name: 'Push Ups', duration: '0:45', completed: false },
@@ -65,14 +66,14 @@ export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
+  const [exercises, setExercises] = useState(INITIAL_EXERCISES);
   const [bookmarked, setBookmarked] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   /* ── Reactive CTA logic ── */
-  const exercises = PLACEHOLDER_EXERCISES;
-  const completedCount = useMemo(
-    () => exercises.filter((e) => e.completed).length,
-    [exercises],
-  );
+  // exercises is now stateful (see useState above)
+  const completedCount = exercises.filter((e) => e.completed).length;
   const totalExercises = exercises.length;
   const hasStarted = completedCount > 0;
   const isComplete = completedCount === totalExercises;
@@ -102,6 +103,12 @@ export default function WorkoutDetailScreen() {
       disabled: false,
     };
   }, [hasStarted, isComplete]);
+
+  const handleClearProgress = () => {
+    setExercises(exercises.map((e) => ({ ...e, completed: false })));
+    setShowClearConfirm(false);
+    setShowMenu(false);
+  };
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -150,8 +157,8 @@ export default function WorkoutDetailScreen() {
                 color="#000"
               />
             </Pressable>
-            <Pressable style={styles.actionBtn}>
-              <Ionicons name="ellipsis-horizontal" size={18} color="#000" />
+            <Pressable style={styles.actionBtn} onPress={() => setShowMenu(true)}>
+              <Ionicons name="ellipsis-vertical" size={18} color="#000" />
             </Pressable>
           </View>
 
@@ -222,6 +229,75 @@ export default function WorkoutDetailScreen() {
         ))}
       </ScrollView>
 
+      {/* ── Three-dot popup menu ── */}
+      <Modal
+        visible={showMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <Pressable
+          style={styles.menuBackdrop}
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={styles.menuCard}>
+            <Pressable
+              style={styles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                setShowClearConfirm(true);
+              }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" style={{ marginRight: 12 }} />
+              <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>Clear Progress</Text>
+            </Pressable>
+            <Pressable
+              style={styles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                // TODO: share workout
+              }}
+            >
+              <Ionicons name="share-outline" size={20} color="#000" style={{ marginRight: 12 }} />
+              <Text style={styles.menuOptionText}>Share Workout</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.menuOption, { borderBottomWidth: 0 }]}
+              onPress={() => setShowMenu(false)}
+            >
+              <Ionicons name="close-outline" size={20} color="#666" style={{ marginRight: 12 }} />
+              <Text style={[styles.menuOptionText, { color: '#666' }]}>Close</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* ── Clear progress confirmation ── */}
+      <Modal
+        visible={showClearConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowClearConfirm(false)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Clear Workout Progress?</Text>
+            <Text style={styles.confirmSubtitle}>
+              This will reset all completed exercises for this workout.
+            </Text>
+            <Pressable style={styles.confirmClearBtn} onPress={handleClearProgress}>
+              <Text style={styles.confirmClearBtnText}>Clear Progress</Text>
+            </Pressable>
+            <Pressable
+              style={styles.confirmCancelBtn}
+              onPress={() => setShowClearConfirm(false)}
+            >
+              <Text style={styles.confirmCancelBtnText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Floating CTA button ── */}
       <Pressable
         style={[styles.ctaButton, { backgroundColor: ctaConfig.bg }]}
@@ -259,7 +335,7 @@ const styles = StyleSheet.create({
   },
   xpBadge: {
     position: 'absolute',
-    top: 16,
+    top: 100,
     left: 16,
     backgroundColor: '#E8873A',
     paddingHorizontal: 10,
@@ -498,5 +574,115 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFF',
+  },
+
+  /* Three-dot menu */
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  menuCard: {
+    position: 'absolute',
+    top: 100,
+    right: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 8,
+    width: 200,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 8 },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+    }),
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  menuOptionText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#000',
+  },
+
+  /* Clear progress confirmation */
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 12 },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 4 },
+      },
+    }),
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+  confirmSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  confirmClearBtn: {
+    backgroundColor: '#FF3B30',
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  confirmClearBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  confirmCancelBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmCancelBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
   },
 });
