@@ -23,7 +23,7 @@ import { authService } from '@/services/authService';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const { width, height } = Dimensions.get('window');
-const DIAGONAL_HEIGHT = height * 0.32;
+const DIAGONAL_HEIGHT = 220;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -235,49 +235,56 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   whiteBlock: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: -100,
+    left: -40,
+    right: -40,
+    height: 280,
     backgroundColor: '#FFF',
+    transform: [{ rotate: '-8deg' }],
   },
   blackCut: {
     position: 'absolute',
-    bottom: -40,
-    left: -30,
-    right: -30,
-    height: 100,
-    backgroundColor: '#000',
-    transform: [{ skewY: '-8deg' }],
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 0,
   },
   logo: {
     position: 'absolute',
-    top: 48,
-    left: 28,
-    width: 100,
-    height: 100,
+    top: 20,
+    left: 24,
+    width: 120,
+    height: 36,
+    zIndex: 3,
   },
 
   /* tagline */
   taglineWrap: {
-    paddingLeft: 28,
-    paddingTop: 16,
-    marginBottom: 28,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    marginBottom: 24,
+    alignItems: 'center',
   },
   tagline1: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
     color: '#FFF',
-    letterSpacing: 3,
+    letterSpacing: 1,
     lineHeight: 34,
+    textAlign: 'center',
   },
   tagline2: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
     color: '#FFF',
-    letterSpacing: 3,
+    letterSpacing: 1,
     lineHeight: 34,
+    textAlign: 'center',
   },
 
   /* form */
-  form: { paddingHorizontal: 28 },
+  form: { paddingHorizontal: 20 },
   errorBox: {
     backgroundColor: 'rgba(255,22,84,0.15)',
     borderRadius: 10,
@@ -291,26 +298,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-    marginBottom: 18,
-    paddingBottom: 6,
+    marginBottom: 14,
+    paddingBottom: 4,
   },
   inputIcon: { marginRight: 10 },
   input: {
     flex: 1,
     fontSize: 15,
     color: '#FFF',
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
 
   /* enter */
   enterBtn: {
     backgroundColor: '#FFF',
-    borderRadius: 25,
+    borderRadius: 24,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 18,
+    marginTop: 12,
+    marginBottom: 16,
   },
   enterBtnDisabled: { opacity: 0.65 },
   enterBtnText: { color: '#000', fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
@@ -320,7 +327,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 22,
+    marginBottom: 20,
   },
   socialBtn: {
     flexDirection: 'row',
@@ -329,14 +336,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     borderRadius: 20,
     height: 40,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    maxWidth: 140,
     gap: 6,
   },
   socialIcon: { fontSize: 16, fontWeight: '700', color: '#FFF' },
   socialLabel: { fontSize: 14, fontWeight: '600', color: '#FFF' },
 
   /* links */
-  forgotBtn: { alignItems: 'center', marginBottom: 14 },
+  forgotBtn: { alignItems: 'center', paddingVertical: 6, marginBottom: 12 },
   forgotText: { color: '#888', fontSize: 13 },
   signUpRow: { flexDirection: 'row', justifyContent: 'center' },
   signUpGray: { color: '#888', fontSize: 13 },
