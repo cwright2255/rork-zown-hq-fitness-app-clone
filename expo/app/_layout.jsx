@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { tokens } from '../../theme/tokens';
-import { Ionicons } from '@expo/vector-icons';
 
 // CRITICAL: ErrorBoundary is exported FIRST ÃÂ¢ÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
@@ -44,13 +43,11 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Bell, Menu, ShoppingCart } from 'lucide-react-native';
 const Head = ({ children }) => null;
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 import { useShopStore } from '@/store/shopStore';
-import HamburgerMenu from '@/components/HamburgerMenu';
 import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
@@ -83,67 +80,7 @@ function RookWrapper({ children }) {
   }
 }
 
-const TypedHamburgerMenu = HamburgerMenu;
 
-const RootLayoutNav = React.memo(function RootLayoutNav({
-  toggleMenu,
-  pathname,
-  cartItemCount,
-  isOnboarded
-}) {
-  const isShopPage = useMemo(() => pathname === '/shop' || pathname.startsWith('/shop/'), [pathname]);
-
-  const shouldShowTopNav = !pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index';
-
-  const shouldShowNav = useMemo(
-    () => isOnboarded && pathname !== '/onboarding' && !pathname.startsWith('/auth/') && pathname !== '/index' && pathname !== '/start' && pathname !== '/workout/active',
-    [isOnboarded, pathname]
-  );
-
-  const handleMenuPress = useCallback(() => {
-    toggleMenu();
-  }, [toggleMenu]);
-
-  if (!shouldShowNav) {
-    return null;
-  }
-
-  return (
-    <View style={styles.navContainer}>
-      <TouchableOpacity
-        style={styles.navButton}
-        onPress={handleMenuPress}
-        accessibilityRole="button"
-        accessibilityLabel="Open menu"
-        testID="open-menu-button">
-        
-        <Menu size={24} color={Colors.text.primary} />
-      </TouchableOpacity>
-
-      <View style={styles.navActions}>
-        <TouchableOpacity style={styles.navButton} accessibilityRole="button" accessibilityLabel="Notifications" testID="notifications-button">
-          <Bell size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-
-        {isShopPage ?
-        <TouchableOpacity
-          style={styles.cartButton}
-          accessibilityRole="button"
-          accessibilityLabel={`Shopping cart with ${cartItemCount} items`}
-          testID="cart-button">
-          
-            <ShoppingCart size={24} color={Colors.text.primary} />
-            {cartItemCount > 0 ?
-          <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartItemCount > 99 ? '99+' : cartItemCount.toString()}</Text>
-              </View> :
-          null}
-          </TouchableOpacity> :
-        null}
-      </View>
-    </View>);
-
-});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -158,11 +95,9 @@ const queryClient = new QueryClient({
 // so usePathname() and router hooks are safe to call here.
 function RootLayoutInner() {
   const pathname = usePathname();
-  const shouldShowTopNav = !pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index';
   const { isOnboarded } = useUserStore();
   const { cart } = useShopStore();
   const { connectSpotify, connectSpotifyImplicit } = useSpotifyStore();
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   const cartItemCount = useMemo(() => cart.reduce((total, item) => total + item.quantity, 0), [cart]);
 
@@ -217,19 +152,9 @@ function RootLayoutInner() {
     });
     return () => cancelAnimationFrame(navigationFrame);
   }, [isOnboarded, pathname]);
-
-  const toggleMenu = useCallback(() => setIsMenuVisible((prev) => !prev), []);
-  const closeMenu = useCallback(() => setIsMenuVisible(false), []);
-  const openMenu = useCallback(() => setIsMenuVisible(true), []);
-
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <RootLayoutNav
-        toggleMenu={toggleMenu}
-        pathname={pathname}
-        cartItemCount={cartItemCount}
-        isOnboarded={isOnboarded} />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -281,35 +206,9 @@ function RootLayoutInner() {
         <Stack.Screen name="spotify-redirect" />
         <Stack.Screen name="spotify-callback" />
       </Stack>
-      
-        {/* Floating hamburger menu button */}
-        {shouldShowTopNav && (
-          <Pressable
-            style={{
-              position: 'absolute',
-              left: 16,
-              top: '45%',
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: '#FFFFFF',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 100,
-              ...Platform.select({
-                ios: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 2 } },
-                android: { elevation: 8 },
-              }),
-            }}
-            onPress={openMenu}>
-            <Ionicons name="menu" size={22} color="#000" />
-          </Pressable>
-        )}
 
         {/* Floating bottom tab bar */}
-        {shouldShowTopNav && <BottomNavigation />}
-
-        <TypedHamburgerMenu isVisible={isMenuVisible} onClose={closeMenu} />
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && <BottomNavigation />}
     </View>
   );
 }
