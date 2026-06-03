@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 import Colors from '@/constants/colors';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     padding: 20
   },
   text: {
-    marginTop: 16,
+    marginTop: tokens.spacing.md,
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,

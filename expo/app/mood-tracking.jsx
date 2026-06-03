@@ -27,7 +27,7 @@ export default function MoodTrackingScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Mood" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
         <Text style={styles.sectionLabel}>How are you feeling?</Text>
         <View style={styles.card}>
           <View style={styles.moodRow}>
@@ -78,31 +78,31 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 12,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
   moodBtn: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 48, height: 48, borderRadius: tokens.radius.xl,
     alignItems: 'center', justifyContent: 'center',
   },
   moodBtnActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
   moodEmoji: { fontSize: 26 },
   input: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
     color: tokens.colors.dark_navy.bg_primary, fontSize: 15, minHeight: 120,
   },
   weekRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
   dayCol: { alignItems: 'center', gap: 6 },
-  dayDot: { width: 16, height: 16, borderRadius: 8 },
+  dayDot: { width: 16, height: 16, borderRadius: tokens.radius.sm },
   dayLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

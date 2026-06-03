@@ -114,7 +114,7 @@ export default function RecipeDetailScreen() {
         ) : (
           <View style={[styles.image, styles.imagePh]} />
         )}
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: tokens.spacing.md }}>
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.meta}>
             {recipe.prepTime} min ÃÂ· Serves {recipe.servings}
@@ -170,25 +170,25 @@ const styles = StyleSheet.create({
   imagePh: { backgroundColor: tokens.colors.dark_navy.text_primary },
   title: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
   meta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 6 },
-  macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 8 },
+  macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: tokens.spacing.sm },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
   chipText: { fontSize: 12, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 20,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 20,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
   ingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.dark_navy.bg_primary, marginRight: 10 },
   ingText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, flex: 1 },
   stepCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 14, marginBottom: 8,
-    alignItems: 'flex-start', gap: 12,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 14, marginBottom: tokens.spacing.sm,
+    alignItems: 'flex-start', gap: tokens.spacing.md,
   },
   stepNum: {
     color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700',

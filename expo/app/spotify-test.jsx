@@ -40,7 +40,7 @@ export default function SpotifyTestScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Spotify Test" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <View style={styles.statusCard}>
           <View style={styles.iconWrap}>
             <TestTube size={24} color={tokens.colors.dark_navy.bg_primary} />
@@ -78,12 +78,12 @@ export default function SpotifyTestScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   statusCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 20, alignItems: 'center', marginBottom: 20,
   },
   iconWrap: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#2A2A2A',
+    width: 48, height: 48, borderRadius: tokens.radius.xl,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
   title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12, marginTop: 12,
   },
   logCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 14, minHeight: 120, gap: 4,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 14, minHeight: 120, gap: 4,
   },
   muted: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
   logLine: { color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },

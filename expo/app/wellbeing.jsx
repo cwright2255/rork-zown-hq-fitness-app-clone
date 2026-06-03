@@ -18,7 +18,7 @@ export default function WellbeingScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Wellbeing" />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 100 }}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>How are you feeling?</Text>
           <View style={styles.moodRow}>
@@ -72,10 +72,10 @@ export default function WellbeingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 20, marginBottom: 12,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 20, marginBottom: 12,
   },
-  cardTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600', marginBottom: 16 },
+  cardTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600', marginBottom: tokens.spacing.md },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   moodBtn: {
     width: 44, height: 44, borderRadius: 22,
@@ -86,13 +86,13 @@ const styles = StyleSheet.create({
   link: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 8 },
   label: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
   },
   bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
   sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, marginTop: 2 },
-  pillRow: { flexDirection: 'row', gap: 8 },
+  pillRow: { flexDirection: 'row', gap: tokens.spacing.sm },
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
   pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
   pillText: { fontSize: 13, fontWeight: '600' },
 });

@@ -1144,9 +1144,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     backgroundColor: tokens.colors.dark_navy.bg_primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8
+    paddingVertical: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.lg,
+    borderRadius: tokens.radius.sm
   },
   backButtonText: {
     color: tokens.colors.dark_navy.text_primary,
@@ -1160,7 +1160,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 20
   },
   exerciseTitle: {
@@ -1171,7 +1171,7 @@ const styles = StyleSheet.create({
   },
 
   exerciseImageContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 15
   },
   topStatsRow: {
@@ -1182,8 +1182,8 @@ const styles = StyleSheet.create({
   },
   topStatBox: {
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16
+    paddingVertical: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.md
   },
   topStatLabel: {
     fontSize: 14,
@@ -1198,7 +1198,7 @@ const styles = StyleSheet.create({
   mainExerciseImage: {
     width: '100%',
     height: 300,
-    borderRadius: 16
+    borderRadius: tokens.radius.lg
   },
   statsRow: {
     flexDirection: 'row',
@@ -1208,13 +1208,13 @@ const styles = StyleSheet.create({
   },
   statBox: {
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16
+    paddingVertical: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.md
   },
   statLabel: {
     fontSize: 16,
     color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   statValue: {
     fontSize: 48,
@@ -1229,11 +1229,11 @@ const styles = StyleSheet.create({
   setsLabel: {
     fontSize: 16,
     color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   setsRow: {
     flexDirection: 'row',
-    gap: 12
+    gap: tokens.spacing.md
   },
   setCircle: {
     width: 40,
@@ -1248,12 +1248,12 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.dark_navy.bg_primary
   },
   completedSet: {
-    backgroundColor: '#2A2A2A',
-    borderColor: '#2A2A2A'
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    borderColor: tokens.colors.dark_navy.border
   },
   inactiveSet: {
     backgroundColor: 'transparent',
-    borderColor: '#2A2A2A'
+    borderColor: tokens.colors.dark_navy.border
   },
   setNumber: {
     fontSize: 16,
@@ -1275,7 +1275,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: tokens.colors.dark_navy.text_primary,
     paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     shadowColor: tokens.colors.dark_navy.text_primary,
@@ -1292,10 +1292,10 @@ const styles = StyleSheet.create({
   pauseButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#2A2A2A',
+    borderRadius: tokens.radius.xl,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: tokens.colors.dark_navy.border,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -1317,9 +1317,9 @@ const styles = StyleSheet.create({
   skipButtonNew: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#2A2A2A',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    borderColor: tokens.colors.dark_navy.border,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.md,
     borderRadius: 28
   },
   skipButtonText: {
@@ -1348,9 +1348,9 @@ const styles = StyleSheet.create({
   topStatItem: {
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.md,
+    borderRadius: tokens.radius.md,
     minWidth: 80
   },
   runningTopStatValue: {
@@ -1384,9 +1384,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    borderRadius: tokens.radius.lg,
+    paddingVertical: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.md,
     zIndex: 10
   },
   bottomStatItem: {
@@ -1488,7 +1488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   musicModalTitle: {
     fontSize: 20,
@@ -1504,7 +1504,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary
   },
   completeHeader: {
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     paddingTop: 20,
     paddingBottom: 10
   },
@@ -1512,7 +1512,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 8,
+    marginBottom: tokens.spacing.sm,
     textAlign: 'center'
   },
   completeSubtitle: {
@@ -1541,7 +1541,7 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   workoutStatsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 20
   },
   workoutTimeContainer: {
@@ -1577,19 +1577,19 @@ const styles = StyleSheet.create({
     fontSize: 12
   },
   commentContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 20
   },
   commentInput: {
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.md,
     color: tokens.colors.dark_navy.bg_primary,
     fontSize: 16,
     minHeight: 100
   },
   feelingsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 20
   },
   feelingsTitle: {
@@ -1603,7 +1603,7 @@ const styles = StyleSheet.create({
   },
   feelingButton: {
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
-    paddingHorizontal: 16,
+    paddingHorizontal: tokens.spacing.md,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 10
@@ -1622,7 +1622,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 20
   },
   publicActivityTextContainer: {
@@ -1666,7 +1666,7 @@ const styles = StyleSheet.create({
   },
   finishedButton: {
     backgroundColor: tokens.colors.dark_navy.bg_primary,
-    paddingVertical: 16,
+    paddingVertical: tokens.spacing.md,
     borderRadius: 30,
     marginHorizontal: 20,
     marginBottom: 40,
@@ -1684,13 +1684,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 32,
-    paddingHorizontal: 20
+    paddingHorizontal: tokens.spacing.md
   },
   statItem: {
     alignItems: 'center',
     backgroundColor: 'rgba(74, 128, 240, 0.1)',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: tokens.radius.md,
+    padding: tokens.spacing.md,
     width: '48%',
     marginBottom: 12
   },
@@ -1722,7 +1722,7 @@ const styles = StyleSheet.create({
   fullWorkoutSubtitle: {
     fontSize: 16,
     color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     textAlign: 'right'
   },
   exerciseList: {
@@ -1731,24 +1731,24 @@ const styles = StyleSheet.create({
   exerciseListItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: tokens.spacing.md,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     backgroundColor: 'rgba(230, 240, 255, 0.3)',
-    marginBottom: 8,
-    borderRadius: 12
+    marginBottom: tokens.spacing.sm,
+    borderRadius: tokens.radius.md
   },
   currentExerciseItem: {
     backgroundColor: 'rgba(74, 128, 240, 0.2)',
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     borderLeftWidth: 3,
     borderLeftColor: tokens.colors.dark_navy.bg_primary
   },
   exerciseListImage: {
     width: 70,
     height: 70,
-    borderRadius: 8,
+    borderRadius: tokens.radius.sm,
     marginRight: 12
   },
   exerciseListDetails: {
@@ -1774,8 +1774,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: tokens.colors.dark_navy.text_primary,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.lg,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
@@ -1795,13 +1795,13 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 16,
     color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 24,
+    marginBottom: tokens.spacing.lg,
     textAlign: 'center'
   },
   modalButton: {
     width: '100%',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: tokens.spacing.md,
+    borderRadius: tokens.radius.md,
     alignItems: 'center',
     marginBottom: 12
   },
@@ -1835,13 +1835,13 @@ const styles = StyleSheet.create({
   runStatsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   runStatItem: {
     alignItems: 'center',
     backgroundColor: 'rgba(230, 240, 255, 0.8)',
-    padding: 16,
-    borderRadius: 12,
+    padding: tokens.spacing.md,
+    borderRadius: tokens.radius.md,
     width: '30%'
   },
   runStatValue: {
@@ -1881,7 +1881,7 @@ const styles = StyleSheet.create({
   },
   noSpotifyConnectionText: {
     textAlign: 'center',
-    padding: 16,
+    padding: tokens.spacing.md,
     color: tokens.colors.dark_navy.text_muted,
     fontSize: 14
   },
@@ -1917,15 +1917,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)'
   },
   previewHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     borderRadius: 2,
     position: 'absolute',
     top: 8,
@@ -1942,7 +1942,7 @@ const styles = StyleSheet.create({
   closePreviewButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: tokens.radius.lg,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     justifyContent: 'center',
     alignItems: 'center'
@@ -1954,19 +1954,19 @@ const styles = StyleSheet.create({
   },
   previewContent: {
     flex: 1,
-    paddingHorizontal: 20
+    paddingHorizontal: tokens.spacing.md
   },
   nextWorkoutCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: tokens.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.05)'
   },
   nextWorkoutImage: {
     width: 60,
     height: 60,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     marginRight: 16
   },
   nextWorkoutInfo: {
@@ -2004,9 +2004,9 @@ const styles = StyleSheet.create({
   swipeHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     borderRadius: 2,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   swipeText: {
     fontSize: 12,
@@ -2023,7 +2023,7 @@ const styles = StyleSheet.create({
   },
   // Set tracking bar styles
   setTrackingContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.md,
     marginBottom: 15
   },
   setTrackingBar: {
@@ -2035,7 +2035,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   setTrackingFill: {
     height: '100%',
@@ -2049,10 +2049,10 @@ const styles = StyleSheet.create({
   },
   // Running session header styles
   runningHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.md,
     backgroundColor: 'rgba(230, 240, 255, 0.3)',
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     marginBottom: 20
   },
   runningTitle: {
@@ -2071,12 +2071,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   webMapSubtitle: {
     fontSize: 14,
     color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   webMapStats: {
     alignItems: 'center'
@@ -2090,7 +2090,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24
+    paddingHorizontal: tokens.spacing.lg
   },
   permissionTitle: {
     fontSize: 24,
@@ -2105,10 +2105,10 @@ const styles = StyleSheet.create({
     color: tokens.colors.dark_navy.text_muted,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   permissionIcon: {
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     alignSelf: 'center'
   },
   permissionFeatures: {
@@ -2118,7 +2118,7 @@ const styles = StyleSheet.create({
   permissionFeature: {
     fontSize: 14,
     color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 8,
+    marginBottom: tokens.spacing.sm,
     lineHeight: 20
   },
   spotifyFab: {
@@ -2131,7 +2131,7 @@ const styles = StyleSheet.create({
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: tokens.spacing.sm,
     shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -2154,12 +2154,12 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 16,
+    padding: tokens.spacing.md,
     paddingBottom: 32,
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#2A2A2A'
+    borderColor: tokens.colors.dark_navy.border
   },
   spotifyEmbedHeader: {
     flexDirection: 'row',

@@ -64,7 +64,7 @@ export default function SpotifyIntegrationScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Spotify" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <View style={styles.hero}>
           <View style={styles.iconWrap}>
             <Music size={40} color={tokens.colors.dark_navy.bg_primary} />
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: '#1DB954',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    alignItems: 'center', justifyContent: 'center', marginBottom: tokens.spacing.md,
   },
   title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
   sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 6, textAlign: 'center' },
@@ -142,14 +142,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12, marginTop: 12,
   },
   plRow: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 12, padding: 14, marginBottom: 8,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.md, padding: 14, marginBottom: tokens.spacing.sm,
   },
   plName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
   plMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
   muted: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
 });

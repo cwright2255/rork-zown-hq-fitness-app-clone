@@ -38,7 +38,7 @@ export default function ExpDashboardScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="XP" />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 180 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 180 }}>
         <View style={styles.levelCard}>
           <Text style={styles.levelLabel}>LEVEL</Text>
           <Text style={styles.levelNumber}>{level}</Text>
@@ -89,13 +89,13 @@ export default function ExpDashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   levelCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
   levelLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
   levelNumber: { color: tokens.colors.dark_navy.bg_primary, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
   progressTrack: {
-    width: '100%', height: 6, backgroundColor: '#2A2A2A',
+    width: '100%', height: 6, backgroundColor: tokens.colors.dark_navy.bg_card,
     borderRadius: 3, marginTop: 12, overflow: 'hidden',
   },
   progressFill: { height: 6, backgroundColor: tokens.colors.dark_navy.bg_primary, borderRadius: 3 },
@@ -103,28 +103,28 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, alignItems: 'center',
   },
   statValue: { color: tokens.colors.dark_navy.bg_primary, fontSize: 24, fontWeight: '700' },
   statLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginTop: 24, marginBottom: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginTop: tokens.spacing.lg, marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
   empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
   activityRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 14, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 14, marginBottom: tokens.spacing.sm,
   },
   activityIcon: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#2A2A2A',
+    width: 32, height: 32, borderRadius: tokens.radius.lg,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   activityName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '500' },

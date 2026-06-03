@@ -23,7 +23,7 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Notifications" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <Bell size={40} color="#2A2A2A" />
@@ -58,26 +58,26 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   row: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 14, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'flex-start', gap: tokens.spacing.md,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 14, marginBottom: tokens.spacing.sm,
   },
   rowUnread: { borderLeftWidth: 3, borderLeftColor: tokens.colors.dark_navy.bg_primary },
   icon: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
   body: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
   time: { color: tokens.colors.dark_navy.text_secondary, fontSize: 11, marginTop: 4 },
   dot: {
-    width: 8, height: 8, borderRadius: 4,
+    width: 8, height: 8, borderRadius: tokens.radius.xs,
     backgroundColor: tokens.colors.dark_navy.bg_primary, marginTop: 6,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 40, alignItems: 'center', gap: 10,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 40, alignItems: 'center', gap: 10,
   },
   empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
 });

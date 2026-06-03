@@ -94,7 +94,7 @@ export default function FoodDetailScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
         <Text style={styles.name}>{food.name}</Text>
         {food.servingSize ? <Text style={styles.serving}>{food.servingSize}</Text> : null}
 
@@ -171,33 +171,33 @@ const styles = StyleSheet.create({
   calLabel: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 12,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 12,
   },
   macroCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
   macroRow: { marginBottom: 12 },
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   macroLabel: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14 },
   macroValue: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
-  track: { height: 6, backgroundColor: '#2A2A2A', borderRadius: 3, overflow: 'hidden' },
+  track: { height: 6, backgroundColor: tokens.colors.dark_navy.bg_card, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   stepBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   qtyText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '600' },
-  mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
+  mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
+  pill: { paddingVertical: 10, paddingHorizontal: tokens.spacing.md, borderRadius: 999 },
   pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
   pillText: { fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

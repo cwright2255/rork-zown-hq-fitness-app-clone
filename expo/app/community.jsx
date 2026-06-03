@@ -43,7 +43,7 @@ export default function CommunityScreen() {
         })}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 100 }}>
         {tab === 'feed' ? (
           FEED.map(post => (
             <View key={post.id} style={styles.card}>
@@ -96,19 +96,19 @@ export default function CommunityScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
+  tabs: { flexDirection: 'row', paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, gap: tokens.spacing.sm },
   tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
   tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  tabInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  tabInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
   tabText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, marginBottom: 12,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 12,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center' },
   avatar: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 13 },

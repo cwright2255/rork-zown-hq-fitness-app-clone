@@ -54,12 +54,12 @@ export default function HealthAssessmentScreen() {
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
         <Text style={styles.stepLabel}>Question {step + 1} of {total}</Text>
 
         <View style={styles.card}>
           <Text style={styles.question}>{current.q}</Text>
-          <View style={{ gap: 10, marginTop: 16 }}>
+          <View style={{ gap: 10, marginTop: tokens.spacing.md }}>
             {current.options.map(opt => {
               const active = selected === opt;
               return (
@@ -97,13 +97,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', marginBottom: 12,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 20,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 20,
   },
   question: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '600', lineHeight: 24 },
   option: {
-    backgroundColor: '#0F0F0F', borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 12, padding: 16,
+    backgroundColor: '#0F0F0F', borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.md, padding: tokens.spacing.md,
   },
   optionActive: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
   optionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 15, fontWeight: '500' },

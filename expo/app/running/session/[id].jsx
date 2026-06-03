@@ -46,7 +46,7 @@ export default function RunningSessionDetailScreen() {
           {RunningMap ? <RunningMap /> : <View style={styles.mapPh} />}
         </View>
 
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: tokens.spacing.md }}>
           <View style={styles.statsCard}>
             <View style={styles.statsRow}>
               <StatCard value={`${distance}`} label="KM" />
@@ -72,9 +72,9 @@ const styles = StyleSheet.create({
   mapWrap: { width: '100%', height: 320, backgroundColor: tokens.colors.dark_navy.text_primary },
   mapPh: { flex: 1 },
   statsCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 12,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 12,
   },
-  statsRow: { flexDirection: 'row', gap: 12 },
+  statsRow: { flexDirection: 'row', gap: tokens.spacing.md },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

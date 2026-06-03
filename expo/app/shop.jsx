@@ -54,8 +54,8 @@ export default function ShopScreen() {
         data={filtered}
         keyExtractor={(i) => i.id}
         numColumns={2}
-        columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-        contentContainerStyle={{ paddingBottom: 100, gap: 12 }}
+        columnWrapperStyle={{ gap: tokens.spacing.md, paddingHorizontal: tokens.spacing.md }}
+        contentContainerStyle={{ paddingBottom: 100, gap: tokens.spacing.md }}
         ListHeaderComponent={
           <>
             <View style={styles.banner}>
@@ -107,18 +107,18 @@ const styles = StyleSheet.create({
   },
   cartBadgeText: { color: tokens.colors.dark_navy.text_primary, fontSize: 10, fontWeight: '700' },
   banner: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 20, marginHorizontal: 16, marginBottom: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 20, marginHorizontal: 16, marginBottom: tokens.spacing.md,
   },
   bannerLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
   },
   bannerTitle: { fontSize: 22, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.3 },
-  pillRow: { paddingHorizontal: 16, marginBottom: 12 },
-  pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
+  pillRow: { paddingHorizontal: tokens.spacing.md, marginBottom: 12 },
+  pill: { paddingVertical: tokens.spacing.sm, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
   pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
   pillText: { fontSize: 13, fontWeight: '600' },
   empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
 });

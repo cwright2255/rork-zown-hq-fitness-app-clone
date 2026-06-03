@@ -38,7 +38,7 @@ export default function BadgesScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Badges" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <Text style={styles.sectionLabel}>Earned ({earned.length})</Text>
         {earned.length === 0 ? (
           <Text style={styles.empty}>No badges earned yet. Keep going!</Text>
@@ -46,7 +46,7 @@ export default function BadgesScreen() {
           <View style={styles.grid}>{earned.map(b => renderBadge(b, false))}</View>
         )}
 
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Locked ({locked.length})</Text>
+        <Text style={[styles.sectionLabel, { marginTop: tokens.spacing.lg }]}>Locked ({locked.length})</Text>
         <View style={styles.grid}>{locked.map(b => renderBadge(b, true))}</View>
       </ScrollView>
     </View>
@@ -63,13 +63,13 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
     width: '31.5%',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 12, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 12, alignItems: 'center',
   },
   badgeIcon: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#2A2A2A',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+    width: 48, height: 48, borderRadius: tokens.radius.xl,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    alignItems: 'center', justifyContent: 'center', marginBottom: tokens.spacing.sm,
   },
   badgeName: {
     color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontWeight: '600',

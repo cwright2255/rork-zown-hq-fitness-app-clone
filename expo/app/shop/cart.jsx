@@ -48,7 +48,7 @@ export default function CartScreen() {
         <View style={styles.emptyWrap}>
           <ShoppingBag size={80} color={tokens.colors.dark_navy.text_primary} />
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <View style={{ width: '100%', marginTop: 24 }}>
+          <View style={{ width: '100%', marginTop: tokens.spacing.lg }}>
             <PrimaryButton title="Browse Shop" onPress={() => router.push('/shop')} />
           </View>
         </View>
@@ -60,13 +60,13 @@ export default function CartScreen() {
     <View style={styles.container}>
       <ScreenHeader title="Cart" showBack />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 200 }}>
         {items.map((item) => (
           <View key={item.index} style={styles.itemCard}>
             {item.product.imageUrl ? (
               <Image source={{ uri: item.product.imageUrl }} style={styles.thumb} />
             ) : (
-              <View style={[styles.thumb, { backgroundColor: '#2A2A2A' }]} />
+              <View style={[styles.thumb, { backgroundColor: tokens.colors.dark_navy.bg_card }]} />
             )}
             <View style={styles.itemBody}>
               <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
@@ -127,14 +127,14 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { color: tokens.colors.dark_navy.text_muted, fontSize: 16, marginTop: 16 },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: tokens.spacing.xl },
+  emptyTitle: { color: tokens.colors.dark_navy.text_muted, fontSize: 16, marginTop: tokens.spacing.md },
   itemCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 12, marginBottom: 10, gap: 12,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 12, marginBottom: 10, gap: tokens.spacing.md,
   },
-  thumb: { width: 60, height: 60, borderRadius: 8 },
+  thumb: { width: 60, height: 60, borderRadius: tokens.radius.sm },
   itemBody: { flex: 1 },
   itemName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
   itemVar: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   stepper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2A2A2A', borderRadius: 999, padding: 2,
+    backgroundColor: tokens.colors.dark_navy.bg_card, borderRadius: 999, padding: 2,
   },
   stepBtn: {
     width: 28, height: 28, borderRadius: 14,
@@ -152,15 +152,15 @@ const styles = StyleSheet.create({
   },
   qtyText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600', paddingHorizontal: 8 },
   itemPrice: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700' },
-  remove: { padding: 4 },
+  remove: { padding: tokens.spacing.xs },
   summary: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, marginTop: 8,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginTop: 8,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   summaryLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
   summaryVal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14 },
-  divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 8 },
+  divider: { height: 1, backgroundColor: tokens.colors.dark_navy.bg_card, marginVertical: 8 },
   totalLabel: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
   totalVal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },

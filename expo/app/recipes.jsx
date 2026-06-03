@@ -85,7 +85,7 @@ export default function RecipesScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 100 }}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
@@ -123,17 +123,17 @@ export default function RecipesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  pillRow: { paddingHorizontal: 16, paddingVertical: 8, maxHeight: 56 },
-  pill: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
+  pillRow: { paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, maxHeight: 56 },
+  pill: { paddingVertical: tokens.spacing.sm, paddingHorizontal: 14, borderRadius: 999, marginRight: 8 },
   pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
   pillText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, marginBottom: 12, overflow: 'hidden',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, marginBottom: 12, overflow: 'hidden',
   },
   image: { width: '100%', height: 160 },
-  imagePh: { backgroundColor: '#2A2A2A' },
+  imagePh: { backgroundColor: tokens.colors.dark_navy.bg_card },
   cardBody: { padding: 14 },
   cardName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },

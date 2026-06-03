@@ -82,7 +82,7 @@ export default function SearchFoodScreen() {
       </View>
 
       {!query ? (
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: tokens.spacing.md }}>
           <Text style={styles.sectionLabel}>Recent</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {recentQueries.map((q) => (
@@ -124,7 +124,7 @@ export default function SearchFoodScreen() {
         <FlatList
           data={results}
           keyExtractor={(i, idx) => i.id?.toString() || idx.toString()}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{ padding: tokens.spacing.md }}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.foodCard} onPress={() => handleSelect(item)}>
               <View style={{ flex: 1 }}>
@@ -147,27 +147,27 @@ export default function SearchFoodScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  searchWrap: { padding: 16 },
+  searchWrap: { padding: tokens.spacing.md },
   input: {
     backgroundColor: tokens.colors.dark_navy.text_primary,
-    borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 12, height: 52, paddingHorizontal: 16,
+    borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.md, height: 52, paddingHorizontal: tokens.spacing.md,
     color: tokens.colors.dark_navy.bg_primary, fontSize: 15,
   },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
   },
   chip: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    paddingHorizontal: 14, paddingVertical: tokens.spacing.sm,
     borderRadius: 999, marginRight: 8,
   },
   chipText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '500' },
   foodCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 14, marginBottom: 10,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 14, marginBottom: 10,
   },
   foodName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '500' },
   foodServing: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },

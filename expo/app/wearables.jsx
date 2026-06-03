@@ -31,7 +31,7 @@ export default function WearablesScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Wearables" />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 180 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 180 }}>
         <Text style={styles.sectionLabel}>My Devices</Text>
         {devices.map(d => (
           <View key={d.id} style={styles.card}>
@@ -78,11 +78,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, marginBottom: 10,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
@@ -91,12 +91,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
   badgeConnected: { backgroundColor: 'rgba(34,197,94,0.15)' },
-  badgeDisconnected: { backgroundColor: '#2A2A2A' },
+  badgeDisconnected: { backgroundColor: tokens.colors.dark_navy.bg_card },
   badgeText: { fontSize: 12, fontWeight: '600' },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 10 },
+  actions: { flexDirection: 'row', gap: tokens.spacing.md, marginTop: 10 },
   syncBtn: {
-    backgroundColor: '#2A2A2A',
-    paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
+    paddingVertical: tokens.spacing.sm, paddingHorizontal: tokens.spacing.md, borderRadius: 999,
   },
   syncText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },

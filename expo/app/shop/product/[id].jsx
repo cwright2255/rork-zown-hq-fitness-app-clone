@@ -60,7 +60,7 @@ export default function ProductDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
         <Image source={{ uri: product.imageUrl }} style={styles.image} />
 
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: tokens.spacing.md }}>
           <Text style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>${Number(currentPrice).toFixed(2)}</Text>
 
@@ -128,7 +128,7 @@ export default function ProductDetailScreen() {
             <>
               <Text style={styles.sectionLabel}>Related</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flexDirection: 'row', gap: tokens.spacing.md }}>
                   {related.slice(0, 5).map(rp => (
                     <View key={rp.id} style={{ width: 160 }}>
                       <ProductCard
@@ -166,16 +166,16 @@ const styles = StyleSheet.create({
   reviews: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 8, marginTop: 20,
+    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 20,
   },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
+  pill: { paddingVertical: 10, paddingHorizontal: tokens.spacing.md, borderRadius: 999 },
   pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A' },
+  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
   pillText: { fontSize: 13, fontWeight: '600' },
   descCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
   descText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, lineHeight: 20 },
   expandHint: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 8 },

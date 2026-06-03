@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   spotifySub: { ...typography.bodySmall, marginTop: 2 },
   disconnectBtn: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.sm,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   connectPill: {
     backgroundColor: colors.spotify,
     paddingHorizontal: spacing.xl,
-    paddingVertical: 12,
+    paddingVertical: tokens.spacing.md,
     borderRadius: radius.pill,
   },
   connectPillText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '800', fontSize: 14 },

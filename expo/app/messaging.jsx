@@ -53,7 +53,7 @@ export default function MessagingScreen() {
         <ScrollView
           ref={scrollRef}
           style={styles.threadScroll}
-          contentContainerStyle={{ padding: 16 }}>
+          contentContainerStyle={{ padding: tokens.spacing.md }}>
           {messages.map(m => (
             <View
               key={m.id}
@@ -86,7 +86,7 @@ export default function MessagingScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Messages" />
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md }}>
         {CONVERSATIONS.map(c => (
           <TouchableOpacity
             key={c.id}
@@ -118,12 +118,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   convCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 12, marginBottom: 8,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 12, marginBottom: tokens.spacing.sm,
   },
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#2A2A2A',
+    width: 48, height: 48, borderRadius: tokens.radius.xl,
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 14 },
@@ -137,23 +137,23 @@ const styles = StyleSheet.create({
   },
   unreadText: { color: tokens.colors.dark_navy.text_primary, fontSize: 11, fontWeight: '700' },
   threadScroll: { flex: 1 },
-  bubbleRow: { flexDirection: 'row', marginBottom: 8 },
-  bubble: { maxWidth: '75%', padding: 12, borderRadius: 16 },
+  bubbleRow: { flexDirection: 'row', marginBottom: tokens.spacing.sm },
+  bubble: { maxWidth: '75%', padding: 12, borderRadius: tokens.radius.lg },
   bubbleOwn: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderBottomRightRadius: 4 },
-  bubbleOther: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A', borderBottomLeftRadius: 4 },
+  bubbleOther: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border, borderBottomLeftRadius: 4 },
   bubbleOwnText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14 },
   bubbleOtherText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14 },
   bubbleTime: { fontSize: 10, color: tokens.colors.dark_navy.text_muted, marginTop: 4, alignSelf: 'flex-end' },
   inputBar: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 12, gap: 8,
+    padding: 12, gap: tokens.spacing.sm,
     borderTopWidth: 1, borderTopColor: '#2A2A2A',
     backgroundColor: tokens.colors.dark_navy.text_primary,
   },
   input: {
     flex: 1,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 24, paddingHorizontal: 16, height: 44,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.xl, paddingHorizontal: tokens.spacing.md, height: 44,
     color: tokens.colors.dark_navy.bg_primary, fontSize: 14,
   },
   sendBtn: {

@@ -40,8 +40,8 @@ export default function CategoryScreen() {
           data={products}
           keyExtractor={(i) => i.id}
           numColumns={2}
-          columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-          contentContainerStyle={{ paddingVertical: 16, gap: 12 }}
+          columnWrapperStyle={{ gap: tokens.spacing.md, paddingHorizontal: tokens.spacing.md }}
+          contentContainerStyle={{ paddingVertical: tokens.spacing.md, gap: tokens.spacing.md }}
           renderItem={({ item }) => (
             <View style={{ flex: 1 }}>
               <ProductCard

@@ -6,6 +6,7 @@ import { ChevronLeft, Mail } from 'lucide-react-native';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { authService } from '@/services/authService';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 

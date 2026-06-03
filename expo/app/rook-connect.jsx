@@ -46,11 +46,11 @@ export default function RookConnectScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  scroll: { padding: 24, alignItems: 'stretch', gap: 20 },
+  scroll: { padding: tokens.spacing.lg, alignItems: 'stretch', gap: 20 },
   iconWrap: {
     alignSelf: 'center', marginTop: 40, marginBottom: 20,
     width: 140, height: 140, borderRadius: 70,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     alignItems: 'center', justifyContent: 'center',
   },
   title: { fontSize: 24, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, textAlign: 'center', letterSpacing: -0.5 },

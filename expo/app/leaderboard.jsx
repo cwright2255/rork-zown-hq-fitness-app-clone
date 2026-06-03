@@ -26,14 +26,14 @@ export default function LeaderboardScreen() {
   const Avatar = ({ uri, size = 40 }) => (
     <Image
       source={{ uri }}
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#2A2A2A' }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.colors.dark_navy.bg_card }}
     />
   );
 
   return (
     <View style={styles.container}>
       <ScreenHeader title="Leaderboard" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <View style={styles.filters}>
           {FILTERS.map(f => {
             const active = filter === f;
@@ -53,7 +53,7 @@ export default function LeaderboardScreen() {
             <Avatar uri={second?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{second?.name}</Text>
             <Text style={styles.podiumPts}>{second?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 80, backgroundColor: '#2A2A2A' }]}>
+            <View style={[styles.podiumBar, { height: 80, backgroundColor: tokens.colors.dark_navy.bg_card }]}>
               <Text style={styles.podiumPlace}>2</Text>
             </View>
           </View>
@@ -70,7 +70,7 @@ export default function LeaderboardScreen() {
             <Avatar uri={third?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{third?.name}</Text>
             <Text style={styles.podiumPts}>{third?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 60, backgroundColor: '#2A2A2A' }]}>
+            <View style={[styles.podiumBar, { height: 60, backgroundColor: tokens.colors.dark_navy.bg_card }]}>
               <Text style={styles.podiumPlace}>3</Text>
             </View>
           </View>
@@ -94,17 +94,17 @@ export default function LeaderboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  filters: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  filters: { flexDirection: 'row', gap: tokens.spacing.sm, marginBottom: 20 },
   filterPill: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, borderRadius: 999,
   },
   filterPillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderColor: tokens.colors.dark_navy.bg_primary },
   filterText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '600' },
   filterTextActive: { color: tokens.colors.dark_navy.text_primary },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
-    justifyContent: 'center', gap: 12, marginBottom: 24,
+    justifyContent: 'center', gap: tokens.spacing.md, marginBottom: tokens.spacing.lg,
   },
   podiumSpot: { alignItems: 'center', flex: 1 },
   podiumName: {
@@ -123,9 +123,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
   },
   row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 12, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 12, marginBottom: tokens.spacing.sm,
   },
   rowMe: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
   rank: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '700', width: 24 },

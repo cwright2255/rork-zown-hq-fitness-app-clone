@@ -6,6 +6,7 @@ import { X, Camera, RotateCcw, Loader2, CheckCircle } from 'lucide-react-native'
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 

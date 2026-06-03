@@ -21,7 +21,7 @@ export default function SupportScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Support" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <Text style={styles.sectionLabel}>Frequently Asked</Text>
         {FAQS.map((f, i) => {
           const isOpen = open === i;
@@ -39,7 +39,7 @@ export default function SupportScreen() {
           );
         })}
 
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Contact Us</Text>
+        <Text style={[styles.sectionLabel, { marginTop: tokens.spacing.lg }]}>Contact Us</Text>
         <PrimaryButton
           title="Email Support"
           variant="outline"
@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
   },
   faqCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, marginBottom: 8,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: tokens.spacing.sm,
   },
   faqRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

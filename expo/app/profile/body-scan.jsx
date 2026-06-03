@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background
   },
   progressContainer: {
-    padding: 16,
+    padding: tokens.spacing.md,
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border
@@ -477,14 +477,14 @@ const styles = StyleSheet.create({
   progressBar: {
     height: 8,
     backgroundColor: Colors.border,
-    borderRadius: 4,
-    marginBottom: 8,
+    borderRadius: tokens.radius.xs,
+    marginBottom: tokens.spacing.sm,
     overflow: 'hidden'
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 4
+    borderRadius: tokens.radius.xs
   },
   progressLabels: {
     flexDirection: 'row',
@@ -500,31 +500,31 @@ const styles = StyleSheet.create({
   },
   stepContainer: {
     flex: 1,
-    padding: 16
+    padding: tokens.spacing.md
   },
   stepTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   stepDescription: {
     fontSize: 16,
     color: Colors.text.secondary,
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   instructionsCard: {
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   instructionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   instructionNumber: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     backgroundColor: Colors.primary,
     color: Colors.text.inverse,
     textAlign: 'center',
@@ -540,21 +540,21 @@ const styles = StyleSheet.create({
   instructionImage: {
     width: '100%',
     height: 200,
-    borderRadius: 12,
-    marginBottom: 24
+    borderRadius: tokens.radius.md,
+    marginBottom: tokens.spacing.lg
   },
   continueButton: {
     marginTop: 'auto'
   },
   measurementsContainer: {
     flex: 1,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   measurementItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: tokens.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border
   },
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 8,
+    borderRadius: tokens.radius.sm,
     paddingHorizontal: 12,
     textAlign: 'center',
     fontSize: 16,
@@ -604,14 +604,14 @@ const styles = StyleSheet.create({
   },
   scanCard: {
     flex: 1,
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     alignItems: 'center',
     justifyContent: 'center'
   },
   cameraContainer: {
     width: '100%',
     aspectRatio: 3 / 4,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     overflow: 'hidden',
     backgroundColor: tokens.colors.dark_navy.text_primary
   },
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.sm,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center'
   },
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   },
   captureControls: {
     flexDirection: 'row',
-    gap: 12,
+    gap: tokens.spacing.md,
     marginTop: 12
   },
   captureButton: {
@@ -650,32 +650,32 @@ const styles = StyleSheet.create({
   scanPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32
+    padding: tokens.spacing.xl
   },
   scanPlaceholderText: {
     fontSize: 16,
     color: Colors.text.tertiary,
     textAlign: 'center',
-    marginTop: 16
+    marginTop: tokens.spacing.md
   },
   scanButton: {
-    marginTop: 24,
+    marginTop: tokens.spacing.lg,
     minWidth: 200
   },
   scanImage: {
     width: '100%',
     height: 300,
-    borderRadius: 12
+    borderRadius: tokens.radius.md
   },
   previewRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: tokens.spacing.sm,
     width: '100%'
   },
   previewItem: {
     flex: 1,
     height: 140,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.card,
     borderWidth: 1,
@@ -697,20 +697,20 @@ const styles = StyleSheet.create({
     fontSize: 12
   },
   scanInfoContainer: {
-    padding: 16,
+    padding: tokens.spacing.md,
     alignItems: 'center'
   },
   scanInfoTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   scanInfoText: {
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   retakeButton: {
     backgroundColor: 'transparent',
@@ -722,11 +722,11 @@ const styles = StyleSheet.create({
   },
   permissionContainer: {
     width: '100%',
-    padding: 16,
+    padding: tokens.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.card,
-    borderRadius: 12,
+    borderRadius: tokens.radius.md,
     borderWidth: 1,
     borderColor: Colors.border
   },

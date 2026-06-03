@@ -817,8 +817,8 @@ const styles = StyleSheet.create({
   sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.md,
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: tokens.spacing.md,
     backgroundColor: Colors.card,
     borderTopWidth: 1,
     borderTopColor: Colors.border
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
   paginationDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: tokens.radius.xs,
     backgroundColor: Colors.text.tertiary,
     marginHorizontal: 4
   },
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width
   },
   sectionContent: {
-    padding: 16,
+    padding: tokens.spacing.md,
     paddingBottom: 32
   },
   sectionTitle: {
@@ -866,13 +866,13 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   championPassHeader: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   championPassInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   championPassTitle: {
     fontSize: 20,
@@ -884,31 +884,31 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary
   },
   upgradeButton: {
-    paddingHorizontal: 16
+    paddingHorizontal: tokens.spacing.md
   },
   tierProgressContainer: {
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   tierProgressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   tierProgressLabel: {
     fontSize: 14,
     color: Colors.text.secondary
   },
   tierProgressBar: {
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   tierDetailsCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   tierDetailsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   backButton: {
     flexDirection: 'row',
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 16
+    borderRadius: tokens.radius.lg
   },
   tierBadgeText: {
     fontSize: 12,
@@ -934,17 +934,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   tierDetailsDescription: {
     fontSize: 16,
     color: Colors.text.secondary,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   tierRequirement: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: tokens.spacing.lg
   },
   tierRequirementText: {
     fontSize: 14,
@@ -955,20 +955,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   rewardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     padding: 12,
     backgroundColor: Colors.background,
-    borderRadius: 8
+    borderRadius: tokens.radius.sm
   },
   rewardImage: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: tokens.radius.xl,
     marginRight: 12
   },
   rewardInfo: {
@@ -991,13 +991,13 @@ const styles = StyleSheet.create({
     fontWeight: '500'
   },
   claimButton: {
-    paddingHorizontal: 16
+    paddingHorizontal: tokens.spacing.md
   },
   claimedBadge: {
     backgroundColor: Colors.success,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4
+    borderRadius: tokens.radius.xs
   },
   claimedText: {
     fontSize: 12,
@@ -1006,10 +1006,10 @@ const styles = StyleSheet.create({
   },
   premiumLockContainer: {
     alignItems: 'center',
-    padding: 16,
+    padding: tokens.spacing.md,
     backgroundColor: `${Colors.warning}10`,
-    borderRadius: 8,
-    marginTop: 16
+    borderRadius: tokens.radius.sm,
+    marginTop: tokens.spacing.md
   },
   premiumLockText: {
     fontSize: 14,
@@ -1021,10 +1021,10 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   availableRewardsCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   availableRewardsScroll: {
-    paddingVertical: 12,
+    paddingVertical: tokens.spacing.md,
     paddingHorizontal: 8
   },
   availableRewardItem: {
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   availableRewardName: {
     fontSize: 14,
@@ -1051,12 +1051,12 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   streakStatsCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   streakStatsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   streakStatsTitle: {
     fontSize: 18,
@@ -1067,7 +1067,7 @@ const styles = StyleSheet.create({
   streakStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border
   },
   streakTips: {
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   streakTip: {
     fontSize: 14,
@@ -1108,23 +1108,23 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   streakRewards: {
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   streakRewardsTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   streakRewardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   streakRewardBadge: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: tokens.radius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12
@@ -1138,12 +1138,12 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary
   },
   xpStatsCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   xpStatsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   xpStatsTitle: {
     fontSize: 18,
@@ -1153,7 +1153,7 @@ const styles = StyleSheet.create({
   },
   levelInfo: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: tokens.spacing.md,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border
@@ -1186,13 +1186,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary,
     fontWeight: '600',
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   levelProgressContainer: {
     marginTop: 4
   },
   levelProgressBar: {
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   levelProgressText: {
     fontSize: 14,
@@ -1200,18 +1200,18 @@ const styles = StyleSheet.create({
     textAlign: 'right'
   },
   xpBreakdown: {
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   xpBreakdownTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   xpBreakdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   xpBreakdownLabel: {
     fontSize: 14,
@@ -1223,12 +1223,12 @@ const styles = StyleSheet.create({
     color: Colors.primary
   },
   badgesCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   badgesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   badgesTitle: {
     fontSize: 18,
@@ -1255,15 +1255,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
-    padding: 16
+    padding: tokens.spacing.md
   },
   nextMilestonesCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   nextMilestonesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   nextMilestonesTitle: {
     fontSize: 18,
@@ -1273,7 +1273,7 @@ const styles = StyleSheet.create({
   },
   milestoneItem: {
     flexDirection: 'row',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   milestoneIconContainer: {
     width: 40,
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
   milestoneDescription: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 8
+    marginBottom: tokens.spacing.sm
   },
   milestoneProgress: {
     marginBottom: 4
@@ -1305,9 +1305,9 @@ const styles = StyleSheet.create({
   achievementStatsContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    padding: tokens.spacing.md,
+    borderRadius: tokens.radius.md,
+    marginBottom: tokens.spacing.md,
     shadowColor: tokens.colors.dark_navy.text_primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1338,21 +1338,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: 12,
-    marginTop: 16
+    marginTop: tokens.spacing.md
   },
   emptyContainer: {
-    padding: 32,
+    padding: tokens.spacing.xl,
     alignItems: 'center',
     backgroundColor: Colors.card,
-    borderRadius: 12,
-    marginTop: 16
+    borderRadius: tokens.radius.md,
+    marginTop: tokens.spacing.md
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginTop: 16,
-    marginBottom: 8
+    marginTop: tokens.spacing.md,
+    marginBottom: tokens.spacing.sm
   },
   emptyText: {
     fontSize: 14,
@@ -1361,12 +1361,12 @@ const styles = StyleSheet.create({
   },
   // Body Scan Card
   bodyScanCard: {
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   bodyScanHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   },
   bodyScanTitle: {
     fontSize: 18,
@@ -1386,12 +1386,12 @@ const styles = StyleSheet.create({
   },
   bodyScanEmpty: {
     alignItems: 'center',
-    padding: 16
+    padding: tokens.spacing.md
   },
   bodyScanEmptyText: {
     fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 16
+    marginBottom: tokens.spacing.md
   }
 });

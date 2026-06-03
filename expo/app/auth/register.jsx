@@ -298,11 +298,11 @@ const styles = StyleSheet.create({
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: tokens.spacing.sm,
     marginVertical: spacing.md,
   },
   dot: {
-    width: 8, height: 8, borderRadius: 4,
+    width: 8, height: 8, borderRadius: tokens.radius.xs,
     backgroundColor: colors.border,
   },
   dotActive: {

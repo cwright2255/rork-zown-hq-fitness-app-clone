@@ -36,7 +36,7 @@ export default function ChampionPassScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Champion Pass" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
         <View style={styles.heroCard}>
           <View style={styles.heroIcon}>
             <Award size={32} color={tokens.colors.dark_navy.bg_primary} />
@@ -93,12 +93,12 @@ export default function ChampionPassScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   heroCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 20,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center', marginBottom: 20,
   },
   heroIcon: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   heroTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
@@ -108,14 +108,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
   },
   tierCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
   tierCardActive: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
   tierBadge: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   tierBadgeText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700' },
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
   },
   currentText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 11, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
   empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },

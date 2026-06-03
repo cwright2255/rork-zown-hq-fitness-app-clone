@@ -8,6 +8,7 @@ import { useShopStore } from '@/store/shopStore';
 import { useAnalyticsStore } from '@/store/analyticsStore';
 import { useExpStore } from '@/store/expStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokens } from '../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
@@ -146,14 +147,14 @@ function ActionButton({ label, onPress, disabled }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: 16 },
+  content: { padding: tokens.spacing.md },
   title: { fontSize: 22, fontWeight: '700', color: Colors.text.primary, marginBottom: 12 },
-  section: { backgroundColor: Colors.card, borderRadius: 12, padding: 12, marginBottom: 12, borderColor: Colors.border, borderWidth: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.text.primary, marginBottom: 8 },
+  section: { backgroundColor: Colors.card, borderRadius: tokens.radius.md, padding: 12, marginBottom: 12, borderColor: Colors.border, borderWidth: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.text.primary, marginBottom: tokens.spacing.sm },
   meta: { fontSize: 13, color: Colors.text.secondary, marginBottom: 4 },
-  row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', gap: tokens.spacing.sm, flexWrap: 'wrap' },
   button: { backgroundColor: Colors.background, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, borderColor: Colors.border, borderWidth: 1 },
-  buttonInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  buttonInner: { flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.sm },
   icon: { width: 20, height: 20, justifyContent: 'center' },
   buttonLabel: { fontSize: 14, color: Colors.text.primary, fontWeight: '600' },
   buttonDisabled: { opacity: 0.6 },

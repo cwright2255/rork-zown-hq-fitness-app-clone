@@ -28,7 +28,7 @@ export default function TelehealthScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Telehealth" showBack />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <View style={styles.tabRow}>
           {['providers', 'appointments'].map(t => {
             const active = tab === t;
@@ -106,22 +106,22 @@ export default function TelehealthScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  tabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  tabRow: { flexDirection: 'row', gap: tokens.spacing.sm, marginBottom: tokens.spacing.md },
   tab: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, borderRadius: 999,
   },
   tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderColor: tokens.colors.dark_navy.bg_primary },
   tabText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '600' },
   tabTextActive: { color: tokens.colors.dark_navy.text_primary },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 16, marginBottom: 10,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
   name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '600' },
@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   ratingText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
   empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
 });

@@ -63,8 +63,8 @@ export default function CollectionScreen() {
         data={products}
         keyExtractor={(i) => i.id}
         numColumns={2}
-        columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-        contentContainerStyle={{ paddingBottom: 100, gap: 12 }}
+        columnWrapperStyle={{ gap: tokens.spacing.md, paddingHorizontal: tokens.spacing.md }}
+        contentContainerStyle={{ paddingBottom: 100, gap: tokens.spacing.md }}
         ListHeaderComponent={
           collection.imageUrl || collection.image ? (
             <View style={styles.banner}>
@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
   banner: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, overflow: 'hidden',
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, overflow: 'hidden',
     marginHorizontal: 16, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },

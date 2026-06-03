@@ -6,6 +6,7 @@ import { Award, Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell } from 
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useAchievementStore } from '@/store/achievementStore';
 import { useUserStore } from '@/store/userStore';
+import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 

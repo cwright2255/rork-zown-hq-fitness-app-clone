@@ -96,7 +96,7 @@ export default function BarcodeScanScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ScreenHeader title="Product Found" showBack />
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: tokens.spacing.md }}>
           <View style={styles.resultCard}>
             <Text style={styles.productName}>{scanResult.name}</Text>
             {scanResult.brand ? <Text style={styles.brandName}>{scanResult.brand}</Text> : null}
@@ -116,7 +116,7 @@ export default function BarcodeScanScreen() {
               ))}
             </View>
           </View>
-          <View style={{ gap: 12, marginTop: 16 }}>
+          <View style={{ gap: tokens.spacing.md, marginTop: tokens.spacing.md }}>
             <PrimaryButton title="Add to Log" onPress={addToMeal} />
             <PrimaryButton title="Scan Another" variant="outline" onPress={() => { setScanResult(null); setIsScanning(true); }} />
           </View>
@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
   scanArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scanFrame: {
     width: 260, height: 160,
-    borderWidth: 2, borderColor: tokens.colors.dark_navy.bg_primary, borderRadius: 16,
+    borderWidth: 2, borderColor: tokens.colors.dark_navy.bg_primary, borderRadius: tokens.radius.lg,
   },
-  hint: { color: tokens.colors.dark_navy.bg_primary, marginTop: 16, fontSize: 14 },
+  hint: { color: tokens.colors.dark_navy.bg_primary, marginTop: tokens.spacing.md, fontSize: 14 },
   loadingOverlay: {
     position: 'absolute', inset: 0,
     backgroundColor: 'rgba(0,0,0,0.7)',
@@ -170,22 +170,22 @@ const styles = StyleSheet.create({
   },
   loadingText: { color: tokens.colors.dark_navy.bg_primary, marginTop: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  permWrap: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  permWrap: { flex: 1, padding: tokens.spacing.lg, alignItems: 'center', justifyContent: 'center', gap: tokens.spacing.md },
   permTitle: { fontSize: 20, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, textAlign: 'center' },
   permText: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, textAlign: 'center', lineHeight: 20 },
   resultCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: '#2A2A2A',
-    borderRadius: 16, padding: 20,
+    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    borderRadius: tokens.radius.lg, padding: 20,
   },
   productName: { fontSize: 22, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary },
   brandName: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
   barcodeText: { fontSize: 12, color: tokens.colors.dark_navy.text_secondary, marginTop: 8 },
-  divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 16 },
-  nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  divider: { height: 1, backgroundColor: tokens.colors.dark_navy.bg_card, marginVertical: 16 },
+  nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
   nutritionItem: {
     flex: 1, minWidth: '45%',
     padding: 12,
-    borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 12,
+    borderWidth: 1, borderColor: tokens.colors.dark_navy.border, borderRadius: tokens.radius.md,
     alignItems: 'center',
   },
   nutritionValue: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
