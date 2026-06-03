@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   Dimensions,
   StatusBar,
@@ -30,6 +31,14 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+const WORKOUTS = [
+  { id: '1', name: 'HIIT Blast', duration: '30 min', icon: 'barbell-outline' },
+  { id: '2', name: 'Morning Yoga', duration: '20 min', icon: 'body-outline' },
+  { id: '3', name: 'Strength Core', duration: '45 min', icon: 'fitness-outline' },
+  { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
+];
+
+/* ── Reusable half-width stat card ── */
 function StatCard({ icon, label, value, unit }) {
   return (
     <View style={styles.statCard}>
@@ -40,6 +49,37 @@ function StatCard({ icon, label, value, unit }) {
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statUnit}>{unit}</Text>
     </View>
+  );
+}
+
+/* ── Hydration card with progress bar ── */
+function HydrationCard({ glasses, target }) {
+  const pct = Math.min((glasses / target) * 100, 100);
+  return (
+    <View style={styles.statCard}>
+      <View style={styles.statCardHeader}>
+        <Text style={styles.statLabel}>Hydration</Text>
+        <Ionicons name="water-outline" size={20} color="#000" />
+      </View>
+      <Text style={styles.statValue}>{glasses} / {target}</Text>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: pct + '%' }]} />
+      </View>
+      <Text style={styles.statUnit}>glasses</Text>
+    </View>
+  );
+}
+
+/* ── Workout carousel item ── */
+function WorkoutItem({ item, onPress }) {
+  return (
+    <Pressable style={styles.workoutItem} onPress={onPress}>
+      <View style={styles.workoutThumb}>
+        <Ionicons name={item.icon} size={28} color="#000" />
+      </View>
+      <Text style={styles.workoutName}>{item.name}</Text>
+      <Text style={styles.workoutDuration}>{item.duration}</Text>
+    </Pressable>
   );
 }
 
@@ -64,6 +104,10 @@ export default function HQScreen() {
     const raw = workoutCount * 620 || 1240;
     return raw.toLocaleString().replace(',', ' ');
   }, [workoutCount]);
+  const xp = useMemo(() => {
+    const val = totalExp || 1250;
+    return val.toLocaleString().replace(',', ' ');
+  }, [totalExp]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -75,7 +119,7 @@ export default function HQScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}>
 
-        {/* ── Header row ── */}
+        {/* ── Header row (existing) ── */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.avatar}>
@@ -98,7 +142,7 @@ export default function HQScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Section title ── */}
+        {/* ── Section title (existing) ── */}
         <View style={styles.sectionRow}>
           <View>
             <Text style={styles.sectionTitle}>Today's Information</Text>
@@ -109,7 +153,8 @@ export default function HQScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Stat cards 2x2 ── */}
+        {/* ── Row 1: Calories | Heart (existing) ── */}
+        {/* ── Row 1b: Steps | Sleep (existing) ── */}
         <View style={styles.grid}>
           <StatCard icon="flame-outline" label="Calories" value={calories} unit="Kcal" />
           <StatCard icon="heart-outline" label="Heart" value="74" unit="bpm" />
@@ -117,7 +162,36 @@ export default function HQScreen() {
           <StatCard icon="moon-outline" label="Sleep" value="7.5" unit="Hours" />
         </View>
 
-        {/* ── Invite banner ── */}
+        {/* ── Row 2: XP | Stories Climbed (NEW) ── */}
+        <View style={styles.grid}>
+          <StatCard icon="star-outline" label="Total XP" value={xp} unit="points" />
+          <StatCard icon="trending-up-outline" label="Stories Climbed" value="42" unit="floors" />
+        </View>
+
+        {/* ── Row 3: Resting HRV | Hydration (NEW) ── */}
+        <View style={styles.grid}>
+          <StatCard icon="pulse-outline" label="Resting HRV" value="58" unit="ms" />
+          <HydrationCard glasses={5} target={8} />
+        </View>
+
+        {/* ── Row 4: Recommended Workouts carousel (NEW) ── */}
+        <View style={styles.carouselCard}>
+          <Text style={styles.carouselTitle}>Recommended Workouts</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselScroll}>
+            {WORKOUTS.map((w) => (
+              <WorkoutItem
+                key={w.id}
+                item={w}
+                onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* ── Invite banner (existing) ── */}
         <TouchableOpacity
           style={styles.banner}
           activeOpacity={0.8}
@@ -215,7 +289,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: CARD_GAP,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   statCard: {
     width: CARD_W,
@@ -258,6 +332,70 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  /* hydration progress bar */
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E5E5E5',
+    marginTop: 8,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: '#000',
+  },
+
+  /* workout carousel */
+  carouselCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  carouselTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 14,
+  },
+  carouselScroll: {
+    gap: 12,
+  },
+  workoutItem: {
+    width: 140,
+  },
+  workoutThumb: {
+    height: 90,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  workoutName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000',
+  },
+  workoutDuration: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
+  },
+
   /* banner */
   banner: {
     flexDirection: 'row',
@@ -266,6 +404,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     gap: 14,
+    marginTop: 8,
   },
   bannerIcon: {
     width: 44,
