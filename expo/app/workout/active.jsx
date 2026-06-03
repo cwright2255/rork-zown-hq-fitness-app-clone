@@ -336,7 +336,7 @@ export default function ActiveWorkoutScreen() {
               styles.centerBtn,
               isWorkoutDone && { backgroundColor: '#22C55E' },
             ]}
-            onPress={isWorkoutDone ? handleSaveAndExit : handleCenterButton}
+            onPress={isWorkoutDone ? () => router.replace('/workout/complete') : handleCenterButton}
           >
             <Ionicons
               name={isWorkoutDone ? 'checkmark' : centerIcon}
