@@ -119,6 +119,16 @@ export default function HQScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}>
 
+        {/* ── Zown logo ── */}
+        <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 12 }}>
+          <Image
+            source={require('@/assets/branding/zown-logo-512.png')}
+            style={{ width: 120, height: 36 }}
+            resizeMode="contain"
+          />
+        </View>
+
+
         {/* ── Header row (existing) ── */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
