@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -84,12 +84,16 @@ export default function ActiveWorkoutScreen() {
   const [completedSet, setCompletedSet] = useState(new Set());
   const [isPlaying, setIsPlaying] = useState(true);
   const [timeLeft, setTimeLeft] = useState(INITIAL_EXERCISES[0].seconds);
+  const [exerciseComplete, setExerciseComplete] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const timerRef = useRef(null);
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
+
+  /* ── Progress tracking ── */
+  const completedCount = completedSet.size;
 
   /* ── Timer ── */
   useEffect(() => {
@@ -103,28 +107,71 @@ export default function ActiveWorkoutScreen() {
     };
   }, [isPlaying, timeLeft]);
 
-  /* Auto-advance when timer hits 0 */
+  /* When timer hits 0: mark complete but do NOT auto-advance */
   useEffect(() => {
     if (timeLeft === 0 && isPlaying) {
+      setIsPlaying(false);
+      setExerciseComplete(true);
       setCompletedSet((prev) => new Set(prev).add(currentExercise.id));
-      if (currentIndex < totalExercises - 1) {
-        const nextIdx = currentIndex + 1;
-        setCurrentIndex(nextIdx);
-        setTimeLeft(exercises[nextIdx].seconds);
-      } else {
-        setIsPlaying(false);
-      }
     }
   }, [timeLeft, isPlaying]);
 
   const togglePlayPause = useCallback(() => {
+    if (exerciseComplete) return;
     setIsPlaying((p) => !p);
-  }, []);
+  }, [exerciseComplete]);
+
+  /* Advance to next exercise */
+  const advanceToNext = useCallback(() => {
+    if (currentIndex < totalExercises - 1) {
+      const nextIdx = currentIndex + 1;
+      setCurrentIndex(nextIdx);
+      setTimeLeft(exercises[nextIdx].seconds);
+      setExerciseComplete(false);
+      setIsPlaying(true);
+    }
+  }, [currentIndex, totalExercises, exercises]);
+
+  /* Skip back */
+  const skipBack = useCallback(() => {
+    if (currentIndex > 0) {
+      const prevIdx = currentIndex - 1;
+      setCurrentIndex(prevIdx);
+      setTimeLeft(exercises[prevIdx].seconds);
+      setExerciseComplete(false);
+      setIsPlaying(true);
+    }
+  }, [currentIndex, exercises]);
+
+  /* Skip forward (mark complete and advance) */
+  const skipForward = useCallback(() => {
+    setCompletedSet((prev) => new Set(prev).add(currentExercise.id));
+    if (currentIndex < totalExercises - 1) {
+      const nextIdx = currentIndex + 1;
+      setCurrentIndex(nextIdx);
+      setTimeLeft(exercises[nextIdx].seconds);
+      setExerciseComplete(false);
+      setIsPlaying(true);
+    } else {
+      setExerciseComplete(true);
+      setIsPlaying(false);
+    }
+  }, [currentIndex, totalExercises, exercises, currentExercise]);
+
+  /* Center button handler */
+  const handleCenterButton = useCallback(() => {
+    if (exerciseComplete) {
+      advanceToNext();
+    } else {
+      setIsPlaying((p) => !p);
+    }
+  }, [exerciseComplete, advanceToNext]);
 
   const jumpToExercise = useCallback(
     (idx) => {
       setCurrentIndex(idx);
       setTimeLeft(exercises[idx].seconds);
+      setExerciseComplete(false);
       setIsPlaying(true);
     },
     [exercises],
@@ -135,8 +182,18 @@ export default function ActiveWorkoutScreen() {
       ? ((currentExercise.seconds - timeLeft) / currentExercise.seconds) * 100
       : 0;
 
+  const overallProgressPercent =
+    totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
+
   /* ── Upcoming exercises ── */
   const upcomingExercises = exercises.slice(currentIndex + 1);
+
+  /* ── Center button icon ── */
+  const centerIcon = useMemo(() => {
+    if (exerciseComplete) return 'play-forward';
+    if (isPlaying) return 'pause';
+    return 'play';
+  }, [exerciseComplete, isPlaying]);
 
   /* ── Exit handlers ── */
   const handleSaveAndExit = () => {
@@ -157,6 +214,9 @@ export default function ActiveWorkoutScreen() {
       router.replace('/workouts');
     }
   };
+
+  const isLastExercise = currentIndex === totalExercises - 1;
+  const isWorkoutDone = isLastExercise && exerciseComplete;
 
   return (
     <View style={styles.container}>
@@ -192,15 +252,8 @@ export default function ActiveWorkoutScreen() {
             <Ionicons name="expand-outline" size={20} color="#FFF" />
           </Pressable>
 
-          {/* Playback controls */}
+          {/* Playback progress + timer overlay */}
           <View style={styles.playbackControls}>
-            <Pressable onPress={togglePlayPause}>
-              <Ionicons
-                name={isPlaying ? 'pause' : 'play'}
-                size={24}
-                color="#FFF"
-              />
-            </Pressable>
             <View style={styles.playbackBarBg}>
               <View
                 style={[
@@ -210,6 +263,24 @@ export default function ActiveWorkoutScreen() {
               />
             </View>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+          </View>
+        </View>
+
+        {/* ── Exercise progress bar ── */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressRow}>
+            <Text style={styles.progressLabel}>Exercise Progress</Text>
+            <Text style={styles.progressCount}>
+              {completedCount}/{totalExercises}
+            </Text>
+          </View>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: overallProgressPercent + '%' },
+              ]}
+            />
           </View>
         </View>
 
@@ -242,6 +313,52 @@ export default function ActiveWorkoutScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ── Floating control pill ── */}
+      <View style={styles.floatingControlsWrapper}>
+        <View style={styles.floatingPill}>
+          {/* Skip back */}
+          <Pressable
+            style={styles.skipBtn}
+            onPress={skipBack}
+            disabled={currentIndex === 0}
+          >
+            <Ionicons
+              name="play-back"
+              size={20}
+              color={currentIndex === 0 ? 'rgba(255,255,255,0.3)' : '#FFF'}
+            />
+          </Pressable>
+
+          {/* Center play/pause/advance */}
+          <Pressable
+            style={[
+              styles.centerBtn,
+              isWorkoutDone && { backgroundColor: '#22C55E' },
+            ]}
+            onPress={isWorkoutDone ? handleSaveAndExit : handleCenterButton}
+          >
+            <Ionicons
+              name={isWorkoutDone ? 'checkmark' : centerIcon}
+              size={26}
+              color={isWorkoutDone ? '#FFF' : '#000'}
+            />
+          </Pressable>
+
+          {/* Skip forward */}
+          <Pressable
+            style={styles.skipBtn}
+            onPress={skipForward}
+            disabled={isWorkoutDone}
+          >
+            <Ionicons
+              name="play-forward"
+              size={20}
+              color={isWorkoutDone ? 'rgba(255,255,255,0.3)' : '#FFF'}
+            />
+          </Pressable>
+        </View>
+      </View>
 
       {/* ── Three-dot popup menu ── */}
       <Modal
@@ -327,7 +444,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
 
   /* Header */
@@ -349,10 +466,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  /* Video area */
+  /* Video area — CHANGE 1: taller */
   videoArea: {
     marginHorizontal: 16,
-    height: 300,
+    height: 380,
     borderRadius: 16,
     backgroundColor: '#1A1A1A',
     overflow: 'hidden',
@@ -400,6 +517,40 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
+  /* CHANGE 3: Progress bar */
+  progressSection: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  progressCount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E5E5E5',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#000',
+  },
+
   /* Next moves */
   nextMovesHeader: {
     flexDirection: 'row',
@@ -422,12 +573,13 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingRight: 6,
   },
+  /* CHANGE 2: bigger cards */
   nextCard: {
-    width: 140,
-    marginRight: 12,
+    width: 170,
+    marginRight: 14,
   },
   nextCardThumb: {
-    height: 90,
+    height: 110,
     borderRadius: 12,
     backgroundColor: '#E8E8E8',
     justifyContent: 'center',
@@ -444,13 +596,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nextCardName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#000',
     marginTop: 6,
   },
   nextCardDuration: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#999',
     marginTop: 2,
   },
@@ -465,6 +617,51 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#22C55E',
+  },
+
+  /* CHANGE 4: Floating control pill */
+  floatingControlsWrapper: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  floatingPill: {
+    flexDirection: 'row',
+    backgroundColor: '#000',
+    borderRadius: 30,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 20,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -2 },
+      },
+      android: { elevation: 8 },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -2 },
+      },
+    }),
+  },
+  skipBtn: {
+    padding: 8,
+  },
+  centerBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   /* Popup menu */
