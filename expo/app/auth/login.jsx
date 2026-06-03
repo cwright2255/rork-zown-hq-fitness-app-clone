@@ -23,7 +23,7 @@ import { authService } from '@/services/authService';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const { width, height } = Dimensions.get('window');
-const DIAGONAL_HEIGHT = 220;
+const DIAGONAL_HEIGHT = 260;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -224,24 +224,32 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  flex: { flex: 1 },
-  scroll: { flexGrow: 1 },
+  root: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
 
   /* diagonal header */
   diagonalWrap: {
     height: DIAGONAL_HEIGHT,
     position: 'relative',
+    backgroundColor: '#000',
     overflow: 'hidden',
   },
   whiteBlock: {
     position: 'absolute',
-    top: -100,
-    left: -40,
-    right: -40,
-    height: 280,
-    backgroundColor: '#FFF',
-    transform: [{ rotate: '-8deg' }],
+    top: -80,
+    left: -20,
+    right: -80,
+    height: 320,
+    backgroundColor: '#fff',
+    transform: [{ rotate: '8deg' }],
   },
   blackCut: {
     position: 'absolute',
@@ -252,103 +260,139 @@ const styles = StyleSheet.create({
   },
   logo: {
     position: 'absolute',
-    top: 20,
-    left: 24,
-    width: 120,
-    height: 36,
+    top: 40,
+    left: (width - 140) / 2,
+    width: 140,
+    height: 42,
     zIndex: 3,
   },
 
-  /* tagline */
+  /* tagline — right-aligned at bottom of header */
   taglineWrap: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    marginBottom: 24,
-    alignItems: 'center',
+    marginTop: -24,
+    paddingRight: 24,
+    alignItems: 'flex-end',
+    zIndex: 2,
+    marginBottom: 20,
   },
   tagline1: {
-    fontSize: 28,
+    color: '#fff',
+    fontSize: 34,
     fontWeight: '900',
-    color: '#FFF',
     letterSpacing: 1,
-    lineHeight: 34,
-    textAlign: 'center',
+    textAlign: 'right',
+    lineHeight: 40,
   },
   tagline2: {
-    fontSize: 28,
+    color: '#fff',
+    fontSize: 34,
     fontWeight: '900',
-    color: '#FFF',
     letterSpacing: 1,
-    lineHeight: 34,
-    textAlign: 'center',
+    textAlign: 'right',
+    lineHeight: 40,
   },
 
   /* form */
-  form: { paddingHorizontal: 20 },
+  form: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    gap: 16,
+  },
   errorBox: {
     backgroundColor: 'rgba(255,22,84,0.15)',
     borderRadius: 10,
     padding: 10,
-    marginBottom: 14,
   },
-  errorText: { color: '#FF1654', fontSize: 13, textAlign: 'center' },
-
+  errorText: {
+    color: '#FF1654',
+    fontSize: 13,
+    textAlign: 'center',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-    marginBottom: 14,
-    paddingBottom: 4,
+    paddingVertical: 8,
   },
-  inputIcon: { marginRight: 10 },
+  inputIcon: {
+    marginRight: 10,
+  },
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#FFF',
-    paddingVertical: 4,
+    color: '#fff',
+    paddingVertical: 6,
   },
 
-  /* enter */
+  /* enter button */
   enterBtn: {
-    backgroundColor: '#FFF',
-    borderRadius: 24,
     height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    marginBottom: 16,
+    marginTop: 16,
   },
-  enterBtnDisabled: { opacity: 0.65 },
-  enterBtnText: { color: '#000', fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
+  enterBtnDisabled: {
+    opacity: 0.6,
+  },
+  enterBtnText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
 
   /* social */
   socialRow: {
     flexDirection: 'row',
+    gap: 12,
     justifyContent: 'center',
-    gap: 10,
-    marginBottom: 20,
+    marginTop: 4,
   },
   socialBtn: {
-    flexDirection: 'row',
+    width: 130,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1A1A1A',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 20,
-    height: 40,
-    paddingHorizontal: 20,
-    maxWidth: 140,
-    gap: 6,
+    flexDirection: 'row',
+    gap: 8,
   },
-  socialIcon: { fontSize: 16, fontWeight: '700', color: '#FFF' },
-  socialLabel: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  socialIcon: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  socialLabel: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 
   /* links */
-  forgotBtn: { alignItems: 'center', paddingVertical: 6, marginBottom: 12 },
-  forgotText: { color: '#888', fontSize: 13 },
-  signUpRow: { flexDirection: 'row', justifyContent: 'center' },
-  signUpGray: { color: '#888', fontSize: 13 },
-  signUpBold: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  forgotBtn: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  forgotText: {
+    color: '#aaa',
+    fontSize: 13,
+  },
+  signUpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  signUpGray: {
+    color: '#aaa',
+    fontSize: 13,
+  },
+  signUpBold: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 
   /* splash overlay */
   splashOverlay: {
@@ -363,3 +407,4 @@ const styles = StyleSheet.create({
     height: width * 0.35,
   },
 });
+
