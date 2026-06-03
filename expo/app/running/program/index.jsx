@@ -60,7 +60,7 @@ function FeaturedCard({ item }) {
       style={styles.featuredCard}
       onPress={() => {
         // TODO: navigate to run detail
-        router.push(`/workout/${item.id}`);
+        router.push({ pathname: `/running/${item.id}`, params: { title: item.title } });
       }}
     >
       <View style={styles.featuredImage}>
@@ -78,7 +78,7 @@ function ProgramCard({ item }) {
       style={styles.programCard}
       onPress={() => {
         // TODO: navigate to running program detail
-        router.push(`/running/program/${item.id}`);
+        router.push({ pathname: `/running/${item.id}`, params: { title: item.title } });
       }}
     >
       <View style={styles.programImage}>
