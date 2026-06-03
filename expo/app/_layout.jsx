@@ -208,7 +208,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && <BottomNavigation />}
     </View>
   );
 }
