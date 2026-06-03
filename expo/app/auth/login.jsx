@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
   },
   whiteBlock: {
     position: 'absolute',
-    top: -80,
-    left: -20,
-    right: -80,
-    height: 320,
+    top: -160,
+    left: -60,
+    right: -20,
+    height: 300,
     backgroundColor: '#fff',
-    transform: [{ rotate: '8deg' }],
+    transform: [{ rotate: '-30deg' }],
   },
   blackCut: {
     position: 'absolute',
@@ -261,9 +261,9 @@ const styles = StyleSheet.create({
   logo: {
     position: 'absolute',
     top: 40,
-    left: (width - 140) / 2,
-    width: 140,
-    height: 42,
+    left: (width - 200) / 2,
+    width: 200,
+    height: 60,
     zIndex: 3,
   },
 
