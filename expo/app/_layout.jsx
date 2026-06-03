@@ -93,6 +93,8 @@ const RootLayoutNav = React.memo(function RootLayoutNav({
 }) {
   const isShopPage = useMemo(() => pathname === '/shop' || pathname.startsWith('/shop/'), [pathname]);
 
+  const shouldShowTopNav = !pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index';
+
   const shouldShowNav = useMemo(
     () => isOnboarded && pathname !== '/onboarding' && !pathname.startsWith('/auth/') && pathname !== '/index' && pathname !== '/start' && pathname !== '/workout/active',
     [isOnboarded, pathname]
