@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 const TABS = [
   { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
-  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition' },
+  { key: 'running', label: 'Running', icon: 'fitness-outline', activeIcon: 'fitness', route: '/running/program' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
-  { key: 'shop', label: 'Shop', icon: 'cart-outline', activeIcon: 'cart', route: '/shop' },
-  { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
+  { key: 'challenges', label: 'Challenges', icon: 'trophy-outline', activeIcon: 'trophy', route: '/badges' },
+  { key: 'analysis', label: 'Analysis', icon: 'analytics-outline', activeIcon: 'analytics', route: '/analytics' },
 ];
 
 function TabItem({ tab, isActive, onPress, isCenter }) {
@@ -37,9 +37,9 @@ export default function BottomNavigation() {
   const activeKey = useMemo(() => {
     if (pathname === '/hq' || pathname === '/') return 'home';
     if (pathname.startsWith('/workout')) return 'workouts';
-    if (pathname.startsWith('/nutrition')) return 'nutrition';
-    if (pathname.startsWith('/shop')) return 'shop';
-    if (pathname.startsWith('/profile')) return 'profile';
+    if (pathname.startsWith('/running')) return 'running';
+    if (pathname.startsWith('/badges')) return 'challenges';
+    if (pathname.startsWith('/analytics')) return 'analysis';
     return 'home';
   }, [pathname]);
 
