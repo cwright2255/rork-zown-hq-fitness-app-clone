@@ -1,297 +1,326 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
+  Pressable,
   Image,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
-import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 'lucide-react-native';
-import ScreenHeader from '@/components/ScreenHeader';
-import { useExerciseStore } from '@/store/exerciseStore';
-import { tokens } from '../../theme/tokens';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const FILTERS = [
-  { label: 'All', value: '' },
-  { label: 'Strength', value: 'upper arms|back|chest|shoulders', Icon: Dumbbell },
-  { label: 'Cardio', value: 'cardio', Icon: Heart },
-  { label: 'Upper Body', value: 'chest|shoulders|upper arms|back', Icon: ArrowUp },
-  { label: 'Lower Body', value: 'upper legs|lower legs', Icon: ArrowDown },
+/* ── Static placeholder data ── */
+
+const FEATURED_WORKOUTS = [
+  { id: '1', title: 'Full Body HIIT', subtitle: '30 min \u2022 Intermediate' },
+  { id: '2', title: 'Upper Body Strength', subtitle: '45 min \u2022 Advanced' },
+  { id: '3', title: 'Core Crusher', subtitle: '20 min \u2022 Beginner' },
+  { id: '4', title: 'Leg Day', subtitle: '40 min \u2022 Intermediate' },
+  { id: '5', title: 'Cardio Blast', subtitle: '25 min \u2022 Beginner' },
 ];
 
-function ExerciseRow({ exercise }) {
-  const equipment = (exercise.equipments || []).map((e) => e.name).join(', ') || 'Bodyweight';
-  const muscles = (exercise.primaryMuscles || []).map((m) => m.name).join(', ');
+const PROGRAMS = [
+  { id: '1', title: '12-Week Shred', subtitle: '12 weeks \u2022 4x/week' },
+  { id: '2', title: 'Beginner Basics', subtitle: '8 weeks \u2022 3x/week' },
+  { id: '3', title: 'Marathon Prep', subtitle: '16 weeks \u2022 5x/week' },
+  { id: '4', title: 'Yoga Flow', subtitle: '6 weeks \u2022 4x/week' },
+  { id: '5', title: 'Strength Builder', subtitle: '10 weeks \u2022 4x/week' },
+];
 
+const YOUTUBE_WORKOUTS = [
+  { id: '1', channel: 'JEFIT', title: '15 Min Full Body No Equipment', duration: '15:32' },
+  { id: '2', channel: 'Blogilates', title: 'Ab Workout for Beginners', duration: '12:45' },
+  { id: '3', channel: 'MadFit', title: 'Intense HIIT Cardio', duration: '22:10' },
+  { id: '4', channel: 'Athlean-X', title: 'Perfect Push-Up Workout', duration: '18:03' },
+  { id: '5', channel: 'Pamela Reif', title: '20 Min Full Body Stretch', duration: '20:00' },
+];
+
+/* ── Section header ── */
+
+function SectionHeader({ title, onViewAll }) {
   return (
-    <TouchableOpacity
-      style={styles.exerciseCard}
-      onPress={() => router.push({ pathname: '/workout/[id]', params: { id: exercise.id } })}
-      activeOpacity={0.7}>
-      {exercise.gifUrl ? (
-        <Image source={{ uri: exercise.gifUrl }} style={styles.exerciseImage} />
-      ) : (
-        <View style={styles.exercisePlaceholder}>
-          <Dumbbell size={24} color={tokens.colors.dark_navy.text_muted} />
-        </View>
-      )}
-      <View style={styles.exerciseInfo}>
-        <Text style={styles.exerciseName} numberOfLines={1}>
-          {exercise.name}
-        </Text>
-        <Text style={styles.exerciseMeta} numberOfLines={1}>
-          {muscles}
-        </Text>
-        <Text style={styles.exerciseEquipment} numberOfLines={1}>
-          {equipment}
-        </Text>
-      </View>
-      <ChevronRight size={20} color={tokens.colors.dark_navy.text_muted} />
-    </TouchableOpacity>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Pressable onPress={onViewAll}>
+        <Text style={styles.viewAll}>View All</Text>
+      </Pressable>
+    </View>
   );
 }
 
-export default function WorkoutsScreen() {
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('');
-  const { exercises, loading, error, fetchExercises } = useExerciseStore();
+/* ── Cards ── */
 
-  useEffect(() => {
-    if (!exercises || exercises.length === 0) {
-      fetchExercises();
-    }
-  }, []);
-
-  const filtered = React.useMemo(() => {
-    if (!exercises) return [];
-    let result = exercises;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (e) =>
-          e.name?.toLowerCase().includes(q) ||
-          (e.primaryMuscles || []).some((m) => m.name?.toLowerCase().includes(q))
-      );
-    }
-    if (activeFilter) {
-      const parts = activeFilter.split('|');
-      result = result.filter((e) =>
-        (e.primaryMuscles || []).some((m) =>
-          parts.some((p) => m.name?.toLowerCase().includes(p))
-        )
-      );
-    }
-    return result;
-  }, [exercises, search, activeFilter]);
-
+function FeaturedCard({ item }) {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title="Workouts" rightAction={
-        <TouchableOpacity onPress={() => router.push('/workout/create')} hitSlop={8}>
-          <Plus size={24} color={tokens.colors.dark_navy.text_primary} />
-        </TouchableOpacity>
-      } />
-
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <Search size={18} color={tokens.colors.dark_navy.text_muted} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search exercises..."
-          placeholderTextColor={tokens.colors.dark_navy.text_hint}
-          value={search}
-          onChangeText={setSearch}
-        />
+    <Pressable
+      style={styles.featuredCard}
+      onPress={() => router.push(`/workout/${item.id}`)}
+    >
+      <View style={styles.featuredImage}>
+        <Ionicons name="barbell-outline" size={32} color="#999" />
       </View>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+    </Pressable>
+  );
+}
 
-      {/* Filters */}
+function ProgramCard({ item }) {
+  return (
+    <Pressable
+      style={styles.programCard}
+      onPress={() => {
+        // TODO: navigate to program detail when route exists
+        router.push(`/workout/${item.id}`);
+      }}
+    >
+      <View style={styles.programImage}>
+        <Ionicons name="calendar-outline" size={28} color="#999" />
+      </View>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+    </Pressable>
+  );
+}
+
+function YouTubeCard({ item }) {
+  return (
+    <Pressable
+      style={styles.youtubeCard}
+      onPress={() => {
+        // TODO: open YouTube link or in-app player
+      }}
+    >
+      <View style={styles.youtubeThumbnail}>
+        <View style={styles.playButton}>
+          <Ionicons name="play" size={20} color="#FFF" />
+        </View>
+        <View style={styles.durationBadge}>
+          <Text style={styles.durationText}>{item.duration}</Text>
+        </View>
+      </View>
+      <Text style={styles.channelName}>{item.channel}</Text>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+    </Pressable>
+  );
+}
+
+/* ── Main screen ── */
+
+export default function WorkoutsScreen() {
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}>
-        {FILTERS.map((f) => {
-          const isActive = activeFilter === f.value;
-          return (
-            <TouchableOpacity
-              key={f.label}
-              style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => setActiveFilter(isActive ? '' : f.value)}>
-              {f.Icon ? (
-                <f.Icon
-                  size={14}
-                  color={isActive ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_secondary}
-                  style={{ marginRight: 4 }}
-                />
-              ) : null}
-              <Text style={[styles.filterLabel, isActive && styles.filterLabelActive]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Zown logo */}
+        <View style={styles.logoRow}>
+          <Image
+            source={require('@/assets/branding/zown-logo-512.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
 
-      {/* List */}
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={tokens.colors.brand.base} />
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchExercises}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id?.toString()}
-          renderItem={({ item }) => <ExerciseRow exercise={item} />}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>No exercises found</Text>
-            </View>
-          }
+        {/* Page title */}
+        <Text style={styles.pageTitle}>Workouts</Text>
+
+        {/* Carousel 1 - Featured Workouts */}
+        <SectionHeader
+          title="Featured Workouts"
+          onViewAll={() => {
+            // TODO: navigate to filtered workouts list
+            router.push('/workouts');
+          }}
         />
-      )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {FEATURED_WORKOUTS.map((item) => (
+            <FeaturedCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+
+        {/* Carousel 2 - Programs */}
+        <SectionHeader
+          title="Programs"
+          onViewAll={() => {
+            // TODO: navigate to programs list
+            router.push('/workouts');
+          }}
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {PROGRAMS.map((item) => (
+            <ProgramCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+
+        {/* Carousel 3 - YouTube Workouts */}
+        <SectionHeader
+          title="YouTube Workouts"
+          onViewAll={() => {
+            // TODO: navigate to YouTube workouts list
+          }}
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {YOUTUBE_WORKOUTS.map((item) => (
+            <YouTubeCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
+/* ── Styles ── */
+
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: tokens.colors.dark_navy.bg_primary,
+    backgroundColor: '#FFFFFF',
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: tokens.colors.dark_navy.bg_input,
-    borderRadius: tokens.radius.md,
-    marginHorizontal: tokens.spacing.md,
-    paddingHorizontal: tokens.spacing.md,
-    height: 44,
-    marginBottom: tokens.spacing.sm,
-  },
-  searchInput: {
+  scroll: {
     flex: 1,
-    marginLeft: tokens.spacing.sm,
-    fontSize: 15,
-    color: tokens.colors.dark_navy.text_primary,
   },
-  filterScroll: {
-    maxHeight: 48,
-    marginBottom: tokens.spacing.sm,
-  },
-  filterContent: {
-    paddingHorizontal: tokens.spacing.md,
-    gap: tokens.spacing.sm,
-    flexDirection: 'row',
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: tokens.spacing.sm,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
-    borderRadius: tokens.radius.full,
-    borderWidth: 1,
-    borderColor: tokens.colors.dark_navy.border,
-  },
-  filterChipActive: {
-    backgroundColor: tokens.colors.brand.base,
-    borderColor: tokens.colors.brand.base,
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.text_secondary,
-  },
-  filterLabelActive: {
-    color: tokens.colors.dark_navy.text_primary,
-  },
-  listContent: {
-    paddingHorizontal: tokens.spacing.md,
+  scrollContent: {
     paddingBottom: 100,
   },
-  exerciseCard: {
+  logoRow: {
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  logo: {
+    width: 120,
+    height: 36,
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#000',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+
+  /* Section header */
+  sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: tokens.colors.dark_navy.bg_card,
-    borderRadius: tokens.radius.lg,
-    padding: tokens.spacing.md,
-    marginBottom: tokens.spacing.sm,
+    paddingHorizontal: 20,
+    marginBottom: 12,
   },
-  exerciseImage: {
-    width: 56,
-    height: 56,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.colors.dark_navy.bg_input,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
   },
-  exercisePlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.colors.dark_navy.bg_input,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exerciseInfo: {
-    flex: 1,
-    marginLeft: tokens.spacing.md,
-  },
-  exerciseName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.text_primary,
-    marginBottom: 2,
-  },
-  exerciseMeta: {
+  viewAll: {
     fontSize: 13,
-    color: tokens.colors.dark_navy.text_secondary,
-    marginBottom: 2,
-  },
-  exerciseEquipment: {
-    fontSize: 12,
-    color: tokens.colors.dark_navy.text_muted,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: tokens.spacing.xl,
-  },
-  errorText: {
-    fontSize: 15,
-    color: tokens.colors.red.base,
-    textAlign: 'center',
-    marginBottom: tokens.spacing.md,
-  },
-  retryBtn: {
-    backgroundColor: tokens.colors.brand.base,
-    paddingHorizontal: tokens.spacing.lg,
-    paddingVertical: tokens.spacing.sm,
-    borderRadius: tokens.radius.md,
-  },
-  retryText: {
-    color: tokens.colors.dark_navy.text_primary,
+    color: '#666',
     fontWeight: '600',
   },
-  emptyText: {
-    fontSize: 15,
-    color: tokens.colors.dark_navy.text_muted,
+
+  /* Carousel */
+  carousel: {
+    paddingLeft: 20,
+    paddingRight: 6,
+    marginBottom: 24,
+  },
+
+  /* Featured cards */
+  featuredCard: {
+    width: 200,
+    marginRight: 14,
+  },
+  featuredImage: {
+    height: 120,
+    borderRadius: 14,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* Program cards */
+  programCard: {
+    width: 160,
+    marginRight: 14,
+  },
+  programImage: {
+    height: 100,
+    borderRadius: 14,
+    backgroundColor: '#E8E8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* YouTube cards */
+  youtubeCard: {
+    width: 220,
+    marginRight: 14,
+  },
+  youtubeThumbnail: {
+    height: 130,
+    borderRadius: 14,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  durationBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  /* Shared card text */
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 8,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  channelName: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 6,
   },
 });
