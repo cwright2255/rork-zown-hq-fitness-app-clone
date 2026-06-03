@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Pressable,
-  Image,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
@@ -24,15 +23,13 @@ const PLACEHOLDER_EXERCISES = [
   { id: 'e5', name: 'Plank', duration: '0:30', completed: false },
 ];
 
-const COMPLETED_COUNT = PLACEHOLDER_EXERCISES.filter((e) => e.completed).length;
-const TOTAL_COUNT = 28; // Total moves in the full workout
+const TOTAL_MOVES = 28; // Total moves in the full workout
 
 /* ── Exercise row ── */
 
 function ExerciseRow({ exercise }) {
   return (
     <Pressable style={styles.exerciseRow}>
-      {/* Completion indicator */}
       <View style={styles.exerciseCheck}>
         {exercise.completed ? (
           <Ionicons name="checkmark-circle" size={24} color="#22C55E" />
@@ -40,18 +37,25 @@ function ExerciseRow({ exercise }) {
           <Ionicons name="ellipse-outline" size={24} color="#D1D5DB" />
         )}
       </View>
-
-      {/* Thumbnail */}
       <View style={styles.exerciseThumb}>
         <Ionicons name="body-outline" size={22} color="#999" />
       </View>
-
-      {/* Name + duration */}
       <View style={styles.exerciseInfo}>
         <Text style={styles.exerciseName}>{exercise.name}</Text>
         <Text style={styles.exerciseDuration}>{exercise.duration}</Text>
       </View>
     </Pressable>
+  );
+}
+
+/* ── Stat pill ── */
+
+function StatPill({ icon, label }) {
+  return (
+    <View style={styles.statPill}>
+      <Ionicons name={icon} size={14} color="#FFF" />
+      <Text style={styles.statPillText}>{label}</Text>
+    </View>
   );
 }
 
@@ -63,7 +67,41 @@ export default function WorkoutDetailScreen() {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
 
-  const progressPercent = (COMPLETED_COUNT / TOTAL_COUNT) * 100;
+  /* ── Reactive CTA logic ── */
+  const exercises = PLACEHOLDER_EXERCISES;
+  const completedCount = useMemo(
+    () => exercises.filter((e) => e.completed).length,
+    [exercises],
+  );
+  const totalExercises = exercises.length;
+  const hasStarted = completedCount > 0;
+  const isComplete = completedCount === totalExercises;
+  const progressPercent = (completedCount / TOTAL_MOVES) * 100;
+
+  const ctaConfig = useMemo(() => {
+    if (isComplete) {
+      return {
+        text: 'Workout Complete',
+        icon: 'checkmark-circle',
+        bg: '#22C55E',
+        disabled: true,
+      };
+    }
+    if (hasStarted) {
+      return {
+        text: 'Continue Workout',
+        icon: 'play-forward',
+        bg: '#000',
+        disabled: false,
+      };
+    }
+    return {
+      text: 'Start Workout',
+      icon: 'play',
+      bg: '#000',
+      disabled: false,
+    };
+  }, [hasStarted, isComplete]);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -73,6 +111,12 @@ export default function WorkoutDetailScreen() {
     }
   };
 
+  const handleCTA = () => {
+    if (ctaConfig.disabled) return;
+    // TODO: navigate to active workout screen
+    router.push('/workout/active');
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -80,14 +124,13 @@ export default function WorkoutDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero image section ── */}
+        {/* ── Hero section ── */}
         <View style={styles.hero}>
           <Ionicons name="barbell-outline" size={60} color="#999" />
 
-          {/* Overlay gradient */}
-          <View style={styles.heroOverlay}>
-            <Text style={styles.heroTitle}>Meet the Basics</Text>
-            <Text style={styles.heroSubtitle}>50 minutes \u2022 2 Stages</Text>
+          {/* High XP badge */}
+          <View style={styles.xpBadge}>
+            <Text style={styles.xpBadgeText}>High XP</Text>
           </View>
 
           {/* Back button */}
@@ -111,6 +154,29 @@ export default function WorkoutDetailScreen() {
               <Ionicons name="ellipsis-horizontal" size={18} color="#000" />
             </Pressable>
           </View>
+
+          {/* Overlay */}
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroTitle}>Kettlebell Step-Overs</Text>
+            <Text style={styles.heroDesc}>
+              High-intensity kettlebell step-over exercise
+            </Text>
+
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <StatPill icon="time-outline" label="30 min" />
+              <StatPill icon="barbell-outline" label="1 exercises" />
+              <StatPill icon="flash-outline" label="+100 XP" />
+            </View>
+
+            {/* Bottom row: difficulty + category */}
+            <View style={styles.overlayBottomRow}>
+              <View style={styles.difficultyBadge}>
+                <Text style={styles.difficultyText}>INTERMEDIATE</Text>
+              </View>
+              <Text style={styles.categoryLabel}>Hiit</Text>
+            </View>
+          </View>
         </View>
 
         {/* ── Progress section ── */}
@@ -118,7 +184,7 @@ export default function WorkoutDetailScreen() {
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Progress</Text>
             <Text style={styles.progressCount}>
-              {COMPLETED_COUNT}/{TOTAL_COUNT} moves
+              {completedCount}/{TOTAL_MOVES} moves
             </Text>
           </View>
           <View style={styles.progressBarBg}>
@@ -151,29 +217,20 @@ export default function WorkoutDetailScreen() {
         </View>
 
         {/* ── Exercise list ── */}
-        {PLACEHOLDER_EXERCISES.map((exercise) => (
+        {exercises.map((exercise) => (
           <ExerciseRow key={exercise.id} exercise={exercise} />
         ))}
       </ScrollView>
 
-      {/* ── Bottom CTA ── */}
-      <SafeAreaView edges={['bottom']} style={styles.ctaWrapper}>
-        <Pressable
-          style={styles.ctaButton}
-          onPress={() => {
-            // TODO: navigate to active workout screen
-            router.push('/workout/active');
-          }}
-        >
-          <Text style={styles.ctaText}>Continue Exercise</Text>
-          <Ionicons
-            name="play-circle-outline"
-            size={22}
-            color="#FFF"
-            style={{ marginLeft: 8 }}
-          />
-        </Pressable>
-      </SafeAreaView>
+      {/* ── Floating CTA button ── */}
+      <Pressable
+        style={[styles.ctaButton, { backgroundColor: ctaConfig.bg }]}
+        onPress={handleCTA}
+        disabled={ctaConfig.disabled}
+      >
+        <Text style={styles.ctaText}>{ctaConfig.text}</Text>
+        <Ionicons name={ctaConfig.icon} size={22} color="#FFF" />
+      </Pressable>
     </View>
   );
 }
@@ -200,23 +257,78 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  xpBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: '#E8873A',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  xpBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
+  },
   heroOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    paddingTop: 30,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   heroTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
     color: '#FFF',
+    marginBottom: 4,
   },
-  heroSubtitle: {
-    fontSize: 14,
+  heroDesc: {
+    fontSize: 13,
     color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
+    marginBottom: 10,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 10,
+  },
+  statPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statPillText: {
+    fontSize: 12,
+    color: '#FFF',
+  },
+  overlayBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  difficultyBadge: {
+    backgroundColor: '#E8873A',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  difficultyText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: 1,
+  },
+  categoryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
   },
   backBtn: {
     position: 'absolute',
@@ -228,6 +340,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   topRightActions: {
     position: 'absolute',
@@ -235,6 +348,7 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     gap: 8,
+    zIndex: 10,
   },
   actionBtn: {
     width: 36,
@@ -351,26 +465,34 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  /* CTA */
-  ctaWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
+  /* Floating CTA */
   ctaButton: {
-    backgroundColor: '#000',
+    position: 'absolute',
+    bottom: 24,
+    left: 24,
+    right: 24,
     height: 52,
     borderRadius: 26,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 8,
+    zIndex: 100,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -2 },
+      },
+      android: { elevation: 8 },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -2 },
+      },
+    }),
   },
   ctaText: {
     fontSize: 16,
