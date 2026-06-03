@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
   },
   whiteBlock: {
     position: 'absolute',
-    top: -160,
-    left: -60,
+    top: -140,
+    left: -100,
     right: -20,
     height: 300,
     backgroundColor: '#fff',
-    transform: [{ rotate: '-30deg' }],
+    transform: [{ rotate: '-20deg' }],
   },
   blackCut: {
     position: 'absolute',
@@ -261,15 +261,15 @@ const styles = StyleSheet.create({
   logo: {
     position: 'absolute',
     top: 40,
-    left: (width - 200) / 2,
-    width: 200,
-    height: 60,
+    left: (width - 240) / 2,
+    width: 240,
+    height: 72,
     zIndex: 3,
   },
 
   /* tagline — right-aligned at bottom of header */
   taglineWrap: {
-    marginTop: -24,
+    marginTop: -32,
     paddingRight: 24,
     alignItems: 'flex-end',
     zIndex: 2,
@@ -277,19 +277,19 @@ const styles = StyleSheet.create({
   },
   tagline1: {
     color: '#fff',
-    fontSize: 34,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: 1,
     textAlign: 'right',
-    lineHeight: 40,
+    lineHeight: 44,
   },
   tagline2: {
     color: '#fff',
-    fontSize: 34,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: 1,
     textAlign: 'right',
-    lineHeight: 40,
+    lineHeight: 44,
   },
 
   /* form */
