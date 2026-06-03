@@ -5,12 +5,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
-if (!process.env.EXPO_PUBLIC_FIREBASE_API_KEY) {
-  console.warn('[Firebase] Missing EXPO_PUBLIC_FIREBASE_API_KEY — check your .env file');
+const API_KEY = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+
+if (!API_KEY) {
+  console.warn('[Firebase] Missing EXPO_PUBLIC_FIREBASE_API_KEY — running in preview/offline mode');
 }
 
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  apiKey: API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
@@ -18,6 +20,9 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
+
+/** True when Firebase has a real API key and can actually authenticate users. */
+export const isFirebaseConfigured = !!API_KEY;
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
@@ -38,8 +43,13 @@ try {
     authInstance = getAuth(app);
   }
 } catch (e) {
-  console.log('[Firebase] Falling back to default getAuth:', e?.message);
-  authInstance = getAuth(app);
+  console.warn('[Firebase] Falling back to default getAuth:', e?.message);
+  try {
+    authInstance = getAuth(app);
+  } catch (e2) {
+    console.warn('[Firebase] getAuth also failed — auth disabled:', e2?.message);
+    authInstance = null;
+  }
 }
 
 export const auth = authInstance;

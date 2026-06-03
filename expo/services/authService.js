@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 const buildUserShape = (fbUser, overrides = {}) => {
   const email = overrides.email || fbUser?.email || 'user@example.com';
@@ -58,8 +58,15 @@ const mapFirebaseAuthError = (error) => {
 class AuthService {
   async login(email, password) {
     try {
+      const { isFirebaseConfigured, auth } = require('../src/config/firebase');
+      if (!isFirebaseConfigured || !auth) {
+        console.warn('[AuthService] Firebase not configured - using offline login');
+        const user = buildUserShape(null, { email, name: email.split('@')[0] });
+        const token = 'offline-session-' + Date.now();
+        await AsyncStorage.setItem('auth_token', token);
+        return { user, token, requiresMFA: false };
+      }
       const { signInWithEmailAndPassword } = require('firebase/auth');
-      const { auth } = require('../src/config/firebase');
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const fbUser = userCredential.user;
@@ -81,8 +88,15 @@ class AuthService {
 
   async register(name, email, password) {
     try {
+      const { isFirebaseConfigured, auth } = require('../src/config/firebase');
+      if (!isFirebaseConfigured || !auth) {
+        console.warn('[AuthService] Firebase not configured - using offline registration');
+        const user = buildUserShape(null, { email, name: name || email.split('@')[0] });
+        const token = 'offline-session-' + Date.now();
+        await AsyncStorage.setItem('auth_token', token);
+        return { user, token, requiresMFA: false };
+      }
       const { createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
-      const { auth } = require('../src/config/firebase');
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const fbUser = userCredential.user;
@@ -108,8 +122,12 @@ class AuthService {
 
   async sendPasswordReset(email) {
     try {
+      const { isFirebaseConfigured, auth } = require('../src/config/firebase');
+      if (!isFirebaseConfigured || !auth) {
+        console.warn('[AuthService] Firebase not configured - password reset unavailable');
+        throw new Error('Password reset is not available in preview mode');
+      }
       const { sendPasswordResetEmail } = require('firebase/auth');
-      const { auth } = require('../src/config/firebase');
       await sendPasswordResetEmail(auth, email);
       return true;
     } catch (error) {
