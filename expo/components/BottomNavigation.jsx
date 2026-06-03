@@ -3,7 +3,17 @@ import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-const TABS = [
+/* ── Tab configurations ── */
+
+const HOME_TABS = [
+  { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
+  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
+  { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
+  { key: 'shop', label: 'Shop', icon: 'cart-outline', activeIcon: 'cart', route: '/shop' },
+  { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
+];
+
+const WORKOUT_TABS = [
   { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
   { key: 'running', label: 'Running', icon: 'fitness-outline', activeIcon: 'fitness', route: '/running/program' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
@@ -34,56 +44,93 @@ export default function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const activeKey = useMemo(() => {
-    if (pathname === '/hq' || pathname === '/') return 'home';
-    if (pathname.startsWith('/workout')) return 'workouts';
-    if (pathname.startsWith('/running')) return 'running';
-    if (pathname.startsWith('/badges')) return 'challenges';
-    if (pathname.startsWith('/analytics')) return 'analysis';
-    return 'home';
+  /* ── Pick tab config based on current screen ── */
+  const isWorkoutContext = useMemo(() => {
+    return (
+      pathname.startsWith('/workout') ||
+      pathname.startsWith('/running') ||
+      pathname.startsWith('/badges') ||
+      pathname.startsWith('/analytics') ||
+      pathname.startsWith('/challenges')
+    );
   }, [pathname]);
 
-  const navigate = useCallback((route) => {
-    router.push(route);
-  }, [router]);
+  const tabs = isWorkoutContext ? WORKOUT_TABS : HOME_TABS;
+
+  /* ── Active tab detection ── */
+  const activeKey = useMemo(() => {
+    if (pathname === '/hq' || pathname === '/') return 'home';
+
+    if (isWorkoutContext) {
+      if (pathname.startsWith('/workout')) return 'workouts';
+      if (pathname.startsWith('/running')) return 'running';
+      if (pathname.startsWith('/badges') || pathname.startsWith('/challenges')) return 'challenges';
+      if (pathname.startsWith('/analytics')) return 'analysis';
+    } else {
+      if (pathname.startsWith('/workout')) return 'workouts';
+      if (pathname.startsWith('/nutrition')) return 'nutrition';
+      if (pathname.startsWith('/shop')) return 'shop';
+      if (pathname.startsWith('/profile')) return 'profile';
+    }
+
+    return 'home';
+  }, [pathname, isWorkoutContext]);
+
+  const handleTabPress = useCallback(
+    (route) => {
+      if (route === pathname) return;
+      router.push(route);
+    },
+    [pathname, router],
+  );
 
   return (
-    <View style={styles.container}>
-      {TABS.map((tab) => (
-        <TabItem
-          key={tab.key}
-          tab={tab}
-          isActive={activeKey === tab.key}
-          isCenter={tab.key === 'home'}
-          onPress={() => navigate(tab.route)}
-        />
-      ))}
+    <View style={styles.wrapper}>
+      <View style={styles.bar}>
+        {tabs.map((tab, idx) => (
+          <TabItem
+            key={tab.key}
+            tab={tab}
+            isActive={activeKey === tab.key}
+            isCenter={idx === 2}
+            onPress={() => handleTabPress(tab.route)}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     position: 'absolute',
-    bottom: 20,
+    bottom: Platform.OS === 'ios' ? 28 : 16,
     left: 20,
     right: 20,
-    height: 64,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 30,
-    flexDirection: 'row',
     alignItems: 'center',
+  },
+  bar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderRadius: 32,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: 'flex-end',
     justifyContent: 'space-around',
-    paddingHorizontal: 8,
+    width: '100%',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
         shadowRadius: 12,
-        shadowOffset: { width: 0, height: -4 },
       },
-      android: {
-        elevation: 8,
+      android: { elevation: 8 },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
       },
     }),
   },
@@ -91,28 +138,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   tabCenter: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    marginTop: -20,
+    marginTop: -22,
   },
   centerBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#000',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 2,
   },
   tabLabel: {
     fontSize: 10,
     color: '#999',
     marginTop: 2,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   tabLabelActive: {
     color: '#000',
