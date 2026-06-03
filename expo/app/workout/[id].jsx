@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
 
   /* Hero */
   hero: {
-    height: 260,
+    height: 320,
     backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingBottom: 14,
-    paddingTop: 30,
+    paddingTop: 65,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   heroTitle: {
