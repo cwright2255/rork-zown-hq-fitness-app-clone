@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { tokens } from '../../theme/tokens';
+import { Ionicons } from '@expo/vector-icons';
 
 // CRITICAL: ErrorBoundary is exported FIRST Ã¢ÂÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
@@ -50,6 +51,7 @@ import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 import { useShopStore } from '@/store/shopStore';
 import HamburgerMenu from '@/components/HamburgerMenu';
+import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -275,7 +277,35 @@ function RootLayoutInner() {
         <Stack.Screen name="spotify-redirect" />
         <Stack.Screen name="spotify-callback" />
       </Stack>
-      <TypedHamburgerMenu isVisible={isMenuVisible} onClose={closeMenu} />
+      
+        {/* Floating hamburger menu button */}
+        {shouldShowTopNav && (
+          <Pressable
+            style={{
+              position: 'absolute',
+              left: 16,
+              top: '45%',
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 100,
+              ...Platform.select({
+                ios: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 2 } },
+                android: { elevation: 8 },
+              }),
+            }}
+            onPress={openMenu}>
+            <Ionicons name="menu" size={22} color="#000" />
+          </Pressable>
+        )}
+
+        {/* Floating bottom tab bar */}
+        {shouldShowTopNav && <BottomNavigation />}
+
+        <TypedHamburgerMenu isVisible={isMenuVisible} onClose={closeMenu} />
     </View>
   );
 }

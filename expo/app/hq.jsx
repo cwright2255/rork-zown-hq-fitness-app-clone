@@ -134,12 +134,20 @@ export default function HQScreen() {
               <Text style={styles.dateText}>{dayName}, {dateStr}</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.calendarBtn}
-            onPress={() => router.push('/analytics')}
-            activeOpacity={0.7}>
-            <Ionicons name="calendar-outline" size={20} color="#000" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.calendarBtn}
+              onPress={() => router.push('/notifications')}
+              activeOpacity={0.7}>
+              <Ionicons name="notifications-outline" size={20} color="#000" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.calendarBtn}
+              onPress={() => router.push('/analytics')}
+              activeOpacity={0.7}>
+              <Ionicons name="calendar-outline" size={20} color="#000" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Section title (existing) ── */}

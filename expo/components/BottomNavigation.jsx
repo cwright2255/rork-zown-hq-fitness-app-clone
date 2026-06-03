@@ -1,127 +1,121 @@
 import React, { useMemo, useCallback } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { Home, Dumbbell, Utensils, ShoppingBag, User } from 'lucide-react-native';
-import { tokens } from '../../theme/tokens';
+import { Ionicons } from '@expo/vector-icons';
 
-const tabs = [
-  { name: 'HQ', icon: Home, route: '/hq' },
-  { name: 'Workouts', icon: Dumbbell, route: '/workouts' },
-  { name: 'Nutrition', icon: Utensils, route: '/nutrition' },
-  { name: 'Shop', icon: ShoppingBag, route: '/shop' },
-  { name: 'Profile', icon: User, route: '/profile' },
+const TABS = [
+  { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
+  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition' },
+  { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
+  { key: 'shop', label: 'Shop', icon: 'cart-outline', activeIcon: 'cart', route: '/shop' },
+  { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
 ];
 
-const TabItem = React.memo(function TabItem({ tab, isActive, onPress }) {
-  const Icon = tab.icon;
-
+function TabItem({ tab, isActive, onPress, isCenter }) {
+  if (isCenter) {
+    return (
+      <Pressable style={styles.tabCenter} onPress={onPress} accessibilityRole="button" accessibilityLabel={"Navigate to " + tab.label}>
+        <View style={styles.centerBadge}>
+          <Ionicons name={isActive ? tab.activeIcon : tab.icon} size={24} color="#FFF" />
+        </View>
+        <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+      </Pressable>
+    );
+  }
   return (
-    <TouchableOpacity
-      style={styles.tab}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Navigate to ${tab.name}`}>
-      <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
-        <Icon
-          size={22}
-          color={isActive ? tokens.colors.brand.base : tokens.colors.dark_navy.text_muted}
-        />
-      </View>
-      <Text style={[styles.label, isActive && styles.activeLabel]}>
-        {tab.name}
-      </Text>
-    </TouchableOpacity>
+    <Pressable style={styles.tab} onPress={onPress} accessibilityRole="button" accessibilityLabel={"Navigate to " + tab.label}>
+      <Ionicons name={isActive ? tab.activeIcon : tab.icon} size={22} color={isActive ? '#000' : '#999'} />
+      <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+    </Pressable>
   );
-});
+}
 
-const BottomNavigation = React.memo(function BottomNavigation() {
+export default function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleNavigation = useCallback((route) => {
+  const activeKey = useMemo(() => {
+    if (pathname === '/hq' || pathname === '/') return 'home';
+    if (pathname.startsWith('/workout')) return 'workouts';
+    if (pathname.startsWith('/nutrition')) return 'nutrition';
+    if (pathname.startsWith('/shop')) return 'shop';
+    if (pathname.startsWith('/profile')) return 'profile';
+    return 'home';
+  }, [pathname]);
+
+  const navigate = useCallback((route) => {
     router.push(route);
   }, [router]);
 
-  const activeRoute = useMemo(() => {
-    if (pathname === '/hq' || pathname === '/') return '/hq';
-    for (const tab of tabs) {
-      if (pathname === tab.route || pathname.startsWith(tab.route + '/')) {
-        return tab.route;
-      }
-    }
-    return '/hq';
-  }, [pathname]);
-
-  const tabsWithActiveState = useMemo(() =>
-    tabs.map((tab) => ({
-      ...tab,
-      isActive: tab.route === activeRoute
-    })),
-    [activeRoute]
-  );
-
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.container}>
-        {tabsWithActiveState.map((tab) =>
-          <TabItem
-            key={tab.name}
-            tab={tab}
-            isActive={tab.isActive}
-            onPress={() => handleNavigation(tab.route)}
-          />
-        )}
-      </View>
+    <View style={styles.container}>
+      {TABS.map((tab) => (
+        <TabItem
+          key={tab.key}
+          tab={tab}
+          isActive={activeKey === tab.key}
+          isCenter={tab.key === 'home'}
+          onPress={() => navigate(tab.route)}
+        />
+      ))}
     </View>
   );
-});
-
-export default BottomNavigation;
+}
 
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: tokens.spacing.md,
-    paddingBottom: Platform.OS === 'ios' ? tokens.spacing.lg : tokens.spacing.sm,
-    backgroundColor: 'transparent',
-  },
   container: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    height: 64,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
     flexDirection: 'row',
-    backgroundColor: tokens.colors.dark_navy.bg_card,
-    borderRadius: tokens.radius.xl,
-    paddingVertical: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.sm,
-    ...tokens.shadows.shadow_medium,
-    borderWidth: 1,
-    borderColor: tokens.colors.dark_navy.border,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -4 },
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   tab: {
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
+    paddingVertical: 6,
+  },
+  tabCenter: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: tokens.spacing.xs,
+    flex: 1,
+    marginTop: -20,
   },
-  iconContainer: {
-    width: 40,
-    height: 36,
-    justifyContent: 'center',
+  centerBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#000',
     alignItems: 'center',
-    marginBottom: tokens.spacing.xs,
-    borderRadius: tokens.radius.lg,
+    justifyContent: 'center',
+    marginBottom: 2,
   },
-  activeIconContainer: {
-    backgroundColor: tokens.colors.brand.base + '22',
-    borderRadius: tokens.radius.lg,
+  tabLabel: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 2,
+    fontWeight: '400',
   },
-  label: {
-    ...tokens.typography.xsmall_tight_medium,
-    color: tokens.colors.dark_navy.text_muted,
-  },
-  activeLabel: {
-    ...tokens.typography.xsmall_tight_bold,
-    color: tokens.colors.brand.base,
+  tabLabelActive: {
+    color: '#000',
+    fontWeight: '700',
   },
 });
