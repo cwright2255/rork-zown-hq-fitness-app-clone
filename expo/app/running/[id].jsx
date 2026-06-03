@@ -204,9 +204,7 @@ export default function RunPreviewScreen() {
       {/* ── Floating CTA ── */}
       <Pressable
         style={styles.ctaButton}
-        onPress={() => {
-          // TODO: navigate to active run screen
-        }}
+        onPress={() => router.push('/running/active')}
       >
         <Text style={styles.ctaText}>{hasStarted ? 'Continue Run' : 'Start Run'}</Text>
         <Ionicons name={hasStarted ? 'play-forward' : 'play'} size={22} color="#FFF" />
