@@ -69,7 +69,7 @@ export default function FoodDetailScreen() {
       servingSize: `${quantity}x ${food.servingSize || '100g'}`,
     };
     addFoodToMeal(selectedMealId, adjusted);
-    router.back();
+    (router.canGoBack() ? router.back() : router.replace('/'));
   };
 
   const toggleFav = () => {

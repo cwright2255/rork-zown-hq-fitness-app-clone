@@ -29,7 +29,7 @@ export default function RunningSessionDetailScreen() {
   }, [sessionId, programId, runningPrograms]);
 
   const handleEndRun = () => {
-    router.back();
+    (router.canGoBack() ? router.back() : router.replace('/'));
   };
 
   const distance = session?.distance || '3.2';

@@ -15,7 +15,7 @@ export default function ScreenHeader({
 }) {
   const handleBack = () => {
     if (onBack) return onBack();
-    if (router.canGoBack()) return router.back();
+    if (router.canGoBack()) return (router.canGoBack() ? router.back() : router.replace('/'));
     router.replace('/hq');
   };
 

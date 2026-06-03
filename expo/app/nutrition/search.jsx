@@ -58,7 +58,7 @@ export default function SearchFoodScreen() {
   const handleSelect = (food) => {
     if (mealId && addFoodToMeal) {
       addFoodToMeal(mealId.toString(), food);
-      router.back();
+      (router.canGoBack() ? router.back() : router.replace('/'));
     } else {
       router.push(`/nutrition/food/${food.id}`);
     }

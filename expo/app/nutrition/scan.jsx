@@ -159,7 +159,7 @@ export default function FoodScanScreen() {
           
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
@@ -174,7 +174,7 @@ export default function FoodScanScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => router.back()}>
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             
             <X size={24} color={Colors.text.primary} />
           </TouchableOpacity>
@@ -244,7 +244,7 @@ export default function FoodScanScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.closeButton}
-          onPress={() => router.back()}>
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
           
           <X size={24} color={Colors.text.inverse} />
         </TouchableOpacity>
@@ -298,7 +298,7 @@ export default function FoodScanScreen() {
           </Text>
           <Button
           title="Go Back"
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           style={styles.webFallbackButton} />
         
         </View>

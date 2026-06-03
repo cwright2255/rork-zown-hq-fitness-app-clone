@@ -408,7 +408,7 @@ export default function ActiveWorkoutScreen() {
 
   const handleExitAndDiscard = () => {
     setShowExitMenu(false);
-    router.back();
+    (router.canGoBack() ? router.back() : router.replace('/'));
   };
 
   const handleFinishWorkout = () => {
@@ -439,7 +439,7 @@ export default function ActiveWorkoutScreen() {
 
   const handleLocationPermissionDenied = () => {
     setShowLocationPermissionModal(false);
-    router.back();
+    (router.canGoBack() ? router.back() : router.replace('/'));
   };
 
   const toggleFeeling = (feeling) => {
@@ -456,7 +456,7 @@ export default function ActiveWorkoutScreen() {
         <Text style={styles.loadingText}>Loading workout...</Text>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}>
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
           
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -470,7 +470,7 @@ export default function ActiveWorkoutScreen() {
         <Text style={styles.loadingText}>Loading running session...</Text>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}>
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
           
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -490,7 +490,7 @@ export default function ActiveWorkoutScreen() {
           </Text>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>

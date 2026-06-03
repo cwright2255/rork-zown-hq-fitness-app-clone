@@ -147,7 +147,7 @@ export default function ProductDetailScreen() {
 
       <View style={styles.bottomBar}>
         <PrimaryButton title="Add to Cart" onPress={handleAdd} />
-        <PrimaryButton title="Save for Later" variant="outline" onPress={() => {}} style={{ marginTop: 8 }} />
+        <PrimaryButton title="Save for Later" variant="outline" onPress={() => { /* TODO: Connect to real API */ }} style={{ marginTop: 8 }} />
       </View>
     </View>
   );

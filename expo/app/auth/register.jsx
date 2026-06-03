@@ -88,7 +88,7 @@ export default function RegisterScreen() {
     if (step > 1) {
       setStep(step - 1);
     } else if (router.canGoBack()) {
-      router.back();
+      (router.canGoBack() ? router.back() : router.replace('/'));
     } else {
       router.replace('/auth/login');
     }

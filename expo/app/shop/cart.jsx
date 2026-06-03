@@ -118,7 +118,7 @@ export default function CartScreen() {
       <View style={styles.bottomBar}>
         <PrimaryButton
           title="Checkout"
-          onPress={() => Alert.alert('Checkout', 'Demo Ã¢ÂÂ checkout not implemented.')}
+          onPress={() => Alert.alert("Checkout", "Demo Ã¢ÂÂ checkout not implemented.", [{ text: "OK", style: "cancel" }])}
         />
       </View>
     </View>

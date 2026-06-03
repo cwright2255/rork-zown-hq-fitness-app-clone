@@ -23,7 +23,7 @@ export default function ForgotPasswordScreen() {
     try {
       await authService.sendPasswordReset(email);
       Alert.alert('Email sent', 'Check your inbox for reset instructions.');
-      router.back();
+      (router.canGoBack() ? router.back() : router.replace('/'));
     } catch (error) {
       console.error('[ForgotPassword] Failed', error);
       Alert.alert('Reset Failed', error?.message || 'Please try again');
@@ -33,7 +33,7 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) return router.back();
+    if (router.canGoBack()) return (router.canGoBack() ? router.back() : router.replace('/'));
     router.replace('/auth/login');
   };
 

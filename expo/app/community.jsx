@@ -82,7 +82,7 @@ export default function CommunityScreen() {
                 </View>
               </View>
               <View style={{ marginTop: 12 }}>
-                <PrimaryButton title="Join" variant="outline" style={{ height: 36 }} onPress={() => {}} />
+                <PrimaryButton title="Join" variant="outline" style={{ height: 36 }} onPress={() => { /* TODO: Connect to real API */ }} />
               </View>
             </View>
           ))

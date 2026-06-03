@@ -70,7 +70,7 @@ export default function WorkoutDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.center}>
           <Text style={styles.errorText}>Exercise not found</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             <Text style={styles.backBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -89,7 +89,7 @@ export default function WorkoutDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header with back button */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerBack} hitSlop={8}>
+          <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.headerBack} hitSlop={8}>
             <ChevronLeft size={24} color={tokens.colors.dark_navy.text_primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>{exercise.name}</Text>

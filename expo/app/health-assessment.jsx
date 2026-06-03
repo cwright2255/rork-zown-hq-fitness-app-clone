@@ -40,7 +40,7 @@ export default function HealthAssessmentScreen() {
     if (step < total - 1) {
       setStep(step + 1);
     } else {
-      router.back();
+      (router.canGoBack() ? router.back() : router.replace('/'));
     }
   };
 
