@@ -9,291 +9,382 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
+  ActivityIndicator,
+  Image,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, Apple, ChevronLeft } from 'lucide-react-native';
-import Constants from 'expo-constants';
-import { colors, radius, spacing, typography } from '@/constants/theme';
-import PrimaryButton from '@/components/PrimaryButton';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
-import { tokens } from '../../../theme/tokens';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mfaCode, setMfaCode] = useState('');
-  const [showMFA, setShowMFA] = useState(false);
-  const [socialLoading, setSocialLoading] = useState(null);
-
+  const [errorMsg, setErrorMsg] = useState('');
   const { setUser } = useUserStore();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const handleLogin = useCallback(async () => {
+    setErrorMsg('');
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email');
+      return;
+    }
+    if (!password) {
+      setErrorMsg('Please enter your password');
       return;
     }
     setIsLoading(true);
     try {
-      console.log('[Login] Attempt with email');
-      const result = await authService.login(email, password);
-      if (result.requiresMFA) {
-        setShowMFA(true);
-      } else {
+      const result = await authService.login(email.trim(), password);
+      if (result && result.user) {
         setUser(result.user);
         useUserStore.getState().completeOnboarding();
         router.replace('/hq');
+      } else {
+        setErrorMsg('Login failed. Please try again.');
       }
     } catch (error) {
-      console.error('[Login] Failed', error);
-      Alert.alert('Login Failed', error?.message || 'Invalid email or password');
+      const msg = error?.message || 'An error occurred during login';
+      if (msg.includes('invalid-credential') || msg.includes('wrong-password') || msg.includes('user-not-found')) {
+        setErrorMsg('Invalid email or password');
+      } else if (msg.includes('too-many-requests')) {
+        setErrorMsg('Too many attempts. Please try again later.');
+      } else if (msg.includes('network')) {
+        setErrorMsg('Network error. Check your connection.');
+      } else {
+        setErrorMsg(msg);
+      }
     } finally {
       setIsLoading(false);
     }
+  }, [email, password, setUser]);
+
+  const handleGoogleLogin = () => {
+    Alert.alert('Google Sign-In', 'Google authentication will be available soon.', [{ text: 'OK' }]);
   };
 
-  const handleSocial = useCallback(async (provider) => {
-    if (IS_EXPO_GO && (provider === 'apple' || provider === 'google' || provider === 'meta')) {
-      Alert.alert(
-        'Not available in Expo Go',
-        `${provider === 'apple' ? 'Apple' : provider === 'google' ? 'Google' : 'Meta'} Sign-In requires a development build. Please use email/password while running in Expo Go.`
-      );
-      return;
-    }
-    try {
-      setSocialLoading(provider);
-      const result = await authService.loginWithProvider(provider);
-      setUser(result.user);
-      useUserStore.getState().completeOnboarding();
-      router.replace('/hq');
-    } catch (e) {
-      console.error('[Social Login] Error', e);
-      Alert.alert('Sign-in failed', 'Please try again.');
-    } finally {
-      setSocialLoading(null);
-    }
-  }, [setUser]);
-
-  const handleMFAVerification = async () => {
-    if (!mfaCode) {
-      Alert.alert('Error', 'Please enter the verification code');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const result = await authService.verifyMFA(email, mfaCode);
-      setUser(result.user);
-      useUserStore.getState().completeOnboarding();
-      router.replace('/hq');
-    } catch {
-      Alert.alert('Verification Failed', 'Invalid verification code');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleMetaLogin = () => {
+    Alert.alert('Meta Sign-In', 'Meta authentication will be available soon.', [{ text: 'OK' }]);
   };
-
-  if (showMFA) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setShowMFA(false)} hitSlop={8}>
-            <ChevronLeft size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.brand}>ZOWN HQ</Text>
-          <View style={styles.backBtn} />
-        </View>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}>
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.title}>Two-Factor Authentication</Text>
-            <Text style={styles.subtitle}>Enter the 6-digit code sent to your device</Text>
-
-            <View style={styles.inputRow}>
-              <TextInput
-                style={[styles.input, { textAlign: 'center', letterSpacing: 4 }]}
-                placeholder="000000"
-                placeholderTextColor={colors.textTertiary}
-                value={mfaCode}
-                onChangeText={setMfaCode}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-            </View>
-
-            <PrimaryButton
-              title="Verify"
-              onPress={handleMFAVerification}
-              loading={isLoading}
-              style={styles.submit}
-            />
-
-            <PrimaryButton
-              title="Back to Login"
-              variant="ghost"
-              onPress={() => setShowMFA(false)}
-              style={styles.ghostBtn}
-            />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.brandBlock}>
-            <Text style={styles.brandLarge}>ZOWN HQ</Text>
+        style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}>
+
+          {/* Diagonal white header with logo */}
+          <View style={styles.headerSection}>
+            <View style={styles.whiteDiagonal}>
+              <View style={styles.diagonalInner} />
+            </View>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('@/assets/branding/zown-logo-512.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+
+          {/* "OWN THE DAY" tagline */}
+          <View style={styles.taglineSection}>
             <Text style={styles.tagline}>OWN THE DAY</Text>
           </View>
 
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to continue your mission</Text>
+          {/* Form section */}
+          <View style={styles.formSection}>
+            {/* Error message */}
+            {errorMsg ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
 
-          <View style={styles.form} testID="login-form">
+            {/* Email input */}
             <View style={styles.inputRow}>
-              <Mail size={18} color={colors.textSecondary} style={styles.inputIcon} />
+              <Mail size={20} color="#666666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor="#666666"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(t) => { setEmail(t); setErrorMsg(''); }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoComplete="email"
+                returnKeyType="next"
+                editable={!isLoading}
               />
             </View>
 
+            {/* Password input */}
             <View style={styles.inputRow}>
-              <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
+              <Lock size={20} color="#666666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor="#666666"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(t) => { setPassword(t); setErrorMsg(''); }}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                editable={!isLoading}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 {showPassword ? (
-                  <EyeOff size={18} color={colors.textSecondary} />
+                  <EyeOff size={20} color="#666666" />
                 ) : (
-                  <Eye size={18} color={colors.textSecondary} />
+                  <Eye size={20} color="#666666" />
                 )}
               </TouchableOpacity>
             </View>
 
-            <PrimaryButton
-              testID="emailSignInButton"
-              title="Sign In"
-              onPress={handleLogin}
-              loading={isLoading}
-              style={styles.submit}
-            />
-
-            <PrimaryButton
-              title="Forgot Password?"
-              variant="ghost"
-              onPress={() => router.push('/auth/forgot-password')}
-            />
-
-            {!IS_EXPO_GO && Platform.OS !== 'web' ? (
-              <PrimaryButton
-                testID="appleSignIn"
-                title="Continue with Apple"
-                variant="outline"
-                loading={socialLoading === 'apple'}
-                onPress={() => handleSocial('apple')}
-                leftIcon={<Apple size={18} color={colors.text} />}
-                style={styles.socialBtn}
-              />
-            ) : null}
-
+            {/* Enter button */}
             <TouchableOpacity
-              style={styles.linkButton}
-              onPress={() => router.push('/auth/register')}>
-              <Text style={styles.linkLight}>
-                Don&apos;t have an account? <Text style={styles.linkStrong}>Sign Up</Text>
-              </Text>
+              style={[styles.enterBtn, isLoading && styles.enterBtnDisabled]}
+              onPress={handleLogin}
+              disabled={isLoading}
+              activeOpacity={0.8}>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#000000" />
+              ) : (
+                <Text style={styles.enterBtnText}>Enter</Text>
+              )}
             </TouchableOpacity>
+
+            {/* Social login row */}
+            <View style={styles.socialRow}>
+              <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleLogin} activeOpacity={0.7}>
+                <Text style={styles.socialBtnIcon}>G</Text>
+                <Text style={styles.socialBtnText}>Google</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialBtn} onPress={handleMetaLogin} activeOpacity={0.7}>
+                <Text style={styles.socialBtnIcon}>{String.fromCodePoint(8734)}</Text>
+                <Text style={styles.socialBtnText}>Meta</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Forgot password */}
+            <TouchableOpacity
+              style={styles.forgotBtn}
+              onPress={() => router.push('/auth/forgot-password')}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            {/* Sign up */}
+            <View style={styles.signUpRow}>
+              <Text style={styles.signUpLabel}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/auth/register')}>
+                <Text style={styles.signUpLink}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+const HEADER_HEIGHT = height * 0.30;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
+
+  /* ── Header / diagonal ── */
+  headerSection: {
+    height: HEADER_HEIGHT,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  whiteDiagonal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HEADER_HEIGHT + 60,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  diagonalInner: {
+    position: 'absolute',
+    bottom: -30,
+    left: -20,
+    right: -20,
+    height: 80,
+    backgroundColor: '#000000',
+    transform: [{ skewY: '-6deg' }],
+  },
+  logoContainer: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
-    minHeight: 56,
+    justifyContent: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
+  logo: {
+    width: 56,
+    height: 56,
   },
-  brand: { fontSize: 20, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
-  brandBlock: {
+
+  /* ── Tagline ── */
+  taglineSection: {
+    paddingTop: 32,
+    paddingBottom: 24,
     alignItems: 'center',
-    marginTop: spacing.xxl,
-    marginBottom: spacing.xxl,
-  },
-  brandLarge: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: -1,
   },
   tagline: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 6,
-    letterSpacing: 2,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 4,
+    textAlign: 'center',
   },
-  keyboardView: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
+
+  /* ── Form ── */
+  formSection: {
+    paddingHorizontal: 32,
+    paddingBottom: 40,
   },
-  title: { ...typography.h1, marginBottom: spacing.xs },
-  subtitle: { ...typography.bodySmall, marginBottom: spacing.xl },
-  form: { gap: spacing.md },
+  errorContainer: {
+    backgroundColor: 'rgba(255, 22, 84, 0.15)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#FF1654',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.base,
-    height: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+    marginBottom: 24,
+    paddingBottom: 8,
   },
-  inputIcon: { marginRight: spacing.md },
-  input: { flex: 1, fontSize: 16, color: colors.text },
-  submit: { marginTop: spacing.sm },
-  ghostBtn: { marginTop: spacing.xs },
-  socialBtn: { marginTop: spacing.xs },
-  linkButton: { alignItems: 'center', paddingVertical: spacing.md, marginTop: spacing.sm },
-  linkLight: { ...typography.bodySmall, color: colors.textSecondary },
-  linkStrong: { color: colors.text, fontWeight: '700' },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+    paddingVertical: 8,
+  },
+  eyeBtn: {
+    padding: 4,
+  },
+
+  /* ── Enter button ── */
+  enterBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+    minHeight: 56,
+  },
+  enterBtnDisabled: {
+    opacity: 0.7,
+  },
+  enterBtnText: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+
+  /* ── Social buttons ── */
+  socialRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  socialBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  socialBtnIcon: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  socialBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  /* ── Footer links ── */
+  forgotBtn: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  forgotText: {
+    color: '#AAAAAA',
+    fontSize: 14,
+  },
+  signUpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signUpLabel: {
+    color: '#AAAAAA',
+    fontSize: 14,
+  },
+  signUpLink: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });
