@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,17 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const { width, height } = Dimensions.get('window');
+const DIAGONAL_HEIGHT = height * 0.32;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -31,16 +33,27 @@ export default function LoginScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const { setUser } = useUserStore();
 
+  /* ── splash overlay ── */
+  const splashY = useRef(new Animated.Value(0)).current;
+  const [splashDone, setSplashDone] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.timing(splashY, {
+        toValue: -height,
+        duration: 800,
+        useNativeDriver: true,
+      }).start(() => setSplashDone(true));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  /* ── auth ── */
   const handleLogin = useCallback(async () => {
     setErrorMsg('');
-    if (!email.trim()) {
-      setErrorMsg('Please enter your email');
-      return;
-    }
-    if (!password) {
-      setErrorMsg('Please enter your password');
-      return;
-    }
+    if (!email.trim()) { setErrorMsg('Please enter your email'); return; }
+    if (!password) { setErrorMsg('Please enter your password'); return; }
+
     setIsLoading(true);
     try {
       const result = await authService.login(email.trim(), password);
@@ -52,76 +65,64 @@ export default function LoginScreen() {
         setErrorMsg('Login failed. Please try again.');
       }
     } catch (error) {
-      const msg = error?.message || 'An error occurred during login';
-      if (msg.includes('invalid-credential') || msg.includes('wrong-password') || msg.includes('user-not-found')) {
+      const msg = error?.message || 'An error occurred';
+      if (msg.includes('invalid-credential') || msg.includes('wrong-password') || msg.includes('user-not-found'))
         setErrorMsg('Invalid email or password');
-      } else if (msg.includes('too-many-requests')) {
-        setErrorMsg('Too many attempts. Please try again later.');
-      } else if (msg.includes('network')) {
+      else if (msg.includes('too-many-requests'))
+        setErrorMsg('Too many attempts. Try again later.');
+      else if (msg.includes('network'))
         setErrorMsg('Network error. Check your connection.');
-      } else {
-        setErrorMsg(msg);
-      }
+      else setErrorMsg(msg);
     } finally {
       setIsLoading(false);
     }
   }, [email, password, setUser]);
 
-  const handleGoogleLogin = () => {
-    Alert.alert('Google Sign-In', 'Google authentication will be available soon.', [{ text: 'OK' }]);
-  };
-
-  const handleMetaLogin = () => {
-    Alert.alert('Meta Sign-In', 'Meta authentication will be available soon.', [{ text: 'OK' }]);
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}>
+
+      {/* ── login content ── */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
-          bounces={false}>
+          bounces={false}
+          showsVerticalScrollIndicator={false}>
 
-          {/* Diagonal white header with logo */}
-          <View style={styles.headerSection}>
-            <View style={styles.whiteDiagonal}>
-              <View style={styles.diagonalInner} />
-            </View>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('@/assets/branding/zown-logo-512.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
+          {/* diagonal white header */}
+          <View style={styles.diagonalWrap}>
+            <View style={styles.whiteBlock} />
+            <View style={styles.blackCut} />
+            <Image
+              source={require('@/assets/branding/zown-logo-512.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
 
-          {/* "OWN THE DAY" tagline */}
-          <View style={styles.taglineSection}>
-            <Text style={styles.tagline}>OWN THE DAY</Text>
+          {/* tagline */}
+          <View style={styles.taglineWrap}>
+            <Text style={styles.tagline1}>OWN THE</Text>
+            <Text style={styles.tagline2}>DAY</Text>
           </View>
 
-          {/* Form section */}
-          <View style={styles.formSection}>
-            {/* Error message */}
+          {/* form */}
+          <View style={styles.form}>
             {errorMsg ? (
-              <View style={styles.errorContainer}>
+              <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
             ) : null}
 
-            {/* Email input */}
+            {/* email */}
             <View style={styles.inputRow}>
-              <Mail size={20} color="#666666" style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor="#666666"
+                placeholderTextColor="#666"
                 value={email}
                 onChangeText={(t) => { setEmail(t); setErrorMsg(''); }}
                 keyboardType="email-address"
@@ -132,13 +133,13 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Password input */}
+            {/* password */}
             <View style={styles.inputRow}>
-              <Lock size={20} color="#666666" style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor="#666666"
+                placeholderTextColor="#666"
                 value={password}
                 onChangeText={(t) => { setPassword(t); setErrorMsg(''); }}
                 secureTextEntry={!showPassword}
@@ -149,242 +150,208 @@ export default function LoginScreen() {
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                {showPassword ? (
-                  <EyeOff size={20} color="#666666" />
-                ) : (
-                  <Eye size={20} color="#666666" />
-                )}
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#666"
+                />
               </TouchableOpacity>
             </View>
 
-            {/* Enter button */}
+            {/* enter button */}
             <TouchableOpacity
               style={[styles.enterBtn, isLoading && styles.enterBtnDisabled]}
               onPress={handleLogin}
               disabled={isLoading}
-              activeOpacity={0.8}>
+              activeOpacity={0.85}>
               {isLoading ? (
-                <ActivityIndicator size="small" color="#000000" />
+                <ActivityIndicator size="small" color="#000" />
               ) : (
                 <Text style={styles.enterBtnText}>Enter</Text>
               )}
             </TouchableOpacity>
 
-            {/* Social login row */}
+            {/* social row */}
             <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleLogin} activeOpacity={0.7}>
-                <Text style={styles.socialBtnIcon}>G</Text>
-                <Text style={styles.socialBtnText}>Google</Text>
+              <TouchableOpacity
+                style={styles.socialBtn}
+                activeOpacity={0.7}
+                onPress={() => Alert.alert('Google Sign-In', 'Google authentication coming soon.', [{ text: 'OK' }])}>
+                <Text style={styles.socialIcon}>G</Text>
+                <Text style={styles.socialLabel}>Google</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialBtn} onPress={handleMetaLogin} activeOpacity={0.7}>
-                <Text style={styles.socialBtnIcon}>{String.fromCodePoint(8734)}</Text>
-                <Text style={styles.socialBtnText}>Meta</Text>
+              <TouchableOpacity
+                style={styles.socialBtn}
+                activeOpacity={0.7}
+                onPress={() => Alert.alert('Meta Sign-In', 'Meta authentication coming soon.', [{ text: 'OK' }])}>
+                <Ionicons name="infinite-outline" size={18} color="#fff" />
+                <Text style={styles.socialLabel}>Meta</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Forgot password */}
+            {/* links */}
             <TouchableOpacity
               style={styles.forgotBtn}
               onPress={() => router.push('/auth/forgot-password')}>
               <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            {/* Sign up */}
             <View style={styles.signUpRow}>
-              <Text style={styles.signUpLabel}>Don't have an account? </Text>
+              <Text style={styles.signUpGray}>Don't have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/auth/register')}>
-                <Text style={styles.signUpLink}>Sign Up</Text>
+                <Text style={styles.signUpBold}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── splash overlay ── */}
+      {!splashDone && (
+        <Animated.View
+          style={[styles.splashOverlay, { transform: [{ translateY: splashY }] }]}
+          pointerEvents="none">
+          <Image
+            source={require('@/assets/branding/zown-logo-512.png')}
+            style={styles.splashLogo}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      )}
     </View>
   );
 }
 
-const HEADER_HEIGHT = height * 0.30;
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
-  },
+  root: { flex: 1, backgroundColor: '#000' },
+  flex: { flex: 1 },
+  scroll: { flexGrow: 1 },
 
-  /* ── Header / diagonal ── */
-  headerSection: {
-    height: HEADER_HEIGHT,
+  /* diagonal header */
+  diagonalWrap: {
+    height: DIAGONAL_HEIGHT,
     position: 'relative',
     overflow: 'hidden',
   },
-  whiteDiagonal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: HEADER_HEIGHT + 60,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
+  whiteBlock: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFF',
   },
-  diagonalInner: {
+  blackCut: {
     position: 'absolute',
-    bottom: -30,
-    left: -20,
-    right: -20,
-    height: 80,
-    backgroundColor: '#000000',
-    transform: [{ skewY: '-6deg' }],
-  },
-  logoContainer: {
-    position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    bottom: -40,
+    left: -30,
+    right: -30,
+    height: 100,
+    backgroundColor: '#000',
+    transform: [{ skewY: '-8deg' }],
   },
   logo: {
-    width: 56,
-    height: 56,
+    position: 'absolute',
+    top: 48,
+    left: 28,
+    width: 100,
+    height: 100,
   },
 
-  /* ── Tagline ── */
-  taglineSection: {
-    paddingTop: 32,
-    paddingBottom: 24,
-    alignItems: 'center',
+  /* tagline */
+  taglineWrap: {
+    paddingLeft: 28,
+    paddingTop: 16,
+    marginBottom: 28,
   },
-  tagline: {
-    fontSize: 28,
+  tagline1: {
+    fontSize: 30,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 4,
-    textAlign: 'center',
+    color: '#FFF',
+    letterSpacing: 3,
+    lineHeight: 34,
+  },
+  tagline2: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: 3,
+    lineHeight: 34,
   },
 
-  /* ── Form ── */
-  formSection: {
-    paddingHorizontal: 32,
-    paddingBottom: 40,
+  /* form */
+  form: { paddingHorizontal: 28 },
+  errorBox: {
+    backgroundColor: 'rgba(255,22,84,0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
   },
-  errorContainer: {
-    backgroundColor: 'rgba(255, 22, 84, 0.15)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#FF1654',
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  errorText: { color: '#FF1654', fontSize: 13, textAlign: 'center' },
+
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-    marginBottom: 24,
-    paddingBottom: 8,
+    borderBottomColor: '#333',
+    marginBottom: 18,
+    paddingBottom: 6,
   },
-  inputIcon: {
-    marginRight: 12,
-  },
+  inputIcon: { marginRight: 10 },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#FFFFFF',
-    paddingVertical: 8,
-  },
-  eyeBtn: {
-    padding: 4,
+    fontSize: 15,
+    color: '#FFF',
+    paddingVertical: 6,
   },
 
-  /* ── Enter button ── */
+  /* enter */
   enterBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    paddingVertical: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 25,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-    minHeight: 56,
+    marginTop: 20,
+    marginBottom: 18,
   },
-  enterBtnDisabled: {
-    opacity: 0.7,
-  },
-  enterBtnText: {
-    color: '#000000',
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+  enterBtnDisabled: { opacity: 0.65 },
+  enterBtnText: { color: '#000', fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
 
-  /* ── Social buttons ── */
+  /* social */
   socialRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 22,
   },
   socialBtn: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    paddingVertical: 14,
-    gap: 8,
+    borderRadius: 20,
+    height: 40,
+    paddingHorizontal: 24,
+    gap: 6,
   },
-  socialBtnIcon: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  socialBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  socialIcon: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  socialLabel: { fontSize: 14, fontWeight: '600', color: '#FFF' },
 
-  /* ── Footer links ── */
-  forgotBtn: {
+  /* links */
+  forgotBtn: { alignItems: 'center', marginBottom: 14 },
+  forgotText: { color: '#888', fontSize: 13 },
+  signUpRow: { flexDirection: 'row', justifyContent: 'center' },
+  signUpGray: { color: '#888', fontSize: 13 },
+  signUpBold: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+
+  /* splash overlay */
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFF',
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  forgotText: {
-    color: '#AAAAAA',
-    fontSize: 14,
-  },
-  signUpRow: {
-    flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
+    zIndex: 100,
   },
-  signUpLabel: {
-    color: '#AAAAAA',
-    fontSize: 14,
-  },
-  signUpLink: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+  splashLogo: {
+    width: width * 0.35,
+    height: width * 0.35,
   },
 });
