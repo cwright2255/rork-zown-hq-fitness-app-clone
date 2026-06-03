@@ -1,206 +1,380 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  Pressable,
   Image,
-  TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft } from 'lucide-react-native';
-import { useExerciseStore } from '@/store/exerciseStore';
-import { fetchExerciseById } from '@/services/exerciseDbService';
-import {
-  getWorkoutVisualizeUrl,
-  normalizeMuscleNames,
-} from '@/services/muscleVisualizerService';
-import { tokens } from '../../../theme/tokens';
+import { Ionicons } from '@expo/vector-icons';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
+/* ── Placeholder exercise data ── */
+// TODO: Connect to real workout API / exerciseStore
+
+const PLACEHOLDER_EXERCISES = [
+  { id: 'e1', name: 'Jumping Jack', duration: '0:50', completed: true },
+  { id: 'e2', name: 'High Knees', duration: '1:00', completed: true },
+  { id: 'e3', name: 'Push Ups', duration: '0:45', completed: false },
+  { id: 'e4', name: 'Squats', duration: '1:00', completed: false },
+  { id: 'e5', name: 'Plank', duration: '0:30', completed: false },
+];
+
+const COMPLETED_COUNT = PLACEHOLDER_EXERCISES.filter((e) => e.completed).length;
+const TOTAL_COUNT = 28; // Total moves in the full workout
+
+/* ── Exercise row ── */
+
+function ExerciseRow({ exercise }) {
+  return (
+    <Pressable style={styles.exerciseRow}>
+      {/* Completion indicator */}
+      <View style={styles.exerciseCheck}>
+        {exercise.completed ? (
+          <Ionicons name="checkmark-circle" size={24} color="#22C55E" />
+        ) : (
+          <Ionicons name="ellipse-outline" size={24} color="#D1D5DB" />
+        )}
+      </View>
+
+      {/* Thumbnail */}
+      <View style={styles.exerciseThumb}>
+        <Ionicons name="body-outline" size={22} color="#999" />
+      </View>
+
+      {/* Name + duration */}
+      <View style={styles.exerciseInfo}>
+        <Text style={styles.exerciseName}>{exercise.name}</Text>
+        <Text style={styles.exerciseDuration}>{exercise.duration}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/* ── Main screen ── */
 
 export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
-  const { exercises } = useExerciseStore();
-  const [exercise, setExercise] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [bookmarked, setBookmarked] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const cached = exercises?.find((e) => String(e.id) === id);
-        if (cached) {
-          if (mounted) { setExercise(cached); setLoading(false); }
-          return;
-        }
-        const fetched = await fetchExerciseById(id);
-        if (mounted) { setExercise(fetched); setLoading(false); }
-      } catch {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
-    return () => { mounted = false; };
-  }, [id]);
+  const progressPercent = (COMPLETED_COUNT / TOTAL_COUNT) * 100;
 
-  const muscleNames = exercise
-    ? normalizeMuscleNames((exercise.primaryMuscles || []).map((m) => m.name))
-    : [];
-  const muscleUrl = muscleNames.length > 0 ? getWorkoutVisualizeUrl(muscleNames) : null;
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={tokens.colors.brand.base} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!exercise) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.center}>
-          <Text style={styles.errorText}>Exercise not found</Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
-            <Text style={styles.backBtnText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const equipment = (exercise.equipments || []).map((e) => e.name).join(', ') || 'Bodyweight';
-  const primaryMuscles = (exercise.primaryMuscles || []).map((m) => m.name).join(', ');
-  const secondaryMuscles = (exercise.secondaryMuscles || []).map((m) => m.name).join(', ');
-  const instructions = exercise.instructions || [];
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/workouts');
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header with back button */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.headerBack} hitSlop={8}>
-            <ChevronLeft size={24} color={tokens.colors.dark_navy.text_primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>{exercise.name}</Text>
-          <View style={{ width: 40 }} />
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Hero image section ── */}
+        <View style={styles.hero}>
+          <Ionicons name="barbell-outline" size={60} color="#999" />
+
+          {/* Overlay gradient */}
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroTitle}>Meet the Basics</Text>
+            <Text style={styles.heroSubtitle}>50 minutes \u2022 2 Stages</Text>
+          </View>
+
+          {/* Back button */}
+          <Pressable style={styles.backBtn} onPress={handleBack}>
+            <Ionicons name="chevron-back" size={20} color="#000" />
+          </Pressable>
+
+          {/* Top-right actions */}
+          <View style={styles.topRightActions}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => setBookmarked(!bookmarked)}
+            >
+              <Ionicons
+                name={bookmarked ? 'bookmark' : 'bookmark-outline'}
+                size={18}
+                color="#000"
+              />
+            </Pressable>
+            <Pressable style={styles.actionBtn}>
+              <Ionicons name="ellipsis-horizontal" size={18} color="#000" />
+            </Pressable>
+          </View>
         </View>
 
-        {/* Exercise GIF */}
-        {exercise.gifUrl ? (
-          <View style={styles.gifContainer}>
-            <Image source={{ uri: exercise.gifUrl }} style={styles.gif} resizeMode="contain" />
+        {/* ── Progress section ── */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressLabel}>Progress</Text>
+            <Text style={styles.progressCount}>
+              {COMPLETED_COUNT}/{TOTAL_COUNT} moves
+            </Text>
           </View>
-        ) : null}
-
-        {/* Info Cards */}
-        <View style={styles.infoRow}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Equipment</Text>
-            <Text style={styles.infoValue}>{equipment}</Text>
-          </View>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Body Part</Text>
-            <Text style={styles.infoValue}>{exercise.bodyPart || 'N/A'}</Text>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[styles.progressBarFill, { width: progressPercent + '%' }]}
+            />
           </View>
         </View>
 
-        {/* Target Muscles */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Target Muscles</Text>
-          <View style={styles.muscleRow}>
-            {primaryMuscles ? (
-              <View style={styles.muscleBadge}>
-                <Text style={styles.muscleBadgeText}>{primaryMuscles}</Text>
-              </View>
-            ) : null}
-          </View>
-          {secondaryMuscles ? (
-            <>
-              <Text style={styles.secondaryLabel}>Secondary</Text>
-              <View style={styles.muscleRow}>
-                <View style={[styles.muscleBadge, styles.secondaryBadge]}>
-                  <Text style={styles.secondaryBadgeText}>{secondaryMuscles}</Text>
-                </View>
-              </View>
-            </>
-          ) : null}
+        {/* ── Description ── */}
+        <View style={styles.descriptionSection}>
+          <Text style={styles.descriptionText}>
+            This exercise is where your healthy habits begin! It starts off with
+            a warm up and then takes you through 3 sets of bodyweight exercises
+            designed to build your foundation. Perfect for beginners or as a
+            recovery day workout.
+          </Text>
+          <Pressable>
+            <Text style={styles.seeAll}>See All</Text>
+          </Pressable>
         </View>
 
-        {/* Muscle Visualization */}
-        {muscleUrl ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Muscle Map</Text>
-            <Image source={{ uri: muscleUrl }} style={styles.muscleImage} resizeMode="contain" />
+        {/* ── Stage header ── */}
+        <View style={styles.stageHeader}>
+          <View style={styles.stageHeaderLeft}>
+            <Text style={styles.stageTitle}>Stage 1: Start Habits</Text>
+            <Text style={styles.stageSubtitle}>30 moves, 25 minutes</Text>
           </View>
-        ) : null}
+          <Ionicons name="lock-closed-outline" size={20} color="#999" />
+        </View>
 
-        {/* Instructions */}
-        {instructions.length > 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Instructions</Text>
-            {instructions.map((step, i) => (
-              <View key={i} style={styles.stepRow}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>{i + 1}</Text>
-                </View>
-                <Text style={styles.stepText}>{step}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {/* Start Workout Button */}
-        <TouchableOpacity
-          style={styles.startBtn}
-          onPress={() => router.push({ pathname: '/workout/active', params: { exerciseId: id } })}>
-          <Text style={styles.startBtnText}>Start Workout</Text>
-        </TouchableOpacity>
-
-        <View style={{ height: 100 }} />
+        {/* ── Exercise list ── */}
+        {PLACEHOLDER_EXERCISES.map((exercise) => (
+          <ExerciseRow key={exercise.id} exercise={exercise} />
+        ))}
       </ScrollView>
-    </SafeAreaView>
+
+      {/* ── Bottom CTA ── */}
+      <SafeAreaView edges={['bottom']} style={styles.ctaWrapper}>
+        <Pressable
+          style={styles.ctaButton}
+          onPress={() => {
+            // TODO: navigate to active workout screen
+            router.push('/workout/active');
+          }}
+        >
+          <Text style={styles.ctaText}>Continue Exercise</Text>
+          <Ionicons
+            name="play-circle-outline"
+            size={22}
+            color="#FFF"
+            style={{ marginLeft: 8 }}
+          />
+        </Pressable>
+      </SafeAreaView>
+    </View>
   );
 }
 
+/* ── Styles ── */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.bg_primary },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: tokens.spacing.xl },
-  errorText: { fontSize: 16, color: tokens.colors.red.base, marginBottom: tokens.spacing.md },
-  backBtn: { backgroundColor: tokens.colors.brand.base, paddingHorizontal: tokens.spacing.lg, paddingVertical: tokens.spacing.sm, borderRadius: tokens.radius.md },
-  backBtnText: { color: tokens.colors.dark_navy.text_primary, fontWeight: '600' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.md },
-  headerBack: { width: 40, height: 40, borderRadius: tokens.radius.md, backgroundColor: tokens.colors.dark_navy.bg_card, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, textAlign: 'center' },
-  gifContainer: { marginHorizontal: tokens.spacing.md, borderRadius: tokens.radius.lg, overflow: 'hidden', backgroundColor: tokens.colors.dark_navy.bg_card, marginBottom: tokens.spacing.md },
-  gif: { width: '100%', height: 280 },
-  infoRow: { flexDirection: 'row', paddingHorizontal: tokens.spacing.md, gap: tokens.spacing.sm, marginBottom: tokens.spacing.md },
-  infoCard: { flex: 1, backgroundColor: tokens.colors.dark_navy.bg_card, borderRadius: tokens.radius.lg, padding: tokens.spacing.md, alignItems: 'center' },
-  infoLabel: { fontSize: 12, color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.xs },
-  infoValue: { fontSize: 15, fontWeight: '600', color: tokens.colors.dark_navy.text_primary, textAlign: 'center' },
-  card: { backgroundColor: tokens.colors.dark_navy.bg_card, borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginHorizontal: tokens.spacing.md, marginBottom: tokens.spacing.md },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, marginBottom: tokens.spacing.md },
-  muscleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
-  muscleBadge: { backgroundColor: tokens.colors.red.base + '20', paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.xs, borderRadius: tokens.radius.full },
-  muscleBadgeText: { fontSize: 13, fontWeight: '600', color: tokens.colors.red.base },
-  secondaryLabel: { fontSize: 13, color: tokens.colors.dark_navy.text_muted, marginTop: tokens.spacing.sm, marginBottom: tokens.spacing.xs },
-  secondaryBadge: { backgroundColor: tokens.colors.yellow.base + '20' },
-  secondaryBadgeText: { fontSize: 13, fontWeight: '600', color: tokens.colors.yellow.base },
-  muscleImage: { width: '100%', height: 200, borderRadius: tokens.radius.md },
-  stepRow: { flexDirection: 'row', marginBottom: tokens.spacing.md },
-  stepNumber: { width: 28, height: 28, borderRadius: tokens.radius.full, backgroundColor: tokens.colors.brand.base + '20', alignItems: 'center', justifyContent: 'center', marginRight: tokens.spacing.sm },
-  stepNumberText: { fontSize: 13, fontWeight: '700', color: tokens.colors.brand.base },
-  stepText: { flex: 1, fontSize: 14, color: tokens.colors.dark_navy.text_secondary, lineHeight: 20 },
-  startBtn: { backgroundColor: tokens.colors.brand.base, marginHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.md, borderRadius: tokens.radius.lg, alignItems: 'center', marginTop: tokens.spacing.sm },
-  startBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
+  /* Hero */
+  hero: {
+    height: 260,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  heroOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topRightActions: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* Progress */
+  progressSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+  progressCount: {
+    fontSize: 13,
+    color: '#666',
+  },
+  progressBarBg: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E5E5',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#000',
+  },
+
+  /* Description */
+  descriptionSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#444',
+    lineHeight: 22,
+  },
+  seeAll: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+
+  /* Stage */
+  stageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  stageHeaderLeft: {
+    flex: 1,
+  },
+  stageTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+  stageSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+
+  /* Exercise rows */
+  exerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  exerciseCheck: {
+    marginRight: 12,
+  },
+  exerciseThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  exerciseInfo: {
+    flex: 1,
+  },
+  exerciseName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+  },
+  exerciseDuration: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+
+  /* CTA */
+  ctaWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  ctaButton: {
+    backgroundColor: '#000',
+    height: 52,
+    borderRadius: 26,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  ctaText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
 });
