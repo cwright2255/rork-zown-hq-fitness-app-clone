@@ -220,6 +220,7 @@ function RootLayoutInner() {
 
   const toggleMenu = useCallback(() => setIsMenuVisible((prev) => !prev), []);
   const closeMenu = useCallback(() => setIsMenuVisible(false), []);
+  const openMenu = useCallback(() => setIsMenuVisible(true), []);
 
   return (
     <View style={styles.container}>
