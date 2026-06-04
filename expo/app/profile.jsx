@@ -1,1665 +1,337 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Platform } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Image,
+  Alert,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Settings, Award, LogOut, ChevronRight, Camera, BarChart, User, Edit, Activity, Crown } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import Card from '@/components/Card';
-import LevelProgress from '@/components/LevelProgress';
-import AchievementCard from '@/components/AchievementCard';
-import BottomNavigation from '@/components/BottomNavigation';
-import SubscriptionOverviewCard from '@/components/SubscriptionOverviewCard';
-import SubscriptionUpgradeModal from '@/components/SubscriptionUpgradeModal';
-import { useUserStore } from '@/store/userStore';
-import { useAchievementStore } from '@/store/achievementStore';
-import { useWorkoutStore } from '@/store/workoutStore';
-import { useProgressStore } from '@/store/progressStore';
-import { useExpStore } from '@/store/expStore';
-import { useBadgeStore } from '@/store/badgeStore';
-import { useChampionPassStore } from '@/store/championPassStore';
-import Input from '@/components/Input';
-import Button from '@/components/Button';
-import BadgeItem from '@/components/BadgeItem';
-import ExpBreakdownChart from '@/components/ExpBreakdownChart';
-import ExpActivityList from '@/components/ExpActivityList';
-import { tokens } from '../../theme/tokens';
-
-import { getSubscriptionPlan } from '@/constants/subscriptionPlans';
-import { authService } from '@/services/authService';
+import { Ionicons } from '@expo/vector-icons';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-export default function ProfileScreen() {
-  const { user, logout, upgradeSubscription } = useUserStore();
+/* ── Placeholder data ── */
 
+const STATS = [
+  { value: '2,450', label: 'Total XP' },
+  { value: '42', label: 'Workouts' },
+  { value: '18', label: 'Runs' },
+  { value: '7', label: 'Streak' },
+];
 
+const EARNED_BADGES = [
+  { icon: 'trophy', label: 'First Workout' },
+  { icon: 'fitness', label: '5K Runner' },
+  { icon: 'flame', label: '7-Day Streak' },
+  { icon: 'sunny', label: 'Early Bird' },
+];
 
+const LOCKED_BADGES = [
+  { icon: 'medal', label: 'Marathon' },
+  { icon: 'star', label: '100 Workouts' },
+  { icon: 'shield', label: 'Elite Level' },
+];
 
-  const { achievements, getUnlockedAchievements } = useAchievementStore();
-
-
-
-  const { completedWorkouts } = useWorkoutStore();
-
-
-  const { entries, getLatestEntry, addEntry } = useProgressStore();
-
-
-
-
-  const { expSystem, getExpBreakdown, getRecentActivities, getExpToNextLevel } = useExpStore();
-
-
-
-
-
-  const { badges, getUnlockedBadges } = useBadgeStore();
-
-
-
-  const { currentTier, getCurrentTierProgress } = useChampionPassStore();
-
-
-
-
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'progress', 'badges', 'exp'
-  const [showMeasurementForm, setShowMeasurementForm] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
-  // Progress tracking state
-  const [weight, setWeight] = useState('');
-  const [bodyFat, setBodyFat] = useState('');
-  const [measurements, setMeasurements] = useState({
-    chest: '',
-    waist: '',
-    hips: '',
-    arms: '',
-    thighs: ''
-  });
-  const [notes, setNotes] = useState('');
-  const [photoUrl, setPhotoUrl] = useState(undefined);
-
-  // Get latest entry for initial values
-  useEffect(() => {
-    const latestEntry = getLatestEntry();
-    if (latestEntry) {
-      setWeight(latestEntry.weight?.toString() || '');
-      setBodyFat(latestEntry.bodyFat?.toString() || '');
-      setMeasurements({
-        chest: latestEntry.measurements?.chest?.toString() || '',
-        waist: latestEntry.measurements?.waist?.toString() || '',
-        hips: latestEntry.measurements?.hips?.toString() || '',
-        arms: latestEntry.measurements?.arms?.toString() || '',
-        thighs: latestEntry.measurements?.thighs?.toString() || ''
-      });
-    }
-  }, [getLatestEntry]);
-
-  // Calculate XP needed for next level
-  const xpForNextLevel = useMemo(() => getExpToNextLevel(), [getExpToNextLevel]);
-
-  // Get recent achievements
-  const recentAchievements = useMemo(() =>
-  getUnlockedAchievements().slice(0, 2),
-  [getUnlockedAchievements]
-  );
-
-  // Get recent badges
-  const recentBadges = useMemo(() =>
-  getUnlockedBadges().slice(0, 4),
-  [getUnlockedBadges]
-  );
-
-  // Get EXP breakdown
-  const expBreakdown = useMemo(() => getExpBreakdown(), [getExpBreakdown]);
-
-  // Get recent activities
-  const recentActivities = useMemo(() =>
-  getRecentActivities(3),
-  [getRecentActivities]
-  );
-
-  // Stats
-  const stats = useMemo(() => [
+const MENU_GROUPS = [
   {
-    label: 'Workouts',
-    value: completedWorkouts?.length || 0
+    label: 'Activity',
+    items: [
+      { icon: 'time-outline', label: 'Workout History', route: '/workouts' },
+      { icon: 'fitness-outline', label: 'Running Log', route: '/running/program' },
+      { icon: 'trophy-outline', label: 'Personal Records', route: '/analytics' },
+    ],
   },
   {
-    label: 'Achievements',
-    value: getUnlockedAchievements().length
+    label: 'Health & Nutrition',
+    items: [
+      { icon: 'heart-outline', label: 'Health Dashboard', route: '/health' },
+      { icon: 'nutrition-outline', label: 'Meal Log', route: '/nutrition/log' },
+      { icon: 'bookmark-outline', label: 'Recipes Saved', route: '/recipes' },
+    ],
   },
   {
-    label: 'Level',
-    value: user?.level || 1
-  }],
-  [completedWorkouts, getUnlockedAchievements, user?.level]);
+    label: 'Social',
+    items: [
+      { icon: 'people-outline', label: 'Friends' },
+      { icon: 'podium-outline', label: 'Leaderboard' },
+      { icon: 'share-social-outline', label: 'Share Profile' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { icon: 'settings-outline', label: 'Settings' },
+      { icon: 'notifications-outline', label: 'Notifications' },
+      { icon: 'help-circle-outline', label: 'Help & Support' },
+      { icon: 'log-out-outline', label: 'Log Out', danger: true },
+    ],
+  },
+];
 
-  // Get subscription plan details
-  const subscriptionPlan = useMemo(() => {
-    if (!user?.subscription) return null;
-    return getSubscriptionPlan(user.subscription.tier);
-  }, [user?.subscription]);
+/* ── Menu row ── */
 
-  // Champion Pass progress
-  const championPassProgress = useMemo(() => {
-    if (!user) return 0;
-    return getCurrentTierProgress(user.exp || user.xp || 0);
-  }, [user, getCurrentTierProgress]);
-
-  const handleTakePhoto = useCallback(async () => {
-    // Request camera permissions
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Permission to access camera was denied');
+function MenuRow({ item }) {
+  const handlePress = () => {
+    if (item.danger) {
+      Alert.alert('Log Out', 'Are you sure you want to log out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: () => router.replace('/auth/login') },
+      ]);
       return;
     }
-
-    // Launch camera
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7
-    });
-
-    if (!result.canceled) {
-      setPhotoUrl(result.assets[0].uri);
+    if (item.route) {
+      router.push(item.route);
     }
-  }, []);
-
-  const handlePickPhoto = useCallback(async () => {
-    // Request media library permissions
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Permission to access media library was denied');
-      return;
-    }
-
-    // Launch image picker
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7
-    });
-
-    if (!result.canceled) {
-      setPhotoUrl(result.assets[0].uri);
-    }
-  }, []);
-
-  const handleSaveProgress = useCallback(() => {
-    // Validate inputs
-    if (!weight && !bodyFat && !photoUrl &&
-    !Object.values(measurements).some((m) => m) && !notes) {
-      Alert.alert('Error', 'Please enter at least one measurement or upload a photo');
-      return;
-    }
-
-    // Create progress entry
-    const entry = {
-      id: Date.now().toString(),
-      userId: user?.id || 'current-user',
-      date: new Date().toISOString().split('T')[0],
-      weight: weight ? parseFloat(weight) : undefined,
-      bodyFat: bodyFat ? parseFloat(bodyFat) : undefined,
-      measurements: {
-        chest: measurements.chest ? parseFloat(measurements.chest) : undefined,
-        waist: measurements.waist ? parseFloat(measurements.waist) : undefined,
-        hips: measurements.hips ? parseFloat(measurements.hips) : undefined,
-        arms: measurements.arms ? parseFloat(measurements.arms) : undefined,
-        thighs: measurements.thighs ? parseFloat(measurements.thighs) : undefined
-      },
-      photos: photoUrl ? [photoUrl] : [],
-      notes
-    };
-
-    // Add entry to store
-    addEntry(entry);
-
-    // Show success message and reset form
-    Alert.alert('Success', 'Progress saved successfully');
-    setShowMeasurementForm(false);
-  }, [weight, bodyFat, measurements, photoUrl, notes, user?.id, addEntry]);
-
-  const handleUpgrade = useCallback((tier) => {
-    upgradeSubscription(tier);
-    setShowUpgradeModal(false);
-    Alert.alert('Success', `Successfully upgraded to ${tier} tier!`);
-  }, [upgradeSubscription]);
-
-  if (!user) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
-      </View>);
-
-  }
-
-  const renderProfileTab = () =>
-  <>
-      {/* Profile Header */}
-      <View style={styles.profileHeader}>
-        <View style={styles.profileImageContainer}>
-          <Image
-          source={{
-            uri: user.profileImage || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=500'
-          }}
-          style={styles.profileImage} />
-        
-          <TouchableOpacity style={styles.cameraButton} onPress={handlePickPhoto}>
-            <Camera size={16} color={tokens.colors.grayscale.black} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.profileInfo}>
-          <View style={styles.profileNameContainer}>
-            <Text style={styles.profileName}>{user.name}</Text>
-            {subscriptionPlan &&
-          <View style={[
-          styles.tierBadge,
-          { backgroundColor: subscriptionPlan.badge.color }]
-          }>
-                <Text style={[
-            styles.tierBadgeText,
-            { color: subscriptionPlan.badge.textColor }]
-            }>
-                  {subscriptionPlan.badge.label}
-                </Text>
-              </View>
-          }
-          </View>
-          <Text style={styles.profileMemberSince}>
-            Member since {new Date(user.joinDate || Date.now()).toLocaleDateString()}
-          </Text>
-        </View>
-        
-        <TouchableOpacity
-        style={styles.settingsButton}
-        onPress={() => router.push('/profile/settings')}>
-        
-          <Settings size={20} color={tokens.colors.dark_navy.text_primary} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Level Progress with Champion Pass Integration */}
-      <Card variant="elevated" style={styles.levelProgressCard}>
-        <LevelProgress
-        level={user.level}
-        xp={user.xp || user.exp || 0}
-        xpForNextLevel={xpForNextLevel}
-        nextLevelXp={(user.level || 1) * 1000 + xpForNextLevel}
-        style={styles.levelProgressContainer} />
-      
-        
-        <View style={styles.championPassProgress}>
-          <View style={styles.championPassHeader}>
-            <Award size={16} color={tokens.colors.dark_navy.text_primary} />
-            <Text style={styles.championPassText}>Champion Pass Progress</Text>
-          </View>
-          <View style={styles.championPassBar}>
-            <View
-            style={[
-            styles.championPassFill,
-            { width: `${championPassProgress * 100}%` }]
-            } />
-          
-          </View>
-          <Text style={styles.championPassPercentage}>
-            {Math.round(championPassProgress * 100)}% Complete
-          </Text>
-        </View>
-      </Card>
-      
-      {/* Subscription Overview */}
-      {user.subscription &&
-    <SubscriptionOverviewCard
-      subscription={user.subscription}
-      onUpgradePress={() => setShowUpgradeModal(true)} />
-
-    }
-      
-      {/* Stats */}
-      <Card variant="elevated" style={styles.statsCard}>
-        <View style={styles.statsContainer}>
-          {stats.map((stat, index) =>
-        <React.Fragment key={stat.label}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-              
-              {index < stats.length - 1 &&
-          <View style={styles.statDivider} />
-          }
-            </React.Fragment>
-        )}
-        </View>
-      </Card>
-      
-      {/* Menu Items */}
-      <Card variant="elevated" style={styles.menuCard}>
-        <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => router.push('/profile/progress?tab=achievements')}>
-        
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.yellow.base}20` }]}>
-              <Award size={20} color={tokens.colors.yellow.base} />
-            </View>
-            <Text style={styles.menuItemText}>Achievements</Text>
-          </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
-        </TouchableOpacity>
-        
-        <View style={styles.menuDivider} />
-        
-        <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => router.push('/champion-pass')}>
-        
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.dark_navy.text_primary}20` }]}>
-              <Crown size={20} color={tokens.colors.dark_navy.text_primary} />
-            </View>
-            <Text style={styles.menuItemText}>Champion Pass</Text>
-          </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
-        </TouchableOpacity>
-        
-        <View style={styles.menuDivider} />
-        
-        <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => setActiveTab('exp')}>
-        
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.green.base}20` }]}>
-              <Activity size={20} color={tokens.colors.green.base} />
-            </View>
-            <Text style={styles.menuItemText}>EXP Dashboard</Text>
-          </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
-        </TouchableOpacity>
-        
-        <View style={styles.menuDivider} />
-        
-        <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => router.push('/profile/settings')}>
-        
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: `${tokens.colors.dark_navy.text_muted}20` }]}>
-              <Settings size={20} color={tokens.colors.dark_navy.text_muted} />
-            </View>
-            <Text style={styles.menuItemText}>Settings</Text>
-          </View>
-          <ChevronRight size={20} color={tokens.colors.dark_navy.text_hint} />
-        </TouchableOpacity>
-      </Card>
-      
-      {/* Recent Achievements */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Achievements</Text>
-        <TouchableOpacity
-        onPress={() => router.push('/profile/progress?tab=achievements')}
-        style={styles.seeAllButton}>
-        
-          <Text style={styles.seeAllText}>See All</Text>
-          <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
-        </TouchableOpacity>
-      </View>
-      
-      {recentAchievements.length > 0 ?
-    recentAchievements.map((achievement) =>
-    <AchievementCard
-      key={achievement.id}
-      achievement={achievement} />
-
-    ) :
-
-    <Card variant="outlined" style={styles.emptyCard}>
-          <Text style={styles.emptyText}>
-            You haven't unlocked any achievements yet. Complete workouts and track your nutrition to earn achievements.
-          </Text>
-        </Card>
-    }
-      
-      {/* Recent Badges */}
-      {recentBadges.length > 0 &&
-    <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Badges</Text>
-            <TouchableOpacity
-          onPress={() => setActiveTab('badges')}
-          style={styles.seeAllButton}>
-          
-              <Text style={styles.seeAllText}>See All</Text>
-              <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
-            </TouchableOpacity>
-          </View>
-          
-          <Card variant="elevated" style={styles.badgesCard}>
-            <View style={styles.badgesContainer}>
-              {recentBadges.map((badge) =>
-          <BadgeItem
-            key={badge.id}
-            badge={badge}
-            size="small"
-            onPress={() => Alert.alert(badge.name, badge.description)} />
-
-          )}
-            </View>
-          </Card>
-        </>
-    }
-      
-      {/* EXP Summary */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>EXP Summary</Text>
-        <TouchableOpacity
-        onPress={() => setActiveTab('exp')}
-        style={styles.seeAllButton}>
-        
-          <Text style={styles.seeAllText}>View Dashboard</Text>
-          <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
-        </TouchableOpacity>
-      </View>
-      
-      <Card variant="elevated" style={styles.expSummaryCard}>
-        <View style={styles.expSummaryHeader}>
-          <View style={styles.expSummaryHeaderLeft}>
-            <Award size={20} color={tokens.colors.dark_navy.text_primary} />
-            <Text style={styles.expSummaryTitle}>Level {user.level}</Text>
-          </View>
-          <Text style={styles.expSummaryTotal}>{(user.xp || user.exp || 0).toLocaleString()} XP</Text>
-        </View>
-        
-        <ExpActivityList
-        activities={recentActivities} />
-      
-      </Card>
-      
-      {/* Progress Tracking */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Body Measurements</Text>
-        <TouchableOpacity
-        onPress={() => setShowMeasurementForm(!showMeasurementForm)}
-        style={styles.seeAllButton}>
-        
-          <Text style={styles.seeAllText}>
-            {showMeasurementForm ? 'Hide' : 'Update'}
-          </Text>
-          <Edit size={16} color={tokens.colors.dark_navy.text_primary} />
-        </TouchableOpacity>
-      </View>
-      
-      {showMeasurementForm ?
-    <Card variant="elevated" style={styles.measurementsCard}>
-          <View style={styles.measurementRow}>
-            <Input
-          label="Weight (kg)"
-          value={weight}
-          onChangeText={setWeight}
-          placeholder="0.0"
-          keyboardType="decimal-pad"
-          containerStyle={styles.halfInput} />
-        
-            
-            <Input
-          label="Body Fat (%)"
-          value={bodyFat}
-          onChangeText={setBodyFat}
-          placeholder="0.0"
-          keyboardType="decimal-pad"
-          containerStyle={styles.halfInput} />
-        
-          </View>
-          
-          <Text style={styles.subsectionTitle}>Body Measurements (cm)</Text>
-          
-          <View style={styles.measurementRow}>
-            <Input
-          label="Chest"
-          value={measurements.chest}
-          onChangeText={(value) => setMeasurements({ ...measurements, chest: value })}
-          placeholder="0.0"
-          keyboardType="decimal-pad"
-          containerStyle={styles.halfInput} />
-        
-            
-            <Input
-          label="Waist"
-          value={measurements.waist}
-          onChangeText={(value) => setMeasurements({ ...measurements, waist: value })}
-          placeholder="0.0"
-          keyboardType="decimal-pad"
-          containerStyle={styles.halfInput} />
-        
-          </View>
-          
-          <View style={styles.measurementRow}>
-            <Input
-          label="Hips"
-          value={measurements.hips}
-          onChangeText={(value) => setMeasurements({ ...measurements, hips: value })}
-          placeholder="0.0"
-          keyboardType="decimal-pad"
-          containerStyle={styles.halfInput} />
-        
-            
-            <Input
-          label="Arms"
-          value={measurements.arms}
-          onChangeText={(value) => setMeasurements({ ...measurements, arms: value })}
-          placeholder="0.0"
-          keyboardType="decimal-pad"
-          containerStyle={styles.halfInput} />
-        
-          </View>
-          
-          <Input
-        label="Thighs"
-        value={measurements.thighs}
-        onChangeText={(value) => setMeasurements({ ...measurements, thighs: value })}
-        placeholder="0.0"
-        keyboardType="decimal-pad"
-        containerStyle={styles.halfInput} />
-      
-          
-          <Text style={styles.subsectionTitle}>Progress Photo</Text>
-          
-          {photoUrl ?
-      <View style={styles.photoContainer}>
-              <Image
-          source={{ uri: photoUrl }}
-          style={styles.photo}
-          resizeMode="cover" />
-        
-              <TouchableOpacity
-          style={styles.changePhotoButton}
-          onPress={handlePickPhoto}>
-          
-                <Text style={styles.changePhotoText}>Change Photo</Text>
-              </TouchableOpacity>
-            </View> :
-
-      <View style={styles.photoPlaceholder}>
-              <Camera size={32} color={tokens.colors.dark_navy.text_hint} />
-              <Text style={styles.photoPlaceholderText}>
-                Add a progress photo
-              </Text>
-              <View style={styles.photoButtons}>
-                {Platform.OS !== 'web' &&
-          <Button
-            title="Take Photo"
-            onPress={handleTakePhoto}
-            variant="outline"
-            style={styles.photoButton} />
-
-          }
-                <Button
-            title="Choose Photo"
-            onPress={handlePickPhoto}
-            variant="outline"
-            style={styles.photoButton} />
-          
-              </View>
-            </View>
-      }
-          
-          <Input
-        label="Notes"
-        value={notes}
-        onChangeText={setNotes}
-        placeholder="Add notes about your progress..."
-        multiline
-        numberOfLines={4}
-        textAlignVertical="top"
-        inputStyle={styles.notesInput} />
-      
-          
-          <Button
-        title="Save Progress"
-        onPress={handleSaveProgress}
-        style={styles.saveButton} />
-      
-        </Card> :
-
-    <Card variant="elevated" style={styles.progressSummaryCard}>
-          {getLatestEntry() ?
-      <View style={styles.progressSummary}>
-              <View style={styles.progressItem}>
-                <Text style={styles.progressLabel}>Weight</Text>
-                <Text style={styles.progressValue}>
-                  {getLatestEntry()?.weight ? `${getLatestEntry()?.weight} kg` : 'Not recorded'}
-                </Text>
-              </View>
-              
-              <View style={styles.progressItem}>
-                <Text style={styles.progressLabel}>Body Fat</Text>
-                <Text style={styles.progressValue}>
-                  {getLatestEntry()?.bodyFat ? `${getLatestEntry()?.bodyFat}%` : 'Not recorded'}
-                </Text>
-              </View>
-              
-              <TouchableOpacity
-          style={styles.viewHistoryButton}
-          onPress={() => setActiveTab('progress')}>
-          
-                <Text style={styles.viewHistoryText}>View History</Text>
-                <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
-              </TouchableOpacity>
-            </View> :
-
-      <View style={styles.noProgressContainer}>
-              <Text style={styles.noProgressText}>
-                No measurements recorded yet. Update your progress to track your fitness journey.
-              </Text>
-              <Button
-          title="Record Progress"
-          onPress={() => setShowMeasurementForm(true)}
-          style={styles.recordButton} />
-        
-            </View>
-      }
-        </Card>
-    }
-      
-      {/* Logout Button */}
-      <TouchableOpacity
-      style={styles.logoutButton}
-      onPress={() => {
-        Alert.alert(
-          'Logout',
-          'Are you sure you want to log out?',
-          [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Logout',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                console.log('[Profile] Starting logout process');
-
-                // Clear auth service token first
-                await authService.logout();
-
-                // Clear user store and persisted data
-                await logout();
-
-                console.log('[Profile] Logout completed, navigating to index');
-
-                // Navigate to index which will handle the redirect to start screen
-                router.replace('/');
-
-              } catch (e) {
-                console.error('[Profile] Logout error:', e);
-                // Even if there's an error, still navigate to index
-                router.replace('/');
-              }
-            }
-          }]
-
-        );
-      }}>
-      
-        <LogOut size={20} color={tokens.colors.red.base} />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </>;
-
-
-  const renderProgressTab = () =>
-  <>
-      <View style={styles.tabHeader}>
-        <Text style={styles.tabTitle}>Progress History</Text>
-        <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setActiveTab('profile')}>
-        
-          <Text style={styles.backButtonText}>Back to Profile</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {entries.length > 0 ?
-    entries.map((entry, index) =>
-    <Card key={entry.id} variant="elevated" style={styles.progressEntryCard}>
-            <View style={styles.progressEntryHeader}>
-              <Text style={styles.progressEntryDate}>
-                {new Date(entry.date).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
-          })}
-              </Text>
-              
-              {index === 0 &&
-        <View style={styles.latestBadge}>
-                  <Text style={styles.latestBadgeText}>Latest</Text>
-                </View>
-        }
-            </View>
-            
-            <View style={styles.progressEntryContent}>
-              <View style={styles.progressEntryMeasurements}>
-                {entry.weight &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Weight</Text>
-                    <Text style={styles.progressEntryValue}>{entry.weight} kg</Text>
-                  </View>
-          }
-                
-                {entry.bodyFat &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Body Fat</Text>
-                    <Text style={styles.progressEntryValue}>{entry.bodyFat}%</Text>
-                  </View>
-          }
-                
-                {entry.measurements?.chest &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Chest</Text>
-                    <Text style={styles.progressEntryValue}>{entry.measurements.chest} cm</Text>
-                  </View>
-          }
-                
-                {entry.measurements?.waist &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Waist</Text>
-                    <Text style={styles.progressEntryValue}>{entry.measurements.waist} cm</Text>
-                  </View>
-          }
-                
-                {entry.measurements?.hips &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Hips</Text>
-                    <Text style={styles.progressEntryValue}>{entry.measurements.hips} cm</Text>
-                  </View>
-          }
-                
-                {entry.measurements?.arms &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Arms</Text>
-                    <Text style={styles.progressEntryValue}>{entry.measurements.arms} cm</Text>
-                  </View>
-          }
-                
-                {entry.measurements?.thighs &&
-          <View style={styles.progressEntryItem}>
-                    <Text style={styles.progressEntryLabel}>Thighs</Text>
-                    <Text style={styles.progressEntryValue}>{entry.measurements.thighs} cm</Text>
-                  </View>
-          }
-              </View>
-              
-              {entry.photos && entry.photos.length > 0 &&
-        <Image
-          source={{ uri: entry.photos[0] }}
-          style={styles.progressEntryPhoto}
-          resizeMode="cover" />
-
-        }
-            </View>
-            
-            {entry.notes &&
-      <View style={styles.progressEntryNotes}>
-                <Text style={styles.progressEntryNotesLabel}>Notes:</Text>
-                <Text style={styles.progressEntryNotesText}>{entry.notes}</Text>
-              </View>
-      }
-          </Card>
-    ) :
-
-    <Card variant="outlined" style={styles.emptyCard}>
-          <Text style={styles.emptyText}>
-            No progress entries yet. Start tracking your fitness journey by recording your measurements.
-          </Text>
-          <Button
-        title="Record Progress"
-        onPress={() => {
-          setActiveTab('profile');
-          setShowMeasurementForm(true);
-        }}
-        style={styles.recordButton} />
-      
-        </Card>
-    }
-    </>;
-
-
-  const renderBadgesTab = () =>
-  <>
-      <View style={styles.tabHeader}>
-        <Text style={styles.tabTitle}>Badges Collection</Text>
-        <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setActiveTab('profile')}>
-        
-          <Text style={styles.backButtonText}>Back to Profile</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <Card variant="elevated" style={styles.badgesStatsCard}>
-        <View style={styles.badgesStats}>
-          <View style={styles.badgesStat}>
-            <Text style={styles.badgesStatValue}>{getUnlockedBadges().length}</Text>
-            <Text style={styles.badgesStatLabel}>Unlocked</Text>
-          </View>
-          
-          <View style={styles.badgesStatDivider} />
-          
-          <View style={styles.badgesStat}>
-            <Text style={styles.badgesStatValue}>{badges.length - getUnlockedBadges().length}</Text>
-            <Text style={styles.badgesStatLabel}>Locked</Text>
-          </View>
-          
-          <View style={styles.badgesStatDivider} />
-          
-          <View style={styles.badgesStat}>
-            <Text style={styles.badgesStatValue}>
-              {Math.round(getUnlockedBadges().length / badges.length * 100)}%
-            </Text>
-            <Text style={styles.badgesStatLabel}>Completed</Text>
-          </View>
-        </View>
-      </Card>
-      
-      <Text style={styles.badgesCategoryTitle}>Unlocked Badges</Text>
-      
-      {getUnlockedBadges().length > 0 ?
-    <Card variant="elevated" style={styles.badgesCollectionCard}>
-          <View style={styles.badgesGrid}>
-            {getUnlockedBadges().map((badge) =>
-        <BadgeItem
-          key={badge.id}
-          badge={badge}
-          onPress={() => Alert.alert(badge.name, badge.description)} />
-
-        )}
-          </View>
-        </Card> :
-
-    <Card variant="outlined" style={styles.emptyCard}>
-          <Text style={styles.emptyText}>
-            You haven't unlocked any badges yet. Complete workouts, maintain streaks, and track your progress to earn badges.
-          </Text>
-        </Card>
-    }
-      
-      <Text style={styles.badgesCategoryTitle}>Locked Badges</Text>
-      
-      {badges.filter((b) => !b.unlockedAt).length > 0 ?
-    <Card variant="elevated" style={styles.badgesCollectionCard}>
-          <View style={styles.badgesGrid}>
-            {badges.filter((b) => !b.unlockedAt).map((badge) =>
-        <BadgeItem
-          key={badge.id}
-          badge={badge}
-          onPress={() => Alert.alert(badge.name, badge.description)} />
-
-        )}
-          </View>
-        </Card> :
-
-    <Card variant="outlined" style={styles.emptyCard}>
-          <Text style={styles.emptyText}>
-            Congratulations! You've unlocked all available badges.
-          </Text>
-        </Card>
-    }
-    </>;
-
-
-  const renderExpDashboardTab = () =>
-  <>
-      <View style={styles.tabHeader}>
-        <Text style={styles.tabTitle}>EXP Dashboard</Text>
-        <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setActiveTab('profile')}>
-        
-          <Text style={styles.backButtonText}>Back to Profile</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.expHeader}>
-        <View style={styles.expHeaderContent}>
-          <Award size={28} color={tokens.colors.dark_navy.text_primary} />
-          <View style={styles.expHeaderTextContainer}>
-            <Text style={styles.expHeaderTitle}>Level {user.level}</Text>
-            <Text style={styles.expHeaderSubtitle}>{(user.xp || user.exp).toLocaleString()} XP Total</Text>
-          </View>
-        </View>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Level Progress</Text>
-        <LevelProgress
-        level={user.level}
-        xp={user.xp || user.exp || 0}
-        xpForNextLevel={xpForNextLevel}
-        nextLevelXp={(user.level || 1) * 1000 + xpForNextLevel}
-        showDetails={true}
-        style={styles.compactLevelProgress} />
-      
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>EXP Summary</Text>
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{(user.xp || user.exp || 0).toLocaleString()}</Text>
-            <Text style={styles.summaryLabel}>Total XP</Text>
-          </View>
-          
-          <View style={styles.summaryDivider} />
-          
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{user.level}</Text>
-            <Text style={styles.summaryLabel}>Current Level</Text>
-          </View>
-          
-          <View style={styles.summaryDivider} />
-          
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{xpForNextLevel.toLocaleString()}</Text>
-            <Text style={styles.summaryLabel}>XP to Next Level</Text>
-          </View>
-        </View>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>EXP Breakdown</Text>
-        <ExpBreakdownChart breakdown={expBreakdown} />
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Activities</Text>
-        <ExpActivityList activities={recentActivities} />
-      </View>
-      
-      <TouchableOpacity
-      style={styles.viewFullDashboardButton}
-      onPress={() => router.push('/exp-dashboard')}>
-      
-        <Text style={styles.viewFullDashboardText}>View Full EXP Dashboard</Text>
-        <ChevronRight size={16} color={tokens.colors.dark_navy.text_primary} />
-      </TouchableOpacity>
-    </>;
-
+    // TODO: handle screens without routes
+  };
 
   return (
-    <View style={styles.mainContainer}>
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'profile' && styles.activeTabButton]}
-          onPress={() => setActiveTab('profile')}>
-          
-          <User size={20} color={activeTab === 'profile' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
-          <Text style={[styles.tabButtonText, activeTab === 'profile' && styles.activeTabButtonText]}>
-            Profile
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'progress' && styles.activeTabButton]}
-          onPress={() => setActiveTab('progress')}>
-          
-          <BarChart size={20} color={activeTab === 'progress' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
-          <Text style={[styles.tabButtonText, activeTab === 'progress' && styles.activeTabButtonText]}>
-            Progress
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'badges' && styles.activeTabButton]}
-          onPress={() => setActiveTab('badges')}>
-          
-          <Award size={20} color={activeTab === 'badges' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
-          <Text style={[styles.tabButtonText, activeTab === 'badges' && styles.activeTabButtonText]}>
-            Badges
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'exp' && styles.activeTabButton]}
-          onPress={() => setActiveTab('exp')}>
-          
-          <Activity size={20} color={activeTab === 'exp' ? tokens.colors.dark_navy.text_primary : tokens.colors.dark_navy.text_muted} />
-          <Text style={[styles.tabButtonText, activeTab === 'exp' && styles.activeTabButtonText]}>
-            EXP
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}>
-        
-        {activeTab === 'profile' && renderProfileTab()}
-        {activeTab === 'progress' && renderProgressTab()}
-        {activeTab === 'badges' && renderBadgesTab()}
-        {activeTab === 'exp' && renderExpDashboardTab()}
-      </ScrollView>
-      
-      {/* Subscription Upgrade Modal */}
-      <SubscriptionUpgradeModal
-        visible={showUpgradeModal}
-        currentTier={user.subscription?.tier || 'free'}
-        onClose={() => setShowUpgradeModal(false)}
-        onUpgrade={handleUpgrade} />
-      
-      
-      {/* Bottom Navigation */}
-      <BottomNavigation />
-    </View>);
-
+    <Pressable style={styles.menuRow} onPress={handlePress}>
+      <Ionicons
+        name={item.icon}
+        size={20}
+        color={item.danger ? '#FF3B30' : '#000'}
+        style={styles.menuIcon}
+      />
+      <Text style={[styles.menuLabel, item.danger && { color: '#FF3B30' }]}>
+        {item.label}
+      </Text>
+      {!item.danger && (
+        <Ionicons name="chevron-forward" size={16} color="#CCC" />
+      )}
+    </Pressable>
+  );
 }
 
+/* ── Main screen ── */
+
+export default function ProfileScreen() {
+  const xpCurrent = 2450;
+  const xpTarget = 3000;
+  const xpPercent = Math.round((xpCurrent / xpTarget) * 100);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo */}
+        <View style={styles.logoRow}>
+          <Image
+            source={require('@/assets/branding/zown-logo-512.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Your Profile</Text>
+          <Pressable style={styles.settingsBtn}>
+            <Ionicons name="settings-outline" size={22} color="#000" />
+          </Pressable>
+        </View>
+
+        {/* Profile card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={40} color="#999" />
+          </View>
+          <Pressable>
+            <Text style={styles.editPhoto}>Edit Photo</Text>
+          </Pressable>
+          <Text style={styles.userName}>Carlton Wright</Text>
+          <Text style={styles.userHandle}>@carlton_w</Text>
+          <Text style={styles.memberSince}>Member since May 2026</Text>
+        </View>
+
+        {/* Stats row */}
+        <View style={styles.statsCard}>
+          {STATS.map((s) => (
+            <View key={s.label} style={styles.statItem}>
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* XP Level */}
+        <View style={styles.xpCard}>
+          <View style={styles.xpHeader}>
+            <View style={styles.xpLevelRow}>
+              <Text style={styles.xpLevel}>Level 12</Text>
+              <Ionicons name="star" size={16} color="#FFD700" />
+            </View>
+            <Text style={styles.xpCount}>{xpCurrent} / {xpTarget} XP</Text>
+          </View>
+          <View style={styles.xpBarBg}>
+            <View style={[styles.xpBarFill, { width: xpPercent + '%' }]} />
+          </View>
+          <Text style={styles.xpRemaining}>
+            {xpTarget - xpCurrent} XP to Level 13
+          </Text>
+        </View>
+
+        {/* Achievements */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Achievements</Text>
+          <Pressable>
+            <Text style={styles.viewAll}>View All</Text>
+          </Pressable>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.badgeScroll}
+        >
+          {EARNED_BADGES.map((b) => (
+            <View key={b.label} style={styles.badgeItem}>
+              <View style={styles.badgeCircleEarned}>
+                <Ionicons name={b.icon} size={22} color="#FFD700" />
+              </View>
+              <Text style={styles.badgeLabel} numberOfLines={2}>
+                {b.label}
+              </Text>
+            </View>
+          ))}
+          {LOCKED_BADGES.map((b) => (
+            <View key={b.label} style={styles.badgeItem}>
+              <View style={styles.badgeCircleLocked}>
+                <Ionicons name={b.icon} size={22} color="#CCC" />
+              </View>
+              <Text style={styles.badgeLabel} numberOfLines={2}>
+                {b.label}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Menu sections */}
+        {MENU_GROUPS.map((group) => (
+          <View key={group.label}>
+            <Text style={styles.groupLabel}>{group.label}</Text>
+            {group.items.map((item) => (
+              <MenuRow key={item.label} item={item} />
+            ))}
+          </View>
+        ))}
+
+        {/* App version */}
+        <Text style={styles.appVersion}>ZOWN HQ v1.0.0</Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+/* ── Styles ── */
+
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: tokens.colors.dark_navy.text_primary
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
+  logoRow: { alignItems: 'center', marginTop: 8, marginBottom: 12 },
+  logo: { width: 120, height: 36 },
+
+  /* Header */
+  headerRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, marginBottom: 20,
   },
-  container: {
-    flex: 1,
-    backgroundColor: tokens.colors.dark_navy.text_primary
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#000' },
+  settingsBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0F0F0',
+    justifyContent: 'center', alignItems: 'center',
   },
-  content: {
-    padding: tokens.spacing.md,
-    paddingBottom: 80 // Extra padding for bottom navigation
+
+  /* Profile card */
+  profileCard: { alignItems: 'center', marginBottom: 24 },
+  avatar: {
+    width: 100, height: 100, borderRadius: 50, backgroundColor: '#E0E0E0',
+    borderWidth: 3, borderColor: '#F0F0F0',
+    justifyContent: 'center', alignItems: 'center',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: tokens.colors.dark_navy.text_primary,
-    paddingVertical: tokens.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.dark_navy.bg_card
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: tokens.spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8
-  },
-  activeTabButton: {
-    borderBottomWidth: 2,
-    borderBottomColor: tokens.colors.dark_navy.bg_primary
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: tokens.colors.dark_navy.text_muted
-  },
-  activeTabButtonText: {
-    color: tokens.colors.dark_navy.bg_primary,
-    fontWeight: '600'
-  },
-  tabHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.md
-  },
-  tabTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  backButton: {
-    padding: tokens.spacing.sm
-  },
-  backButtonText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.lg,
-    position: 'relative'
-  },
-  profileImageContainer: {
-    position: 'relative',
-    marginRight: 16
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: tokens.colors.dark_navy.bg_primary,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: tokens.colors.dark_navy.text_primary
-  },
-  profileInfo: {
-    flex: 1
-  },
-  profileNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 12
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  tierBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: tokens.radius.md
-  },
-  tierBadgeText: {
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  profileMemberSince: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted
-  },
-  settingsButton: {
-    padding: tokens.spacing.sm
-  },
-  levelProgressCard: {
-    marginBottom: tokens.spacing.md
-  },
-  levelProgressContainer: {
-    marginBottom: tokens.spacing.md
-  },
-  championPassProgress: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: tokens.colors.dark_navy.bg_card
-  },
-  championPassHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.sm
-  },
-  championPassText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginLeft: 8
-  },
-  championPassBar: {
-    height: 6,
-    backgroundColor: `${tokens.colors.dark_navy.text_primary}20`,
-    borderRadius: 3,
-    marginBottom: 4
-  },
-  championPassFill: {
-    height: '100%',
-    backgroundColor: tokens.colors.dark_navy.bg_primary,
-    borderRadius: 3
-  },
-  championPassPercentage: {
-    fontSize: 12,
-    color: tokens.colors.dark_navy.text_muted,
-    textAlign: 'right'
-  },
+  editPhoto: { fontSize: 11, color: '#666', marginTop: 6 },
+  userName: { fontSize: 22, fontWeight: '800', color: '#000', marginTop: 10 },
+  userHandle: { fontSize: 14, color: '#999', marginTop: 2 },
+  memberSince: { fontSize: 12, color: '#999', marginTop: 4 },
+
+  /* Stats */
   statsCard: {
-    marginBottom: tokens.spacing.md
+    flexDirection: 'row', justifyContent: 'space-around',
+    marginHorizontal: 20, marginBottom: 24, paddingVertical: 16,
+    backgroundColor: '#FFF', borderRadius: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 3 },
+      default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+    }),
+  },
+  statItem: { alignItems: 'center' },
+  statValue: { fontSize: 22, fontWeight: '800', color: '#000' },
+  statLabel: { fontSize: 11, color: '#999', marginTop: 2 },
+
+  /* XP */
+  xpCard: {
+    backgroundColor: '#FFF', borderRadius: 16, padding: 16,
+    marginHorizontal: 20, marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 3 },
+      default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+    }),
+  },
+  xpHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
+  },
+  xpLevelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  xpLevel: { fontSize: 16, fontWeight: '700', color: '#000' },
+  xpCount: { fontSize: 13, color: '#666' },
+  xpBarBg: { height: 8, borderRadius: 4, backgroundColor: '#E5E5E5', overflow: 'hidden' },
+  xpBarFill: { height: 8, borderRadius: 4, backgroundColor: '#000' },
+  xpRemaining: { fontSize: 12, color: '#999', marginTop: 6 },
+
+  /* Achievements */
+  sectionRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, marginBottom: 12,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
+  viewAll: { fontSize: 13, fontWeight: '600', color: '#666' },
+  badgeScroll: { paddingLeft: 20, paddingRight: 6, marginBottom: 24 },
+  badgeItem: { width: 80, alignItems: 'center', marginRight: 14 },
+  badgeCircleEarned: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: '#000',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  badgeCircleLocked: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: '#F0F0F0',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  badgeLabel: { fontSize: 10, color: '#333', textAlign: 'center', marginTop: 6 },
+
+  /* Menu */
+  groupLabel: {
+    fontSize: 12, fontWeight: '600', color: '#999', textTransform: 'uppercase',
+    letterSpacing: 1, paddingHorizontal: 20, marginTop: 20, marginBottom: 8,
+  },
+  menuRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 20,
+    borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
+  },
+  menuIcon: { width: 30 },
+  menuLabel: { fontSize: 15, fontWeight: '500', color: '#000', flex: 1 },
+
+  /* Footer */
+  appVersion: {
+    fontSize: 11, color: '#CCC', textAlign: 'center',
+    marginTop: 24, marginBottom: 20,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 12
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 4
-  },
-  statLabel: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: tokens.colors.dark_navy.bg_card
-  },
-  menuCard: {
-    marginBottom: tokens.spacing.lg
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: tokens.spacing.md
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  menuItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: tokens.radius.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12
-  },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: tokens.colors.dark_navy.bg_card
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 12
-  },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.bg_primary,
-    marginRight: 4
-  },
-  emptyCard: {
-    padding: tokens.spacing.md,
-    marginBottom: tokens.spacing.lg,
-    alignItems: 'center'
-  },
-  emptyText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted,
-    textAlign: 'center',
-    marginBottom: tokens.spacing.md
-  },
-  recordButton: {
-    paddingHorizontal: tokens.spacing.md
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: tokens.spacing.md,
-    marginTop: 8
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: tokens.colors.red.base,
-    marginLeft: 8
-  },
-  badgesCard: {
-    marginBottom: tokens.spacing.lg
-  },
-  badgesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    padding: tokens.spacing.sm
-  },
-  measurementsCard: {
-    marginBottom: tokens.spacing.lg
-  },
-  measurementRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  halfInput: {
-    width: '48%'
-  },
-  subsectionTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: tokens.colors.dark_navy.text_muted,
-    marginTop: tokens.spacing.md,
-    marginBottom: tokens.spacing.sm
-  },
-  photoContainer: {
-    alignItems: 'center',
-    marginBottom: tokens.spacing.md
-  },
-  photo: {
-    width: 200,
-    height: 200,
-    borderRadius: tokens.radius.md,
-    marginBottom: 20
-  },
-  changePhotoButton: {
-    paddingVertical: tokens.spacing.sm,
-    paddingHorizontal: 20,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.colors.dark_navy.text_primary,
-    borderWidth: 1,
-    borderColor: tokens.colors.dark_navy.border
-  },
-  changePhotoText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  photoPlaceholder: {
-    height: 200,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.colors.dark_navy.text_primary,
-    borderWidth: 1,
-    borderColor: tokens.colors.dark_navy.border,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20
-  },
-  photoPlaceholderText: {
-    fontSize: 16,
-    color: tokens.colors.dark_navy.text_muted,
-    marginTop: 8,
-    marginBottom: tokens.spacing.md
-  },
-  photoButtons: {
-    flexDirection: 'row',
-    gap: 16
-  },
-  photoButton: {
-    minWidth: 120
-  },
-  notesInput: {
-    height: 100,
-    textAlignVertical: 'top'
-  },
-  saveButton: {
-    width: '100%',
-    marginTop: tokens.spacing.md
-  },
-  progressSummaryCard: {
-    marginBottom: tokens.spacing.lg
-  },
-  progressSummary: {
-    padding: tokens.spacing.sm
-  },
-  progressItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: tokens.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.dark_navy.bg_card
-  },
-  progressLabel: {
-    fontSize: 16,
-    color: tokens.colors.dark_navy.text_muted
-  },
-  progressValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  viewHistoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: tokens.spacing.md
-  },
-  viewHistoryText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.bg_primary,
-    marginRight: 4
-  },
-  noProgressContainer: {
-    padding: tokens.spacing.md,
-    alignItems: 'center'
-  },
-  noProgressText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted,
-    textAlign: 'center',
-    marginBottom: tokens.spacing.md
-  },
-  progressEntryCard: {
-    marginBottom: tokens.spacing.md
-  },
-  progressEntryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.dark_navy.bg_card,
-    paddingBottom: 8
-  },
-  progressEntryDate: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  latestBadge: {
-    backgroundColor: tokens.colors.dark_navy.bg_primary,
-    paddingHorizontal: 8,
-    paddingVertical: tokens.spacing.sm,
-    borderRadius: tokens.radius.sm
-  },
-  latestBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.text_primary
-  },
-  progressEntryContent: {
-    flexDirection: 'row'
-  },
-  progressEntryMeasurements: {
-    flex: 1
-  },
-  progressEntryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4
-  },
-  progressEntryLabel: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted
-  },
-  progressEntryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  progressEntryPhoto: {
-    width: 100,
-    height: 100,
-    borderRadius: tokens.radius.md,
-    marginLeft: 20
-  },
-  progressEntryNotes: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: tokens.colors.dark_navy.bg_card
-  },
-  progressEntryNotesLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.text_muted,
-    marginBottom: 4
-  },
-  progressEntryNotesText: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  badgesStatsCard: {
-    marginBottom: tokens.spacing.md
-  },
-  badgesStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  badgesStat: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 12
-  },
-  badgesStatValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 4
-  },
-  badgesStatLabel: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted
-  },
-  badgesStatDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: tokens.colors.dark_navy.bg_card
-  },
-  badgesCategoryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 12,
-    marginTop: 8
-  },
-  badgesCollectionCard: {
-    marginBottom: tokens.spacing.lg
-  },
-  badgesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    padding: tokens.spacing.sm
-  },
-  // EXP Dashboard styles
-  expHeader: {
-    backgroundColor: tokens.colors.dark_navy.text_primary,
-    padding: 20,
-    borderRadius: tokens.radius.md,
-    marginBottom: 20
-  },
-  expHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  expHeaderTextContainer: {
-    marginLeft: 12
-  },
-  expHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary
-  },
-  expHeaderSubtitle: {
-    fontSize: 14,
-    color: tokens.colors.dark_navy.text_muted
-  },
-  section: {
-    marginBottom: tokens.spacing.md
-  },
-  compactLevelProgress: {
-    height: 'auto',
-    maxHeight: 80 // Reduced height
-  },
-  summaryContainer: {
-    flexDirection: 'row',
-    backgroundColor: tokens.colors.dark_navy.text_primary,
-    borderRadius: tokens.radius.md,
-    padding: 12 // Reduced padding
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  summaryValue: {
-    fontSize: 18, // Reduced font size
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginBottom: 4
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: tokens.colors.dark_navy.text_muted,
-    textAlign: 'center'
-  },
-  summaryDivider: {
-    width: 1,
-    height: '100%',
-    backgroundColor: tokens.colors.dark_navy.bg_card,
-    marginHorizontal: 8
-  },
-  viewFullDashboardButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: tokens.spacing.md,
-    marginTop: 8,
-    marginBottom: tokens.spacing.md
-  },
-  viewFullDashboardText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginRight: 4
-  },
-  // EXP Summary Card
-  expSummaryCard: {
-    marginBottom: tokens.spacing.lg
-  },
-  expSummaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.dark_navy.bg_card
-  },
-  expSummaryHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  expSummaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary,
-    marginLeft: 8
-  },
-  expSummaryTotal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: tokens.colors.dark_navy.bg_primary
-  }
 });
