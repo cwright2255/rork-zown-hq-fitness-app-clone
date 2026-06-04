@@ -7,14 +7,16 @@ import {
   Modal,
   Platform,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import RunningMap from '@/components/RunningMap';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-// TODO: Replace map placeholder with react-native-maps MapView for real GPS tracking
-// TODO: Integrate expo-location for live position updates
+/* ── Helpers ── */
 
 function formatTimer(secs) {
   const h = Math.floor(secs / 3600);
@@ -29,6 +31,18 @@ function formatPace(distKm, secs) {
   const pm = Math.floor(paceSecsPerKm / 60);
   const ps = Math.floor(paceSecsPerKm % 60);
   return pm + "'" + String(ps).padStart(2, '0') + '"';
+}
+
+function haversineKm(a, b) {
+  const R = 6371;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const lat1 = (a.latitude * Math.PI) / 180;
+  const lat2 = (b.latitude * Math.PI) / 180;
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLon = Math.sin(dLon / 2);
+  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 /* ── Menu option ── */
@@ -47,7 +61,8 @@ function MenuOption({ icon, label, onPress, danger }) {
 export default function ActiveRunScreen() {
   const router = useRouter();
 
-  const [isRunning, setIsRunning] = useState(true);
+  /* ── Core state ── */
+  const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
   const [calories, setCalories] = useState(0);
@@ -55,15 +70,95 @@ export default function ActiveRunScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
 
-  const timerRef = useRef(null);
+  /* ── GPS state ── */
+  const [coordinates, setCoordinates] = useState([]);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
 
-  /* ── Timer + simulation ── */
+  const timerRef = useRef(null);
+  const locationSubRef = useRef(null);
+
+  /* ── Request location permission on mount ── */
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status);
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Needed',
+          'Location permission is required for GPS tracking. You can enable it in Settings.',
+        );
+      } else {
+        // Permission granted, start tracking immediately
+        setIsRunning(true);
+      }
+    })();
+    return () => {
+      // Clean up location subscription on unmount
+      if (locationSubRef.current) {
+        locationSubRef.current.remove();
+        locationSubRef.current = null;
+      }
+    };
+  }, []);
+
+  /* ── GPS tracking ── */
+  useEffect(() => {
+    if (isRunning && locationPermission === 'granted') {
+      startLocationTracking();
+    } else {
+      stopLocationTracking();
+    }
+    return () => stopLocationTracking();
+  }, [isRunning, locationPermission]);
+
+  const startLocationTracking = async () => {
+    if (locationSubRef.current) return; // already tracking
+    try {
+      locationSubRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 2000,
+          distanceInterval: 3,
+        },
+        (loc) => {
+          const { latitude, longitude } = loc.coords;
+          const newCoord = { latitude, longitude };
+
+          setCurrentLocation(newCoord);
+          setCoordinates((prev) => {
+            const updated = [...prev, newCoord];
+            // Calculate distance from last point
+            if (prev.length > 0) {
+              const lastCoord = prev[prev.length - 1];
+              const segmentKm = haversineKm(lastCoord, newCoord);
+              // Filter out GPS noise: ignore jumps > 100m in 2 seconds
+              if (segmentKm < 0.1) {
+                setDistance((d) => d + segmentKm);
+                setCalories((c) => c + segmentKm * 70);
+              }
+            }
+            return updated;
+          });
+        },
+      );
+    } catch (err) {
+      console.warn('Location tracking error:', err);
+    }
+  };
+
+  const stopLocationTracking = () => {
+    if (locationSubRef.current) {
+      locationSubRef.current.remove();
+      locationSubRef.current = null;
+    }
+  };
+
+  /* ── Elapsed time timer ── */
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
         setElapsed((e) => e + 1);
-        setDistance((d) => d + 0.003);
-        setCalories((c) => c + 0.2);
       }, 1000);
     }
     return () => {
@@ -71,6 +166,7 @@ export default function ActiveRunScreen() {
     };
   }, [isRunning]);
 
+  /* ── Controls ── */
   const handlePause = useCallback(() => {
     setIsRunning(false);
     setShowPauseOptions(true);
@@ -82,32 +178,28 @@ export default function ActiveRunScreen() {
   }, []);
 
   const handleEndRun = useCallback(() => {
+    setIsRunning(false);
     setShowPauseOptions(false);
     setShowMenu(false);
     router.replace('/workout/complete');
   }, [router]);
 
   const pace = formatPace(distance, elapsed);
+  const goalPercent = Math.min(100, Math.round((distance / 5) * 100));
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* ── Map area ── */}
+      {/* ── Map area with RunningMap component ── */}
       <View style={styles.mapArea}>
-        {/* Simulated grid lines */}
-        <View style={[styles.gridH, { top: '25%' }]} />
-        <View style={[styles.gridH, { top: '50%' }]} />
-        <View style={[styles.gridH, { top: '75%' }]} />
-        <View style={[styles.gridV, { left: '30%' }]} />
-        <View style={[styles.gridV, { left: '60%' }]} />
-
-        {/* Simulated route */}
-        <View style={styles.routeLineH} />
-        <View style={styles.routeLineV} />
-
-        {/* User location dot */}
-        <View style={styles.userDot} />
+        <RunningMap
+          coordinates={coordinates}
+          currentLocation={currentLocation}
+          distance={distance}
+          pace={pace}
+          style={styles.mapInner}
+        />
 
         {/* Header overlay */}
         <View style={styles.header}>
@@ -126,9 +218,7 @@ export default function ActiveRunScreen() {
         <View style={styles.goalRow}>
           <View style={styles.goalCircle} />
           <Text style={styles.goalText}>Distance Goal</Text>
-          <Text style={styles.goalPercent}>
-            {Math.min(100, Math.round((distance / 5) * 100))}%
-          </Text>
+          <Text style={styles.goalPercent}>{goalPercent}%</Text>
         </View>
 
         {/* Main stats 2x2 */}
@@ -164,27 +254,17 @@ export default function ActiveRunScreen() {
           <Pressable style={styles.smallBtn}>
             <Ionicons name="lock-closed-outline" size={20} color="#FFF" />
           </Pressable>
-
           <Pressable
             style={styles.mainBtn}
             onPress={isRunning ? handlePause : handleResume}
           >
-            <Ionicons
-              name={isRunning ? 'pause' : 'play'}
-              size={32}
-              color="#000"
-            />
+            <Ionicons name={isRunning ? 'pause' : 'play'} size={32} color="#000" />
           </Pressable>
-
           <Pressable
             style={styles.smallBtn}
             onPress={() => setAudioEnabled(!audioEnabled)}
           >
-            <Ionicons
-              name={audioEnabled ? 'volume-high' : 'volume-mute'}
-              size={20}
-              color="#FFF"
-            />
+            <Ionicons name={audioEnabled ? 'volume-high' : 'volume-mute'} size={20} color="#FFF" />
           </Pressable>
         </View>
 
@@ -205,22 +285,9 @@ export default function ActiveRunScreen() {
       <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
-            <MenuOption
-              icon="musical-notes-outline"
-              label="Music"
-              onPress={() => { setShowMenu(false); }}
-            />
-            <MenuOption
-              icon="pause-circle-outline"
-              label="Pause Run"
-              onPress={() => { setShowMenu(false); handlePause(); }}
-            />
-            <MenuOption
-              icon="exit-outline"
-              label="End Run"
-              danger
-              onPress={handleEndRun}
-            />
+            <MenuOption icon="musical-notes-outline" label="Music" onPress={() => setShowMenu(false)} />
+            <MenuOption icon="pause-circle-outline" label="Pause Run" onPress={() => { setShowMenu(false); handlePause(); }} />
+            <MenuOption icon="exit-outline" label="End Run" danger onPress={handleEndRun} />
           </View>
         </Pressable>
       </Modal>
@@ -236,30 +303,11 @@ const styles = StyleSheet.create({
   /* Map */
   mapArea: {
     flex: 1,
-    backgroundColor: '#1A2332',
     position: 'relative',
     overflow: 'hidden',
   },
-  gridH: {
-    position: 'absolute', left: 0, right: 0,
-    height: 1, backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  gridV: {
-    position: 'absolute', top: 0, bottom: 0,
-    width: 1, backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  routeLineH: {
-    position: 'absolute', top: '50%', left: '20%', width: '35%',
-    height: 3, backgroundColor: '#00BFFF', borderRadius: 2,
-  },
-  routeLineV: {
-    position: 'absolute', top: '35%', left: '55%',
-    width: 3, height: '15%', backgroundColor: '#00BFFF', borderRadius: 2,
-  },
-  userDot: {
-    position: 'absolute', top: '35%', left: '53%',
-    width: 16, height: 16, borderRadius: 8,
-    backgroundColor: '#4A90D9', borderWidth: 3, borderColor: '#FFF',
+  mapInner: {
+    flex: 1,
   },
   header: {
     position: 'absolute', top: 50, left: 16, right: 16,
@@ -289,13 +337,9 @@ const styles = StyleSheet.create({
   goalText: { fontSize: 14, color: '#FFF', fontWeight: '500' },
   goalPercent: { fontSize: 14, color: '#4A90D9', fontWeight: '700' },
 
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-  },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   statCell: { width: '50%', marginBottom: 16 },
-  statValue: {
-    fontSize: 42, fontWeight: '800', color: '#FFF',
-  },
+  statValue: { fontSize: 42, fontWeight: '800', color: '#FFF' },
   statLabel: { fontSize: 14, color: '#888', marginTop: 2 },
 
   /* Controls */
@@ -313,9 +357,7 @@ const styles = StyleSheet.create({
   },
 
   /* Pause options */
-  pauseOptions: {
-    gap: 12, paddingBottom: 24,
-  },
+  pauseOptions: { gap: 12, paddingBottom: 24 },
   resumeBtn: {
     backgroundColor: '#4A90D9', height: 48, borderRadius: 24,
     justifyContent: 'center', alignItems: 'center',
