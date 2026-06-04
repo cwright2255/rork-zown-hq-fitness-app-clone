@@ -6,11 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 /* ── Tab configurations ── */
 
 const HOME_TABS = [
-  { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
-  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
+  { key: 'health', label: 'Health', icon: 'heart-outline', activeIcon: 'heart', route: '/health' },
+  { key: 'calendar', label: 'Calendar', icon: 'calendar-outline', activeIcon: 'calendar', route: '/calendar' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
-  { key: 'shop', label: 'Shop', icon: 'cart-outline', activeIcon: 'cart', route: '/shop' },
-  { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
+  { key: 'recipes', label: 'Recipes', icon: 'restaurant-outline', activeIcon: 'restaurant', route: '/recipes' },
+  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
 ];
 
 const WORKOUT_TABS = [
@@ -67,10 +67,10 @@ export default function BottomNavigation() {
       if (pathname.startsWith('/badges') || pathname.startsWith('/challenges')) return 'challenges';
       if (pathname.startsWith('/analytics')) return 'analysis';
     } else {
-      if (pathname.startsWith('/workout')) return 'workouts';
+      if (pathname.startsWith('/health')) return 'health';
+      if (pathname.startsWith('/calendar')) return 'calendar';
+      if (pathname.startsWith('/recipes')) return 'recipes';
       if (pathname.startsWith('/nutrition')) return 'nutrition';
-      if (pathname.startsWith('/shop')) return 'shop';
-      if (pathname.startsWith('/profile')) return 'profile';
     }
 
     return 'home';
