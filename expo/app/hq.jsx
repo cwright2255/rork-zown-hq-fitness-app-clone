@@ -121,7 +121,7 @@ export default function HQScreen() {
   }, [todayWorkoutCals, todayRunCals]);
   const steps = useMemo(() => {
     return (storeSteps || 0).toLocaleString();
-  }, [steps_val]);
+  }, [storeSteps]);
   const xp = useMemo(() => {
     return (totalExp || 0).toLocaleString();
   }, [totalExp]);

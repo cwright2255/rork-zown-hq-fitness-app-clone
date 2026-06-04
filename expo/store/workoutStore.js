@@ -582,6 +582,76 @@ export const useWorkoutStore = create(
         }));
       },
 
+      
+      getWorkoutStreak: () => {
+        const completed = get().completedWorkouts || [];
+        if (completed.length === 0) {
+          return { current: 0, longest: 0 };
+        }
+        // Extract unique local dates (YYYY-MM-DD)
+        const dates = Array.from(new Set(
+          completed
+            .map(w => w.completedAt || w.timestamp)
+            .filter(Boolean)
+            .map(d => d.slice(0, 10))
+        )).sort();
+
+        let longest = 0;
+        let current = 0;
+        
+        // Calculate streak
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        
+        // Find if they worked out today or yesterday
+        const hasTodayOrYesterday = dates.includes(todayStr) || dates.includes(yesterdayStr);
+        
+        if (hasTodayOrYesterday) {
+          // Count backwards
+          let checkDate = dates.includes(todayStr) ? new Date() : new Date(Date.now() - 24 * 60 * 60 * 1000);
+          while (true) {
+            const checkStr = checkDate.toISOString().slice(0, 10);
+            if (dates.includes(checkStr)) {
+              current++;
+              checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
+            } else {
+              break;
+            }
+          }
+        }
+        
+        // Calculate longest streak ever
+        let tempStreak = 0;
+        let prevTime = null;
+        for (const dStr of dates) {
+          const currTime = new Date(dStr).getTime();
+          if (prevTime === null) {
+            tempStreak = 1;
+          } else {
+            const diffDays = (currTime - prevTime) / (24 * 60 * 60 * 1000);
+            if (diffDays <= 1.1) { // within ~1 day
+              tempStreak++;
+            } else if (diffDays > 1.1) {
+              tempStreak = 1;
+            }
+          }
+          if (tempStreak > longest) {
+            longest = tempStreak;
+          }
+          prevTime = currTime;
+        }
+        
+        return { current, longest: Math.max(longest, current) };
+      },
+
+      getWorkoutsByDate: (dateStr) => {
+        const completed = get().completedWorkouts || [];
+        return completed.filter(w => {
+          const date = w.completedAt || w.timestamp;
+          return date && date.startsWith(dateStr);
+        });
+      },
+
       initializeMockData: () => {
         const { runningPrograms, completedWorkouts } = get();
         if (runningPrograms.length === 0) {
