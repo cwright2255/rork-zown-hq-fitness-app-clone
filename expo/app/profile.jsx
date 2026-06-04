@@ -12,12 +12,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useUserStore } from '@/store/userStore';
+import { useExpStore } from '@/store/expStore';
+import { useWorkoutStore } from '@/store/workoutStore';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 /* ── Placeholder data ── */
 
-const STATS = [
+const STATS_LIVE = [
   { value: '2,450', label: 'Total XP' },
   { value: '42', label: 'Workouts' },
   { value: '18', label: 'Runs' },
@@ -112,6 +115,25 @@ function MenuRow({ item }) {
 /* ── Main screen ── */
 
 export default function ProfileScreen() {
+
+  const { user } = useUserStore();
+  const { totalExp } = useExpStore();
+  const { completedWorkouts } = useWorkoutStore();
+
+  const profileName = user?.name || user?.email?.split('@')[0] || 'User';
+  const profileEmail = user?.email || '';
+  const profilePhoto = user?.photoURL || null;
+  const workoutCount = completedWorkouts?.length || 0;
+  const runCount = (completedWorkouts || []).filter(w => w.category === 'running' || w.category === 'run').length;
+  const streakDays = user?.streakData?.currentStreak || 0;
+
+  const STATS_LIVE = [
+    { value: totalExp ? totalExp.toLocaleString() : '0', label: 'Total XP' },
+    { value: String(workoutCount), label: 'Workouts' },
+    { value: String(runCount), label: 'Runs' },
+    { value: String(streakDays), label: 'Streak' },
+  ];
+
   const xpCurrent = 2450;
   const xpTarget = 3000;
   const xpPercent = Math.round((xpCurrent / xpTarget) * 100);
@@ -148,14 +170,14 @@ export default function ProfileScreen() {
           <Pressable>
             <Text style={styles.editPhoto}>Edit Photo</Text>
           </Pressable>
-          <Text style={styles.userName}>Carlton Wright</Text>
+          <Text style={styles.userName}>{profileName}</Text>
           <Text style={styles.userHandle}>@carlton_w</Text>
           <Text style={styles.memberSince}>Member since May 2026</Text>
         </View>
 
         {/* Stats row */}
         <View style={styles.statsCard}>
-          {STATS.map((s) => (
+          {STATS_LIVE.map((s) => (
             <View key={s.label} style={styles.statItem}>
               <Text style={styles.statValue}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>

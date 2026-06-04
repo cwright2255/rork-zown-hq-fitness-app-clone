@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Generate level requirements
 const generateLevelRequirements = () => {
@@ -79,6 +81,41 @@ export const useExpStore = create(
 
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
+      },
+
+      /* ── Firestore sync ── */
+      loadXP: async (uid) => {
+        if (!uid) return;
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'xp'));
+          if (snap.exists()) {
+            const data = snap.data();
+            set({
+              totalExp: data.totalExp || 0,
+              level: data.level || 1,
+              expToNextLevel: data.expToNextLevel || 2250,
+              expSources: data.expSources || { workouts: 0, nutrition: 0, social: 0 },
+            });
+          }
+        } catch (e) {
+          console.warn('[expStore] loadXP error:', e?.message);
+        }
+      },
+
+      saveXP: async (uid) => {
+        if (!uid) return;
+        const s = get();
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'xp'), {
+            totalExp: s.totalExp,
+            level: s.level,
+            expToNextLevel: s.expToNextLevel,
+            expSources: s.expSources,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[expStore] saveXP error:', e?.message);
+        }
       },
 
       addExp: (amount) => {

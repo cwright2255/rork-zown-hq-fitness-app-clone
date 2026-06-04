@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Alert, Animated, 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useHealthStore } from '@/store/healthStore';
+import { useUserStore } from '@/store/userStore';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const COMPOSITION = [{label:'Muscle',pct:45,color:'#000'},{label:'Fat',pct:18.5,color:'#666'},{label:'Bone',pct:15,color:'#999'},{label:'Water',pct:21.5,color:'#CCC'}];
@@ -11,6 +13,10 @@ const MEASUREMENTS = [{l:'Chest',v:'40 in'},{l:'Waist',v:'32 in'},{l:'Hips',v:'3
 const CHANGES = [{l:'Body Fat',v:'\u2193 1.2%',good:true},{l:'Lean Mass',v:'\u2191 2 lbs',good:true},{l:'Waist',v:'\u2193 0.5 in',good:true}];
 
 export default function BodyScanScreen() {
+
+  const { saveBodyScan, bodyScan: previousScan } = useHealthStore();
+  const { user } = useUserStore();
+
   const router = useRouter();
   const [step, setStep] = useState('intro');
   const [frontPhoto, setFrontPhoto] = useState(null);
@@ -126,7 +132,9 @@ export default function BodyScanScreen() {
         </View>
 
         {/* Actions */}
-        <Pressable style={s.saveBtn} onPress={()=>{Alert.alert('Saved','Results saved to your progress.');}}><Text style={s.saveBtnText}>Save Results</Text></Pressable>
+        <Pressable style={s.saveBtn} onPress={()=>{
+                saveBodyScan({ bodyFat: 18.5, leanMass: 148, bmi: 24.2, musclePct: 45, fatPct: 18.5, bonePct: 15, waterPct: 21.5 }, user?.uid);
+                Alert.alert('Saved','Results saved to your progress.');}}><Text style={s.saveBtnText}>Save Results</Text></Pressable>
         <Pressable style={s.scanAgainBtn} onPress={()=>{setStep('intro');setFrontPhoto(null);setSidePhoto(null);setProgress(0);}}><Text style={s.scanAgainText}>Scan Again</Text></Pressable>
         <Pressable><Text style={s.shareLink}>Share Results</Text></Pressable>
       </ScrollView>

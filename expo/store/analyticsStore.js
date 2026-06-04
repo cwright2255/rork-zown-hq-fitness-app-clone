@@ -1,116 +1,57 @@
 import { create } from 'zustand';
-import { tokens } from '../../theme/tokens';
+import { useWorkoutStore } from './workoutStore';
+import { useHealthStore } from './healthStore';
+import { useExpStore } from './expStore';
 
 export const useAnalyticsStore = create(() => ({
   getAnalytics: (timeRange) => {
-    // Mock data - in a real app, this would come from your analytics service
-    const baseData = {
-      week: {
-        workoutsCompleted: 4,
-        workoutGrowth: 25,
-        caloriesBurned: 1200,
-        calorieGrowth: 15,
-        activeMinutes: 180,
-        activeGrowth: 20,
-        streakDays: 7,
-        streakGrowth: 40,
-        weeklyWorkouts: 4,
-        dailyCalories: 1800,
-        waterIntake: 6,
-        sleepHours: 7
-      },
-      month: {
-        workoutsCompleted: 18,
-        workoutGrowth: 12,
-        caloriesBurned: 5400,
-        calorieGrowth: 8,
-        activeMinutes: 720,
-        activeGrowth: 15,
-        streakDays: 12,
-        streakGrowth: 33,
-        weeklyWorkouts: 4,
-        dailyCalories: 1850,
-        waterIntake: 7,
-        sleepHours: 7
-      },
-      year: {
-        workoutsCompleted: 156,
-        workoutGrowth: 28,
-        caloriesBurned: 46800,
-        calorieGrowth: 22,
-        activeMinutes: 6240,
-        activeGrowth: 35,
-        streakDays: 45,
-        streakGrowth: 67,
-        weeklyWorkouts: 3,
-        dailyCalories: 1900,
-        waterIntake: 6,
-        sleepHours: 7
-      }
-    };
+    const { completedWorkouts } = useWorkoutStore.getState();
+    const { weight, hydration, sleep } = useHealthStore.getState();
+    const { totalExp } = useExpStore.getState();
 
-    const data = baseData[timeRange];
+    const now = Date.now();
+    const ranges = {
+      week: 7 * 24 * 60 * 60 * 1000,
+      month: 30 * 24 * 60 * 60 * 1000,
+      year: 365 * 24 * 60 * 60 * 1000,
+    };
+    const cutoff = now - (ranges[timeRange] || ranges.week);
+
+    const recentWorkouts = (completedWorkouts || []).filter(w => {
+      const d = w.completedAt || w.date;
+      return d && new Date(d).getTime() > cutoff;
+    });
+
+    const workoutsCompleted = recentWorkouts.length;
+    const caloriesBurned = recentWorkouts.reduce((s, w) => s + (w.caloriesBurned || w.calories || 0), 0);
+    const activeMinutes = recentWorkouts.reduce((s, w) => s + (w.duration || 0), 0);
+
+    // Streak: count consecutive days with workouts from today backwards
+    let streakDays = 0;
+    const dayMs = 24 * 60 * 60 * 1000;
+    for (let d = 0; d < 365; d++) {
+      const dayStart = new Date(now - d * dayMs).toISOString().slice(0, 10);
+      const hasWorkout = (completedWorkouts || []).some(w => {
+        const wd = w.completedAt || w.date;
+        return wd && wd.startsWith(dayStart);
+      });
+      if (hasWorkout) streakDays++;
+      else if (d > 0) break;
+    }
 
     return {
-      ...data,
-      activityBreakdown: [
-      {
-        name: 'Strength Training',
-        percentage: 45,
-        time: 324,
-        color: tokens.colors.brand.lighter
-      },
-      {
-        name: 'Cardio',
-        percentage: 30,
-        time: 216,
-        color: tokens.colors.green.base
-      },
-      {
-        name: 'Yoga',
-        percentage: 15,
-        time: 108,
-        color: tokens.colors.primary.base
-      },
-      {
-        name: 'Flexibility',
-        percentage: 10,
-        time: 72,
-        color: tokens.colors.orange.light
-      }],
-
-      weeklyTrends: [
-      { day: 'Mon', value: 45 },
-      { day: 'Tue', value: 52 },
-      { day: 'Wed', value: 38 },
-      { day: 'Thu', value: 61 },
-      { day: 'Fri', value: 55 },
-      { day: 'Sat', value: 67 },
-      { day: 'Sun', value: 43 }],
-
-      recentAchievements: [
-      {
-        title: 'Workout Streak Master',
-        icon: 'ð¥',
-        date: '2 days ago'
-      },
-      {
-        title: 'Calorie Crusher',
-        icon: 'ðª',
-        date: '5 days ago'
-      },
-      {
-        title: 'Early Bird',
-        icon: 'ð',
-        date: '1 week ago'
-      }],
-
-      insights: [
-      'Your workout consistency has improved by 25% this month',
-      'You burn the most calories during strength training sessions',
-      'Your best workout days are Tuesday and Saturday',
-      'Consider adding more flexibility work to your routine']
-
+      workoutsCompleted,
+      workoutGrowth: 0,
+      caloriesBurned,
+      calorieGrowth: 0,
+      activeMinutes,
+      activeGrowth: 0,
+      streakDays,
+      streakGrowth: 0,
+      weeklyWorkouts: workoutsCompleted,
+      dailyCalories: workoutsCompleted > 0 ? Math.round(caloriesBurned / Math.max(1, Math.ceil((now - cutoff) / dayMs))) : 0,
+      waterIntake: hydration?.glasses || 0,
+      sleepHours: sleep?.hours || 0,
     };
-  }
+  },
 }));

@@ -47,11 +47,16 @@ const Head = ({ children }) => null;
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
+import { useExpStore } from '@/store/expStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useHealthStore } from '@/store/healthStore';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { auth, isFirebaseConfigured } from '../src/config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import Constants from 'expo-constants';
 import { ROOK_CONFIG } from '../src/services/wearables';
 
@@ -98,6 +103,38 @@ function RootLayoutInner() {
   const { isOnboarded } = useUserStore();
   const { cart } = useShopStore();
   const { connectSpotify, connectSpotifyImplicit } = useSpotifyStore();
+
+  const { loadProfile, saveProfile } = useUserStore();
+  const { loadXP } = useExpStore();
+  const { loadWorkouts } = useWorkoutStore();
+  const { loadAllHealth } = useHealthStore();
+  const [storesReady, setStoresReady] = useState(false);
+
+  // Initialize all stores when Firebase auth resolves
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setStoresReady(true);
+      return;
+    }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const uid = firebaseUser.uid;
+        try {
+          await Promise.all([
+            loadProfile(uid),
+            loadXP(uid),
+            loadWorkouts(uid),
+            loadAllHealth(uid),
+          ]);
+        } catch (e) {
+          console.warn('[Layout] Store init error:', e?.message);
+        }
+      }
+      setStoresReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   const cartItemCount = useMemo(() => cart.reduce((total, item) => total + item.quantity, 0), [cart]);
 

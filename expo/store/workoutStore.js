@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { optimizeArrayForPerformance } from '@/utils/storeOptimizations';
 
 // Mock completed workouts data
@@ -372,6 +374,36 @@ export const useWorkoutStore = create(
       virtualRaces: [],
       runningBuddy: null,
       isLoading: false,
+
+      /* ── Firestore sync ── */
+      loadWorkouts: async (uid) => {
+        if (!uid) return;
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'workouts'));
+          if (snap.exists()) {
+            const data = snap.data();
+            set({
+              completedWorkouts: data.completedWorkouts || [],
+            });
+          }
+        } catch (e) {
+          console.warn('[workoutStore] loadWorkouts error:', e?.message);
+        }
+      },
+
+      saveWorkouts: async (uid) => {
+        if (!uid) return;
+        const s = get();
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'workouts'), {
+            completedWorkouts: (s.completedWorkouts || []).slice(-100),
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[workoutStore] saveWorkouts error:', e?.message);
+        }
+      },
+
 
       setWorkouts: (workouts) => set({ workouts }),
 

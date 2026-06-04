@@ -89,7 +89,7 @@ export default function HQScreen() {
   const { totalExp, level } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Carlton';
+  const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
   const now = new Date();
   const dayName = DAYS[now.getDay()];
@@ -97,16 +97,15 @@ export default function HQScreen() {
 
   const workoutCount = completedWorkouts?.length || 0;
   const calories = useMemo(() => {
-    if (workoutCount === 0) return '0';
-    return (workoutCount * 310.34).toFixed(2);
-  }, [workoutCount]);
+    if (!completedWorkouts?.length) return '0';
+    return completedWorkouts.reduce((sum, w) => sum + (w.caloriesBurned || w.calories || 0), 0).toLocaleString();
+  }, [completedWorkouts]);
   const steps = useMemo(() => {
-    const raw = workoutCount * 620 || 1240;
-    return raw.toLocaleString().replace(',', ' ');
-  }, [workoutCount]);
+    return '0';
+  }, []);
   const xp = useMemo(() => {
-    const val = totalExp || 1250;
-    return val.toLocaleString().replace(',', ' ');
+    const val = totalExp || 0;
+    return val.toLocaleString();
   }, [totalExp]);
 
   return (

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useHealthStore } from '@/store/healthStore';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const METRICS = [
+const METRICS_LIVE = [
   { icon: 'moon-outline', label: 'Sleep', value: '7.5h', target: 8, current: 7.5 },
   { icon: 'footsteps-outline', label: 'Steps', value: '7,200', target: 10000, current: 7200 },
   { icon: 'water-outline', label: 'Water', value: '5/8 glasses', target: 8, current: 5 },
@@ -19,6 +20,17 @@ const DEVICES = [
 ];
 
 export default function HealthScreen() {
+
+  const { hydration, sleep, steps, getLatestWeight } = useHealthStore();
+  const latestWeight = getLatestWeight();
+
+  const METRICS_LIVE = [
+    { icon: 'moon-outline', label: 'Sleep', value: sleep?.hours ? sleep.hours + 'h' : '\u2014', target: 8, current: sleep?.hours || 0 },
+    { icon: 'footsteps-outline', label: 'Steps', value: steps ? steps.toLocaleString() : '0', target: 10000, current: steps || 0 },
+    { icon: 'water-outline', label: 'Water', value: (hydration?.glasses || 0) + '/' + (hydration?.target || 8) + ' glasses', target: hydration?.target || 8, current: hydration?.glasses || 0 },
+    { icon: 'leaf-outline', label: 'Mindfulness', value: '\u2014', target: 15, current: 0 },
+  ];
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
@@ -97,8 +109,8 @@ export default function HealthScreen() {
 
         <Text style={s.sectionTitle}>Health Metrics</Text>
         <View style={s.metricsCard}>
-          {METRICS.map((m,i) => (
-            <View key={m.label} style={[s.metricRow, i === METRICS.length-1 && {borderBottomWidth:0}]}>
+          {METRICS_LIVE.map((m,i) => (
+            <View key={m.label} style={[s.metricRow, i === METRICS_LIVE.length-1 && {borderBottomWidth:0}]}>
               <Ionicons name={m.icon} size={20} color="#000" style={{width:30}} />
               <Text style={s.metricLabel}>{m.label}</Text>
               <Text style={s.metricValue}>{m.value}</Text>

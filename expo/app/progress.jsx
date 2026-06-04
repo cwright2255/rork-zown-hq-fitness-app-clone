@@ -3,13 +3,15 @@ import { router } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform , TouchableOpacity} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useHealthStore } from '@/store/healthStore';
+import { useWorkoutStore } from '@/store/workoutStore';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const WEIGHT_DATA = [
+const WEIGHT_DATA_LIVE = [
   {month:'Jan',val:185},{month:'Feb',val:183},{month:'Mar',val:181},
   {month:'Apr',val:180},{month:'May',val:178},{month:'Jun',val:177},{month:'Jul',val:175},
 ];
-const GOALS = [
+const GOALS_LIVE = [
   {title:'Lose 15 lbs',current:10,target:15,unit:'lbs lost',detail:'5 lbs to go',date:'Started Apr 1'},
   {title:'Run a Half Marathon',current:8.2,target:21.1,unit:'km longest',detail:'Target Sep 2026',date:''},
   {title:'100 Workouts',current:42,target:100,unit:'workouts',detail:'58 to go',date:''},
@@ -24,8 +26,27 @@ const MEASUREMENTS = [
 const MONTHLY = [{label:'Workouts',val:'8',diff:'+3'},{label:'Runs',val:'4',diff:'+2'},{label:'Calories',val:'12,400',diff:'+2,100'},{label:'XP',val:'1,200',diff:'+400'}];
 
 export default function ProgressScreen() {
-  const maxW = Math.max(...WEIGHT_DATA.map(d=>d.val));
-  const minW = Math.min(...WEIGHT_DATA.map(d=>d.val));
+
+  const { weight: weightHistory, goals: storeGoals, measurements: storeMeasurements, bodyScan } = useHealthStore();
+  const { completedWorkouts } = useWorkoutStore();
+
+  const hasWeightData = weightHistory && weightHistory.length > 0;
+  const WEIGHT_DATA_LIVE = hasWeightData
+    ? weightHistory.slice(-7).map(w => ({ month: new Date(w.date).toLocaleDateString('en', { month: 'short' }), val: w.value }))
+    : [];
+  const GOALS_LIVE = storeGoals && storeGoals.length > 0
+    ? storeGoals.map(g => ({
+        title: g.title,
+        current: g.current || 0,
+        target: g.target || 100,
+        unit: g.unit || '',
+        detail: g.current >= g.target ? 'Complete!' : (g.target - g.current) + ' ' + (g.unit || '') + ' to go',
+        date: g.startDate ? 'Started ' + new Date(g.startDate).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
+      }))
+    : [];
+
+  const maxW = Math.max(...WEIGHT_DATA_LIVE.map(d=>d.val));
+  const minW = Math.min(...WEIGHT_DATA_LIVE.map(d=>d.val));
   const range = maxW - minW || 1;
 
   return (
@@ -54,21 +75,21 @@ export default function ProgressScreen() {
               Latest Body Scan
             </Text>
           </View>
-          <Text style={{ fontSize: 12, color: '#999' }}>2 days ago</Text>
+          <Text style={{ fontSize: 12, color: '#999' }}>{bodyScan?.date ? new Date(bodyScan.date).toLocaleDateString() : 'No scan yet'}</Text>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 14 }}>
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: '#4CAF50' }}>18.5%</Text>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#4CAF50' }}>{bodyScan ? bodyScan.bodyFat + '%' : '\u2014'}</Text>
             <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Body Fat</Text>
           </View>
           <View style={{ width: 1, backgroundColor: '#E0E0E0' }} />
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: '#1A1A2E' }}>148 lbs</Text>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#1A1A2E' }}>{bodyScan ? bodyScan.leanMass + ' lbs' : '\u2014'}</Text>
             <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Lean Mass</Text>
           </View>
           <View style={{ width: 1, backgroundColor: '#E0E0E0' }} />
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: '#1A1A2E' }}>24.2</Text>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#1A1A2E' }}>{bodyScan ? bodyScan.bmi : '\u2014'}</Text>
             <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>BMI</Text>
           </View>
         </View>
@@ -88,7 +109,7 @@ export default function ProgressScreen() {
           <Text style={s.weightChange}>\u2193 5 lbs from start</Text>
           <Text style={s.weightGoal}>Target: 170 lbs</Text>
           <View style={s.chartArea}>
-            {WEIGHT_DATA.map((d,i)=>{
+            {WEIGHT_DATA_LIVE.map((d,i)=>{
               const h = ((maxW - d.val) / range) * 100;
               return (
                 <View key={d.month} style={s.chartCol}>
