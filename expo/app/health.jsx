@@ -52,6 +52,49 @@ export default function HealthScreen() {
         </View>
 
         {/* Health Metrics */}
+      {/* Body Composition Scan Card */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: '#F5F5F5',
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 18,
+        }}
+        onPress={() => router.push('/body-scan')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          <View style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            backgroundColor: '#E8F5E9',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+          }}>
+            <Ionicons name="body-outline" size={24} color="#4CAF50" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A1A2E', marginBottom: 2 }}>
+              Body Composition Scan
+            </Text>
+            <Text style={{ fontSize: 13, color: '#666', lineHeight: 18 }}>
+              AI-powered body analysis using your camera
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#999" />
+        </View>
+        <View style={{
+          backgroundColor: '#4CAF50',
+          borderRadius: 10,
+          paddingVertical: 10,
+          alignItems: 'center',
+        }}>
+          <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '600' }}>Scan Now</Text>
+        </View>
+      </TouchableOpacity>
+
         <Text style={s.sectionTitle}>Health Metrics</Text>
         <View style={s.metricsCard}>
           {METRICS.map((m,i) => (

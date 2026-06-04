@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
+import { router } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform , TouchableOpacity} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
@@ -34,6 +35,53 @@ export default function ProgressScreen() {
         <Text style={s.pageTitle}>Progress</Text>
 
         {/* Weight tracker */}
+
+      {/* Latest Body Scan */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: '#F5F5F5',
+          borderRadius: 16,
+          padding: 18,
+          marginBottom: 18,
+        }}
+        onPress={() => router.push('/body-scan')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="body-outline" size={20} color="#4CAF50" />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#1A1A2E', marginLeft: 8 }}>
+              Latest Body Scan
+            </Text>
+          </View>
+          <Text style={{ fontSize: 12, color: '#999' }}>2 days ago</Text>
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 14 }}>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#4CAF50' }}>18.5%</Text>
+            <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Body Fat</Text>
+          </View>
+          <View style={{ width: 1, backgroundColor: '#E0E0E0' }} />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#1A1A2E' }}>148 lbs</Text>
+            <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Lean Mass</Text>
+          </View>
+          <View style={{ width: 1, backgroundColor: '#E0E0E0' }} />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#1A1A2E' }}>24.2</Text>
+            <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>BMI</Text>
+          </View>
+        </View>
+        <View style={{
+          backgroundColor: '#4CAF50',
+          borderRadius: 10,
+          paddingVertical: 9,
+          alignItems: 'center',
+        }}>
+          <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>New Scan</Text>
+        </View>
+      </TouchableOpacity>
+
         <Text style={s.sectionTitle}>Weight</Text>
         <View style={s.card}>
           <Text style={s.weightNum}>175 lbs</Text>

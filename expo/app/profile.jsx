@@ -44,6 +44,7 @@ const MENU_GROUPS = [
       { icon: 'time-outline', label: 'Workout History', route: '/workouts' },
       { icon: 'fitness-outline', label: 'Running Log', route: '/running/program' },
       { icon: 'trophy-outline', label: 'Personal Records', route: '/analytics' },
+        { icon: 'body-outline', label: 'Body Scan', route: '/body-scan' },
     ],
   },
   {
