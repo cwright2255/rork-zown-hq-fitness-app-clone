@@ -29,6 +29,14 @@ const HEALTH_TABS = [
   { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
 ];
 
+const PROFILE_TABS = [
+  { key: 'achievements', label: 'Achievements', icon: 'trophy-outline', activeIcon: 'trophy', route: '/achievements' },
+  { key: 'battlepass', label: 'Battle Pass', icon: 'rocket-outline', activeIcon: 'rocket', route: '/battlepass' },
+  { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
+  { key: 'progress', label: 'Progress', icon: 'trending-up-outline', activeIcon: 'trending-up', route: '/progress' },
+  { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
+];
+
 function TabItem({ tab, isActive, onPress, isCenter }) {
   if (isCenter) {
     return (
@@ -72,7 +80,16 @@ export default function BottomNavigation() {
     );
   }, [pathname]);
 
-  const tabs = isWorkoutContext ? WORKOUT_TABS : isHealthContext ? HEALTH_TABS : HOME_TABS;
+  const isProfileContext = useMemo(() => {
+    return (
+      pathname.startsWith('/profile') ||
+      pathname.startsWith('/achievements') ||
+      pathname.startsWith('/battlepass') ||
+      pathname.startsWith('/progress')
+    );
+  }, [pathname]);
+
+  const tabs = isWorkoutContext ? WORKOUT_TABS : isHealthContext ? HEALTH_TABS : isProfileContext ? PROFILE_TABS : HOME_TABS;
 
   /* ── Active tab detection ── */
   const activeKey = useMemo(() => {
@@ -88,6 +105,11 @@ export default function BottomNavigation() {
       if (pathname.startsWith('/calendar')) return 'calendar';
       if (pathname.startsWith('/recipes')) return 'recipes';
       if (pathname.startsWith('/nutrition')) return 'nutrition';
+    } else if (isProfileContext) {
+      if (pathname.startsWith('/achievements')) return 'achievements';
+      if (pathname.startsWith('/battlepass')) return 'battlepass';
+      if (pathname.startsWith('/progress')) return 'progress';
+      if (pathname.startsWith('/profile')) return 'profile';
     } else {
       if (pathname.startsWith('/workout')) return 'workouts';
       if (pathname.startsWith('/nutrition')) return 'nutrition';
@@ -96,7 +118,7 @@ export default function BottomNavigation() {
     }
 
     return 'home';
-  }, [pathname, isWorkoutContext, isHealthContext]);
+  }, [pathname, isWorkoutContext, isHealthContext, isProfileContext]);
 
   const handleTabPress = useCallback(
     (route) => {
