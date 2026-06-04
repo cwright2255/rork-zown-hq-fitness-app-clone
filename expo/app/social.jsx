@@ -3,7 +3,17 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpStore } from '@/store/expStore';
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+export function ErrorBoundary({ error, retry }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 const FRIENDS = [
   { name: 'Alex R.', level: 15, xp: 12450, online: true },
@@ -71,7 +81,18 @@ export default function SocialScreen() {
         <View style={s.logoRow}>
           <Image source={require('@/assets/branding/zown-logo-512.png')} style={s.logo} resizeMode="contain" />
         </View>
-        <Text style={s.pageTitle}>Social</Text>
+        <View style={s.headerRow}>
+          <Text style={s.pageTitle}>Social</Text>
+          <View style={s.headerIcons}>
+            <Pressable style={s.iconBtn} onPress={() => { /* TODO: navigate to messages */ }}>
+              <Ionicons name="chatbubble-outline" size={18} color="#000" />
+              <View style={s.badge}><Text style={s.badgeText}>3</Text></View>
+            </Pressable>
+            <Pressable style={s.iconBtn} onPress={() => { /* TODO: navigate to add friends / search people */ }}>
+              <Ionicons name="person-add-outline" size={18} color="#000" />
+            </Pressable>
+          </View>
+        </View>
 
         {/* Friends Section */}
         <View style={s.sectionHeader}>
@@ -184,7 +205,7 @@ const s = StyleSheet.create({
   scrollContent: { paddingBottom: 100 },
   logoRow: { alignItems: 'center', marginTop: 8, marginBottom: 12 },
   logo: { width: 120, height: 36 },
-  pageTitle: { fontSize: 24, fontWeight: '800', color: '#000', paddingHorizontal: 20, marginBottom: 16 },
+  pageTitle: { fontSize: 24, fontWeight: '800', color: '#000' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 8 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
   sectionLink: { fontSize: 14, fontWeight: '600', color: '#000' },
@@ -234,4 +255,9 @@ const s = StyleSheet.create({
   communityCard: { width: 160, backgroundColor: '#F5F5F5', borderRadius: 14, padding: 14, alignItems: 'center', marginRight: 12 },
   communityName: { fontSize: 13, fontWeight: '700', color: '#000', textAlign: 'center', marginBottom: 4 },
   communityMembers: { fontSize: 12, color: '#666' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
+  headerIcons: { flexDirection: 'row', gap: 10 },
+  iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' },
+  badge: { position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: '#FF3B30', justifyContent: 'center', alignItems: 'center' },
+  badgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
 });
