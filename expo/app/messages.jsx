@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -37,7 +37,7 @@ const CONVERSATIONS = [
 ];
 
 export default function MessagesScreen() {
-  const [msgText, setMsgText] = useState('');
+
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -60,7 +60,7 @@ export default function MessagesScreen() {
       </View>
 
       {/* Stories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6,marginBottom:12}}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6,marginBottom:8}}>
         <Pressable style={{alignItems:'center',marginRight:14}}>
           <View style={s.storyAdd}><Ionicons name="add" size={24} color="#FFF" /></View>
           <Text style={s.storyName}>Add</Text>
@@ -76,7 +76,7 @@ export default function MessagesScreen() {
       </ScrollView>
 
       {/* Conversation List */}
-      <ScrollView style={s.convList} contentContainerStyle={{paddingBottom:80}}>
+      <ScrollView style={s.convList} contentContainerStyle={{paddingBottom:20}}>
         {CONVERSATIONS.map(c => (
           <Pressable key={c.id} style={s.convRow} onPress={() => router.push({ pathname: '/messages/' + c.id, params: { name: c.name } })}>
             <View style={s.convAvatar}>
@@ -94,21 +94,6 @@ export default function MessagesScreen() {
         ))}
       </ScrollView>
 
-      {/* Bottom Input */}
-      <View style={s.inputBar}>
-        <Pressable><Ionicons name="attach-outline" size={22} color="#666" /></Pressable>
-        <TextInput
-          style={s.textInput}
-          placeholder="Type message..."
-          placeholderTextColor="#999"
-          value={msgText}
-          onChangeText={setMsgText}
-        />
-        <Pressable style={{marginRight:10}}><Ionicons name="location-outline" size={22} color="#666" /></Pressable>
-        <Pressable style={s.sendBtn}>
-          <Ionicons name="send" size={16} color="#FFF" />
-        </Pressable>
-      </View>
     </SafeAreaView>
   );
 }
@@ -141,8 +126,4 @@ const s = StyleSheet.create({
   convTime: {fontSize:11,color:'#999'},
   unreadDot: {width:8,height:8,borderRadius:4,backgroundColor:'#000',marginTop:4},
 
-  /* Input Bar */
-  inputBar: {flexDirection:'row',alignItems:'center',paddingHorizontal:16,paddingVertical:10,borderTopWidth:1,borderTopColor:'#F0F0F0',backgroundColor:'#FFF'},
-  textInput: {flex:1,backgroundColor:'#F5F5F5',borderRadius:20,paddingHorizontal:14,paddingVertical:8,fontSize:14,marginHorizontal:10,color:'#000'},
-  sendBtn: {width:36,height:36,borderRadius:18,backgroundColor:'#000',justifyContent:'center',alignItems:'center'},
 });
