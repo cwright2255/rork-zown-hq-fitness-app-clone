@@ -30,7 +30,7 @@ const HEALTH_TABS = [
 ];
 
 const PROFILE_TABS = [
-  { key: 'achievements', label: 'Achievements', icon: 'trophy-outline', activeIcon: 'trophy', route: '/achievements' },
+  { key: 'social', label: 'Social', icon: 'people-outline', activeIcon: 'people', route: '/social' },
   { key: 'battlepass', label: 'Battle Pass', icon: 'rocket-outline', activeIcon: 'rocket', route: '/battlepass' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
   { key: 'progress', label: 'Progress', icon: 'trending-up-outline', activeIcon: 'trending-up', route: '/progress' },
@@ -83,6 +83,7 @@ export default function BottomNavigation() {
   const isProfileContext = useMemo(() => {
     return (
       pathname.startsWith('/profile') ||
+      pathname.startsWith('/social') ||
       pathname.startsWith('/achievements') ||
       pathname.startsWith('/battlepass') ||
       pathname.startsWith('/progress')

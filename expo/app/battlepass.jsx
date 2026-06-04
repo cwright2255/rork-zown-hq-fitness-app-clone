@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
+import React, { useState, useMemo } from 'react';
+  const [achCat, setAchCat] = useState('All');
+  const [showAllAch, setShowAllAch] = useState(false);
+
+  const filteredAch = useMemo(() => {
+    const earned = achCat === 'All' ? ACH_EARNED : ACH_EARNED.filter(a => a.cat === achCat);
+    const locked = achCat === 'All' ? ACH_LOCKED : ACH_LOCKED.filter(a => a.cat === achCat);
+    return { earned, locked };
+  }, [achCat]);
+
+  const visibleAch = showAllAch ? [...filteredAch.earned, ...filteredAch.locked] : [...filteredAch.earned, ...filteredAch.locked].slice(0, 6);
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
@@ -36,6 +46,36 @@ const WEEKLY = [
   {title:'Run 10km this week',xp:200,current:4.2,target:10,unit:'km'},
   {title:'Complete 5 workouts',xp:300,current:2,target:5},
 ];
+
+const ACH_W = (Dimensions.get('window').width - 52) / 2;
+const ACH_CATS = ['All','Workout','Running','Health','Social','Special'];
+
+const ACH_EARNED = [
+  {id:'e1',icon:'trophy',title:'First Workout',xp:100,date:'May 15',cat:'Workout'},
+  {id:'e2',icon:'fitness',title:'5K Runner',xp:200,date:'May 22',cat:'Running'},
+  {id:'e3',icon:'flame',title:'7-Day Streak',xp:300,date:'May 28',cat:'Special'},
+  {id:'e4',icon:'sunny',title:'Early Bird',xp:150,date:'May 30',cat:'Workout'},
+  {id:'e5',icon:'flash',title:'Calorie Crusher',xp:250,date:'Jun 1',cat:'Workout'},
+  {id:'e6',icon:'water',title:'Hydration Hero',xp:200,date:'Jun 1',cat:'Health'},
+  {id:'e7',icon:'barbell',title:'10 Workouts',xp:300,date:'Jun 2',cat:'Workout'},
+  {id:'e8',icon:'speedometer',title:'Speed Demon',xp:400,date:'Jun 2',cat:'Running'},
+  {id:'e9',icon:'restaurant',title:'Meal Prep Master',xp:200,date:'Jun 3',cat:'Health'},
+  {id:'e10',icon:'people',title:'Social Butterfly',xp:150,date:'Jun 3',cat:'Social'},
+  {id:'e11',icon:'moon',title:'Night Owl',xp:100,date:'Jun 3',cat:'Special'},
+  {id:'e12',icon:'calendar',title:'Weekend Warrior',xp:200,date:'Jun 3',cat:'Special'},
+];
+
+const ACH_LOCKED = [
+  {id:'l1',icon:'medal',title:'Marathon Runner',progress:'0/1',cat:'Running'},
+  {id:'l2',icon:'star',title:'Century Club',progress:'42/100',cat:'Workout'},
+  {id:'l3',icon:'flame',title:'Elite Streak',progress:'7/30',cat:'Special'},
+  {id:'l4',icon:'barbell',title:'Iron Will',progress:'0/50',cat:'Workout'},
+  {id:'l5',icon:'fitness',title:'Ultra Runner',progress:'23/100 km',cat:'Running'},
+  {id:'l6',icon:'restaurant',title:'Master Chef',progress:'5/20',cat:'Health'},
+  {id:'l7',icon:'shield',title:'Legend',progress:'Lvl 12/25',cat:'Special'},
+  {id:'l8',icon:'trophy',title:'ZOWN Champion',progress:'Need all',cat:'Special'},
+];
+
 
 function TierCard({tier}){
   const claimed = tier.status === 'claimed';
@@ -115,6 +155,48 @@ export default function BattlePassScreen(){
         {DAILY.map((m,i)=><MissionRow key={i} m={m} />)}
         <Text style={s.missionGroup}>Weekly</Text>
         {WEEKLY.map((m,i)=><MissionRow key={i} m={m} weekly />)}
+      
+        {/* Achievements Section */}
+        <View style={s.missionHeader}>
+          <Text style={s.sectionTitle}>Achievements</Text>
+          <Text style={s.resetTimer}>{ACH_EARNED.length}/{ACH_EARNED.length + ACH_LOCKED.length}</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6,marginBottom:16}}>
+          {ACH_CATS.map(c => (
+            <Pressable key={c} style={{backgroundColor: achCat === c ? '#000' : '#F0F0F0', paddingHorizontal:16, paddingVertical:8, borderRadius:20, marginRight:8}} onPress={() => setAchCat(c)}>
+              <Text style={{fontSize:13, fontWeight:'700', color: achCat === c ? '#FFF' : '#333'}}>{c}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-between',paddingHorizontal:20,marginBottom:12}}>
+          {visibleAch.map(a => {
+            const isEarned = a.xp !== undefined;
+            return (
+              <View key={a.id} style={{width:ACH_W,backgroundColor:'#FFF',borderRadius:16,padding:16,marginBottom:12,alignItems:'center',...Platform.select({ios:{shadowColor:'#000',shadowOpacity:0.04,shadowRadius:6,shadowOffset:{width:0,height:2}},android:{elevation:2},default:{}})}}>
+                <View style={{width:56,height:56,borderRadius:28,backgroundColor:isEarned?'#000':'#F0F0F0',justifyContent:'center',alignItems:'center',marginBottom:10}}>
+                  <Ionicons name={a.icon} size={28} color={isEarned ? '#FFD700' : '#CCC'} />
+                  {!isEarned && <View style={{position:'absolute',bottom:-2,right:-2,backgroundColor:'#FFF',borderRadius:8,padding:2}}><Ionicons name="lock-closed" size={12} color="#999" /></View>}
+                </View>
+                <Text style={{fontSize:13,fontWeight:'700',color:'#000',textAlign:'center',marginBottom:4}}>{a.title}</Text>
+                {isEarned ? <Text style={{fontSize:12,fontWeight:'600',color:'#22C55E'}}>+{a.xp} XP</Text> : <Text style={{fontSize:11,color:'#999'}}>{a.progress}</Text>}
+              </View>
+            );
+          })}
+        </View>
+
+        {!showAllAch && filteredAch.earned.length + filteredAch.locked.length > 6 && (
+          <Pressable style={{alignItems:'center',marginBottom:24}} onPress={() => setShowAllAch(true)}>
+            <Text style={{fontSize:14,fontWeight:'700',color:'#000'}}>View All Achievements</Text>
+          </Pressable>
+        )}
+        {showAllAch && (
+          <Pressable style={{alignItems:'center',marginBottom:24}} onPress={() => setShowAllAch(false)}>
+            <Text style={{fontSize:14,fontWeight:'700',color:'#999'}}>Show Less</Text>
+          </Pressable>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
