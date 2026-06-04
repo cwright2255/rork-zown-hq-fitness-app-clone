@@ -1,28 +1,10 @@
 import React, { useState, useMemo } from 'react';
-  const [achCat, setAchCat] = useState('All');
-  const [showAllAch, setShowAllAch] = useState(false);
-
-  const filteredAch = useMemo(() => {
-    const earned = achCat === 'All' ? ACH_EARNED : ACH_EARNED.filter(a => a.cat === achCat);
-    const locked = achCat === 'All' ? ACH_LOCKED : ACH_LOCKED.filter(a => a.cat === achCat);
-    return { earned, locked };
-  }, [achCat]);
-
-  const visibleAch = showAllAch ? [...filteredAch.earned, ...filteredAch.locked] : [...filteredAch.earned, ...filteredAch.locked].slice(0, 6);
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
+
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const TIERS = [
   {t:1,icon:'trophy',name:'Profile Badge',status:'claimed'},
@@ -121,8 +103,19 @@ function MissionRow({m,weekly}){
   );
 }
 
+
 export default function BattlePassScreen(){
   const [track,setTrack]=useState('Free');
+  const [achCat, setAchCat] = useState('All');
+  const [showAllAch, setShowAllAch] = useState(false);
+
+  const filteredAch = useMemo(() => {
+    const earned = achCat === 'All' ? ACH_EARNED : ACH_EARNED.filter(a => a.cat === achCat);
+    const locked = achCat === 'All' ? ACH_LOCKED : ACH_LOCKED.filter(a => a.cat === achCat);
+    return { earned, locked };
+  }, [achCat]);
+
+  const visibleAch = showAllAch ? [...filteredAch.earned, ...filteredAch.locked] : [...filteredAch.earned, ...filteredAch.locked].slice(0, 6);
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>

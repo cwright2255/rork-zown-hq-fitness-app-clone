@@ -3,17 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpStore } from '@/store/expStore';
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const FRIENDS = [
   { name: 'Alex R.', level: 15, xp: 12450, online: true },
