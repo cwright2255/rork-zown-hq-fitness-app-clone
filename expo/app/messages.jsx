@@ -60,7 +60,7 @@ export default function MessagesScreen() {
       </View>
 
       {/* Stories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6,marginBottom:16}}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6,marginBottom:12}}>
         <Pressable style={{alignItems:'center',marginRight:14}}>
           <View style={s.storyAdd}><Ionicons name="add" size={24} color="#FFF" /></View>
           <Text style={s.storyName}>Add</Text>
@@ -78,7 +78,7 @@ export default function MessagesScreen() {
       {/* Conversation List */}
       <ScrollView style={s.convList} contentContainerStyle={{paddingBottom:80}}>
         {CONVERSATIONS.map(c => (
-          <Pressable key={c.id} style={s.convRow} onPress={() => { /* TODO: navigate to chat */ }}>
+          <Pressable key={c.id} style={s.convRow} onPress={() => router.push({ pathname: '/messages/' + c.id, params: { name: c.name } })}>
             <View style={s.convAvatar}>
               <Ionicons name={c.isGroup ? 'people' : 'person'} size={22} color="#999" />
             </View>
