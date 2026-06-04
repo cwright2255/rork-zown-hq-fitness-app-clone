@@ -51,6 +51,8 @@ import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRecipesStore } from '@/store/recipesStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
@@ -110,6 +112,8 @@ function RootLayoutInner() {
   const { loadWorkouts } = useWorkoutStore();
   const { loadAllHealth } = useHealthStore();
   const { loadRecipes } = useRecipesStore();
+  const { loadRuns } = useRunningStore();
+  const { loadSettings } = useSettingsStore();
   const [storesReady, setStoresReady] = useState(false);
 
   // Initialize all stores when Firebase auth resolves
@@ -128,6 +132,8 @@ function RootLayoutInner() {
             loadWorkouts(uid),
             loadAllHealth(uid),
             loadRecipes(uid),
+            loadRuns(uid),
+            loadSettings(uid),
           ]);
         } catch (e) {
           console.warn('[Layout] Store init error:', e?.message);
@@ -248,7 +254,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && pathname !== '/body-scan' && !pathname.startsWith('/messages') && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && pathname !== '/body-scan' && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && <BottomNavigation />}
     </View>
   );
 }
