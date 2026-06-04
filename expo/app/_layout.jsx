@@ -50,6 +50,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useRecipesStore } from '@/store/recipesStore';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
@@ -108,6 +109,7 @@ function RootLayoutInner() {
   const { loadXP } = useExpStore();
   const { loadWorkouts } = useWorkoutStore();
   const { loadAllHealth } = useHealthStore();
+  const { loadRecipes } = useRecipesStore();
   const [storesReady, setStoresReady] = useState(false);
 
   // Initialize all stores when Firebase auth resolves
@@ -125,6 +127,7 @@ function RootLayoutInner() {
             loadXP(uid),
             loadWorkouts(uid),
             loadAllHealth(uid),
+            loadRecipes(uid),
           ]);
         } catch (e) {
           console.warn('[Layout] Store init error:', e?.message);

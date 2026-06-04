@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, Modal, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { useRecipesStore } from '@/store/recipesStore';
+import { useUserStore } from '@/store/userStore';
 
 export function ErrorBoundary({ error, retry }) {
   return (
@@ -40,7 +42,7 @@ const QUICK = [
   {id:'q5',name:'Smoothie Bowl',cal:'',time:'10 min'},
 ];
 
-const INITIAL_SAVED = [
+const DEFAULT_RECIPES = [
   { id:'s1', source:'Pinterest', color:'#E60023', title:'High Protein Overnight Oats', cal:'380 cal', time:'10 min', servings:'2 servings', url:'pinterest.com' },
   { id:'s2', source:'Instagram', color:'#C13584', title:'Post-Workout Acai Bowl', cal:'320 cal', time:'5 min', servings:'1 serving', url:'instagram.com' },
   { id:'s3', source:'allrecipes.com', color:'#333', title:'Grilled Chicken with Quinoa Salad', cal:'520 cal', time:'35 min', servings:'4 servings', url:'allrecipes.com' },
@@ -71,9 +73,9 @@ function RecipeCard({ item }) {
   );
 }
 
-function SavedCard({ item }) {
+function SavedCard({ item, onLongPress }) {
   return (
-    <Pressable style={s.savedCard}>
+    <Pressable style={s.savedCard} onLongPress={onLongPress}>
       <View style={s.savedImage}>
         <Ionicons name="restaurant-outline" size={28} color="#CCC" />
         <View style={[s.sourceBadge, { backgroundColor: item.color }]}>
@@ -94,13 +96,20 @@ function SavedCard({ item }) {
 }
 
 export default function RecipesScreen() {
+  const { savedRecipes: storeRecipes, addRecipe, removeRecipe, loadRecipes } = useRecipesStore();
+  const { user } = useUserStore();
+  const uid = user?.uid;
+
+  useEffect(() => { loadRecipes(uid); }, [uid]);
+
+  const displayRecipes = storeRecipes.length > 0 ? storeRecipes : DEFAULT_RECIPES;
+
   const [cat, setCat] = useState('All');
   const [showImportModal, setShowImportModal] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importedRecipe, setImportedRecipe] = useState(null);
   const [importError, setImportError] = useState('');
-  const [savedRecipes, setSavedRecipes] = useState(INITIAL_SAVED);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -176,17 +185,17 @@ export default function RecipesScreen() {
 
   const saveImportedRecipe = () => {
     if (!importedRecipe) return;
-    const newRecipe = {
-      id: 'imp_' + Date.now().toString(36),
+    addRecipe({
       source: importedRecipe.source,
       color: importedRecipe.color,
       title: importedRecipe.title,
+      description: importedRecipe.description || '',
+      image: importedRecipe.image || '',
       cal: importedRecipe.cal || '\u2014',
       time: importedRecipe.time || '\u2014',
       servings: importedRecipe.servings || '\u2014',
       url: importedRecipe.url,
-    };
-    setSavedRecipes(prev => [newRecipe, ...prev]);
+    }, uid);
     setShowImportModal(false);
     setImportUrl('');
     setImportedRecipe(null);
@@ -219,10 +228,15 @@ export default function RecipesScreen() {
         <SectionHeader
           title="Saved Recipes"
           onViewAll={() => {}}
-          right={<Text style={s.savedCount}>{savedRecipes.length} saved</Text>}
+          right={<Text style={s.savedCount}>{displayRecipes.length} saved</Text>}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 24 }}>
-          {savedRecipes.map(item => <SavedCard key={item.id} item={item} />)}
+          {displayRecipes.map(item => <SavedCard key={item.id} item={item} onLongPress={() => {
+            Alert.alert('Remove Recipe', 'Remove this recipe from saved?', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Remove', style: 'destructive', onPress: () => removeRecipe(item.id, uid) },
+            ]);
+          }} />)}
         </ScrollView>
 
         {/* Featured Recipe */}
