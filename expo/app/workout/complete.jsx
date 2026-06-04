@@ -9,8 +9,20 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useExpStore } from '@/store/expStore';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+export function ErrorBoundary({ error, retry }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 /* ── Placeholder data ── */
 // TODO: receive real workout results via route params or store
@@ -34,10 +46,10 @@ const REWARDS = [
 ];
 
 const SUMMARY_STATS = [
-  { label: 'Duration', value: '32 min' },
-  { label: 'Exercises Completed', value: '8/8' },
+  { label: 'Duration', value: realDuration },
+  { label: 'Exercises Completed', value: realExercises },
   { label: 'Calories Burned', value: '246 kcal' },
-  { label: 'Average Heart Rate', value: '142 bpm' },
+  { label: 'Average Heart Rate', value: '--' },
   { label: 'XP Earned', value: '+100 XP' },
 ];
 
@@ -114,6 +126,15 @@ function TabButton({ label, active, onPress }) {
 /* ── Main screen ── */
 
 export default function WorkoutCompleteScreen() {
+  const completedWorkouts = useWorkoutStore(s => s.completedWorkouts) || [];
+  const { totalExp } = useExpStore();
+  const lastWorkout = completedWorkouts.length > 0 ? completedWorkouts[completedWorkouts.length - 1] : {};
+
+  const realDuration = lastWorkout.duration ? Math.floor(lastWorkout.duration / 60) + ' min' : '0 min';
+  const realCalories = lastWorkout.caloriesBurned || 0;
+  const realXP = lastWorkout.xpEarned || 100;
+  const realExercises = (lastWorkout.exercisesCompleted || 0) + '/' + (lastWorkout.totalExercises || 0);
+
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Summary');
 

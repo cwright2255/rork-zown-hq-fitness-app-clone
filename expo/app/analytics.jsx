@@ -1,4 +1,31 @@
 import React, { useState, useMemo } from 'react';
+  const { completedWorkouts } = useWorkoutStore();
+  const { totalExp } = useExpStore();
+  const { hydration, sleep, steps: storeSteps } = useHealthStore();
+  const { runs } = useRunningStore();
+
+  const filterByPeriod = (items, period, dateKey) => {
+    const key = dateKey || 'completedAt';
+    const now = new Date();
+    return (items || []).filter(item => {
+      const d = item[key];
+      if (!d) return false;
+      const date = new Date(d);
+      if (period === 'Day') return date.toDateString() === now.toDateString();
+      if (period === 'Week') return date >= new Date(now.getTime() - 7*24*60*60*1000);
+      if (period === 'Month') return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      return true;
+    });
+  };
+
+  const filteredWorkouts = filterByPeriod(completedWorkouts || [], period);
+  const filteredRuns = filterByPeriod(runs || [], period, 'endTime');
+  const liveOverview = {
+    workouts: filteredWorkouts.length,
+    calories: (filteredWorkouts.reduce((s,w) => s+(w.caloriesBurned||w.calories||0),0) + filteredRuns.reduce((s,r) => s+(r.calories||0),0)).toLocaleString(),
+    xp: (totalExp || 0).toLocaleString(),
+  };
+
 import {
   View,
   Text,
@@ -10,6 +37,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useExpStore } from '@/store/expStore';
+import { useHealthStore } from '@/store/healthStore';
+import { useRunningStore } from '@/store/runningStore';
 
 export function ErrorBoundary({ error, retry }) {
   return (

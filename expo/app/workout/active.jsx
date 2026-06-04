@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+  const { addCompletedWorkout, saveWorkouts } = useWorkoutStore();
+  const { addExp } = useExpStore();
+  const { user } = useUserStore();
+  const workoutStartRef = useRef(new Date().toISOString());
+
 import {
   View,
   Text,
@@ -10,8 +15,21 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useExpStore } from '@/store/expStore';
+import { useUserStore } from '@/store/userStore';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+export function ErrorBoundary({ error, retry }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 /* ── Placeholder exercise data ── */
 // TODO: Connect to real workout API / exerciseStore
@@ -336,7 +354,23 @@ export default function ActiveWorkoutScreen() {
               styles.centerBtn,
               isWorkoutDone && { backgroundColor: '#22C55E' },
             ]}
-            onPress={isWorkoutDone ? () => router.replace('/workout/complete') : handleCenterButton}
+            onPress={isWorkoutDone ? () => {
+              const totalSeconds = INITIAL_EXERCISES.reduce((s, e) => s + e.seconds, 0);
+              const caloriesBurned = Math.round(totalSeconds * 0.15);
+              addCompletedWorkout({
+                name: 'Workout',
+                duration: totalSeconds,
+                exercisesCompleted: INITIAL_EXERCISES.length,
+                totalExercises: INITIAL_EXERCISES.length,
+                caloriesBurned,
+                xpEarned: 100,
+                completedAt: new Date().toISOString(),
+                startedAt: workoutStartRef.current,
+              });
+              saveWorkouts(user?.uid);
+              if (addExp) addExp(100, 'workout');
+              router.replace('/workout/complete');
+            } : handleCenterButton}
           >
             <Ionicons
               name={isWorkoutDone ? 'checkmark' : centerIcon}

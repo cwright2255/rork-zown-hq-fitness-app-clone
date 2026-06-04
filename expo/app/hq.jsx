@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useHealthStore } from '@/store/healthStore';
+import { useRunningStore } from '@/store/runningStore';
 
 export function ErrorBoundary({ error, retry }) {
   return (
@@ -98,6 +100,14 @@ export default function HQScreen() {
   const { user } = useUserStore();
   const { totalExp, level } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
+  const { hydration, sleep, steps: storeSteps, meals } = useHealthStore();
+  const { runs } = useRunningStore();
+
+  const isToday = (d) => d && new Date(d).toDateString() === new Date().toDateString();
+  const todayWorkoutCals = (completedWorkouts || []).filter(w => isToday(w.completedAt)).reduce((s, w) => s + (w.caloriesBurned || w.calories || 0), 0);
+  const todayRunCals = (runs || []).filter(r => isToday(r.completedAt || r.endTime)).reduce((s, r) => s + (r.calories || 0), 0);
+  const todayMealCals = (meals || []).filter(m => isToday(m.timestamp)).reduce((s, m) => s + (m.calories || 0), 0);
+
 
   const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
@@ -107,15 +117,13 @@ export default function HQScreen() {
 
   const workoutCount = completedWorkouts?.length || 0;
   const calories = useMemo(() => {
-    if (!completedWorkouts?.length) return '0';
-    return completedWorkouts.reduce((sum, w) => sum + (w.caloriesBurned || w.calories || 0), 0).toLocaleString();
-  }, [completedWorkouts]);
+    return (todayWorkoutCals + todayRunCals).toLocaleString();
+  }, [todayWorkoutCals, todayRunCals]);
   const steps = useMemo(() => {
-    return '0';
-  }, []);
+    return (storeSteps || 0).toLocaleString();
+  }, [steps_val]);
   const xp = useMemo(() => {
-    const val = totalExp || 0;
-    return val.toLocaleString();
+    return (totalExp || 0).toLocaleString();
   }, [totalExp]);
 
   return (
