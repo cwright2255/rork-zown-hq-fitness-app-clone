@@ -119,8 +119,9 @@ export default function RecipesScreen() {
   };
 
   const getMetaContent = (html, property) => {
-    const m = html.match(new RegExp('<meta[^>]*(?:property|name)=["\'']' + property + '["\''"][^>]*content=["\'']([^"\'']*)["\'']', 'i'))
-      || html.match(new RegExp('content=["\'']([^"\'']*)["\''][^>]*(?:property|name)=["\'']' + property + '["\'"]', 'i'));
+    const pat1 = "<meta[^>]*(?:property|name)=[\x22\x27]" + property + "[\x22\x27][^>]*content=[\x22\x27]([^\x22\x27]*)[\x22\x27]";
+    const pat2 = "content=[\x22\x27]([^\x22\x27]*)[\x22\x27][^>]*(?:property|name)=[\x22\x27]" + property + "[\x22\x27]";
+    const m = html.match(new RegExp(pat1, "i")) || html.match(new RegExp(pat2, "i"));
     return m ? m[1] : null;
   };
 
@@ -143,7 +144,7 @@ export default function RecipesScreen() {
       const { source, color } = detectSource(url);
 
       let recipeData = { calories: '', totalTime: '', servings: '' };
-      const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+      const jsonLdMatches = html.match(new RegExp("<script[^>]*type=[\x22\x27]application/ld\\+json[\x22\x27][^>]*>([\\s\\S]*?)</script>", "gi"));
       if (jsonLdMatches) {
         for (const m of jsonLdMatches) {
           try {
