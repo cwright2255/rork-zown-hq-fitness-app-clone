@@ -6,11 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 /* ── Tab configurations ── */
 
 const HOME_TABS = [
-  { key: 'health', label: 'Health', icon: 'heart-outline', activeIcon: 'heart', route: '/health' },
-  { key: 'calendar', label: 'Calendar', icon: 'calendar-outline', activeIcon: 'calendar', route: '/calendar' },
-  { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
-  { key: 'recipes', label: 'Recipes', icon: 'restaurant-outline', activeIcon: 'restaurant', route: '/recipes' },
+  { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
   { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
+  { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
+  { key: 'shop', label: 'Shop', icon: 'cart-outline', activeIcon: 'cart', route: '/shop' },
+  { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
 ];
 
 const WORKOUT_TABS = [
@@ -19,6 +19,14 @@ const WORKOUT_TABS = [
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
   { key: 'challenges', label: 'Challenges', icon: 'trophy-outline', activeIcon: 'trophy', route: '/badges' },
   { key: 'analysis', label: 'Analysis', icon: 'analytics-outline', activeIcon: 'analytics', route: '/analytics' },
+];
+
+const HEALTH_TABS = [
+  { key: 'health', label: 'Health', icon: 'heart-outline', activeIcon: 'heart', route: '/health' },
+  { key: 'calendar', label: 'Calendar', icon: 'calendar-outline', activeIcon: 'calendar', route: '/calendar' },
+  { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
+  { key: 'recipes', label: 'Recipes', icon: 'restaurant-outline', activeIcon: 'restaurant', route: '/recipes' },
+  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
 ];
 
 function TabItem({ tab, isActive, onPress, isCenter }) {
@@ -55,7 +63,16 @@ export default function BottomNavigation() {
     );
   }, [pathname]);
 
-  const tabs = isWorkoutContext ? WORKOUT_TABS : HOME_TABS;
+  const isHealthContext = useMemo(() => {
+    return (
+      pathname.startsWith('/health') ||
+      pathname.startsWith('/calendar') ||
+      pathname.startsWith('/recipes') ||
+      pathname.startsWith('/nutrition')
+    );
+  }, [pathname]);
+
+  const tabs = isWorkoutContext ? WORKOUT_TABS : isHealthContext ? HEALTH_TABS : HOME_TABS;
 
   /* ── Active tab detection ── */
   const activeKey = useMemo(() => {
@@ -66,15 +83,20 @@ export default function BottomNavigation() {
       if (pathname.startsWith('/running')) return 'running';
       if (pathname.startsWith('/badges') || pathname.startsWith('/challenges')) return 'challenges';
       if (pathname.startsWith('/analytics')) return 'analysis';
-    } else {
+    } else if (isHealthContext) {
       if (pathname.startsWith('/health')) return 'health';
       if (pathname.startsWith('/calendar')) return 'calendar';
       if (pathname.startsWith('/recipes')) return 'recipes';
       if (pathname.startsWith('/nutrition')) return 'nutrition';
+    } else {
+      if (pathname.startsWith('/workout')) return 'workouts';
+      if (pathname.startsWith('/nutrition')) return 'nutrition';
+      if (pathname.startsWith('/shop')) return 'shop';
+      if (pathname.startsWith('/profile')) return 'profile';
     }
 
     return 'home';
-  }, [pathname, isWorkoutContext]);
+  }, [pathname, isWorkoutContext, isHealthContext]);
 
   const handleTabPress = useCallback(
     (route) => {
