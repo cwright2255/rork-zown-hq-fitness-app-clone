@@ -1,462 +1,322 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  ScrollView,
-  TouchableOpacity,
   StyleSheet,
+  ScrollView,
+  Pressable,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import {
-  TrendingUp,
-  Activity,
-  Flame,
-  Clock,
-  Award,
-  Heart,
-  Scale,
-  Dumbbell,
-  Footprints,
-} from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants/theme';
-import StatCard from '@/components/StatCard';
-import ScreenHeader from '@/components/ScreenHeader';
-import { useAnalyticsStore } from '@/store/analyticsStore';
-import { useWorkoutStore } from '@/store/workoutStore';
-import {
-  getHeatmapVisualizeUrl,
-  normalizeMuscleNames,
-} from '@/services/muscleVisualizerService';
-import { tokens } from '../../theme/tokens';
+import { Ionicons } from '@expo/vector-icons';
 
 export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-export default function AnalyticsScreen() {
-  const [timeRange, setTimeRange] = useState('month');
-  const [heatmapError, setHeatmapError] = useState(false);
-  const { getAnalytics } = useAnalyticsStore();
-  const completedWorkouts = useWorkoutStore((s) => s.completedWorkouts) || [];
+/* ── Data by time filter ── */
 
-  const analytics = getAnalytics(timeRange);
+const OVERVIEW = {
+  Day:   { workouts: 1,  calories: '320',   xp: '100' },
+  Week:  { workouts: 5,  calories: '1,850', xp: '650' },
+  Month: { workouts: 18, calories: '7,200', xp: '2,400' },
+};
 
-  const weeklyMuscles = useMemo(() => {
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recent = completedWorkouts.filter((w) => {
-      const t = w.completedAt ? new Date(w.completedAt).getTime() : 0;
-      return t >= sevenDaysAgo;
-    });
-    const all = [];
-    recent.forEach((w) => {
-      const list = w.targetMuscles || w.muscleGroups || [];
-      list.forEach((m) => m && all.push(m));
-    });
-    const normalized = normalizeMuscleNames(all);
-    return Array.from(new Set(normalized));
-  }, [completedWorkouts]);
+const BAR_DATA = {
+  Day:   [{ l: '6a', h: 20 },{ l: '8a', h: 60 },{ l: '10a', h: 30 },{ l: '12p', h: 10 },{ l: '2p', h: 0 },{ l: '4p', h: 40 },{ l: '6p', h: 80 }],
+  Week:  [{ l: 'Mon', h: 40 },{ l: 'Tue', h: 65 },{ l: 'Wed', h: 90 },{ l: 'Thu', h: 30 },{ l: 'Fri', h: 75 },{ l: 'Sat', h: 50 },{ l: 'Sun', h: 20 }],
+  Month: [{ l: 'W1', h: 55 },{ l: 'W2', h: 70 },{ l: 'W3', h: 85 },{ l: 'W4', h: 60 }],
+};
 
-  const heatmapUrl = useMemo(
-    () => getHeatmapVisualizeUrl({ muscles: weeklyMuscles }),
-    [weeklyMuscles]
+const RUNNING_STATS = {
+  Day:   { dist: '4.2 km',  pace: "5'42\"/km", longest: '4.2 km', time: '32 min' },
+  Week:  { dist: '23.5 km', pace: "5'42\"/km", longest: '8.2 km', time: '2h 15m' },
+  Month: { dist: '89.3 km', pace: "5'42\"/km", longest: '8.2 km', time: '9h 45m' },
+};
+
+const WORKOUT_STATS = {
+  Day:   { sessions: '1',  avgDur: '35 min', cal: '320 kcal',   day: 'Wednesday' },
+  Week:  { sessions: '5',  avgDur: '35 min', cal: '1,850 kcal', day: 'Wednesday' },
+  Month: { sessions: '18', avgDur: '35 min', cal: '7,200 kcal', day: 'Wednesday' },
+};
+
+const BREAKDOWN = [
+  { label: 'HIIT',     pct: 35, color: '#000' },
+  { label: 'Strength', pct: 25, color: '#333' },
+  { label: 'Cardio',   pct: 20, color: '#666' },
+  { label: 'Yoga',     pct: 10, color: '#999' },
+  { label: 'Other',    pct: 10, color: '#CCC' },
+];
+
+const RECORDS = [
+  { title: 'Fastest 5K',             value: '24:32',    date: 'May 28' },
+  { title: 'Longest Run',            value: '8.2 km',   date: 'Jun 1' },
+  { title: 'Most Calories (Single)', value: '520 kcal', date: 'May 25' },
+  { title: 'Longest Streak',         value: '7 days',   date: 'Current' },
+  { title: 'Highest XP Day',         value: '350 XP',   date: 'Jun 2' },
+];
+
+const RECENT = [
+  { id: 'r1', title: 'Morning 5K',    sub: 'Running \u2022 28 min \u2022 4.8 km',  xp: '+150 XP', icon: 'fitness' },
+  { id: 'r2', title: 'HIIT Blast',    sub: 'Workout \u2022 30 min \u2022 320 kcal', xp: '+100 XP', icon: 'barbell' },
+  { id: 'r3', title: 'Evening Jog',   sub: 'Running \u2022 22 min \u2022 3.5 km',  xp: '+80 XP',  icon: 'fitness' },
+  { id: 'r4', title: 'Strength Core', sub: 'Workout \u2022 45 min \u2022 280 kcal', xp: '+120 XP', icon: 'barbell' },
+  { id: 'r5', title: 'Hill Sprints',  sub: 'Running \u2022 20 min \u2022 2.8 km',  xp: '+100 XP', icon: 'fitness' },
+];
+
+/* ── Pill component ── */
+function Pill({ label, active, onPress, small }) {
+  return (
+    <Pressable
+      style={[small ? styles.smallPill : styles.pill, active && (small ? styles.smallPillActive : styles.pillActive)]}
+      onPress={onPress}
+    >
+      <Text style={[small ? styles.smallPillText : styles.pillText, active && (small ? styles.smallPillTextActive : styles.pillTextActive)]}>
+        {label}
+      </Text>
+    </Pressable>
   );
+}
+/* ── Main screen ── */
 
-  const timeRanges = [
-    { key: 'week', label: 'Week' },
-    { key: 'month', label: 'Month' },
-    { key: 'year', label: 'Year' },
-  ];
+export default function AnalysisScreen() {
+  const [timeFilter, setTimeFilter] = useState('Week');
+  const [activityFilter, setActivityFilter] = useState('All');
 
-  const ProgressBar = ({ label, value, maxValue, color = colors.text }) => {
-    const percentage = Math.min((value / maxValue) * 100, 100);
-    return (
-      <View style={styles.progressItem}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>{label}</Text>
-          <Text style={styles.progressValue}>{value}/{maxValue}</Text>
-        </View>
-        <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  };
+  const ov = OVERVIEW[timeFilter];
+  const bars = BAR_DATA[timeFilter];
+  const maxBar = Math.max(...bars.map((b) => b.h), 1);
+  const rs = RUNNING_STATS[timeFilter];
+  const ws = WORKOUT_STATS[timeFilter];
+
+  const showRunning = activityFilter === 'All' || activityFilter === 'Running';
+  const showWorkouts = activityFilter === 'All' || activityFilter === 'Workouts';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      <ScreenHeader title="Analytics" subtitle="YOUR PROGRESS" />
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
-        <View style={styles.statsRow}>
-          <StatCard
-            value={analytics.workoutsCompleted.toString()}
-            label="Workouts"
-            icon={<Activity size={16} color={colors.text} />}
-          />
-          <StatCard
-            value={analytics.caloriesBurned.toLocaleString()}
-            label="Calories"
-            icon={<Flame size={16} color={colors.orange} />}
-          />
-          <StatCard
-            value={analytics.streakDays.toString()}
-            label="Streak"
-            icon={<Award size={16} color={colors.purple} />}
-          />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Logo */}
+        <View style={styles.logoRow}>
+          <Image source={require('@/assets/branding/zown-logo-512.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
-        <View style={styles.pillRow}>
-          {timeRanges.map((range) => (
-            <TouchableOpacity
-              key={range.key}
-              style={[styles.pill, timeRange === range.key && styles.pillActive]}
-              onPress={() => setTimeRange(range.key)}>
-              <Text style={[styles.pillText, timeRange === range.key && styles.pillTextActive]}>
-                {range.label}
-              </Text>
-            </TouchableOpacity>
+        <Text style={styles.pageTitle}>Analysis</Text>
+
+        {/* Time filter */}
+        <View style={styles.filterRow}>
+          {['Day', 'Week', 'Month'].map((f) => (
+            <Pill key={f} label={f} active={timeFilter === f} onPress={() => setTimeFilter(f)} />
           ))}
         </View>
 
-        <View style={styles.planRow}>
-          <View>
-            <Text style={styles.planLabel}>CURRENT PLAN</Text>
-            <Text style={styles.planValue}>Personal</Text>
-          </View>
-          <TouchableOpacity style={styles.upgradePill}>
-            <Text style={styles.upgradePillText}>Upgrade</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.activityTiles}>
-          <View style={styles.activityTile}>
-            <Heart size={22} color={colors.text} />
-            <Text style={styles.activityTileLabel}>Cardio</Text>
-          </View>
-          <View style={styles.activityTile}>
-            <Scale size={22} color={colors.text} />
-            <Text style={styles.activityTileLabel}>Weight</Text>
-          </View>
-          <View style={styles.activityTile}>
-            <Dumbbell size={22} color={colors.text} />
-            <Text style={styles.activityTileLabel}>Gym</Text>
-          </View>
-        </View>
-
-        <View style={styles.runCard}>
-          <View style={styles.runIcon}>
-            <Footprints size={28} color={colors.text} />
-          </View>
-          <View style={styles.runBody}>
-            <Text style={styles.runTitle}>Run Session</Text>
-            <View style={styles.runStats}>
-              <View style={styles.runStat}>
-                <Text style={styles.runStatValue}>1h 33m</Text>
-                <Text style={styles.runStatLabel}>TIME</Text>
-              </View>
-              <View style={styles.runStat}>
-                <Text style={styles.runStatValue}>970</Text>
-                <Text style={styles.runStatLabel}>CAL</Text>
-              </View>
-              <View style={styles.runStat}>
-                <Text style={styles.runStatValue}>7.5</Text>
-                <Text style={styles.runStatLabel}>KM</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <Text style={styles.sectionLabel}>ACTIVE MINUTES</Text>
-        <View style={styles.card}>
-          <View style={styles.rowSplit}>
-            <View style={styles.rowIcon}>
-              <Clock size={20} color={colors.green} />
-            </View>
-            <Text style={styles.rowValue}>{analytics.activeMinutes}</Text>
-            <Text style={styles.rowDelta}>+{analytics.activeGrowth}%</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionLabel}>GOAL PROGRESS</Text>
-        <View style={styles.card}>
-          <ProgressBar label="Weekly Workouts" value={analytics.weeklyWorkouts} maxValue={5} color={colors.text} />
-          <ProgressBar label="Daily Calories" value={analytics.dailyCalories} maxValue={2000} color={colors.orange} />
-          <ProgressBar label="Water Intake (L)" value={analytics.waterIntake} maxValue={8} color={colors.blue} />
-          <ProgressBar label="Sleep Hours" value={analytics.sleepHours} maxValue={8} color={colors.purple} />
-        </View>
-
-        <Text style={styles.sectionLabel}>ACTIVITY BREAKDOWN</Text>
-        <View style={styles.card}>
-          {analytics.activityBreakdown.map((activity, index) => (
-            <View key={index} style={styles.activityItem}>
-              <View style={styles.activityHeader}>
-                <Text style={styles.activityName}>{activity.name}</Text>
-                <Text style={styles.activityPercentage}>{activity.percentage}%</Text>
-              </View>
-              <View style={styles.activityBarContainer}>
-                <View style={[styles.activityBar, { width: `${activity.percentage}%`, backgroundColor: activity.color }]} />
-              </View>
-              <Text style={styles.activityTime}>{activity.time} minutes</Text>
-            </View>
+        {/* Activity filter */}
+        <View style={styles.filterRow2}>
+          {['All', 'Workouts', 'Running'].map((f) => (
+            <Pill key={f} label={f} active={activityFilter === f} onPress={() => setActivityFilter(f)} small />
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>WEEKLY TRENDS</Text>
+        {/* Overview stats */}
+        <View style={styles.overviewRow}>
+          <View style={styles.overviewCard}>
+            <Ionicons name="barbell-outline" size={20} color="#000" />
+            <Text style={styles.overviewNum}>{ov.workouts}</Text>
+            <Text style={styles.overviewLabel}>Workouts</Text>
+          </View>
+          <View style={styles.overviewCard}>
+            <Ionicons name="flame-outline" size={20} color="#000" />
+            <Text style={styles.overviewNum}>{ov.calories}</Text>
+            <Text style={styles.overviewLabel}>Calories</Text>
+          </View>
+          <View style={styles.overviewCard}>
+            <Ionicons name="star-outline" size={20} color="#000" />
+            <Text style={styles.overviewNum}>{ov.xp}</Text>
+            <Text style={styles.overviewLabel}>XP Earned</Text>
+          </View>
+        </View>
+
+        {/* Bar chart */}
+        <Text style={styles.sectionTitle}>Activity</Text>
         <View style={styles.card}>
-          <View style={styles.trendsContainer}>
-            {analytics.weeklyTrends.map((day, index) => {
-              const max = Math.max(...analytics.weeklyTrends.map((d) => d.value));
-              return (
-                <View key={index} style={styles.trendDay}>
-                  <View style={styles.trendBar}>
-                    <View style={[styles.trendBarFill, { height: `${(day.value / max) * 100}%` }]} />
+          <View style={styles.chartArea}>
+            {bars.map((b, i) => (
+              <View key={b.l} style={styles.barCol}>
+                <View style={[styles.bar, { height: Math.max(4, (b.h / maxBar) * 140) }]} />
+                <Text style={styles.barLabel}>{b.l}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Workout breakdown */}
+        {showWorkouts && (
+          <>
+            <Text style={styles.sectionTitle}>Workout Breakdown</Text>
+            <View style={styles.card}>
+              <View style={styles.breakdownBar}>
+                {BREAKDOWN.map((s) => (
+                  <View key={s.label} style={{ width: s.pct + '%', backgroundColor: s.color, height: 12 }} />
+                ))}
+              </View>
+              <View style={styles.legendWrap}>
+                {BREAKDOWN.map((s) => (
+                  <View key={s.label} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                    <Text style={styles.legendText}>{s.label}</Text>
+                    <Text style={styles.legendCount}>{s.pct}%</Text>
                   </View>
-                  <Text style={styles.trendDayLabel}>{day.day}</Text>
-                  <Text style={styles.trendValue}>{day.value}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        <Text style={styles.sectionLabel}>RECENT ACHIEVEMENTS</Text>
-        <View style={styles.card}>
-          {analytics.recentAchievements.map((achievement, index) => (
-            <View key={index} style={styles.achievementItem}>
-              <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-              <View style={styles.achievementInfo}>
-                <Text style={styles.achievementTitle}>{achievement.title}</Text>
-                <Text style={styles.achievementDate}>{achievement.date}</Text>
+                ))}
               </View>
             </View>
-          ))}
-        </View>
+          </>
+        )}
 
-        <Text style={styles.sectionLabel}>INSIGHTS</Text>
+        {/* Running stats */}
+        {showRunning && (
+          <>
+            <Text style={styles.sectionTitle}>Running Stats</Text>
+            <View style={styles.card}>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Total Distance</Text><Text style={styles.statVal}>{rs.dist}</Text></View>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Avg Pace</Text><Text style={styles.statVal}>{rs.pace}</Text></View>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Longest Run</Text><Text style={styles.statVal}>{rs.longest}</Text></View>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Total Time</Text><Text style={styles.statVal}>{rs.time}</Text></View>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* Workout stats */}
+        {showWorkouts && (
+          <>
+            <Text style={styles.sectionTitle}>Workout Stats</Text>
+            <View style={styles.card}>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Total Sessions</Text><Text style={styles.statVal}>{ws.sessions}</Text></View>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Avg Duration</Text><Text style={styles.statVal}>{ws.avgDur}</Text></View>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Calories Burned</Text><Text style={styles.statVal}>{ws.cal}</Text></View>
+                <View style={styles.statCell}><Text style={styles.statLabel}>Most Active Day</Text><Text style={styles.statVal}>{ws.day}</Text></View>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* Personal records */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Personal Records</Text>
+          <Ionicons name="trophy" size={18} color="#FFD700" />
+        </View>
         <View style={styles.card}>
-          {analytics.insights.map((insight, index) => (
-            <View key={index} style={styles.insightItem}>
-              <TrendingUp size={16} color={colors.green} />
-              <Text style={styles.insightText}>{insight}</Text>
+          {RECORDS.map((r, i) => (
+            <View key={r.title} style={[styles.recordRow, i === RECORDS.length - 1 && { borderBottomWidth: 0 }]}>
+              <Ionicons name="trophy-outline" size={20} color="#FFD700" style={{ width: 30 }} />
+              <Text style={styles.recordTitle}>{r.title}</Text>
+              <Text style={styles.recordValue}>{r.value}</Text>
+              <Text style={styles.recordDate}>{r.date}</Text>
             </View>
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>THIS WEEK'S MUSCLE ACTIVITY</Text>
-        {heatmapUrl && !heatmapError ? (
-          <Image
-            source={{ uri: heatmapUrl }}
-            style={styles.heatmapImage}
-            resizeMode="contain"
-            onError={() => setHeatmapError(true)}
-          />
-        ) : (
-          <View style={styles.heatmapPlaceholder}>
-            <Text style={styles.heatmapPlaceholderText}>
-              Log workouts to see your muscle heatmap
-            </Text>
+        {/* Recent activity */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Pressable><Text style={styles.viewAll}>View All</Text></Pressable>
+        </View>
+        {RECENT.map((a) => (
+          <View key={a.id} style={styles.recentRow}>
+            <View style={styles.recentIcon}><Ionicons name={a.icon} size={18} color="#000" /></View>
+            <View style={styles.recentInfo}>
+              <Text style={styles.recentTitle}>{a.title}</Text>
+              <Text style={styles.recentSub}>{a.sub}</Text>
+            </View>
+            <Text style={styles.recentXp}>{a.xp}</Text>
           </View>
-        )}
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+/* ── Styles ── */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  content: { flex: 1, paddingHorizontal: spacing.lg },
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
+  logoRow: { alignItems: 'center', marginTop: 8, marginBottom: 12 },
+  logo: { width: 120, height: 36 },
+  pageTitle: { fontSize: 24, fontWeight: '800', color: '#000', paddingHorizontal: 20 },
+
+  /* Filters */
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 12, marginTop: 8 },
+  filterRow2: { flexDirection: 'row', gap: 6, paddingHorizontal: 20, marginBottom: 20 },
+  pill: { backgroundColor: '#F0F0F0', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
+  pillActive: { backgroundColor: '#000' },
+  pillText: { fontSize: 13, fontWeight: '700', color: '#333' },
+  pillTextActive: { color: '#FFF' },
+  smallPill: { backgroundColor: '#F0F0F0', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
+  smallPillActive: { backgroundColor: '#333' },
+  smallPillText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  smallPillTextActive: { color: '#FFF' },
+
+  /* Overview */
+  overviewRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 20 },
+  overviewCard: {
+    flex: 1, backgroundColor: '#FFF', borderRadius: 14, padding: 14, alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 3 },
+      default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+    }),
   },
-  pillRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  pill: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-  },
-  pillActive: {
-    backgroundColor: colors.text,
-    borderColor: colors.text,
-  },
-  pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: tokens.colors.dark_navy.text_primary },
-  sectionLabel: {
-    ...typography.label,
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
+  overviewNum: { fontSize: 24, fontWeight: '800', color: '#000', marginTop: 4 },
+  overviewLabel: { fontSize: 10, color: '#999', marginTop: 2 },
+
+  /* Section */
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000', paddingHorizontal: 20, marginTop: 20, marginBottom: 4 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: 20, marginBottom: 4 },
+  viewAll: { fontSize: 13, fontWeight: '600', color: '#666' },
+
+  /* Card */
   card: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.base,
-    gap: spacing.base,
+    backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginHorizontal: 20, marginTop: 10,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 3 },
+      default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+    }),
   },
-  rowSplit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  rowIcon: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: colors.surface,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  rowValue: { flex: 1, ...typography.h3 },
-  rowDelta: { ...typography.bodySmall, color: colors.green, fontWeight: '700' },
-  planRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.base,
-    marginBottom: spacing.md,
-  },
-  planLabel: { ...typography.label },
-  planValue: { ...typography.h3, marginTop: 4 },
-  upgradePill: {
-    backgroundColor: colors.text,
-    paddingHorizontal: spacing.base,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-  },
-  upgradePillText: { color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: 13 },
-  activityTiles: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  activityTile: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.base,
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  activityTileLabel: { ...typography.caption, color: colors.text, textTransform: 'uppercase' },
-  runCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.base,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.base,
-  },
-  runIcon: {
-    width: 56, height: 56, borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  runBody: { flex: 1 },
-  runTitle: { ...typography.h4, marginBottom: spacing.sm },
-  runStats: { flexDirection: 'row', gap: spacing.base },
-  runStat: { alignItems: 'flex-start' },
-  runStatValue: { ...typography.h4, color: colors.text },
-  runStatLabel: { ...typography.caption, marginTop: 2 },
-  progressItem: { gap: 8 },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressLabel: { ...typography.body, fontWeight: '600' },
-  progressValue: { ...typography.bodySmall },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: colors.progressTrack,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: { height: '100%', borderRadius: 4 },
-  activityItem: { gap: 8 },
-  activityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activityName: { ...typography.body, fontWeight: '600' },
-  activityPercentage: { ...typography.bodySmall, color: colors.text, fontWeight: '700' },
-  activityBarContainer: {
-    height: 6,
-    backgroundColor: colors.progressTrack,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  activityBar: { height: '100%', borderRadius: 3 },
-  activityTime: { ...typography.caption },
-  trendsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  trendDay: { alignItems: 'center', gap: 6 },
-  trendBar: {
-    width: 24,
-    height: 80,
-    backgroundColor: colors.progressTrack,
-    borderRadius: tokens.radius.md,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  trendBarFill: {
-    width: '100%',
-    backgroundColor: colors.text,
-    borderRadius: tokens.radius.md,
-    minHeight: 4,
-  },
-  trendDayLabel: { ...typography.caption },
-  trendValue: { ...typography.caption, color: colors.text, fontWeight: '700' },
-  achievementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  achievementIcon: { fontSize: 24 },
-  achievementInfo: { flex: 1 },
-  achievementTitle: { ...typography.body, fontWeight: '600' },
-  achievementDate: { ...typography.bodySmall },
-  insightItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  insightText: { flex: 1, ...typography.body, fontWeight: '500' },
-  heatmapImage: {
-    width: '100%',
-    height: 260,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-  },
-  heatmapPlaceholder: {
-    width: '100%',
-    height: 220,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  heatmapPlaceholderText: { ...typography.bodySmall },
+
+  /* Chart */
+  chartArea: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 160 },
+  barCol: { alignItems: 'center', flex: 1 },
+  bar: { width: 28, borderRadius: 14, backgroundColor: '#000' },
+  barLabel: { fontSize: 11, color: '#999', marginTop: 6 },
+
+  /* Breakdown */
+  breakdownBar: { height: 12, borderRadius: 6, flexDirection: 'row', overflow: 'hidden', marginBottom: 12 },
+  legendWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 12, color: '#333' },
+  legendCount: { fontSize: 12, fontWeight: '600', color: '#000' },
+
+  /* Stats grid */
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  statCell: { width: '50%', paddingVertical: 8 },
+  statLabel: { fontSize: 12, color: '#999' },
+  statVal: { fontSize: 20, fontWeight: '700', color: '#000', marginTop: 2 },
+
+  /* Records */
+  recordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  recordTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: '#000' },
+  recordValue: { fontSize: 14, fontWeight: '700', color: '#000', marginRight: 8 },
+  recordDate: { fontSize: 11, color: '#999', width: 50, textAlign: 'right' },
+
+  /* Recent */
+  recentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingHorizontal: 20 },
+  recentIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' },
+  recentInfo: { flex: 1, marginLeft: 12 },
+  recentTitle: { fontSize: 14, fontWeight: '600', color: '#000' },
+  recentSub: { fontSize: 12, color: '#999', marginTop: 2 },
+  recentXp: { fontSize: 13, fontWeight: '700', color: '#000' },
 });
