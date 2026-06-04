@@ -254,7 +254,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && pathname !== '/body-scan' && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && pathname !== '/body-scan' && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/meal') && <BottomNavigation />}
     </View>
   );
 }

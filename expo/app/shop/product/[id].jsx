@@ -1,183 +1,118 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Star } from 'lucide-react-native';
-import ScreenHeader from '@/components/ScreenHeader';
-import PrimaryButton from '@/components/PrimaryButton';
-import ProductCard from '@/components/ProductCard';
-import { useShopStore } from '@/store/shopStore';
-import { tokens } from '../../../../theme/tokens';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
-
-export default function ProductDetailScreen() {
-  const { id } = useLocalSearchParams();
-  const productId = typeof id === 'string' ? id : '';
-  const { getProductById, addToCart, getRelatedProducts, addToRecentlyViewed } = useShopStore();
-
-  const [product, setProduct] = useState(null);
-  const [related, setRelated] = useState([]);
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (!productId) return;
-    const p = getProductById?.(productId);
-    if (p) {
-      setProduct(p);
-      if (p.variants?.length) setSelectedVariant(p.variants[0]);
-      addToRecentlyViewed?.(p.id);
-      const rel = getRelatedProducts?.(p.id);
-      setRelated(rel || []);
-    }
-  }, [productId, getProductById, getRelatedProducts, addToRecentlyViewed]);
-
-  if (!product) {
-    return (
-      <View style={styles.container}>
-        <ScreenHeader showBack />
-        <View style={styles.center}>
-          <Text style={styles.empty}>Product not found</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const handleAdd = () => {
-    addToCart?.(product, selectedVariant || (product.variants?.[0] ?? null), 1);
-    Alert.alert('Added', `${product.name} added to cart.`);
-  };
-
-  const currentPrice = selectedVariant?.price || product.price;
-  const hasSize = product.variants?.some(v => v.attributes?.size);
-
+export function ErrorBoundary({ error, retry }) {
   return (
-    <View style={styles.container}>
-      <View style={styles.headerOverlay}>
-        <ScreenHeader showBack transparent />
-      </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        <Image source={{ uri: product.imageUrl }} style={styles.image} />
-
-        <View style={{ padding: tokens.spacing.md }}>
-          <Text style={styles.name}>{product.name}</Text>
-          <Text style={styles.price}>${Number(currentPrice).toFixed(2)}</Text>
-
-          <View style={styles.ratingRow}>
-            <Star size={14} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.rating}>{(product.rating ?? 0).toFixed(1)}</Text>
-            <Text style={styles.reviews}>({product.reviewCount ?? 0} reviews)</Text>
-          </View>
-
-          {hasSize ? (
-            <>
-              <Text style={styles.sectionLabel}>Size</Text>
-              <View style={styles.pillRow}>
-                {product.variants.map(v => {
-                  const active = selectedVariant?.id === v.id;
-                  return (
-                    <TouchableOpacity
-                      key={v.id}
-                      style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
-                      onPress={() => setSelectedVariant(v)}>
-                      <Text style={[styles.pillText, { color: active ? '#000' : '#999' }]}>
-                        {v.attributes?.size || v.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          ) : null}
-
-          {product.variants?.some(v => v.attributes?.color) ? (
-            <>
-              <Text style={styles.sectionLabel}>Color</Text>
-              <View style={styles.pillRow}>
-                {product.variants.map(v => {
-                  const active = selectedVariant?.id === v.id;
-                  return (
-                    <TouchableOpacity
-                      key={v.id}
-                      style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
-                      onPress={() => setSelectedVariant(v)}>
-                      <Text style={[styles.pillText, { color: active ? '#000' : '#999' }]}>
-                        {v.attributes?.color || v.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          ) : null}
-
-          <Text style={styles.sectionLabel}>Description</Text>
-          <TouchableOpacity
-            style={styles.descCard}
-            onPress={() => setExpanded(!expanded)}>
-            <Text style={styles.descText} numberOfLines={expanded ? undefined : 3}>
-              {product.description}
-            </Text>
-            <Text style={styles.expandHint}>
-              {expanded ? 'Show less' : 'Show more'}
-            </Text>
-          </TouchableOpacity>
-
-          {related.length ? (
-            <>
-              <Text style={styles.sectionLabel}>Related</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', gap: tokens.spacing.md }}>
-                  {related.slice(0, 5).map(rp => (
-                    <View key={rp.id} style={{ width: 160 }}>
-                      <ProductCard
-                        product={rp}
-                        compact
-                        onPress={() => router.push(`/shop/product/${rp.id}`)}
-                      />
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </>
-          ) : null}
-        </View>
-      </ScrollView>
-
-      <View style={styles.bottomBar}>
-        <PrimaryButton title="Add to Cart" onPress={handleAdd} />
-        <PrimaryButton title="Save for Later" variant="outline" onPress={() => { /* TODO: Connect to real API */ }} style={{ marginTop: 8 }} />
-      </View>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.dark_navy.text_muted },
-  image: { width: '100%', height: 300, backgroundColor: tokens.colors.dark_navy.text_primary },
-  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
-  price: { fontSize: 22, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, marginTop: 8 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
-  rating: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600' },
-  reviews: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
-  sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 20,
-  },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
-  pill: { paddingVertical: 10, paddingHorizontal: tokens.spacing.md, borderRadius: 999 },
-  pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
-  pillText: { fontSize: 13, fontWeight: '600' },
-  descCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
-  },
-  descText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, lineHeight: 20 },
-  expandHint: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 8 },
-  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
+const SIZES = ['XS','S','M','L','XL'];
+const COLORS = [{name:'Black',hex:'#000'},{name:'White',hex:'#FFF',border:true},{name:'Gray',hex:'#999'},{name:'Navy',hex:'#1A1A5E'}];
+const REVIEWS = [
+  {name:'Alex R.',rating:5,text:'Amazing quality! Fits perfectly and the material is breathable.'},
+  {name:'Sarah M.',rating:4,text:'Love the design. Slightly tight around the shoulders but otherwise great.'},
+  {name:'Mike T.',rating:5,text:'Best workout gear I have owned. Worth every penny.'},
+];
+
+export default function ProductDetailScreen() {
+  const { id } = useLocalSearchParams();
+  const [selectedSize, setSelectedSize] = useState('M');
+  const [selectedColor, setSelectedColor] = useState('Black');
+
+  return (
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <View style={s.header}>
+        <Pressable onPress={() => router.back()} style={s.backBtn}><Ionicons name="chevron-back" size={22} color="#000" /></Pressable>
+        <View style={{ flex: 1 }} />
+        <Pressable style={s.backBtn}><Ionicons name="share-outline" size={20} color="#000" /></Pressable>
+      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={s.imgArea}><Ionicons name="shirt-outline" size={60} color="#CCC" /></View>
+        <View style={s.content}>
+          <Text style={s.brand}>ZOWN ATHLETICS</Text>
+          <Text style={s.name}>Performance Training Tee</Text>
+          <Text style={s.price}>$45.00</Text>
+          <View style={s.ratingRow}>
+            {[1,2,3,4,5].map(i => <Ionicons key={i} name={i <= 4 ? 'star' : 'star-half'} size={16} color="#FFD700" />)}
+            <Text style={s.ratingText}>4.5 (128 reviews)</Text>
+          </View>
+
+          <Text style={s.sectionLabel}>Size</Text>
+          <View style={s.pills}>
+            {SIZES.map(sz => (
+              <Pressable key={sz} style={[s.pill, selectedSize === sz && s.pillActive]} onPress={() => setSelectedSize(sz)}>
+                <Text style={[s.pillText, selectedSize === sz && s.pillTextActive]}>{sz}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={s.sectionLabel}>Color</Text>
+          <View style={s.colorRow}>
+            {COLORS.map(c => (
+              <Pressable key={c.name} style={[s.colorCircle, {backgroundColor:c.hex}, c.border && {borderWidth:1,borderColor:'#E0E0E0'}, selectedColor === c.name && s.colorSelected]} onPress={() => setSelectedColor(c.name)} />
+            ))}
+          </View>
+
+          <Pressable style={s.addCartBtn}><Text style={s.addCartText}>Add to Cart</Text></Pressable>
+          <Pressable style={s.tryOnBtn} onPress={() => router.push('/shop/try-on')}><Text style={s.tryOnText}>Digital Try-On</Text></Pressable>
+
+          <Text style={s.sectionLabel}>Description</Text>
+          <Text style={s.desc}>Premium moisture-wicking training tee engineered for high-intensity workouts. Features 4-way stretch fabric, flatlock seams, and anti-odor technology.</Text>
+
+          <Text style={s.sectionLabel}>Reviews</Text>
+          {REVIEWS.map((r,i) => (
+            <View key={i} style={s.reviewCard}>
+              <View style={s.reviewHeader}>
+                <View style={s.reviewAvatar}><Ionicons name="person" size={14} color="#999" /></View>
+                <Text style={s.reviewName}>{r.name}</Text>
+                <View style={{flexDirection:'row',marginLeft:'auto'}}>{[1,2,3,4,5].map(j => <Ionicons key={j} name={j <= r.rating ? 'star' : 'star-outline'} size={12} color="#FFD700" />)}</View>
+              </View>
+              <Text style={s.reviewText}>{r.text}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe:{flex:1,backgroundColor:'#FFF'},
+  header:{flexDirection:'row',alignItems:'center',paddingHorizontal:16,paddingVertical:8},
+  backBtn:{width:36,height:36,justifyContent:'center',alignItems:'center'},
+  imgArea:{height:300,backgroundColor:'#F0F0F0',justifyContent:'center',alignItems:'center'},
+  content:{padding:20},
+  brand:{fontSize:12,color:'#999',textTransform:'uppercase',letterSpacing:1,marginBottom:4},
+  name:{fontSize:22,fontWeight:'800',color:'#000',marginBottom:4},
+  price:{fontSize:20,fontWeight:'700',color:'#000',marginBottom:8},
+  ratingRow:{flexDirection:'row',alignItems:'center',marginBottom:20},
+  ratingText:{fontSize:13,color:'#666',marginLeft:6},
+  sectionLabel:{fontSize:14,fontWeight:'700',color:'#000',marginTop:20,marginBottom:10},
+  pills:{flexDirection:'row',gap:8},
+  pill:{width:44,height:44,borderRadius:22,backgroundColor:'#F0F0F0',justifyContent:'center',alignItems:'center'},
+  pillActive:{backgroundColor:'#000'},
+  pillText:{fontSize:14,fontWeight:'700',color:'#333'},
+  pillTextActive:{color:'#FFF'},
+  colorRow:{flexDirection:'row',gap:12},
+  colorCircle:{width:36,height:36,borderRadius:18},
+  colorSelected:{borderWidth:3,borderColor:'#000'},
+  addCartBtn:{backgroundColor:'#000',height:52,borderRadius:26,justifyContent:'center',alignItems:'center',marginTop:24},
+  addCartText:{fontSize:16,fontWeight:'700',color:'#FFF'},
+  tryOnBtn:{borderWidth:2,borderColor:'#000',height:52,borderRadius:26,justifyContent:'center',alignItems:'center',marginTop:10},
+  tryOnText:{fontSize:16,fontWeight:'700',color:'#000'},
+  desc:{fontSize:14,color:'#666',lineHeight:22},
+  reviewCard:{backgroundColor:'#F8F8F8',borderRadius:12,padding:14,marginBottom:10},
+  reviewHeader:{flexDirection:'row',alignItems:'center',marginBottom:8},
+  reviewAvatar:{width:28,height:28,borderRadius:14,backgroundColor:'#E0E0E0',justifyContent:'center',alignItems:'center',marginRight:8},
+  reviewName:{fontSize:13,fontWeight:'600',color:'#000'},
+  reviewText:{fontSize:13,color:'#666',lineHeight:20},
 });
