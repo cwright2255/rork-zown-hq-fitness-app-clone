@@ -249,16 +249,18 @@ export default function RecipesScreen() {
 
         {/* Quick & Easy */}
         <SectionHeader title="Quick & Easy" onViewAll={() => {}} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 100 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 12 }}>
           {QUICK.map(item => <RecipeCard key={item.id} item={item} />)}
         </ScrollView>
-      </ScrollView>
 
-      {/* Floating Add Recipe Button */}
-      <Pressable style={s.fab} onPress={() => setShowImportModal(true)}>
-        <Ionicons name="link-outline" size={18} color="#FFF" />
-        <Text style={s.fabText}>Add Recipe</Text>
-      </Pressable>
+        {/* Add Recipe Button */}
+        <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 24 }}>
+          <Pressable style={s.addRecipeBtn} onPress={() => setShowImportModal(true)}>
+            <Ionicons name="link-outline" size={18} color="#FFF" />
+            <Text style={s.addRecipeBtnText}>Add Recipe</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
 
       {/* Import Modal */}
       <Modal visible={showImportModal} transparent animationType="slide" onRequestClose={closeModal}>
@@ -374,9 +376,9 @@ const s = StyleSheet.create({
   featuredTitle: { fontSize: 16, fontWeight: '700', color: '#000' },
   featuredMeta: { fontSize: 13, color: '#999', marginTop: 4 },
 
-  /* FAB */
-  fab: { position: 'absolute', bottom: 90, right: 20, zIndex: 100, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#000', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 28, ...Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }, android: { elevation: 6 }, default: {} }) },
-  fabText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
+  /* Add Recipe */
+  addRecipeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#000', height: 52, borderRadius: 26 },
+  addRecipeBtnText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
 
   /* Modal */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
