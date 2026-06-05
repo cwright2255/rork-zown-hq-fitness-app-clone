@@ -6,7 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useChampionPassStore } from '@/store/championPassStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function ChampionPassScreen() {
   const store = useChampionPassStore();

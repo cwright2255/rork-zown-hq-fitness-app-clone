@@ -16,19 +16,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/* ── Placeholder data ── */
+/* ââ Placeholder data ââ */
 
 const STATS_LIVE = [
   { value: '2,450', label: 'Total XP' },
@@ -88,7 +76,7 @@ const MENU_GROUPS = [
   },
 ];
 
-/* ── Menu row ── */
+/* ââ Menu row ââ */
 
 function MenuRow({ item }) {
   const handlePress = () => {
@@ -123,7 +111,7 @@ function MenuRow({ item }) {
   );
 }
 
-/* ── Main screen ── */
+/* ââ Main screen ââ */
 
 export default function ProfileScreen() {
 
@@ -264,7 +252,7 @@ export default function ProfileScreen() {
   );
 }
 
-/* ── Styles ── */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

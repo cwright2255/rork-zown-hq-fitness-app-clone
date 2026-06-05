@@ -4,17 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const INITIAL_CART = [
   { id: '1', name: 'Performance Tee', brand: 'ZOWN', price: 45, qty: 1, size: 'M', icon: 'shirt-outline' },
   { id: '2', name: 'Training Shorts', brand: 'ZOWN', price: 55, qty: 1, size: 'L', icon: 'cut-outline' },

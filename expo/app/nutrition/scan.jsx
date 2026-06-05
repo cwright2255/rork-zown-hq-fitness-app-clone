@@ -8,7 +8,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function FoodScanScreen() {
   const [facing, setFacing] = useState('back');

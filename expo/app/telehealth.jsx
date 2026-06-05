@@ -6,7 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useTelehealthStore } from '@/store/telehealthStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function TelehealthScreen() {
   const store = useTelehealthStore();

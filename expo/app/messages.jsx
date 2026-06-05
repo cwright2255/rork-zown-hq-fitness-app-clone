@@ -4,18 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const STORY_FRIENDS = [
   { name: 'Alex', hasStory: true },
   { name: 'Sarah', hasStory: true },
@@ -27,12 +15,12 @@ const STORY_FRIENDS = [
 
 const CONVERSATIONS = [
   { id: '1', name: 'Tillie Larson', lastMsg: 'I hope you are well.', time: '2s ago', unread: true },
-  { id: '2', name: 'Lovely friends ð', lastMsg: 'This afternoon at 5:30PM', time: '1 min', unread: true, isGroup: true },
+  { id: '2', name: 'Lovely friends Ã°ÂÂÂ', lastMsg: 'This afternoon at 5:30PM', time: '1 min', unread: true, isGroup: true },
   { id: '3', name: 'Jordan Jordan', lastMsg: 'Are you ready for this after...', time: '2 mins', unread: false },
   { id: '4', name: 'Jay Bowen', lastMsg: 'Hi guys, How is going?', time: '5 mins', unread: false },
   { id: '5', name: 'Christine Gonzales', lastMsg: 'I hope you are well.', time: '1 day', unread: false },
   { id: '6', name: 'Don Richardson', lastMsg: 'This afternoon at 5:30PM', time: '1 day', unread: false },
-  { id: '7', name: 'Alex R.', lastMsg: 'Great workout today! ðª', time: '2 days', unread: false },
+  { id: '7', name: 'Alex R.', lastMsg: 'Great workout today! Ã°ÂÂÂª', time: '2 days', unread: false },
   { id: '8', name: 'Sarah M.', lastMsg: 'See you at the gym!', time: '3 days', unread: false },
 ];
 
@@ -61,7 +49,7 @@ export default function MessagesScreen() {
       {/* Single vertical ScrollView containing stories + conversations */}
       <ScrollView style={s.scrollContainer} showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
 
-        {/* Stories â horizontal scroll inside the vertical one */}
+        {/* Stories Ã¢ÂÂ horizontal scroll inside the vertical one */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -82,7 +70,7 @@ export default function MessagesScreen() {
           ))}
         </ScrollView>
 
-        {/* Conversation List â rendered directly, no extra ScrollView */}
+        {/* Conversation List Ã¢ÂÂ rendered directly, no extra ScrollView */}
         <View style={s.convList}>
           {CONVERSATIONS.map(c => (
             <Pressable
@@ -151,7 +139,7 @@ const s = StyleSheet.create({
   storyInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' },
   storyName: { fontSize: 10, color: '#333', marginTop: 4, textAlign: 'center' },
 
-  /* Conversations â plain View, no ScrollView */
+  /* Conversations Ã¢ÂÂ plain View, no ScrollView */
   convList: {},
   convRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   convAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' },

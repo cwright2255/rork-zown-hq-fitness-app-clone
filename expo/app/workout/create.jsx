@@ -23,7 +23,7 @@ import { useAchievementStore } from '@/store/achievementStore';
 import { useExerciseStore } from '@/store/exerciseStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const CATEGORIES = ['strength', 'cardio', 'flexibility', 'hiit', 'yoga', 'pilates', 'crossfit', 'bodyweight', 'custom'];
 const DIFFICULTIES = [
@@ -365,7 +365,7 @@ export default function CreateWorkoutScreen() {
           {libraryLoading && libraryExercises.length === 0 ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={colors.text} />
-              <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
+              <Text style={styles.loadingText}>Loading exercisesÃÂ¢ÃÂÃÂ¦</Text>
             </View>
           ) : (
             <FlatList
@@ -390,7 +390,7 @@ export default function CreateWorkoutScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.libTitle} numberOfLines={2}>{item.name}</Text>
                       <Text style={styles.libMeta} numberOfLines={1}>
-                        {[equipment, target].filter(Boolean).join(' Ã¢ÂÂ¢ ')}
+                        {[equipment, target].filter(Boolean).join(' ÃÂ¢ÃÂÃÂ¢ ')}
                       </Text>
                     </View>
                   </TouchableOpacity>

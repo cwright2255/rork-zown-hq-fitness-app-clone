@@ -6,7 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import { useShopStore } from '@/store/shopStore';
 import { tokens } from '../../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function CollectionScreen() {
   const { id } = useLocalSearchParams();

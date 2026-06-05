@@ -13,19 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getWorkoutVisualizeUrl } from '@/services/muscleVisualizerService';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/* ── Placeholder exercise data ── */
+/* ââ Placeholder exercise data ââ */
 // TODO: Connect to real workout API / exerciseStore
 
 const INITIAL_EXERCISES = [
@@ -38,7 +26,7 @@ const INITIAL_EXERCISES = [
 
 const TOTAL_MOVES = 28; // Total moves in the full workout
 
-/* ── Exercise row ── */
+/* ââ Exercise row ââ */
 
 function ExerciseRow({ exercise }) {
   return (
@@ -61,7 +49,7 @@ function ExerciseRow({ exercise }) {
   );
 }
 
-/* ── Stat pill ── */
+/* ââ Stat pill ââ */
 
 function StatPill({ icon, label }) {
   return (
@@ -72,7 +60,7 @@ function StatPill({ icon, label }) {
   );
 }
 
-/* ── Main screen ── */
+/* ââ Main screen ââ */
 
 export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
@@ -83,7 +71,7 @@ export default function WorkoutDetailScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  /* ── Reactive CTA logic ── */
+  /* ââ Reactive CTA logic ââ */
   // exercises is now stateful (see useState above)
   const completedCount = exercises.filter((e) => e.completed).length;
   const totalExercises = exercises.length;
@@ -167,7 +155,7 @@ export default function WorkoutDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero section ── */}
+        {/* ââ Hero section ââ */}
         <View style={styles.hero}>
           <Ionicons name="barbell-outline" size={60} color="#999" />
 
@@ -222,7 +210,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ── Progress section ── */}
+        {/* ââ Progress section ââ */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Progress</Text>
@@ -237,7 +225,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ── Description ── */}
+        {/* ââ Description ââ */}
         <View style={styles.descriptionSection}>
           <Text style={styles.descriptionText}>
             This exercise is where your healthy habits begin! It starts off with
@@ -250,7 +238,7 @@ export default function WorkoutDetailScreen() {
           </Pressable>
         </View>
 
-        {/* ── Stage header ── */}
+        {/* ââ Stage header ââ */}
         <View style={styles.stageHeader}>
           <View style={styles.stageHeaderLeft}>
             <Text style={styles.stageTitle}>Stage 1: Start Habits</Text>
@@ -259,7 +247,7 @@ export default function WorkoutDetailScreen() {
           <Ionicons name="lock-closed-outline" size={20} color="#999" />
         </View>
 
-        {/* ── Exercise list ── */}
+        {/* ââ Exercise list ââ */}
         {exercises.map((exercise) => (
           <ExerciseRow key={exercise.id} exercise={exercise} />
         ))}
@@ -284,7 +272,7 @@ export default function WorkoutDetailScreen() {
         )}
       </ScrollView>
 
-      {/* ── Three-dot popup menu ── */}
+      {/* ââ Three-dot popup menu ââ */}
       <Modal
         visible={showMenu}
         transparent
@@ -327,7 +315,7 @@ export default function WorkoutDetailScreen() {
         </Pressable>
       </Modal>
 
-      {/* ── Clear progress confirmation ── */}
+      {/* ââ Clear progress confirmation ââ */}
       <Modal
         visible={showClearConfirm}
         transparent
@@ -353,7 +341,7 @@ export default function WorkoutDetailScreen() {
         </View>
       </Modal>
 
-      {/* ── Floating CTA button ── */}
+      {/* ââ Floating CTA button ââ */}
       <Pressable
         style={[styles.ctaButton, { backgroundColor: ctaConfig.bg }]}
         onPress={handleCTA}
@@ -366,7 +354,7 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-/* ── Styles ── */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   container: {

@@ -6,7 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function WearablesScreen() {
   const [devices, setDevices] = useState([

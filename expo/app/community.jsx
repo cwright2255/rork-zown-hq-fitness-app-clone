@@ -6,12 +6,12 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const FEED = [
-  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day Ã¢ÂÂ new PR on squats!' },
+  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day ÃÂ¢ÃÂÃÂ new PR on squats!' },
   { id: '2', name: 'Sam R.', initials: 'SR', time: '5h', text: 'Morning 5k in under 22 min. Feeling unstoppable.' },
-  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe Ã¢ÂÂ drop yours below.' },
+  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe ÃÂ¢ÃÂÃÂ drop yours below.' },
 ];
 
 const CHALLENGES = [

@@ -16,19 +16,7 @@ import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/* ââ Placeholder exercise data ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Placeholder exercise data Ã¢ÂÂÃ¢ÂÂ */
 // TODO: Connect to real workout API / exerciseStore
 
 const INITIAL_EXERCISES = [
@@ -48,7 +36,7 @@ function formatTime(totalSeconds) {
   return m + ':' + (s < 10 ? '0' : '') + s;
 }
 
-/* ââ Next-move card ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Next-move card Ã¢ÂÂÃ¢ÂÂ */
 
 function NextMoveCard({ exercise, onPress }) {
   return (
@@ -69,7 +57,7 @@ function NextMoveCard({ exercise, onPress }) {
   );
 }
 
-/* ââ Popup menu option ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Popup menu option Ã¢ÂÂÃ¢ÂÂ */
 
 function MenuOption({ icon, label, onPress, danger }) {
   return (
@@ -89,7 +77,7 @@ function MenuOption({ icon, label, onPress, danger }) {
   );
 }
 
-/* ââ Main screen ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
@@ -114,10 +102,10 @@ export default function ActiveWorkoutScreen() {
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
 
-  /* ââ Progress tracking ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Progress tracking Ã¢ÂÂÃ¢ÂÂ */
   const completedCount = completedSet.size;
 
-  /* ââ Timer ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Timer Ã¢ÂÂÃ¢ÂÂ */
   useEffect(() => {
     if (isPlaying && timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -207,17 +195,17 @@ export default function ActiveWorkoutScreen() {
   const overallProgressPercent =
     totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
 
-  /* ââ Upcoming exercises ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Upcoming exercises Ã¢ÂÂÃ¢ÂÂ */
   const upcomingExercises = exercises.slice(currentIndex + 1);
 
-  /* ââ Center button icon ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Center button icon Ã¢ÂÂÃ¢ÂÂ */
   const centerIcon = useMemo(() => {
     if (exerciseComplete) return 'play-forward';
     if (isPlaying) return 'pause';
     return 'play';
   }, [exerciseComplete, isPlaying]);
 
-  /* ââ Exit handlers ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Exit handlers Ã¢ÂÂÃ¢ÂÂ */
   const handleSaveAndExit = () => {
     setShowExitConfirm(false);
     // TODO: persist completion state to store
@@ -247,7 +235,7 @@ export default function ActiveWorkoutScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ââ Header ââ */}
+        {/* Ã¢ÂÂÃ¢ÂÂ Header Ã¢ÂÂÃ¢ÂÂ */}
         <View style={styles.header}>
           <Pressable
             onPress={() => {
@@ -262,10 +250,10 @@ export default function ActiveWorkoutScreen() {
           </Pressable>
         </View>
 
-        {/* ââ Exercise title ââ */}
+        {/* Ã¢ÂÂÃ¢ÂÂ Exercise title Ã¢ÂÂÃ¢ÂÂ */}
         <Text style={styles.exerciseTitle}>{currentExercise.name}</Text>
 
-        {/* ââ Video / demo area ââ */}
+        {/* Ã¢ÂÂÃ¢ÂÂ Video / demo area Ã¢ÂÂÃ¢ÂÂ */}
         <View style={styles.videoArea}>
           <Ionicons name="body-outline" size={80} color="#666" />
 
@@ -288,7 +276,7 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
 
-        {/* ââ Exercise progress bar ââ */}
+        {/* Ã¢ÂÂÃ¢ÂÂ Exercise progress bar Ã¢ÂÂÃ¢ÂÂ */}
         <View style={styles.progressSection}>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>Exercise Progress</Text>
@@ -306,7 +294,7 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
 
-        {/* ââ Next moves ââ */}
+        {/* Ã¢ÂÂÃ¢ÂÂ Next moves Ã¢ÂÂÃ¢ÂÂ */}
         <View style={styles.nextMovesHeader}>
           <Text style={styles.nextMovesTitle}>Next Moves</Text>
           <Text style={styles.nextMovesCount}>
@@ -336,7 +324,7 @@ export default function ActiveWorkoutScreen() {
         )}
       </ScrollView>
 
-      {/* ââ Floating control pill ââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂ Floating control pill Ã¢ÂÂÃ¢ÂÂ */}
       <View style={styles.floatingControlsWrapper}>
         <View style={styles.floatingPill}>
           {/* Skip back */}
@@ -398,7 +386,7 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
-      {/* ââ Three-dot popup menu ââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂ Three-dot popup menu Ã¢ÂÂÃ¢ÂÂ */}
       <Modal
         visible={showMenu}
         transparent
@@ -440,7 +428,7 @@ export default function ActiveWorkoutScreen() {
         </Pressable>
       </Modal>
 
-      {/* ââ Exit confirmation modal ââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂ Exit confirmation modal Ã¢ÂÂÃ¢ÂÂ */}
       <Modal
         visible={showExitConfirm}
         transparent
@@ -507,7 +495,7 @@ export default function ActiveWorkoutScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
 const styles = StyleSheet.create({
   container: {
@@ -540,7 +528,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  /* Video area â CHANGE 1: taller */
+  /* Video area Ã¢ÂÂ CHANGE 1: taller */
   videoArea: {
     marginHorizontal: 16,
     height: 380,

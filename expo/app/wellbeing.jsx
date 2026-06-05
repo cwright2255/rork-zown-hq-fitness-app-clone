@@ -5,9 +5,9 @@ import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-const MOODS = ['Ã°ÂÂÂ´', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ'];
+
+const MOODS = ['ÃÂ°ÃÂÃÂÃÂ´', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ'];
 const STRESS = ['Low', 'Medium', 'High'];
 
 export default function WellbeingScreen() {
@@ -35,7 +35,7 @@ export default function WellbeingScreen() {
             })}
           </View>
           <TouchableOpacity onPress={() => router.push('/mood-tracking')}>
-            <Text style={styles.link}>Track your mood Ã¢ÂÂ</Text>
+            <Text style={styles.link}>Track your mood ÃÂ¢ÃÂÃÂ</Text>
           </TouchableOpacity>
         </View>
 

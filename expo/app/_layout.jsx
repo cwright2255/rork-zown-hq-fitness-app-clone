@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST ÃÂ¢ÃÂÃÂ before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -99,7 +99,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component ÃÂ¢ÃÂÃÂ rendered INSIDE expo-router's navigation context
+// Inner component ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 function RootLayoutInner() {
   const pathname = usePathname();

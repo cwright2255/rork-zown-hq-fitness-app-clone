@@ -8,7 +8,7 @@ import { useAchievementStore } from '@/store/achievementStore';
 import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const BADGE_ICONS = [Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell, Award];
 
@@ -100,7 +100,7 @@ export default function AchievementsScreen() {
           </View>
           <Text style={styles.xpValue}>{xp.toLocaleString()} XP</Text>
           <Text style={styles.subtitle}>
-            Lv. {level} · {position === 1 ? '1st' : position === 2 ? '2nd' : position === 3 ? '3rd' : `${position}th`} Place
+            Lv. {level} Â· {position === 1 ? '1st' : position === 2 ? '2nd' : position === 3 ? '3rd' : `${position}th`} Place
           </Text>
         </View>
 

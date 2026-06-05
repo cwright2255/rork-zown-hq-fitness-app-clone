@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const DAYS = ['S','M','T','W','T','F','S'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];

@@ -6,7 +6,7 @@ import { spotifyService } from '@/services/spotifyService';
 import Colors from '@/constants/colors';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function SpotifyRedirect() {
   const router = useRouter();

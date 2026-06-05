@@ -20,18 +20,6 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRunningStore } from '@/store/runningStore';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
 const H_PAD = 22;
@@ -50,7 +38,7 @@ const WORKOUTS = [
   { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
-/* ── Reusable half-width stat card ── */
+/* ââ Reusable half-width stat card ââ */
 function StatCard({ icon, label, value, unit }) {
   return (
     <View style={styles.statCard}>
@@ -64,7 +52,7 @@ function StatCard({ icon, label, value, unit }) {
   );
 }
 
-/* ── Hydration card with progress bar ── */
+/* ââ Hydration card with progress bar ââ */
 function HydrationCard({ glasses, target }) {
   const pct = Math.min((glasses / target) * 100, 100);
   return (
@@ -82,7 +70,7 @@ function HydrationCard({ glasses, target }) {
   );
 }
 
-/* ── Workout carousel item ── */
+/* ââ Workout carousel item ââ */
 function WorkoutItem({ item, onPress }) {
   return (
     <Pressable style={styles.workoutItem} onPress={onPress}>
@@ -136,7 +124,7 @@ export default function HQScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}>
 
-        {/* ── Zown logo ── */}
+        {/* ââ Zown logo ââ */}
         <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 12 }}>
           <Image
             source={require('@/assets/branding/zown-logo-512.png')}
@@ -146,7 +134,7 @@ export default function HQScreen() {
         </View>
 
 
-        {/* ── Header row (existing) ── */}
+        {/* ââ Header row (existing) ââ */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.avatar}>
@@ -177,7 +165,7 @@ export default function HQScreen() {
           </View>
         </View>
 
-        {/* ── Section title (existing) ── */}
+        {/* ââ Section title (existing) ââ */}
         <View style={styles.sectionRow}>
           <View>
             <Text style={styles.sectionTitle}>Today's Information</Text>
@@ -188,8 +176,8 @@ export default function HQScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Row 1: Calories | Heart (existing) ── */}
-        {/* ── Row 1b: Steps | Sleep (existing) ── */}
+        {/* ââ Row 1: Calories | Heart (existing) ââ */}
+        {/* ââ Row 1b: Steps | Sleep (existing) ââ */}
         <View style={styles.grid}>
           <StatCard icon="flame-outline" label="Calories" value={calories} unit="Kcal" />
           <StatCard icon="heart-outline" label="Heart" value="74" unit="bpm" />
@@ -197,19 +185,19 @@ export default function HQScreen() {
           <StatCard icon="moon-outline" label="Sleep" value="7.5" unit="Hours" />
         </View>
 
-        {/* ── Row 2: XP | Stories Climbed (NEW) ── */}
+        {/* ââ Row 2: XP | Stories Climbed (NEW) ââ */}
         <View style={styles.grid}>
           <StatCard icon="star-outline" label="Total XP" value={xp} unit="points" />
           <StatCard icon="trending-up-outline" label="Stories Climbed" value="42" unit="floors" />
         </View>
 
-        {/* ── Row 3: Resting HRV | Hydration (NEW) ── */}
+        {/* ââ Row 3: Resting HRV | Hydration (NEW) ââ */}
         <View style={styles.grid}>
           <StatCard icon="pulse-outline" label="Resting HRV" value="58" unit="ms" />
           <HydrationCard glasses={5} target={8} />
         </View>
 
-        {/* ── Row 4: Recommended Workouts carousel (NEW) ── */}
+        {/* ââ Row 4: Recommended Workouts carousel (NEW) ââ */}
         <View style={styles.carouselCard}>
           <Text style={styles.carouselTitle}>Recommended Workouts</Text>
           <ScrollView
@@ -226,7 +214,7 @@ export default function HQScreen() {
           </ScrollView>
         </View>
 
-        {/* ── Invite banner (existing) ── */}
+        {/* ââ Invite banner (existing) ââ */}
         <TouchableOpacity
           style={styles.banner}
           activeOpacity={0.8}

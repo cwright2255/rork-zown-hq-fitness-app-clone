@@ -42,19 +42,7 @@ import { useExpStore } from '@/store/expStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRunningStore } from '@/store/runningStore';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/* ── Data by time filter ── */
+/* ââ Data by time filter ââ */
 
 const OVERVIEW = {
   Day:   { workouts: 1,  calories: '320',   xp: '100' },
@@ -104,7 +92,7 @@ const RECENT = [
   { id: 'r5', title: 'Hill Sprints',  sub: 'Running \u2022 20 min \u2022 2.8 km',  xp: '+100 XP', icon: 'fitness' },
 ];
 
-/* ── Pill component ── */
+/* ââ Pill component ââ */
 function Pill({ label, active, onPress, small }) {
   return (
     <Pressable
@@ -117,7 +105,7 @@ function Pill({ label, active, onPress, small }) {
     </Pressable>
   );
 }
-/* ── Main screen ── */
+/* ââ Main screen ââ */
 
 export default function AnalysisScreen() {
   const [timeFilter, setTimeFilter] = useState('Week');
@@ -277,7 +265,7 @@ export default function AnalysisScreen() {
   );
 }
 
-/* ── Styles ── */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

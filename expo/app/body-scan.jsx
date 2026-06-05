@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useHealthStore } from '@/store/healthStore';
 import { useUserStore } from '@/store/userStore';
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const COMPOSITION = [{label:'Muscle',pct:45,color:'#000'},{label:'Fat',pct:18.5,color:'#666'},{label:'Bone',pct:15,color:'#999'},{label:'Water',pct:21.5,color:'#CCC'}];
 const BREAKDOWN = [{l:'Lean Mass',v:'148 lbs'},{l:'Fat Mass',v:'27 lbs'},{l:'BMI',v:'24.2'},{l:'Metabolic Rate',v:'1,850 cal/day'}];
@@ -48,7 +48,7 @@ export default function BodyScanScreen() {
     }
   }, [step]);
 
-  // ── INTRO ──
+  // ââ INTRO ââ
   if (step === 'intro') return (
     <View style={s.container}>
       <View style={s.header}><Pressable onPress={() => router.back()}><Ionicons name="chevron-back" size={24} color="#000" /></Pressable><Text style={s.headerTitle}>Body Scan</Text><Pressable><Ionicons name="help-circle-outline" size={24} color="#000" /></Pressable></View>
@@ -65,7 +65,7 @@ export default function BodyScanScreen() {
     </View>
   );
 
-  // ── CAPTURE (front/side) ──
+  // ââ CAPTURE (front/side) ââ
   if (step === 'front' || step === 'side') {
     const isFront = step === 'front';
     const photo = isFront ? frontPhoto : sidePhoto;
@@ -83,7 +83,7 @@ export default function BodyScanScreen() {
     );
   }
 
-  // ── ANALYZING ──
+  // ââ ANALYZING ââ
   if (step === 'analyzing') return (
     <View style={[s.container,{justifyContent:'center',alignItems:'center'}]}>
       <Text style={s.analyzingTitle}>Analyzing your body composition...</Text>
@@ -96,7 +96,7 @@ export default function BodyScanScreen() {
     </View>
   );
 
-  // ── RESULTS ──
+  // ââ RESULTS ââ
   return (
     <View style={s.container}>
       <View style={s.header}><Pressable onPress={()=>router.back()}><Ionicons name="chevron-back" size={24} color="#000" /></Pressable><Text style={s.headerTitle}>Scan Results</Text><View style={{width:24}} /></View>

@@ -8,7 +8,7 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { getFoodById } from '@/services/passioService';
 import { tokens } from '../../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function FoodDetailScreen() {
   const { id, mealId } = useLocalSearchParams();

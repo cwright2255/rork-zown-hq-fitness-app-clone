@@ -9,7 +9,7 @@ import Card from '@/components/Card';
 import { useProgressStore } from '@/store/progressStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function BodyScanScreen() {
   const { addEntry } = useProgressStore();

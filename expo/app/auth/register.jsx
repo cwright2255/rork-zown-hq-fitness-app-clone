@@ -19,7 +19,7 @@ import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const GOALS = [
   { id: 'muscle', label: 'Build Muscle', icon: Dumbbell },

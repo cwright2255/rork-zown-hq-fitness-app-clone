@@ -5,7 +5,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const FAQS = [
   { q: 'How do I track my workouts?', a: 'Navigate to the Workouts tab, select a program, and tap "Start" to begin tracking.' },

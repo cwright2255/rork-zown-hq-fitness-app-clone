@@ -20,7 +20,7 @@ import { tokens } from '../../../theme/tokens';
 
 import { useProgressStore } from '@/store/progressStore';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function ProgressTrackerScreen() {
   const params = useLocalSearchParams();
@@ -389,9 +389,9 @@ export default function ProgressTrackerScreen() {
         
         <View style={styles.streakTips}>
           <Text style={styles.streakTipsTitle}>Streak Tips:</Text>
-          <Text style={styles.streakTip}>Ã¢ÂÂ¢ Complete at least one workout every day to maintain your streak</Text>
-          <Text style={styles.streakTip}>Ã¢ÂÂ¢ Longer streaks earn you more XP and special badges</Text>
-          <Text style={styles.streakTip}>Ã¢ÂÂ¢ If you miss a day, your streak will reset to zero</Text>
+          <Text style={styles.streakTip}>ÃÂ¢ÃÂÃÂ¢ Complete at least one workout every day to maintain your streak</Text>
+          <Text style={styles.streakTip}>ÃÂ¢ÃÂÃÂ¢ Longer streaks earn you more XP and special badges</Text>
+          <Text style={styles.streakTip}>ÃÂ¢ÃÂÃÂ¢ If you miss a day, your streak will reset to zero</Text>
         </View>
         
         <View style={styles.streakRewards}>

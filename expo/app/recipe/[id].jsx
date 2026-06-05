@@ -6,7 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const recipes = {
   '1': {
@@ -117,7 +117,7 @@ export default function RecipeDetailScreen() {
         <View style={{ padding: tokens.spacing.md }}>
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.meta}>
-            {recipe.prepTime} min ÃÂ· Serves {recipe.servings}
+            {recipe.prepTime} min ÃÂÃÂ· Serves {recipe.servings}
           </Text>
 
           <View style={styles.macroRow}>

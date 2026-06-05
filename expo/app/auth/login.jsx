@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const { width, height } = Dimensions.get('window');
 const DIAGONAL_HEIGHT = 260;
@@ -33,7 +33,7 @@ export default function LoginScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const { setUser } = useUserStore();
 
-  /* ── splash overlay ── */
+  /* ââ splash overlay ââ */
   const splashY = useRef(new Animated.Value(0)).current;
   const [splashDone, setSplashDone] = useState(false);
 
@@ -48,7 +48,7 @@ export default function LoginScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  /* ── auth ── */
+  /* ââ auth ââ */
   const handleLogin = useCallback(async () => {
     setErrorMsg('');
     if (!email.trim()) { setErrorMsg('Please enter your email'); return; }
@@ -83,7 +83,7 @@ export default function LoginScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* ── login content ── */}
+      {/* ââ login content ââ */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -207,7 +207,7 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ── splash overlay ── */}
+      {/* ââ splash overlay ââ */}
       {!splashDone && (
         <Animated.View
           style={[styles.splashOverlay, { transform: [{ translateY: splashY }] }]}
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
 
-  /* tagline — right-aligned at bottom of header */
+  /* tagline â right-aligned at bottom of header */
   taglineWrap: {
     marginTop: -32,
     paddingRight: 24,

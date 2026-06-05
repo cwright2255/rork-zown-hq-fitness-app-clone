@@ -11,9 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
-/* ── Static placeholder data ── */
+
+/* ââ Static placeholder data ââ */
 
 const FEATURED_RUNS = [
   { id: 'r1', title: '5K Tempo Run', subtitle: '30 min \u2022 Intermediate' },
@@ -39,7 +39,7 @@ const VIRTUAL_RACES = [
   { id: 'v5', title: 'Charity Fun Run', distance: '5K', date: 'Oct 1' },
 ];
 
-/* ── Section header ── */
+/* ââ Section header ââ */
 
 function SectionHeader({ title, onViewAll }) {
   return (
@@ -52,7 +52,7 @@ function SectionHeader({ title, onViewAll }) {
   );
 }
 
-/* ── Cards ── */
+/* ââ Cards ââ */
 
 function FeaturedCard({ item }) {
   return (
@@ -110,7 +110,7 @@ function RaceCard({ item }) {
   );
 }
 
-/* ── Main screen ── */
+/* ââ Main screen ââ */
 
 export default function RunningScreen() {
   return (
@@ -187,7 +187,7 @@ export default function RunningScreen() {
   );
 }
 
-/* ── Styles ── */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   safe: {

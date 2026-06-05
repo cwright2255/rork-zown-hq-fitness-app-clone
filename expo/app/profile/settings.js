@@ -30,7 +30,7 @@ import { authService } from '@/services/authService';
 import { spotifyService } from '@/services/spotifyService';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function SettingsScreen() {
   const { user, updateUserPreferences, logout } = useUserStore();
@@ -159,7 +159,7 @@ export default function SettingsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.loadingText}>LoadingÃ¢ÂÂ¦</Text>
+        <Text style={styles.loadingText}>LoadingÃÂ¢ÃÂÃÂ¦</Text>
       </SafeAreaView>
     );
   }
@@ -254,7 +254,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.connectPillText}>
-                  {isConnecting ? 'ConnectingÃ¢ÂÂ¦' : 'Connect'}
+                  {isConnecting ? 'ConnectingÃÂ¢ÃÂÃÂ¦' : 'Connect'}
                 </Text>
               </TouchableOpacity>
             </View>

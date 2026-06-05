@@ -9,7 +9,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function SpotifyIntegrationScreen() {
   const {
@@ -97,7 +97,7 @@ export default function SpotifyIntegrationScreen() {
 
             <Text style={styles.sectionLabel}>Your Playlists</Text>
             {loading ? (
-              <Text style={styles.muted}>LoadingÃ¢ÂÂ¦</Text>
+              <Text style={styles.muted}>LoadingÃÂ¢ÃÂÃÂ¦</Text>
             ) : playlists.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.muted}>No playlists yet.</Text>

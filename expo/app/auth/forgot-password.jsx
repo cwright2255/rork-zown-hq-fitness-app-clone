@@ -8,7 +8,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { authService } from '@/services/authService';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');

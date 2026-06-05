@@ -12,19 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/* ── Placeholder data ── */
+/* ââ Placeholder data ââ */
 // TODO: receive real workout results via route params or store
 
 const COMPLETED_EXERCISES = [
@@ -53,7 +41,7 @@ const SUMMARY_STATS = [
   { label: 'XP Earned', value: '+100 XP' },
 ];
 
-/* ── Stat card ── */
+/* ââ Stat card ââ */
 
 function StatCard({ icon, number, label }) {
   return (
@@ -65,7 +53,7 @@ function StatCard({ icon, number, label }) {
   );
 }
 
-/* ── Summary row ── */
+/* ââ Summary row ââ */
 
 function SummaryRow({ label, value, isLast }) {
   return (
@@ -76,7 +64,7 @@ function SummaryRow({ label, value, isLast }) {
   );
 }
 
-/* ── Exercise completion row ── */
+/* ââ Exercise completion row ââ */
 
 function ExerciseRow({ exercise }) {
   return (
@@ -93,7 +81,7 @@ function ExerciseRow({ exercise }) {
   );
 }
 
-/* ── Reward badge ── */
+/* ââ Reward badge ââ */
 
 function RewardBadge({ reward }) {
   return (
@@ -108,7 +96,7 @@ function RewardBadge({ reward }) {
   );
 }
 
-/* ── Tab button ── */
+/* ââ Tab button ââ */
 
 function TabButton({ label, active, onPress }) {
   return (
@@ -123,7 +111,7 @@ function TabButton({ label, active, onPress }) {
   );
 }
 
-/* ── Main screen ── */
+/* ââ Main screen ââ */
 
 export default function WorkoutCompleteScreen() {
   const completedWorkouts = useWorkoutStore(s => s.completedWorkouts) || [];
@@ -149,7 +137,7 @@ export default function WorkoutCompleteScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
+        {/* ââ Header ââ */}
         <View style={styles.header}>
           <Pressable style={styles.headerBtn} onPress={handleClose}>
             <Ionicons name="close" size={24} color="#000" />
@@ -165,7 +153,7 @@ export default function WorkoutCompleteScreen() {
           </Pressable>
         </View>
 
-        {/* ── Celebration ── */}
+        {/* ââ Celebration ââ */}
         <View style={styles.celebration}>
           <View style={styles.celebrationCircle}>
             <Ionicons name="checkmark" size={50} color="#000" />
@@ -174,13 +162,13 @@ export default function WorkoutCompleteScreen() {
           <Text style={styles.celebrationName}>Carlton Wright</Text>
         </View>
 
-        {/* ── Stats row ── */}
+        {/* ââ Stats row ââ */}
         <View style={styles.statsRow}>
           <StatCard icon="flash-outline" number="246" label="Total calories" />
           <StatCard icon="star-outline" number="+100" label="XP Earned" />
         </View>
 
-        {/* ── Tabs ── */}
+        {/* ââ Tabs ââ */}
         <View style={styles.tabRow}>
           <TabButton
             label="Summary"
@@ -199,7 +187,7 @@ export default function WorkoutCompleteScreen() {
           />
         </View>
 
-        {/* ── Tab content ── */}
+        {/* ââ Tab content ââ */}
         {activeTab === 'Summary' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Workout Summary</Text>
@@ -231,7 +219,7 @@ export default function WorkoutCompleteScreen() {
           </View>
         )}
 
-        {/* ── Rewards ── */}
+        {/* ââ Rewards ââ */}
         <View style={styles.rewardsSection}>
           <Text style={styles.sectionTitle}>Rewards</Text>
           <Text style={styles.rewardsSubtitle}>
@@ -248,7 +236,7 @@ export default function WorkoutCompleteScreen() {
           </ScrollView>
         </View>
 
-        {/* ── Bottom CTA ── */}
+        {/* ââ Bottom CTA ââ */}
         <Pressable style={styles.ctaButton} onPress={handleClose}>
           <Text style={styles.ctaText}>Back to Workouts</Text>
         </Pressable>
@@ -257,7 +245,7 @@ export default function WorkoutCompleteScreen() {
   );
 }
 
-/* ── Styles ── */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   container: {

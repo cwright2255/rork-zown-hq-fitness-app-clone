@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Dimensi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 
 const TIERS = [

@@ -6,18 +6,6 @@ import { useHealthStore } from '@/store/healthStore';
 import { useUserStore } from '@/store/userStore';
 import * as ImagePicker from 'expo-image-picker';
 import { searchFoods } from '@/services/passioService';
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const MEALS = [
   { id:'m1', meal:'Breakfast', items:'Yogurt, banana', cal:350, icon:'sunny-outline' },
   { id:'m2', meal:'Lunch', items:'Chicken salad', cal:520, icon:'partly-sunny-outline' },

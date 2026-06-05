@@ -4,13 +4,13 @@ import { Send, ArrowLeft } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 const CONVERSATIONS = [
   { id: '1', name: 'Sarah Johnson', initials: 'SJ', last: 'Great workout today! Want to join me tomorrow?', time: '2m', unread: 2 },
   { id: '2', name: 'Morning Runners', initials: 'MR', last: 'Who is up for a 6 AM run?', time: '1h', unread: 0 },
   { id: '3', name: 'Alex Rodriguez', initials: 'AR', last: 'Congrats on completing Week 5!', time: '3h', unread: 1 },
-  { id: '4', name: 'Emma Wilson', initials: 'EW', last: 'Smoothie recipe incoming Ã°ÂÂ¥Â¤', time: '1d', unread: 0 },
+  { id: '4', name: 'Emma Wilson', initials: 'EW', last: 'Smoothie recipe incoming ÃÂ°ÃÂÃÂ¥ÃÂ¤', time: '1d', unread: 0 },
 ];
 
 const MOCK_MESSAGES = [

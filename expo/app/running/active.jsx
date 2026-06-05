@@ -20,19 +20,7 @@ import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { radarService } from '@/services/radarService';
 
-export function ErrorBoundary({ error, retry }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
-      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
-      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
-        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/* ââ Helpers ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Helpers Ã¢ÂÂÃ¢ÂÂ */
 
 function formatTimer(secs) {
   const h = Math.floor(secs / 3600);
@@ -61,7 +49,7 @@ function haversineKm(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-/* ââ Menu option ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Menu option Ã¢ÂÂÃ¢ÂÂ */
 
 function MenuOption({ icon, label, onPress, danger }) {
   return (
@@ -72,7 +60,7 @@ function MenuOption({ icon, label, onPress, danger }) {
   );
 }
 
-/* ââ Main screen ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
 
 export default function ActiveRunScreen() {
   const router = useRouter();
@@ -98,7 +86,7 @@ export default function ActiveRunScreen() {
   }, []);
 
 
-  /* ââ Core state ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Core state Ã¢ÂÂÃ¢ÂÂ */
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
@@ -107,7 +95,7 @@ export default function ActiveRunScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
 
-  /* ââ GPS state ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ GPS state Ã¢ÂÂÃ¢ÂÂ */
   const [coordinates, setCoordinates] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
@@ -115,7 +103,7 @@ export default function ActiveRunScreen() {
   const timerRef = useRef(null);
   const locationSubRef = useRef(null);
 
-  /* ââ Request location permission on mount ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Request location permission on mount Ã¢ÂÂÃ¢ÂÂ */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -139,7 +127,7 @@ export default function ActiveRunScreen() {
     };
   }, []);
 
-  /* ââ GPS tracking ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ GPS tracking Ã¢ÂÂÃ¢ÂÂ */
   useEffect(() => {
     if (isRunning && locationPermission === 'granted') {
       startLocationTracking();
@@ -191,7 +179,7 @@ export default function ActiveRunScreen() {
     }
   };
 
-  /* ââ Elapsed time timer ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Elapsed time timer Ã¢ÂÂÃ¢ÂÂ */
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -203,7 +191,7 @@ export default function ActiveRunScreen() {
     };
   }, [isRunning]);
 
-  /* ââ Controls ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Controls Ã¢ÂÂÃ¢ÂÂ */
   const handlePause = useCallback(() => {
     setIsRunning(false);
     setShowPauseOptions(true);
@@ -235,7 +223,7 @@ export default function ActiveRunScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* ââ Map area with RunningMap component ââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂ Map area with RunningMap component Ã¢ÂÂÃ¢ÂÂ */}
       <View style={styles.mapArea}>
         <RunningMap
           coordinates={coordinates}
@@ -256,7 +244,7 @@ export default function ActiveRunScreen() {
         </View>
       </View>
 
-      {/* ââ Stats panel ââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂ Stats panel Ã¢ÂÂÃ¢ÂÂ */}
       <View style={styles.statsPanel}>
         {/* Distance goal row */}
         <View style={styles.goalRow}>
@@ -325,7 +313,7 @@ export default function ActiveRunScreen() {
         )}
       </View>
 
-      {/* ââ Three-dot popup menu ââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂ Three-dot popup menu Ã¢ÂÂÃ¢ÂÂ */}
       <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
@@ -339,7 +327,7 @@ export default function ActiveRunScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D1117' },

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, StatusBar } from 'react-native';
 import { router, Stack } from 'expo-router';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+
 
 export default function SplashScreen() {
   useEffect(() => {
