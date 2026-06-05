@@ -1,9 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-  const { startRun, endRun } = useRunningStore();
-  const { addExp } = useExpStore();
-  const { user } = useUserStore();
-  const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, playbackState } = useSpotifyStore();
-  const runStartRef = useRef(new Date().toISOString());
 
 import {
   View,
@@ -36,7 +31,7 @@ export function ErrorBoundary({ error, retry }) {
   );
 }
 
-/* ── Helpers ── */
+/* ââ Helpers ââ */
 
 function formatTimer(secs) {
   const h = Math.floor(secs / 3600);
@@ -65,7 +60,7 @@ function haversineKm(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-/* ── Menu option ── */
+/* ââ Menu option ââ */
 
 function MenuOption({ icon, label, onPress, danger }) {
   return (
@@ -76,12 +71,18 @@ function MenuOption({ icon, label, onPress, danger }) {
   );
 }
 
-/* ── Main screen ── */
+/* ââ Main screen ââ */
 
 export default function ActiveRunScreen() {
   const router = useRouter();
 
-  /* ── Core state ── */
+  const { startRun, endRun } = useRunningStore();
+  const { addExp } = useExpStore();
+  const { user } = useUserStore();
+  const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, playbackState } = useSpotifyStore();
+  const runStartRef = useRef(new Date().toISOString());
+
+  /* ââ Core state ââ */
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
@@ -90,7 +91,7 @@ export default function ActiveRunScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
 
-  /* ── GPS state ── */
+  /* ââ GPS state ââ */
   const [coordinates, setCoordinates] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
@@ -98,7 +99,7 @@ export default function ActiveRunScreen() {
   const timerRef = useRef(null);
   const locationSubRef = useRef(null);
 
-  /* ── Request location permission on mount ── */
+  /* ââ Request location permission on mount ââ */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -122,7 +123,7 @@ export default function ActiveRunScreen() {
     };
   }, []);
 
-  /* ── GPS tracking ── */
+  /* ââ GPS tracking ââ */
   useEffect(() => {
     if (isRunning && locationPermission === 'granted') {
       startLocationTracking();
@@ -174,7 +175,7 @@ export default function ActiveRunScreen() {
     }
   };
 
-  /* ── Elapsed time timer ── */
+  /* ââ Elapsed time timer ââ */
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -186,7 +187,7 @@ export default function ActiveRunScreen() {
     };
   }, [isRunning]);
 
-  /* ── Controls ── */
+  /* ââ Controls ââ */
   const handlePause = useCallback(() => {
     setIsRunning(false);
     setShowPauseOptions(true);
@@ -218,7 +219,7 @@ export default function ActiveRunScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* ── Map area with RunningMap component ── */}
+      {/* ââ Map area with RunningMap component ââ */}
       <View style={styles.mapArea}>
         <RunningMap
           coordinates={coordinates}
@@ -239,7 +240,7 @@ export default function ActiveRunScreen() {
         </View>
       </View>
 
-      {/* ── Stats panel ── */}
+      {/* ââ Stats panel ââ */}
       <View style={styles.statsPanel}>
         {/* Distance goal row */}
         <View style={styles.goalRow}>
@@ -308,7 +309,7 @@ export default function ActiveRunScreen() {
         )}
       </View>
 
-      {/* ── Three-dot popup menu ── */}
+      {/* ââ Three-dot popup menu ââ */}
       <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
@@ -322,7 +323,7 @@ export default function ActiveRunScreen() {
   );
 }
 
-/* ── Styles ── */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D1117' },
