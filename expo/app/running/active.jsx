@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+  const { startRun, endRun } = useRunningStore();
+  const { addExp } = useExpStore();
+  const { user } = useUserStore();
+  const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, playbackState } = useSpotifyStore();
+  const runStartRef = useRef(new Date().toISOString());
+
 import {
   View,
   Text,
@@ -13,8 +19,22 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import RunningMap from '@/components/RunningMap';
+import { useRunningStore } from '@/store/runningStore';
+import { useExpStore } from '@/store/expStore';
+import { useUserStore } from '@/store/userStore';
+import { useSpotifyStore } from '@/store/spotifyStore';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+export function ErrorBoundary({ error, retry }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 /* ── Helpers ── */
 
@@ -181,8 +201,15 @@ export default function ActiveRunScreen() {
     setIsRunning(false);
     setShowPauseOptions(false);
     setShowMenu(false);
+    try {
+      const calories = Math.round(distance * 60);
+      endRun(user?.uid);
+      if (addExp) addExp(Math.round(distance * 30), 'run');
+    } catch (e) {
+      console.warn('Failed to save run:', e?.message);
+    }
     router.replace('/workout/complete');
-  }, [router]);
+  }, [router, distance, endRun, addExp, user]);
 
   const pace = formatPace(distance, elapsed);
   const goalPercent = Math.min(100, Math.round((distance / 5) * 100));

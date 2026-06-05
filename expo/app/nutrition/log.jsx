@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { useHealthStore } from '@/store/healthStore';
+import { useUserStore } from '@/store/userStore';
+import * as ImagePicker from 'expo-image-picker';
+export function ErrorBoundary({ error, retry }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 const MEALS = [
   { id:'m1', meal:'Breakfast', items:'Yogurt, banana', cal:350, icon:'sunny-outline' },
@@ -10,14 +23,45 @@ const MEALS = [
   { id:'m3', meal:'Snack', items:'Protein bar', cal:280, icon:'cafe-outline' },
 ];
 const MACROS = [
-  { label:'Protein', current:85, target:120, color:'#000' },
-  { label:'Carbs', current:180, target:250, color:'#555' },
-  { label:'Fat', current:45, target:65, color:'#999' },
+  { label:'Protein', current:todayMacros.protein, target:120, color:'#000' },
+  { label:'Carbs', current:todayMacros.carbs, target:250, color:'#555' },
+  { label:'Fat', current:todayMacros.fat, target:65, color:'#999' },
 ];
 
 export default function NutritionLogScreen() {
-  const [glasses, setGlasses] = useState(5);
-  const consumed = 1450; const target = 2000; const remaining = target - consumed;
+  const { hydration, meals, addGlass, logMeal, getTodayCalories, getTodayMacros } = useHealthStore();
+  const { user } = useUserStore();
+  const uid = user?.uid;
+  const [isScanning, setIsScanning] = useState(false);
+
+  const todayCals = getTodayCalories ? getTodayCalories() : 0;
+  const todayMacros = getTodayMacros ? getTodayMacros() : { protein: 0, carbs: 0, fat: 0 };
+  const todayMeals = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return (meals || []).filter(m => m.timestamp && m.timestamp.startsWith(today));
+  }, [meals]);
+
+  const handlePhotoLog = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') return;
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
+      if (!result.canceled) {
+        setIsScanning(true);
+        // TODO: Send image to Passio.ai for food recognition
+        // For now, add a placeholder meal
+        setTimeout(() => {
+          logMeal({ name: 'Scanned Meal', calories: 350, protein: 25, carbs: 40, fat: 12, type: 'lunch' }, uid);
+          setIsScanning(false);
+        }, 1500);
+      }
+    } catch (e) {
+      setIsScanning(false);
+    }
+  };
+
+  const glassCount = hydration?.glasses || 0;
+  const consumed = todayCals; const target = 2000; const remaining = Math.max(0, target - consumed);
   const calPct = Math.round((consumed/target)*100);
 
   return (
@@ -70,13 +114,13 @@ export default function NutritionLogScreen() {
         <View style={s.hydrationCard}>
           <View style={s.glassesRow}>
             {Array.from({length:8}).map((_,i)=>(
-              <Pressable key={i} onPress={()=>setGlasses(i+1)}>
-                <Ionicons name={i<glasses?'water':'water-outline'} size={28} color={i<glasses?'#000':'#CCC'} />
+              <Pressable key={i} onPress={()=>addGlass(uid)}>
+                <Ionicons name={i<glassCount?'water':'water-outline'} size={28} color={i<glassCount?'#000':'#CCC'} />
               </Pressable>
             ))}
           </View>
-          <Text style={s.glassesLabel}>{glasses} of 8 glasses</Text>
-          <Pressable style={s.addGlassBtn} onPress={()=>glasses<8&&setGlasses(glasses+1)}><Text style={s.addGlassBtnText}>Add Glass</Text></Pressable>
+          <Text style={s.glassesLabel}>{glassCount} of 8 glasses</Text>
+          <Pressable style={s.addGlassBtn} onPress={()=>addGlass(uid)}><Text style={s.addGlassBtnText}>Add Glass</Text></Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

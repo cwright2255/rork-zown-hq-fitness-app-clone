@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
   const { addExp } = useExpStore();
   const { user } = useUserStore();
   const workoutStartRef = useRef(new Date().toISOString());
+  const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, previousTrack, playbackState, connectSpotifyImplicit } = useSpotifyStore();
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
 import {
   View,
@@ -18,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
+import { useSpotifyStore } from '@/store/spotifyStore';
 
 export function ErrorBoundary({ error, retry }) {
   return (
@@ -411,7 +414,7 @@ export default function ActiveWorkoutScreen() {
               label="Music"
               onPress={() => {
                 setShowMenu(false);
-                // TODO: open music integration (Spotify / Apple Music)
+                setShowMusicPlayer(true); setShowMenu(false);
               }}
             />
             <MenuOption
@@ -463,7 +466,43 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    
+      {/* Spotify Mini Player */}
+      <Modal visible={showMusicPlayer} transparent animationType="slide" onRequestClose={() => setShowMusicPlayer(false)}>
+        <Pressable style={{flex:1,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'flex-end'}} onPress={() => setShowMusicPlayer(false)}>
+          <Pressable style={{backgroundColor:'#1A1A1A',borderTopLeftRadius:24,borderTopRightRadius:24,padding:24,paddingBottom:40}} onPress={() => {}}>
+            <View style={{width:40,height:4,borderRadius:2,backgroundColor:'#444',alignSelf:'center',marginBottom:20}} />
+            {spotifyConnected ? (
+              <>
+                <Text style={{fontSize:18,fontWeight:'800',color:'#FFF',textAlign:'center',marginBottom:4}}>
+                  {currentTrack?.name || 'No Track Playing'}
+                </Text>
+                <Text style={{fontSize:13,color:'#999',textAlign:'center',marginBottom:24}}>
+                  {currentTrack?.artists?.[0]?.name || 'Unknown Artist'}
+                </Text>
+                <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:32}}>
+                  <Pressable onPress={previousTrack}><Ionicons name="play-skip-back" size={28} color="#FFF" /></Pressable>
+                  <Pressable onPress={() => playbackState?.is_playing ? pauseTrack() : playTrack()} style={{width:60,height:60,borderRadius:30,backgroundColor:'#1DB954',justifyContent:'center',alignItems:'center'}}>
+                    <Ionicons name={playbackState?.is_playing ? 'pause' : 'play'} size={28} color="#FFF" />
+                  </Pressable>
+                  <Pressable onPress={nextTrack}><Ionicons name="play-skip-forward" size={28} color="#FFF" /></Pressable>
+                </View>
+              </>
+            ) : (
+              <View style={{alignItems:'center'}}>
+                <Ionicons name="musical-notes" size={40} color="#1DB954" style={{marginBottom:16}} />
+                <Text style={{fontSize:16,fontWeight:'700',color:'#FFF',marginBottom:8}}>Connect Spotify</Text>
+                <Text style={{fontSize:13,color:'#999',marginBottom:20,textAlign:'center'}}>Link your Spotify account to control music during workouts</Text>
+                <Pressable onPress={() => connectSpotifyImplicit()} style={{backgroundColor:'#1DB954',paddingHorizontal:32,paddingVertical:14,borderRadius:24}}>
+                  <Text style={{fontSize:15,fontWeight:'700',color:'#FFF'}}>Connect</Text>
+                </Pressable>
+              </View>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      </View>
   );
 }
 
