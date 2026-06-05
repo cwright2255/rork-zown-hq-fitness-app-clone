@@ -18,6 +18,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { radarService } from '@/services/radarService';
 
 export function ErrorBoundary({ error, retry }) {
   return (
@@ -81,6 +82,21 @@ export default function ActiveRunScreen() {
   const { user } = useUserStore();
   const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, playbackState } = useSpotifyStore();
   const runStartRef = useRef(new Date().toISOString());
+  const [locationName, setLocationName] = useState('');
+
+  // Reverse geocode current position for display
+  const updateLocationName = useCallback(async (lat, lng) => {
+    try {
+      const result = await radarService.reverseGeocode(lat, lng);
+      if (result?.addresses?.[0]) {
+        const addr = result.addresses[0];
+        setLocationName(addr.placeLabel || addr.city || addr.neighborhood || '');
+      }
+    } catch (e) {
+      // Silently fail - location name is optional UI enhancement
+    }
+  }, []);
+
 
   /* ââ Core state ââ */
   const [isRunning, setIsRunning] = useState(false);

@@ -1,4 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+  // Derive target muscles from exercises
+  const targetMuscles = useMemo(() => {
+    const muscleMap = {
+      'Jumping Jack': 'Quadriceps',
+      'High Knees': 'Hip Flexors',
+      'Push Ups': 'Chest',
+      'Squats': 'Quadriceps',
+      'Plank': 'Abdominals',
+      'Burpees': 'Full Body',
+      'Lunges': 'Glutes',
+      'Mountain Climbers': 'Abdominals',
+    };
+    const muscles = new Set();
+    (INITIAL_EXERCISES || []).forEach(ex => {
+      const m = muscleMap[ex.name];
+      if (m) muscles.add(m);
+    });
+    return [...muscles];
+  }, []);
+
+  const muscleVizUrl = useMemo(() => {
+    return getWorkoutVisualizeUrl({ targetMuscles, gender: 'male', size: 'small' });
+  }, [targetMuscles]);
+
 import {
   View,
   Text,
@@ -7,11 +31,23 @@ import {
   Pressable,
   Modal,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getWorkoutVisualizeUrl } from '@/services/muscleVisualizerService';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+export function ErrorBoundary({ error, retry }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 8 }}>Something went wrong</Text>
+      <Text style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{error?.message}</Text>
+      <Pressable onPress={retry} style={{ backgroundColor: '#000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 /* ── Placeholder exercise data ── */
 // TODO: Connect to real workout API / exerciseStore
@@ -30,7 +66,27 @@ const TOTAL_MOVES = 28; // Total moves in the full workout
 
 function ExerciseRow({ exercise }) {
   return (
-    <Pressable style={styles.exerciseRow}>
+    
+        {/* Muscles Worked */}
+        {targetMuscles.length > 0 && (
+          <View style={{marginBottom:16}}>
+            <Text style={{fontSize:16,fontWeight:'700',color:'#000',paddingHorizontal:20,marginBottom:10}}>Muscles Worked</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6}}>
+              {targetMuscles.map((m, i) => (
+                <View key={i} style={{backgroundColor:'#F0F0F0',paddingHorizontal:14,paddingVertical:8,borderRadius:16,marginRight:8}}>
+                  <Text style={{fontSize:13,fontWeight:'600',color:'#333'}}>{m}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            {muscleVizUrl && (
+              <View style={{marginTop:10,marginHorizontal:20,height:120,borderRadius:12,overflow:'hidden',backgroundColor:'#F8F8F8',justifyContent:'center',alignItems:'center'}}>
+                <Image source={{uri:muscleVizUrl}} style={{width:'100%',height:'100%'}} resizeMode="contain" onError={() => {}} />
+              </View>
+            )}
+          </View>
+        )}
+
+<Pressable style={styles.exerciseRow}>
       <View style={styles.exerciseCheck}>
         {exercise.completed ? (
           <Ionicons name="checkmark-circle" size={24} color="#22C55E" />

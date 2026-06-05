@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useHealthStore } from '@/store/healthStore';
 import { useUserStore } from '@/store/userStore';
 import * as ImagePicker from 'expo-image-picker';
+import { searchFoods } from '@/services/passioService';
 export function ErrorBoundary({ error, retry }) {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
@@ -33,6 +34,49 @@ export default function NutritionLogScreen() {
   const { user } = useUserStore();
   const uid = user?.uid;
   const [isScanning, setIsScanning] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showFoodSearch, setShowFoodSearch] = useState(false);
+
+  const handleFoodSearch = async (query) => {
+    if (!query || query.length < 2) { setSearchResults([]); return; }
+    setIsSearching(true);
+    try {
+      const results = await searchFoods(query);
+      setSearchResults(Array.isArray(results) ? results.slice(0, 8) : []);
+    } catch (e) {
+      console.warn('Food search failed:', e?.message);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleBarcodeScan = async (barcode) => {
+    try {
+      const res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + barcode + '.json');
+      const data = await res.json();
+      if (data?.product) {
+        const p = data.product;
+        const nut = p.nutriments || {};
+        logMeal({
+          name: p.product_name || 'Scanned Product',
+          calories: Math.round(nut['energy-kcal_100g'] || 0),
+          protein: Math.round(nut.proteins_100g || 0),
+          carbs: Math.round(nut.carbohydrates_100g || 0),
+          fat: Math.round(nut.fat_100g || 0),
+          type: 'snack',
+        }, uid);
+        Alert.alert('Logged!', (p.product_name || 'Product') + ' added to your meals.');
+      } else {
+        Alert.alert('Not Found', 'Could not find product. Try searching manually.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Barcode lookup failed. Try again.');
+    }
+  };
+
 
   const todayCals = getTodayCalories ? getTodayCalories() : 0;
   const todayMacros = getTodayMacros ? getTodayMacros() : { protein: 0, carbs: 0, fat: 0 };
@@ -48,12 +92,14 @@ export default function NutritionLogScreen() {
       const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
       if (!result.canceled) {
         setIsScanning(true);
-        // TODO: Send image to Passio.ai for food recognition
-        // For now, add a placeholder meal
-        setTimeout(() => {
-          logMeal({ name: 'Scanned Meal', calories: 350, protein: 25, carbs: 40, fat: 12, type: 'lunch' }, uid);
+        try {
+          // Use Passio.ai text search as fallback since image recognition needs native SDK
+          setShowFoodSearch(true);
+        } catch (e) {
+          Alert.alert('Recognition Failed', 'Could not recognize food. Try searching manually.');
+        } finally {
           setIsScanning(false);
-        }, 1500);
+        }
       }
     } catch (e) {
       setIsScanning(false);

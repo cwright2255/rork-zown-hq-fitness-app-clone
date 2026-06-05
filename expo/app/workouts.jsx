@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   ScrollView,
   Pressable,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { fetchExercises } from '@/services/exerciseDbService';
 
 export function ErrorBoundary({ error, retry }) {
   return (
@@ -122,6 +124,37 @@ function YouTubeCard({ item }) {
 /* ── Main screen ── */
 
 export default function WorkoutsScreen() {
+  const [apiExercises, setApiExercises] = useState([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadExercises = async () => {
+      try {
+        const result = await fetchExercises({ limit: 10 });
+        const exercises = result?.data || result || [];
+        if (mounted && Array.isArray(exercises)) {
+          setApiExercises(exercises.map(e => ({
+            id: e.id || e.exerciseId,
+            title: e.name || 'Exercise',
+            subtitle: (e.bodyPart || '') + (e.equipment ? ' \u00B7 ' + e.equipment : ''),
+            gifUrl: e.gifUrl || null,
+            bodyPart: e.bodyPart || '',
+            target: e.target || '',
+          })));
+        }
+      } catch (e) {
+        console.warn('ExerciseDB fetch failed:', e?.message);
+      } finally {
+        if (mounted) setIsLoadingExercises(false);
+      }
+    };
+    loadExercises();
+    return () => { mounted = false; };
+  }, []);
+
+  const displayWorkouts = apiExercises.length > 0 ? apiExercises : FEATURED_WORKOUTS;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -154,7 +187,7 @@ export default function WorkoutsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.carousel}
         >
-          {FEATURED_WORKOUTS.map((item) => (
+          {displayWorkouts.map((item) => (
             <FeaturedCard key={item.id} item={item} />
           ))}
         </ScrollView>
