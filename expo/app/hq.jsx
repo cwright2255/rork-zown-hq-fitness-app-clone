@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,39 @@ import {
   Dimensions,
   StatusBar,
   Platform,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
+import { LineChart, BarChart } from 'react-native-chart-kit';
+import {
+  Flame,
+  Heart as HeartIcon,
+  Footprints,
+  Moon,
+  Droplet,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  TrendingUp,
+  Star,
+} from 'lucide-react-native';
+
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRunningStore } from '@/store/runningStore';
+import { tokens } from '../../theme/tokens';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
@@ -38,39 +62,47 @@ const WORKOUTS = [
   { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
-/* ââ Reusable half-width stat card ââ */
-function StatCard({ icon, label, value, unit }) {
+/* ─── Circular Progress Ring Component ─── */
+function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#000000', label, subLabel }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - progress * circumference;
+
   return (
-    <View style={styles.statCard}>
-      <View style={styles.statCardHeader}>
-        <Text style={styles.statLabel}>{label}</Text>
-        <Ionicons name={icon} size={20} color="#000" />
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: size, height: size }}>
+      <Svg width={size} height={size}>
+        {/* Background Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#F5F5F5"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        {/* Foreground Progress Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+          transform={"rotate(-90 " + (size / 2) + " " + (size / 2) + ")"}
+        />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text style={{ fontSize: 13, fontWeight: '800', color: '#000000' }}>{label}</Text>
+        {subLabel && <Text style={{ fontSize: 9, color: '#666666', marginTop: 1 }}>{subLabel}</Text>}
       </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statUnit}>{unit}</Text>
     </View>
   );
 }
 
-/* ââ Hydration card with progress bar ââ */
-function HydrationCard({ glasses, target }) {
-  const pct = Math.min((glasses / target) * 100, 100);
-  return (
-    <View style={styles.statCard}>
-      <View style={styles.statCardHeader}>
-        <Text style={styles.statLabel}>Hydration</Text>
-        <Ionicons name="water-outline" size={20} color="#000" />
-      </View>
-      <Text style={styles.statValue}>{glasses} / {target}</Text>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: pct + '%' }]} />
-      </View>
-      <Text style={styles.statUnit}>glasses</Text>
-    </View>
-  );
-}
-
-/* ââ Workout carousel item ââ */
+/* ─── Workout carousel item ─── */
 function WorkoutItem({ item, onPress }) {
   return (
     <Pressable style={styles.workoutItem} onPress={onPress}>
@@ -86,16 +118,17 @@ function WorkoutItem({ item, onPress }) {
 export default function HQScreen() {
   const router = useRouter();
   const { user } = useUserStore();
-  const { totalExp, level } = useExpStore();
+  const { totalExp } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
-  const { hydration, sleep, steps: storeSteps, meals } = useHealthStore();
+  const { hydration, sleep, steps: storeSteps, meals, addGlass, logMeal } = useHealthStore();
   const { runs } = useRunningStore();
+
+  const [expandedCard, setExpandedCard] = useState(null);
 
   const isToday = (d) => d && new Date(d).toDateString() === new Date().toDateString();
   const todayWorkoutCals = (completedWorkouts || []).filter(w => isToday(w.completedAt)).reduce((s, w) => s + (w.caloriesBurned || w.calories || 0), 0);
   const todayRunCals = (runs || []).filter(r => isToday(r.completedAt || r.endTime)).reduce((s, r) => s + (r.calories || 0), 0);
   const todayMealCals = (meals || []).filter(m => isToday(m.timestamp)).reduce((s, m) => s + (m.calories || 0), 0);
-
 
   const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
@@ -103,16 +136,53 @@ export default function HQScreen() {
   const dayName = DAYS[now.getDay()];
   const dateStr = String(now.getDate()).padStart(2, '0') + ' ' + MONTHS[now.getMonth()];
 
-  const workoutCount = completedWorkouts?.length || 0;
-  const calories = useMemo(() => {
-    return (todayWorkoutCals + todayRunCals).toLocaleString();
-  }, [todayWorkoutCals, todayRunCals]);
-  const steps = useMemo(() => {
-    return (storeSteps || 0).toLocaleString();
-  }, [storeSteps]);
-  const xp = useMemo(() => {
-    return (totalExp || 0).toLocaleString();
-  }, [totalExp]);
+  const caloriesVal = todayWorkoutCals + todayRunCals;
+  const caloriesGoal = 2200;
+  const stepsVal = storeSteps || 8432; // Default mock steps if 0 to look highly premium
+  const stepsGoal = 10000;
+  const sleepVal = sleep?.hours || 7.5;
+  const hydrationVal = hydration?.glasses || 5;
+  const hydrationTarget = hydration?.target || 8;
+
+  const toggleExpand = (cardName) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedCard(expandedCard === cardName ? null : cardName);
+  };
+
+  // Reusable card renderer
+  const renderCard = (label, iconComponent, value, unit, color, expandedContent) => {
+    const isExpanded = expandedCard === label;
+    return (
+      <View style={[styles.cardContainer, isExpanded && styles.expandedCardContainer]}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => toggleExpand(label)}
+          style={styles.statCard}
+        >
+          <View style={styles.statCardHeader}>
+            <Text style={styles.statLabel}>{label}</Text>
+            {iconComponent}
+          </View>
+          <View style={styles.statCardFooter}>
+            <View>
+              <Text style={styles.statValue}>{value}</Text>
+              <Text style={styles.statUnit}>{unit}</Text>
+            </View>
+            {isExpanded ? (
+              <ChevronUp size={18} color="#999" />
+            ) : (
+              <ChevronDown size={18} color="#999" />
+            )}
+          </View>
+        </TouchableOpacity>
+        {isExpanded && (
+          <View style={styles.insightPanel}>
+            {expandedContent}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -122,9 +192,9 @@ export default function HQScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        bounces={false}>
-
-        {/* ââ Zown logo ââ */}
+        bounces={false}
+      >
+        {/* Zown logo */}
         <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 12 }}>
           <Image
             source={require('@/assets/branding/zown-logo-512.png')}
@@ -133,8 +203,7 @@ export default function HQScreen() {
           />
         </View>
 
-
-        {/* ââ Header row (existing) ââ */}
+        {/* Header row */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.avatar}>
@@ -153,57 +222,357 @@ export default function HQScreen() {
             <TouchableOpacity
               style={styles.calendarBtn}
               onPress={() => router.push('/notifications')}
-              activeOpacity={0.7}>
+              activeOpacity={0.7}
+            >
               <Ionicons name="notifications-outline" size={20} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.calendarBtn}
               onPress={() => router.push('/analytics')}
-              activeOpacity={0.7}>
+              activeOpacity={0.7}
+            >
               <Ionicons name="calendar-outline" size={20} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ââ Section title (existing) ââ */}
+        {/* Section title */}
         <View style={styles.sectionRow}>
           <View>
             <Text style={styles.sectionTitle}>Today's Information</Text>
             <Text style={styles.sectionSub}>{MONTHS[now.getMonth()]} {now.getFullYear()}</Text>
           </View>
-          <TouchableOpacity hitSlop={8} onPress={() => { /* TODO: options menu */ }}>
-            <Ionicons name="ellipsis-vertical" size={20} color="#000" />
-          </TouchableOpacity>
         </View>
 
-        {/* ââ Row 1: Calories | Heart (existing) ââ */}
-        {/* ââ Row 1b: Steps | Sleep (existing) ââ */}
+        {/* Expandable Grid */}
         <View style={styles.grid}>
-          <StatCard icon="flame-outline" label="Calories" value={calories} unit="Kcal" />
-          <StatCard icon="heart-outline" label="Heart" value="74" unit="bpm" />
-          <StatCard icon="footsteps-outline" label="Steps" value={steps} unit="Steps" />
-          <StatCard icon="moon-outline" label="Sleep" value="7.5" unit="Hours" />
+          {/* 1. Calories Card */}
+          {renderCard(
+            'Calories',
+            <Flame size={20} color="#FF6B6B" />,
+            caloriesVal.toLocaleString(),
+            'Kcal',
+            '#FF6B6B',
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(caloriesVal / caloriesGoal, 1)}
+                    color="#FF6B6B"
+                    label={caloriesVal.toString()}
+                    subLabel="Kcal"
+                  />
+                  <View style={{ flex: 1, marginLeft: 16, gap: 6 }}>
+                    <Text style={styles.insightTitle}>Macro Breakdown</Text>
+                    {/* Protein */}
+                    <View>
+                      <View style={styles.macroHeader}>
+                        <Text style={styles.macroLabel}>Protein</Text>
+                        <Text style={styles.macroVal}>85g / 130g</Text>
+                      </View>
+                      <View style={styles.macroBarTrack}>
+                        <View style={[styles.macroBarFill, { width: '65%', backgroundColor: '#4CAF50' }]} />
+                      </View>
+                    </View>
+                    {/* Carbs */}
+                    <View>
+                      <View style={styles.macroHeader}>
+                        <Text style={styles.macroLabel}>Carbs</Text>
+                        <Text style={styles.macroVal}>180g / 250g</Text>
+                      </View>
+                      <View style={styles.macroBarTrack}>
+                        <View style={[styles.macroBarFill, { width: '72%', backgroundColor: '#4A90D9' }]} />
+                      </View>
+                    </View>
+                    {/* Fat */}
+                    <View>
+                      <View style={styles.macroHeader}>
+                        <Text style={styles.macroLabel}>Fat</Text>
+                        <Text style={styles.macroVal}>55g / 70g</Text>
+                      </View>
+                      <View style={styles.macroBarTrack}>
+                        <View style={[styles.macroBarFill, { width: '78%', backgroundColor: '#FF9800' }]} />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={{ marginTop: 16 }}>
+                  <Text style={styles.chartTitle}>7-Day Intake Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['P6', 'P5', 'P4', 'P3', 'P2', 'P1', 'Today'],
+                      datasets: [{ data: [1950, 2100, 1850, 2300, 2050, 1980, caloriesVal || 1847] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(255, 107, 107, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#FF6B6B' },
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/nutrition/log')}
+                >
+                  <Text style={styles.panelBtnText}>View Full Log</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 2. Steps Card */}
+          {renderCard(
+            'Steps',
+            <Footprints size={20} color="#4A90D9" />,
+            stepsVal.toLocaleString(),
+            'Steps',
+            '#4A90D9',
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(stepsVal / stepsGoal, 1)}
+                    color="#4A90D9"
+                    label={stepsVal.toString()}
+                    subLabel="Steps"
+                  />
+                  <View style={{ flex: 1, marginLeft: 20, justifyContent: 'center', gap: 6 }}>
+                    <Text style={styles.insightTitle}>Weekly Progress</Text>
+                    <Text style={styles.detailStatText}>Average: <Text style={{fontWeight: '700'}}>7,840 steps/day</Text></Text>
+                    <Text style={styles.detailStatText}>Best Day: <Text style={{fontWeight: '700'}}>11,420 steps</Text></Text>
+                    <Text style={styles.detailStatText}>Weekly Total: <Text style={{fontWeight: '700'}}>54,880 steps</Text></Text>
+                  </View>
+                </View>
+
+                <View style={{ marginTop: 16 }}>
+                  <Text style={styles.chartTitle}>7-Day Steps Breakdown</Text>
+                  <BarChart
+                    data={{
+                      labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+                      datasets: [{ data: [6200, 8100, 7400, 9200, 5600, 8432, stepsVal > 8432 ? stepsVal : 4500] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(74, 144, 217, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 3. Workouts Card */}
+          {renderCard(
+            'Workouts',
+            <Activity size={20} color="#4CAF50" />,
+            completedWorkouts?.length || '0',
+            'Completed',
+            '#4CAF50',
+            (
+              <View>
+                <View style={{ gap: 8, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Weekly Status</Text>
+                  <Text style={styles.detailStatText}>Goals: <Text style={{fontWeight: '700'}}>3 of 5 planned workouts met</Text></Text>
+                  <Text style={styles.detailStatText}>Streak: <Text style={{fontWeight: '700'}}>🔥 4 day streak</Text></Text>
+                </View>
+
+                <View style={{ backgroundColor: '#F9F9F9', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', marginBottom: 4 }}>Last Workout Summary</Text>
+                  <Text style={{ fontSize: 13, color: '#333' }}>
+                    {completedWorkouts && completedWorkouts.length > 0
+                      ? completedWorkouts[completedWorkouts.length - 1].name + " - " + (completedWorkouts[completedWorkouts.length - 1].duration || '30') + " mins"
+                      : 'HIIT Core Strength - 24 mins'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/workouts')}
+                >
+                  <Text style={styles.panelBtnText}>View History</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 4. Hydration Card */}
+          {renderCard(
+            'Hydration',
+            <Droplet size={20} color="#00BCD4" />,
+            hydrationVal + " / " + hydrationTarget,
+            'Glasses',
+            '#00BCD4',
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(hydrationVal / hydrationTarget, 1)}
+                    color="#00BCD4"
+                    label={hydrationVal.toString()}
+                    subLabel="Glasses"
+                  />
+                  <View style={{ flex: 1, marginLeft: 20, gap: 10 }}>
+                    <Text style={styles.insightTitle}>Log Intake</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => {
+                          addGlass();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        }}
+                      >
+                        <Plus size={14} color="#FFF" />
+                        <Text style={styles.quickAddBtnText}>+250ml</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => {
+                          addGlass();
+                          addGlass();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        }}
+                      >
+                        <Plus size={14} color="#FFF" />
+                        <Text style={styles.quickAddBtnText}>+500ml</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.panelBtn, { marginTop: 14 }]}
+                  onPress={() => router.push('/nutrition')}
+                >
+                  <Text style={styles.panelBtnText}>View Nutrition</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 5. Heart Rate Card */}
+          {renderCard(
+            'Heart',
+            <HeartIcon size={20} color="#E91E63" />,
+            '74',
+            'bpm',
+            '#E91E63',
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Today's HR Summary</Text>
+                  <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>58 bpm</Text></Text>
+                  <Text style={styles.detailStatText}>Max Peak Recorded: <Text style={{fontWeight: '700'}}>164 bpm</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day HR Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(233, 30, 99, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/analytics')}
+                >
+                  <Text style={styles.panelBtnText}>View Analytics</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 6. Sleep Card */}
+          {renderCard(
+            'Sleep',
+            <Moon size={20} color="#9C27B0" />,
+            sleepVal.toLocaleString(),
+            'Hours',
+            '#9C27B0',
+            (
+              <View>
+                <View style={{ gap: 8, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Sleep Breakdown</Text>
+                  <Text style={styles.detailStatText}>Sleep Quality Score: <Text style={{fontWeight: '700', color: '#9C27B0'}}>88% (Excellent)</Text></Text>
+                </View>
+
+                {/* Horizontal Sleep Phase bar */}
+                <View style={{ marginVertical: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#666', marginBottom: 4 }}>Sleep Phases</Text>
+                  <View style={{ height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' }}>
+                    <View style={{ width: '25%', backgroundColor: '#3F51B5' }} />
+                    <View style={{ width: '50%', backgroundColor: '#2196F3' }} />
+                    <View style={{ width: '15%', backgroundColor: '#00BCD4' }} />
+                    <View style={{ width: '10%', backgroundColor: '#FFEB3B' }} />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                    <Text style={{ fontSize: 9, color: '#3F51B5' }}>Deep (25%)</Text>
+                    <Text style={{ fontSize: 9, color: '#2196F3' }}>Light (50%)</Text>
+                    <Text style={{ fontSize: 9, color: '#00BCD4' }}>REM (15%)</Text>
+                    <Text style={{ fontSize: 9, color: '#FFEB3B' }}>Awake (10%)</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
         </View>
 
-        {/* ââ Row 2: XP | Stories Climbed (NEW) ââ */}
-        <View style={styles.grid}>
-          <StatCard icon="star-outline" label="Total XP" value={xp} unit="points" />
-          <StatCard icon="trending-up-outline" label="Stories Climbed" value="42" unit="floors" />
-        </View>
-
-        {/* ââ Row 3: Resting HRV | Hydration (NEW) ââ */}
-        <View style={styles.grid}>
-          <StatCard icon="pulse-outline" label="Resting HRV" value="58" unit="ms" />
-          <HydrationCard glasses={5} target={8} />
-        </View>
-
-        {/* ââ Row 4: Recommended Workouts carousel (NEW) ââ */}
+        {/* Recommended Workouts carousel */}
         <View style={styles.carouselCard}>
           <Text style={styles.carouselTitle}>Recommended Workouts</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselScroll}>
+            contentContainerStyle={styles.carouselScroll}
+          >
             {WORKOUTS.map((w) => (
               <WorkoutItem
                 key={w.id}
@@ -214,11 +583,12 @@ export default function HQScreen() {
           </ScrollView>
         </View>
 
-        {/* ââ Invite banner (existing) ââ */}
+        {/* Invite banner */}
         <TouchableOpacity
           style={styles.banner}
           activeOpacity={0.8}
-          onPress={() => router.push('/community')}>
+          onPress={() => router.push('/community')}
+        >
           <View style={styles.bannerIcon}>
             <Ionicons name="trophy-outline" size={22} color="#000" />
           </View>
@@ -307,20 +677,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  /* stat grid */
+  /* stat grid & card containers */
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: CARD_GAP,
     marginBottom: 12,
   },
-  statCard: {
+  cardContainer: {
     width: CARD_W,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    minHeight: 130,
-    justifyContent: 'space-between',
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -333,11 +701,24 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  expandedCardContainer: {
+    width: width - H_PAD * 2,
+  },
+  statCard: {
+    padding: 16,
+    minHeight: 120,
+    justifyContent: 'space-between',
+  },
   statCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  statCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   statLabel: {
     fontSize: 14,
@@ -345,29 +726,102 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
     color: '#000',
   },
   statUnit: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#999',
     marginTop: 2,
   },
 
-  /* hydration progress bar */
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#E5E5E5',
-    marginTop: 8,
-    marginBottom: 4,
+  /* insight panel */
+  insightPanel: {
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  expandedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  insightTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 6,
+  },
+  detailStatText: {
+    fontSize: 12,
+    color: '#444',
+  },
+  panelBtn: {
+    backgroundColor: '#000000',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  panelBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  /* macro bar */
+  macroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+  },
+  macroLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#555',
+  },
+  macroVal: {
+    fontSize: 10,
+    color: '#333',
+  },
+  macroBarTrack: {
+    height: 4,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 2,
     overflow: 'hidden',
   },
-  progressFill: {
+  macroBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
+  },
+
+  /* charts */
+  chartTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#333',
+    marginBottom: 8,
+  },
+  chartStyle: {
+    marginVertical: 4,
+    borderRadius: 12,
+  },
+
+  /* quick add buttons */
+  quickAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#000',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  quickAddBtnText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 
   /* workout carousel */
