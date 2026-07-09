@@ -14,6 +14,17 @@ export const useSettingsStore = create(
       privacy: { profilePublic: true, activitySharing: true },
       isLoading: false,
 
+      // New fields with sensible defaults
+      weightUnits: 'imperial',
+      temperatureUnits: 'fahrenheit',
+      startOfWeek: 'monday',
+      workoutReminders: true,
+      achievementAlerts: true,
+      socialActivity: true,
+      weeklySummary: true,
+      showInLeaderboards: true,
+      allowFriendRequests: true,
+
       loadSettings: async (uid) => {
         if (!uid) return;
         set({ isLoading: true });
@@ -27,6 +38,15 @@ export const useSettingsStore = create(
               units: d.units || 'imperial',
               language: d.language || 'en',
               privacy: d.privacy || { profilePublic: true, activitySharing: true },
+              weightUnits: d.weightUnits || 'imperial',
+              temperatureUnits: d.temperatureUnits || 'fahrenheit',
+              startOfWeek: d.startOfWeek || 'monday',
+              workoutReminders: d.workoutReminders !== undefined ? d.workoutReminders : true,
+              achievementAlerts: d.achievementAlerts !== undefined ? d.achievementAlerts : true,
+              socialActivity: d.socialActivity !== undefined ? d.socialActivity : true,
+              weeklySummary: d.weeklySummary !== undefined ? d.weeklySummary : true,
+              showInLeaderboards: d.showInLeaderboards !== undefined ? d.showInLeaderboards : true,
+              allowFriendRequests: d.allowFriendRequests !== undefined ? d.allowFriendRequests : true,
             });
           }
         } catch (e) {
@@ -46,6 +66,15 @@ export const useSettingsStore = create(
             units: s.units,
             language: s.language,
             privacy: s.privacy,
+            weightUnits: s.weightUnits,
+            temperatureUnits: s.temperatureUnits,
+            startOfWeek: s.startOfWeek,
+            workoutReminders: s.workoutReminders,
+            achievementAlerts: s.achievementAlerts,
+            socialActivity: s.socialActivity,
+            weeklySummary: s.weeklySummary,
+            showInLeaderboards: s.showInLeaderboards,
+            allowFriendRequests: s.allowFriendRequests,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -72,6 +101,15 @@ export const useSettingsStore = create(
         units: s.units,
         language: s.language,
         privacy: s.privacy,
+        weightUnits: s.weightUnits,
+        temperatureUnits: s.temperatureUnits,
+        startOfWeek: s.startOfWeek,
+        workoutReminders: s.workoutReminders,
+        achievementAlerts: s.achievementAlerts,
+        socialActivity: s.socialActivity,
+        weeklySummary: s.weeklySummary,
+        showInLeaderboards: s.showInLeaderboards,
+        allowFriendRequests: s.allowFriendRequests,
       }),
     }
   )
