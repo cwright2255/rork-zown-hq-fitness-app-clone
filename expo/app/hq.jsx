@@ -63,7 +63,7 @@ const WORKOUTS = [
   { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
-/* âââ Circular Progress Ring Component âââ */
+/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Circular Progress Ring Component Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#000000', label, subLabel }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -103,7 +103,7 @@ function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#00
   );
 }
 
-/* âââ Workout carousel item âââ */
+/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Workout carousel item Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function WorkoutItem({ item, onPress }) {
   return (
     <Pressable style={styles.workoutItem} onPress={onPress}>
@@ -335,7 +335,7 @@ export default function HQScreen() {
                       datasets: [{ data: [1950, 2100, 1850, 2300, 2050, 1980, caloriesVal || 1847] }],
                     }}
                     width={chartWidth}
-                    height={130}
+                    height={180}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
                       backgroundGradientFrom: '#FFFFFF',
@@ -383,7 +383,7 @@ export default function HQScreen() {
                       datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
                     }}
                     width={chartWidth}
-                    height={130}
+                    height={180}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
                       backgroundGradientFrom: '#FFFFFF',
@@ -440,7 +440,7 @@ export default function HQScreen() {
                       datasets: [{ data: [6200, 8100, 7400, 9200, 5600, 8432, stepsVal > 8432 ? stepsVal : 4500] }],
                     }}
                     width={chartWidth}
-                    height={130}
+                    height={180}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
                       backgroundGradientFrom: '#FFFFFF',
@@ -527,7 +527,7 @@ export default function HQScreen() {
                       datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
                     }}
                     width={chartWidth}
-                    height={130}
+                    height={180}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
                       backgroundGradientFrom: '#FFFFFF',
@@ -573,7 +573,7 @@ export default function HQScreen() {
                       datasets: [{ data: [4, 8, 3, 12, 5, 6, 4] }],
                     }}
                     width={chartWidth}
-                    height={130}
+                    height={180}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
                       backgroundGradientFrom: '#FFFFFF',
@@ -619,7 +619,7 @@ export default function HQScreen() {
                       datasets: [{ data: [52, 55, 58, 54, 57, 61, 58] }],
                     }}
                     width={chartWidth}
-                    height={130}
+                    height={180}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
                       backgroundGradientFrom: '#FFFFFF',
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: H_PAD,
     paddingTop: 16,
-    paddingBottom: 100,
+    paddingBottom: 200,
   },
 
   /* header */
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     width: CARD_W,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: 'visible',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -890,6 +890,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     marginBottom: 8,
     backgroundColor: '#FFFFFF',
+    overflow: 'visible',
   },
   expandedRow: {
     flexDirection: 'row',
