@@ -18,7 +18,8 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
     getRecommendationsForWorkout,
     isLoading,
     initializeClientCredentials,
-    initializeSpotify
+    initializeSpotify,
+    connectSpotifyImplicit
   } = useSpotifyStore();
 
   const [recommendations, setRecommendations] = useState([]);
@@ -84,21 +85,13 @@ export default function SpotifyMusicPlayer({ workoutType = 'cardio', style }) {
 
   const handleConnectSpotify = async () => {
     try {
-      if (Platform.OS === 'web') {
-        const success = await spotifyService.authenticateWithPopup();
-        if (success) {
-          await initializeSpotify();
-          Alert.alert('Success', 'Connected to Spotify!');
-          loadRecommendations();
-        } else {
-          const clientSuccess = await initializeClientCredentials();
-          if (clientSuccess) {
-            loadRecommendations();
-          } else {
-            Alert.alert('Connection Failed', 'Could not connect to Spotify.');
-          }
-        }
+      console.log('[SpotifyMusicPlayer] Connecting to Spotify via store...');
+      const success = await connectSpotifyImplicit();
+      if (success) {
+        Alert.alert('Success', 'Connected to Spotify!');
+        loadRecommendations();
       } else {
+        console.log('[SpotifyMusicPlayer] Connection did not complete, attempting client credentials fallback...');
         const clientSuccess = await initializeClientCredentials();
         if (clientSuccess) {
           loadRecommendations();

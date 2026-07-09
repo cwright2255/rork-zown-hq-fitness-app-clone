@@ -74,12 +74,56 @@ export const useSpotifyStore = create(
       },
 
       connectSpotifyImplicit: async (urlFragment) => {
-        console.log('Store: Starting Spotify implicit connection...');
+        console.log('Store: Starting Spotify connection (implicit or active)...');
         set({ isLoading: true });
 
         try {
-          console.log('Store: Calling spotifyService.handleImplicitGrantCallback...');
-          const success = await spotifyService.handleImplicitGrantCallback(urlFragment);
+          let targetFragment = urlFragment;
+          
+          if (!targetFragment) {
+            console.log('Store: No urlFragment provided, initiating WebBrowser OAuth session...');
+            const authUrl = await spotifyService.getAuthorizationUrl();
+            console.log('Store: Generated Auth URL:', authUrl);
+            console.log('Store: Using Redirect URI:', spotifyService.redirectUri);
+            
+            const WebBrowser = require('expo-web-browser');
+            const result = await WebBrowser.openAuthSessionAsync(authUrl, spotifyService.redirectUri);
+            console.log('Store: WebBrowser result:', JSON.stringify(result));
+            
+            if (result.type === 'success' && result.url) {
+              if (result.url.includes('access_token=')) {
+                targetFragment = result.url.substring(result.url.indexOf('#'));
+              } else if (result.url.includes('code=')) {
+                console.log('Store: Swapping code via handleAuthorizationCodeCallback...');
+                const success = await spotifyService.handleAuthorizationCodeCallback(result.url);
+                if (success) {
+                  const user = await spotifyService.getCurrentUser();
+                  if (!user) {
+                    console.error('Store: OAuth succeeded but /me was empty');
+                    await spotifyService.clearToken();
+                    set({ isConnected: false, user: null, isLoading: false });
+                    return false;
+                  }
+                  set({ isConnected: true, user, isLoading: false });
+                  get().loadUserData();
+                  get().loadWorkoutPlaylists();
+                  get().loadRunningPlaylists();
+                  return true;
+                }
+                set({ isLoading: false });
+                return false;
+              } else {
+                targetFragment = result.url;
+              }
+            } else {
+              console.log('Store: Auth cancelled or dismissed');
+              set({ isLoading: false });
+              return false;
+            }
+          }
+
+          console.log('Store: Calling handleImplicitGrantCallback with:', targetFragment);
+          const success = await spotifyService.handleImplicitGrantCallback(targetFragment);
           console.log('Store: Callback result:', success);
 
           if (success) {
@@ -90,7 +134,7 @@ export const useSpotifyStore = create(
             if (!user) {
               console.error('Store: OAuth callback succeeded but /me profile fetch failed.');
               await spotifyService.clearToken();
-              set({ isConnected: false, user, isLoading: false });
+              set({ isConnected: false, user: null, isLoading: false });
               return false;
             }
 
