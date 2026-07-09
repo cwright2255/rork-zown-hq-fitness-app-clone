@@ -7,17 +7,20 @@ WebBrowser.maybeCompleteAuthSession();
 
 // The EXACT URI registered in the Spotify Developer Dashboard.
 // Expo proxy URI for Expo Go; native scheme for standalone builds.
-const SPOTIFY_REDIRECT_URI_EXPO_PROXY = 'https://auth.expo.io/@carlton.v.wright.jr/zown';
+const SPOTIFY_REDIRECT_URI_EXPO_PROXY = 'https://auth.expo.io/@cwright_7/zown-hq';
 const SPOTIFY_REDIRECT_URI_NATIVE = 'zownhq://spotify-callback';
 
 const makeSpotifyRedirectUri = () => {
-  // Explicit env var always wins (set in CI/EAS)
   const explicit = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
   if (explicit) return explicit;
-  // In Expo Go, use the proxy URI registered on the dashboard
-  const { default: Constants } = require('expo-constants');
-  const isExpoGo = Constants.appOwnership === 'expo';
-  return isExpoGo ? SPOTIFY_REDIRECT_URI_EXPO_PROXY : SPOTIFY_REDIRECT_URI_NATIVE;
+  try {
+    return AuthSession.makeRedirectUri({
+      scheme: 'zownhq',
+      path: 'spotify-callback'
+    }) || SPOTIFY_REDIRECT_URI_EXPO_PROXY;
+  } catch (e) {
+    return SPOTIFY_REDIRECT_URI_EXPO_PROXY;
+  }
 };
 
 
@@ -499,9 +502,9 @@ class SpotifyService {
 Spotify Integration (Client Credentials Flow):
 
 This app uses Client Credentials flow which:
-✓ Does NOT require redirect URIs
-✓ Works immediately with valid credentials
-✓ Allows searching tracks, playlists, and recommendations
+â Does NOT require redirect URIs
+â Works immediately with valid credentials
+â Allows searching tracks, playlists, and recommendations
 
 Setup:
 1. Go to https://developer.spotify.com/dashboard
@@ -510,12 +513,12 @@ Setup:
 4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
 
 Current Status:
-- Client ID: ${this.clientId} ✓
-- Client Secret: ${hasValidClientSecret ? 'Configured ✓' : 'Not configured or invalid ⚠️'}
-- Token Status: ${this.token ? 'Active ✓' : 'Not available'}
+- Client ID: ${this.clientId} â
+- Client Secret: ${hasValidClientSecret ? 'Configured â' : 'Not configured or invalid â ï¸'}
+- Token Status: ${this.token ? 'Active â' : 'Not available'}
 - Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasValidClientSecret ? '✅ Ready! You can search playlists and get recommendations.' : '⚠️ Add your Client Secret to enable Spotify features.'}
+${hasValidClientSecret ? 'â Ready! You can search playlists and get recommendations.' : 'â ï¸ Add your Client Secret to enable Spotify features.'}
 
 Note: Client Credentials flow provides access to:
 - Search tracks and playlists

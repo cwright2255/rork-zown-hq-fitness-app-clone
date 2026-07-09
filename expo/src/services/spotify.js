@@ -30,9 +30,14 @@ const IS_EXPO_GO = Constants.appOwnership === 'expo';
 function getRedirectUri() {
   const explicit = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
   if (explicit) return explicit;
-  // Expo proxy URI must match exactly what is registered in the Spotify Dashboard
-  if (IS_EXPO_GO) return 'https://auth.expo.io/@carlton.v.wright.jr/zown';
-  return 'zownhq://spotify-callback';
+  try {
+    return AuthSession.makeRedirectUri({
+      scheme: 'zownhq',
+      path: 'spotify-callback'
+    }) || 'https://auth.expo.io/@cwright_7/zown-hq';
+  } catch (e) {
+    return 'https://auth.expo.io/@cwright_7/zown-hq';
+  }
 }
 
 async function saveTokens(tokens) {

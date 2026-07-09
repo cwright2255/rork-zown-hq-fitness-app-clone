@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -250,8 +253,8 @@ export default function SettingsScreen() {
             right={
               <SegmentedControl
                 options={[
-                  { label: 'Â°F', value: 'fahrenheit' },
-                  { label: 'Â°C', value: 'celsius' },
+                  { label: 'ÃÂ°F', value: 'fahrenheit' },
+                  { label: 'ÃÂ°C', value: 'celsius' },
                 ]}
                 value={temperatureUnits}
                 onChange={(val) => updateSetting('temperatureUnits', val, uid)}
