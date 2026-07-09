@@ -120,7 +120,7 @@ export default function HQScreen() {
   const { user } = useUserStore();
   const { totalExp } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
-  const { hydration, sleep, steps: storeSteps, meals, addGlass, logMeal } = useHealthStore();
+  const { hydration, sleep, steps: storeSteps, meals, addGlass } = useHealthStore();
   const { runs } = useRunningStore();
 
   const [expandedCard, setExpandedCard] = useState(null);
@@ -138,19 +138,20 @@ export default function HQScreen() {
 
   const caloriesVal = todayWorkoutCals + todayRunCals;
   const caloriesGoal = 2200;
-  const stepsVal = storeSteps || 8432; // Default mock steps if 0 to look highly premium
+  const stepsVal = storeSteps || 0;
   const stepsGoal = 10000;
   const sleepVal = sleep?.hours || 7.5;
   const hydrationVal = hydration?.glasses || 5;
   const hydrationTarget = hydration?.target || 8;
+  const xpVal = totalExp || 0;
 
   const toggleExpand = (cardName) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedCard(expandedCard === cardName ? null : cardName);
   };
 
-  // Reusable card renderer
-  const renderCard = (label, iconComponent, value, unit, color, expandedContent) => {
+  /* Unified card wrapper that supports exact original styles when collapsed */
+  const renderExpandableCard = (label, icon, value, unit, isHydration = false, expandedContent) => {
     const isExpanded = expandedCard === label;
     return (
       <View style={[styles.cardContainer, isExpanded && styles.expandedCardContainer]}>
@@ -159,21 +160,44 @@ export default function HQScreen() {
           onPress={() => toggleExpand(label)}
           style={styles.statCard}
         >
-          <View style={styles.statCardHeader}>
-            <Text style={styles.statLabel}>{label}</Text>
-            {iconComponent}
-          </View>
-          <View style={styles.statCardFooter}>
-            <View>
+          {isHydration ? (
+            // Original HydrationCard collapsed layout
+            <View style={{ flex: 1, justifyContent: 'space-between' }}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>{label}</Text>
+                <Ionicons name={icon} size={20} color="#000" />
+              </View>
               <Text style={styles.statValue}>{value}</Text>
-              <Text style={styles.statUnit}>{unit}</Text>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: Math.min((hydrationVal / hydrationTarget) * 100, 100) + '%' }]} />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.statUnit}>{unit}</Text>
+                {isExpanded ? (
+                  <ChevronUp size={14} color="#999" />
+                ) : (
+                  <ChevronDown size={14} color="#999" />
+                )}
+              </View>
             </View>
-            {isExpanded ? (
-              <ChevronUp size={18} color="#999" />
-            ) : (
-              <ChevronDown size={18} color="#999" />
-            )}
-          </View>
+          ) : (
+            // Original standard StatCard collapsed layout
+            <View style={{ flex: 1, justifyContent: 'space-between' }}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>{label}</Text>
+                <Ionicons name={icon} size={20} color="#000" />
+              </View>
+              <Text style={styles.statValue}>{value}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.statUnit}>{unit}</Text>
+                {isExpanded ? (
+                  <ChevronUp size={14} color="#999" />
+                ) : (
+                  <ChevronDown size={14} color="#999" />
+                )}
+              </View>
+            </View>
+          )}
         </TouchableOpacity>
         {isExpanded && (
           <View style={styles.insightPanel}>
@@ -242,17 +266,20 @@ export default function HQScreen() {
             <Text style={styles.sectionTitle}>Today's Information</Text>
             <Text style={styles.sectionSub}>{MONTHS[now.getMonth()]} {now.getFullYear()}</Text>
           </View>
+          <TouchableOpacity hitSlop={8} onPress={() => { /* options menu */ }}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#000" />
+          </TouchableOpacity>
         </View>
 
         {/* Expandable Grid */}
         <View style={styles.grid}>
           {/* 1. Calories Card */}
-          {renderCard(
+          {renderExpandableCard(
             'Calories',
-            <Flame size={20} color="#FF6B6B" />,
+            'flame-outline',
             caloriesVal.toLocaleString(),
             'Kcal',
-            '#FF6B6B',
+            false,
             (
               <View>
                 <View style={styles.expandedRow}>
@@ -331,13 +358,60 @@ export default function HQScreen() {
             )
           )}
 
-          {/* 2. Steps Card */}
-          {renderCard(
+          {/* 2. Heart Card */}
+          {renderExpandableCard(
+            'Heart',
+            'heart-outline',
+            '74',
+            'bpm',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Today's HR Summary</Text>
+                  <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>58 bpm</Text></Text>
+                  <Text style={styles.detailStatText}>Max Peak Recorded: <Text style={{fontWeight: '700'}}>164 bpm</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day HR Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(233, 30, 99, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/analytics')}
+                >
+                  <Text style={styles.panelBtnText}>View Analytics</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 3. Steps Card */}
+          {renderExpandableCard(
             'Steps',
-            <Footprints size={20} color="#4A90D9" />,
+            'footsteps-outline',
             stepsVal.toLocaleString(),
             'Steps',
-            '#4A90D9',
+            false,
             (
               <View>
                 <View style={styles.expandedRow}>
@@ -387,47 +461,193 @@ export default function HQScreen() {
             )
           )}
 
-          {/* 3. Workouts Card */}
-          {renderCard(
-            'Workouts',
-            <Activity size={20} color="#4CAF50" />,
-            completedWorkouts?.length || '0',
-            'Completed',
-            '#4CAF50',
+          {/* 4. Sleep Card */}
+          {renderExpandableCard(
+            'Sleep',
+            'moon-outline',
+            sleepVal.toLocaleString(),
+            'Hours',
+            false,
             (
               <View>
                 <View style={{ gap: 8, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>Weekly Status</Text>
-                  <Text style={styles.detailStatText}>Goals: <Text style={{fontWeight: '700'}}>3 of 5 planned workouts met</Text></Text>
-                  <Text style={styles.detailStatText}>Streak: <Text style={{fontWeight: '700'}}>🔥 4 day streak</Text></Text>
+                  <Text style={styles.insightTitle}>Sleep Breakdown</Text>
+                  <Text style={styles.detailStatText}>Sleep Quality Score: <Text style={{fontWeight: '700', color: '#9C27B0'}}>88% (Excellent)</Text></Text>
                 </View>
 
-                <View style={{ backgroundColor: '#F9F9F9', borderRadius: 12, padding: 12, marginBottom: 12 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', marginBottom: 4 }}>Last Workout Summary</Text>
-                  <Text style={{ fontSize: 13, color: '#333' }}>
-                    {completedWorkouts && completedWorkouts.length > 0
-                      ? completedWorkouts[completedWorkouts.length - 1].name + " - " + (completedWorkouts[completedWorkouts.length - 1].duration || '30') + " mins"
-                      : 'HIIT Core Strength - 24 mins'}
-                  </Text>
+                {/* Horizontal Sleep Phase bar */}
+                <View style={{ marginVertical: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#666', marginBottom: 4 }}>Sleep Phases</Text>
+                  <View style={{ height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' }}>
+                    <View style={{ width: '25%', backgroundColor: '#3F51B5' }} />
+                    <View style={{ width: '50%', backgroundColor: '#2196F3' }} />
+                    <View style={{ width: '15%', backgroundColor: '#00BCD4' }} />
+                    <View style={{ width: '10%', backgroundColor: '#FFEB3B' }} />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                    <Text style={{ fontSize: 9, color: '#3F51B5' }}>Deep (25%)</Text>
+                    <Text style={{ fontSize: 9, color: '#2196F3' }}>Light (50%)</Text>
+                    <Text style={{ fontSize: 9, color: '#00BCD4' }}>REM (15%)</Text>
+                    <Text style={{ fontSize: 9, color: '#FFEB3B' }}>Awake (10%)</Text>
+                  </View>
                 </View>
 
                 <TouchableOpacity
                   style={styles.panelBtn}
-                  onPress={() => router.push('/workouts')}
+                  onPress={() => router.push('/health')}
                 >
-                  <Text style={styles.panelBtnText}>View History</Text>
+                  <Text style={styles.panelBtnText}>View Health</Text>
                 </TouchableOpacity>
               </View>
             )
           )}
 
-          {/* 4. Hydration Card */}
-          {renderCard(
+          {/* 5. Total XP Card */}
+          {renderExpandableCard(
+            'Total XP',
+            'star-outline',
+            xpVal.toLocaleString(),
+            'points',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>XP Overview</Text>
+                  <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level 12</Text></Text>
+                  <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>840 XP remaining</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day XP Earnings</Text>
+                  <BarChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(255, 193, 7, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/battlepass')}
+                >
+                  <Text style={styles.panelBtnText}>View Battle Pass</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 6. Stories Climbed Card */}
+          {renderExpandableCard(
+            'Stories Climbed',
+            'trending-up-outline',
+            '42',
+            'floors',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Climbing Summary</Text>
+                  <Text style={styles.detailStatText}>Daily Average: <Text style={{fontWeight: '700'}}>6 floors/day</Text></Text>
+                  <Text style={styles.detailStatText}>Weekly Elevation: <Text style={{fontWeight: '700'}}>420 meters</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day Elevation Trend</Text>
+                  <BarChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [4, 8, 3, 12, 5, 6, 4] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(76, 175, 80, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health Metrics</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 7. Resting HRV Card */}
+          {renderExpandableCard(
+            'Resting HRV',
+            'pulse-outline',
+            '58',
+            'ms',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>HRV Breakdown</Text>
+                  <Text style={styles.detailStatText}>Weekly Average: <Text style={{fontWeight: '700'}}>56 ms</Text></Text>
+                  <Text style={styles.detailStatText}>Recovery Status: <Text style={{fontWeight: '700', color: '#4CAF50'}}>Optimal (Green)</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day HRV Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [52, 55, 58, 54, 57, 61, 58] }],
+                    }}
+                    width={width - 76}
+                    height={130}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(103, 58, 183, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/analytics')}
+                >
+                  <Text style={styles.panelBtnText}>View HRV Trends</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 8. Hydration Card */}
+          {renderExpandableCard(
             'Hydration',
-            <Droplet size={20} color="#00BCD4" />,
+            'water-outline',
             hydrationVal + " / " + hydrationTarget,
-            'Glasses',
-            '#00BCD4',
+            'glasses',
+            true,
             (
               <View>
                 <View style={styles.expandedRow}>
@@ -471,94 +691,6 @@ export default function HQScreen() {
                   onPress={() => router.push('/nutrition')}
                 >
                   <Text style={styles.panelBtnText}>View Nutrition</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-
-          {/* 5. Heart Rate Card */}
-          {renderCard(
-            'Heart',
-            <HeartIcon size={20} color="#E91E63" />,
-            '74',
-            'bpm',
-            '#E91E63',
-            (
-              <View>
-                <View style={{ gap: 6, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>Today's HR Summary</Text>
-                  <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>58 bpm</Text></Text>
-                  <Text style={styles.detailStatText}>Max Peak Recorded: <Text style={{fontWeight: '700'}}>164 bpm</Text></Text>
-                </View>
-
-                <View style={{ marginTop: 8 }}>
-                  <Text style={styles.chartTitle}>7-Day HR Trend</Text>
-                  <LineChart
-                    data={{
-                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                      datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
-                    }}
-                    width={width - 76}
-                    height={130}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(233, 30, 99, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                    }}
-                    bezier
-                    style={styles.chartStyle}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/analytics')}
-                >
-                  <Text style={styles.panelBtnText}>View Analytics</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-
-          {/* 6. Sleep Card */}
-          {renderCard(
-            'Sleep',
-            <Moon size={20} color="#9C27B0" />,
-            sleepVal.toLocaleString(),
-            'Hours',
-            '#9C27B0',
-            (
-              <View>
-                <View style={{ gap: 8, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>Sleep Breakdown</Text>
-                  <Text style={styles.detailStatText}>Sleep Quality Score: <Text style={{fontWeight: '700', color: '#9C27B0'}}>88% (Excellent)</Text></Text>
-                </View>
-
-                {/* Horizontal Sleep Phase bar */}
-                <View style={{ marginVertical: 8 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#666', marginBottom: 4 }}>Sleep Phases</Text>
-                  <View style={{ height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' }}>
-                    <View style={{ width: '25%', backgroundColor: '#3F51B5' }} />
-                    <View style={{ width: '50%', backgroundColor: '#2196F3' }} />
-                    <View style={{ width: '15%', backgroundColor: '#00BCD4' }} />
-                    <View style={{ width: '10%', backgroundColor: '#FFEB3B' }} />
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                    <Text style={{ fontSize: 9, color: '#3F51B5' }}>Deep (25%)</Text>
-                    <Text style={{ fontSize: 9, color: '#2196F3' }}>Light (50%)</Text>
-                    <Text style={{ fontSize: 9, color: '#00BCD4' }}>REM (15%)</Text>
-                    <Text style={{ fontSize: 9, color: '#FFEB3B' }}>Awake (10%)</Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/health')}
-                >
-                  <Text style={styles.panelBtnText}>View Health</Text>
                 </TouchableOpacity>
               </View>
             )
@@ -706,7 +838,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     padding: 16,
-    minHeight: 120,
+    minHeight: 130,
     justifyContent: 'space-between',
   },
   statCardHeader: {
@@ -715,25 +847,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  statCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
   statLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
     color: '#000',
   },
   statUnit: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#999',
     marginTop: 2,
+  },
+
+  /* hydration progress bar */
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E5E5E5',
+    marginTop: 8,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: '#000',
   },
 
   /* insight panel */
