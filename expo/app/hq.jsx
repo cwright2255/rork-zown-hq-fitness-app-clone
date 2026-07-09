@@ -48,6 +48,7 @@ const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
 const H_PAD = 22;
 const CARD_W = (width - H_PAD * 2 - CARD_GAP) / 2;
+const chartWidth = width - H_PAD * 2 - 32;
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = [
@@ -62,7 +63,7 @@ const WORKOUTS = [
   { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
-/* ─── Circular Progress Ring Component ─── */
+/* âââ Circular Progress Ring Component âââ */
 function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#000000', label, subLabel }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -102,7 +103,7 @@ function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#00
   );
 }
 
-/* ─── Workout carousel item ─── */
+/* âââ Workout carousel item âââ */
 function WorkoutItem({ item, onPress }) {
   return (
     <Pressable style={styles.workoutItem} onPress={onPress}>
@@ -154,7 +155,7 @@ export default function HQScreen() {
   const renderExpandableCard = (label, icon, value, unit, isHydration = false, expandedContent) => {
     const isExpanded = expandedCard === label;
     return (
-      <View style={[styles.cardContainer, isExpanded && styles.expandedCardContainer]}>
+      <View style={[styles.cardContainer, isExpanded && styles.expandedCardContainer, isExpanded && { overflow: 'visible' }]}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => toggleExpand(label)}
@@ -217,6 +218,7 @@ export default function HQScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        removeClippedSubviews={false}
       >
         {/* Zown logo */}
         <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 12 }}>
@@ -332,7 +334,7 @@ export default function HQScreen() {
                       labels: ['P6', 'P5', 'P4', 'P3', 'P2', 'P1', 'Today'],
                       datasets: [{ data: [1950, 2100, 1850, 2300, 2050, 1980, caloriesVal || 1847] }],
                     }}
-                    width={width - 76}
+                    width={chartWidth}
                     height={130}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
@@ -380,7 +382,7 @@ export default function HQScreen() {
                       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                       datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
                     }}
-                    width={width - 76}
+                    width={chartWidth}
                     height={130}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
@@ -437,7 +439,7 @@ export default function HQScreen() {
                       labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
                       datasets: [{ data: [6200, 8100, 7400, 9200, 5600, 8432, stepsVal > 8432 ? stepsVal : 4500] }],
                     }}
-                    width={width - 76}
+                    width={chartWidth}
                     height={130}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
@@ -524,7 +526,7 @@ export default function HQScreen() {
                       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                       datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
                     }}
-                    width={width - 76}
+                    width={chartWidth}
                     height={130}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
@@ -570,7 +572,7 @@ export default function HQScreen() {
                       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                       datasets: [{ data: [4, 8, 3, 12, 5, 6, 4] }],
                     }}
-                    width={width - 76}
+                    width={chartWidth}
                     height={130}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
@@ -616,7 +618,7 @@ export default function HQScreen() {
                       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                       datasets: [{ data: [52, 55, 58, 54, 57, 61, 58] }],
                     }}
-                    width={width - 76}
+                    width={chartWidth}
                     height={130}
                     chartConfig={{
                       backgroundColor: '#FFFFFF',
@@ -744,6 +746,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: H_PAD,
     paddingTop: 16,
+    paddingBottom: 100,
   },
 
   /* header */
@@ -835,6 +838,7 @@ const styles = StyleSheet.create({
   },
   expandedCardContainer: {
     width: width - H_PAD * 2,
+    overflow: 'visible',
   },
   statCard: {
     padding: 16,
@@ -883,6 +887,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
     padding: 16,
+    paddingBottom: 20,
+    marginBottom: 8,
     backgroundColor: '#FFFFFF',
   },
   expandedRow: {
