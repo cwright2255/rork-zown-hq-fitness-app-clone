@@ -112,7 +112,7 @@ export default function NotificationsSettingsScreen() {
               </View>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#CCC" />
-          </Pressable>
+          </View>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
