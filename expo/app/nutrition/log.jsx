@@ -15,7 +15,7 @@ const MEALS = [
 
 export default function NutritionLogScreen() {
   const { hydration, meals, addGlass, logMeal, getTodayCalories, getTodayMacros } = useHealthStore();
-  const todayMacros = getTodayMacros() || { protein: 0, carbs: 0, fat: 0 };
+  const todayMacros = (getTodayMacros ? getTodayMacros() : null) || { protein: 0, carbs: 0, fat: 0 };
   const MACROS = [
     { label:'Protein', current:todayMacros.protein || 0, target:120, color:'#000' },
     { label:'Carbs', current:todayMacros.carbs || 0, target:250, color:'#555' },
@@ -69,7 +69,7 @@ export default function NutritionLogScreen() {
 
 
   const todayCals = getTodayCalories ? getTodayCalories() : 0;
-  const todayMacros = getTodayMacros ? getTodayMacros() : { protein: 0, carbs: 0, fat: 0 };
+  // todayMacros is declared above at line 18
   const todayMeals = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return (meals || []).filter(m => m.timestamp && m.timestamp.startsWith(today));
