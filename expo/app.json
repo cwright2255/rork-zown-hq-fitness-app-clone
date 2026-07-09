@@ -1,77 +1,27 @@
 {
   "expo": {
-    "name": "Zown HQ Fitness App Clone",
-    "slug": "zown-hq",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "zownhq",
-    "linking": {
-      "prefixes": [
-        "zownhq://",
-        "https://zownhq.app"
-      ],
-      "config": {
-        "screens": {
-          "spotify-callback": "spotify-callback",
-          "workout": "workout/:workoutId",
-          "ai-coach": "ai-coach/:recommendationId",
-          "profile": "profile"
-        }
-      }
-    },
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.zownhq.app",
-      "googleServicesFile": "./GoogleService-Info.plist",
-      "usesAppleSignIn": true,
-      "entitlements": {
-        "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.access": []
-      },
-      "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Used for profile photo upload",
-        "NSCameraUsageDescription": "Used for profile photo upload",
-        "NSMicrophoneUsageDescription": "Used for workout audio features",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "NSHealthShareUsageDescription": "Zown uses Apple Health to sync your fitness data including steps, heart rate, sleep, and workouts to personalize your experience.",
-        "NSHealthUpdateUsageDescription": "Zown writes workout data to Apple Health to keep your health records up to date.",
-        "UIBackgroundModes": [
-          "location"
-        ]
-      }
-    },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
-      "package": "com.zownhq.app",
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
             {
               "scheme": "zownhq"
             }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
           ]
         }
       ],
+      "package": "com.zownhq.app",
       "permissions": [
         "android.permission.VIBRATE",
         "CAMERA",
@@ -87,9 +37,57 @@
         "RECORD_AUDIO"
       ]
     },
-    "web": {
-      "favicon": "./assets/images/favicon.png"
+    "experiments": {
+      "typedRoutes": true
     },
+    "extra": {
+      "eas": {
+        "projectId": "97962c67-b686-4470-9dd8-8e874d90b279"
+      },
+      "last_channel_diagnostic": "2026-07-09T16:21:00Z"
+    },
+    "icon": "./assets/images/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.zownhq.app",
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      },
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used for profile photo upload",
+        "NSHealthShareUsageDescription": "Zown uses Apple Health to sync your fitness data including steps, heart rate, sleep, and workouts to personalize your experience.",
+        "NSHealthUpdateUsageDescription": "Zown writes workout data to Apple Health to keep your health records up to date.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "NSMicrophoneUsageDescription": "Used for workout audio features",
+        "NSPhotoLibraryUsageDescription": "Used for profile photo upload",
+        "UIBackgroundModes": [
+          "location"
+        ]
+      },
+      "supportsTablet": true,
+      "usesAppleSignIn": true
+    },
+    "linking": {
+      "config": {
+        "screens": {
+          "ai-coach": "ai-coach/:recommendationId",
+          "profile": "profile",
+          "spotify-callback": "spotify-callback",
+          "workout": "workout/:workoutId"
+        }
+      },
+      "prefixes": [
+        "zownhq://",
+        "https://zownhq.app"
+      ]
+    },
+    "name": "Zown HQ Fitness App Clone",
+    "newArchEnabled": true,
+    "orientation": "portrait",
+    "owner": "cwright_7",
     "plugins": [
       [
         "expo-router",
@@ -114,8 +112,8 @@
       [
         "expo-location",
         {
-          "isAndroidForegroundServiceEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
           "isIosBackgroundLocationEnabled": true,
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
         }
@@ -138,21 +136,24 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "owner": "cwright_7",
-    "sdkVersion": "54.0.0",
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
-    "extra": {
-      "eas": {
-        "projectId": "97962c67-b686-4470-9dd8-8e874d90b279"
-      }
+    "scheme": "zownhq",
+    "sdkVersion": "54.0.0",
+    "slug": "zown-hq",
+    "splash": {
+      "backgroundColor": "#ffffff",
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain"
     },
     "updates": {
       "url": "https://u.expo.dev/97962c67-b686-4470-9dd8-8e874d90b279"
+    },
+    "userInterfaceStyle": "automatic",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/images/favicon.png"
     }
   }
 }
