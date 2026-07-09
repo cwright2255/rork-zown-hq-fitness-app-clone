@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUserStore } from '@/store/userStore';
+import { useSpotifyStore } from '@/store/spotifyStore';
 import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -80,6 +81,7 @@ export default function SettingsScreen() {
   } = useSettingsStore();
 
   const { user, logout } = useUserStore();
+  const { isConnected: spotifyConnected, connectSpotifyImplicit, disconnectSpotify } = useSpotifyStore();
   const uid = user?.uid;
 
   const handleChangePassword = async () => {
@@ -248,8 +250,8 @@ export default function SettingsScreen() {
             right={
               <SegmentedControl
                 options={[
-                  { label: '°F', value: 'fahrenheit' },
-                  { label: '°C', value: 'celsius' },
+                  { label: 'Â°F', value: 'fahrenheit' },
+                  { label: 'Â°C', value: 'celsius' },
                 ]}
                 value={temperatureUnits}
                 onChange={(val) => updateSetting('temperatureUnits', val, uid)}
@@ -400,11 +402,20 @@ export default function SettingsScreen() {
             label="Spotify"
             right={
               <View style={s.statusBadge}>
-                <View style={[s.statusDot, { backgroundColor: '#22C55E' }]} />
-                <Text style={s.statusText}>Connected</Text>
+                <View style={[s.statusDot, { backgroundColor: spotifyConnected ? '#22C55E' : '#9E9E9E' }]} />
+                <Text style={s.statusText}>{spotifyConnected ? 'Connected' : 'Not Connected'}</Text>
               </View>
             }
-            onPress={() => Alert.alert('Spotify', 'Spotify integration is live and running.')}
+            onPress={() => {
+              if (spotifyConnected) {
+                Alert.alert('Spotify Connected', 'You are connected to Spotify. Would you like to disconnect?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Disconnect', style: 'destructive', onPress: () => disconnectSpotify() }
+                ]);
+              } else {
+                connectSpotifyImplicit();
+              }
+            }}
           />
           <SettingRow
             icon="heart-outline"
