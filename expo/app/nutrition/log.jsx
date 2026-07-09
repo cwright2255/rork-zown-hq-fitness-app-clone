@@ -11,14 +11,16 @@ const MEALS = [
   { id:'m2', meal:'Lunch', items:'Chicken salad', cal:520, icon:'partly-sunny-outline' },
   { id:'m3', meal:'Snack', items:'Protein bar', cal:280, icon:'cafe-outline' },
 ];
-const MACROS = [
-  { label:'Protein', current:todayMacros.protein, target:120, color:'#000' },
-  { label:'Carbs', current:todayMacros.carbs, target:250, color:'#555' },
-  { label:'Fat', current:todayMacros.fat, target:65, color:'#999' },
-];
+
 
 export default function NutritionLogScreen() {
   const { hydration, meals, addGlass, logMeal, getTodayCalories, getTodayMacros } = useHealthStore();
+  const todayMacros = getTodayMacros() || { protein: 0, carbs: 0, fat: 0 };
+  const MACROS = [
+    { label:'Protein', current:todayMacros.protein || 0, target:120, color:'#000' },
+    { label:'Carbs', current:todayMacros.carbs || 0, target:250, color:'#555' },
+    { label:'Fat', current:todayMacros.fat || 0, target:65, color:'#999' },
+  ];
   const { user } = useUserStore();
   const uid = user?.uid;
   const [isScanning, setIsScanning] = useState(false);
