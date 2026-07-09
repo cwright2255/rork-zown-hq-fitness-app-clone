@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
-import { lightColors } from '../../theme/tokens';
+import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
   const { runs } = useRunningStore();
@@ -153,7 +153,7 @@ export default function RunningLogScreen() {
                 <View style={styles.runHeader}>
                   <View>
                     <Text style={styles.runTitle}>{run.route || 'Free Run'}</Text>
-                    <Text style={styles.runDate}>{dateStr} • {timeStr}</Text>
+                    <Text style={styles.runDate}>{dateStr} â¢ {timeStr}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#999" />
                 </View>
