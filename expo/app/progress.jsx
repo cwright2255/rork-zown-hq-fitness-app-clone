@@ -43,8 +43,8 @@ export default function ProgressScreen() {
       }))
     : [];
 
-  const maxW = Math.max(...WEIGHT_DATA_LIVE.map(d=>d.val));
-  const minW = Math.min(...WEIGHT_DATA_LIVE.map(d=>d.val));
+  const maxW = WEIGHT_DATA_LIVE.length > 0 ? Math.max(...WEIGHT_DATA_LIVE.map(d=>d.val)) : 185;
+  const minW = WEIGHT_DATA_LIVE.length > 0 ? Math.min(...WEIGHT_DATA_LIVE.map(d=>d.val)) : 170;
   const range = maxW - minW || 1;
 
   return (
@@ -122,7 +122,7 @@ export default function ProgressScreen() {
 
         {/* Goals */}
         <View style={s.sectionRow}><Text style={s.sectionTitle}>Active Goals</Text><Pressable><Text style={s.addLink}>Add Goal</Text></Pressable></View>
-        {GOALS.map(g=>{
+        {GOALS_LIVE.map(g=>{
           const pct=Math.round(g.current/g.target*100);
           return (
             <View key={g.title} style={s.goalCard}>
