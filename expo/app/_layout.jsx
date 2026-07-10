@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -99,72 +100,97 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
+// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 
 function SplashAnimation({ onFinish }) {
+  const [lottieError, setLottieError] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Start Logo Fade-In and Scale-Up
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1.1,
-        duration: 1000,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      // Fade in bottom text after logo is loaded
-      Animated.timing(textFadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start(() => {
-        // Hold for 1 second, then fade out everything
-        setTimeout(() => {
-          Animated.parallel([
+    if (lottieError) {
+      // Fallback simples animation
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        Animated.timing(textFadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }).start(() => {
+          setTimeout(() => {
+            Animated.parallel([
+              Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 400,
+                useNativeDriver: true,
+              }),
+              Animated.timing(textFadeAnim, {
+                toValue: 0,
+                duration: 400,
+                useNativeDriver: true,
+              })
+            ]).start(() => {
+              onFinish();
+            });
+          }, 1000);
+        });
+      });
+    }
+  }, [lottieError]);
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000000', zIndex: 9999, justifyContent: 'center', alignItems: 'center' }]}>
+      {!lottieError ? (
+        <LottieView
+          source={require('../assets/animations/splash-screen.json')}
+          autoPlay
+          loop={false}
+          style={{ width: 300, height: 300 }}
+          onAnimationFinish={() => {
+            // Fade out everything to black
             Animated.timing(fadeAnim, {
               toValue: 0,
               duration: 400,
               useNativeDriver: true,
-            }),
-            Animated.timing(textFadeAnim, {
-              toValue: 0,
-              duration: 400,
-              useNativeDriver: true,
-            })
-          ]).start(() => {
-            onFinish();
-          });
-        }, 1000);
-      });
-    });
-  }, []);
-
-  return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000000', zIndex: 9999, justifyContent: 'center', alignItems: 'center' }]}>
-      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
-        <Image
-          source={require('../assets/branding/zown-logo-512.png')}
-          style={{ width: 140, height: 140, resizeMode: 'contain' }}
+            }).start(() => {
+              onFinish();
+            });
+          }}
+          onError={() => {
+            console.warn('Lottie failed to load, falling back to logo splash.');
+            setLottieError(true);
+          }}
         />
-      </Animated.View>
-      <Animated.View style={{ opacity: textFadeAnim, marginTop: 24 }}>
-        <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: 3 }}>
-          OWN THE DAY
-        </Text>
-      </Animated.View>
+      ) : (
+        <>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
+            <Image
+              source={require('../assets/branding/zown-logo-512.png')}
+              style={{ width: 140, height: 140, resizeMode: 'contain' }}
+            />
+          </Animated.View>
+          <Animated.View style={{ opacity: textFadeAnim, marginTop: 24 }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: 3 }}>
+              OWN THE DAY
+            </Text>
+          </Animated.View>
+        </>
+      )}
     </View>
   );
 }
-
 
 function RootLayoutInner() {
   const [splashVisible, setSplashVisible] = useState(true);
@@ -256,7 +282,7 @@ function RootLayoutInner() {
     const navigationFrame = requestAnimationFrame(() => {
       if (!isOnboarded && pathname !== '/start' && !pathname.startsWith('/auth/') && pathname !== '/' && pathname !== '/spotify-callback') {
         if (pathname !== '/onboarding') {
-          import('expo-router').then(({ router }) => router.replace('/start')).catch(console.error);
+          import('expo-router').then(({ router }) => router.replace('/onboarding')).catch(console.error);
         }
       } else if (isOnboarded && pathname === '/start') {
         import('expo-router').then(({ router }) => router.replace('/hq')).catch(console.error);

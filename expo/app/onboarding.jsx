@@ -1,322 +1,834 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { ChevronLeft, Scan } from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants/theme';
-import PrimaryButton from '@/components/PrimaryButton';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
+  Animated,
+  Dimensions
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
-import { tokens } from '../../theme/tokens';
+import { ChevronLeft } from 'lucide-react-native';
 
+const { width } = Dimensions.get('window');
 
-
-const SLIDES = [
-  {
-    title: 'Welcome to ZOWN HQ',
-    description: 'Own your day. Train smarter, eat cleaner, track every rep.',
-  },
-  {
-    title: 'Personalized training',
-    description: 'Workouts built around your level, goals and schedule.',
-  },
-  {
-    title: 'Your mission starts now',
-    description: 'A few quick questions and you\'re in. Change anything later.',
-  },
+// Option Lists
+const GOALS = [
+  { id: 'lose_weight', label: 'Lose Weight', icon: '⚖️' },
+  { id: 'build_muscle', label: 'Build Muscle', icon: '💪' },
+  { id: 'improve_endurance', label: 'Improve Endurance', icon: '❤️' },
+  { id: 'stay_active', label: 'Stay Active', icon: '🏃' },
+  { id: 'train_for_race', label: 'Train for a Race', icon: '⏱️' },
+  { id: 'eat_healthier', label: 'Eat Healthier', icon: '🍎' },
+  { id: 'reduce_stress', label: 'Reduce Stress', icon: '🧠' }
 ];
 
-const GOALS = ['Build Muscle', 'Lose Weight', 'Improve Endurance', 'Increase Strength', 'Enhance Flexibility', 'General Fitness', 'Sports Performance', 'Stress Reduction'];
-const RESTRICTIONS = ['Vegan', 'Vegetarian', 'Pescatarian', 'Gluten-Free', 'Dairy-Free', 'Nut-Free', 'Halal', 'Kosher'];
-const NUTRITION_STYLES = [
-  { key: 'balanced', label: 'Balanced' },
-  { key: 'high-protein', label: 'High Protein' },
-  { key: 'low-carb', label: 'Low Carb' },
-  { key: 'keto', label: 'Keto' },
-  { key: 'carb-plus', label: 'Carb+' },
-  { key: 'recovery', label: 'Recovery' },
+const ACTIVITY_LEVELS = [
+  { id: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise, desk job' },
+  { id: 'lightly_active', label: 'Lightly Active', desc: 'Light exercise or sports 1-3 days/week' },
+  { id: 'moderately_active', label: 'Moderately Active', desc: 'Moderate exercise or sports 3-5 days/week' },
+  { id: 'very_active', label: 'Very Active', desc: 'Hard exercise or sports 6-7 days/week' },
+  { id: 'extremely_active', label: 'Extremely Active', desc: 'Very hard exercise, physical job or athlete' }
 ];
-const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Full Body', 'Mobility'];
-const LEVELS = ['beginner', 'intermediate', 'advanced'];
-const DAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
 export default function OnboardingScreen() {
-  const { setUser, completeOnboarding } = useUserStore();
+  const router = useRouter();
+  const { user, completeOnboarding, saveProfile, loadProfile } = useUserStore();
 
-  const [slide, setSlide] = useState(0);
+  // Step indicator
+  const [step, setStep] = useState(1);
 
+  // Form Fields State
   const [name, setName] = useState('');
-  const [fitnessLevel, setFitnessLevel] = useState('beginner');
+  const [dob, setDob] = useState('');
+  const [gender, setGender] = useState('Prefer not to say');
+  
+  // Height / Weight units and values
+  const [isMetric, setIsMetric] = useState(true);
+  const [heightVal, setHeightVal] = useState(''); // cm or feet portion
+  const [heightInches, setHeightInches] = useState(''); // inches portion if imperial
+  const [weightVal, setWeightVal] = useState(''); // kg or lbs
+
+  const [activityLevel, setActivityLevel] = useState('moderately_active');
   const [selectedGoals, setSelectedGoals] = useState([]);
-  const [dietaryRestrictions, setDietaryRestrictions] = useState([]);
-  const [nutritionStyle, setNutritionStyle] = useState('balanced');
-  const [workoutDays, setWorkoutDays] = useState(3);
-  const [focusGroups, setFocusGroups] = useState([]);
+  
+  // Workout preferences
+  const [daysPerWeek, setDaysPerWeek] = useState('3');
+  const [duration, setDuration] = useState('30min');
+  const [timeOfDay, setTimeOfDay] = useState('Morning');
 
-  const handleToggle = useCallback((value, list, setter) => {
-    setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
-  }, []);
+  // Load initial name from user store if present
+  useEffect(() => {
+    if (user?.name) {
+      setName(user.name);
+    }
+  }, [user]);
 
-  const handleGetStarted = useCallback(() => {
+  // Handle goals toggling (1-3 goals)
+  const toggleGoal = (id) => {
+    if (selectedGoals.includes(id)) {
+      setSelectedGoals(selectedGoals.filter(g => g !== id));
+    } else {
+      if (selectedGoals.length < 3) {
+        setSelectedGoals([...selectedGoals, id]);
+      }
+    }
+  };
+
+  // Convert height to cm for storage
+  const getCalculatedHeight = () => {
+    if (isMetric) {
+      return parseFloat(heightVal) || 175;
+    } else {
+      const ft = parseFloat(heightVal) || 5;
+      const inch = parseFloat(heightInches) || 7;
+      return Math.round((ft * 12 + inch) * 2.54);
+    }
+  };
+
+  // Convert weight to kg for storage
+  const getCalculatedWeight = () => {
+    if (isMetric) {
+      return parseFloat(weightVal) || 70;
+    } else {
+      const lbs = parseFloat(weightVal) || 150;
+      return Math.round(lbs * 0.453592);
+    }
+  };
+
+  // Save profile and finish
+  const handleFinish = async () => {
     try {
-      const newUser = {
-        id: Date.now().toString(),
-        name: name || 'Athlete',
-        email: '',
-        profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
-        joinDate: new Date().toISOString(),
-        fitnessLevel,
-        goals: selectedGoals,
-        exp: 0,
-        xp: 0,
-        level: 1,
-        expToNextLevel: 1000,
-        streak: 0,
-        streakData: { currentStreak: 0, longestStreak: 0, streakDates: [] },
+      const calculatedHeight = getCalculatedHeight();
+      const calculatedWeight = getCalculatedWeight();
+
+      // Setup clean, well-structured user object matching Firestore requirements
+      const profileData = {
+        name: name || 'User',
+        dob: dob || '1995-01-01',
+        gender: gender,
+        fitnessMetrics: {
+          height: calculatedHeight,
+          weight: calculatedWeight,
+          activityLevel: activityLevel,
+          targetGoals: selectedGoals
+        },
         preferences: {
-          units: 'metric',
-          notifications: { workouts: true, nutrition: true, social: true },
-          privacy: { profileVisible: true, shareProgress: true },
-          workoutDuration: 30,
-          dietaryPreference: `${nutritionStyle}` + (dietaryRestrictions.length ? ` | ${dietaryRestrictions.join(',')}` : ''),
-          workoutFrequencyDays: workoutDays,
-          focusMuscleGroups: focusGroups,
-          enableWaterTracking: true,
-        },
-        fitnessMetrics: { weight: 70, height: 175, bodyFat: 15, muscleMass: 35 },
-        expSystem: {
-          totalExp: 0,
-          level: 1,
-          expToNextLevel: 1000,
-          expSources: { workouts: 0, nutrition: 0, social: 0 },
-          levelRequirements: { 1: 1000 },
-        },
-        subscription: { tier: 'free', status: 'active', startDate: new Date().toISOString(), autoRenew: false },
+          units: isMetric ? 'metric' : 'imperial',
+          workoutDaysPerWeek: parseInt(daysPerWeek) || 3,
+          preferredDuration: duration,
+          preferredTimeOfDay: timeOfDay,
+          notifications: {
+            workouts: true,
+            nutrition: true,
+            social: true
+          }
+        }
       };
 
-      setUser(newUser);
+      // Set state in store
+      useUserStore.setState({
+        user: {
+          ...user,
+          ...profileData
+        }
+      });
+
+      // Mark onboarding as completed
       completeOnboarding();
-      router.replace('/');
+
+      // Sync user profile to Firestore
+      if (user?.uid) {
+        await saveProfile(user.uid);
+      }
+
+      // Navigate home
+      router.replace('/hq');
     } catch (e) {
-      console.error('[Onboarding] Error finishing onboarding', e);
+      console.error('[Onboarding] Save error:', e);
+      // Fallback redirect
+      completeOnboarding();
+      router.replace('/hq');
     }
-  }, [completeOnboarding, dietaryRestrictions, fitnessLevel, name, nutritionStyle, selectedGoals, setUser, workoutDays, focusGroups]);
-
-  const totalSteps = SLIDES.length + 1;
-  const currentStep = slide;
-  const isLast = slide === totalSteps - 1;
-
-  const handleNext = () => {
-    if (slide < totalSteps - 1) setSlide(slide + 1);
   };
 
-  const handleBack = () => {
-    if (slide > 0) setSlide(slide - 1);
+  const nextStep = () => {
+    if (step < 6) setStep(step + 1);
   };
 
-  const handleSkip = () => {
-    setSlide(totalSteps - 1);
+  const prevStep = () => {
+    if (step > 1) setStep(step - 1);
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar style="light" />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={handleBack}
-          disabled={slide === 0}
-          hitSlop={8}>
-          {slide > 0 ? <ChevronLeft size={24} color={colors.text} /> : null}
-        </TouchableOpacity>
-        <View style={styles.dotsRow}>
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <View key={i} style={[styles.dot, currentStep === i && styles.dotActive]} />
-          ))}
-        </View>
-        <TouchableOpacity style={styles.headerBtn} onPress={handleSkip} hitSlop={8}>
-          {!isLast ? <Text style={styles.skipText}>Skip</Text> : null}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {slide < SLIDES.length ? (
-          <View style={styles.slide}>
-            <Text style={styles.hero}>{SLIDES[slide].title}</Text>
-            <Text style={styles.heroSub}>{SLIDES[slide].description}</Text>
+  // Render current step helper
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <View style={styles.stepContainer}>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoText}>ZOWN</Text>
+              <Text style={styles.taglineText}>OWN THE DAY</Text>
+            </View>
+            <View style={styles.welcomeInfo}>
+              <Text style={styles.titleText}>Let's set up your fitness profile</Text>
+              <Text style={styles.descText}>
+                We will personalize your workouts, trackers, achievements, and nutrition recommendations based on your profile details.
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.blackButton} onPress={nextStep}>
+              <Text style={styles.blackButtonText}>Get Started</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <View>
-            <Text style={styles.hero}>Let's set you up</Text>
-            <Text style={styles.heroSub}>Quick setup. Change anything later.</Text>
+        );
 
-            <Text style={styles.sectionLabel}>YOUR NAME</Text>
-            <View style={styles.inputRow}>
+      case 2:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.titleText}>About You</Text>
+            <Text style={styles.descText}>Tell us a bit about yourself to begin.</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>FULL NAME</Text>
               <TextInput
-                style={styles.input}
-                placeholder="Your name (optional)"
-                placeholderTextColor={colors.textTertiary}
+                style={styles.textInput}
+                placeholder="Carlton Wright"
+                placeholderTextColor="#999"
                 value={name}
                 onChangeText={setName}
-                autoCapitalize="words"
-                testID="name-input"
               />
             </View>
 
-            <Text style={styles.sectionLabel}>FITNESS LEVEL</Text>
-            <View style={styles.pillRow}>
-              {LEVELS.map((l) => (
-                <Pill key={l} label={l[0].toUpperCase() + l.slice(1)} active={fitnessLevel === l} onPress={() => setFitnessLevel(l)} />
-              ))}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>DATE OF BIRTH</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="YYYY-MM-DD (e.g. 1995-04-12)"
+                placeholderTextColor="#999"
+                value={dob}
+                onChangeText={setDob}
+              />
             </View>
 
-            <Text style={styles.sectionLabel}>GOALS</Text>
-            <View style={styles.pillWrap}>
-              {GOALS.map((g) => (
-                <Pill key={g} label={g} active={selectedGoals.includes(g)} onPress={() => handleToggle(g, selectedGoals, setSelectedGoals)} />
-              ))}
-            </View>
-
-            <Text style={styles.sectionLabel}>DIETARY RESTRICTIONS</Text>
-            <View style={styles.pillWrap}>
-              {RESTRICTIONS.map((r) => (
-                <Pill key={r} label={r} active={dietaryRestrictions.includes(r)} onPress={() => handleToggle(r, dietaryRestrictions, setDietaryRestrictions)} />
-              ))}
-            </View>
-
-            <Text style={styles.sectionLabel}>WORKOUT DAYS / WEEK</Text>
-            <View style={styles.pillRow}>
-              {DAY_OPTIONS.map((d) => (
-                <Pill key={d} label={String(d)} active={workoutDays === d} onPress={() => setWorkoutDays(d)} />
-              ))}
-            </View>
-
-            <Text style={styles.sectionLabel}>FOCUS MUSCLE GROUPS</Text>
-            <View style={styles.pillWrap}>
-              {MUSCLE_GROUPS.map((m) => (
-                <Pill key={m} label={m} active={focusGroups.includes(m)} onPress={() => handleToggle(m, focusGroups, setFocusGroups)} />
-              ))}
-            </View>
-
-            <Text style={styles.sectionLabel}>NUTRITION STYLE</Text>
-            <View style={styles.pillWrap}>
-              {NUTRITION_STYLES.map((n) => (
-                <Pill key={n.key} label={n.label} active={nutritionStyle === n.key} onPress={() => setNutritionStyle(n.key)} />
-              ))}
-            </View>
-
-            <View style={styles.infoCard}>
-              <View style={styles.infoIcon}>
-                <Scan size={20} color={colors.text} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.infoTitle}>Optional: Body Scan</Text>
-                <Text style={styles.infoDesc}>Capture your baseline. You can do this later from your profile.</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>GENDER</Text>
+              <View style={styles.segmentedContainer}>
+                {['Male', 'Female', 'Prefer not to say'].map((g) => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[styles.segmentButton, gender === g && styles.segmentButtonActive]}
+                    onPress={() => setGender(g)}
+                  >
+                    <Text style={[styles.segmentButtonText, gender === g && styles.segmentButtonTextActive]}>
+                      {g}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
+
+            <TouchableOpacity style={styles.blackButton} onPress={nextStep}>
+              <Text style={styles.blackButtonText}>Continue</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
+        );
 
-      <View style={styles.footer}>
-        <PrimaryButton
-          title={isLast ? 'Get Started' : 'Continue'}
-          onPress={isLast ? handleGetStarted : handleNext}
-          testID="onboarding-next-btn"
-        />
-      </View>
-    </SafeAreaView>
-  );
-}
+      case 3:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.titleText}>Body Metrics</Text>
+            <Text style={styles.descText}>Enter your starting measurements.</Text>
 
-function Pill({ label, active, onPress }) {
+            {/* Metric/Imperial toggle */}
+            <View style={styles.unitToggleRow}>
+              <TouchableOpacity
+                style={[styles.unitToggleBtn, isMetric && styles.unitToggleBtnActive]}
+                onPress={() => setIsMetric(true)}
+              >
+                <Text style={[styles.unitToggleText, isMetric && styles.unitToggleTextActive]}>Metric (cm/kg)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.unitToggleBtn, !isMetric && styles.unitToggleBtnActive]}
+                onPress={() => setIsMetric(false)}
+              >
+                <Text style={[styles.unitToggleText, !isMetric && styles.unitToggleTextActive]}>Imperial (ft/lbs)</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Height Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>HEIGHT</Text>
+              {isMetric ? (
+                <View style={styles.numericInputWrapper}>
+                  <TextInput
+                    style={styles.numericInput}
+                    placeholder="175"
+                    placeholderTextColor="#999"
+                    keyboardType="numeric"
+                    value={heightVal}
+                    onChangeText={setHeightVal}
+                  />
+                  <Text style={styles.inputUnitLabel}>cm</Text>
+                </View>
+              ) : (
+                <View style={styles.imperialHeightRow}>
+                  <View style={[styles.numericInputWrapper, { flex: 1 }]}>
+                    <TextInput
+                      style={styles.numericInput}
+                      placeholder="5"
+                      placeholderTextColor="#999"
+                      keyboardType="numeric"
+                      value={heightVal}
+                      onChangeText={setHeightVal}
+                    />
+                    <Text style={styles.inputUnitLabel}>ft</Text>
+                  </View>
+                  <View style={{ width: 16 }} />
+                  <View style={[styles.numericInputWrapper, { flex: 1 }]}>
+                    <TextInput
+                      style={styles.numericInput}
+                      placeholder="7"
+                      placeholderTextColor="#999"
+                      keyboardType="numeric"
+                      value={heightInches}
+                      onChangeText={setHeightInches}
+                    />
+                    <Text style={styles.inputUnitLabel}>in</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Weight Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CURRENT WEIGHT</Text>
+              <View style={styles.numericInputWrapper}>
+                <TextInput
+                  style={styles.numericInput}
+                  placeholder={isMetric ? "70" : "150"}
+                  placeholderTextColor="#999"
+                  keyboardType="numeric"
+                  value={weightVal}
+                  onChangeText={setWeightVal}
+                />
+                <Text style={styles.inputUnitLabel}>{isMetric ? "kg" : "lbs"}</Text>
+              </View>
+            </View>
+
+            {/* Activity Level Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>ACTIVITY LEVEL</Text>
+              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                {ACTIVITY_LEVELS.map((act) => {
+                  const isSel = activityLevel === act.id;
+                  return (
+                    <TouchableOpacity
+                      key={act.id}
+                      style={[styles.activityCard, isSel && styles.cardSelected]}
+                      onPress={() => setActivityLevel(act.id)}
+                    >
+                      <Text style={[styles.cardTitle, isSel && styles.cardTitleSelected]}>{act.label}</Text>
+                      <Text style={[styles.cardDesc, isSel && styles.cardDescSelected]}>{act.desc}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            <TouchableOpacity style={styles.blackButton} onPress={nextStep}>
+              <Text style={styles.blackButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 4:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.titleText}>Your Goals</Text>
+            <Text style={styles.descText}>Select up to 3 goals for personalizing your tracking.</Text>
+
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.goalsGrid}>
+              {GOALS.map((goal) => {
+                const isSel = selectedGoals.includes(goal.id);
+                return (
+                  <TouchableOpacity
+                    key={goal.id}
+                    style={[styles.goalCard, isSel && styles.cardSelected]}
+                    onPress={() => toggleGoal(goal.id)}
+                  >
+                    <Text style={styles.goalIcon}>{goal.icon}</Text>
+                    <Text style={[styles.goalLabel, isSel && styles.goalLabelSelected]}>{goal.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.blackButton, selectedGoals.length === 0 && styles.btnDisabled]}
+              disabled={selectedGoals.length === 0}
+              onPress={nextStep}
+            >
+              <Text style={styles.blackButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 5:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.titleText}>Preferences</Text>
+            <Text style={styles.descText}>How and when do you prefer to exercise?</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>WORKOUT DAYS PER WEEK</Text>
+              <View style={styles.pillsRow}>
+                {['1', '2', '3', '4', '5', '6', '7'].map((d) => (
+                  <TouchableOpacity
+                    key={d}
+                    style={[styles.pillBtn, daysPerWeek === d && styles.pillBtnActive]}
+                    onPress={() => setDaysPerWeek(d)}
+                  >
+                    <Text style={[styles.pillText, daysPerWeek === d && styles.pillTextActive]}>{d}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>PREFERRED WORKOUT DURATION</Text>
+              <View style={styles.pillsRow}>
+                {['15min', '30min', '45min', '60min+'].map((dur) => (
+                  <TouchableOpacity
+                    key={dur}
+                    style={[styles.pillBtn, duration === dur && styles.pillBtnActive]}
+                    onPress={() => setDuration(dur)}
+                  >
+                    <Text style={[styles.pillText, duration === dur && styles.pillTextActive]}>{dur}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>PREFERRED TIME OF DAY</Text>
+              <View style={styles.pillsRow}>
+                {['Morning', 'Afternoon', 'Evening'].map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.pillBtn, timeOfDay === t && styles.pillBtnActive]}
+                    onPress={() => setTimeOfDay(t)}
+                  >
+                    <Text style={[styles.pillText, timeOfDay === t && styles.pillTextActive]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.blackButton} onPress={nextStep}>
+              <Text style={styles.blackButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 6:
+        return (
+          <View style={styles.stepContainer}>
+            <View style={styles.successCelebration}>
+              <Text style={styles.celebrationIcon}>🎉</Text>
+              <Text style={styles.titleText}>All Set!</Text>
+              <Text style={styles.descText}>Your profile is ready to go.</Text>
+            </View>
+
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>PROFILE SUMMARY</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Name</Text>
+                <Text style={styles.summaryValue}>{name || 'Not provided'}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Goals Selected</Text>
+                <Text style={styles.summaryValue}>{selectedGoals.length} goals</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Weekly Routine</Text>
+                <Text style={styles.summaryValue}>{daysPerWeek} days/week, {duration}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Units</Text>
+                <Text style={styles.summaryValue}>{isMetric ? 'Metric' : 'Imperial'}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.blackButton} onPress={handleFinish}>
+              <Text style={styles.blackButtonText}>Let's Go!</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onPress}
-      style={[styles.pill, active && styles.pillActive]}>
-      <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
-    </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Header bar with Back button and progress dots */}
+      <View style={styles.headerBar}>
+        {step > 1 && step < 6 ? (
+          <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
+            <ChevronLeft size={24} color="#000000" />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+        
+        {/* Progress Dots */}
+        <View style={styles.progressDotsContainer}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressDot,
+                step === i && styles.progressDotActive,
+                step > i && styles.progressDotCompleted
+              ]}
+            />
+          ))}
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {renderStepContent()}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  header: {
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
-    minHeight: 56,
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5'
   },
-  headerBtn: {
-    width: 60,
+  backBtn: {
+    width: 40,
     height: 40,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  progressDotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 4
+  },
+  progressDotActive: {
+    width: 16,
+    backgroundColor: '#000000'
+  },
+  progressDotCompleted: {
+    backgroundColor: '#333333'
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  stepContainer: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'space-between'
+  },
+  logoContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 40,
+    marginBottom: 40
   },
-  skipText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  dotsRow: { flexDirection: 'row', gap: tokens.spacing.sm },
-  dot: { width: 8, height: 8, borderRadius: tokens.radius.xs, backgroundColor: colors.border },
-  dotActive: { width: 24, backgroundColor: colors.text },
-  scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl },
-  slide: { paddingTop: 80 },
-  hero: { ...typography.hero, marginBottom: spacing.md },
-  heroSub: { fontSize: 16, color: colors.textSecondary, lineHeight: 24, marginBottom: spacing.xl },
-  sectionLabel: { ...typography.label, marginTop: spacing.lg, marginBottom: spacing.md },
-  inputRow: {
-    backgroundColor: colors.card,
+  logoText: {
+    fontSize: 48,
+    fontWeight: '900',
+    letterSpacing: 4,
+    color: '#000000'
+  },
+  taglineText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 6,
+    color: '#666666',
+    marginTop: 8
+  },
+  welcomeInfo: {
+    marginBottom: 40
+  },
+  titleText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 12,
+    lineHeight: 34
+  },
+  descText: {
+    fontSize: 15,
+    color: '#666666',
+    lineHeight: 22,
+    marginBottom: 24
+  },
+  blackButton: {
+    backgroundColor: '#000000',
+    borderRadius: 30,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4
+  },
+  blackButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  btnDisabled: {
+    opacity: 0.5
+  },
+  inputGroup: {
+    marginBottom: 24
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#666666',
+    letterSpacing: 1.5,
+    marginBottom: 8
+  },
+  textInput: {
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.base,
-    height: 56,
-    justifyContent: 'center',
+    borderColor: '#EAEAEA',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#000000'
   },
-  input: { fontSize: 16, color: colors.text },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  pill: {
-    paddingHorizontal: spacing.base,
+  segmentedContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#EAEAEA'
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 8
+  },
+  segmentButtonActive: {
+    backgroundColor: '#000000'
+  },
+  segmentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666'
+  },
+  segmentButtonTextActive: {
+    color: '#FFFFFF'
+  },
+  unitToggleRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 4
+  },
+  unitToggleBtn: {
+    flex: 1,
     paddingVertical: 10,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    alignItems: 'center',
+    borderRadius: 8
   },
-  pillActive: {
-    backgroundColor: colors.text,
-    borderColor: colors.text,
+  unitToggleBtnActive: {
+    backgroundColor: '#000000'
   },
-  pillText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  pillTextActive: { color: tokens.colors.dark_navy.text_primary },
-  infoCard: {
+  unitToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666666'
+  },
+  unitToggleTextActive: {
+    color: '#FFFFFF'
+  },
+  numericInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.base,
-    marginTop: spacing.xl,
-    gap: spacing.md,
+    borderColor: '#EAEAEA',
+    borderRadius: 12,
+    paddingHorizontal: 16
   },
-  infoIcon: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: colors.surface,
-    alignItems: 'center', justifyContent: 'center',
+  numericInput: {
+    flex: 1,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#000000'
   },
-  infoTitle: { ...typography.h4, marginBottom: 2 },
-  infoDesc: { ...typography.bodySmall },
-  footer: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.base,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.bg,
+  inputUnitLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#666666'
   },
+  imperialHeightRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  activityCard: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12
+  },
+  cardSelected: {
+    backgroundColor: '#000000',
+    borderColor: '#000000'
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 4
+  },
+  cardTitleSelected: {
+    color: '#FFFFFF'
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: '#666666',
+    lineHeight: 16
+  },
+  cardDescSelected: {
+    color: '#CCCCCC'
+  },
+  goalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingBottom: 16
+  },
+  goalCard: {
+    width: (width - 64) / 2,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  goalIcon: {
+    fontSize: 32,
+    marginBottom: 12
+  },
+  goalLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center'
+  },
+  goalLabelSelected: {
+    color: '#FFFFFF'
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8
+  },
+  pillBtn: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minWidth: 44,
+    alignItems: 'center'
+  },
+  pillBtnActive: {
+    backgroundColor: '#000000',
+    borderColor: '#000000'
+  },
+  pillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666'
+  },
+  pillTextActive: {
+    color: '#FFFFFF'
+  },
+  successCelebration: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20
+  },
+  celebrationIcon: {
+    fontSize: 64,
+    marginBottom: 16
+  },
+  summaryCard: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    borderRadius: 16,
+    padding: 20,
+    marginVertical: 16
+  },
+  summaryTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#666666',
+    letterSpacing: 1.5,
+    marginBottom: 16
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAEAEA'
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#666666'
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000000'
+  }
 });
