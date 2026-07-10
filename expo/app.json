@@ -2,8 +2,8 @@
   "expo": {
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/adaptive-icon.png"
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/branding/zown-logo-512.png"
       },
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
@@ -23,19 +23,13 @@
       ],
       "package": "com.zownhq.app",
       "permissions": [
-        "android.permission.VIBRATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "RECORD_AUDIO"
-      ]
+        "ACTIVITY_RECOGNITION"
+      ],
+      "versionCode": 1
     },
     "experiments": {
       "typedRoutes": true
@@ -46,7 +40,7 @@
       },
       "last_channel_diagnostic": "2026-07-09T16:21:00Z"
     },
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/branding/zown-logo-512.png",
     "ios": {
       "bundleIdentifier": "com.zownhq.app",
       "entitlements": {
@@ -56,20 +50,22 @@
       },
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSCameraUsageDescription": "Used for profile photo upload",
+        "NSCameraUsageDescription": "ZOWN HQ uses the camera for food photo recognition and body scan features.",
         "NSHealthShareUsageDescription": "ZOWN HQ reads your health data to display steps, heart rate, sleep, and workout metrics.",
         "NSHealthUpdateUsageDescription": "ZOWN HQ writes workout data back to Apple Health.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ZOWN HQ uses background location to continue tracking your run even when the app is minimized.",
         "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "NSLocationWhenInUseUsageDescription": "ZOWN HQ uses your location to track your running route and display your pace on a live map.",
         "NSMicrophoneUsageDescription": "Used for workout audio features",
-        "NSPhotoLibraryUsageDescription": "Used for profile photo upload",
+        "NSPhotoLibraryUsageDescription": "ZOWN HQ accesses your photos to set a profile picture and log meals.",
         "UIBackgroundModes": [
           "location"
-        ]
+        ],
+        "NSMotionUsageDescription": "ZOWN HQ uses motion data to count steps and track activity."
       },
       "supportsTablet": true,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "buildNumber": "1"
     },
     "linking": {
       "config": {
@@ -85,7 +81,7 @@
         "https://zownhq.app"
       ]
     },
-    "name": "Zown HQ Fitness App Clone",
+    "name": "ZOWN HQ",
     "newArchEnabled": true,
     "orientation": "portrait",
     "owner": "cwright_7",
@@ -144,8 +140,8 @@
     "sdkVersion": "54.0.0",
     "slug": "zown-hq",
     "splash": {
-      "backgroundColor": "#ffffff",
-      "image": "./assets/images/splash-icon.png",
+      "backgroundColor": "#000000",
+      "image": "./assets/branding/zown-logo-512.png",
       "resizeMode": "contain"
     },
     "updates": {
@@ -155,6 +151,8 @@
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/images/favicon.png"
-    }
+    },
+    "description": "Your all-in-one fitness companion. Track workouts, runs with GPS, nutrition, and health metrics. Compete with friends, earn achievements, and own the day.",
+    "primaryColor": "#000000"
   }
 }

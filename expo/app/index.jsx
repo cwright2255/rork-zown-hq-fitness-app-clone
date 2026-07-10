@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Platform } from 'react-native';
 import { useUserStore } from '@/store/userStore';
-import LoadingScreen, { ErrorBoundary } from '@/components/LoadingScreen';
+import LoadingScreen from '@/components/LoadingScreen';
 import { authService } from '@/services/authService';
 import { spotifyService } from '@/services/spotifyService';
 
@@ -85,8 +85,8 @@ function IndexContent() {
 
 export default function Index() {
   return (
-    <ErrorBoundary>
+    
       <IndexContent />
-    </ErrorBoundary>);
+    );
 
 }
