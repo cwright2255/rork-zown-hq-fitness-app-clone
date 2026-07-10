@@ -335,16 +335,14 @@ class SpotifyService {
       let error = null;
 
       // Check if it's a full URL or just params
-      if (url.includes('?')) {
-        const urlObj = new URL(url);
-        code = urlObj.searchParams.get('code');
-        receivedState = urlObj.searchParams.get('state');
-        error = urlObj.searchParams.get('error');
-      } else if (url.includes('code=')) {
-        const params = new URLSearchParams(url.replace('?', ''));
-        code = params.get('code');
-        receivedState = params.get('state');
-        error = params.get('error');
+      const getParam = (str, key) => {
+        const match = str.match(new RegExp('[?#&]' + key + '=([^&]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+      };
+      if (url.includes('code=') || url.includes('state=') || url.includes('error=')) {
+        code = getParam(url, 'code');
+        receivedState = getParam(url, 'state');
+        error = getParam(url, 'error');
       }
 
       console.log('Parsed callback params:', {
@@ -420,11 +418,14 @@ class SpotifyService {
     console.log('Handling Spotify implicit grant callback:', urlFragment);
 
     try {
-      const params = new URLSearchParams(urlFragment.replace('#', ''));
-      const accessToken = params.get('access_token');
-      const tokenType = params.get('token_type');
-      const expiresIn = params.get('expires_in');
-      const error = params.get('error');
+      const getParam = (str, key) => {
+        const match = str.match(new RegExp('[?#&]' + key + '=([^&]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+      };
+      const accessToken = getParam(urlFragment, 'access_token');
+      const tokenType = getParam(urlFragment, 'token_type') || 'Bearer';
+      const expiresIn = getParam(urlFragment, 'expires_in');
+      const error = getParam(urlFragment, 'error');
 
       if (error) {
         console.error('Spotify authentication error:', error);
@@ -493,9 +494,9 @@ class SpotifyService {
 Spotify Integration (Client Credentials Flow):
 
 This app uses Client Credentials flow which:
-ÃÂ¢ÃÂÃÂ Does NOT require redirect URIs
-ÃÂ¢ÃÂÃÂ Works immediately with valid credentials
-ÃÂ¢ÃÂÃÂ Allows searching tracks, playlists, and recommendations
+Ã¢ÂÂ Does NOT require redirect URIs
+Ã¢ÂÂ Works immediately with valid credentials
+Ã¢ÂÂ Allows searching tracks, playlists, and recommendations
 
 Setup:
 1. Go to https://developer.spotify.com/dashboard
@@ -504,12 +505,12 @@ Setup:
 4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
 
 Current Status:
-- Client ID: ${this.clientId} ÃÂ¢ÃÂÃÂ
-- Client Secret: ${hasValidClientSecret ? 'Configured ÃÂ¢ÃÂÃÂ' : 'Not configured or invalid ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ'}
-- Token Status: ${this.token ? 'Active ÃÂ¢ÃÂÃÂ' : 'Not available'}
+- Client ID: ${this.clientId} Ã¢ÂÂ
+- Client Secret: ${hasValidClientSecret ? 'Configured Ã¢ÂÂ' : 'Not configured or invalid Ã¢ÂÂ Ã¯Â¸Â'}
+- Token Status: ${this.token ? 'Active Ã¢ÂÂ' : 'Not available'}
 - Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasValidClientSecret ? 'ÃÂ¢ÃÂÃÂ Ready! You can search playlists and get recommendations.' : 'ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ Add your Client Secret to enable Spotify features.'}
+${hasValidClientSecret ? 'Ã¢ÂÂ Ready! You can search playlists and get recommendations.' : 'Ã¢ÂÂ Ã¯Â¸Â Add your Client Secret to enable Spotify features.'}
 
 Note: Client Credentials flow provides access to:
 - Search tracks and playlists
@@ -1027,8 +1028,15 @@ It does NOT provide access to:
       code_challenge: codeChallenge
     };
 
-    const params = new URLSearchParams(paramsObj);
-    const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+    const params = 'response_type=code' +
+      '&client_id=' + encodeURIComponent(this.clientId) +
+      '&scope=' + encodeURIComponent(scopes) +
+      '&redirect_uri=' + encodeURIComponent(this.redirectUri) +
+      '&state=' + encodeURIComponent(this.state) +
+      '&show_dialog=true' +
+      '&code_challenge_method=S256' +
+      '&code_challenge=' + encodeURIComponent(codeChallenge);
+    const authUrl = `https://accounts.spotify.com/authorize?${params}`;
     console.log('Generated auth URL:', authUrl);
 
     return authUrl;
@@ -1224,17 +1232,15 @@ It does NOT provide access to:
     this.codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
 
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: this.clientId,
-      scope: scopes,
-      redirect_uri: this.redirectUri,
-      state: this.state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256'
-    });
+    const params = 'response_type=code' +
+      '&client_id=' + encodeURIComponent(this.clientId) +
+      '&scope=' + encodeURIComponent(scopes) +
+      '&redirect_uri=' + encodeURIComponent(this.redirectUri) +
+      '&state=' + encodeURIComponent(this.state) +
+      '&code_challenge=' + encodeURIComponent(codeChallenge) +
+      '&code_challenge_method=S256';
 
-    return `https://accounts.spotify.com/authorize?${params.toString()}`;
+    return `https://accounts.spotify.com/authorize?${params}`;
   }
 
   // Get the callback URL for deep linking setup
