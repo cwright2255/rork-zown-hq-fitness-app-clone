@@ -26,7 +26,7 @@ import React, { useState, useMemo } from 'react';
     xp: (totalExp || 0).toLocaleString(),
   };
 
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
