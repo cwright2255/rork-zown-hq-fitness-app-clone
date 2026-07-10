@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -99,6 +99,26 @@ export default function SettingsScreen() {
     } catch (e) {
       Alert.alert('Error', e?.message || 'Failed to send reset email.');
     }
+  };
+
+  const handleRateApp = () => {
+    const iosUrl = 'https://apps.apple.com/app/zown-hq/id_PLACEHOLDER'; // placeholder until published
+    const androidUrl = 'https://play.google.com/store/apps/details?id=com.cwright7.zownhq'; // placeholder
+    
+    const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
+    
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        // Fallback: show alert that the app isn't on stores yet
+        Alert.alert(
+          'Coming Soon',
+          'ZOWN HQ will be available on the App Store and Google Play soon! Thanks for your support.',
+          [{ text: 'OK' }]
+        );
+      }
+    });
   };
 
   const handleLogout = () => {
@@ -253,8 +273,8 @@ export default function SettingsScreen() {
             right={
               <SegmentedControl
                 options={[
-                  { label: 'ÃÂ°F', value: 'fahrenheit' },
-                  { label: 'ÃÂ°C', value: 'celsius' },
+                  { label: 'ÃÂÃÂ°F', value: 'fahrenheit' },
+                  { label: 'ÃÂÃÂ°C', value: 'celsius' },
                 ]}
                 value={temperatureUnits}
                 onChange={(val) => updateSetting('temperatureUnits', val, uid)}
@@ -499,22 +519,22 @@ export default function SettingsScreen() {
           <SettingRow
             icon="document-text-outline"
             label="Terms of Service"
-            onPress={() => Alert.alert('Terms of Service', 'Placeholder for Terms of Service.')}
+            onPress={() => router.push('/profile/terms')}
           />
           <SettingRow
             icon="shield-checkmark-outline"
             label="Privacy Policy"
-            onPress={() => Alert.alert('Privacy Policy', 'Placeholder for Privacy Policy.')}
+            onPress={() => router.push('/profile/privacy-policy')}
           />
           <SettingRow
             icon="ribbon-outline"
             label="Open Source Licenses"
-            onPress={() => Alert.alert('Licenses', 'This app utilizes open source React Native and Expo components.')}
+            onPress={() => router.push('/profile/licenses')}
           />
           <SettingRow
             icon="star-outline"
             label="Rate App"
-            onPress={() => Alert.alert('Rate App', 'Thank you for supporting ZOWN! Redirecting to app store...')}
+            onPress={handleRateApp}
           />
         </View>
 
