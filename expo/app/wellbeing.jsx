@@ -5,7 +5,6 @@ import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const MOODS = ['Ã°ÂÂÂ´', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ'];
 const STRESS = ['Low', 'Medium', 'High'];

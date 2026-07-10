@@ -8,7 +8,6 @@ import RunningMap from '@/components/RunningMap';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { tokens } from '../../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function RunningSessionDetailScreen() {
   const params = useLocalSearchParams();

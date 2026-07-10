@@ -7,7 +7,6 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { tokens } from '../../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function RunningProgramDetailScreen() {
   const params = useLocalSearchParams();

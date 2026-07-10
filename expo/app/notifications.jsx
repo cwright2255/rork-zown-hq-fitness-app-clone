@@ -4,7 +4,6 @@ import { Bell, Trophy, Droplets, Users } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const MOCK = [
   { id: '1', icon: Trophy, title: 'Badge Earned', body: 'You unlocked the 7-Day Streak badge.', time: '2h ago', unread: true },

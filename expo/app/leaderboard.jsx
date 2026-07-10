@@ -4,7 +4,6 @@ import { Trophy } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const DATA = [
   { id: '1', name: 'Sarah Johnson', pts: 1250, isMe: false, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200' },

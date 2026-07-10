@@ -1,3 +1,4 @@
+import { scheduleWorkoutReminder, scheduleHydrationReminder, scheduleStreakReminder, cancelAllNotifications } from '@/services/notificationService';
 import React, { useState } from 'react';
 import {
   View,
@@ -30,7 +31,6 @@ import { authService } from '@/services/authService';
 import { spotifyService } from '@/services/spotifyService';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function SettingsScreen() {
   const { user, updateUserPreferences, logout } = useUserStore();
@@ -53,7 +53,7 @@ export default function SettingsScreen() {
   const [carbsGoal, setCarbsGoal] = useState(String(dailyGoals.carbs));
   const [fatGoal, setFatGoal] = useState(String(dailyGoals.fat));
 
-  const handleToggleNotifications = (value) => {
+  const handleToggleNotifications = async (value) => {
     setNotificationsEnabled(value);
     updateUserPreferences({
       notifications: {
@@ -62,6 +62,20 @@ export default function SettingsScreen() {
         social: user?.preferences?.notifications?.social || false,
       },
     });
+    
+    try {
+      if (value) {
+        await scheduleWorkoutReminder();
+        await scheduleHydrationReminder();
+        await scheduleStreakReminder();
+        Alert.alert('Success', 'Push reminders scheduled successfully!');
+      } else {
+        await cancelAllNotifications();
+        Alert.alert('Notifications Disabled', 'All active reminders have been cancelled.');
+      }
+    } catch (err) {
+      console.log('Error setting up reminders:', err.message);
+    }
   };
 
   const handleSaveNutritionGoals = () => {

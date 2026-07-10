@@ -6,7 +6,6 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { searchFoods } from '@/services/passioService';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function SearchFoodScreen() {
   const { mealId, scannedFood } = useLocalSearchParams();

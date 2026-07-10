@@ -9,7 +9,6 @@ import { tokens } from '../../theme/tokens';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function SpotifyCallback() {
   const router = useRouter();

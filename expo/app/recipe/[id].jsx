@@ -6,7 +6,6 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const recipes = {
   '1': {

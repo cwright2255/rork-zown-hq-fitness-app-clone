@@ -5,7 +5,6 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { useOrderStore } from '@/store/orderStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function OrderTrackingScreen() {
   const { orders } = useOrderStore();

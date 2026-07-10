@@ -7,7 +7,6 @@ import { colors, radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { authService } from '@/services/authService';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');

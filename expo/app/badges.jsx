@@ -5,7 +5,6 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { useBadgeStore } from '@/store/badgeStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function BadgesScreen() {
   const store = useBadgeStore();

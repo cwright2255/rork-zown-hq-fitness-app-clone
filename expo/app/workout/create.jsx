@@ -23,7 +23,6 @@ import { useAchievementStore } from '@/store/achievementStore';
 import { useExerciseStore } from '@/store/exerciseStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const CATEGORIES = ['strength', 'cardio', 'flexibility', 'hiit', 'yoga', 'pilates', 'crossfit', 'bodyweight', 'custom'];
 const DIFFICULTIES = [

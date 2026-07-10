@@ -6,7 +6,6 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const FEED = [
   { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day Ã¢ÂÂ new PR on squats!' },

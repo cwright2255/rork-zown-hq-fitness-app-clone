@@ -31,7 +31,6 @@ import {
 } from '@/services/muscleVisualizerService';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function AnalyticsScreen() {
   const [timeRange, setTimeRange] = useState('month');

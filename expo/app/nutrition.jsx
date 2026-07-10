@@ -8,7 +8,6 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function NutritionScreen() {
   const { getMealsByDate, dailyGoals, addMeal } = useNutritionStore();

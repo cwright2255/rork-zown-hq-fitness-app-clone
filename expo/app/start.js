@@ -10,7 +10,6 @@ import {
 import { router, Stack } from 'expo-router';
 import { ErrorBoundary } from '@/components/LoadingScreen';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 import { tokens } from '../../theme/tokens';
 
 function StartScreenContent() {
@@ -74,7 +73,7 @@ function StartScreenContent() {
   }, [animating, coverY, logoOpacity, logoScale, logoY, screenH]);
 
   return (
-    <ErrorBoundary>
+    <>
       <View style={styles.root} testID="startup-root">
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -106,7 +105,7 @@ function StartScreenContent() {
         </Animated.View>
       </View>
       </View>
-    </ErrorBoundary>);
+    </>);
 
 }
 

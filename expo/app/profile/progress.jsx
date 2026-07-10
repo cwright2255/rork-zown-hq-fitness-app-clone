@@ -20,7 +20,6 @@ import { tokens } from '../../../theme/tokens';
 
 import { useProgressStore } from '@/store/progressStore';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function ProgressTrackerScreen() {
   const params = useLocalSearchParams();

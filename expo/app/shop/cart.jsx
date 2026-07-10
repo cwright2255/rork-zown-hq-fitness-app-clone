@@ -7,7 +7,6 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useShopStore } from '@/store/shopStore';
 import { tokens } from '../../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function CartScreen() {
   const { products, cart, removeFromCart, updateCartItemQuantity, getCartTotal } = useShopStore();

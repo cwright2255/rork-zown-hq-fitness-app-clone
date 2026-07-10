@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image, Dimensions } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotifications } from '@/services/notificationService';
 import { tokens } from '../../theme/tokens';
 
 // CRITICAL: ErrorBoundary is exported FIRST Ã¢ÂÂ before any other imports that could
@@ -158,6 +160,101 @@ function RootLayoutInner() {
   const { cart } = useShopStore();
   const { connectSpotify, connectSpotifyImplicit } = useSpotifyStore();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  // Splash Screen State & Animations
+  const [showSplash, setShowSplash] = useState(true);
+  const fadeAnim = useState(new Animated.Value(1))[0];
+  const scaleAnim = useState(new Animated.Value(0.5))[0];
+  const logoOpacity = useState(new Animated.Value(0))[0];
+  const textFadeAnim = useState(new Animated.Value(0))[0];
+  const textSlideAnim = useState(new Animated.Value(20))[0];
+
+  useEffect(() => {
+    // Run the splash choreographies
+    Animated.sequence([
+      // 1. Spring-scale the logo up and fade it in
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1.0,
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1.0,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ]),
+      // 2. Fade/Slide up the text
+      Animated.parallel([
+        Animated.timing(textFadeAnim, {
+          toValue: 1.0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(textSlideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        })
+      ]),
+      // 3. Pause for the effect
+      Animated.delay(1000),
+      // 4. Fade out the entire splash screen
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setShowSplash(false);
+    });
+  }, []);
+
+  // Notifications wiring
+  useEffect(() => {
+    async function initNotifications() {
+      try {
+        const token = await registerForPushNotifications();
+        if (token) {
+          console.log('[PushNotifications] Registered Token:', token);
+          // Save token to userStore or Firestore if profile uid exists
+          const profile = useUserStore.getState().profile;
+          if (profile && profile.uid) {
+            const { db } = require('../src/config/firebase');
+            const { doc, updateDoc } = require('firebase/firestore');
+            await updateDoc(doc(db, 'users', profile.uid), {
+              pushToken: token
+            });
+          }
+        }
+      } catch (err) {
+        console.log('[PushNotifications] Init failed:', err.message);
+      }
+    }
+    
+    void initNotifications();
+
+    // Listen to notification received
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('[NotificationReceived]', notification);
+    });
+
+    // Listen to notification response (user clicked/tapped it)
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const screen = response.notification.request.content.data?.screen;
+      if (screen) {
+        import('expo-router').then(({ router }) => {
+          router.push(screen);
+        }).catch(console.error);
+      }
+    });
+
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener);
+      Notifications.removeNotificationSubscription(responseListener);
+    };
+  }, []);
 
   const cartItemCount = useMemo(() => cart.reduce((total, item) => total + item.quantity, 0), [cart]);
 
@@ -218,6 +315,19 @@ function RootLayoutInner() {
 
   return (
     <View style={styles.container}>
+      {showSplash && (
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000000', zIndex: 9999, justifyContent: 'center', alignItems: 'center', opacity: fadeAnim }]}>
+          <Animated.Image 
+            source={require('../../assets/branding/zown-logo-512.png')} 
+            style={{ width: 140, height: 140, transform: [{ scale: scaleAnim }], opacity: logoOpacity }} 
+            resizeMode="contain"
+          />
+          <Animated.View style={{ opacity: textFadeAnim, transform: [{ translateY: textSlideAnim }], marginTop: 24, alignItems: 'center' }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '800', letterSpacing: 4, marginBottom: 8 }}>ZOWN</Text>
+            <Text style={{ color: '#00FF66', fontSize: 12, fontWeight: '700', letterSpacing: 2 }}>OWN THE DAY</Text>
+          </Animated.View>
+        </Animated.View>
+      )}
       <StatusBar style="auto" />
       <RootLayoutNav
         toggleMenu={toggleMenu}

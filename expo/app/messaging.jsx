@@ -4,7 +4,6 @@ import { Send, ArrowLeft } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const CONVERSATIONS = [
   { id: '1', name: 'Sarah Johnson', initials: 'SJ', last: 'Great workout today! Want to join me tomorrow?', time: '2m', unread: 2 },

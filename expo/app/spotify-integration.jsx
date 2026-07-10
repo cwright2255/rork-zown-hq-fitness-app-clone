@@ -9,7 +9,6 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { spotifyService } from '@/services/spotifyService';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function SpotifyIntegrationScreen() {
   const {

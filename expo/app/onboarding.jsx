@@ -9,7 +9,6 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const SLIDES = [
   {

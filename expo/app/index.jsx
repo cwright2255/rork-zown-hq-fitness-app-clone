@@ -6,7 +6,6 @@ import LoadingScreen, { ErrorBoundary } from '@/components/LoadingScreen';
 import { authService } from '@/services/authService';
 import { spotifyService } from '@/services/spotifyService';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 function IndexContent() {
   const { isOnboarded } = useUserStore();
@@ -85,8 +84,8 @@ function IndexContent() {
 
 export default function Index() {
   return (
-    <ErrorBoundary>
+    <>
       <IndexContent />
-    </ErrorBoundary>);
+    </>);
 
 }

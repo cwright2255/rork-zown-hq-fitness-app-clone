@@ -6,7 +6,6 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useExpStore } from '@/store/expStore';
 import { tokens } from '../../theme/tokens';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 export default function ExpDashboardScreen() {
   const store = useExpStore();
