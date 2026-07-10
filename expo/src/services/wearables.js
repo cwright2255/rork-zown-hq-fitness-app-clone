@@ -20,7 +20,7 @@ export const setRookUser = async (userId) => {
   if (IS_EXPO_GO) return false;
   try {
     // Dynamically require the sdk configuration hook
-    const { useRookSyncConfiguration } = require('react-native-rook-sdk-health-connect');
+    // const { useRookSyncConfiguration } = require('react-native-rook-sdk-health-connect'); // Removed to avoid bundler crash
     console.log('[ROOK] User set:', userId);
     return true;
   } catch (e) {
