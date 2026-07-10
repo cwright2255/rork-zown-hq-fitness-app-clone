@@ -135,15 +135,6 @@
             "useFrameworks": "static"
           }
         }
-      ],
-      [
-        "react-native-rook-sdk",
-        {
-          "iosBackgroundModes": [
-            "fetch",
-            "processing"
-          ]
-        }
       ]
     ],
     "runtimeVersion": {
