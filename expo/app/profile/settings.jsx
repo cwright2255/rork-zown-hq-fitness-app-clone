@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions, Platform, Linking } from 'react-native';
@@ -9,6 +10,7 @@ import { router } from 'expo-router';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { spotifyService } from '@/services/spotifyService';
 import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -84,8 +86,82 @@ export default function SettingsScreen() {
   } = useSettingsStore();
 
   const { user, logout } = useUserStore();
-  const { isConnected: spotifyConnected, connectSpotifyImplicit, disconnectSpotify } = useSpotifyStore();
+  const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
   const uid = user?.uid;
+
+  const redirectUri = AuthSession.makeRedirectUri();
+
+  // Log redirect URI on load
+  useEffect(() => {
+    console.log('[Spotify] Add this redirect URI to Spotify Dashboard:', redirectUri);
+  }, [redirectUri]);
+
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: 'cb884c0e045d4683bd3f0b38cb0e151e',
+      scopes: [
+        'user-read-playback-state',
+        'user-modify-playback-state',
+        'user-read-currently-playing',
+        'streaming',
+        'user-library-read',
+        'user-read-email',
+        'user-read-private',
+        'user-top-read',
+        'playlist-read-private',
+        'playlist-read-collaborative',
+        'playlist-modify-private',
+        'playlist-modify-public',
+      ],
+      redirectUri,
+      usePKCE: true,
+      responseType: 'code',
+    },
+    {
+      authorizationEndpoint: 'https://accounts.spotify.com/authorize',
+      tokenEndpoint: 'https://accounts.spotify.com/api/token',
+    }
+  );
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { code } = response.params;
+      exchangeCodeForToken(code, request.codeVerifier, redirectUri);
+    }
+  }, [response]);
+
+  async function exchangeCodeForToken(code, codeVerifier, redirectUri) {
+    try {
+      const body = 'client_id=cb884c0e045d4683bd3f0b38cb0e151e' +
+        '&grant_type=authorization_code' +
+        '&code=' + encodeURIComponent(code) +
+        '&redirect_uri=' + encodeURIComponent(redirectUri) +
+        '&code_verifier=' + encodeURIComponent(codeVerifier);
+      
+      const res = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+      const data = await res.json();
+      if (data.access_token) {
+        await spotifyService.storeToken(data.access_token, data.refresh_token, data.expires_in);
+        const userProfile = await spotifyService.getCurrentUser();
+        useSpotifyStore.setState({
+          isConnected: true,
+          user: userProfile,
+        });
+        useSpotifyStore.getState().loadUserData();
+        useSpotifyStore.getState().loadWorkoutPlaylists();
+        useSpotifyStore.getState().loadRunningPlaylists();
+        Alert.alert('Connected', "Successfully connected to Spotify as " + (userProfile?.display_name || 'user') + "!");
+      } else {
+        Alert.alert('Connection Failed', data.error_description || data.error || 'Failed to exchange token');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.message || 'Token exchange failed');
+    }
+  }
 
   const handleChangePassword = async () => {
     const email = user?.email;
@@ -102,8 +178,8 @@ export default function SettingsScreen() {
   };
 
   const handleRateApp = () => {
-    const iosUrl = 'https://apps.apple.com/app/zown-hq/id_PLACEHOLDER'; // placeholder until published
-    const androidUrl = 'https://play.google.com/store/apps/details?id=com.cwright7.zownhq'; // placeholder
+    const iosUrl = 'https://apps.apple.com/app/zown-hq/id_PLACEHOLDER';
+    const androidUrl = 'https://play.google.com/store/apps/details?id=com.cwright7.zownhq';
     
     const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
     
@@ -111,7 +187,6 @@ export default function SettingsScreen() {
       if (supported) {
         Linking.openURL(url);
       } else {
-        // Fallback: show alert that the app isn't on stores yet
         Alert.alert(
           'Coming Soon',
           'ZOWN HQ will be available on the App Store and Google Play soon! Thanks for your support.',
@@ -226,7 +301,7 @@ export default function SettingsScreen() {
             icon="mail-outline"
             label="Email"
             subLabel={user?.email || 'Not logged in'}
-            onPress={() => Alert.alert('Account Email', `Your account is verified under ${user?.email || 'no email'}.`)}
+            onPress={() => Alert.alert('Account Email', "Your account is verified under " + (user?.email || 'no email') + ".")}
           />
           <SettingRow
             icon="lock-closed-outline"
@@ -273,8 +348,8 @@ export default function SettingsScreen() {
             right={
               <SegmentedControl
                 options={[
-                  { label: 'ÃÂÃÂ°F', value: 'fahrenheit' },
-                  { label: 'ÃÂÃÂ°C', value: 'celsius' },
+                  { label: '°F', value: 'fahrenheit' },
+                  { label: '°C', value: 'celsius' },
                 ]}
                 value={temperatureUnits}
                 onChange={(val) => updateSetting('temperatureUnits', val, uid)}
@@ -436,7 +511,17 @@ export default function SettingsScreen() {
                   { text: 'Disconnect', style: 'destructive', onPress: () => disconnectSpotify() }
                 ]);
               } else {
-                connectSpotifyImplicit();
+                Alert.alert(
+                  'Spotify Redirect URI',
+                  "To connect your Spotify, please register this redirect URI in Spotify Developer Dashboard:\n\n" + redirectUri + "\n\nWould you like to copy and proceed?",
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Proceed',
+                      onPress: () => promptAsync(),
+                    }
+                  ]
+                );
               }
             }}
           />
@@ -672,7 +757,6 @@ const s = StyleSheet.create({
     fontWeight: '600',
     color: '#555555',
   },
-  // Custom segment style
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: '#F0F0F0',
