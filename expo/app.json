@@ -51,13 +51,14 @@
       "bundleIdentifier": "com.zownhq.app",
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.access": []
+        "com.apple.developer.healthkit.access": [],
+        "com.apple.developer.healthkit.background-delivery": true
       },
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "Used for profile photo upload",
-        "NSHealthShareUsageDescription": "Zown uses Apple Health to sync your fitness data including steps, heart rate, sleep, and workouts to personalize your experience.",
-        "NSHealthUpdateUsageDescription": "Zown writes workout data to Apple Health to keep your health records up to date.",
+        "NSHealthShareUsageDescription": "ZOWN HQ reads your health data to display steps, heart rate, sleep, and workout metrics.",
+        "NSHealthUpdateUsageDescription": "ZOWN HQ writes workout data back to Apple Health.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
@@ -133,6 +134,15 @@
           "ios": {
             "useFrameworks": "static"
           }
+        }
+      ],
+      [
+        "react-native-rook-sdk",
+        {
+          "iosBackgroundModes": [
+            "fetch",
+            "processing"
+          ]
         }
       ]
     ],

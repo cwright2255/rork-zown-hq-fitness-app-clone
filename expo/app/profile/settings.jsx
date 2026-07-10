@@ -15,6 +15,8 @@ import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokens } from '../../../theme/tokens';
+import Constants from 'expo-constants';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 const { width } = Dimensions.get('window');
 
@@ -87,6 +89,7 @@ export default function SettingsScreen() {
 
   const { user, logout } = useUserStore();
   const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
+  const [healthConnected, setHealthConnected] = useState(false);
   const uid = user?.uid;
 
   const redirectUri = AuthSession.makeRedirectUri();
@@ -348,8 +351,8 @@ export default function SettingsScreen() {
             right={
               <SegmentedControl
                 options={[
-                  { label: '°F', value: 'fahrenheit' },
-                  { label: '°C', value: 'celsius' },
+                  { label: 'Â°F', value: 'fahrenheit' },
+                  { label: 'Â°C', value: 'celsius' },
                 ]}
                 value={temperatureUnits}
                 onChange={(val) => updateSetting('temperatureUnits', val, uid)}
@@ -530,11 +533,41 @@ export default function SettingsScreen() {
             label="Apple Health / Google Fit"
             right={
               <View style={s.statusBadge}>
-                <View style={[s.statusDot, { backgroundColor: '#22C55E' }]} />
-                <Text style={s.statusText}>Connected</Text>
+                <View style={[s.statusDot, { backgroundColor: healthConnected ? '#22C55E' : '#9E9E9E' }]} />
+                <Text style={s.statusText}>{healthConnected ? 'Connected' : 'Not Connected'}</Text>
               </View>
             }
-            onPress={() => Alert.alert('Native Integration', 'Apple Health and Google Fit sync automatically on production devices.')}
+            onPress={async () => {
+              if (IS_EXPO_GO) {
+                Alert.alert('Expo Go', 'Apple Health and Google Fit permissions are simulated. Enabled mock connection!');
+                setHealthConnected(true);
+                return;
+              }
+              try {
+                const { useRookPermissions } = require('react-native-rook-sdk');
+                Alert.alert(
+                  'Connect Health',
+                  'Would you like to connect Apple Health via ROOK to sync your metrics?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Connect',
+                      onPress: async () => {
+                        try {
+                          // In React, hooks must be called inside components, but if we need immediate direct permission call
+                          // we can safely direct the user to trigger sync in the Health Screen tab.
+                          Alert.alert('Setup Guide', 'Please tap Sync Now in the main Health Tab to configure native Apple Health permissions.');
+                        } catch (err) {
+                          Alert.alert('Error', err.message);
+                        }
+                      }
+                    }
+                  ]
+                );
+              } catch (e) {
+                Alert.alert('SDK Error', 'ROOK SDK native hooks are only available in custom dev builds.');
+              }
+            }}
           />
           <SettingRow
             icon="watch-outline"
