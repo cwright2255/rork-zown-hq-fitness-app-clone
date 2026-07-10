@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 import { useExpStore } from './expStore';
 
@@ -330,6 +332,53 @@ export const useUserStore = create(
       resetDailyMetrics: () => {
         // Implementation for resetting daily metrics
         console.log('Daily metrics reset');
+      },
+
+
+      /* ── Firestore sync ── */
+      loadProfile: async (uid) => {
+        if (!uid) return;
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            const { user } = get();
+            if (user) {
+              set({
+                user: {
+                  ...user,
+                  ...data,
+                  fitnessMetrics: data.fitnessMetrics || user.fitnessMetrics,
+                  preferences: data.preferences || user.preferences,
+                  streakData: data.streakData || user.streakData,
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('[userStore] loadProfile error:', e?.message);
+        }
+      },
+
+      saveProfile: async (uid) => {
+        if (!uid) return;
+        const { user } = get();
+        if (!user) return;
+        try {
+          await setDoc(doc(db, 'users', uid), {
+            name: user.name || '',
+            email: user.email || '',
+            photoURL: user.photoURL || '',
+            fitnessLevel: user.fitnessLevel || 'intermediate',
+            fitnessMetrics: user.fitnessMetrics || {},
+            preferences: user.preferences || {},
+            streakData: user.streakData || {},
+            goals: user.goals || [],
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[userStore] saveProfile error:', e?.message);
+        }
       },
 
       logout: async () => {

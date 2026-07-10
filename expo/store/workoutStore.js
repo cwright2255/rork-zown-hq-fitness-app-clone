@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { optimizeArrayForPerformance } from '@/utils/storeOptimizations';
 
 // Mock completed workouts data
@@ -373,6 +375,36 @@ export const useWorkoutStore = create(
       runningBuddy: null,
       isLoading: false,
 
+      /* ── Firestore sync ── */
+      loadWorkouts: async (uid) => {
+        if (!uid) return;
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'workouts'));
+          if (snap.exists()) {
+            const data = snap.data();
+            set({
+              completedWorkouts: data.completedWorkouts || [],
+            });
+          }
+        } catch (e) {
+          console.warn('[workoutStore] loadWorkouts error:', e?.message);
+        }
+      },
+
+      saveWorkouts: async (uid) => {
+        if (!uid) return;
+        const s = get();
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'workouts'), {
+            completedWorkouts: (s.completedWorkouts || []).slice(-100),
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[workoutStore] saveWorkouts error:', e?.message);
+        }
+      },
+
+
       setWorkouts: (workouts) => set({ workouts }),
 
       addWorkout: (workout) => set((state) => ({
@@ -395,11 +427,14 @@ export const useWorkoutStore = create(
         [...state.favoriteWorkoutIds, workoutId]
       })),
 
-      addCompletedWorkout: (workout) => set((state) => ({
-        completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, workout], 20)
-      })),
+      addCompletedWorkout: (workout, uid) => {
+        set((state) => ({
+          completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, workout], 100)
+        }));
+        if (uid) get().saveWorkouts(uid);
+      },
 
-      logCompletedWorkout: (workoutId) => {
+      logCompletedWorkout: (workoutId, uid) => {
         const workout = [...get().workouts, ...get().customWorkouts].find((w) => w.id === workoutId);
         if (workout) {
           const completedWorkout = {
@@ -409,8 +444,9 @@ export const useWorkoutStore = create(
             caloriesBurned: workout.calories || 0
           };
           set((state) => ({
-            completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, completedWorkout], 20)
+            completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, completedWorkout], 100)
           }));
+          if (uid) get().saveWorkouts(uid);
         }
       },
 
@@ -548,6 +584,76 @@ export const useWorkoutStore = create(
           race.id === raceId ? { ...race, isRegistered: true } : race
           )
         }));
+      },
+
+      
+      getWorkoutStreak: () => {
+        const completed = get().completedWorkouts || [];
+        if (completed.length === 0) {
+          return { current: 0, longest: 0 };
+        }
+        // Extract unique local dates (YYYY-MM-DD)
+        const dates = Array.from(new Set(
+          completed
+            .map(w => w.completedAt || w.timestamp)
+            .filter(Boolean)
+            .map(d => d.slice(0, 10))
+        )).sort();
+
+        let longest = 0;
+        let current = 0;
+        
+        // Calculate streak
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        
+        // Find if they worked out today or yesterday
+        const hasTodayOrYesterday = dates.includes(todayStr) || dates.includes(yesterdayStr);
+        
+        if (hasTodayOrYesterday) {
+          // Count backwards
+          let checkDate = dates.includes(todayStr) ? new Date() : new Date(Date.now() - 24 * 60 * 60 * 1000);
+          while (true) {
+            const checkStr = checkDate.toISOString().slice(0, 10);
+            if (dates.includes(checkStr)) {
+              current++;
+              checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
+            } else {
+              break;
+            }
+          }
+        }
+        
+        // Calculate longest streak ever
+        let tempStreak = 0;
+        let prevTime = null;
+        for (const dStr of dates) {
+          const currTime = new Date(dStr).getTime();
+          if (prevTime === null) {
+            tempStreak = 1;
+          } else {
+            const diffDays = (currTime - prevTime) / (24 * 60 * 60 * 1000);
+            if (diffDays <= 1.1) { // within ~1 day
+              tempStreak++;
+            } else if (diffDays > 1.1) {
+              tempStreak = 1;
+            }
+          }
+          if (tempStreak > longest) {
+            longest = tempStreak;
+          }
+          prevTime = currTime;
+        }
+        
+        return { current, longest: Math.max(longest, current) };
+      },
+
+      getWorkoutsByDate: (dateStr) => {
+        const completed = get().completedWorkouts || [];
+        return completed.filter(w => {
+          const date = w.completedAt || w.timestamp;
+          return date && date.startsWith(dateStr);
+        });
       },
 
       initializeMockData: () => {

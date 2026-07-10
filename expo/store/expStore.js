@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Generate level requirements
 const generateLevelRequirements = () => {
@@ -81,11 +83,46 @@ export const useExpStore = create(
         set({ expSystem: defaultExpSystem });
       },
 
-      addExp: (amount) => {
+      /* ── Firestore sync ── */
+      loadXP: async (uid) => {
+        if (!uid) return;
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'xp'));
+          if (snap.exists()) {
+            const data = snap.data();
+            set({
+              totalExp: data.totalExp || 0,
+              level: data.level || 1,
+              expToNextLevel: data.expToNextLevel || 2250,
+              expSources: data.expSources || { workouts: 0, nutrition: 0, social: 0 },
+            });
+          }
+        } catch (e) {
+          console.warn('[expStore] loadXP error:', e?.message);
+        }
+      },
+
+      saveXP: async (uid) => {
+        if (!uid) return;
+        const s = get();
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'xp'), {
+            totalExp: s.totalExp,
+            level: s.level,
+            expToNextLevel: s.expToNextLevel,
+            expSources: s.expSources,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[expStore] saveXP error:', e?.message);
+        }
+      },
+
+      addExp: (amount, uid) => {
         // Use requestAnimationFrame for better performance
         requestAnimationFrame(() => {
           const { expSystem } = get();
-          const newTotalExp = expSystem.totalExp + amount;
+          const newTotalExp = (expSystem?.totalExp || 0) + amount;
           const newLevel = get().calculateLevelFromExp(newTotalExp);
 
           // Calculate EXP needed for the next level
@@ -93,12 +130,13 @@ export const useExpStore = create(
 
           set({
             expSystem: {
-              ...expSystem,
+              ...(expSystem || {}),
               totalExp: newTotalExp,
               level: newLevel,
               expToNextLevel
             }
           });
+          if (uid) get().saveXP(uid);
         });
       },
 
@@ -146,7 +184,7 @@ export const useExpStore = create(
         });
 
         // Add the EXP to the total
-        get().addExp(expAmount);
+        get().addExp(expAmount, activity.uid);
       },
 
       getExpBreakdown: () => {
