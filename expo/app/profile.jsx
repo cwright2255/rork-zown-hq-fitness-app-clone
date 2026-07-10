@@ -1,9 +1,11 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  RefreshControl,
   Pressable,
   Image,
   Alert,
@@ -18,7 +20,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 
-/* ─── Placeholder data ─── */
+/* âââ Placeholder data âââ */
 
 const EARNED_BADGES = [
   { icon: 'trophy', label: 'First Workout' },
@@ -71,7 +73,7 @@ const MENU_GROUPS = [
   },
 ];
 
-/* ─── Menu row ─── */
+/* âââ Menu row âââ */
 
 function MenuRow({ item }) {
   const handlePress = async () => {
@@ -120,95 +122,42 @@ function MenuRow({ item }) {
   );
 }
 
-/* ─── Main screen ─── */
+/* âââ Main screen âââ */
 
 export default function ProfileScreen() {
-  const { user, updateUser, saveProfile } = useUserStore();
-  const { totalExp } = useExpStore();
-  const { completedWorkouts } = useWorkoutStore();
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user, loadProfile } = useUserStore();
+  const { totalExp, loadXP } = useExpStore();
+  const { completedWorkouts, loadWorkouts } = useWorkoutStore();
 
-  const profileName = user?.name || user?.email?.split('@')[0] || 'User';
-  const profileEmail = user?.email || '';
-  const profilePhoto = user?.photoURL || null;
-  const workoutCount = completedWorkouts?.length || 0;
-  const runCount = (completedWorkouts || []).filter(w => w.category === 'running' || w.category === 'run').length;
-  const streakDays = user?.streakData?.currentStreak || 0;
-
-  const STATS_LIVE = [
-    { value: totalExp ? totalExp.toLocaleString() : '0', label: 'Total XP' },
-    { value: String(workoutCount), label: 'Workouts' },
-    { value: String(runCount), label: 'Runs' },
-    { value: String(streakDays), label: 'Streak' },
-  ];
-
-  const xpCurrent = totalExp || 2450;
-  const xpLevel = Math.floor(xpCurrent / 1000) + 1;
-  const xpTarget = xpLevel * 1000;
-  const xpLevelStart = (xpLevel - 1) * 1000;
-  const xpCurrentInLevel = xpCurrent - xpLevelStart;
-  const xpTargetInLevel = 1000;
-  const xpPercent = Math.min(Math.max(Math.round((xpCurrentInLevel / xpTargetInLevel) * 100), 0), 100);
-
-  const handleEditPhoto = async () => {
-    Alert.alert(
-      'Profile Photo',
-      'Choose an option to update your profile photo:',
-      [
-        {
-          text: 'Camera',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission Denied', 'Camera permission is required to take photo.');
-              return;
-            }
-            const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-            if (!result.canceled && result.assets && result.assets.length > 0) {
-              const uri = result.assets[0].uri;
-              updateUser({ photoURL: uri });
-              if (user?.uid) {
-                await saveProfile(user.uid);
-              }
-            }
-          },
-        },
-        {
-          text: 'Photo Library',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission Denied', 'Gallery permission is required to select photo.');
-              return;
-            }
-            const result = await ImagePicker.launchImageLibraryAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-            if (!result.canceled && result.assets && result.assets.length > 0) {
-              const uri = result.assets[0].uri;
-              updateUser({ photoURL: uri });
-              if (user?.uid) {
-                await saveProfile(user.uid);
-              }
-            }
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      if (user?.uid) {
+        await Promise.all([
+          loadProfile(user.uid),
+          loadXP(user.uid),
+          loadWorkouts(user.uid)
+        ]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
   };
-
-  return (
+return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }
       >
         {/* Logo */}
         <View style={styles.logoRow}>
@@ -322,7 +271,7 @@ export default function ProfileScreen() {
   );
 }
 
-/* ─── Styles ─── */
+/* âââ Styles âââ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

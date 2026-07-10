@@ -1,5 +1,8 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -15,18 +18,33 @@ const STORY_FRIENDS = [
 
 const CONVERSATIONS = [
   { id: '1', name: 'Tillie Larson', lastMsg: 'I hope you are well.', time: '2s ago', unread: true },
-  { id: '2', name: 'Lovely friends Ã°ÂÂÂ', lastMsg: 'This afternoon at 5:30PM', time: '1 min', unread: true, isGroup: true },
+  { id: '2', name: 'Lovely friends ÃÂ°ÃÂÃÂÃÂ', lastMsg: 'This afternoon at 5:30PM', time: '1 min', unread: true, isGroup: true },
   { id: '3', name: 'Jordan Jordan', lastMsg: 'Are you ready for this after...', time: '2 mins', unread: false },
   { id: '4', name: 'Jay Bowen', lastMsg: 'Hi guys, How is going?', time: '5 mins', unread: false },
   { id: '5', name: 'Christine Gonzales', lastMsg: 'I hope you are well.', time: '1 day', unread: false },
   { id: '6', name: 'Don Richardson', lastMsg: 'This afternoon at 5:30PM', time: '1 day', unread: false },
-  { id: '7', name: 'Alex R.', lastMsg: 'Great workout today! Ã°ÂÂÂª', time: '2 days', unread: false },
+  { id: '7', name: 'Alex R.', lastMsg: 'Great workout today! ÃÂ°ÃÂÃÂÃÂª', time: '2 days', unread: false },
   { id: '8', name: 'Sarah M.', lastMsg: 'See you at the gym!', time: '3 days', unread: false },
 ];
 
 export default function MessagesScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useUserStore();
 
-  return (
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+return (
     <SafeAreaView style={s.safe} edges={['top']}>
       {/* Header */}
       <View style={s.header}>
@@ -47,9 +65,12 @@ export default function MessagesScreen() {
       </View>
 
       {/* Single vertical ScrollView containing stories + conversations */}
-      <ScrollView style={s.scrollContainer} showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+      <ScrollView style={s.scrollContainer} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        } contentContainerStyle={s.scrollContent}>
 
-        {/* Stories Ã¢ÂÂ horizontal scroll inside the vertical one */}
+        {/* Stories ÃÂ¢ÃÂÃÂ horizontal scroll inside the vertical one */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -70,7 +91,7 @@ export default function MessagesScreen() {
           ))}
         </ScrollView>
 
-        {/* Conversation List Ã¢ÂÂ rendered directly, no extra ScrollView */}
+        {/* Conversation List ÃÂ¢ÃÂÃÂ rendered directly, no extra ScrollView */}
         <View style={s.convList}>
           {CONVERSATIONS.map(c => (
             <Pressable
@@ -139,7 +160,7 @@ const s = StyleSheet.create({
   storyInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' },
   storyName: { fontSize: 10, color: '#333', marginTop: 4, textAlign: 'center' },
 
-  /* Conversations Ã¢ÂÂ plain View, no ScrollView */
+  /* Conversations ÃÂ¢ÃÂÃÂ plain View, no ScrollView */
   convList: {},
   convRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   convAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' },

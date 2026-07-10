@@ -1,11 +1,14 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchExercises } from '@/services/exerciseDbService';
 
-/* ââ Static placeholder data ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Static placeholder data Ã¢ÂÂÃ¢ÂÂ */
 
 const FEATURED_WORKOUTS = [
   { id: '1', title: 'Full Body HIIT', subtitle: '30 min \u2022 Intermediate' },
@@ -31,7 +34,7 @@ const YOUTUBE_WORKOUTS = [
   { id: '5', channel: 'Pamela Reif', title: '20 Min Full Body Stretch', duration: '20:00' },
 ];
 
-/* ââ Section header ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Section header Ã¢ÂÂÃ¢ÂÂ */
 
 function SectionHeader({ title, onViewAll }) {
   return (
@@ -44,7 +47,7 @@ function SectionHeader({ title, onViewAll }) {
   );
 }
 
-/* ââ Cards ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Cards Ã¢ÂÂÃ¢ÂÂ */
 
 function FeaturedCard({ item }) {
   return (
@@ -101,46 +104,54 @@ function YouTubeCard({ item }) {
   );
 }
 
-/* ââ Main screen ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
 
 export default function WorkoutsScreen() {
   const [apiExercises, setApiExercises] = useState([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadExercises = async () => {
+    try {
+      const result = await fetchExercises({ limit: 10 });
+      const exercises = result?.data || result || [];
+      if (Array.isArray(exercises)) {
+        setApiExercises(exercises.map(e => ({
+          id: e.id || e.exerciseId,
+          title: e.name || 'Exercise',
+          subtitle: (e.bodyPart || '') + (e.equipment ? ' · ' + e.equipment : ''),
+          gifUrl: e.gifUrl || null,
+          bodyPart: e.bodyPart || '',
+          target: e.target || '',
+        })));
+      }
+    } catch (e) {
+      console.warn('ExerciseDB fetch failed:', e?.message);
+    } finally {
+      setIsLoadingExercises(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    const loadExercises = async () => {
-      try {
-        const result = await fetchExercises({ limit: 10 });
-        const exercises = result?.data || result || [];
-        if (mounted && Array.isArray(exercises)) {
-          setApiExercises(exercises.map(e => ({
-            id: e.id || e.exerciseId,
-            title: e.name || 'Exercise',
-            subtitle: (e.bodyPart || '') + (e.equipment ? ' \u00B7 ' + e.equipment : ''),
-            gifUrl: e.gifUrl || null,
-            bodyPart: e.bodyPart || '',
-            target: e.target || '',
-          })));
-        }
-      } catch (e) {
-        console.warn('ExerciseDB fetch failed:', e?.message);
-      } finally {
-        if (mounted) setIsLoadingExercises(false);
-      }
-    };
     loadExercises();
-    return () => { mounted = false; };
   }, []);
 
-  const displayWorkouts = apiExercises.length > 0 ? apiExercises : FEATURED_WORKOUTS;
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadExercises();
+    setRefreshing(false);
+  };
 
-  return (
+  const displayWorkouts = apiExercises.length > 0 ? apiExercises : FEATURED_WORKOUTS;
+return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }
       >
         {/* Zown logo */}
         <View style={styles.logoRow}>
@@ -154,6 +165,21 @@ export default function WorkoutsScreen() {
         {/* Page title */}
         <Text style={styles.pageTitle}>Workouts</Text>
 
+        {/* Loading and Empty States */}
+        {isLoadingExercises ? (
+          <View style={{ marginBottom: 20 }}>
+            <LoadingSkeleton width="100%" height={150} borderRadius={12} style={{ marginBottom: 12 }} />
+            <LoadingSkeleton width="100%" height={150} borderRadius={12} />
+          </View>
+        ) : displayWorkouts.length === 0 ? (
+          <EmptyState
+            icon="Dumbbell"
+            title="No workouts yet"
+            subtitle="Start your first workout to track your progress"
+            buttonText="Browse Workouts"
+            onPress={() => {}}
+          />
+        ) : null}
         {/* Carousel 1 - Featured Workouts */}
         <SectionHeader
           title="Featured Workouts"
@@ -211,7 +237,7 @@ export default function WorkoutsScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
 const styles = StyleSheet.create({
   safe: {

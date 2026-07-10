@@ -1,5 +1,8 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -9,69 +12,26 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { tokens } from '../../theme/tokens';
 
 export default function NutritionScreen() {
-  const { getMealsByDate, dailyGoals, addMeal } = useNutritionStore();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { meals, loadAllHealth } = useHealthStore();
+  const { user } = useUserStore();
 
-  const dateKey = selectedDate.toISOString().split('T')[0];
-  const meals = getMealsByDate(dateKey);
-
-  const totals = useMemo(() => {
-    let c = 0, p = 0, cb = 0, f = 0;
-    meals.forEach(m => {
-      (m.foods || []).forEach(fo => {
-        c += fo.calories || 0;
-        p += fo.protein || 0;
-        cb += fo.carbs || 0;
-        f += fo.fat || 0;
-      });
-    });
-    return { calories: c, protein: p, carbs: cb, fat: f };
-  }, [meals]);
-
-  const caloriesRemaining = Math.max(0, (dailyGoals?.calories || 2000) - totals.calories);
-
-  const shiftDate = (days) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + days);
-    setSelectedDate(d);
-  };
-
-  const formatDate = (d) => {
-    const today = new Date();
-    if (d.toDateString() === today.toDateString()) return 'Today';
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const mealTypes = [
-    { name: 'Breakfast', time: '08:00' },
-    { name: 'Lunch', time: '13:00' },
-    { name: 'Dinner', time: '19:00' },
-    { name: 'Snacks', time: '16:00' },
-  ];
-
-  const getMealForType = (name) => meals.find(m => m.name?.toLowerCase() === name.toLowerCase());
-
-  const handleAddMealType = (type) => {
-    const existing = getMealForType(type.name);
-    if (existing) {
-      router.push({ pathname: '/nutrition/search', params: { mealId: existing.id } });
-    } else {
-      const newMeal = {
-        id: Date.now().toString(),
-        name: type.name,
-        foods: [],
-        time: type.time,
-        date: dateKey,
-      };
-      addMeal(newMeal);
-      router.push({ pathname: '/nutrition/search', params: { mealId: newMeal.id } });
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      if (user?.uid) {
+        await loadAllHealth(user.uid);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
     }
   };
-
-  const sumMealCalories = (meal) =>
-    (meal?.foods || []).reduce((sum, fo) => sum + (fo.calories || 0), 0);
-
-  return (
+return (
     <View style={styles.container}>
       <ScreenHeader title="Nutrition" />
 

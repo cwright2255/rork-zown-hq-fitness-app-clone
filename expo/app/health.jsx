@@ -1,5 +1,7 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Image, Platform, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -32,86 +34,31 @@ const DEVICES = [
 ];
 
 export default function HealthScreen() {
-  const { hydration, sleep, steps, getLatestWeight, setSteps, logSleep } = useHealthStore();
-  const latestWeight = getLatestWeight();
-  const [syncing, setSyncing] = useState(false);
-  const [permissionsGranted, setPermissionsRequested] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { loadAllHealth } = useHealthStore();
+  const { user } = useUserStore();
 
-  // Initialize hooks if available
-  const rookPermissions = useRookPermissions ? useRookPermissions() : null;
-  const rookAppleHealth = useRookAppleHealth ? useRookAppleHealth() : null;
-  const rookSummaries = useRookSummaries ? useRookSummaries() : null;
-
-  const requestPermissions = async () => {
-    if (IS_EXPO_GO || !rookPermissions) {
-      Alert.alert('Expo Go Fallback', 'Device sync is simulated in Expo Go. In native build, this opens Apple Health / Google Fit permissions.');
-      setPermissionsRequested(true);
-      return;
-    }
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
     try {
-      setSyncing(true);
-      await rookPermissions.requestAllPermissions();
-      setPermissionsRequested(true);
-      Alert.alert('Permissions requested', 'Apple Health sync setup initiated successfully.');
+      if (user?.uid) {
+        await loadAllHealth(user.uid);
+      }
     } catch (e) {
-      console.warn('[ROOK] Permission error:', e.message);
+      console.error(e);
     } finally {
-      setSyncing(false);
+      setIsLoading(false);
+      setRefreshing(false);
     }
   };
-
-  const syncNow = async () => {
-    setSyncing(true);
-    if (IS_EXPO_GO || !rookSummaries) {
-      // Simulate real sync
-      setTimeout(() => {
-        setSteps(Math.round(8000 + Math.random() * 3000));
-        logSleep(7.8, 'Good');
-        setSyncing(false);
-        Alert.alert('Simulated Sync', 'Simulated Health sync complete! Steps and Sleep values refreshed.');
-      }, 1500);
-      return;
-    }
-
-    try {
-      if (rookAppleHealth?.enableBackGroundUpdates) {
-        await rookAppleHealth.enableBackGroundUpdates();
-      }
-      // Sync sleep summaries
-      if (rookSummaries['sleep-to-sync']) {
-        await rookSummaries['sleep-to-sync']();
-      } else if (rookSummaries.syncSleepSummary) {
-        await rookSummaries.syncSleepSummary();
-      }
-      
-      // Sync physical activity
-      if (rookSummaries['physical-to-sync']) {
-        await rookSummaries['physical-to-sync']();
-      } else if (rookSummaries.syncPhysicalSummary) {
-        await rookSummaries.syncPhysicalSummary();
-      }
-
-      // Refresh simulated/live counts
-      setSteps(8432);
-      logSleep(7.5, 'Good');
-      Alert.alert('Sync Successful', 'Successfully synced steps, sleep and body composition metrics from Apple Health!');
-    } catch (e) {
-      Alert.alert('Sync Failed', 'Failed to pull latest Apple Health metrics: ' + e.message);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const METRICS_LIVE = [
-    { icon: 'moon-outline', label: 'Sleep', value: sleep?.hours ? sleep.hours + 'h' : '—', target: 8, current: sleep?.hours || 0 },
-    { icon: 'footsteps-outline', label: 'Steps', value: steps ? steps.toLocaleString() : '0', target: 10000, current: steps || 0 },
-    { icon: 'water-outline', label: 'Water', value: (hydration?.glasses || 0) + '/' + (hydration?.target || 8) + ' glasses', target: hydration?.target || 8, current: hydration?.glasses || 0 },
-    { icon: 'leaf-outline', label: 'Mindfulness', value: '—', target: 15, current: 0 },
-  ];
-
-  return (
+return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }>
         <View style={s.logoRow}><Image source={require('@/assets/branding/zown-logo-512.png')} style={s.logo} resizeMode="contain" /></View>
         <Text style={s.pageTitle}>Health</Text>
 

@@ -1,6 +1,9 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React from 'react';
 import { router } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform , TouchableOpacity} from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Image, Platform , TouchableOpacity} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useHealthStore } from '@/store/healthStore';
@@ -24,32 +27,31 @@ const MEASUREMENTS = [
 const MONTHLY = [{label:'Workouts',val:'8',diff:'+3'},{label:'Runs',val:'4',diff:'+2'},{label:'Calories',val:'12,400',diff:'+2,100'},{label:'XP',val:'1,200',diff:'+400'}];
 
 export default function ProgressScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { weightHistory, loadAllHealth } = useHealthStore();
+  const { user } = useUserStore();
 
-  const { weight: weightHistory, goals: storeGoals, measurements: storeMeasurements, bodyScan } = useHealthStore();
-  const { completedWorkouts } = useWorkoutStore();
-
-  const hasWeightData = weightHistory && weightHistory.length > 0;
-  const WEIGHT_DATA_LIVE = hasWeightData
-    ? weightHistory.slice(-7).map(w => ({ month: new Date(w.date).toLocaleDateString('en', { month: 'short' }), val: w.value }))
-    : [];
-  const GOALS_LIVE = storeGoals && storeGoals.length > 0
-    ? storeGoals.map(g => ({
-        title: g.title,
-        current: g.current || 0,
-        target: g.target || 100,
-        unit: g.unit || '',
-        detail: g.current >= g.target ? 'Complete!' : (g.target - g.current) + ' ' + (g.unit || '') + ' to go',
-        date: g.startDate ? 'Started ' + new Date(g.startDate).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      }))
-    : [];
-
-  const maxW = WEIGHT_DATA_LIVE.length > 0 ? Math.max(...WEIGHT_DATA_LIVE.map(d=>d.val)) : 185;
-  const minW = WEIGHT_DATA_LIVE.length > 0 ? Math.min(...WEIGHT_DATA_LIVE.map(d=>d.val)) : 170;
-  const range = maxW - minW || 1;
-
-  return (
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      if (user?.uid) {
+        await loadAllHealth(user.uid);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }>
         <View style={s.logoRow}><Image source={require('@/assets/branding/zown-logo-512.png')} style={s.logo} resizeMode="contain" /></View>
         <Text style={s.pageTitle}>Progress</Text>
 

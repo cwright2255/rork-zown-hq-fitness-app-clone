@@ -1,5 +1,8 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,58 +10,26 @@ import { useRunningStore } from '@/store/runningStore';
 import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
-  const { runs } = useRunningStore();
-  const [filter, setFilter] = useState('All'); // All, Week, Month, Year
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { runs, loadRuns } = useRunningStore();
+  const { user } = useUserStore();
 
-  const filteredRuns = useMemo(() => {
-    if (!runs) return [];
-    const now = new Date();
-    return runs.filter(run => {
-      if (!run.startTime) return false;
-      const runDate = new Date(run.startTime);
-      const diffTime = Math.abs(now - runDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (filter === 'Week') return diffDays <= 7;
-      if (filter === 'Month') return diffDays <= 30;
-      if (filter === 'Year') return diffDays <= 365;
-      return true;
-    });
-  }, [runs, filter]);
-
-  const stats = useMemo(() => {
-    const totalRuns = filteredRuns.length;
-    const totalDistance = filteredRuns.reduce((s, r) => s + (r.distance || 0), 0);
-    const totalDuration = filteredRuns.reduce((s, r) => s + (r.duration || 0), 0);
-    const avgPace = totalRuns > 0 ? filteredRuns.reduce((s, r) => s + (r.pace || 0), 0) / totalRuns : 0;
-    
-    // Formatting helper
-    const formatDuration = (secs) => {
-      const h = Math.floor(secs / 3600);
-      const m = Math.floor((secs % 3600) / 60);
-      const s = Math.floor(secs % 60);
-      if (h > 0) {
-        return h + 'h ' + m + 'm';
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      if (user?.uid) {
+        await loadRuns(user.uid);
       }
-      return m + 'm ' + s + 's';
-    };
-
-    const formatPace = (p) => {
-      if (!p) return '0:00 /km';
-      const min = Math.floor(p);
-      const sec = Math.round((p - min) * 60);
-      return min + ':' + (sec < 10 ? '0' : '') + sec + ' /km';
-    };
-
-    return {
-      totalRuns,
-      totalDistance: totalDistance.toFixed(2) + ' km',
-      totalTime: formatDuration(totalDuration),
-      avgPace: formatPace(avgPace),
-    };
-  }, [filteredRuns]);
-
-  return (
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
@@ -69,7 +40,10 @@ export default function RunningLogScreen() {
         <View style={styles.headerRightPlaceholder} />
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }>
         {/* Stats Row */}
         <View style={styles.statsCard}>
           <View style={styles.statsGrid}>
@@ -146,7 +120,7 @@ export default function RunningLogScreen() {
                 <View style={styles.runHeader}>
                   <View>
                     <Text style={styles.runTitle}>{run.route || 'Free Run'}</Text>
-                    <Text style={styles.runDate}>{dateStr} â¢ {timeStr}</Text>
+                    <Text style={styles.runDate}>{dateStr} Ã¢ÂÂ¢ {timeStr}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#999" />
                 </View>

@@ -1,3 +1,5 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useMemo } from 'react';
   const { completedWorkouts } = useWorkoutStore();
   const { totalExp } = useExpStore();
@@ -26,7 +28,8 @@ import React, { useState, useMemo } from 'react';
     xp: (totalExp || 0).toLocaleString(),
   };
 
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
@@ -34,7 +37,7 @@ import { useExpStore } from '@/store/expStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRunningStore } from '@/store/runningStore';
 
-/* ââ Data by time filter ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Data by time filter Ã¢ÂÂÃ¢ÂÂ */
 
 const OVERVIEW = {
   Day:   { workouts: 1,  calories: '320',   xp: '100' },
@@ -84,7 +87,7 @@ const RECENT = [
   { id: 'r5', title: 'Hill Sprints',  sub: 'Running \u2022 20 min \u2022 2.8 km',  xp: '+100 XP', icon: 'fitness' },
 ];
 
-/* ââ Pill component ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Pill component Ã¢ÂÂÃ¢ÂÂ */
 function Pill({ label, active, onPress, small }) {
   return (
     <Pressable
@@ -97,7 +100,7 @@ function Pill({ label, active, onPress, small }) {
     </Pressable>
   );
 }
-/* ââ Main screen ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
 
 export default function AnalysisScreen() {
   const [timeFilter, setTimeFilter] = useState('Week');
@@ -114,7 +117,10 @@ export default function AnalysisScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }>
         {/* Logo */}
         <View style={styles.logoRow}>
           <Image source={require('@/assets/branding/zown-logo-512.png')} style={styles.logo} resizeMode="contain" />
@@ -257,7 +263,7 @@ export default function AnalysisScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

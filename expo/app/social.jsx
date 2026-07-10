@@ -1,5 +1,8 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Image, Platform, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -62,132 +65,28 @@ const COMMUNITIES = [
 ];
 
 export default function SocialScreen() {
-  const { totalExp } = useExpStore();
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useUserStore();
-  const [activeTab, setActiveTab] = useState('Feed');
-  const [lbTab, setLbTab] = useState('week');
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'there';
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-  const myXp = totalExp || 0;
-
-  const LEADERBOARD = [
-    { rank: 1, name: 'Alex R.', xp: 12450, isYou: false },
-    { rank: 2, name: 'David K.', xp: 11200, isYou: false },
-    { rank: 3, name: 'You', xp: myXp, isYou: true },
-    { rank: 4, name: 'Sarah M.', xp: 7800, isYou: false },
-    { rank: 5, name: 'Mike T.', xp: 5200, isYou: false },
-    { rank: 6, name: 'Jessica L.', xp: 3100, isYou: false },
-    { rank: 7, name: 'Chris P.', xp: 2900, isYou: false },
-    { rank: 8, name: 'Amanda W.', xp: 2600, isYou: false },
-    { rank: 9, name: 'Jordan H.', xp: 2100, isYou: false },
-    { rank: 10, name: 'Taylor N.', xp: 1800, isYou: false },
-  ];
-  const myRank = LEADERBOARD.findIndex(l => l.isYou) + 1;
-  const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
-
-  const renderFeed = () => FEED_POSTS.map(post => (
-    <View key={post.id} style={s.postCard}>
-      <View style={s.postHeader}>
-        <View style={s.postAvatar}><Ionicons name="person" size={20} color="#999" /></View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={s.postUser}>{post.user}</Text>
-          <Text style={s.postTime}>{post.time}</Text>
-        </View>
-        <Ionicons name="ellipsis-horizontal" size={18} color="#999" />
-      </View>
-      <Text style={s.postText}>{post.text}</Text>
-      {post.hasImage && (
-        <View style={s.postImage}>
-          <Ionicons name="image-outline" size={40} color="#CCC" />
-        </View>
-      )}
-      {post.workout && (
-        <View style={s.workoutCard}>
-          <View style={s.workoutIcon}><Ionicons name="flash" size={18} color="#FFF" /></View>
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#000' }}>{post.workout.name}</Text>
-            <Text style={{ fontSize: 12, color: '#999' }}>{post.workout.duration}</Text>
-          </View>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#000' }}>{post.workout.calories} Kcal</Text>
-        </View>
-      )}
-      {post.hasMap && (
-        <View style={s.mapCard}>
-          <Ionicons name="map-outline" size={32} color="#999" />
-          <Text style={{ fontSize: 12, color: '#999', marginTop: 6 }}>5K Route</Text>
-        </View>
-      )}
-      <View style={s.postFooter}>
-        <View style={s.postAction}><Ionicons name="heart-outline" size={20} color="#666" /><Text style={s.postActionText}>{post.likes}</Text></View>
-        <View style={s.postAction}><Ionicons name="chatbubble-outline" size={18} color="#666" /><Text style={s.postActionText}>{post.comments}</Text></View>
-        <Pressable style={[s.postAction, { marginLeft: 'auto' }]}><Ionicons name="share-outline" size={18} color="#666" /><Text style={s.postActionText}>Share</Text></Pressable>
-      </View>
-    </View>
-  ));
-
-  const renderLeaderboard = () => (
-    <View>
-      <View style={s.lbToggle}>
-        <Pressable style={[s.lbPill, lbTab === 'week' && s.lbPillActive]} onPress={() => setLbTab('week')}>
-          <Text style={[s.lbPillText, lbTab === 'week' && s.lbPillTextActive]}>This Week</Text>
-        </Pressable>
-        <Pressable style={[s.lbPill, lbTab === 'all' && s.lbPillActive]} onPress={() => setLbTab('all')}>
-          <Text style={[s.lbPillText, lbTab === 'all' && s.lbPillTextActive]}>All Time</Text>
-        </Pressable>
-      </View>
-      <View style={s.lbRankSummary}><Text style={s.lbRankLabel}>Your Rank: #{myRank}</Text></View>
-      {LEADERBOARD.map(e => (
-        <View key={e.rank} style={[s.lbRow, e.isYou && s.lbRowYou]}>
-          <Text style={s.lbNum}>{e.rank}</Text>
-          {e.rank <= 3 ? <Ionicons name="medal-outline" size={18} color={MEDAL_COLORS[e.rank-1]} style={{marginRight:8}}/> : <View style={{width:26}}/>}
-          <View style={s.lbAv}><Ionicons name="person" size={14} color="#999"/></View>
-          <Text style={[s.lbName, e.isYou && {fontWeight:'800'}]}>{e.name}</Text>
-          <Text style={s.lbXp}>{e.xp.toLocaleString()} XP</Text>
-        </View>
-      ))}
-    </View>
-  );
-
-  const renderDuels = () => (
-    <View>
-      {DUELS.map((d, i) => (
-        <View key={i} style={s.duelCard}>
-          <Text style={s.duelTitle}>You vs {d.opponent}</Text>
-          <Text style={s.duelSub}>{d.challenge}</Text>
-          <View style={s.duelBars}>
-            <View style={{flex:1,marginRight:8}}>
-              <Text style={s.duelLbl}>You: {d.yours}</Text>
-              <View style={s.barBg}><View style={[s.barFill,{width:d.yourPct+'%',backgroundColor:'#000'}]}/></View>
-            </View>
-            <View style={{flex:1,marginLeft:8}}>
-              <Text style={[s.duelLbl,{textAlign:'right'}]}>{d.opponent}: {d.theirs}</Text>
-              <View style={s.barBg}><View style={[s.barFill,{width:d.theirPct+'%',backgroundColor:'#999'}]}/></View>
-            </View>
-          </View>
-          <Text style={s.duelDays}>{d.days} days left</Text>
-        </View>
-      ))}
-      <Pressable style={s.challengeBtn}><Text style={s.challengeBtnTxt}>Challenge a Friend</Text></Pressable>
-    </View>
-  );
-
-  const renderCommunity = () => (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6}}>
-      {COMMUNITIES.map((c,i) => (
-        <View key={i} style={s.commCard}>
-          <Ionicons name={c.icon} size={28} color="#000" style={{marginBottom:8}}/>
-          <Text style={s.commName}>{c.name}</Text>
-          <Text style={s.commMembers}>{c.members.toLocaleString()} members</Text>
-        </View>
-      ))}
-    </ScrollView>
-  );
-
-  return (
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }>
 
         {/* Header */}
         <View style={s.header}>

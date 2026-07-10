@@ -1,9 +1,11 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  RefreshControl,
   TouchableOpacity,
   Pressable,
   Image,
@@ -63,7 +65,7 @@ const WORKOUTS = [
   { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
-/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Circular Progress Ring Component Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Circular Progress Ring Component ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#000000', label, subLabel }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -103,7 +105,7 @@ function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#00
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Workout carousel item Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Workout carousel item ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 function WorkoutItem({ item, onPress }) {
   return (
     <Pressable style={styles.workoutItem} onPress={onPress}>
@@ -117,6 +119,35 @@ function WorkoutItem({ item, onPress }) {
 }
 
 export default function HQScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { loadProfile } = useUserStore();
+  const { loadXP } = useExpStore();
+  const { loadWorkouts } = useWorkoutStore();
+  const { loadAllHealth } = useHealthStore();
+  const { loadRuns } = useRunningStore();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    try {
+      if (user?.uid) {
+        await Promise.all([
+          loadProfile(user.uid),
+          loadXP(user.uid),
+          loadWorkouts(user.uid),
+          loadAllHealth(user.uid),
+          loadRuns(user.uid)
+        ]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   const router = useRouter();
   const { user } = useUserStore();
   const { totalExp } = useExpStore();
@@ -219,6 +250,9 @@ export default function HQScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         removeClippedSubviews={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }
       >
         {/* Zown logo */}
         <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 12 }}>

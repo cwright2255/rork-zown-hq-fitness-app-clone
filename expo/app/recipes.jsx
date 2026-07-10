@@ -1,5 +1,8 @@
+import LoadingSkeleton from '@/src/components/LoadingSkeleton';
+import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, Modal, ActivityIndicator, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,
+  RefreshControl, Pressable, Platform, TextInput, Modal, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -84,123 +87,31 @@ function SavedCard({ item, onLongPress }) {
 }
 
 export default function RecipesScreen() {
-  const { savedRecipes: storeRecipes, addRecipe, removeRecipe, loadRecipes } = useRecipesStore();
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { savedRecipes, loadRecipes } = useRecipesStore();
   const { user } = useUserStore();
-  const uid = user?.uid;
 
-  useEffect(() => { loadRecipes(uid); }, [uid]);
-
-  const displayRecipes = storeRecipes.length > 0 ? storeRecipes : DEFAULT_RECIPES;
-
-  const [cat, setCat] = useState('All');
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
-  const [importedRecipe, setImportedRecipe] = useState(null);
-  const [importError, setImportError] = useState('');
-
-  const handlePaste = useCallback(async () => {
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
     try {
-      const text = await Clipboard.getStringAsync();
-      if (text) setImportUrl(text);
-    } catch (e) {
-      // Clipboard not available
-    }
-  }, []);
-
-  const detectSource = (url) => {
-    if (url.includes('pinterest.com')) return { source: 'Pinterest', color: '#E60023' };
-    if (url.includes('instagram.com')) return { source: 'Instagram', color: '#C13584' };
-    if (url.includes('youtube.com') || url.includes('youtu.be')) return { source: 'YouTube', color: '#FF0000' };
-    try { return { source: new URL(url).hostname.replace('www.',''), color: '#333' }; } catch { return { source: 'Web', color: '#333' }; }
-  };
-
-  const getMetaContent = (html, property) => {
-    const pat1 = "<meta[^>]*(?:property|name)=[\x22\x27]" + property + "[\x22\x27][^>]*content=[\x22\x27]([^\x22\x27]*)[\x22\x27]";
-    const pat2 = "content=[\x22\x27]([^\x22\x27]*)[\x22\x27][^>]*(?:property|name)=[\x22\x27]" + property + "[\x22\x27]";
-    const m = html.match(new RegExp(pat1, "i")) || html.match(new RegExp(pat2, "i"));
-    return m ? m[1] : null;
-  };
-
-  const triggerImport = async () => {
-    const url = importUrl.trim();
-    if (!url.match(/^https?:\/\//)) {
-      setImportError('Please enter a valid URL starting with http:// or https://');
-      return;
-    }
-    setImportError('');
-    setIsImporting(true);
-    setImportedRecipe(null);
-    try {
-      const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-      const html = await resp.text();
-
-      const title = getMetaContent(html, 'og:title') || getMetaContent(html, 'title') || 'Untitled Recipe';
-      const description = getMetaContent(html, 'og:description') || getMetaContent(html, 'description') || '';
-      const image = getMetaContent(html, 'og:image') || '';
-      const { source, color } = detectSource(url);
-
-      let recipeData = { calories: '', totalTime: '', servings: '' };
-      const jsonLdMatches = html.match(new RegExp("<script[^>]*type=[\x22\x27]application/ld\\+json[\x22\x27][^>]*>([\\s\\S]*?)</script>", "gi"));
-      if (jsonLdMatches) {
-        for (const m of jsonLdMatches) {
-          try {
-            const inner = m.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '');
-            const data = JSON.parse(inner);
-            const recipe = data['@type'] === 'Recipe' ? data : (Array.isArray(data['@graph']) ? data['@graph'].find(n => n['@type'] === 'Recipe') : null);
-            if (recipe) {
-              recipeData.calories = recipe.nutrition?.calories || '';
-              recipeData.totalTime = recipe.totalTime?.replace('PT','').replace('H','h ').replace('M',' min').trim() || '';
-              recipeData.servings = recipe.recipeYield ? (Array.isArray(recipe.recipeYield) ? recipe.recipeYield[0] : recipe.recipeYield) + ' servings' : '';
-              break;
-            }
-          } catch {}
-        }
+      if (user?.uid) {
+        await loadRecipes(user.uid);
       }
-
-      setImportedRecipe({
-        title, description: description.substring(0, 150), image, source, color, url,
-        cal: recipeData.calories || '',
-        time: recipeData.totalTime || '',
-        servings: recipeData.servings || '',
-      });
     } catch (e) {
-      setImportError("Couldn't access this URL. Check the link and try again.");
+      console.error(e);
     } finally {
-      setIsImporting(false);
+      setIsLoading(false);
+      setRefreshing(false);
     }
   };
-
-  const saveImportedRecipe = () => {
-    if (!importedRecipe) return;
-    addRecipe({
-      source: importedRecipe.source,
-      color: importedRecipe.color,
-      title: importedRecipe.title,
-      description: importedRecipe.description || '',
-      image: importedRecipe.image || '',
-      cal: importedRecipe.cal || '\u2014',
-      time: importedRecipe.time || '\u2014',
-      servings: importedRecipe.servings || '\u2014',
-      url: importedRecipe.url,
-    }, uid);
-    setShowImportModal(false);
-    setImportUrl('');
-    setImportedRecipe(null);
-    setImportError('');
-    Alert.alert('Recipe saved! \u{1F389}', importedRecipe.title + ' has been added to your saved recipes.');
-  };
-
-  const closeModal = () => {
-    setShowImportModal(false);
-    setImportUrl('');
-    setImportedRecipe(null);
-    setImportError('');
-  };
-
-  return (
+return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+        }>
         <Text style={s.pageTitle}>Recipes</Text>
 
         {/* Category Pills */}
@@ -212,6 +123,20 @@ export default function RecipesScreen() {
           ))}
         </ScrollView>
 
+        {/* Loading and Empty States */}
+        {isLoading ? (
+          <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+            <LoadingSkeleton width="100%" height={160} borderRadius={12} />
+          </View>
+        ) : (savedRecipes || []).length === 0 ? (
+          <EmptyState
+            icon="BookOpen"
+            title="No saved recipes"
+            subtitle="Import a recipe from any URL to get started"
+            buttonText="Import Recipe"
+            onPress={() => {}}
+          />
+        ) : null}
         {/* Saved Recipes Carousel */}
         <SectionHeader
           title="Saved Recipes"
