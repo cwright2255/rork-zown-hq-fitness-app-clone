@@ -1,301 +1,358 @@
-import React, { useEffect, useState } from 'react';
+import AnimatedPressable from '@/components/AnimatedPressable';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
+  Pressable,
   Image,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
-import { Plus, Search, ChevronRight, Dumbbell, Heart, ArrowUp, ArrowDown } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '@/constants/theme';
-import ScreenHeader from '@/components/ScreenHeader';
-import { useExerciseStore } from '@/store/exerciseStore';
-import { tokens } from '../../theme/tokens';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { fetchExercises } from '@/services/exerciseDbService';
 
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+/* ââ Static placeholder data ââ */
 
-const FILTERS = [
-  { label: 'All', value: '' },
-  { label: 'Strength', value: 'upper arms|back|chest|shoulders', Icon: Dumbbell },
-  { label: 'Cardio', value: 'cardio', Icon: Heart },
-  { label: 'Upper Body', value: 'chest|shoulders|upper arms|back', Icon: ArrowUp },
-  { label: 'Lower Body', value: 'upper legs|lower legs', Icon: ArrowDown },
+const FEATURED_WORKOUTS = [
+  { id: '1', title: 'Full Body HIIT', subtitle: '30 min \u2022 Intermediate' },
+  { id: '2', title: 'Upper Body Strength', subtitle: '45 min \u2022 Advanced' },
+  { id: '3', title: 'Core Crusher', subtitle: '20 min \u2022 Beginner' },
+  { id: '4', title: 'Leg Day', subtitle: '40 min \u2022 Intermediate' },
+  { id: '5', title: 'Cardio Blast', subtitle: '25 min \u2022 Beginner' },
 ];
 
-function ExerciseRow({ exercise }) {
-  const equipment = (exercise.equipments || [])[0] || '';
-  const target = (exercise.targetMuscles || [])[0] || '';
+const PROGRAMS = [
+  { id: '1', title: '12-Week Shred', subtitle: '12 weeks \u2022 4x/week' },
+  { id: '2', title: 'Beginner Basics', subtitle: '8 weeks \u2022 3x/week' },
+  { id: '3', title: 'Marathon Prep', subtitle: '16 weeks \u2022 5x/week' },
+  { id: '4', title: 'Yoga Flow', subtitle: '6 weeks \u2022 4x/week' },
+  { id: '5', title: 'Strength Builder', subtitle: '10 weeks \u2022 4x/week' },
+];
+
+const YOUTUBE_WORKOUTS = [
+  { id: '1', channel: 'JEFIT', title: '15 Min Full Body No Equipment', duration: '15:32' },
+  { id: '2', channel: 'Blogilates', title: 'Ab Workout for Beginners', duration: '12:45' },
+  { id: '3', channel: 'MadFit', title: 'Intense HIIT Cardio', duration: '22:10' },
+  { id: '4', channel: 'Athlean-X', title: 'Perfect Push-Up Workout', duration: '18:03' },
+  { id: '5', channel: 'Pamela Reif', title: '20 Min Full Body Stretch', duration: '20:00' },
+];
+
+/* ââ Section header ââ */
+
+function SectionHeader({ title, onViewAll }) {
   return (
-    <TouchableOpacity
-      style={styles.row}
-      onPress={() => router.push({ pathname: '/workout/[id]', params: { id: exercise.exerciseId } })}
-      activeOpacity={0.85}
-    >
-      {exercise.gifUrl ? (
-        <Image source={{ uri: exercise.gifUrl }} style={styles.thumb} resizeMode="cover" />
-      ) : (
-        <View style={[styles.thumb, styles.thumbFallback]}>
-          <Dumbbell size={18} color={colors.text} />
-        </View>
-      )}
-      <View style={styles.rowBody}>
-        <Text style={styles.rowTitle} numberOfLines={2}>{exercise.name}</Text>
-        <View style={styles.rowTags}>
-          {!!equipment && <Text style={styles.rowTag}>{equipment}</Text>}
-          {!!target && <Text style={styles.rowTag}>Ã¢ÂÂ¢ {target}</Text>}
-        </View>
-      </View>
-      <ChevronRight size={18} color={colors.textSecondary} />
-    </TouchableOpacity>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Pressable onPress={onViewAll}>
+        <Text style={styles.viewAll}>View All</Text>
+      </Pressable>
+    </View>
   );
 }
 
-export default function WorkoutsScreen() {
-  const {
-    exercises,
-    filteredExercises,
-    isLoading,
-    hasNextPage,
-    filters,
-    loadExercises,
-    loadEquipments,
-    loadMuscles,
-    setFilter,
-  } = useExerciseStore();
+/* ââ Cards ââ */
 
-  const [activePill, setActivePill] = useState('');
+function FeaturedCard({ item }) {
+  return (
+    <AnimatedPressable
+      style={styles.featuredCard}
+      onPress={() => router.push(`/workout/${item.id}`)}
+    >
+      <View style={styles.featuredImage}>
+        <Ionicons name="barbell-outline" size={32} color="#999" />
+      </View>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function ProgramCard({ item }) {
+  return (
+    <AnimatedPressable
+      style={styles.programCard}
+      onPress={() => {
+        // TODO: navigate to program detail when route exists
+        router.push(`/workout/${item.id}`);
+      }}
+    >
+      <View style={styles.programImage}>
+        <Ionicons name="calendar-outline" size={28} color="#999" />
+      </View>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function YouTubeCard({ item }) {
+  return (
+    <Pressable
+      style={styles.youtubeCard}
+      onPress={() => {
+        // TODO: open YouTube link or in-app player
+      }}
+    >
+      <View style={styles.youtubeThumbnail}>
+        <View style={styles.playButton}>
+          <Ionicons name="play" size={20} color="#FFF" />
+        </View>
+        <View style={styles.durationBadge}>
+          <Text style={styles.durationText}>{item.duration}</Text>
+        </View>
+      </View>
+      <Text style={styles.channelName}>{item.channel}</Text>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+    </Pressable>
+  );
+}
+
+/* ââ Main screen ââ */
+
+export default function WorkoutsScreen() {
+  const [apiExercises, setApiExercises] = useState([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(true);
 
   useEffect(() => {
-    if (exercises.length === 0) {
-      loadExercises(true);
-    }
-    loadEquipments();
-    loadMuscles();
+    let mounted = true;
+    const loadExercises = async () => {
+      try {
+        const result = await fetchExercises({ limit: 10 });
+        const exercises = result?.data || result || [];
+        if (mounted && Array.isArray(exercises)) {
+          setApiExercises(exercises.map(e => ({
+            id: e.id || e.exerciseId,
+            title: e.name || 'Exercise',
+            subtitle: (e.bodyPart || '') + (e.equipment ? ' \u00B7 ' + e.equipment : ''),
+            gifUrl: e.gifUrl || null,
+            bodyPart: e.bodyPart || '',
+            target: e.target || '',
+          })));
+        }
+      } catch (e) {
+        console.warn('ExerciseDB fetch failed:', e?.message);
+      } finally {
+        if (mounted) setIsLoadingExercises(false);
+      }
+    };
+    loadExercises();
+    return () => { mounted = false; };
   }, []);
 
-  const list = (filters.query || filters.bodyPart || filters.equipment || filters.muscle)
-    ? filteredExercises
-    : exercises;
-
-  const onPressPill = (value) => {
-    setActivePill(value);
-    setFilter('bodyPart', value);
-  };
+  const displayWorkouts = apiExercises.length > 0 ? apiExercises : FEATURED_WORKOUTS;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader
-        title="Workouts"
-        subtitle="PICK YOUR MISSION"
-        rightAction={
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/workout/create')}
-            accessibilityLabel="Create workout"
-          >
-            <Plus size={18} color={colors.text} />
-          </TouchableOpacity>
-        }
-      />
-
-      <View style={styles.searchWrap}>
-        <Search size={16} color={colors.textSecondary} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search exercises"
-          placeholderTextColor={colors.textMuted}
-          value={filters.query}
-          onChangeText={(text) => setFilter('query', text)}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        {FILTERS.map(({ label, value, Icon }) => {
-          const active = activePill === value;
-          return (
-            <TouchableOpacity
-              key={label}
-              onPress={() => onPressPill(value)}
-              style={[styles.filterPill, active && styles.filterPillActive]}
-              activeOpacity={0.85}
-            >
-              {Icon && <Icon size={14} color={active ? colors.bg : colors.textSecondary} />}
-              <Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {isLoading && list.length === 0 ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.text} />
-          <Text style={styles.loadingText}>Loading exercisesÃ¢ÂÂ¦</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={list}
-          keyExtractor={(item) => String(item.exerciseId)}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => <ExerciseRow exercise={item} />}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Dumbbell size={40} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>No exercises</Text>
-              <Text style={styles.emptyText}>Try a different search or filter.</Text>
-            </View>
-          }
-          ListFooterComponent={
-            hasNextPage ? (
-              <TouchableOpacity
-                style={styles.loadMore}
-                onPress={() => loadExercises(false)}
-                activeOpacity={0.85}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={colors.text} />
-                ) : (
-                  <Text style={styles.loadMoreText}>Load More</Text>
-                )}
-              </TouchableOpacity>
-            ) : null
-          }
-        />
-      )}
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/workout/create')}
-        activeOpacity={0.85}
-        accessibilityLabel="Create workout"
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Plus size={24} color={colors.bg} />
-      </TouchableOpacity>
+        {/* Zown logo */}
+        <View style={styles.logoRow}>
+          <Image
+            source={require('@/assets/branding/zown-logo-512.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Page title */}
+        <Text style={styles.pageTitle}>Workouts</Text>
+
+        {/* Carousel 1 - Featured Workouts */}
+        <SectionHeader
+          title="Featured Workouts"
+          onViewAll={() => {
+            // TODO: navigate to filtered workouts list
+            router.push('/workouts');
+          }}
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {displayWorkouts.map((item) => (
+            <FeaturedCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+
+        {/* Carousel 2 - Programs */}
+        <SectionHeader
+          title="Programs"
+          onViewAll={() => {
+            // TODO: navigate to programs list
+            router.push('/workouts');
+          }}
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {PROGRAMS.map((item) => (
+            <ProgramCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+
+        {/* Carousel 3 - YouTube Workouts */}
+        <SectionHeader
+          title="YouTube Workouts"
+          onViewAll={() => {
+            // TODO: navigate to YouTube workouts list
+          }}
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          {YOUTUBE_WORKOUTS.map((item) => (
+            <YouTubeCard key={item.id} item={item} />
+          ))}
+        </ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
+/* ââ Styles ââ */
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+  safe: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  title: { ...typography.h1 },
-  iconBtn: {
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  logoRow: {
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  logo: {
+    width: 120,
+    height: 36,
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#000',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+
+  /* Section header */
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+  viewAll: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '600',
+  },
+
+  /* Carousel */
+  carousel: {
+    paddingLeft: 20,
+    paddingRight: 6,
+    marginBottom: 24,
+  },
+
+  /* Featured cards */
+  featuredCard: {
+    width: 200,
+    marginRight: 14,
+  },
+  featuredImage: {
+    height: 120,
+    borderRadius: 14,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* Program cards */
+  programCard: {
+    width: 160,
+    marginRight: 14,
+  },
+  programImage: {
+    height: 100,
+    borderRadius: 14,
+    backgroundColor: '#E8E8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* YouTube cards */
+  youtubeCard: {
+    width: 220,
+    marginRight: 14,
+  },
+  youtubeThumbnail: {
+    height: 130,
+    borderRadius: 14,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  playButton: {
     width: 40,
     height: 40,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 14,
-    padding: 0,
-  },
-  filters: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    flexDirection: 'row',
-  },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.sm,
-  },
-  filterPillActive: { backgroundColor: colors.text, borderColor: colors.text },
-  filterText: { ...typography.caption, fontWeight: '700', color: colors.textSecondary },
-  filterTextActive: { color: colors.bg },
-  listContent: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
-  thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-  },
-  thumbFallback: { alignItems: 'center', justifyContent: 'center' },
-  rowBody: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: '700', color: colors.text, textTransform: 'capitalize' },
-  rowTags: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
-  rowTag: { fontSize: 12, color: colors.textSecondary, textTransform: 'capitalize' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
-  loadingText: { ...typography.caption },
-  empty: { alignItems: 'center', padding: spacing.xl, gap: spacing.sm },
-  emptyTitle: { ...typography.h3, marginTop: spacing.sm },
-  emptyText: { ...typography.caption },
-  loadMore: {
-    marginTop: spacing.lg,
-    paddingVertical: 14,
-    borderRadius: radius.pill,
-    backgroundColor: 'transparent',
     alignItems: 'center',
   },
-  loadMoreText: { color: colors.text, fontWeight: '700', fontSize: 14 },
-  fab: {
+  durationBadge: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xl,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: tokens.colors.darkNavy.text.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  /* Shared card text */
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 8,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  channelName: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 6,
   },
 });

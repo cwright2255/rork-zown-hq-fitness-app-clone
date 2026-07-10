@@ -1,465 +1,1056 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import AnimatedPressable from '@/components/AnimatedPressable';
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
+  Image,
+  Dimensions,
+  StatusBar,
+  Platform,
+  LayoutAnimation,
+  UIManager,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
+import { LineChart, BarChart } from 'react-native-chart-kit';
 import {
-  Dumbbell,
-  Utensils,
-  Users,
-  ShoppingBag,
   Flame,
-  Heart,
+  Heart as HeartIcon,
+  Footprints,
   Moon,
+  Droplet,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  Plus,
   TrendingUp,
-  ChevronRight,
-  Play,
-  CheckSquare,
-  Square,
+  Star,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '@/constants/theme';
-import StatCard from '@/components/StatCard';
-import ScreenHeader from '@/components/ScreenHeader';
+
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
-import {
-  getMuscleVisualizeUrl,
-  normalizeMuscleNames,
-} from '@/services/muscleVisualizerService';
-
-export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
+import { useHealthStore } from '@/store/healthStore';
+import { useRunningStore } from '@/store/runningStore';
 import { tokens } from '../../theme/tokens';
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const WEEK_VALUES = [40, 65, 50, 80, 70, 55, 90];
-
-function Stat({ icon: Icon, value, label }) {
-  return (
-    <View style={styles.stat}>
-      <View style={styles.statIconWrap}>
-        <Icon size={16} color={colors.text} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-function QuickAction({ icon: Icon, label, onPress }) {
-  return (
-    <TouchableOpacity style={styles.qa} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.qaIcon}>
-        <Icon size={22} color={colors.text} />
-      </View>
-      <Text style={styles.qaLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
+const { width } = Dimensions.get('window');
+const CARD_GAP = 12;
+const H_PAD = 22;
+const CARD_W = (width - H_PAD * 2 - CARD_GAP) / 2;
+const chartWidth = width - H_PAD * 2 - 32;
 
-function StatChip({ value, label }) {
-  return (
-    <View style={styles.chip}>
-      <Text style={styles.chipValue}>{value}</Text>
-      <Text style={styles.chipLabel}>{label}</Text>
-    </View>
-  );
-}
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
-function WeeklyChart() {
-  const todayIdx = new Date().getDay();
-  return (
-    <View style={styles.chartCard}>
-      <View style={styles.chartBars}>
-        {WEEK_VALUES.map((v, i) => {
-          const isToday = i === todayIdx;
-          return (
-            <View key={i} style={styles.chartCol}>
-              <View style={[styles.bar, { height: v, backgroundColor: isToday ? colors.text : 'transparent', borderColor: isToday ? colors.text : colors.border }]} />
-              <Text style={[styles.chartDay, isToday && styles.chartDayActive]}>{DAYS[i]}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
+const WORKOUTS = [
+  { id: '1', name: 'HIIT Blast', duration: '30 min', icon: 'barbell-outline' },
+  { id: '2', name: 'Morning Yoga', duration: '20 min', icon: 'body-outline' },
+  { id: '3', name: 'Strength Core', duration: '45 min', icon: 'fitness-outline' },
+  { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
+];
 
-function TaskRow({ name, done, thumbUrl, onPress }) {
-  const Icon = done ? CheckSquare : Square;
-  const [imgError, setImgError] = React.useState(false);
-  const showThumb = !!thumbUrl && !imgError;
+/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Circular Progress Ring Component Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#000000', label, subLabel }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - progress * circumference;
+
   return (
-    <TouchableOpacity style={styles.taskRow} onPress={onPress} activeOpacity={0.8}>
-      <Icon size={22} color={done ? colors.text : colors.textSecondary} />
-      <View style={styles.taskThumb}>
-        <Dumbbell size={18} color={colors.text} />
-      </View>
-      <Text style={[styles.taskName, done && styles.taskNameDone]} numberOfLines={1}>{name}</Text>
-      {showThumb && (
-        <Image
-          source={{ uri: thumbUrl }}
-          style={styles.muscleThumb}
-          resizeMode="contain"
-          onError={() => setImgError(true)}
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: size, height: size }}>
+      <Svg width={size} height={size}>
+        {/* Background Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#F5F5F5"
+          strokeWidth={strokeWidth}
+          fill="transparent"
         />
-      )}
-    </TouchableOpacity>
+        {/* Foreground Progress Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+          transform={"rotate(-90 " + (size / 2) + " " + (size / 2) + ")"}
+        />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text style={{ fontSize: 13, fontWeight: '800', color: '#000000' }}>{label}</Text>
+        {subLabel && <Text style={{ fontSize: 9, color: '#666666', marginTop: 1 }}>{subLabel}</Text>}
+      </View>
+    </View>
+  );
+}
+
+/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Workout carousel item Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+function WorkoutItem({ item, onPress }) {
+  return (
+    <Pressable style={styles.workoutItem} onPress={onPress}>
+      <View style={styles.workoutThumb}>
+        <Ionicons name={item.icon} size={28} color="#000" />
+      </View>
+      <Text style={styles.workoutName}>{item.name}</Text>
+      <Text style={styles.workoutDuration}>{item.duration}</Text>
+    </Pressable>
   );
 }
 
 export default function HQScreen() {
   const router = useRouter();
-  const { user, initializeDefaultUser } = useUserStore();
-  const { expSystem, getLevel } = useExpStore();
-  const { workouts, initializeDefaultWorkouts } = useWorkoutStore();
+  const { user } = useUserStore();
+  const { totalExp } = useExpStore();
+  const { completedWorkouts } = useWorkoutStore();
+  const { hydration, sleep, steps: storeSteps, meals, addGlass } = useHealthStore();
+  const { runs } = useRunningStore();
 
-  const hasInitializedUser = useRef(false);
-  useEffect(() => {
-    if (!user && !hasInitializedUser.current) {
-      hasInitializedUser.current = true;
-      initializeDefaultUser();
-    }
-  }, [user, initializeDefaultUser]);
+  const [expandedCard, setExpandedCard] = useState(null);
 
-  const hasInitializedWorkouts = useRef(false);
-  useEffect(() => {
-    if ((!workouts || workouts.length === 0) && !hasInitializedWorkouts.current) {
-      hasInitializedWorkouts.current = true;
-      requestAnimationFrame(() => initializeDefaultWorkouts());
-    }
-  }, []);
+  const isToday = (d) => d && new Date(d).toDateString() === new Date().toDateString();
+  const todayWorkoutCals = (completedWorkouts || []).filter(w => isToday(w.completedAt)).reduce((s, w) => s + (w.caloriesBurned || w.calories || 0), 0);
+  const todayRunCals = (runs || []).filter(r => isToday(r.completedAt || r.endTime)).reduce((s, r) => s + (r.calories || 0), 0);
+  const todayMealCals = (meals || []).filter(m => isToday(m.timestamp)).reduce((s, m) => s + (m.calories || 0), 0);
 
-  const level = user?.level || getLevel() || 1;
-  const xp = user?.exp || user?.xp || expSystem?.totalExp || 27975;
-  const firstName = (user?.name || 'Champion').split(' ')[0];
+  const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
-  const todaysMission = useMemo(() => {
-    const list = workouts || [];
-    return list[0] || { id: 'default', name: 'Full Body Burn', duration: 32, difficulty: 'INTENSE' };
-  }, [workouts]);
+  const now = new Date();
+  const dayName = DAYS[now.getDay()];
+  const dateStr = String(now.getDate()).padStart(2, '0') + ' ' + MONTHS[now.getMonth()];
 
-  const taskItems = useMemo(() => {
-    const list = (workouts || []).slice(0, 4);
-    const buildThumb = (muscles) => {
-      const normalized = normalizeMuscleNames(muscles || []);
-      return getMuscleVisualizeUrl({ muscles: normalized, color: '#E74C3C' });
-    };
-    if (list.length === 0) {
-      return [
-        { id: '1', name: 'Full Body Burn', done: true, thumbUrl: buildThumb(['CHEST']) },
-        { id: '2', name: 'Morning Cardio', done: false, thumbUrl: buildThumb(['QUADS']) },
-        { id: '3', name: 'Core Strength', done: false, thumbUrl: buildThumb(['ABS']) },
-      ];
-    }
-    return list.map((w, i) => {
-      const muscles = w.targetMuscles || w.muscleGroups || ['CHEST'];
-      return {
-        id: w.id,
-        name: w.name,
-        done: i === 0,
-        thumbUrl: buildThumb(muscles),
-      };
-    });
-  }, [workouts]);
+  const caloriesVal = todayWorkoutCals + todayRunCals;
+  const caloriesGoal = 2200;
+  const stepsVal = storeSteps || 0;
+  const stepsGoal = 10000;
+  const sleepVal = sleep?.hours || 7.5;
+  const hydrationVal = hydration?.glasses || 5;
+  const hydrationTarget = hydration?.target || 8;
+  const xpVal = totalExp || 0;
 
-  const goalReach = user?.stats?.goalsReached || 156;
-  const taskComplete = user?.stats?.tasksComplete || 153;
+  const toggleExpand = (cardName) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedCard(expandedCard === cardName ? null : cardName);
+  };
 
-  const onStartMission = useCallback(() => {
-    if (todaysMission?.id) router.push(`/workout/${todaysMission.id}`);
-  }, [router, todaysMission]);
+  /* Unified card wrapper that supports exact original styles when collapsed */
+  const renderExpandableCard = (label, icon, value, unit, isHydration = false, expandedContent) => {
+    const isExpanded = expandedCard === label;
+    return (
+      <View style={[styles.cardContainer, isExpanded && styles.expandedCardContainer, isExpanded && { overflow: 'visible' }]}>
+        <AnimatedPressable
+          onPress={() => toggleExpand(label)}
+          style={styles.statCard}
+        >
+          {isHydration ? (
+            // Original HydrationCard collapsed layout
+            <View style={{ flex: 1, justifyContent: 'space-between' }}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>{label}</Text>
+                <Ionicons name={icon} size={20} color="#000" />
+              </View>
+              <Text style={styles.statValue}>{value}</Text>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: Math.min((hydrationVal / hydrationTarget) * 100, 100) + '%' }]} />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.statUnit}>{unit}</Text>
+                {isExpanded ? (
+                  <ChevronUp size={14} color="#999" />
+                ) : (
+                  <ChevronDown size={14} color="#999" />
+                )}
+              </View>
+            </View>
+          ) : (
+            // Original standard StatCard collapsed layout
+            <View style={{ flex: 1, justifyContent: 'space-between' }}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>{label}</Text>
+                <Ionicons name={icon} size={20} color="#000" />
+              </View>
+              <Text style={styles.statValue}>{value}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.statUnit}>{unit}</Text>
+                {isExpanded ? (
+                  <ChevronUp size={14} color="#999" />
+                ) : (
+                  <ChevronDown size={14} color="#999" />
+                )}
+              </View>
+            </View>
+          )}
+        </AnimatedPressable>
+        {isExpanded && (
+          <View style={styles.insightPanel}>
+            {expandedContent}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader
-        title={`Hi, ${firstName}`}
-        subtitle="OWN THE DAY"
-        rightAction={
-          <TouchableOpacity style={styles.xpBadge} onPress={() => router.push('/exp-dashboard')} activeOpacity={0.8}>
-            <Text style={styles.xpLevel}>LVL {level}</Text>
-            <Text style={styles.xpValue}>{xp.toLocaleString()}</Text>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        removeClippedSubviews={false}
+      >
+        {/* Zown logo */}
+        <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 12 }}>
+          <Image
+            source={require('@/assets/branding/zown-logo-512.png')}
+            style={{ width: 120, height: 36 }}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Header row */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              {user?.photoURL ? (
+                <Image source={{ uri: user.photoURL }} style={styles.avatarImg} />
+              ) : (
+                <Ionicons name="person" size={22} color="#999" />
+              )}
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.greeting}>Hello {displayName}!</Text>
+              <Text style={styles.dateText}>{dayName}, {dateStr}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.calendarBtn}
+              onPress={() => router.push('/notifications')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#000" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.calendarBtn}
+              onPress={() => router.push('/analytics')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#000" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Section title */}
+        <View style={styles.sectionRow}>
+          <View>
+            <Text style={styles.sectionTitle}>Today's Information</Text>
+            <Text style={styles.sectionSub}>{MONTHS[now.getMonth()]} {now.getFullYear()}</Text>
+          </View>
+          <TouchableOpacity hitSlop={8} onPress={() => { /* options menu */ }}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#000" />
           </TouchableOpacity>
-        }
-      />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.statsRow}>
-          <StatCard value="8,432" label="Steps" icon={<TrendingUp size={16} color={colors.text} />} />
-          <StatCard value="614" label="Kcal" icon={<Flame size={16} color={colors.text} />} />
-          <StatCard value="72" label="BPM" icon={<Heart size={16} color={colors.text} />} />
         </View>
 
-        <Text style={styles.sectionLabel}>THIS WEEK</Text>
-        <WeeklyChart />
+        {/* Expandable Grid */}
+        <View style={styles.grid}>
+          {/* 1. Calories Card */}
+          {renderExpandableCard(
+            'Calories',
+            'flame-outline',
+            caloriesVal.toLocaleString(),
+            'Kcal',
+            false,
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(caloriesVal / caloriesGoal, 1)}
+                    color="#FF6B6B"
+                    label={caloriesVal.toString()}
+                    subLabel="Kcal"
+                  />
+                  <View style={{ flex: 1, marginLeft: 16, gap: 6 }}>
+                    <Text style={styles.insightTitle}>Macro Breakdown</Text>
+                    {/* Protein */}
+                    <View>
+                      <View style={styles.macroHeader}>
+                        <Text style={styles.macroLabel}>Protein</Text>
+                        <Text style={styles.macroVal}>85g / 130g</Text>
+                      </View>
+                      <View style={styles.macroBarTrack}>
+                        <View style={[styles.macroBarFill, { width: '65%', backgroundColor: '#4CAF50' }]} />
+                      </View>
+                    </View>
+                    {/* Carbs */}
+                    <View>
+                      <View style={styles.macroHeader}>
+                        <Text style={styles.macroLabel}>Carbs</Text>
+                        <Text style={styles.macroVal}>180g / 250g</Text>
+                      </View>
+                      <View style={styles.macroBarTrack}>
+                        <View style={[styles.macroBarFill, { width: '72%', backgroundColor: '#4A90D9' }]} />
+                      </View>
+                    </View>
+                    {/* Fat */}
+                    <View>
+                      <View style={styles.macroHeader}>
+                        <Text style={styles.macroLabel}>Fat</Text>
+                        <Text style={styles.macroVal}>55g / 70g</Text>
+                      </View>
+                      <View style={styles.macroBarTrack}>
+                        <View style={[styles.macroBarFill, { width: '78%', backgroundColor: '#FF9800' }]} />
+                      </View>
+                    </View>
+                  </View>
+                </View>
 
-        <View style={styles.chipsRow}>
-          <StatChip value={String(goalReach)} label="Goal Reach" />
-          <StatChip value={String(taskComplete)} label="Task Complete" />
+                <View style={{ marginTop: 16 }}>
+                  <Text style={styles.chartTitle}>7-Day Intake Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['P6', 'P5', 'P4', 'P3', 'P2', 'P1', 'Today'],
+                      datasets: [{ data: [1950, 2100, 1850, 2300, 2050, 1980, caloriesVal || 1847] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(255, 107, 107, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#FF6B6B' },
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/nutrition/log')}
+                >
+                  <Text style={styles.panelBtnText}>View Full Log</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 2. Heart Card */}
+          {renderExpandableCard(
+            'Heart',
+            'heart-outline',
+            '74',
+            'bpm',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Today's HR Summary</Text>
+                  <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>58 bpm</Text></Text>
+                  <Text style={styles.detailStatText}>Max Peak Recorded: <Text style={{fontWeight: '700'}}>164 bpm</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day HR Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(233, 30, 99, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/analytics')}
+                >
+                  <Text style={styles.panelBtnText}>View Analytics</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 3. Steps Card */}
+          {renderExpandableCard(
+            'Steps',
+            'footsteps-outline',
+            stepsVal.toLocaleString(),
+            'Steps',
+            false,
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(stepsVal / stepsGoal, 1)}
+                    color="#4A90D9"
+                    label={stepsVal.toString()}
+                    subLabel="Steps"
+                  />
+                  <View style={{ flex: 1, marginLeft: 20, justifyContent: 'center', gap: 6 }}>
+                    <Text style={styles.insightTitle}>Weekly Progress</Text>
+                    <Text style={styles.detailStatText}>Average: <Text style={{fontWeight: '700'}}>7,840 steps/day</Text></Text>
+                    <Text style={styles.detailStatText}>Best Day: <Text style={{fontWeight: '700'}}>11,420 steps</Text></Text>
+                    <Text style={styles.detailStatText}>Weekly Total: <Text style={{fontWeight: '700'}}>54,880 steps</Text></Text>
+                  </View>
+                </View>
+
+                <View style={{ marginTop: 16 }}>
+                  <Text style={styles.chartTitle}>7-Day Steps Breakdown</Text>
+                  <BarChart
+                    data={{
+                      labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+                      datasets: [{ data: [6200, 8100, 7400, 9200, 5600, 8432, stepsVal > 8432 ? stepsVal : 4500] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(74, 144, 217, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 4. Sleep Card */}
+          {renderExpandableCard(
+            'Sleep',
+            'moon-outline',
+            sleepVal.toLocaleString(),
+            'Hours',
+            false,
+            (
+              <View>
+                <View style={{ gap: 8, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Sleep Breakdown</Text>
+                  <Text style={styles.detailStatText}>Sleep Quality Score: <Text style={{fontWeight: '700', color: '#9C27B0'}}>88% (Excellent)</Text></Text>
+                </View>
+
+                {/* Horizontal Sleep Phase bar */}
+                <View style={{ marginVertical: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#666', marginBottom: 4 }}>Sleep Phases</Text>
+                  <View style={{ height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' }}>
+                    <View style={{ width: '25%', backgroundColor: '#3F51B5' }} />
+                    <View style={{ width: '50%', backgroundColor: '#2196F3' }} />
+                    <View style={{ width: '15%', backgroundColor: '#00BCD4' }} />
+                    <View style={{ width: '10%', backgroundColor: '#FFEB3B' }} />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                    <Text style={{ fontSize: 9, color: '#3F51B5' }}>Deep (25%)</Text>
+                    <Text style={{ fontSize: 9, color: '#2196F3' }}>Light (50%)</Text>
+                    <Text style={{ fontSize: 9, color: '#00BCD4' }}>REM (15%)</Text>
+                    <Text style={{ fontSize: 9, color: '#FFEB3B' }}>Awake (10%)</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 5. Total XP Card */}
+          {renderExpandableCard(
+            'Total XP',
+            'star-outline',
+            xpVal.toLocaleString(),
+            'points',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>XP Overview</Text>
+                  <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level 12</Text></Text>
+                  <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>840 XP remaining</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day XP Earnings</Text>
+                  <BarChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(255, 193, 7, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/battlepass')}
+                >
+                  <Text style={styles.panelBtnText}>View Battle Pass</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 6. Stories Climbed Card */}
+          {renderExpandableCard(
+            'Stories Climbed',
+            'trending-up-outline',
+            '42',
+            'floors',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>Climbing Summary</Text>
+                  <Text style={styles.detailStatText}>Daily Average: <Text style={{fontWeight: '700'}}>6 floors/day</Text></Text>
+                  <Text style={styles.detailStatText}>Weekly Elevation: <Text style={{fontWeight: '700'}}>420 meters</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day Elevation Trend</Text>
+                  <BarChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [4, 8, 3, 12, 5, 6, 4] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(76, 175, 80, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health Metrics</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 7. Resting HRV Card */}
+          {renderExpandableCard(
+            'Resting HRV',
+            'pulse-outline',
+            '58',
+            'ms',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>HRV Breakdown</Text>
+                  <Text style={styles.detailStatText}>Weekly Average: <Text style={{fontWeight: '700'}}>56 ms</Text></Text>
+                  <Text style={styles.detailStatText}>Recovery Status: <Text style={{fontWeight: '700', color: '#4CAF50'}}>Optimal (Green)</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day HRV Trend</Text>
+                  <LineChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [52, 55, 58, 54, 57, 61, 58] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(103, 58, 183, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    bezier
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/analytics')}
+                >
+                  <Text style={styles.panelBtnText}>View HRV Trends</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          {/* 8. Hydration Card */}
+          {renderExpandableCard(
+            'Hydration',
+            'water-outline',
+            hydrationVal + " / " + hydrationTarget,
+            'glasses',
+            true,
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(hydrationVal / hydrationTarget, 1)}
+                    color="#00BCD4"
+                    label={hydrationVal.toString()}
+                    subLabel="Glasses"
+                  />
+                  <View style={{ flex: 1, marginLeft: 20, gap: 10 }}>
+                    <Text style={styles.insightTitle}>Log Intake</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => {
+                          addGlass();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        }}
+                      >
+                        <Plus size={14} color="#FFF" />
+                        <Text style={styles.quickAddBtnText}>+250ml</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => {
+                          addGlass();
+                          addGlass();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        }}
+                      >
+                        <Plus size={14} color="#FFF" />
+                        <Text style={styles.quickAddBtnText}>+500ml</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.panelBtn, { marginTop: 14 }]}
+                  onPress={() => router.push('/nutrition')}
+                >
+                  <Text style={styles.panelBtnText}>View Nutrition</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
         </View>
 
-        <Text style={styles.sectionLabel}>TODAY&apos;S MISSION</Text>
-        <TouchableOpacity style={styles.missionCard} onPress={onStartMission} activeOpacity={0.85}>
-          <View style={styles.missionHeader}>
-            <Text style={styles.missionLabel}>LIVE SESSION</Text>
-            <View style={styles.missionPill}>
-              <Text style={styles.missionPillText}>{todaysMission?.difficulty || 'INTENSE'}</Text>
-            </View>
+        {/* Recommended Workouts carousel */}
+        <View style={styles.carouselCard}>
+          <Text style={styles.carouselTitle}>Recommended Workouts</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselScroll}
+          >
+            {WORKOUTS.map((w) => (
+              <WorkoutItem
+                key={w.id}
+                item={w}
+                onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Invite banner */}
+        <TouchableOpacity
+          style={styles.banner}
+          activeOpacity={0.8}
+          onPress={() => router.push('/community')}
+        >
+          <View style={styles.bannerIcon}>
+            <Ionicons name="trophy-outline" size={22} color="#000" />
           </View>
-          <Text style={styles.missionTitle} numberOfLines={2}>{todaysMission?.name || 'Full Body Burn'}</Text>
-          <View style={styles.missionFooter}>
-            <Text style={styles.missionMeta}>{todaysMission?.duration || 32} MIN</Text>
-            <View style={styles.playBtn}>
-              <Play size={16} color={colors.bg} fill={colors.bg} />
-              <Text style={styles.playBtnText}>START</Text>
-            </View>
+          <View style={styles.bannerText}>
+            <Text style={styles.bannerTitle}>Invite your friends</Text>
+            <Text style={styles.bannerSub}>Invite your friends to get a free exercise right away</Text>
           </View>
         </TouchableOpacity>
 
-        <View style={styles.taskHeader}>
-          <Text style={styles.sectionLabel}>TASK TODAY</Text>
-          <TouchableOpacity onPress={() => router.push('/workouts')}>
-            <Text style={styles.showAll}>Show all</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.taskList}>
-          {taskItems.map((t) => (
-            <TaskRow
-              key={t.id}
-              name={t.name}
-              done={t.done}
-              thumbUrl={t.thumbUrl}
-              onPress={() => router.push(`/workout/${t.id}`)}
-            />
-          ))}
-        </View>
-
-        <Text style={styles.sectionLabel}>QUICK ACTIONS</Text>
-        <View style={styles.qaGrid}>
-          <QuickAction icon={Dumbbell} label="Workouts" onPress={() => router.push('/workouts')} />
-          <QuickAction icon={Utensils} label="Nutrition" onPress={() => router.push('/nutrition')} />
-          <QuickAction icon={Users} label="Community" onPress={() => router.push('/community')} />
-          <QuickAction icon={ShoppingBag} label="Shop" onPress={() => router.push('/shop')} />
-        </View>
-
-        <Text style={styles.sectionLabel}>WEARABLES</Text>
-        <View style={styles.wearRow}>
-          <View style={styles.wearCard}>
-            <Heart size={18} color={colors.text} />
-            <Text style={styles.wearValue}>72 bpm</Text>
-            <Text style={styles.wearLabel}>Resting HR</Text>
-          </View>
-          <View style={styles.wearCard}>
-            <Moon size={18} color={colors.text} />
-            <Text style={styles.wearValue}>7h 42m</Text>
-            <Text style={styles.wearLabel}>Sleep</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.leaderLink} onPress={() => router.push('/leaderboard')} activeOpacity={0.85}>
-          <Text style={styles.leaderLinkText}>VIEW LEADERBOARD</Text>
-          <ChevronRight size={18} color={colors.text} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.upgradeCard} onPress={() => router.push('/champion-pass')} activeOpacity={0.9}>
-          <View style={styles.upgradeImage}>
-            <Flame size={28} color={colors.text} />
-          </View>
-          <View style={styles.upgradeBody}>
-            <Text style={styles.upgradeLabel}>CHAMPION PASS</Text>
-            <Text style={styles.upgradeText}>Unlock premium workouts, coaching & nutrition plans.</Text>
-            <View style={styles.upgradeBtn}>
-              <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+        <View style={{ height: 120 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
-  greeting: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
-  greetingName: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: 0.5 },
-  xpBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  xpLevel: { ...typography.label, color: colors.textSecondary },
-  xpValue: { ...typography.body, fontWeight: '800' },
-  chipsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
-  chip: {
+  safe: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
   },
-  chipValue: { fontSize: 28, fontWeight: '900', color: colors.text },
-  chipLabel: { ...typography.label, marginTop: 2 },
-  chartCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
+  scroll: {
+    paddingHorizontal: H_PAD,
+    paddingTop: 16,
+    paddingBottom: 200,
   },
-  chartBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 110 },
-  chartCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: 14, borderRadius: 7, borderWidth: 1, marginBottom: spacing.sm },
-  chartDay: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
-  chartDayActive: { color: colors.text },
-  statsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
-  stat: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    alignItems: 'flex-start',
-  },
-  statIconWrap: { marginBottom: spacing.sm },
-  statValue: { fontSize: 22, fontWeight: '900', color: colors.text },
-  statLabel: { ...typography.label, marginTop: 2 },
-  sectionLabel: { ...typography.label, marginBottom: spacing.md, marginTop: spacing.md },
-  missionCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  missionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-  missionLabel: { ...typography.label },
-  missionPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.text,
-  },
-  missionPillText: { ...typography.caption, fontWeight: '800', color: colors.text, fontSize: 10, letterSpacing: 1 },
-  missionTitle: { fontSize: 28, fontWeight: '900', color: colors.text, marginBottom: spacing.md },
-  missionFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  missionMeta: { ...typography.body, fontWeight: '700', color: colors.textSecondary },
-  playBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-    backgroundColor: colors.text,
-  },
-  playBtnText: { color: colors.bg, fontWeight: '900', letterSpacing: 1 },
-  taskHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  showAll: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  taskList: { gap: spacing.sm, marginBottom: spacing.xl },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
-  taskThumb: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taskName: { ...typography.body, fontWeight: '800', flex: 1 },
-  taskNameDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
-  muscleThumb: { width: 60, height: 60, borderRadius: 4, backgroundColor: tokens.colors.darkNavy.text.primary },
-  qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
-  qa: {
-    width: '48%',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    minHeight: 96,
-  },
-  qaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  qaLabel: { ...typography.body, fontWeight: '800' },
-  wearRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
-  wearCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  wearValue: { fontSize: 20, fontWeight: '900', color: colors.text },
-  wearLabel: { ...typography.label },
-  leaderLink: {
+
+  /* header */
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
+    marginBottom: 28,
   },
-  leaderLinkText: { ...typography.body, fontWeight: '800', letterSpacing: 1 },
-  upgradeCard: {
+  headerLeft: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.darkNavy.text.primary,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.md,
     alignItems: 'center',
+    gap: 12,
   },
-  upgradeImage: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: 50,
+    height: 50,
+  },
+  headerText: {},
+  greeting: {
+    fontSize: 14,
+    color: '#666',
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginTop: 2,
+  },
+  calendarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  upgradeBody: { flex: 1, gap: spacing.sm },
-  upgradeLabel: { ...typography.label, color: colors.text, letterSpacing: 1 },
-  upgradeText: { color: colors.textSecondary, fontSize: 13, fontWeight: '500', lineHeight: 18 },
-  upgradeBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.text,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
+
+  /* section */
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 18,
   },
-  upgradeBtnText: { color: colors.bg, fontWeight: '900', fontSize: 12 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+  },
+  sectionSub: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
+
+  /* stat grid & card containers */
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: CARD_GAP,
+    marginBottom: 12,
+  },
+  cardContainer: {
+    width: CARD_W,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'visible',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  expandedCardContainer: {
+    width: width - H_PAD * 2,
+    overflow: 'visible',
+  },
+  statCard: {
+    padding: 16,
+    minHeight: 130,
+    justifyContent: 'space-between',
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#000',
+  },
+  statUnit: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+
+  /* hydration progress bar */
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E5E5E5',
+    marginTop: 8,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: '#000',
+  },
+
+  /* insight panel */
+  insightPanel: {
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    padding: 16,
+    paddingBottom: 20,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    overflow: 'visible',
+  },
+  expandedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  insightTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 6,
+  },
+  detailStatText: {
+    fontSize: 12,
+    color: '#444',
+  },
+  panelBtn: {
+    backgroundColor: '#000000',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  panelBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  /* macro bar */
+  macroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+  },
+  macroLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#555',
+  },
+  macroVal: {
+    fontSize: 10,
+    color: '#333',
+  },
+  macroBarTrack: {
+    height: 4,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  macroBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+
+  /* charts */
+  chartTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#333',
+    marginBottom: 8,
+  },
+  chartStyle: {
+    marginVertical: 4,
+    borderRadius: 12,
+  },
+
+  /* quick add buttons */
+  quickAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  quickAddBtnText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  /* workout carousel */
+  carouselCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  carouselTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 14,
+  },
+  carouselScroll: {
+    gap: 12,
+  },
+  workoutItem: {
+    width: 140,
+  },
+  workoutThumb: {
+    height: 90,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  workoutName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000',
+  },
+  workoutDuration: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
+  },
+
+  /* banner */
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+    marginTop: 8,
+  },
+  bannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerText: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  bannerSub: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 3,
+  },
 });
