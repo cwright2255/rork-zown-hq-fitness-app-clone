@@ -28,16 +28,7 @@ const TOKEN_KEY = 'spotify_tokens_v1';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 function getRedirectUri() {
-  const explicit = process.env.EXPO_PUBLIC_SPOTIFY_REDIRECT_URI || '';
-  if (explicit) return explicit;
-  try {
-    return AuthSession.makeRedirectUri({
-      scheme: 'zownhq',
-      path: 'spotify-callback'
-    }) || 'https://auth.expo.io/@carlton.v.wright.jr/zown';
-  } catch (e) {
-    return 'https://auth.expo.io/@carlton.v.wright.jr/zown';
-  }
+  return 'https://auth.expo.io/@cwright_7/zown-hq';
 }
 
 async function saveTokens(tokens) {
