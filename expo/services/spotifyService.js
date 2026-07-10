@@ -7,11 +7,11 @@ WebBrowser.maybeCompleteAuthSession();
 
 // The EXACT URI registered in the Spotify Developer Dashboard.
 // Expo proxy URI for Expo Go; native scheme for standalone builds.
-const SPOTIFY_REDIRECT_URI_EXPO_PROXY = 'zownhq://spotify-callback';
-const SPOTIFY_REDIRECT_URI_NATIVE = 'zownhq://spotify-callback';
+const SPOTIFY_REDIRECT_URI_EXPO_PROXY = 'http://127.0.0.1:8081/spotify-callback';
+const SPOTIFY_REDIRECT_URI_NATIVE = 'http://127.0.0.1:8081/spotify-callback';
 
 const makeSpotifyRedirectUri = () => {
-  return 'zownhq://spotify-callback';
+  return 'http://127.0.0.1:8081/spotify-callback';
 };
 
 
@@ -495,9 +495,9 @@ class SpotifyService {
 Spotify Integration (Client Credentials Flow):
 
 This app uses Client Credentials flow which:
-Ã¢ÂÂ Does NOT require redirect URIs
-Ã¢ÂÂ Works immediately with valid credentials
-Ã¢ÂÂ Allows searching tracks, playlists, and recommendations
+ÃÂ¢ÃÂÃÂ Does NOT require redirect URIs
+ÃÂ¢ÃÂÃÂ Works immediately with valid credentials
+ÃÂ¢ÃÂÃÂ Allows searching tracks, playlists, and recommendations
 
 Setup:
 1. Go to https://developer.spotify.com/dashboard
@@ -506,12 +506,12 @@ Setup:
 4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
 
 Current Status:
-- Client ID: ${this.clientId} Ã¢ÂÂ
-- Client Secret: ${hasValidClientSecret ? 'Configured Ã¢ÂÂ' : 'Not configured or invalid Ã¢ÂÂ Ã¯Â¸Â'}
-- Token Status: ${this.token ? 'Active Ã¢ÂÂ' : 'Not available'}
+- Client ID: ${this.clientId} ÃÂ¢ÃÂÃÂ
+- Client Secret: ${hasValidClientSecret ? 'Configured ÃÂ¢ÃÂÃÂ' : 'Not configured or invalid ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ'}
+- Token Status: ${this.token ? 'Active ÃÂ¢ÃÂÃÂ' : 'Not available'}
 - Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasValidClientSecret ? 'Ã¢ÂÂ Ready! You can search playlists and get recommendations.' : 'Ã¢ÂÂ Ã¯Â¸Â Add your Client Secret to enable Spotify features.'}
+${hasValidClientSecret ? 'ÃÂ¢ÃÂÃÂ Ready! You can search playlists and get recommendations.' : 'ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ Add your Client Secret to enable Spotify features.'}
 
 Note: Client Credentials flow provides access to:
 - Search tracks and playlists
