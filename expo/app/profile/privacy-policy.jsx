@@ -38,47 +38,23 @@ export default function PrivacyPolicy() {
         <Text style={styles.sectionTitle}>1. Information We Collect</Text>
         <Text style={styles.bodyText}>
           We collect info necessary to track your fitness journey, including:
-          {"
-
-"}
-          • <Text style={styles.bold}>Account Info</Text>: Name, email address, password (securely hashed via Firebase).
-          {"
-"}
-          • <Text style={styles.bold}>Fitness Data</Text>: Completed workouts, duration, calorie expenditure, steps, and target metric logs.
-          {"
-"}
-          • <Text style={styles.bold}>GPS & Location</Text>: GPS paths during run tracking (only with explicit authorization).
-          {"
-"}
-          • <Text style={styles.bold}>Nutrition Assets</Text>: Hydration logs, logged meals, macronutrient counts, and calorie totals.
-          {"
-"}
-          • <Text style={styles.bold}>Physical Metrics</Text>: Height, weight, age, 8-point structural measurements, body scans, and sleep metrics.
-          {"
-"}
-          • <Text style={styles.bold}>Device & Usage Data</Text>: Operating system version, model markers, session latency, and bug/crash logs.
         </Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Account Info</Text>: Name, email address, password (securely hashed via Firebase).</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Fitness Data</Text>: Completed workouts, duration, calorie expenditure, steps, and target metric logs.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>GPS & Location</Text>: GPS paths during run tracking (only with explicit authorization).</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Nutrition Data</Text>: Hydration logs, logged meals, macronutrient counts, and calorie totals.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Physical Metrics</Text>: Height, weight, age, 8-point structural measurements, body scans, and sleep metrics.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Device & Usage Data</Text>: Operating system version, model markers, session latency, and bug/crash logs.</Text>
 
         <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
         <Text style={styles.bodyText}>
           We utilize your data to serve the following objectives:
-          {"
-
-"}
-          • Calculating personalized metabolic rates, active goals, and weekly milestones.
-          {"
-"}
-          • populating in-app peer leaderboards, battle pass progression, and active duels.
-          {"
-"}
-          • Managing smart push alerts and hydration triggers.
-          {"
-"}
-          • Tracking app diagnostic performance and debugging code errors.
-          {"
-"}
-          • <Text style={styles.bold}>We never sell, rent, or lease your private physical metrics or profile details to third-party marketing brokers.</Text>
         </Text>
+        <Text style={styles.bulletItem}>• Calculating personalized metabolic rates, active goals, and weekly milestones.</Text>
+        <Text style={styles.bulletItem}>• Populating in-app peer leaderboards, battle pass progression, and active duels.</Text>
+        <Text style={styles.bulletItem}>• Managing smart push alerts and hydration triggers.</Text>
+        <Text style={styles.bulletItem}>• Tracking app diagnostic performance and debugging code errors.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>We never sell, rent, or lease your private physical metrics or profile details to third-party marketing brokers.</Text></Text>
 
         <Text style={styles.sectionTitle}>3. Data Storage & Security</Text>
         <Text style={styles.bodyText}>
@@ -88,38 +64,20 @@ export default function PrivacyPolicy() {
         <Text style={styles.sectionTitle}>4. Third-Party Services</Text>
         <Text style={styles.bodyText}>
           We partner with select APIs to power native features:
-          {"
-
-"}
-          • <Text style={styles.bold}>Firebase (Google)</Text>: Handles DB persistence and user login auth.
-          {"
-"}
-          • <Text style={styles.bold}>Spotify</Text>: Synchronizes musical playback controls (only if authorized).
-          {"
-"}
-          • <Text style={styles.bold}>Passio.ai & Open Food Facts</Text>: Recognizes barcodes and meals (the raw scans are processed locally; images are not retained).
-          {"
-"}
-          • <Text style={styles.bold}>ExerciseDB</Text>: Syncs instructional exercises. No personal profile data is shared.
-          {"
-"}
-          • <Text style={styles.bold}>Radar.io</Text>: Powers reverse-geocoding of run locations.
         </Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Firebase (Google)</Text>: Handles DB persistence and user login auth.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Spotify</Text>: Synchronizes musical playback controls (only if authorized).</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Passio.ai & Open Food Facts</Text>: Recognizes barcodes and meals (the raw scans are processed locally; images are not retained).</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>ExerciseDB</Text>: Syncs instructional exercises. No personal profile data is shared.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Radar.io</Text>: Powers reverse-geocoding of run locations.</Text>
 
         <Text style={styles.sectionTitle}>5. Your Rights (GDPR & CCPA Compliant)</Text>
         <Text style={styles.bodyText}>
           Regardless of your jurisdiction, ZOWN HQ offers global compliance rights:
-          {"
-
-"}
-          • <Text style={styles.bold}>Access & Export</Text>: Request a full export of your health history at any time.
-          {"
-"}
-          • <Text style={styles.bold}>Erasure</Text>: Instantly remove your account and metrics from Settings > Danger Zone.
-          {"
-"}
-          • <Text style={styles.bold}>Visibility Toggle</Text>: Adjust settings to control who sees your duels and rankings.
         </Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Access & Export</Text>: Request a full export of your health history at any time.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Erasure</Text>: Instantly remove your account and metrics from Settings &gt; Danger Zone.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Visibility Toggle</Text>: Adjust settings to control who sees your duels and rankings.</Text>
 
         <Text style={styles.sectionTitle}>6. Children's Privacy</Text>
         <Text style={styles.bodyText}>
@@ -211,6 +169,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#333333',
     marginBottom: 16,
+  },
+  bulletItem: {
+    fontFamily: tokens.typography?.fontRegular || 'System',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#333333',
+    marginBottom: 8,
+    paddingLeft: 8,
   },
   bold: {
     fontWeight: '700',
