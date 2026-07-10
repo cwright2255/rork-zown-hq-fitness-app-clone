@@ -34,9 +34,9 @@ function getRedirectUri() {
     return AuthSession.makeRedirectUri({
       scheme: 'zownhq',
       path: 'spotify-callback'
-    }) || 'https://auth.expo.io/@cwright_7/zown-hq';
+    }) || 'https://auth.expo.io/@carlton.v.wright.jr/zown';
   } catch (e) {
-    return 'https://auth.expo.io/@cwright_7/zown-hq';
+    return 'https://auth.expo.io/@carlton.v.wright.jr/zown';
   }
 }
 
