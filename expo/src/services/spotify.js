@@ -28,7 +28,14 @@ const TOKEN_KEY = 'spotify_tokens_v1';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 function getRedirectUri() {
-  return 'https://auth.expo.io/@cwright_7/zown-hq';
+  try {
+    return AuthSession.makeRedirectUri({
+      scheme: 'zownhq',
+      path: 'spotify-callback'
+    });
+  } catch (error) {
+    return 'https://auth.expo.io/@cwright_7/zown-hq';
+  }
 }
 
 async function saveTokens(tokens) {
@@ -76,8 +83,8 @@ async function getValidAccessToken() {
 export async function authenticate() {
   const redirectUri = getRedirectUri();
   const request = new AuthSession.AuthRequest({
-    clientId,
-    scopes,
+    clientId: CLIENT_ID,
+    scopes: SCOPES,
     usePKCE: true,
     redirectUri,
     responseType: AuthSession.ResponseType.Code
@@ -91,7 +98,7 @@ export async function authenticate() {
 
   const tokenResult = await AuthSession.exchangeCodeAsync(
     {
-      clientId,
+      clientId: CLIENT_ID,
       code: result.params.code,
       redirectUri,
       extraParams: { code_verifier: request.codeVerifier ?? '' }

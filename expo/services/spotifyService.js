@@ -11,7 +11,17 @@ const SPOTIFY_REDIRECT_URI_EXPO_PROXY = 'https://auth.expo.io/@cwright_7/zown-hq
 const SPOTIFY_REDIRECT_URI_NATIVE = 'zownhq://spotify-callback';
 
 const makeSpotifyRedirectUri = () => {
-  return 'https://auth.expo.io/@cwright_7/zown-hq';
+  try {
+    const resolved = AuthSession.makeRedirectUri({
+      scheme: 'zownhq',
+      path: 'spotify-callback'
+    });
+    console.log('Generated dynamic redirect URI:', resolved);
+    return resolved;
+  } catch (error) {
+    console.error('Failed to generate dynamic redirect URI, falling back to static:', error);
+    return 'https://auth.expo.io/@cwright_7/zown-hq';
+  }
 };
 
 
@@ -356,9 +366,10 @@ class SpotifyService {
         return false;
       }
 
-      // Get stored state and code verifier
+      // Get stored state, code verifier, and redirect URI
       const storedState = await AsyncStorage.getItem('spotify_auth_state');
       const storedCodeVerifier = await AsyncStorage.getItem('spotify_code_verifier');
+      const storedRedirectUri = await AsyncStorage.getItem('spotify_auth_redirect_uri') || this.redirectUri;
 
       if (storedState && storedState !== receivedState) {
         console.error('State mismatch during Spotify authentication');
@@ -381,7 +392,7 @@ class SpotifyService {
       const tokenData = await this.requestSpotifyTokenViaProxy({
         grantType: 'authorization_code',
         code,
-        redirectUri: this.redirectUri,
+        redirectUri: storedRedirectUri,
         codeVerifier: storedCodeVerifier
       });
       console.log('Token exchange successful');
@@ -494,9 +505,9 @@ class SpotifyService {
 Spotify Integration (Client Credentials Flow):
 
 This app uses Client Credentials flow which:
-Ã¢ÂÂ Does NOT require redirect URIs
-Ã¢ÂÂ Works immediately with valid credentials
-Ã¢ÂÂ Allows searching tracks, playlists, and recommendations
+ÃÂ¢ÃÂÃÂ Does NOT require redirect URIs
+ÃÂ¢ÃÂÃÂ Works immediately with valid credentials
+ÃÂ¢ÃÂÃÂ Allows searching tracks, playlists, and recommendations
 
 Setup:
 1. Go to https://developer.spotify.com/dashboard
@@ -505,12 +516,12 @@ Setup:
 4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
 
 Current Status:
-- Client ID: ${this.clientId} Ã¢ÂÂ
-- Client Secret: ${hasValidClientSecret ? 'Configured Ã¢ÂÂ' : 'Not configured or invalid Ã¢ÂÂ Ã¯Â¸Â'}
-- Token Status: ${this.token ? 'Active Ã¢ÂÂ' : 'Not available'}
+- Client ID: ${this.clientId} ÃÂ¢ÃÂÃÂ
+- Client Secret: ${hasValidClientSecret ? 'Configured ÃÂ¢ÃÂÃÂ' : 'Not configured or invalid ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ'}
+- Token Status: ${this.token ? 'Active ÃÂ¢ÃÂÃÂ' : 'Not available'}
 - Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasValidClientSecret ? 'Ã¢ÂÂ Ready! You can search playlists and get recommendations.' : 'Ã¢ÂÂ Ã¯Â¸Â Add your Client Secret to enable Spotify features.'}
+${hasValidClientSecret ? 'ÃÂ¢ÃÂÃÂ Ready! You can search playlists and get recommendations.' : 'ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ Add your Client Secret to enable Spotify features.'}
 
 Note: Client Credentials flow provides access to:
 - Search tracks and playlists
@@ -1010,9 +1021,10 @@ It does NOT provide access to:
     this.codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
 
-    // Store code verifier for later token exchange
+    // Store code verifier and redirect URI for later token exchange
     await AsyncStorage.setItem('spotify_code_verifier', this.codeVerifier);
     await AsyncStorage.setItem('spotify_auth_state', this.state);
+    await AsyncStorage.setItem('spotify_auth_redirect_uri', this.redirectUri);
 
     console.log('Generated state:', this.state);
     console.log('Generated code verifier (stored)');
@@ -1231,6 +1243,11 @@ It does NOT provide access to:
     this.state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     this.codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
+    
+    // Store PKCE, state and redirect URI
+    await AsyncStorage.setItem('spotify_code_verifier', this.codeVerifier);
+    await AsyncStorage.setItem('spotify_auth_state', this.state);
+    await AsyncStorage.setItem('spotify_auth_redirect_uri', this.redirectUri);
 
     const params = 'response_type=code' +
       '&client_id=' + encodeURIComponent(this.clientId) +
