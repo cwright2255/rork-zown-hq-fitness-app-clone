@@ -1,438 +1,257 @@
 {
-  "_meta": {
-    "source": "Fitleus - Fitness Mobile App UI Kit (Copy)",
-    "fileKey": "qDQfQ2a21AfgxcqWrBk5Ya",
-    "extractedAt": "2026-06-02T16:00:00Z",
-    "method": "styles-map + node-resolution",
-    "styleCounts": {
-      "fill": 51,
-      "text": 40,
-      "effect": 4
-    }
-  },
   "colors": {
-    "ink": {
-      "base": "#404446",
-      "lighter": "#72777A",
-      "darkest": "#090A0A",
-      "dark": "#303437",
-      "darker": "#202325",
-      "light": "#6C7072"
-    },
-    "sky": {
-      "lightest": "#F7F9FA",
-      "base": "#CDCFD0",
-      "white": "#FFFFFF",
-      "light": "#E3E5E5",
-      "lighter": "#F2F4F5",
-      "dark": "#979C9E"
-    },
-    "text": {
-      "darkest": "#2F3556",
-      "darker": "#444967",
-      "dark": "#595D78",
-      "base": "#6D7289",
-      "light": "#82869A",
-      "lighter": "#979AAA"
-    },
-    "fuschia": {
-      "100": "#EF5DA8"
-    },
-    "vivid_sky_blue": {
-      "base": "#36D3F5"
-    },
-    "blue": {
-      "darkest": "#1F83A9",
-      "base": "#2EC0F9",
-      "light": "#5ECEFA",
-      "lighter": "#84DAFB",
-      "lightest": "#D5F2FE"
-    },
-    "3rd_party": {
-      "facebook_base": "#0078FF",
-      "facebook_dark": "#0067DB",
-      "twitter_base": "#1DA1F2",
-      "twitter_dark": "#0C90E1"
-    },
-    "primary": {
-      "base": "#6B4EFF"
-    },
-    "red": {
-      "base": "#FF1654",
-      "light": "#FF4C7B",
-      "lighter": "#FF769A",
-      "lightest": "#FFD0DD",
-      "darkest": "#AD0F39"
-    },
-    "grayscale": {
-      "black": "#000000"
-    },
-    "green": {
-      "base": "#23C16B",
-      "lightest": "#ECFCE5",
-      "lighter": "#7DDE86",
-      "light": "#4CD471",
-      "darkest": "#198155"
-    },
-    "yellow": {
-      "base": "#FFD639",
-      "lightest": "#FFF7D7",
-      "lighter": "#FFE78A",
-      "light": "#FFDF67",
-      "darkest": "#AD9227"
-    },
-    "brand": {
-      "base": "#4564EE",
-      "lightest": "#C3CCF4",
-      "lighter": "#6E87F2",
-      "light": "#5975F0",
-      "darkest": "#3053EC"
-    }
+    "Shadow/Large": "#C4C4C4",
+    "Ink/Base": "#404446",
+    "Ink/Lighter": "#72777A",
+    "Sky/Lightest": "#F7F9FA",
+    "Sky/Lighter": "#F2F4F5",
+    "Ink/Darker": "#202325",
+    "Grayscale/Black": "#000000",
+    "Green/Base": "#23C16B",
+    "Yellow/Base": "#FFD639",
+    "Brand/Base": "#4564EE",
+    "Ink/Light": "#6C7072",
+    "Sky/Dark": "#979C9E",
+    "Red/Light": "#FF4C7B",
+    "Red/Lighter": "#FF769A",
+    "Red/Lightest": "#FFD0DD",
+    "Red/Darkest": "#AD0F39",
+    "Yellow/Lightest": "#FFF7D7",
+    "Yellow/Lighter": "#FFE78A",
+    "Yellow/Light": "#FFDF67",
+    "Yellow/Darkest": "#AD9227",
+    "Green/Lightest": "#ECFCE5",
+    "Green/Lighter": "#7DDE86",
+    "Green/Light": "#4CD471",
+    "Green/Darkest": "#198155",
+    "Brand/Lightest": "#C3CCF4",
+    "Brand/Lighter": "#6E87F2",
+    "Brand/Light": "#5975F0",
+    "Brand/Darkest": "#3053EC",
+    "Shadow/Small": "#C4C4C4",
+    "Shadow/Medium": "#C4C4C4"
   },
   "typography": {
-    "small_tight_regular": {
+    "Small/Tight/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 400,
-      "lineHeight": 16,
+      "fontWeight": "400",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "large_tight_bold": {
+    "Large/Tight/Bold": {
       "fontFamily": "Rubik",
       "fontSize": 18,
-      "fontWeight": 700,
-      "lineHeight": 20,
+      "fontWeight": "700",
+      "lineHeightPx": 20,
       "letterSpacing": 0
     },
-    "large_tight_medium": {
+    "Large/Tight/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 18,
-      "fontWeight": 500,
-      "lineHeight": 20,
+      "fontWeight": "500",
+      "lineHeightPx": 20,
       "letterSpacing": 0
     },
-    "large_tight_regular": {
+    "Large/Tight/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 18,
-      "fontWeight": 400,
-      "lineHeight": 20,
+      "fontWeight": "400",
+      "lineHeightPx": 20,
       "letterSpacing": 0
     },
-    "tiny_tight_medium": {
+    "Tiny/Tight/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 12,
-      "fontWeight": 500,
-      "lineHeight": 14,
+      "fontWeight": "500",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     },
-    "tiny_tight_bold": {
+    "Tiny/Tight/Bold": {
       "fontFamily": "Rubik",
       "fontSize": 12,
-      "fontWeight": 700,
-      "lineHeight": 14,
+      "fontWeight": "700",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     },
-    "tiny_tight_regular": {
+    "Tiny/Tight/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 12,
-      "fontWeight": 400,
-      "lineHeight": 14,
+      "fontWeight": "400",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     },
-    "large_normal_medium": {
+    "Large/Normal/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 18,
-      "fontWeight": 500,
-      "lineHeight": 24,
+      "fontWeight": "500",
+      "lineHeightPx": 24,
       "letterSpacing": 0
     },
-    "regular_normal_regular": {
+    "Large/None/Medium": {
+      "fontFamily": "Rubik",
+      "fontSize": 18,
+      "fontWeight": "500",
+      "lineHeightPx": 18,
+      "letterSpacing": 0
+    },
+    "Regular/None/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 16,
-      "fontWeight": 400,
-      "lineHeight": 24,
+      "fontWeight": "400",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "large_normal_bold": {
+    "Tiny/None/Regular": {
+      "fontFamily": "Rubik",
+      "fontSize": 12,
+      "fontWeight": "400",
+      "lineHeightPx": 12,
+      "letterSpacing": 0
+    },
+    "Large/None/Bold": {
       "fontFamily": "Rubik",
       "fontSize": 18,
-      "fontWeight": 700,
-      "lineHeight": 24,
+      "fontWeight": "700",
+      "lineHeightPx": 18,
       "letterSpacing": 0
     },
-    "small_normal_bold": {
+    "Small/None/Bold": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 700,
-      "lineHeight": 20,
+      "fontWeight": "700",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     },
-    "small_normal_medium": {
-      "fontFamily": "Rubik",
-      "fontSize": 14,
-      "fontWeight": 500,
-      "lineHeight": 20,
-      "letterSpacing": 0
-    },
-    "regular_normal_medium": {
-      "fontFamily": "Rubik",
-      "fontSize": 16,
-      "fontWeight": 500,
-      "lineHeight": 24,
-      "letterSpacing": 0
-    },
-    "large_normal_regular": {
-      "fontFamily": "Rubik",
-      "fontSize": 18,
-      "fontWeight": 400,
-      "lineHeight": 24,
-      "letterSpacing": 0
-    },
-    "large_none_regular": {
-      "fontFamily": "Rubik",
-      "fontSize": 18,
-      "fontWeight": 400,
-      "lineHeight": 18,
-      "letterSpacing": 0
-    },
-    "regular_tight_medium": {
-      "fontFamily": "Rubik",
-      "fontSize": 16,
-      "fontWeight": 500,
-      "lineHeight": 20,
-      "letterSpacing": 0
-    },
-    "tiny_normal_regular": {
-      "fontFamily": "Inter",
-      "fontSize": 12,
-      "fontWeight": 400,
-      "lineHeight": 16,
-      "letterSpacing": 0
-    },
-    "regular_tight_bold": {
-      "fontFamily": "Rubik",
-      "fontSize": 16,
-      "fontWeight": 700,
-      "lineHeight": 20,
-      "letterSpacing": 0
-    },
-    "regular_normal_bold": {
-      "fontFamily": "Rubik",
-      "fontSize": 16,
-      "fontWeight": 700,
-      "lineHeight": 24,
-      "letterSpacing": 0
-    },
-    "title2": {
-      "fontFamily": "Rubik",
-      "fontSize": 32,
-      "fontWeight": 700,
-      "lineHeight": 36,
-      "letterSpacing": 0
-    },
-    "regular_none_bold": {
-      "fontFamily": "Rubik",
-      "fontSize": 16,
-      "fontWeight": 700,
-      "lineHeight": 16,
-      "letterSpacing": 0
-    },
-    "large_none_medium": {
-      "fontFamily": "Rubik",
-      "fontSize": 18,
-      "fontWeight": 500,
-      "lineHeight": 18,
-      "letterSpacing": 0
-    },
-    "regular_none_regular": {
-      "fontFamily": "Rubik",
-      "fontSize": 16,
-      "fontWeight": 400,
-      "lineHeight": 16,
-      "letterSpacing": 0
-    },
-    "tiny_none_regular": {
-      "fontFamily": "Rubik",
-      "fontSize": 12,
-      "fontWeight": 400,
-      "lineHeight": 12,
-      "letterSpacing": 0
-    },
-    "large_none_bold": {
-      "fontFamily": "Rubik",
-      "fontSize": 18,
-      "fontWeight": 700,
-      "lineHeight": 18,
-      "letterSpacing": 0
-    },
-    "small_none_bold": {
-      "fontFamily": "Rubik",
-      "fontSize": 14,
-      "fontWeight": 700,
-      "lineHeight": 14,
-      "letterSpacing": 0
-    },
-    "_small_one_liner_regular": {
+    "/Small/One Liner/Regular": {
       "fontFamily": "Inter",
       "fontSize": 14,
-      "fontWeight": 400,
-      "lineHeight": 14,
+      "fontWeight": "400",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     },
-    "small_tight_medium": {
+    "Small/Tight/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 500,
-      "lineHeight": 16,
+      "fontWeight": "500",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "small_tight_bold": {
+    "Small/Tight/Bold": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 700,
-      "lineHeight": 16,
+      "fontWeight": "700",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "small_none_medium": {
+    "Small/None/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 500,
-      "lineHeight": 14,
+      "fontWeight": "500",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     },
-    "tiny_normal_medium": {
+    "Tiny/Normal/Medium": {
       "fontFamily": "Inter",
       "fontSize": 12,
-      "fontWeight": 500,
-      "lineHeight": 16,
+      "fontWeight": "500",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "tiny_normal_bold": {
+    "Tiny/Normal/Bold": {
       "fontFamily": "Inter",
       "fontSize": 12,
-      "fontWeight": 700,
-      "lineHeight": 16,
+      "fontWeight": "700",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "tiny_none_medium": {
+    "Tiny/None/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 12,
-      "fontWeight": 500,
-      "lineHeight": 12,
+      "fontWeight": "500",
+      "lineHeightPx": 12,
       "letterSpacing": 0
     },
-    "tiny_none_bold": {
+    "Tiny/None/Bold": {
       "fontFamily": "Rubik",
       "fontSize": 12,
-      "fontWeight": 700,
-      "lineHeight": 12,
+      "fontWeight": "700",
+      "lineHeightPx": 12,
       "letterSpacing": 0
     },
-    "title1": {
+    "Title1": {
       "fontFamily": "Rubik",
       "fontSize": 48,
-      "fontWeight": 700,
-      "lineHeight": 56,
+      "fontWeight": "700",
+      "lineHeightPx": 56,
       "letterSpacing": 0
     },
-    "title3": {
+    "Title3": {
       "fontFamily": "Rubik",
       "fontSize": 24,
-      "fontWeight": 700,
-      "lineHeight": 32,
+      "fontWeight": "700",
+      "lineHeightPx": 32,
       "letterSpacing": 0
     },
-    "small_normal_regular": {
+    "Small/Normal/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 400,
-      "lineHeight": 20,
+      "fontWeight": "400",
+      "lineHeightPx": 20,
       "letterSpacing": 0
     },
-    "regular_none_medium": {
+    "Regular/None/Medium": {
       "fontFamily": "Rubik",
       "fontSize": 16,
-      "fontWeight": 500,
-      "lineHeight": 16,
+      "fontWeight": "500",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "regular_tight_regular": {
+    "Regular/Tight/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 16,
-      "fontWeight": 400,
-      "lineHeight": 20,
+      "fontWeight": "400",
+      "lineHeightPx": 20,
       "letterSpacing": 0
     },
-    "small_none_regular": {
+    "Small/None/Regular": {
       "fontFamily": "Rubik",
       "fontSize": 14,
-      "fontWeight": 400,
-      "lineHeight": 14,
+      "fontWeight": "400",
+      "lineHeightPx": 14,
       "letterSpacing": 0
     }
   },
-  "effects": {
-    "shadow_large": [
-      {
-        "type": "dropShadow",
-        "color": "#141414",
-        "opacity": 0.08,
-        "offsetX": 0,
-        "offsetY": 1,
-        "radius": 24,
-        "spread": 8
-      }
-    ],
-    "sample": [
-      {
-        "type": "dropShadow",
-        "color": "#000000",
-        "opacity": 0.05,
-        "offsetX": 0,
-        "offsetY": 4.223656177520752,
-        "radius": 14.078854560852053,
-        "spread": 0
-      }
-    ],
-    "shadow_small": [
-      {
-        "type": "dropShadow",
-        "color": "#141414",
-        "opacity": 0.08,
-        "offsetX": 0,
-        "offsetY": 0,
-        "radius": 8,
-        "spread": 0
+  "shadows": {
+    "Shadow/Large": {
+      "shadowColor": "#141414",
+      "shadowOffset": {
+        "width": 0,
+        "height": 1
       },
-      {
-        "type": "dropShadow",
-        "color": "#141414",
-        "opacity": 0.04,
-        "offsetX": 0,
-        "offsetY": 0,
-        "radius": 1,
-        "spread": 0
-      }
-    ],
-    "shadow_medium": [
-      {
-        "type": "dropShadow",
-        "color": "#141414",
-        "opacity": 0.08,
-        "offsetX": 0,
-        "offsetY": 1,
-        "radius": 8,
-        "spread": 2
+      "shadowOpacity": 0.07999999821186066,
+      "shadowRadius": 24,
+      "elevation": 12
+    },
+    "Shadow/Small": {
+      "shadowColor": "#141414",
+      "shadowOffset": {
+        "width": 0,
+        "height": 0
       },
-      {
-        "type": "dropShadow",
-        "color": "#141414",
-        "opacity": 0.08,
-        "offsetX": 0,
-        "offsetY": 0,
-        "radius": 1,
-        "spread": 0
-      }
-    ]
+      "shadowOpacity": 0.07999999821186066,
+      "shadowRadius": 8,
+      "elevation": 4
+    },
+    "Shadow/Medium": {
+      "shadowColor": "#141414",
+      "shadowOffset": {
+        "width": 0,
+        "height": 1
+      },
+      "shadowOpacity": 0.07999999821186066,
+      "shadowRadius": 8,
+      "elevation": 4
+    }
   }
 }

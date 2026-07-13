@@ -1,110 +1,89 @@
 {
-  "_meta": {
-    "source": "Gofit - Fitness & Workout App UI Kit (Preview) (Copy)",
-    "fileKey": "1ny3185B0kFt9sR4TkZx9P",
-    "extractedAt": "2026-06-02T16:00:00Z",
-    "method": "document-tree-walk (no named styles)"
-  },
   "colors": {
-    "primary": {
-      "hex": "#304FFE",
-      "occurrences": 121
+    "#FFFFFF": 129,
+    "#FFD300": 19,
+    "#424242": 8,
+    "#212121": 23,
+    "#304FFE": 121,
+    "#6842FF": 14,
+    "#181A20": 3,
+    "#130F26": 4,
+    "#1F222A": 4,
+    "#DADADA": 24,
+    "#000000": 32,
+    "#E0E0E0": 8,
+    "#F5F5F5": 2,
+    "#35383F": 7,
+    "#C4C4C4": 2,
+    "#FAFAFA": 4,
+    "#9E9E9E": 2,
+    "#616161": 2,
+    "#F0ECFF": 1,
+    "#262A35": 1,
+    "#50B0FF": 1,
+    "#FEFFFF": 1,
+    "#D9D9D9": 8
+  },
+  "sorted_palette": [
+    {
+      "color": "#FFFFFF",
+      "count": 129
     },
-    "white": {
-      "hex": "#FFFFFF",
-      "occurrences": 100
+    {
+      "color": "#304FFE",
+      "count": 121
     },
-    "black": {
-      "hex": "#000000",
-      "occurrences": 35
+    {
+      "color": "#000000",
+      "count": 32
     },
-    "gray900": {
-      "hex": "#212121",
-      "occurrences": 33
+    {
+      "color": "#DADADA",
+      "count": 24
     },
-    "gray300": {
-      "hex": "#DADADA",
-      "occurrences": 24
+    {
+      "color": "#212121",
+      "count": 23
     },
-    "yellow": {
-      "hex": "#FFD300",
-      "occurrences": 19
+    {
+      "color": "#FFD300",
+      "count": 19
     },
-    "gray400": {
-      "hex": "#E0E0E0",
-      "occurrences": 16
+    {
+      "color": "#6842FF",
+      "count": 14
     },
-    "gray200": {
-      "hex": "#EEEEEE",
-      "occurrences": 14
+    {
+      "color": "#424242",
+      "count": 8
     },
-    "purple": {
-      "hex": "#6842FF",
-      "occurrences": 14
+    {
+      "color": "#E0E0E0",
+      "count": 8
     },
-    "gray800": {
-      "hex": "#35383F",
-      "occurrences": 11
+    {
+      "color": "#D9D9D9",
+      "count": 8
     },
-    "gray700": {
-      "hex": "#424242",
-      "occurrences": 8
+    {
+      "color": "#35383F",
+      "count": 7
     },
-    "gray350": {
-      "hex": "#D9D9D9",
-      "occurrences": 8
+    {
+      "color": "#130F26",
+      "count": 4
     },
-    "darkNavy": {
-      "hex": "#130F26",
-      "occurrences": 4
+    {
+      "color": "#1F222A",
+      "count": 4
     },
-    "darkCharcoal": {
-      "hex": "#1F222A",
-      "occurrences": 4
+    {
+      "color": "#FAFAFA",
+      "count": 4
     },
-    "gray100": {
-      "hex": "#FAFAFA",
-      "occurrences": 4
-    },
-    "darkest": {
-      "hex": "#181A20",
-      "occurrences": 3
-    },
-    "gray500": {
-      "hex": "#BDBDBD",
-      "occurrences": 3
-    },
-    "gray150": {
-      "hex": "#F5F5F5",
-      "occurrences": 2
-    },
-    "gray450": {
-      "hex": "#C4C4C4",
-      "occurrences": 2
-    },
-    "gray600": {
-      "hex": "#9E9E9E",
-      "occurrences": 2
-    },
-    "gray650": {
-      "hex": "#616161",
-      "occurrences": 2
-    },
-    "purpleLight": {
-      "hex": "#F0ECFF",
-      "occurrences": 1
-    },
-    "darkSlate": {
-      "hex": "#262A35",
-      "occurrences": 1
-    },
-    "skyBlue": {
-      "hex": "#50B0FF",
-      "occurrences": 1
-    },
-    "offWhite": {
-      "hex": "#FEFFFF",
-      "occurrences": 1
+    {
+      "color": "#181A20",
+      "count": 3
     }
-  }
+  ]
 }

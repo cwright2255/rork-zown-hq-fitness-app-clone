@@ -1,122 +1,105 @@
 {
-  "_meta": {
-    "source": "Free Fitness App UI Kit (Community) (Copy)",
-    "fileKey": "kdpHT75MhQdS0iF2OPKYZ4",
-    "extractedAt": "2026-06-02T16:00:00Z",
-    "method": "styles-map + node-resolution",
-    "styleCounts": {
-      "fill": 25,
-      "text": 12,
-      "effect": 0
-    }
-  },
   "colors": {
-    "colors": {
-      "black_20%": "#040415",
-      "white_100%": "#FFFFFF",
-      "black_100%": "#040415",
-      "black_40%": "#040415",
-      "orange_100%": "#F15223",
-      "gold_100%": "#FFB432",
-      "pink_100%": "#FF7D7D",
-      "purple_100%": "#5041AB",
-      "cyan_100%": "#69E0C7",
-      "navyblue_100%": "#161626",
-      "gray_100%": "#9F9F9F",
-      "gray_40%": "#9F9F9F",
-      "white_5%": "#FFFFFF"
-    },
-    "other": {
-      "new": "#000000"
-    },
-    "socials": {
-      "facebook": "#1D4BFF"
-    }
+    "Colors/Black/20%": "#040415",
+    "Colors/White/100%": "#FFFFFF",
+    "Colors/Black/100%": "#040415",
+    "Colors/Black/40%": "#040415",
+    "Colors/Orange/100%": "#F15223",
+    "Colors/Gold/100%": "#FFB432",
+    "Colors/Pink/100%": "#FF7D7D",
+    "Colors/Purple/100%": "#5041AB",
+    "Colors/Cyan/100%": "#69E0C7",
+    "Colors/Navy-blue/100%": "#161626",
+    "Colors/Gray/100%": "#9F9F9F",
+    "Colors/Gray/40%": "#9F9F9F",
+    "Socials/Facebook": "#1D4BFF",
+    "Colors/White/5%": "#FFFFFF"
   },
   "typography": {
-    "headline_06": {
+    "Headline/06": {
       "fontFamily": "Circular Std",
       "fontSize": 14,
-      "fontWeight": 700,
-      "lineHeight": 24,
+      "fontWeight": "700",
+      "lineHeightPx": 24,
       "letterSpacing": 0
     },
-    "headline_05": {
+    "Headline/05": {
       "fontFamily": "Circular Std",
       "fontSize": 16,
-      "fontWeight": 700,
-      "lineHeight": 26,
+      "fontWeight": "700",
+      "lineHeightPx": 26,
       "letterSpacing": 0
     },
-    "paragraph_03": {
+    "Paragraph/03": {
       "fontFamily": "Circular Std",
       "fontSize": 14,
-      "fontWeight": 400,
-      "lineHeight": 24,
+      "fontWeight": "400",
+      "lineHeightPx": 24,
       "letterSpacing": 0
     },
-    "headline_bold___h4": {
+    "Headline bold / h4": {
       "fontFamily": "Roboto",
       "fontSize": 28,
-      "fontWeight": 700,
-      "lineHeight": 32.8125,
+      "fontWeight": "700",
+      "lineHeightPx": 32.8125,
       "letterSpacing": 0
     },
-    "body_body1": {
+    "Body/body1": {
       "fontFamily": "Roboto",
       "fontSize": 16,
-      "fontWeight": 400,
-      "lineHeight": 23,
+      "fontWeight": "400",
+      "lineHeightPx": 23,
       "letterSpacing": 0.5
     },
-    "paragraph_04": {
+    "Paragraph/04": {
       "fontFamily": "Circular Std",
       "fontSize": 12,
-      "fontWeight": 400,
-      "lineHeight": 16,
+      "fontWeight": "400",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "headline_04": {
+    "Headline/04": {
       "fontFamily": "Circular Std",
       "fontSize": 18,
-      "fontWeight": 700,
-      "lineHeight": 28,
+      "fontWeight": "700",
+      "lineHeightPx": 28,
       "letterSpacing": 0
     },
-    "paragraph_02": {
+    "Paragraph/02": {
       "fontFamily": "Circular Std",
       "fontSize": 16,
-      "fontWeight": 400,
-      "lineHeight": 26,
+      "fontWeight": "400",
+      "lineHeightPx": 26,
       "letterSpacing": 0
     },
-    "headline_01": {
+    "Headline/01": {
       "fontFamily": "Circular Std",
       "fontSize": 36,
-      "fontWeight": 700,
-      "lineHeight": 46,
+      "fontWeight": "700",
+      "lineHeightPx": 46,
       "letterSpacing": 0
     },
-    "headline_07": {
+    "Headline/07": {
       "fontFamily": "Circular Std",
       "fontSize": 12,
-      "fontWeight": 700,
-      "lineHeight": 16,
+      "fontWeight": "700",
+      "lineHeightPx": 16,
       "letterSpacing": 0
     },
-    "headline_02": {
+    "Headline/02": {
       "fontFamily": "Circular Std",
       "fontSize": 24,
-      "fontWeight": 700,
-      "lineHeight": 34,
+      "fontWeight": "700",
+      "lineHeightPx": 34,
       "letterSpacing": 0
     },
-    "paragraph_01": {
+    "Paragraph/01": {
       "fontFamily": "Circular Std",
       "fontSize": 18,
-      "fontWeight": 400,
-      "lineHeight": 28,
+      "fontWeight": "400",
+      "lineHeightPx": 28,
       "letterSpacing": 0
     }
-  }
+  },
+  "shadows": {}
 }
