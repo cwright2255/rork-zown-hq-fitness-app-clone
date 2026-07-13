@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image, Dimensions } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotifications } from '@/services/notificationService';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST Ã¢ÂÂ before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST ÃÂ¢ÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -152,7 +153,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component Ã¢ÂÂ rendered INSIDE expo-router's navigation context
+// Inner component ÃÂ¢ÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 function RootLayoutInner() {
   const pathname = usePathname();
@@ -315,18 +316,17 @@ function RootLayoutInner() {
 
   return (
     <View style={styles.container}>
-      {showSplash && (
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000000', zIndex: 9999, justifyContent: 'center', alignItems: 'center', opacity: fadeAnim }]}>
-          <Animated.Image 
-            source={require('../../assets/branding/zown-logo-512.png')} 
-            style={{ width: 140, height: 140, transform: [{ scale: scaleAnim }], opacity: logoOpacity }} 
-            resizeMode="contain"
+            {showSplash && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', zIndex: 9999, alignItems: 'center', justifyContent: 'center' }}>
+          <LottieView
+            source={require('../assets/animations/zown-glitch.json')}
+            autoPlay
+            loop={false}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+            onAnimationFinish={() => setShowSplash(false)}
           />
-          <Animated.View style={{ opacity: textFadeAnim, transform: [{ translateY: textSlideAnim }], marginTop: 24, alignItems: 'center' }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '800', letterSpacing: 4, marginBottom: 8 }}>ZOWN</Text>
-            <Text style={{ color: '#00FF66', fontSize: 12, fontWeight: '700', letterSpacing: 2 }}>OWN THE DAY</Text>
-          </Animated.View>
-        </Animated.View>
+        </View>
       )}
       <StatusBar style="auto" />
       <RootLayoutNav
