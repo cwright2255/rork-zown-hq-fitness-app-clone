@@ -3,7 +3,7 @@ import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -100,95 +100,167 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
+// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 
 function SplashAnimation({ onFinish }) {
-  const [lottieError, setLottieError] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const textFadeAnim = useRef(new Animated.Value(0)).current;
+  const containerOpacity = useRef(new Animated.Value(1)).current;
+  
+  // Base values for logo
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.7)).current;
+  const logoTranslateX = useRef(new Animated.Value(0)).current;
+  
+  // RGB channel split animations
+  const redTranslateX = useRef(new Animated.Value(0)).current;
+  const blueTranslateX = useRef(new Animated.Value(0)).current;
+  const redOpacity = useRef(new Animated.Value(0)).current;
+  const blueOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Text animation
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const textTranslateX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (lottieError) {
-      // Fallback simples animation
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        })
-      ]).start(() => {
-        Animated.timing(textFadeAnim, {
-          toValue: 1,
-          duration: 600,
+    // 1. Initial fade-in of the central logo
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      // Fade in the subtitle text shortly after
+      Animated.timing(textOpacity, {
+        toValue: 0.8,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
+      // Trigger sequence of glitches between 0.5s and 2.2s
+      const runGlitch = (delay, duration, shift, splitShift, opacityFlicker = false) => {
+        return setTimeout(() => {
+          // Perform horizontal shift of central logo
+          Animated.sequence([
+            Animated.timing(logoTranslateX, { toValue: shift, duration: duration / 2, useNativeDriver: true }),
+            Animated.timing(logoTranslateX, { toValue: -shift / 2, duration: duration / 2, useNativeDriver: true }),
+            Animated.timing(logoTranslateX, { toValue: 0, duration: 50, useNativeDriver: true })
+          ]).start();
+
+          // Move the RGB channel split duplicates
+          redTranslateX.setValue(-splitShift);
+          blueTranslateX.setValue(splitShift);
+          redOpacity.setValue(0.7);
+          blueOpacity.setValue(0.7);
+
+          if (opacityFlicker) {
+            logoOpacity.setValue(0.3);
+            textOpacity.setValue(0.2);
+          }
+
+          setTimeout(() => {
+            redOpacity.setValue(0);
+            blueOpacity.setValue(0);
+            if (opacityFlicker) {
+              logoOpacity.setValue(1);
+              textOpacity.setValue(0.8);
+            }
+          }, duration);
+        }, delay);
+      };
+
+      // Timeline of multiple rapid glitch events
+      const t1 = runGlitch(200, 80, 15, 25, true);    // Early quick glitch
+      const t2 = runGlitch(600, 120, -12, -20, false); // Minor glitch
+      const t3 = runGlitch(1100, 60, 25, 35, true);   // Extreme fast glitch
+      const t4 = runGlitch(1200, 100, -8, -12, false); // Instant recovery echo
+      const t5 = runGlitch(1700, 150, 18, 28, true);   // Pre-exit heavy glitch
+
+      // 2. After 2.1 seconds, initiate final fade out of everything
+      const exitTimeout = setTimeout(() => {
+        Animated.timing(containerOpacity, {
+          toValue: 0,
+          duration: 400,
           useNativeDriver: true,
         }).start(() => {
-          setTimeout(() => {
-            Animated.parallel([
-              Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 400,
-                useNativeDriver: true,
-              }),
-              Animated.timing(textFadeAnim, {
-                toValue: 0,
-                duration: 400,
-                useNativeDriver: true,
-              })
-            ]).start(() => {
-              onFinish();
-            });
-          }, 1000);
+          onFinish();
         });
-      });
-    }
-  }, [lottieError]);
+      }, 2100);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+        clearTimeout(t5);
+        clearTimeout(exitTimeout);
+      };
+    });
+  }, []);
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000000', zIndex: 9999, justifyContent: 'center', alignItems: 'center' }]}>
-      {!lottieError ? (
-        <LottieView
-          source={require('../assets/animations/splash-screen.json')}
-          autoPlay
-          loop={false}
-          style={{ width: 300, height: 300 }}
-          onAnimationFinish={() => {
-            // Fade out everything to black
-            Animated.timing(fadeAnim, {
-              toValue: 0,
-              duration: 400,
-              useNativeDriver: true,
-            }).start(() => {
-              onFinish();
-            });
-          }}
-          onError={() => {
-            console.warn('Lottie failed to load, falling back to logo splash.');
-            setLottieError(true);
-          }}
-        />
-      ) : (
-        <>
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center' }}>
-            <Image
-              source={require('../assets/branding/zown-logo-512.png')}
-              style={{ width: 140, height: 140, resizeMode: 'contain' }}
-            />
-          </Animated.View>
-          <Animated.View style={{ opacity: textFadeAnim, marginTop: 24 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: 3 }}>
-              OWN THE DAY
-            </Text>
-          </Animated.View>
-        </>
-      )}
-    </View>
+    <Animated.View style={[
+      StyleSheet.absoluteFill,
+      { 
+        backgroundColor: '#000000', 
+        zIndex: 9999, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        opacity: containerOpacity
+      }
+    ]}>
+      {/* Container for logo glitch layers */}
+      <View style={{ width: 140, height: 140, justifyContent: 'center', alignItems: 'center' }}>
+        
+        {/* Red Tint Channel Split Duplicate */}
+        <Animated.View style={{
+          position: 'absolute',
+          opacity: redOpacity,
+          transform: [{ translateX: redTranslateX }, { scale: logoScale }],
+        }}>
+          <Image
+            source={require('../assets/branding/zown-logo-512.png')}
+            style={{ width: 140, height: 140, resizeMode: 'contain', tintColor: '#FF0055' }}
+          />
+        </Animated.View>
+
+        {/* Blue/Cyan Tint Channel Split Duplicate */}
+        <Animated.View style={{
+          position: 'absolute',
+          opacity: blueOpacity,
+          transform: [{ translateX: blueTranslateX }, { scale: logoScale }],
+        }}>
+          <Image
+            source={require('../assets/branding/zown-logo-512.png')}
+            style={{ width: 140, height: 140, resizeMode: 'contain', tintColor: '#00FFFF' }}
+          />
+        </Animated.View>
+
+        {/* Central Base Logo */}
+        <Animated.View style={{
+          opacity: logoOpacity,
+          transform: [{ translateX: logoTranslateX }, { scale: logoScale }],
+        }}>
+          <Image
+            source={require('../assets/branding/zown-logo-512.png')}
+            style={{ width: 140, height: 140, resizeMode: 'contain' }}
+          />
+        </Animated.View>
+
+      </View>
+
+      {/* Subtitle "OWN THE DAY" with matching slight opacity shift */}
+      <Animated.View style={{ opacity: textOpacity, marginTop: 24, transform: [{ translateX: logoTranslateX }] }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: 4 }}>
+          OWN THE DAY
+        </Text>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
