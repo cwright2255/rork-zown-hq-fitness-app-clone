@@ -24,6 +24,11 @@ export const useSettingsStore = create(
       weeklySummary: true,
       showInLeaderboards: true,
       allowFriendRequests: true,
+      // 'indefinite' matches current (pre-existing) behavior — sessions
+      // never expired before this setting existed, so defaulting to
+      // anything else would silently log out existing users the moment
+      // this ships. '1month' | '3months' | 'indefinite'.
+      rememberMeDuration: 'indefinite',
 
       loadSettings: async (uid) => {
         if (!uid) return;
@@ -47,6 +52,7 @@ export const useSettingsStore = create(
               weeklySummary: d.weeklySummary !== undefined ? d.weeklySummary : true,
               showInLeaderboards: d.showInLeaderboards !== undefined ? d.showInLeaderboards : true,
               allowFriendRequests: d.allowFriendRequests !== undefined ? d.allowFriendRequests : true,
+              rememberMeDuration: d.rememberMeDuration || 'indefinite',
             });
           }
         } catch (e) {
@@ -75,6 +81,7 @@ export const useSettingsStore = create(
             weeklySummary: s.weeklySummary,
             showInLeaderboards: s.showInLeaderboards,
             allowFriendRequests: s.allowFriendRequests,
+            rememberMeDuration: s.rememberMeDuration,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -110,6 +117,7 @@ export const useSettingsStore = create(
         weeklySummary: s.weeklySummary,
         showInLeaderboards: s.showInLeaderboards,
         allowFriendRequests: s.allowFriendRequests,
+        rememberMeDuration: s.rememberMeDuration,
       }),
     }
   )

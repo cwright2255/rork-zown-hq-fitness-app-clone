@@ -393,14 +393,116 @@ equipment) =>
 
 export const getFitnessMetrics = async (_userId) => {
   try {
+    const wearableData = await wearableService.getMoodDataFromWearables();
+    const devices = wearableService.getConnectedDevices();
+    if (!devices.length) {
+      // No connected health source — return nulls rather than fabricated numbers
+      // so the UI can show a real "connect a device" empty state instead of
+      // silently displaying invented stats.
+      return {
+        steps: null, sleep: null, activity: null, heartRate: null,
+        source: null,
+      };
+    }
+    const raw = await wearableService.syncData(devices[0].id);
     return {
-      steps: { daily: 8500, weekly: 52000, monthly: 220000 },
-      sleep: { duration: 7.5, quality: 'good', deepSleep: 2.3, remSleep: 1.8 },
-      activity: { activeMinutes: 45, caloriesBurned: 350, standingHours: 8 },
-      heartRate: { resting: 65, average: 72, max: 145 }
+      steps: raw ? { daily: raw.steps, weekly: null, monthly: null } : null,
+      sleep: raw ? { duration: raw.sleepHours, quality: wearableData?.sleep, deepSleep: null, remSleep: null } : null,
+      activity: raw ? { activeMinutes: raw.activeMinutes, caloriesBurned: raw.calories, standingHours: null } : null,
+      heartRate: raw ? { resting: raw.restingHeartRate, average: raw.heartRate, max: null } : null,
+      source: devices[0].name,
     };
   } catch (error) {
     console.error('Error getting fitness metrics', error);
     throw new Error('Failed to retrieve fitness metrics. Please try again.');
+  }
+};
+
+/**
+ * AI commentary on a user's body-composition scan history, in light of their
+ * stated goal. Takes real scan trend data (from bodyCompositionStore, backed
+ * by Firestore) — never fabricates a trend the data doesn't show.
+ * @param {{ goal: string, age?: number, scans: Array<{date:string, measurements:object|null}> }} params
+ */
+export const generateBodyCompositionInsight = async ({ goal, age, scans }) => {
+  if (!scans || scans.length === 0) {
+    return {
+      summary: 'No scans yet — take your first body scan to start tracking progress.',
+      trend: 'none',
+    };
+  }
+
+  const sys = {
+    role: 'system',
+    content:
+      'You are a supportive, honest fitness coach reviewing a body-composition scan trend for a user. ' +
+      'You will be given a goal, optionally the user\'s age, and a time-ordered list of scan measurements ' +
+      '(circumferences in cm, estimated body fat % and BMI where available). Body-fat percentage derived from ' +
+      'photos has real error margins (roughly ±3-5 percentage points is typical for single/dual-image ' +
+      'estimation) — never state it with false precision or as a clinical diagnosis. Age, if provided, is for ' +
+      'contextualizing realistic pacing only (e.g. don\'t suggest timelines typical of a 20-year-old to a ' +
+      '55-year-old) — never mention it as a health risk factor or diagnose anything from it. Comment only on ' +
+      'what the data actually shows; do not invent improvement or decline that is not supported by the numbers. ' +
+      'Respond with strict JSON only: ' +
+      '{"summary": string, "trend": "improving"|"steady"|"declining"|"mixed", "suggestion": string}.',
+  };
+  const usr = {
+    role: 'user',
+    content: JSON.stringify({ goal, age: age ?? null, scans }),
+  };
+
+  try {
+    const data = await postLLM([sys, usr], 20000, 1);
+    const text = data?.choices?.[0]?.message?.content ?? data?.content ?? '';
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      summary: parsed.summary || 'Scan recorded.',
+      trend: parsed.trend || 'steady',
+      suggestion: parsed.suggestion || '',
+    };
+  } catch (error) {
+    console.error('Error generating body composition insight', error);
+    return {
+      summary: 'Scan saved. AI commentary is temporarily unavailable.',
+      trend: 'unknown',
+    };
+  }
+};
+
+/**
+ * AI commentary on a user's real cross-domain training load (see
+ * lib/trainingLoad.js — a real acute:chronic workload ratio computed from
+ * actual completed workouts, runs, and hikes). Takes the already-computed
+ * real numbers; never asked to estimate or guess the ratio itself.
+ * @param {{ trainingLoad: object }} params
+ */
+export const generateTrainingLoadInsight = async ({ trainingLoad }) => {
+  if (!trainingLoad || trainingLoad.zone === 'insufficient_data') return null;
+
+  const sys = {
+    role: 'system',
+    content:
+      'You are a supportive, honest fitness coach commenting on a real acute:chronic training load reading ' +
+      '(a real sports-science method comparing someone\'s last 7 days of training to their typical 4-week ' +
+      'average, combined across whatever mix of workouts, runs, and hikes they actually did). You will be ' +
+      'given the real ratio, zone, and the real underlying numbers. Comment only on what the data actually ' +
+      'shows — never invent a cause (an injury, a specific life event) the data does not support. Be clear ' +
+      'this is a training-load awareness signal, not a medical or injury diagnosis — some real, published ' +
+      'research questions how predictive this specific method is, so stay measured rather than alarmist, ' +
+      'especially in the high-risk zone. Keep it to 1-2 sentences. Respond with strict JSON only: ' +
+      '{"comment": string}.',
+  };
+  const usr = { role: 'user', content: JSON.stringify(trainingLoad) };
+
+  try {
+    const data = await postLLM([sys, usr], 15000, 1);
+    const text = data?.choices?.[0]?.message?.content ?? data?.content ?? '';
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    return parsed.comment || null;
+  } catch (error) {
+    console.error('Error generating training load insight', error);
+    return null;
   }
 };

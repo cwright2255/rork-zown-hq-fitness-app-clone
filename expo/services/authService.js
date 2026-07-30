@@ -63,7 +63,7 @@ class AuthService {
         console.warn('[AuthService] Firebase not configured - using offline login');
         const user = buildUserShape(null, { email, name: email.split('@')[0] });
         const token = 'offline-session-' + Date.now();
-        await AsyncStorage.setItem('auth_token', token);
+        await this._storeToken(token);
         return { user, token, requiresMFA: false };
       }
       const { signInWithEmailAndPassword } = require('firebase/auth');
@@ -73,7 +73,7 @@ class AuthService {
 
       const user = buildUserShape(fbUser, { email: fbUser.email || email });
       const token = await fbUser.getIdToken().catch(() => 'firebase-session');
-      await AsyncStorage.setItem('auth_token', token);
+      await this._storeToken(token);
 
       return {
         user,
@@ -93,7 +93,7 @@ class AuthService {
         console.warn('[AuthService] Firebase not configured - using offline registration');
         const user = buildUserShape(null, { email, name: name || email.split('@')[0] });
         const token = 'offline-session-' + Date.now();
-        await AsyncStorage.setItem('auth_token', token);
+        await this._storeToken(token);
         return { user, token, requiresMFA: false };
       }
       const { createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
@@ -111,7 +111,7 @@ class AuthService {
 
       const user = buildUserShape(fbUser, { name, email: fbUser.email || email });
       const token = await fbUser.getIdToken().catch(() => 'firebase-session');
-      await AsyncStorage.setItem('auth_token', token);
+      await this._storeToken(token);
 
       return { user, token };
     } catch (error) {
@@ -151,7 +151,7 @@ class AuthService {
       profileImage: 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=faces'
     });
     const token = `${provider}-mock-token`;
-    await AsyncStorage.setItem('auth_token', token);
+    await this._storeToken(token);
     return { user, token };
   }
 
@@ -163,7 +163,7 @@ class AuthService {
       }
       const user = buildUserShape(null, { email, name: email.split('@')[0] });
       const token = 'mfa-session-token';
-      await AsyncStorage.setItem('auth_token', token);
+      await this._storeToken(token);
       return { user, token };
     } catch {
       throw new Error('MFA verification failed');
@@ -174,6 +174,7 @@ class AuthService {
     try {
       console.log('[AuthService] Logging out - clearing auth token');
       await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_token_issued_at');
 
       try {
         const { signOut } = require('firebase/auth');
@@ -196,9 +197,58 @@ class AuthService {
     return await AsyncStorage.getItem('auth_token');
   }
 
+  // Stores the token alongside the moment it was issued — isAuthenticated()
+  // below is what actually uses that timestamp to decide whether a
+  // "remembered" session has expired.
+  async _storeToken(token) {
+    await AsyncStorage.setItem('auth_token', token);
+    await AsyncStorage.setItem('auth_token_issued_at', new Date().toISOString());
+  }
+
+  // Session length is user-configurable (Settings → Account → "Keep me
+  // signed in") rather than hardcoded, so this reads the live setting
+  // rather than assuming a fixed duration. Reading Zustand state directly
+  // here (outside a React component) is the same pattern used elsewhere
+  // in this app for cross-store reads — see e.g. useWorkoutStore.getState()
+  // calls in app/workout/active.jsx.
   async isAuthenticated() {
     const token = await this.getStoredToken();
-    return !!token;
+    if (!token) return false;
+
+    let duration = 'indefinite';
+    try {
+      const { useSettingsStore } = require('@/store/settingsStore');
+      duration = useSettingsStore.getState().rememberMeDuration || 'indefinite';
+    } catch (e) {
+      // Settings store not ready yet (e.g. very first cold start before
+      // persisted state rehydrates) — fail open to "indefinite" rather
+      // than logging a real, valid session out over a timing race.
+    }
+
+    if (duration === 'indefinite') return true;
+
+    const issuedAtRaw = await AsyncStorage.getItem('auth_token_issued_at');
+    if (!issuedAtRaw) {
+      // A token exists but predates this feature (no timestamp was ever
+      // recorded for it) — treat as freshly issued rather than
+      // immediately expiring a session that was working fine yesterday.
+      await AsyncStorage.setItem('auth_token_issued_at', new Date().toISOString());
+      return true;
+    }
+
+    const issuedAt = new Date(issuedAtRaw).getTime();
+    const maxAgeMs = duration === '1month'
+      ? 30 * 24 * 60 * 60 * 1000
+      : duration === '3months'
+        ? 90 * 24 * 60 * 60 * 1000
+        : Infinity;
+
+    const expired = Date.now() - issuedAt > maxAgeMs;
+    if (expired) {
+      await this.logout();
+      return false;
+    }
+    return true;
   }
 }
 

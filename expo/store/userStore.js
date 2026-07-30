@@ -9,10 +9,10 @@ import { useExpStore } from './expStore';
 
 // Optimized default fitness metrics - reduced data size
 const createDefaultFitnessMetrics = () => ({
-  weight: 70,
-  height: 175,
-  bodyFat: 15,
-  muscleMass: 35
+  weight: null,
+  height: null,
+  bodyFat: null,
+  muscleMass: null
 });
 
 // Optimized default user preferences
@@ -40,8 +40,8 @@ const createDefaultUserPreferences = () => ({
 
 // Optimized default streak data
 const createDefaultStreakData = () => ({
-  currentStreak: 3,
-  longestStreak: 5,
+  currentStreak: 0,
+  longestStreak: 0,
   streakDates: []
 });
 
@@ -56,13 +56,13 @@ const generateLevelRequirements = () => {
 
 // Simplified EXP system - only essential levels
 const createDefaultExpSystem = () => ({
-  totalExp: 150,
-  level: 2,
-  expToNextLevel: 2100,
+  totalExp: 0,
+  level: 1,
+  expToNextLevel: 1000,
   expSources: {
-    workouts: 100,
-    nutrition: 30,
-    social: 20
+    workouts: 0,
+    nutrition: 0,
+    social: 0
   },
   levelRequirements: generateLevelRequirements()
 });
@@ -97,20 +97,26 @@ const createDefaultSubscription = () => ({
   autoRenew: false
 });
 
-// Lazy default user creation
+// Lazy default user creation — these are neutral, honest defaults (zero
+// progress, no fabricated identity), not fake data. This used to return
+// exp:150/level:2/streak:3/name:'Fitness Enthusiast' — a fully fabricated
+// profile that could appear for a genuinely new user (before real Firestore
+// data loads) or, worse, for a RETURNING onboarded user whose persisted
+// state failed to load (see the onRehydrateStorage case below), making it
+// look like real progress they never actually made.
 const createDefaultUser = () => ({
   id: 'default-user',
-  name: 'Fitness Enthusiast',
-  email: 'user@example.com',
-  profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
+  name: '',
+  email: '',
+  profileImage: null,
   joinDate: new Date().toISOString(),
   fitnessLevel: 'beginner',
-  goals: ['strength', 'weight-loss', 'endurance'],
-  exp: 150,
-  xp: 150,
-  expToNextLevel: 2100,
-  level: 2,
-  streak: 3,
+  goals: [],
+  exp: 0,
+  xp: 0,
+  expToNextLevel: 1000,
+  level: 1,
+  streak: 0,
   streakData: createDefaultStreakData(),
   preferences: createDefaultUserPreferences(),
   fitnessMetrics: createDefaultFitnessMetrics(),
