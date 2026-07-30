@@ -9,7 +9,7 @@
       "distribution": "internal",
       "channel": "development",
       "ios": {
-        "simulator": false,
+        "simulator": true,
         "buildConfiguration": "Debug"
       },
       "android": {
