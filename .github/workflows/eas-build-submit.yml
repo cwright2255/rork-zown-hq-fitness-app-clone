@@ -1,10 +1,8 @@
-name: Publish EAS Update
+name: EAS Build and Submit to App Stores
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 jobs:
-  update:
+  build-and-submit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,8 +12,8 @@ jobs:
       - name: Install dependencies
         working-directory: expo
         run: npm install --legacy-peer-deps
-      - name: Publish EAS Update
+      - name: Build and submit
         working-directory: expo
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest update --branch development --message "OTA update from CI" --non-interactive --platform all
+        run: npx eas-cli@latest build --platform all --auto-submit --non-interactive
