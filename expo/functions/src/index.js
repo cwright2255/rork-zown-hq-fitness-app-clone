@@ -13,6 +13,25 @@ const SPOTIFY_CLIENT_ID = defineSecret('SPOTIFY_CLIENT_ID');
 const SPOTIFY_CLIENT_SECRET = defineSecret('SPOTIFY_CLIENT_SECRET');
 const RADAR_LIVE_SECRET_KEY = defineSecret('RADAR_LIVE_SECRET_KEY');
 const RADAR_TEST_SECRET_KEY = defineSecret('RADAR_TEST_SECRET_KEY');
+// ROOK aggregates WHOOP, Oura, Garmin, Fitbit, Withings, Polar, Dexcom
+// under one integration — Apple Health / Health Connect (Apple Watch,
+// Google/Wear OS watches) go through the on-device ROOK SDK already
+// wired in app/health.jsx, a separate, real connection model from these.
+// ROOK's /authorizer, /authorized, /revoke_auth, and /processed_data
+// endpoints all require full Basic Auth (client_uuid:client_secret) per
+// ROOK's own current API reference — confirmed this requires the secret
+// even just to request a connection URL, unlike WHOOP/Oura's own OAuth
+// (which only needed a public client id) — so none of this can be
+// constructed client-side the way the previous, now-consolidated
+// whoopService.js/ouraService.js were.
+const ROOK_CLIENT_UUID = defineSecret('ROOK_CLIENT_UUID');
+const ROOK_CLIENT_SECRET = defineSecret('ROOK_CLIENT_SECRET');
+const ROOK_API_BASE = 'https://api.rook-connect.com';
+
+function rookBasicAuthHeader() {
+  const basic = Buffer.from(`${ROOK_CLIENT_UUID.value()}:${ROOK_CLIENT_SECRET.value()}`).toString('base64');
+  return { Authorization: `Basic ${basic}` };
+}
 
 function getOpenAI() {
   return new OpenAI({ apiKey: OPENAI_API_KEY.value() });
@@ -234,7 +253,7 @@ export const sendWorkoutReminder = onCall(
     get();
 
     const tokens = devicesSnap.docs.
-    map((d) => d.data().token | undefined).
+    map((d) => d.data().token).
     filter((t) => !!t);
 
     if (tokens.length === 0) return { sent: 0 };
@@ -245,6 +264,133 @@ export const sendWorkoutReminder = onCall(
     });
 
     return { sent: response.successCount, failed: response.failureCount };
+  }
+);
+
+// Requests a real ROOK connection URL for a given API-based data source
+// (WHOOP, Oura, Garmin, Fitbit, Withings, Polar, Dexcom — the exact enum
+// ROOK's /authorizer endpoint accepts). Returns null (not a fabricated
+// URL) if the user is already authorized for that source, matching
+// ROOK's own real documented behavior for that case.
+export const getRookAuthorizerUrl = onCall(
+  { secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET], region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const { dataSource } = req.data;
+    const validSources = ['Garmin', 'Oura', 'Polar', 'Fitbit', 'Withings', 'Whoop', 'Dexcom'];
+    if (!validSources.includes(dataSource)) {
+      throw new HttpsError('invalid-argument', `dataSource must be one of ${validSources.join(', ')}`);
+    }
+
+    const res = await fetch(
+      `${ROOK_API_BASE}/api/v1/user_id/${uid}/data_source/${dataSource}/authorizer`,
+      { headers: rookBasicAuthHeader() }
+    );
+    if (!res.ok) {
+      throw new HttpsError('internal', `ROOK authorizer request failed: ${res.status}`);
+    }
+    const data = await res.json();
+    return { authorized: data.authorized, authorizationUrl: data.authorization_url || null };
+  }
+);
+
+// Real connected-source status across every ROOK-supported provider —
+// the v2 endpoint ROOK's own docs specifically recommend over the
+// deprecated v1 one.
+export const getRookConnectedSources = onCall(
+  { secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET], region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const res = await fetch(
+      `${ROOK_API_BASE}/api/v2/user_id/${uid}/data_sources/authorized`,
+      { headers: rookBasicAuthHeader() }
+    );
+    if (!res.ok) {
+      throw new HttpsError('internal', `ROOK authorized-sources request failed: ${res.status}`);
+    }
+    const data = await res.json();
+    return { dataSources: data.data_sources || [] };
+  }
+);
+
+export const revokeRookDataSource = onCall(
+  { secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET], region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const { dataSource } = req.data;
+    if (!dataSource) {
+      throw new HttpsError('invalid-argument', 'dataSource required');
+    }
+    const res = await fetch(
+      `${ROOK_API_BASE}/api/v1/user_id/${uid}/data_sources/revoke_auth`,
+      {
+        method: 'POST',
+        headers: { ...rookBasicAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data_source: dataSource }),
+      }
+    );
+    // 204 (no content) is a real, documented success case here alongside
+    // 200 — both mean the revoke went through.
+    if (!res.ok && res.status !== 204) {
+      throw new HttpsError('internal', `ROOK revoke request failed: ${res.status}`);
+    }
+    return { revoked: true };
+  }
+);
+
+// Real recovery signal from whichever ROOK-connected source the user
+// actually has — sleep health (real HRV, resting HR, sleep efficiency)
+// and physical health (real HRV, resting HR, stress) summaries for
+// today, normalized into the same shape this app's recovery logic
+// already expects (lib/muscleFatigue.js's getRecoveryModifier).
+// Deliberately does NOT invent a single "recovery score" the way WHOOP
+// or Oura each compute their own proprietary one — ROOK doesn't provide
+// that composite, only the real underlying physiological signals, and
+// this app's HRV-based fallback path already handles that correctly
+// without needing a fabricated score to stand in for one.
+export const getRookRecoveryData = onCall(
+  { secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET], region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const today = new Date().toISOString().split('T')[0];
+    const headers = rookBasicAuthHeader();
+
+    const [sleepRes, physicalRes] = await Promise.all([
+      fetch(`${ROOK_API_BASE}/v2/processed_data/sleep_health/summary?user_id=${uid}&date=${today}`, { headers }),
+      fetch(`${ROOK_API_BASE}/v2/processed_data/physical_health/summary?user_id=${uid}&date=${today}`, { headers }),
+    ]);
+
+    // 204 = real, documented "no content for this user/date yet" — not
+    // an error, just genuinely nothing to report (e.g. hasn't synced
+    // today). Returns null so the client falls back to manual sleep
+    // entry, the same honest-empty-state pattern used throughout this
+    // app rather than a fabricated placeholder.
+    if (sleepRes.status === 204 && physicalRes.status === 204) return null;
+    if (!sleepRes.ok && sleepRes.status !== 204) throw new HttpsError('internal', `ROOK sleep summary failed: ${sleepRes.status}`);
+    if (!physicalRes.ok && physicalRes.status !== 204) throw new HttpsError('internal', `ROOK physical summary failed: ${physicalRes.status}`);
+
+    const sleepData = sleepRes.status === 204 ? null : await sleepRes.json();
+    const physicalData = physicalRes.status === 204 ? null : await physicalRes.json();
+
+    const sleepHr = sleepData?.sleep_health?.summary?.sleep_summary?.heart_rate;
+    const sleepScores = sleepData?.sleep_health?.summary?.sleep_summary?.scores;
+    const sleepDuration = sleepData?.sleep_health?.summary?.sleep_summary?.duration;
+    const physicalHr = physicalData?.physical_health?.summary?.physical_summary?.heart_rate;
+    const sourcesUsed = sleepData?.sleep_health?.summary?.sleep_summary?.metadata?.sources_of_data_array
+      || physicalData?.physical_health?.summary?.physical_summary?.metadata?.sources_of_data_array
+      || [];
+
+    if (!sleepHr && !physicalHr) return null;
+
+    return {
+      hrv: sleepHr?.hrv_avg_rmssd_float ?? physicalHr?.hrv_avg_rmssd_float ?? null,
+      restingHeartRate: sleepHr?.hr_resting_bpm_int ?? physicalHr?.hr_resting_bpm_int ?? null,
+      sleepEfficiency: sleepScores?.sleep_efficiency_1_100_score_int ?? null,
+      sleepHours: sleepDuration?.sleep_duration_seconds_int
+        ? Math.round((sleepDuration.sleep_duration_seconds_int / 3600) * 10) / 10
+        : null,
+      source: sourcesUsed[0] || 'rook',
+    };
   }
 );
 
@@ -293,7 +439,7 @@ export const onWorkoutComplete = onDocumentCreated(
     collection('devices').
     get();
     const tokens = devicesSnap.docs.
-    map((d) => d.data().token | undefined).
+    map((d) => d.data().token).
     filter((t) => !!t);
 
     if (tokens.length > 0) {
