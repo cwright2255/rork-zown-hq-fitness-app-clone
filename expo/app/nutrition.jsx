@@ -1,6 +1,6 @@
 import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import EmptyState from '@/src/components/EmptyState';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
@@ -9,6 +9,8 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
+import { useHealthStore } from '@/store/healthStore';
+import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../theme/tokens';
 
 export default function NutritionScreen() {
@@ -16,6 +18,14 @@ export default function NutritionScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { meals, loadAllHealth } = useHealthStore();
   const { user } = useUserStore();
+  const { loadNutritionData, setSyncUid } = useNutritionStore();
+
+  useEffect(() => {
+    if (user?.uid) {
+      setSyncUid(user.uid);
+      loadNutritionData(user.uid);
+    }
+  }, [user?.uid]);
 
   const onRefresh = async () => {
     setRefreshing(true);

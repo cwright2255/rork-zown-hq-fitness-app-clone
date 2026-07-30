@@ -5,6 +5,7 @@ import { Stack } from 'expo-router';
 import { Award, Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useAchievementStore } from '@/store/achievementStore';
+import { useBadgeStore } from '@/store/badgeStore';
 import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../../theme/tokens';
 
@@ -51,28 +52,41 @@ const ringStyles = StyleSheet.create({
 });
 
 export default function AchievementsScreen() {
-  const { achievements, initializeAchievements, getUnlockedAchievements } = useAchievementStore();
+  const { achievements, initializeAchievements, getUnlockedAchievements, loadAchievements } = useAchievementStore();
+  const { badges, loadBadges } = useBadgeStore();
   const user = useUserStore((s) => s.user);
 
   useEffect(() => {
     if (!achievements || achievements.length === 0) initializeAchievements();
   }, [achievements, initializeAchievements]);
 
+  useEffect(() => {
+    if (user?.uid) {
+      loadAchievements(user.uid);
+      loadBadges(user.uid);
+    }
+  }, [user?.uid]);
+
   const unlocked = getUnlockedAchievements();
-  const xp = user?.xp ?? 27975;
-  const level = user?.level ?? 12;
-  const position = 2;
+  // Real values only — this used to fall back to a hardcoded 27975 XP /
+  // level 12 whenever `user` was null (e.g. still loading), which looked
+  // like a plausible power-user profile rather than a loading state.
+  const xp = user?.xp ?? 0;
+  const level = user?.level ?? 1;
   const nextLevelXp = (level + 1) * 1000;
   const currentLevelXp = level * 1000;
   const levelProgress = Math.min(100, Math.max(0, ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100));
 
+  // There is no real leaderboard/ranking system anywhere in this app (see
+  // the audit) — this used to hardcode `position = 2`, claiming a specific
+  // competitive rank that was never actually computed from anything.
+  // Showing level/XP honestly instead of a fabricated placement.
+
   const seasons = useMemo(() => {
-    const list = achievements && achievements.length ? achievements : Array.from({ length: 6 }).map((_, i) => ({
-      id: `a${i}`,
-      title: ['Run', 'Lift', 'Mind', 'Burn', 'Streak', 'Hydrate'][i],
-      progress: [72, 45, 90, 30, 100, 58][i],
-      isUnlocked: i === 4,
-    }));
+    // No more fake "Run/Lift/Mind/Burn/Streak/Hydrate" fallback data —
+    // if there are no real achievements loaded yet, show an empty season
+    // rather than fabricated progress percentages.
+    const list = achievements && achievements.length ? achievements : [];
     return [
       { name: 'Season 01', status: 'Completed', items: list.slice(0, 4) },
       { name: 'Season 02', status: 'In Progress', items: list.slice(4, 8) },
@@ -99,23 +113,21 @@ export default function AchievementsScreen() {
             </View>
           </View>
           <Text style={styles.xpValue}>{xp.toLocaleString()} XP</Text>
-          <Text style={styles.subtitle}>
-            Lv. {level} Â· {position === 1 ? '1st' : position === 2 ? '2nd' : position === 3 ? '3rd' : `${position}th`} Place
-          </Text>
+          <Text style={styles.subtitle}>Level {level}</Text>
         </View>
 
         <Text style={styles.sectionLabel}>BADGES</Text>
         <View style={styles.badgeGrid}>
-          {Array.from({ length: 9 }).map((_, i) => {
+          {(badges || []).slice(0, 9).map((badge, i) => {
             const Icon = BADGE_ICONS[i % BADGE_ICONS.length];
-            const isUnlocked = i < unlocked.length || i < 4;
+            const isUnlocked = !!badge.isUnlocked;
             return (
-              <View key={i} style={styles.badgeCell}>
+              <View key={badge.id} style={styles.badgeCell}>
                 <View style={[styles.badgeCircle, !isUnlocked && styles.badgeLocked]}>
                   <Icon size={28} color={isUnlocked ? colors.text : colors.textMuted} />
                 </View>
-                <Text style={[styles.badgeLabel, !isUnlocked && { color: colors.textMuted }]}>
-                  {['Fire', 'Speed', 'Elite', 'Focus', 'Champ', 'King', 'Star', 'Strong', 'Pro'][i]}
+                <Text style={[styles.badgeLabel, !isUnlocked && { color: colors.textMuted }]} numberOfLines={1}>
+                  {badge.name}
                 </Text>
               </View>
             );

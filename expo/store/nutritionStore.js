@@ -2,42 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useExpStore } from './expStore';
-
-
-// Default recent foods for initialization
-const defaultRecentFoods = [
-{
-  id: '1',
-  name: 'Chicken Breast',
-  servingSize: '100g',
-  calories: 165,
-  protein: 31,
-  carbs: 0,
-  fat: 3.6
-},
-{
-  id: '2',
-  name: 'Brown Rice',
-  servingSize: '100g cooked',
-  calories: 112,
-  protein: 2.6,
-  carbs: 23,
-  fat: 0.9
-}];
-
-
-// Default favorite foods for initialization
-const defaultFavoriteFoods = [
-{
-  id: '3',
-  name: 'Avocado',
-  servingSize: '1 medium',
-  calories: 240,
-  protein: 3,
-  carbs: 12,
-  fat: 22
-}];
-
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export const useNutritionStore = create(
   persist(
@@ -52,8 +18,53 @@ export const useNutritionStore = create(
         water: 2000 // 2 liters (2000ml)
       },
       isLoading: false,
-      recentFoods: defaultRecentFoods, // Initialize with default foods
-      favoriteFood: defaultFavoriteFoods, // Initialize with default foods
+      // Was seeded with fake "Chicken Breast" / "Brown Rice" / "Avocado"
+      // entries for every user, regardless of what they'd actually logged.
+      // Real entries accumulate here as the user actually logs meals (see
+      // addMeal/addFoodToMeal below), starting genuinely empty.
+      recentFoods: [],
+      favoriteFood: [],
+      syncUid: null, // set once via setSyncUid(uid) — drives the auto-sync subscription below
+      setSyncUid: (uid) => set({ syncUid: uid }),
+
+      loadNutritionData: async (uid) => {
+        if (!uid) return;
+        set({ isLoading: true });
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'nutrition'));
+          if (snap.exists()) {
+            const data = snap.data();
+            set({
+              meals: data.meals || [],
+              waterIntake: data.waterIntake || {},
+              dailyGoals: data.dailyGoals || get().dailyGoals,
+              recentFoods: data.recentFoods || [],
+              favoriteFood: data.favoriteFood || [],
+            });
+          }
+        } catch (e) {
+          console.warn('[nutritionStore] loadNutritionData error:', e?.message);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      _syncToFirestore: async (uid) => {
+        if (!uid) return;
+        const s = get();
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'nutrition'), {
+            meals: s.meals,
+            waterIntake: s.waterIntake,
+            dailyGoals: s.dailyGoals,
+            recentFoods: s.recentFoods,
+            favoriteFood: s.favoriteFood,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[nutritionStore] sync error:', e?.message);
+        }
+      },
 
       addMeal: (meal) => {
         set((state) => ({
@@ -274,3 +285,21 @@ export const useNutritionStore = create(
     }
   )
 );
+
+// Auto-sync to Firestore whenever the synced fields actually change, rather
+// than threading a `uid` parameter through every one of the ten-plus
+// mutation functions above (addMeal, addFoodToMeal, updateWaterIntake,
+// addToFavorites, ...). Call useNutritionStore.getState().setSyncUid(uid)
+// once (e.g. on auth state resolving) and every subsequent meal/water/
+// favorite change syncs automatically.
+let lastSyncedSnapshot = null;
+useNutritionStore.subscribe((state) => {
+  if (!state.syncUid) return;
+  const snapshot = JSON.stringify({
+    meals: state.meals, waterIntake: state.waterIntake, dailyGoals: state.dailyGoals,
+    recentFoods: state.recentFoods, favoriteFood: state.favoriteFood,
+  });
+  if (snapshot === lastSyncedSnapshot) return;
+  lastSyncedSnapshot = snapshot;
+  state._syncToFirestore(state.syncUid);
+});
