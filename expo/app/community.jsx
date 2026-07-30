@@ -1,133 +1,145 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Heart, MessageCircle } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, Share, FlatList, ActivityIndicator } from 'react-native';
+import { Heart, MessageCircle, X, Send, Share2 } from 'lucide-react-native';
+import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
+import { useCommunityStore } from '@/store/communityStore';
+import { useUserStore() => { user } } from '@/store/userStore';
+import {
+  getConversationId,
+} from '@/store/messagingStore';
 
-
-
-const FEED = [
-  { id: '1', name: 'Jordan L.', initials: 'JL', time: '2h', text: 'Just crushed leg day ÃƒÂƒÃ‚Â¢ÃƒÂ‚Ã‚Â€ÃƒÂ‚Ã‚Â” new PR on squats!' },
-  { id: '2', name: 'Sam R.', initials: 'SR', time: '5h', text: 'Morning 5k in under 22 min. Feeling unstoppable.' },
-  { id: '3', name: 'Alex T.', initials: 'AT', time: '1d', text: 'Protein smoothie recipe ÃƒÂƒÃ‚Â¢ÃƒÂ‚Ã‚Â€ÃƒÂ‚Ã‚Â” drop yours below.' },
-];
-
+// No real challenge-tracking backend exists yet (participant tracking,
+// join state, progress toward a goal) â€“ that's a separate, larger feature
+// than a post feed. Left as a clearly-marked placeholder rather than
+// building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
   { id: 'c1', name: '30-Day Cardio', participants: 412, daysLeft: 12 },
-  { id: 'c2', name: 'Strength PR Month', participants: 206, daysLeft: 21 },
-  { id: 'c3', name: 'Summer Shred', participants: 894, daysLeft: 34 },
+  { id: 'c2', name: 'Strength PR Month', participants: 289, daysLeft: 5 },
+  { id: 'c3', name: 'Marathon Prep', participants: 154, daysLeft: 20 },
 ];
 
 export default function CommunityScreen() {
-  const [tab, setTab] = useState('feed');
+  const [activeTab, setActiveTab] = useState('Feed');
+  const [newPostText, setNewPostText] = useState('');
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
 
-  return (
-    <View style={styles.container}>
-      <ScreenHeader title="Community" />
+  const {
+    posts,
+    loading,
+    error,
+    subscribeToPosts,
+    createPost,
+    likePost,
+    unlikePost,
+    addComment,
+  } = useCommunityStore();
+  const {
+    user,
+  } = useUserStore();
 
-      <View style={styles.tabs}>
-        {['feed', 'challenges'].map(t => {
-          const active = tab === t;
-          return (
-            <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
-              style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}>
-              <Text style={[styles.tabText, { color: active ? '#000' : '#999' }]}>
-                {t === 'feed' ? 'Feed' : 'Challenges'}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+  useEffect(() => {
+    const unsubscribe = subscribeToPosts();
+    return () => unsubscribe();
+  }, []);
 
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 100 }}>
-        {tab === 'feed' ? (
-          FEED.map(post => (
-            <View key={post.id} style={styles.card}>
-              <View style={styles.postHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{post.initials}</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.postName}>{post.name}</Text>
-                  <Text style={styles.postTime}>{post.time} ago</Text>
-                </View>
-              </View>
-              <Text style={styles.postText}>{post.text}</Text>
-              <View style={styles.postActions}>
-                <TouchableOpacity style={styles.action}>
-                  <Heart size={18} color={tokens.colors.dark_navy.text_muted} />
-                  <Text style={styles.actionText}>Like</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.action}>
-                  <MessageCircle size={18} color={tokens.colors.dark_navy.text_muted} />
-                  <Text style={styles.actionText}>Comment</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        ) : (
-          CHALLENGES.map(c => (
-            <View key={c.id} style={styles.card}>
-              <View style={styles.challengeRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.challengeName}>{c.name}</Text>
-                  <Text style={styles.challengeMeta}>{c.participants} participants</Text>
-                </View>
-                <View style={styles.daysBadge}>
-                  <Text style={styles.daysText}>{c.daysLeft}d left</Text>
-                </View>
-              </View>
-              <View style={{ marginTop: 12 }}>
-                <PrimaryButton title="Join" variant="outline" style={{ height: 36 }} onPress={() => { /* TODO: Connect to real API */ }} />
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+  const handleCreatePost = async () => {
+    if (!newPostText.trim()) return;
+    if (!user) {
+      Alert.alert('Not Logged In', 'Please log in to create a post.');
+      return;
+    }
+    try {
+      await createPost(
+        newPostText.trim(),
+        user.uid,
+        user.displayName || 'Anonymous',
+        user.photoURL
+      );
+      setNewPostText('');
+      setCreateModalVisible(false);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to create post. Please try again.');
+    }
+  };
 
-      <BottomNavigation />
-    </View>
-  );
-}
+  const handleLikeToggle = async (post) => {
+    if (!user) {
+      Alert.alert('Not Logged In', 'Please log in to like posts.');
+      return;
+    }
+    const isLiked = post.likes && item.likes.includes(user.uid);
+    try {
+      if (isLiked) {
+        await unlikePost(post.id, user.uid);
+      } else {
+        await likePost(post.id, user.uid);
+      }
+    } catch (err) {
+      console.error('Like toggle error:', err);
+    }
+  };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  tabs: { flexDirection: 'row', paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, gap: tokens.spacing.sm },
-  tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  tabInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
-  tabText: { fontSize: 13, fontWeight: '600' },
-  card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 12,
-  },
-  postHeader: { flexDirection: 'row', alignItems: 'center' },
-  avatar: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 13 },
-  postName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
-  postTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 12 },
-  postText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, lineHeight: 20, marginTop: 10 },
-  postActions: {
-    flexDirection: 'row', gap: 20,
-    marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: '#2A2A2A',
-  },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
-  challengeRow: { flexDirection: 'row', alignItems: 'center' },
-  challengeName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
-  challengeMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
-  daysBadge: {
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-  },
-  daysText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
-});
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !selectedPost) return;
+    if (!user) {
+      Alert.alert('Not Logged In', 'Please log in to comment.');
+      return;
+    }
+    try {
+      await addComment(
+        selectedPost.id,
+        commentText.trim(),
+        user.uid,
+        user.displayName || 'Anonymous',
+        user.photoURL
+      );
+      setCommentText('');
+      setCommentModalVisible(false);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to add comment.');
+    }
+  };
+
+  const handleShare = async (post) => {
+    try {
+      await Share.share({
+        message: `${ post.authonName } on Rork: "${ post.text }"`,
+      });
+    } catch (err) {
+      console.error('On-share error:', err);
+    }
+  };
+
+  const handleOpenDirectMessage = (authorId) => {
+    if (!user) {
+      Alert.alert('Not Logged In', 'Please log in to message users.');
+      return;
+    }
+    if (authonId === user.uid) {
+      Alert.alert('Notice', "You cannot message yourself.');
+      return;
+    }
+    const conversationId = getConversationId(user.uid, authorId);
+    router.push(/messages/${ conversationId });
+  };
+
+  const renderPostItem = ({ item }) => {
+    const isLiked = user && item.likes && item.likes.includes(user.uid);
+    const likesCount = item.likes ? item.likes.length : 0;
+    const commentsCount = item.comments ? item.comments.length : 0;
+
+    return (
+      <View style={styles.postCard}>
+        <View style={styles.postHeader}>
+          <View style={styles.avatarPlaceholder}>            <Text style={styles.avatarText}>
+              {item.authorName ? item.authorName[0].toUpperCase() : 'U'}
+            </Text>
+          </View>
+          <View style={styles.authorInfo}>Mìm²Ü¥zËr•ëºØh¬Ö¦z+^™«­†ŠÍjg¿MìmMìm²Ü¥zËr•ë)¢ËSŠg¢µéœ­æ­yĞ-ìj×¢µéœ­æ­yĞ-¶ƒ"–X¬¶‚èq©^«^JÚân²ÙèÃôŞÆßÕ‰ì.±êâµéšºØh¬‡
