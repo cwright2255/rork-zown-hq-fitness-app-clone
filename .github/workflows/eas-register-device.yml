@@ -12,8 +12,16 @@ jobs:
       - name: Install dependencies
         working-directory: expo
         run: npm install --legacy-peer-deps
-      - name: Register device
+      - name: Create device registration
         working-directory: expo
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest device:create --non-interactive
+        run: |
+          echo "=== Creating device registration URL ==="
+          echo "Open the URL below on your iPhone in Safari:"
+          echo ""
+          npx eas-cli@latest device:create 2>&1 || true
+          echo ""
+          echo "=== If no URL appeared above, try this alternative ==="
+          echo "Go to: https://expo.dev/accounts/cwright_7/projects/zown-hq"
+          echo "And look for device registration options"
