@@ -1,0 +1,45 @@
+name: EAS Development Build
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: eas-development-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Trigger EAS development builds (iOS + Android)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: expo
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Expo + EAS CLIs
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install JS dependencies
+        run: bun install
+
+      - name: Trigger EAS development build for iOS and Android
+        run: npx eas-cli build --profile development --platform all --non-interactive
