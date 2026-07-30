@@ -1,1 +1,82 @@
-{"expo":{"name":"ZOWN HQ","slug":"zown-hq","version":"1.0.0","orientation":"portrait","icon":"./assets/branding/zown-logo-512.png","userInterfaceStyle":"light","splash":{"image":"./assets/branding/zown-logo-512.png","resizeMode":"contain","backgroundColor":"#000000"},"ios":{"supportsTablet":true,"bundleIdentifier":"com.zownhq.app","infoPlist":{"NSCameraUsageDescription":"ZOWN HQ needs camera access to capture body scan photos for AI body composition analysis.","NSPhotoLibraryUsageDescription":"ZOWN HQ needs photo library access to upload body scan photos and profile avatars.","NSHealthShareUsageDescription":"ZOWN HQ needs access to sync workouts, steps, heart rate, and sleep data with Apple Health.","NSHealthUpdateUsageDescription":"ZOWN HQ needs access to save completed workouts and health metrics to Apple Health."},"entitlements":{"com.apple.developer.healthkit":true,"com.apple.developer.healthkit.background-delivery":true}},"android":{"adaptiveIcon":{"foregroundImage":"./assets/branding/zown-logo-512.png","backgroundColor":"#000000"},"package":"com.zownhq.app","permissions":["ACCESS_FINE_LOCATION","ACCESS_COARSE_LOCATION","CAMERA","READ_EXTERNAL_STORAGE","ACTIVITY_RECOGNITION"],"intentFilters":[{"action":"VIEW","autoVerify":true,"data":[{"scheme":"zownhq"}],"category":["BROWSABLE","DEFAULT"]}],"googleServicesFile":"./google-services.json","versionCode":1},"web":{"favicon":"./assets/branding/zown-logo-512.png","bundler":"metro"},"plugins":["expo-router","expo-font","expo-camera","expo-image-picker","expo-location","expo-apple-authentication"],"extra":{"eas":{"projectId":"97962c67-b686-4470-9dd8-8e874d90b279"},"last_channel_diagnostic":"2026-07-09T16:21:00Z"},"experiments":{"typedRoutes":true}}}
+{
+  "expo": {
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/branding/zown-logo-512.png"
+      },
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "zownhq"
+            }
+          ]
+        }
+      ],
+      "package": "com.zownhq.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "ACTIVITY_RECOGNITION"
+      ],
+      "versionCode": 1
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "97962c67-b686-4470-9dd8-8e874d90b279"
+      },
+      "last_channel_diagnostic": "2026-07-09T16:21:00Z"
+    },
+    "icon": "./assets/branding/zown-logo-512.png",
+    "ios": {
+      "bundleIdentifier": "com.zownhq.app",
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.background-delivery": true
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "ZOWN HQ needs camera access to capture body scan photos for AI body composition analysis.",
+        "NSHealthShareUsageDescription": "ZOWN HQ needs access to sync workouts, steps, heart rate, and sleep data with Apple Health.",
+        "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health.",
+        "NSPhotoLibraryUsageDescription": "ZOWN HQ needs photo library access to upload body scan photos and profile avatars."
+      },
+      "supportsTablet": true,
+      "appleTeamId": "GLFKG8342N"
+    },
+    "name": "ZOWN HQ",
+    "orientation": "portrait",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-location",
+      "expo-apple-authentication"
+    ],
+    "slug": "zown-hq",
+    "splash": {
+      "backgroundColor": "#000000",
+      "image": "./assets/branding/zown-logo-512.png",
+      "resizeMode": "contain"
+    },
+    "userInterfaceStyle": "light",
+    "version": "1.0.0",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/branding/zown-logo-512.png"
+    }
+  }
+}
