@@ -21,7 +21,7 @@ function toGoal(id, data) {
   return {
     id,
     userId: data.userId,
-    type: data.type['type'],
+    type: data.type,
     title: data.title,
     target: data.target ?? 0,
     current: data.current ?? 0,

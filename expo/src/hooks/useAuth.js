@@ -39,11 +39,11 @@ export function useAuth() {
             data.displayName ?? fbUser.displayName ?? '',
             photoURL: data.photoURL ?? fbUser.photoURL ?? undefined,
             fitnessLevel:
-            data.fitnessLevel['fitnessLevel'] ?? 'beginner',
-            goals: data.goals['goals'] ?? [],
-            weight: data.weight | undefined,
-            height: data.height | undefined,
-            age: data.age | undefined,
+            data.fitnessLevel ?? 'beginner',
+            goals: data.goals ?? [],
+            weight: data.weight,
+            height: data.height,
+            age: data.age,
             createdAt: data.createdAt?.toDate?.() ?? new Date(),
             updatedAt: data.updatedAt?.toDate?.() ?? new Date()
           };

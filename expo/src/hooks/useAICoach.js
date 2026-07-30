@@ -31,9 +31,9 @@ function toRec(id, data) {
   return {
     id,
     userId: data.userId,
-    type: data.type['type'],
+    type: data.type,
     content: data.content ?? '',
-    structuredData: data.structuredData | undefined,
+    structuredData: data.structuredData,
     prompt: data.prompt ?? '',
     createdAt: data.createdAt?.toDate?.() ?? new Date(),
     isRead: data.isRead ?? false
