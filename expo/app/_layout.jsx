@@ -3,41 +3,7 @@ import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
-// throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
-// loading this route, and if any later top-level import/execution fails,
-// the rest of the module never runs. Defining ErrorBoundary here guarantees
-// the export exists no matter what else happens below.
-export class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error('[ZownHQ] Crash:', error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.dark_navy.text_primary }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: tokens.colors.dark_navy.bg_primary }}>Something went wrong</Text>
-          <Text style={{ color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
-            {String(this.state.error)}
-          </Text>
-          <TouchableOpacity
-            onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor: tokens.colors.dark_navy.bg_primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
-            <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700' }}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
+
 
 import { Stack, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -100,7 +66,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
+// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 
 function SplashAnimation({ onFinish }) {
@@ -452,11 +418,9 @@ export default function RootLayout() {
   return (
     <RookWrapper>
       <QueryClientProvider client={queryClient}>
-        <ErrorBoundary>
-          <SafeAreaProvider>
+        <SafeAreaProvider>
             <RootLayoutInner />
           </SafeAreaProvider>
-        </ErrorBoundary>
       </QueryClientProvider>
     </RookWrapper>
   );
