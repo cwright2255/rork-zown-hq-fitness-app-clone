@@ -25,9 +25,9 @@ class WearableService {
         connected: false
       },
       {
-        id: 'oura_1',
-        name: 'Oura Ring Gen3',
-        type: 'oura',
+        id: 'rook_1',
+        name: 'ROOK Health',
+        type: 'rook',
         connected: false
       }];
 

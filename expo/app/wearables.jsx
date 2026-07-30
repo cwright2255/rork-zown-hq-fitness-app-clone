@@ -12,7 +12,7 @@ export default function WearablesScreen() {
   const [devices, setDevices] = useState([
     { id: '1', name: 'Apple Watch', connected: true, lastSync: '2 min ago' },
     { id: '2', name: 'Garmin Forerunner', connected: false, lastSync: null },
-    { id: '3', name: 'Whoop 4.0', connected: false, lastSync: null },
+    { id: '3', name: 'ROOK Health', connected: false, lastSync: null },
   ]);
 
   const handleSync = (id) => {
