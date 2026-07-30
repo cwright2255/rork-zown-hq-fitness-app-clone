@@ -4,75 +4,46 @@ import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
+import { useRecipeStore } from '@/store/recipeStore';
+import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../../theme/tokens';
 
-
-
-const recipes = {
-  '1': {
-    id: '1',
-    title: 'Whole-Grain Cinnamon-Apple Pancakes',
-    description: 'Delicious and nutritious pancakes made with whole grains and fresh apples.',
-    prepTime: 20, servings: 4,
-    calories: 320, protein: 12, carbs: 49, fat: 8,
-    image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800',
-    ingredients: [
-      '2 medium gala or honeycrisp apples, peeled and cored',
-      '2 tablespoons unsalted butter',
-      '2 tablespoons maple syrup',
-      '1 1/4 teaspoons ground cinnamon',
-      '2/3 cup quick-cooking oats',
-      '1/3 cup whole wheat flour',
-      '1 teaspoon baking powder',
-      '1/4 teaspoon salt',
-      '2 large eggs',
-      '1 cup milk',
-    ],
-    instructions: [
-      'Dice one apple and slice the other. Heat butter in skillet, add diced apple with syrup and cinnamon. Cook until softened.',
-      'Combine oats, flour, baking powder, cinnamon, and salt in a bowl.',
-      'Whisk eggs, milk, syrup, vanilla. Combine with dry ingredients. Fold in apple.',
-      'Heat skillet. Pour 1/4 cup batter per pancake. Cook until bubbles form, flip and cook 1-2 more minutes.',
-      'Serve with apple slices and maple syrup.',
-    ],
-  },
-  '2': {
-    id: '2',
-    title: 'Grilled Chicken Salad',
-    description: 'Refreshing salad with grilled chicken and light vinaigrette.',
-    prepTime: 20, servings: 2,
-    calories: 380, protein: 35, carbs: 12, fat: 18,
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
-    ingredients: ['2 chicken breasts', 'Mixed greens', 'Cherry tomatoes', 'Cucumber', 'Olive oil', 'Lemon'],
-    instructions: ['Grill chicken.', 'Slice vegetables.', 'Toss with dressing.', 'Top with chicken.'],
-  },
-  '3': {
-    id: '3',
-    title: 'Salmon with Quinoa',
-    description: 'Omega-3 rich salmon served over fluffy quinoa.',
-    prepTime: 25, servings: 2,
-    calories: 450, protein: 32, carbs: 38, fat: 18,
-    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
-    ingredients: ['2 salmon fillets', '1 cup quinoa', 'Lemon', 'Herbs', 'Olive oil'],
-    instructions: ['Cook quinoa per package.', 'Season and sear salmon.', 'Plate and serve.'],
-  },
-  '4': {
-    id: '4',
-    title: 'Protein Smoothie',
-    description: 'Quick post-workout protein shake.',
-    prepTime: 5, servings: 1,
-    calories: 220, protein: 25, carbs: 20, fat: 5,
-    image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500',
-    ingredients: ['1 scoop protein', '1 banana', '1 cup almond milk', 'Ice'],
-    instructions: ['Blend all ingredients until smooth.'],
-  },
-};
+// Turns a real saved-recipe ingredient (an object: {id, name, amount, unit},
+// the shape services/recipeExtractionService.js's AI extraction produces)
+// into the plain display string this screen's rendering expects. Handles
+// legacy/plain-string ingredients too, in case any were saved before this
+// normalization existed.
+function formatIngredient(ing) {
+  if (typeof ing === 'string') return ing;
+  if (!ing) return '';
+  const amount = ing.amount ? `${ing.amount} ` : '';
+  const unit = ing.unit ? `${ing.unit} ` : '';
+  return `${amount}${unit}${ing.name || ''}`.trim();
+}
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams();
   const recipeId = typeof id === 'string' ? id : '';
-  const recipe = recipes[recipeId];
   const { addFoodToMeal } = useNutritionStore();
+  const { savedRecipes, loadRecipes } = useRecipeStore();
+  const { user } = useUserStore();
+
+  React.useEffect(() => {
+    // Covers the case of opening a direct link to a recipe (e.g. from a
+    // notification or another device) before this session has loaded the
+    // user's saved recipes yet.
+    if (user?.uid && savedRecipes.length === 0) loadRecipes(user.uid);
+  }, [user?.uid]);
+
+  const rawRecipe = savedRecipes.find((r) => r.id === recipeId);
+  const recipe = rawRecipe
+    ? {
+        ...rawRecipe,
+        title: rawRecipe.title || rawRecipe.name,
+        image: rawRecipe.image || rawRecipe.imageUrl,
+        ingredients: (rawRecipe.ingredients || []).map(formatIngredient),
+      }
+    : null;
 
   if (!recipe) {
     return (
@@ -89,11 +60,11 @@ export default function RecipeDetailScreen() {
     const food = {
       id: `recipe-${recipe.id}-${Date.now()}`,
       name: recipe.title,
-      calories: recipe.calories,
-      protein: recipe.protein,
-      carbs: recipe.carbs,
-      fat: recipe.fat,
-      servingSize: `1/${recipe.servings} recipe`,
+      calories: recipe.calories ?? 0,
+      protein: recipe.protein ?? 0,
+      carbs: recipe.carbs ?? 0,
+      fat: recipe.fat ?? 0,
+      servingSize: `1/${recipe.servings || 4} recipe`,
       imageUrl: recipe.image,
     };
     const today = new Date().toISOString().split('T')[0];
@@ -120,20 +91,24 @@ export default function RecipeDetailScreen() {
             {recipe.prepTime} min ÃÂÃÂ· Serves {recipe.servings}
           </Text>
 
-          <View style={styles.macroRow}>
-            <View style={[styles.chip, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
-              <Text style={[styles.chipText, { color: '#3B82F6' }]}>{recipe.protein}g P</Text>
+          {recipe.hasNutritionEstimate !== false && recipe.calories != null ? (
+            <View style={styles.macroRow}>
+              <View style={[styles.chip, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+                <Text style={[styles.chipText, { color: '#3B82F6' }]}>{recipe.protein ?? 0}g P</Text>
+              </View>
+              <View style={[styles.chip, { backgroundColor: 'rgba(249,115,22,0.15)' }]}>
+                <Text style={[styles.chipText, { color: '#F97316' }]}>{recipe.carbs ?? 0}g C</Text>
+              </View>
+              <View style={[styles.chip, { backgroundColor: 'rgba(168,85,247,0.15)' }]}>
+                <Text style={[styles.chipText, { color: '#A855F7' }]}>{recipe.fat ?? 0}g F</Text>
+              </View>
+              <View style={[styles.chip, { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
+                <Text style={[styles.chipText, { color: '#22C55E' }]}>{recipe.calories} kcal</Text>
+              </View>
             </View>
-            <View style={[styles.chip, { backgroundColor: 'rgba(249,115,22,0.15)' }]}>
-              <Text style={[styles.chipText, { color: '#F97316' }]}>{recipe.carbs}g C</Text>
-            </View>
-            <View style={[styles.chip, { backgroundColor: 'rgba(168,85,247,0.15)' }]}>
-              <Text style={[styles.chipText, { color: '#A855F7' }]}>{recipe.fat}g F</Text>
-            </View>
-            <View style={[styles.chip, { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
-              <Text style={[styles.chipText, { color: '#22C55E' }]}>{recipe.calories} kcal</Text>
-            </View>
-          </View>
+          ) : (
+            <Text style={styles.meta}>Nutrition estimate not available for this recipe</Text>
+          )}
 
           <Text style={styles.sectionLabel}>Ingredients</Text>
           <View style={styles.card}>

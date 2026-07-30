@@ -6,8 +6,9 @@ import { View, Text, StyleSheet, ScrollView,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { useRecipesStore } from '@/store/recipesStore';
+import { useRecipeStore } from '@/store/recipeStore';
 import { useUserStore } from '@/store/userStore';
+import RecipeImportModal from '@/components/RecipeImportModal';
 
 const CATS = ['All','High Protein','Low Carb','Vegan','Quick Meals','Post-Workout'];
 
@@ -89,8 +90,27 @@ function SavedCard({ item, onLongPress }) {
 export default function RecipesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { savedRecipes, loadRecipes } = useRecipesStore();
+  const [cat, setCat] = useState('All');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const { savedRecipes, loadRecipes, removeRecipe } = useRecipeStore();
   const { user } = useUserStore();
+
+  useEffect(() => {
+    if (user?.uid) {
+      setIsLoading(true);
+      loadRecipes(user.uid).finally(() => setIsLoading(false));
+    }
+  }, [user?.uid]);
+
+  // A real filter, not a decorative one — matches the selected category
+  // pill against each recipe's category/tags/dietaryTags.
+  const displayRecipes = cat === 'All'
+    ? (savedRecipes || [])
+    : (savedRecipes || []).filter((r) => {
+        const haystack = [r.category, ...(r.tags || []), ...(r.dietaryTags || [])]
+          .filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(cat.toLowerCase());
+      });
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -108,6 +128,11 @@ export default function RecipesScreen() {
   };
 return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <RecipeImportModal
+        visible={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => user?.uid && loadRecipes(user.uid)}
+      />
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
@@ -134,7 +159,7 @@ return (
             title="No saved recipes"
             subtitle="Import a recipe from any URL to get started"
             buttonText="Import Recipe"
-            onPress={() => {}}
+            onPress={() => setShowImportModal(true)}
           />
         ) : null}
         {/* Saved Recipes Carousel */}
@@ -147,7 +172,7 @@ return (
           {displayRecipes.map(item => <SavedCard key={item.id} item={item} onLongPress={() => {
             Alert.alert('Remove Recipe', 'Remove this recipe from saved?', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Remove', style: 'destructive', onPress: () => removeRecipe(item.id, uid) },
+              { text: 'Remove', style: 'destructive', onPress: () => removeRecipe(item.id, user?.uid) },
             ]);
           }} />)}
         </ScrollView>

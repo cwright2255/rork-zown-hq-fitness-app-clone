@@ -5,6 +5,7 @@ import Colors from '@/constants/colors';
 import Button from '@/components/Button';
 import recipeExtractionService from '@/services/recipeExtractionService';
 import { useRecipeStore } from '@/store/recipeStore';
+import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../theme/tokens';
 
 export default function RecipeImportModal({ visible, onClose, onSuccess }) {
@@ -14,6 +15,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const { addRecipe } = useRecipeStore();
+  const { user } = useUserStore();
 
   const handleImportFromUrl = async () => {
     if (!urlInput.trim()) {
@@ -26,7 +28,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
       const extractedRecipe = await recipeExtractionService.extractRecipeFromUrl(urlInput.trim());
 
       if (extractedRecipe) {
-        await addRecipe(extractedRecipe);
+        await addRecipe(extractedRecipe, user?.uid);
         Alert.alert('Success', 'Recipe imported successfully!');
         setUrlInput('');
         onSuccess?.();
@@ -53,7 +55,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
       const extractedRecipe = await recipeExtractionService.extractRecipeFromText(textInput.trim());
 
       if (extractedRecipe) {
-        await addRecipe(extractedRecipe);
+        await addRecipe(extractedRecipe, user?.uid);
         Alert.alert('Success', 'Recipe imported successfully!');
         setTextInput('');
         onSuccess?.();

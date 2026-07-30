@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import recipeExtractionService from '@/services/recipeExtractionService';
+import { db } from '../src/config/firebase';
+import { collection, addDoc, getDocs, query, orderBy, limit, doc, deleteDoc } from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   RECIPES: '@recipes_saved',
@@ -13,7 +15,28 @@ export const useRecipeStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  addRecipe: async (recipeData) => {
+  // Real cloud sync — previously this store was AsyncStorage-only, meaning
+  // a recipe imported on one device (including via the share-to-app flow)
+  // never showed up on another. Matches the subcollection pattern used for
+  // workouts/bodyScans/formSessions elsewhere in the app.
+  loadRecipes: async (uid) => {
+    if (!uid) return;
+    try {
+      const q = query(collection(db, 'users', uid, 'recipes'), orderBy('dateAdded', 'desc'), limit(200));
+      const snap = await getDocs(q);
+      const cloudRecipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // Merge rather than replace — anything saved locally before this sync
+      // existed (or while offline) isn't silently dropped.
+      const { savedRecipes } = get();
+      const localOnlyIds = new Set(cloudRecipes.map((r) => r.id));
+      const merged = [...cloudRecipes, ...savedRecipes.filter((r) => !localOnlyIds.has(r.id))];
+      set({ savedRecipes: merged });
+    } catch (e) {
+      console.warn('[recipeStore] loadRecipes error:', e?.message);
+    }
+  },
+
+  addRecipe: async (recipeData, uid) => {
     try {
       set({ isLoading: true, error: null });
 
@@ -33,17 +56,18 @@ export const useRecipeStore = create((set, get) => ({
         image: recipeData.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
         ingredients: recipeData.ingredients,
         instructions: recipeData.instructions,
-        nutrition: {
-          calories: 400,
-          protein: 25,
-          carbs: 30,
-          fat: 15,
-          fiber: 5
-        },
-        calories: 400,
-        protein: 25,
-        carbs: 30,
-        fat: 15,
+        // Real per-recipe estimate from the AI extraction when available
+        // (see services/recipeExtractionService.js's prompt) — this used to
+        // be hardcoded to the same {400, 25, 30, 15, 5} for every recipe
+        // regardless of what it actually was. `hasNutritionEstimate` lets
+        // the UI show an honest "not available" state instead of a
+        // precise-looking number for recipes the AI couldn't estimate.
+        nutrition: recipeData.nutrition || null,
+        hasNutritionEstimate: !!recipeData.nutrition,
+        calories: recipeData.nutrition?.calories ?? null,
+        protein: recipeData.nutrition?.protein ?? null,
+        carbs: recipeData.nutrition?.carbs ?? null,
+        fat: recipeData.nutrition?.fat ?? null,
         rating: 4.5,
         reviewCount: 0,
         dateAdded: new Date().toISOString(),
@@ -55,23 +79,39 @@ export const useRecipeStore = create((set, get) => ({
       };
 
       const { savedRecipes } = get();
-      const updatedRecipes = [...savedRecipes, newRecipe];
+
+      let saved = newRecipe;
+      if (uid) {
+        try {
+          const ref = await addDoc(collection(db, 'users', uid, 'recipes'), newRecipe);
+          saved = { ...newRecipe, id: ref.id };
+        } catch (e) {
+          console.warn('[recipeStore] Firestore save failed, kept locally only:', e?.message);
+        }
+      }
+
+      const updatedRecipes = [...savedRecipes, saved];
 
       set({ savedRecipes: updatedRecipes, isLoading: false });
       await get().saveData();
 
-      console.log('Recipe added successfully:', newRecipe.name);
+      console.log('Recipe added successfully:', saved.name);
     } catch (error) {
       console.error('Error adding recipe:', error);
       set({ error: 'Failed to add recipe', isLoading: false });
     }
   },
 
-  removeRecipe: (recipeId) => {
+  removeRecipe: (recipeId, uid) => {
     const { savedRecipes } = get();
     const updatedRecipes = savedRecipes.filter((recipe) => recipe.id !== recipeId);
     set({ savedRecipes: updatedRecipes });
     get().saveData();
+    if (uid) {
+      deleteDoc(doc(db, 'users', uid, 'recipes', recipeId)).catch((e) =>
+        console.warn('[recipeStore] Firestore delete failed:', e?.message)
+      );
+    }
   },
 
   toggleFavorite: (recipeId) => {

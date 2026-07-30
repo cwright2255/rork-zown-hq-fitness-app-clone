@@ -180,8 +180,17 @@ Please extract and return a JSON object with the following structure if a recipe
   "tags": ["tag1", "tag2"],
   "dietaryTags": ["vegetarian", "vegan", "gluten-free", etc],
   "imageUrl": "${metadata.imageUrl || ''}",
-  "author": "author name if available"
+  "author": "author name if available",
+  "nutrition": {
+    "calories": estimated calories per serving (number),
+    "protein": estimated grams of protein per serving (number),
+    "carbs": estimated grams of carbohydrates per serving (number),
+    "fat": estimated grams of fat per serving (number),
+    "fiber": estimated grams of fiber per serving (number)
+  }
 }
+
+Estimate the nutrition object from the actual ingredients and serving count you extracted above — do not return placeholder or generic values. If the ingredients don't give you enough information to estimate confidently, omit the "nutrition" field entirely rather than guessing.
 
 If no recipe is found, return null. Only return valid JSON.
 `;
