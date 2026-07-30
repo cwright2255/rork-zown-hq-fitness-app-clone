@@ -7,13 +7,13 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 import { useCommunityStore } from '@/store/communityStore';
-import { useUserStore } from '@/store/userStore';
+import { useUserStore() => { user } } from '@/store/userStore';
 import {
   getConversationId,
 } from '@/store/messagingStore';
 
 // No real challenge-tracking backend exists yet (participant tracking,
-// join state, progress toward a goal) Ã¢â¬â that's a separate, larger feature
+// join state, progress toward a goal) – that's a separate, larger feature
 // than a post feed. Left as a clearly-marked placeholder rather than
 // building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
@@ -142,4 +142,4 @@ export default function CommunityScreen() {
               {item.authorName ? item.authorName[0].toUpperCase() : 'U'}
             </Text>
           </View>
-          <View style={styles.authorInfo}>MÃ¬mÂ²ÃÂ¥zÃrâ¢Ã«ÂºÃhÂ¬ÃÂ¦z+^â¢Â«Â­â Å ÃjgÂ¿MÃ¬mMÃ¬mÂ²ÃÂ¥zÃrâ¢Ã«)Â¢ÃSÅ gÂ¢ÂµÃ©ÅÂ­Ã¦Â­yÃ-ÂÃ¬jÃÂ¢ÂµÃ©ÅÂ­Ã¦Â­yÃ-Â¶Æ"âXÂ¬Â¶âÃ¨qÂ©^Â«^JÃÃ¢Å¾nÂ²ÃÃ¨ÃÃ´ÃÃÃÃâ°Ã¬.Â±ÃªÃ¢ÂµÃ©Å¡ÂºÃhÂ¬â¡
+          <View style={styles.authorInfo}>M�m�ܥz�r����h�֦z+^������jg�M�mM�m�ܥz�r��)��S�g��霭�y�-��jע�霭�y�-��"�X����q�^�^J��n��������Չ�.���隺�h��
