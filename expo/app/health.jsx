@@ -6,14 +6,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useHealthStore } from '@/store/healthStore';
+import { useUserStore } from '@/store/userStore';
+import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
+import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
+import { calculateMuscleFatigue } from '@/lib/muscleFatigue';
+import { rookService } from '@/services/rookService';
+import { generateTrainingLoadInsight } from '@/services/aiService';
+import TrainingLoadCard from '@/components/TrainingLoadCard';
+import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 import Constants from 'expo-constants';
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
-// Safe dynamic imports for Rook SDK
-let useRookPermissions = null;
-let useRookAppleHealth = null;
-let useRookSummaries = null;
+// Safe fallbacks for the ROOK SDK hooks — always real, callable functions
+// (never null), so the actual hook calls inside the component below stay
+// unconditional and satisfy React's rules of hooks regardless of whether
+// the native module loaded. The fallback shape matches ROOK's documented
+// return type closely enough that call sites don't need their own branching.
+let useRookPermissions = () => ({ ready: false, checkPermissions: async () => false, requestPermissions: async () => false });
+let useRookAppleHealth = () => ({ ready: false });
+let useRookSummaries = () => ({ ready: false });
 
 if (!IS_EXPO_GO) {
   try {
@@ -36,8 +51,129 @@ const DEVICES = [
 export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { loadAllHealth } = useHealthStore();
+  const { loadAllHealth, steps, sleep, hydration } = useHealthStore();
   const { user } = useUserStore();
+  const { scans, loadScans } = useBodyCompositionStore();
+  const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  const { runs, loadRuns } = useRunningStore();
+  const { completedHikes, loadCompletedHikes } = useHikingStore();
+  const [trainingLoad, setTrainingLoad] = useState(null);
+  const [trainingLoadInsight, setTrainingLoadInsight] = useState(null);
+  const [muscleFatigue, setMuscleFatigue] = useState({});
+
+  const rookPermissions = useRookPermissions();
+  const rookSummaries = useRookSummaries();
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
+
+  // Real health metrics, derived from useHealthStore — replaces a previous
+  // undefined METRICS_LIVE reference that crashed this screen on render.
+  // 10,000 steps and 8 hours sleep are the generic public-health defaults
+  // used as fallback targets, not fabricated personal data — the current
+  // values are always the real store state.
+  const METRICS_LIVE = [
+    { icon: 'walk-outline', label: 'Steps', value: `${steps ?? 0}`, current: steps ?? 0, target: 10000 },
+    { icon: 'moon-outline', label: 'Sleep', value: `${(sleep?.hours ?? 0).toFixed(1)}h`, current: sleep?.hours ?? 0, target: 8 },
+    { icon: 'water-outline', label: 'Hydration', value: `${hydration?.glasses ?? 0}/${hydration?.target ?? 8}`, current: hydration?.glasses ?? 0, target: hydration?.target ?? 8 },
+  ];
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadAllHealth(user.uid);
+      loadScans(user.uid);
+      loadWorkouts(user.uid);
+      loadRuns(user.uid);
+      loadCompletedHikes(user.uid);
+    }
+  }, [user?.uid]);
+
+  // Real cross-domain training load — recomputed whenever any of the
+  // three real data sources changes, not on a timer. Fetches AI
+  // commentary only once a real (non-insufficient-data) reading exists,
+  // so the LLM is never asked to comment on a ratio that doesn't exist yet.
+  useEffect(() => {
+    const dailyLoad = aggregateDailyLoad({ completedWorkouts, runs, completedHikes });
+    const result = calculateTrainingLoad(dailyLoad);
+    setTrainingLoad(result);
+
+    if (result.zone !== 'insufficient_data') {
+      generateTrainingLoadInsight({ trainingLoad: result }).then(setTrainingLoadInsight);
+    } else {
+      setTrainingLoadInsight(null);
+    }
+  }, [completedWorkouts, runs, completedHikes]);
+
+  // Real per-muscle fatigue (lib/muscleFatigue.js). Prefers real ROOK
+  // recovery data when a provider is connected (services/rookService.js —
+  // real HRV, resting heart rate, and sleep efficiency, aggregated
+  // through ROOK's own real API from whichever of WHOOP/Oura/Garmin/
+  // Fitbit/Withings/Polar the user actually has) since that's a more
+  // precise recovery signal than sleep duration alone; falls back to
+  // manually logged sleep hours/quality when nothing is connected.
+  // getRecoveryModifier() already prioritizes hrv over sleepHours on its
+  // own, so passing whichever real data is actually available here is
+  // enough — no extra priority logic needed at this call site.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let recovery;
+      const rookData = await rookService.getTodayRecovery();
+      if (rookData?.hrv != null || rookData?.sleepHours != null) {
+        recovery = {
+          hrv: rookData.hrv,
+          sleepHours: rookData.sleepHours,
+          sleepQuality: rookData.sleepEfficiency != null
+            ? (rookData.sleepEfficiency >= 85 ? 'good' : rookData.sleepEfficiency >= 60 ? 'fair' : 'poor')
+            : undefined,
+        };
+      } else if (sleep?.hours) {
+        recovery = { sleepHours: sleep.hours, sleepQuality: sleep.quality };
+      }
+
+      if (cancelled) return;
+      const fatigue = calculateMuscleFatigue({ completedWorkouts, runs, completedHikes, recovery });
+      setMuscleFatigue(fatigue);
+    })();
+    return () => { cancelled = true; };
+  }, [completedWorkouts, runs, completedHikes, sleep?.hours, sleep?.quality]);
+
+  useEffect(() => {
+    let cancelled = false;
+    rookPermissions.checkPermissions?.()
+      .then((granted) => { if (!cancelled) setPermissionsGranted(!!granted); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [rookPermissions]);
+
+  const requestPermissions = async () => {
+    try {
+      await rookPermissions.requestPermissions?.();
+      const granted = await rookPermissions.checkPermissions?.();
+      setPermissionsGranted(!!granted);
+    } catch (e) {
+      console.error('[Health] ROOK permission request failed', e);
+      Alert.alert("Couldn't connect", 'Health app connection failed. Try again from Settings.');
+    }
+  };
+
+  const syncNow = async () => {
+    setSyncing(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await Promise.all([
+        rookSummaries.syncPhysicalSummary?.(today),
+        rookSummaries.syncSleepSummary?.(today),
+        rookSummaries.syncBodySummary?.(today),
+      ]);
+      if (user?.uid) await loadAllHealth(user.uid);
+    } catch (e) {
+      console.error('[Health] ROOK sync failed', e);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -85,7 +221,21 @@ return (
         <View style={s.insightCard}>
           <View style={s.insightBadge}><Ionicons name="sparkles" size={14} color="#FFD700" /><Text style={s.insightBadgeText}>AI Coach</Text></View>
           <Text style={s.insightText}>Based on your activity, consider adding a 10-minute stretch before your evening workout to improve recovery.</Text>
-          <Pressable><Text style={s.insightLink}>Get More Insights</Text></Pressable>
+          <Pressable onPress={() => router.push(latestScan ? `/body-scan/${latestScan.id}` : '/body-scan/capture')}>
+            <Text style={s.insightLink}>{latestScan ? 'Get More Insights' : 'Get Your First Insight'}</Text>
+          </Pressable>
+        </View>
+
+        {/* Real cross-domain training load — combines actual completed
+            workouts, runs, and hikes into one acute:chronic reading. See
+            lib/trainingLoad.js. */}
+        <TrainingLoadCard trainingLoad={trainingLoad} aiInsight={trainingLoadInsight} />
+
+        {/* Real per-muscle fatigue, decayed on the real DOMS recovery
+            timeline and adjusted for real logged sleep when available.
+            See lib/muscleFatigue.js. */}
+        <View style={{ marginHorizontal: 20, marginBottom: 18 }}>
+          <MuscleHeatmapCard mode="fatigue" fatigueByMuscle={muscleFatigue} title="Muscle Fatigue" />
         </View>
 
         {/* Body Composition Scan Card */}
@@ -97,7 +247,7 @@ return (
             marginBottom: 18,
             marginHorizontal: 20
           }}
-          onPress={() => router.push('/body-scan')}
+          onPress={() => router.push(latestScan ? `/body-scan/${latestScan.id}` : '/body-scan/capture')}
           activeOpacity={0.7}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
@@ -114,21 +264,31 @@ return (
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A1A2E', marginBottom: 2 }}>
-                Body Composition Scan
+                Body Composition
               </Text>
               <Text style={{ fontSize: 13, color: '#666', lineHeight: 18 }}>
-                AI-powered body analysis using your camera
+                {latestScan
+                  ? `Last scan: ${latestScan.bodyFatPercent != null ? latestScan.bodyFatPercent + '% body fat' : 'saved'}`
+                  : 'AI-powered body analysis using your camera'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </View>
-          <View style={{
-            backgroundColor: '#4CAF50',
-            borderRadius: 10,
-            paddingVertical: 10,
-            alignItems: 'center',
-          }} >
-            <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '600' }}>Scan Now</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {latestScan && (
+              <View style={{
+                flex: 1, backgroundColor: '#FFF', borderRadius: 10, paddingVertical: 10,
+                alignItems: 'center', borderWidth: 1, borderColor: '#4CAF50',
+              }}>
+                <Text style={{ color: '#4CAF50', fontSize: 14, fontWeight: '600' }}>View progress</Text>
+              </View>
+            )}
+            <Pressable
+              onPress={(e) => { e.stopPropagation(); router.push('/body-scan/capture'); }}
+              style={{ flex: 1, backgroundColor: '#4CAF50', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '600' }}>{latestScan ? 'New scan' : 'Scan now'}</Text>
+            </Pressable>
           </View>
         </TouchableOpacity>
 
