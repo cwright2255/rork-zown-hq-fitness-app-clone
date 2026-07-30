@@ -1,0 +1,26 @@
+name: Run EAS Production Build Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  trigger-eas-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: expo
+        run: npm ci
+
+      - name: Run EAS Workflow
+        working-directory: expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest workflow:run create-production-builds.yml --non-interactive
