@@ -11,20 +11,20 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getWorkoutVisualizeUrl } from '@/services/muscleVisualizerService';
+import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
+import { useWorkoutStore } from '@/store/workoutStore';
 
-/* ââ Placeholder exercise data ââ */
-// TODO: Connect to real workout API / exerciseStore
-
-const INITIAL_EXERCISES = [
-  { id: 'e1', name: 'Jumping Jack', duration: '0:50', completed: true },
-  { id: 'e2', name: 'High Knees', duration: '1:00', completed: true },
-  { id: 'e3', name: 'Push Ups', duration: '0:45', completed: false },
-  { id: 'e4', name: 'Squats', duration: '1:00', completed: false },
-  { id: 'e5', name: 'Plank', duration: '0:30', completed: false },
-];
-
-const TOTAL_MOVES = 28; // Total moves in the full workout
+function formatExerciseDuration(exercise) {
+  if (typeof exercise.duration === 'number' && exercise.duration > 0) {
+    const m = Math.floor(exercise.duration / 60);
+    const s = exercise.duration % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+  if (exercise.sets && exercise.reps) {
+    return `${exercise.sets} \u00d7 ${exercise.reps}`;
+  }
+  return '';
+}
 
 /* ââ Exercise row ââ */
 
@@ -43,7 +43,7 @@ function ExerciseRow({ exercise }) {
       </View>
       <View style={styles.exerciseInfo}>
         <Text style={styles.exerciseName}>{exercise.name}</Text>
-        <Text style={styles.exerciseDuration}>{exercise.duration}</Text>
+        <Text style={styles.exerciseDuration}>{formatExerciseDuration(exercise)}</Text>
       </View>
     </Pressable>
   );
@@ -66,43 +66,40 @@ export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
-  const [exercises, setExercises] = useState(INITIAL_EXERCISES);
+  const { workouts, customWorkouts } = useWorkoutStore();
+
+  const workout = useMemo(
+    () => [...workouts, ...customWorkouts].find((w) => String(w.id) === id) || null,
+    [workouts, customWorkouts, id]
+  );
+
+  const [exercises, setExercises] = useState(() =>
+    (workout?.exercises || []).map((e) => ({ ...e, completed: false }))
+  );
+  useEffect(() => {
+    setExercises((workout?.exercises || []).map((e) => ({ ...e, completed: false })));
+  }, [workout]);
+
   const [bookmarked, setBookmarked] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  /* ââ Reactive CTA logic ââ */
-  // exercises is now stateful (see useState above)
   const completedCount = exercises.filter((e) => e.completed).length;
   const totalExercises = exercises.length;
   const hasStarted = completedCount > 0;
-  const isComplete = completedCount === totalExercises;
-  const progressPercent = (completedCount / TOTAL_MOVES) * 100;
+  const isComplete = totalExercises > 0 && completedCount === totalExercises;
+  const progressPercent = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
 
-
-  // Derive target muscles from exercises
+  // Derive target muscles from the real exercise data (muscleGroups is populated
+  // by the AI generator and manual workout builder alike).
   const targetMuscles = useMemo(() => {
-    const muscleMap = {
-      'Jumping Jack': 'Quadriceps',
-      'High Knees': 'Hip Flexors',
-      'Push Ups': 'Chest',
-      'Squats': 'Quadriceps',
-      'Plank': 'Abdominals',
-      'Burpees': 'Full Body',
-      'Lunges': 'Glutes',
-      'Mountain Climbers': 'Abdominals',
-    };
     const muscles = new Set();
-    (exercises || []).forEach(ex => {
-      const m = muscleMap[ex.name];
-      if (m) muscles.add(m);
+    (exercises || []).forEach((ex) => {
+      (ex.muscleGroups || []).forEach((m) => muscles.add(m));
     });
     return [...muscles];
   }, [exercises]);
 
-  const muscleVizUrl = useMemo(() => {
-    return getWorkoutVisualizeUrl({ targetMuscles, gender: 'male', size: 'small' });
-  }, [targetMuscles]);
   const ctaConfig = useMemo(() => {
     if (isComplete) {
       return {
@@ -145,7 +142,7 @@ export default function WorkoutDetailScreen() {
   const handleCTA = () => {
     if (ctaConfig.disabled) return;
     // TODO: navigate to active workout screen
-    router.push('/workout/active');
+    router.push(`/workout/active?id=${id}`);
   };
 
   return (
@@ -215,7 +212,7 @@ export default function WorkoutDetailScreen() {
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Progress</Text>
             <Text style={styles.progressCount}>
-              {completedCount}/{TOTAL_MOVES} moves
+              {completedCount}/{totalExercises} moves
             </Text>
           </View>
           <View style={styles.progressBarBg}>
@@ -263,11 +260,14 @@ export default function WorkoutDetailScreen() {
                 </View>
               ))}
             </ScrollView>
-            {muscleVizUrl && (
-              <View style={{marginTop:10,marginHorizontal:20,height:120,borderRadius:12,overflow:'hidden',backgroundColor:'#F8F8F8',justifyContent:'center',alignItems:'center'}}>
-                <Image source={{uri:muscleVizUrl}} style={{width:200,height:120}} resizeMode="contain" />
-              </View>
-            )}
+            {/* Was a raw <Image source={{uri: muscleVizUrl}}> pointing at
+                a plain URL with the API key as a query param — the real
+                API requires header auth, so this never actually loaded.
+                See services/muscleVisualizerService.js for the full fix
+                (wrong base path and wrong muscle-name casing too). */}
+            <View style={{ marginTop: 10, marginHorizontal: 20 }}>
+              <MuscleHeatmapCard mode="target" targetMuscles={targetMuscles} title="Muscles Targeted" />
+            </View>
           </View>
         )}
       </ScrollView>

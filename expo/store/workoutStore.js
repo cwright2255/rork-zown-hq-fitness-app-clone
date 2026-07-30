@@ -2,361 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import {
+  collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp,
+} from 'firebase/firestore';
 import { optimizeArrayForPerformance } from '@/utils/storeOptimizations';
 
-// Mock completed workouts data
-const mockCompletedWorkouts = [
-{
-  id: 'completed-1',
-  name: 'Morning HIIT',
-  description: 'High-intensity interval training session',
-  duration: 30,
-  difficulty: 'intermediate',
-  category: 'hiit',
-  exercises: [],
-  imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
-  equipment: ['bodyweight'],
-  muscleGroups: ['full-body'],
-  calories: 250,
-  xpReward: 75,
-  isCustom: false,
-  completedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
-  caloriesBurned: 250
-},
-{
-  id: 'completed-2',
-  name: 'Strength Training',
-  description: 'Upper body strength workout',
-  duration: 45,
-  difficulty: 'advanced',
-  category: 'strength',
-  exercises: [],
-  imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500',
-  equipment: ['dumbbells', 'barbell'],
-  muscleGroups: ['chest', 'shoulders', 'arms'],
-  calories: 320,
-  xpReward: 100,
-  isCustom: false,
-  completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-  caloriesBurned: 320
-},
-{
-  id: 'completed-3',
-  name: 'Yoga Flow',
-  description: 'Relaxing yoga session',
-  duration: 60,
-  difficulty: 'beginner',
-  category: 'yoga',
-  exercises: [],
-  imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500',
-  equipment: ['yoga-mat'],
-  muscleGroups: ['full-body'],
-  calories: 180,
-  xpReward: 50,
-  isCustom: false,
-  completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-  caloriesBurned: 180
-},
-{
-  id: 'completed-4',
-  name: 'Cardio Blast',
-  description: 'High-energy cardio workout',
-  duration: 35,
-  difficulty: 'intermediate',
-  category: 'cardio',
-  exercises: [],
-  imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
-  equipment: ['bodyweight'],
-  muscleGroups: ['full-body'],
-  calories: 280,
-  xpReward: 85,
-  isCustom: false,
-  completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-  caloriesBurned: 280
-},
-{
-  id: 'completed-5',
-  name: 'Core Crusher',
-  description: 'Intense core strengthening workout',
-  duration: 25,
-  difficulty: 'advanced',
-  category: 'strength',
-  exercises: [],
-  imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500',
-  equipment: ['bodyweight'],
-  muscleGroups: ['core'],
-  calories: 200,
-  xpReward: 70,
-  isCustom: false,
-  completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
-  caloriesBurned: 200
-}];
 
-
-// Mock running programs data
-const mockRunningPrograms = [
-{
-  id: 'couch-to-5k',
-  name: 'Couch to 5K',
-  description: 'A 9-week program designed to get you from the couch to running a 5K',
-  type: 'beginner',
-  category: 'distance',
-  duration: 9,
-  totalSessions: 27,
-  imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop',
-  difficulty: 'easy',
-  goals: ['Build endurance', 'Complete 5K', 'Establish routine'],
-  isPopular: true,
-  estimatedTimePerSession: 30,
-  sessions: [
-  {
-    id: 'c25k-w1-d1',
-    week: 1,
-    day: 1,
-    name: 'Week 1, Day 1: Getting Started',
-    description: 'Brisk 5-minute warmup walk, then alternate 60 seconds of jogging and 90 seconds of walking for a total of 20 minutes.',
-    type: 'interval',
-    duration: 30,
-    distance: 2.5,
-    instructions: [
-    'Start with a 5-minute brisk walk to warm up',
-    'Alternate between 60 seconds of light jogging and 90 seconds of walking',
-    'Repeat this cycle for 20 minutes',
-    'End with a 5-minute cool-down walk'],
-
-    xpReward: 50,
-    intervals: [
-    { type: 'walk', duration: 300, intensity: 'low' },
-    { type: 'jog', duration: 60, intensity: 'medium', repeat: 8 },
-    { type: 'walk', duration: 90, intensity: 'low', repeat: 8 },
-    { type: 'walk', duration: 300, intensity: 'low' }]
-
-  },
-  {
-    id: 'c25k-w1-d2',
-    week: 1,
-    day: 2,
-    name: 'Week 1, Day 2: Building Momentum',
-    description: 'Repeat the same pattern as Day 1 with confidence.',
-    type: 'interval',
-    duration: 30,
-    distance: 2.5,
-    instructions: [
-    'Start with a 5-minute brisk walk to warm up',
-    'Alternate between 60 seconds of light jogging and 90 seconds of walking',
-    'Repeat this cycle for 20 minutes',
-    'End with a 5-minute cool-down walk'],
-
-    xpReward: 50
-  },
-  {
-    id: 'c25k-w1-d3',
-    week: 1,
-    day: 3,
-    name: 'Week 1, Day 3: Completing Week 1',
-    description: 'Final day of week 1. Focus on form and breathing.',
-    type: 'interval',
-    duration: 30,
-    distance: 2.5,
-    instructions: [
-    'Start with a 5-minute brisk walk to warm up',
-    'Alternate between 60 seconds of light jogging and 90 seconds of walking',
-    'Repeat this cycle for 20 minutes',
-    'End with a 5-minute cool-down walk'],
-
-    xpReward: 75
-  }]
-
-},
-{
-  id: '10k-trainer',
-  name: '10K Trainer',
-  description: 'Advanced program to build up to running 10 kilometers',
-  type: 'intermediate',
-  category: 'distance',
-  duration: 12,
-  totalSessions: 36,
-  imageUrl: 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=500&h=300&fit=crop',
-  difficulty: 'medium',
-  goals: ['Increase distance', 'Improve pace', 'Build stamina'],
-  isPopular: false,
-  estimatedTimePerSession: 45,
-  sessions: [
-  {
-    id: '10k-w1-d1',
-    week: 1,
-    day: 1,
-    name: 'Week 1, Day 1: Base Building',
-    description: 'Easy 3K run to establish your baseline',
-    type: 'run',
-    duration: 25,
-    distance: 3,
-    instructions: [
-    'Warm up with 5 minutes of walking',
-    'Run at a comfortable pace for 3K',
-    'Cool down with 5 minutes of walking'],
-
-    xpReward: 75
-  }]
-
-}];
-
-
-// Mock workouts data
-const mockWorkouts = [
-{
-  id: 'workout-1',
-  name: 'Kettlebell step-overs',
-  description: 'High-intensity kettlebell step-over exercise',
-  duration: 30,
-  difficulty: 'intermediate',
-  category: 'hiit',
-  exercises: [
-  {
-    id: 'ex-hiit-1',
-    name: 'Kettlebell step-overs',
-    sets: 6,
-    reps: 5,
-    weight: 5,
-    restTime: 30,
-    rest: 30,
-    description: 'Step over the kettlebell with alternating legs',
-    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500',
-    difficulty: 'intermediate',
-    muscleGroups: ['legs', 'core']
-  }],
-
-  imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
-  equipment: ['kettlebell'],
-  muscleGroups: ['legs', 'core'],
-  calories: 300,
-  xpReward: 100,
-  isCustom: false
-},
-{
-  id: 'workout-2',
-  name: 'Upper Body Strength',
-  description: 'Build upper body strength with this workout',
-  duration: 45,
-  difficulty: 'advanced',
-  category: 'strength',
-  exercises: [
-  {
-    id: 'ex-strength-1',
-    name: 'Push-ups',
-    sets: 3,
-    reps: 15,
-    weight: 0,
-    restTime: 60,
-    rest: 60,
-    description: 'Standard push-ups',
-    imageUrl: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=500',
-    difficulty: 'advanced',
-    muscleGroups: ['chest', 'shoulders', 'arms']
-  }],
-
-  imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500',
-  equipment: ['dumbbells'],
-  muscleGroups: ['chest', 'shoulders', 'arms'],
-  calories: 250,
-  xpReward: 120,
-  isCustom: false
-}];
-
-
-// Mock run history
-const mockRunHistory = [
-{
-  id: 'run-1',
-  date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  distance: 5.2,
-  duration: 1800, // 30 minutes
-  pace: 5.77, // min/km
-  calories: 350
-},
-{
-  id: 'run-2',
-  date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  distance: 3.1,
-  duration: 1200, // 20 minutes
-  pace: 6.45, // min/km
-  calories: 220
-},
-{
-  id: 'run-3',
-  date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-  distance: 10.5,
-  duration: 3600, // 60 minutes
-  pace: 5.71, // min/km
-  calories: 650
-}];
-
-
-// Mock running challenges
-const mockRunningChallenges = [
-{
-  id: 'challenge-1',
-  name: '100K This Month',
-  description: 'Run 100 kilometers this month',
-  target: 100,
-  unit: 'km',
-  progress: 45,
-  participants: 1250,
-  reward: { xp: 500 },
-  isJoined: true,
-  category: 'distance'
-},
-{
-  id: 'challenge-2',
-  name: 'Daily Runner',
-  description: 'Run every day for 30 days',
-  target: 30,
-  unit: 'days',
-  progress: 12,
-  participants: 890,
-  reward: { xp: 750 },
-  isJoined: false,
-  category: 'consistency'
-}];
-
-
-// Mock virtual races
-const mockVirtualRaces = [
-{
-  id: 'race-1',
-  name: 'Virtual Marathon',
-  description: 'Complete a full marathon distance',
-  distance: 42.2,
-  participants: 5000,
-  rewards: {
-    winner: { xp: 2000, prize: 'Marathon Medal' }
-  },
-  isRegistered: false
-},
-{
-  id: 'race-2',
-  name: '10K Challenge',
-  description: 'Fast 10K virtual race',
-  distance: 10,
-  participants: 2500,
-  rewards: {
-    winner: { xp: 1000 }
-  },
-  isRegistered: true
-}];
-
-
-// Mock running buddy
-const mockRunningBuddy = {
-  id: 'buddy-1',
-  name: 'Alex Runner',
-  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-  level: 15,
-  totalDistance: 250.5,
-  pace: 5.5,
-  isActive: true
-};
 
 export const useWorkoutStore = create(
   persist(
@@ -375,35 +26,32 @@ export const useWorkoutStore = create(
       runningBuddy: null,
       isLoading: false,
 
-      /* ── Firestore sync ── */
+      /* ── Firestore sync ──
+       * Real per-workout documents in the top-level `workouts` collection,
+       * matching firestore.rules and functions/src/index.js (onWorkoutComplete,
+       * getProgressSummary). Previously this wrote a single blob document at
+       * users/{uid}/data/workouts, which neither the rules nor the Cloud
+       * Functions were watching — completions never triggered stats/goal
+       * updates or notifications. */
       loadWorkouts: async (uid) => {
         if (!uid) return;
+        set({ isLoading: true });
         try {
-          const snap = await getDoc(doc(db, 'users', uid, 'data', 'workouts'));
-          if (snap.exists()) {
-            const data = snap.data();
-            set({
-              completedWorkouts: data.completedWorkouts || [],
-            });
-          }
+          const q = query(
+            collection(db, 'workouts'),
+            where('userId', '==', uid),
+            orderBy('date', 'desc'),
+            limit(100)
+          );
+          const snap = await getDocs(q);
+          const completedWorkouts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          set({ completedWorkouts });
         } catch (e) {
           console.warn('[workoutStore] loadWorkouts error:', e?.message);
+        } finally {
+          set({ isLoading: false });
         }
       },
-
-      saveWorkouts: async (uid) => {
-        if (!uid) return;
-        const s = get();
-        try {
-          await setDoc(doc(db, 'users', uid, 'data', 'workouts'), {
-            completedWorkouts: (s.completedWorkouts || []).slice(-100),
-            updatedAt: new Date().toISOString(),
-          }, { merge: true });
-        } catch (e) {
-          console.warn('[workoutStore] saveWorkouts error:', e?.message);
-        }
-      },
-
 
       setWorkouts: (workouts) => set({ workouts }),
 
@@ -427,23 +75,53 @@ export const useWorkoutStore = create(
         [...state.favoriteWorkoutIds, workoutId]
       })),
 
-      addCompletedWorkout: (workout) => set((state) => ({
-        completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, workout], 20)
-      })),
+      // Persists immediately to the real `workouts` collection (not just local
+      // state) so onWorkoutComplete actually fires, and getProgressSummary /
+      // this-device-and-others sync see it. Updates local state optimistically
+      // first so the UI never blocks on network.
+      addCompletedWorkout: async (workout, uid) => {
+        const localRecord = { ...workout, id: workout.id ?? `local-${Date.now()}` };
+        set((state) => ({
+          completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, localRecord], 20)
+        }));
 
-      logCompletedWorkout: (workoutId) => {
-        const workout = [...get().workouts, ...get().customWorkouts].find((w) => w.id === workoutId);
-        if (workout) {
-          const completedWorkout = {
-            ...workout,
-            completedAt: new Date().toISOString(),
-            duration: workout.duration,
-            caloriesBurned: workout.calories || 0
-          };
-          set((state) => ({
-            completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, completedWorkout], 20)
-          }));
+        if (!uid) {
+          console.warn('[workoutStore] addCompletedWorkout: no uid, not persisted to Firestore');
+          return localRecord;
         }
+
+        try {
+          const ref = await addDoc(collection(db, 'workouts'), {
+            ...workout,
+            userId: uid,
+            completed: true,
+            date: serverTimestamp(),
+          });
+          const saved = { ...localRecord, id: ref.id };
+          set((state) => ({
+            completedWorkouts: state.completedWorkouts.map((w) => w.id === localRecord.id ? saved : w)
+          }));
+          return saved;
+        } catch (e) {
+          console.error('[workoutStore] addCompletedWorkout Firestore write failed:', e?.message);
+          return localRecord;
+        }
+      },
+
+      logCompletedWorkout: async (workoutId, uid) => {
+        const workout = [...get().workouts, ...get().customWorkouts].find((w) => w.id === workoutId);
+        if (!workout) return null;
+        const completedWorkout = {
+          workoutId: workout.id,
+          name: workout.name,
+          category: workout.category,
+          difficulty: workout.difficulty,
+          exercises: workout.exercises,
+          completedAt: new Date().toISOString(),
+          duration: workout.duration,
+          caloriesBurned: workout.calories || 0,
+        };
+        return get().addCompletedWorkout(completedWorkout, uid);
       },
 
       getCompletedWorkouts: () => get().completedWorkouts,
@@ -652,35 +330,6 @@ export const useWorkoutStore = create(
         });
       },
 
-      initializeMockData: () => {
-        const { runningPrograms, completedWorkouts } = get();
-        if (runningPrograms.length === 0) {
-          set({ runningPrograms: mockRunningPrograms });
-        }
-        if (completedWorkouts.length === 0) {
-          set({ completedWorkouts: mockCompletedWorkouts });
-        }
-      },
-
-      initializeDefaultWorkouts: () => {
-        const { workouts } = get();
-        if (workouts.length === 0) {
-          set({ workouts: mockWorkouts.slice(0, 3) });
-        }
-      },
-
-      initializeRunningPrograms: () => {
-        const { runningPrograms } = get();
-        if (runningPrograms.length === 0) {
-          set({
-            runningPrograms: mockRunningPrograms.slice(0, 2),
-            runHistory: mockRunHistory.slice(-10),
-            runningChallenges: mockRunningChallenges.slice(0, 3),
-            virtualRaces: mockVirtualRaces.slice(0, 2),
-            runningBuddy: mockRunningBuddy
-          });
-        }
-      }
     }),
     {
       name: 'workout-storage',
@@ -700,19 +349,3 @@ export const useWorkoutStore = create(
     }
   )
 );
-
-// Lazy initialization - only initialize when store is first accessed
-let hasInitialized = false;
-const originalGetState = useWorkoutStore.getState;
-useWorkoutStore.getState = () => {
-  const state = originalGetState();
-  if (!hasInitialized) {
-    hasInitialized = true;
-    requestAnimationFrame(() => {
-      if (state.runningPrograms.length === 0) {
-        state.initializeMockData();
-      }
-    });
-  }
-  return state;
-};

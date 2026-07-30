@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Default badges
 const defaultBadges = [
@@ -11,8 +13,8 @@ const defaultBadges = [
   imageUrl: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=500',
   category: 'workout',
   rarity: 'common',
-  isUnlocked: true,
-  unlockedAt: new Date().toISOString()
+  isUnlocked: false,
+  unlockedAt: null
 },
 {
   id: 'badge-2',
@@ -21,8 +23,8 @@ const defaultBadges = [
   imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=500',
   category: 'nutrition',
   rarity: 'common',
-  isUnlocked: true,
-  unlockedAt: new Date().toISOString()
+  isUnlocked: false,
+  unlockedAt: null
 },
 {
   id: 'badge-3',
@@ -94,7 +96,38 @@ const defaultBadges = [
   imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500',
   category: 'achievement',
   rarity: 'legendary',
-  isUnlocked: false
+  isUnlocked: false,
+  unlockedAt: null
+},
+{
+  id: 'badge-11',
+  name: 'First Trail',
+  description: 'Complete your first tracked hike',
+  imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=500',
+  category: 'hiking',
+  rarity: 'common',
+  isUnlocked: false,
+  unlockedAt: null
+},
+{
+  id: 'badge-12',
+  name: 'Strenuous Summit',
+  description: 'Complete a hike rated Strenuous or harder on the Shenandoah difficulty scale',
+  imageUrl: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=500',
+  category: 'hiking',
+  rarity: 'rare',
+  isUnlocked: false,
+  unlockedAt: null
+},
+{
+  id: 'badge-13',
+  name: 'Trail Blazer',
+  description: 'Hike 10 total miles',
+  imageUrl: 'https://images.unsplash.com/photo-1533240332313-0db49b459ad6?w=500',
+  category: 'hiking',
+  rarity: 'rare',
+  isUnlocked: false,
+  unlockedAt: null
 }];
 
 
@@ -104,19 +137,52 @@ export const useBadgeStore = create(
       badges: [],
       isLoading: false,
 
-      unlockBadge: (id) => {
+      // Only unlock state needs to sync (name/description/imageUrl/rarity
+      // is the same fixed catalog for every user) — stores just the set of
+      // unlocked badge ids + timestamps, applied on top of the local catalog.
+      loadBadges: async (uid) => {
+        if (!uid) return;
+        const { badges } = get();
+        if (badges.length === 0) get().initializeDefaultBadges();
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'badges'));
+          if (snap.exists()) {
+            const unlocked = snap.data().unlocked || {};
+            set((state) => ({
+              badges: state.badges.map((b) =>
+                unlocked[b.id]
+                  ? { ...b, isUnlocked: true, unlockedAt: unlocked[b.id] }
+                  : b
+              ),
+            }));
+          }
+        } catch (e) {
+          console.warn('[badgeStore] loadBadges error:', e?.message);
+        }
+      },
+
+      unlockBadge: (id, uid) => {
         const { badges } = get();
         const badgeIndex = badges.findIndex((badge) => badge.id === id);
 
-        if (badgeIndex >= 0 && !badges[badgeIndex].isUnlocked && !badges[badgeIndex].unlockedAt) {
+        if (badgeIndex >= 0 && !badges[badgeIndex].isUnlocked) {
+          const unlockedAt = new Date().toISOString();
           const updatedBadges = [...badges];
           updatedBadges[badgeIndex] = {
             ...updatedBadges[badgeIndex],
             isUnlocked: true,
-            unlockedAt: new Date().toISOString()
+            unlockedAt,
           };
 
           set({ badges: updatedBadges });
+
+          if (uid) {
+            setDoc(doc(db, 'users', uid, 'data', 'badges'), {
+              unlocked: { [id]: unlockedAt },
+            }, { merge: true }).catch((e) =>
+              console.warn('[badgeStore] unlock sync failed:', e?.message)
+            );
+          }
         }
       },
 

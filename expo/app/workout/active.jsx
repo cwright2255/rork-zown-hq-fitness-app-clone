@@ -9,26 +9,42 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
+import { useBadgeStore } from '@/store/badgeStore';
+import { useAchievementStore } from '@/store/achievementStore';
+import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 
-/* Ã¢ÂÂÃ¢ÂÂ Placeholder exercise data Ã¢ÂÂÃ¢ÂÂ */
-// TODO: Connect to real workout API / exerciseStore
+// Real workouts don't always carry an explicit hold-time per exercise (strength
+// moves are sets x reps, performed at the user's own pace) — this estimates a
+// reasonable on-screen timer duration from whatever the workout actually
+// specifies, instead of a fixed placeholder list.
+function estimateExerciseSeconds(exercise) {
+  if (typeof exercise?.duration === 'number' && exercise.duration > 0) {
+    return exercise.duration;
+  }
+  if (exercise?.sets && exercise?.reps) {
+    return Math.max(20, Math.round(exercise.sets * exercise.reps * 3));
+  }
+  return 45;
+}
 
-const INITIAL_EXERCISES = [
-  { id: 'e1', name: 'Mountain Climber', seconds: 50, icon: 'body-outline' },
-  { id: 'e2', name: 'Sit Up', seconds: 68, icon: 'body-outline' },
-  { id: 'e3', name: 'Burpees', seconds: 45, icon: 'body-outline' },
-  { id: 'e4', name: 'Jump Squat', seconds: 60, icon: 'body-outline' },
-  { id: 'e5', name: 'Plank', seconds: 30, icon: 'body-outline' },
-  { id: 'e6', name: 'Lunges', seconds: 50, icon: 'body-outline' },
-  { id: 'e7', name: 'Push Ups', seconds: 45, icon: 'body-outline' },
-  { id: 'e8', name: 'High Knees', seconds: 60, icon: 'body-outline' },
-];
+// Maps a workout exercise's display name to one of the three exercise keys
+// services/formAnalysisService.js has real angle-based analysis for, so the
+// "Check my form" entry point only appears when it can actually say
+// something useful — not for exercises it would just show a generic
+// "tracking active" message for.
+function matchFormCheckExercise(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('squat')) return 'squat';
+  if (n.includes('push')) return 'pushup';
+  if (n.includes('curl')) return 'bicepCurl';
+  return null;
+}
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
@@ -81,19 +97,38 @@ function MenuOption({ icon, label, onPress, danger }) {
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const workoutId = typeof params.id === 'string' ? params.id : '';
 
-  const { addCompletedWorkout, saveWorkouts } = useWorkoutStore();
-  const { addExp } = useExpStore();
+  const { workouts, customWorkouts, addCompletedWorkout } = useWorkoutStore();
+  const { addExpActivity, totalExp, level } = useExpStore();
+  const { unlockBadge } = useBadgeStore();
+  const { checkAchievements } = useAchievementStore();
   const { user } = useUserStore();
   const workoutStartRef = useRef(new Date().toISOString());
   const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, previousTrack, playbackState, connectSpotifyImplicit } = useSpotifyStore();
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
-  const [exercises] = useState(INITIAL_EXERCISES);
+  const selectedWorkout = useMemo(
+    () => [...workouts, ...customWorkouts].find((w) => String(w.id) === workoutId) || null,
+    [workouts, customWorkouts, workoutId]
+  );
+
+  const [exercises] = useState(() => {
+    const source = selectedWorkout?.exercises || [];
+    return source.map((ex, i) => ({
+      id: ex.id ?? `ex-${i}`,
+      name: ex.name,
+      seconds: estimateExerciseSeconds(ex),
+      icon: 'body-outline',
+      sets: ex.sets,
+      reps: ex.reps,
+    }));
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedSet, setCompletedSet] = useState(new Set());
   const [isPlaying, setIsPlaying] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(INITIAL_EXERCISES[0].seconds);
+  const [timeLeft, setTimeLeft] = useState(exercises[0]?.seconds ?? 45);
   const [exerciseComplete, setExerciseComplete] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -188,7 +223,7 @@ export default function ActiveWorkoutScreen() {
   );
 
   const progressPercent =
-    currentExercise.seconds > 0
+    currentExercise && currentExercise.seconds > 0
       ? ((currentExercise.seconds - timeLeft) / currentExercise.seconds) * 100
       : 0;
 
@@ -228,6 +263,25 @@ export default function ActiveWorkoutScreen() {
   const isLastExercise = currentIndex === totalExercises - 1;
   const isWorkoutDone = isLastExercise && exerciseComplete;
 
+  if (totalExercises === 0) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }]}>
+        <Ionicons name="alert-circle-outline" size={40} color="#999" />
+        <Text style={{ color: '#FFF', fontSize: 16, marginTop: 12, textAlign: 'center' }}>
+          {selectedWorkout
+            ? "This workout doesn't have any exercises yet."
+            : "We couldn't find that workout."}
+        </Text>
+        <Pressable
+          style={{ marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24, backgroundColor: '#FFF' }}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/workouts'))}
+        >
+          <Text style={{ color: '#000', fontWeight: '700' }}>Go Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -252,6 +306,16 @@ export default function ActiveWorkoutScreen() {
 
         {/* Ã¢ÂÂÃ¢ÂÂ Exercise title Ã¢ÂÂÃ¢ÂÂ */}
         <Text style={styles.exerciseTitle}>{currentExercise.name}</Text>
+        {matchFormCheckExercise(currentExercise.name) && (
+          <Pressable
+            style={styles.formCheckLink}
+            onPress={() => router.push(`/workout/form-check?exercise=${matchFormCheckExercise(currentExercise.name)}`)}
+          >
+            <Ionicons name="camera-outline" size={14} color="#FFF" />
+            <Text style={styles.formCheckLinkText}>Check my form</Text>
+          </Pressable>
+        )}
+
 
         {/* Ã¢ÂÂÃ¢ÂÂ Video / demo area Ã¢ÂÂÃ¢ÂÂ */}
         <View style={styles.videoArea}>
@@ -346,21 +410,83 @@ export default function ActiveWorkoutScreen() {
               styles.centerBtn,
               isWorkoutDone && { backgroundColor: '#22C55E' },
             ]}
-            onPress={isWorkoutDone ? () => {
-              const totalSeconds = INITIAL_EXERCISES.reduce((s, e) => s + e.seconds, 0);
-              const caloriesBurned = Math.round(totalSeconds * 0.15);
-              addCompletedWorkout({
-                name: 'Workout',
-                duration: totalSeconds,
-                exercisesCompleted: INITIAL_EXERCISES.length,
-                totalExercises: INITIAL_EXERCISES.length,
+            onPress={isWorkoutDone ? async () => {
+              const elapsedSeconds = Math.max(
+                1,
+                Math.round((Date.now() - new Date(workoutStartRef.current).getTime()) / 1000)
+              );
+              const completionRatio = totalExercises > 0 ? completedCount / totalExercises : 1;
+              const caloriesBurned = Math.round(
+                (selectedWorkout?.calories ?? Math.round(elapsedSeconds * 0.15)) * completionRatio
+              );
+              const xpEarned = selectedWorkout?.xpReward ?? 100;
+
+              await addCompletedWorkout({
+                workoutId: selectedWorkout?.id ?? null,
+                name: selectedWorkout?.name || 'Workout',
+                category: selectedWorkout?.category,
+                difficulty: selectedWorkout?.difficulty,
+                exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps })),
+                duration: elapsedSeconds,
+                exercisesCompleted: completedCount,
+                totalExercises,
                 caloriesBurned,
-                xpEarned: 100,
+                xpEarned,
                 completedAt: new Date().toISOString(),
                 startedAt: workoutStartRef.current,
+              }, user?.uid);
+
+              // Real trigger for the "First Workout" badge — checks the
+              // actual completed-workout count rather than assuming.
+              // Previously this badge (and "Nutrition Novice") were simply
+              // hardcoded to isUnlocked:true for every user regardless of
+              // whether they'd done anything; unlockBadge is never called
+              // from anywhere else in the app for it, so simply removing
+              // the fabrication would have left it permanently unearnable.
+              if ((useWorkoutStore.getState().completedWorkouts || []).length <= 1) {
+                unlockBadge?.('badge-1', user?.uid);
+              }
+
+              // Real trigger for store/achievementStore.js — a well-designed
+              // condition-evaluation engine (checks workout_count, streak,
+              // calories_burned, level, xp, etc.) that, like the badge
+              // unlock above, was built but never actually called from
+              // anywhere in the app. Feeds it genuine stats rather than
+              // assuming any of these condition types are met.
+              checkAchievements?.({
+                workoutsCompleted: (useWorkoutStore.getState().completedWorkouts || []).length,
+                streak: user?.streak ?? 0,
+                caloriesBurned,
+                level,
+                xp: totalExp,
+              }, user?.uid);
+
+              addExpActivity?.({
+                id: Date.now().toString(),
+                type: 'workout',
+                baseExp: xpEarned,
+                multiplier: 1.0,
+                date: new Date().toISOString().split('T')[0],
+                description: `Completed ${selectedWorkout?.name || 'workout'}`,
+                completed: true,
               });
-              saveWorkouts(user?.uid);
-              if (addExp) addExp(100, 'workout');
+
+              // Public leaderboard sync (store/leaderboardStore.js) — reads
+              // useExpStore.getState() directly rather than the totalExp/
+              // level values already destructured above, since those are a
+              // snapshot from this render and won't reflect the XP just
+              // awarded by addExpActivity a moment ago.
+              if (user?.uid) {
+                const freshExp = useExpStore.getState();
+                useLeaderboardStore.getState()._syncLeaderboardEntry(user.uid, {
+                  name: user?.name,
+                  avatar: user?.profileImage,
+                  xp: freshExp.totalExp,
+                  level: freshExp.level,
+                  streak: user?.streak,
+                });
+              }
+
               router.replace('/workout/complete');
             } : handleCenterButton}
           >
@@ -526,6 +652,25 @@ const styles = StyleSheet.create({
     color: '#000',
     paddingHorizontal: 20,
     marginBottom: 16,
+  },
+
+  formCheckLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginHorizontal: 20,
+    marginTop: -8,
+    marginBottom: 16,
+    backgroundColor: '#000',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  formCheckLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
   },
 
   /* Video area Ã¢ÂÂ CHANGE 1: taller */

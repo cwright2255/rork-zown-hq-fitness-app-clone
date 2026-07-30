@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const defaultAchievements = [
 {
@@ -206,7 +208,40 @@ export const useAchievementStore = create(
       achievements: defaultAchievements,
       unlockedAchievements: [],
 
-      checkAchievements: (data) => {
+      // Same pattern as badgeStore: the achievement catalog (name/icon/
+      // condition) is fixed app content, identical for every user — only
+      // which ones are unlocked, and when, needs to sync.
+      loadAchievements: async (uid) => {
+        if (!uid) return;
+        try {
+          const snap = await getDoc(doc(db, 'users', uid, 'data', 'achievements'));
+          if (snap.exists()) {
+            const unlocked = snap.data().unlocked || {};
+            const ids = Object.keys(unlocked);
+            set((state) => ({
+              unlockedAchievements: ids,
+              achievements: state.achievements.map((a) =>
+                unlocked[a.id] ? { ...a, unlockedAt: unlocked[a.id] } : a
+              ),
+            }));
+          }
+        } catch (e) {
+          console.warn('[achievementStore] loadAchievements error:', e?.message);
+        }
+      },
+
+      _syncUnlocksToFirestore: (newlyUnlocked, uid) => {
+        if (!uid || newlyUnlocked.length === 0) return;
+        const unlockedMap = {};
+        newlyUnlocked.forEach((a) => { unlockedMap[a.id] = a.unlockedAt; });
+        setDoc(doc(db, 'users', uid, 'data', 'achievements'), {
+          unlocked: unlockedMap,
+        }, { merge: true }).catch((e) =>
+          console.warn('[achievementStore] sync error:', e?.message)
+        );
+      },
+
+      checkAchievements: (data, uid) => {
         const { achievements, unlockedAchievements } = get();
         const newlyUnlocked = [];
 
@@ -272,26 +307,36 @@ export const useAchievementStore = create(
               return unlocked ? unlocked : achievement;
             })
           }));
+          get()._syncUnlocksToFirestore(newlyUnlocked, uid);
         }
 
         return newlyUnlocked;
       },
 
-      unlockAchievement: (achievementId) => {
+      unlockAchievement: (achievementId, uid) => {
         const { achievements, unlockedAchievements } = get();
 
         if (unlockedAchievements.includes(achievementId)) {
           return;
         }
 
+        const unlockedAt = new Date().toISOString();
         set((state) => ({
           unlockedAchievements: [...state.unlockedAchievements, achievementId],
           achievements: state.achievements.map((achievement) =>
           achievement.id === achievementId ?
-          { ...achievement, unlockedAt: new Date().toISOString() } :
+          { ...achievement, unlockedAt } :
           achievement
           )
         }));
+
+        if (uid) {
+          setDoc(doc(db, 'users', uid, 'data', 'achievements'), {
+            unlocked: { [achievementId]: unlockedAt },
+          }, { merge: true }).catch((e) =>
+            console.warn('[achievementStore] sync error:', e?.message)
+          );
+        }
       },
 
       updateAchievementProgress: (achievementId, progress) => {

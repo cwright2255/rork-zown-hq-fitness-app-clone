@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,41 +7,14 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
-
-/* ââ Placeholder data ââ */
-// TODO: receive real workout results via route params or store
-
-const COMPLETED_EXERCISES = [
-  { id: 'e1', name: 'Mountain Climber', duration: '0:50' },
-  { id: 'e2', name: 'Sit Up', duration: '1:08' },
-  { id: 'e3', name: 'Burpees', duration: '0:45' },
-  { id: 'e4', name: 'Jump Squat', duration: '1:00' },
-  { id: 'e5', name: 'Plank', duration: '0:30' },
-  { id: 'e6', name: 'Lunges', duration: '0:50' },
-  { id: 'e7', name: 'Push Ups', duration: '0:45' },
-  { id: 'e8', name: 'High Knees', duration: '1:00' },
-];
-
-const REWARDS = [
-  { id: 'r1', icon: 'trophy', label: '7-Workout Week' },
-  { id: 'r2', icon: 'trending-up', label: 'Move Goal 200%' },
-  { id: 'r3', icon: 'ribbon', label: 'New Move Record' },
-  { id: 'r4', icon: 'flame', label: 'Longest Streak' },
-];
-
-const SUMMARY_STATS = [
-  { label: 'Duration', value: realDuration },
-  { label: 'Exercises Completed', value: realExercises },
-  { label: 'Calories Burned', value: '246 kcal' },
-  { label: 'Average Heart Rate', value: '--' },
-  { label: 'XP Earned', value: '+100 XP' },
-];
-
-/* ââ Stat card ââ */
+import { useUserStore } from '@/store/userStore';
+import { useBadgeStore } from '@/store/badgeStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useCommunityStore } from '@/store/communityStore';
 
 function StatCard({ icon, number, label }) {
   return (
@@ -113,21 +86,112 @@ function TabButton({ label, active, onPress }) {
 
 /* ââ Main screen ââ */
 
-export default function WorkoutCompleteScreen() {
-  const completedWorkouts = useWorkoutStore(s => s.completedWorkouts) || [];
-  const { totalExp } = useExpStore();
-  const lastWorkout = completedWorkouts.length > 0 ? completedWorkouts[completedWorkouts.length - 1] : {};
+function formatDurationFromSeconds(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m} min`;
+}
 
-  const realDuration = lastWorkout.duration ? Math.floor(lastWorkout.duration / 60) + ' min' : '0 min';
-  const realCalories = lastWorkout.caloriesBurned || 0;
-  const realXP = lastWorkout.xpEarned || 100;
-  const realExercises = (lastWorkout.exercisesCompleted || 0) + '/' + (lastWorkout.totalExercises || 0);
+export default function WorkoutCompleteScreen() {
+  const params = useLocalSearchParams();
+  const isRunCompletion = params.type === 'run';
+  const isHikeCompletion = params.type === 'hike';
+
+  const completedWorkouts = useWorkoutStore(s => s.completedWorkouts) || [];
+  const runs = useRunningStore(s => s.runs) || [];
+  const { totalExp } = useExpStore();
+  const { user } = useUserStore();
+  const { badges, loadBadges } = useBadgeStore();
+  const { loadRuns } = useRunningStore();
+  const { createPost } = useCommunityStore();
+  const [sharing, setSharing] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadBadges(user.uid);
+      if (isRunCompletion) loadRuns(user.uid);
+    }
+  }, [user?.uid]);
+
+  const lastWorkout = completedWorkouts.length > 0 ? completedWorkouts[completedWorkouts.length - 1] : null;
+  const lastRun = runs.length > 0 ? runs[runs.length - 1] : null;
+  const displayName = user?.displayName || user?.name || 'You';
+
+  // Running redirects here too (app/running/active.jsx), but this screen
+  // previously only ever read from workoutStore -- meaning after finishing
+  // a run, it would show stale or empty workout data instead of the run
+  // that was just completed. Branches on the ?type=run param set by that
+  // redirect rather than guessing from whichever store happens to be
+  // freshest. Hike completions carry their own data directly in the route
+  // params (already fully computed in the monitor screen before
+  // navigating here) rather than reading from a store, since there's
+  // nothing to look up — the hike that was just completed IS the data.
+  const realDuration = isHikeCompletion
+    ? formatDurationFromSeconds(parseInt(params.durationSeconds, 10) || 0)
+    : isRunCompletion
+      ? (lastRun?.duration ? Math.floor(lastRun.duration / 60) + ' min' : '0 min')
+      : (lastWorkout?.duration ? Math.floor(lastWorkout.duration / 60) + ' min' : '0 min');
+  const realCalories = isRunCompletion ? (lastRun?.calories || 0) : (lastWorkout?.caloriesBurned || 0);
+  const realXP = isHikeCompletion
+    ? (parseInt(params.xpEarned, 10) || 0)
+    : isRunCompletion ? Math.round((lastRun?.distance || 0) * 30) : (lastWorkout?.xpEarned || 0);
+  const realExercises = `${lastWorkout?.exercisesCompleted ?? 0}/${lastWorkout?.totalExercises ?? 0}`;
+
+  const summaryStats = isHikeCompletion
+    ? [
+        { label: 'Distance', value: `${params.distanceKm || '0'} km` },
+        { label: 'Elevation Gain', value: `${params.elevationGainM || '0'} m` },
+        { label: 'Difficulty', value: params.difficultyTier || 'Easy' },
+        { label: 'Calories Burned', value: `${params.calories || '0'} kcal` },
+        { label: 'XP Earned', value: `+${realXP} XP` },
+      ]
+    : isRunCompletion
+      ? [
+          { label: 'Distance', value: `${(lastRun?.distance || 0).toFixed(2)} km` },
+          { label: 'Duration', value: realDuration },
+          { label: 'Calories Burned', value: `${realCalories} kcal` },
+          { label: 'XP Earned', value: `+${realXP} XP` },
+        ]
+      : [
+          { label: 'Duration', value: realDuration },
+          { label: 'Exercises Completed', value: realExercises },
+          { label: 'Calories Burned', value: `${realCalories} kcal` },
+          { label: 'XP Earned', value: `+${realXP} XP` },
+        ];
+
+  const exerciseList = lastWorkout?.exercises || [];
+  const unlockedCount = badges.filter((b) => b.isUnlocked).length;
+
+  const handleShareToCommunity = async () => {
+    if (!user?.uid || shared) return;
+    setSharing(true);
+    try {
+      const text = isHikeCompletion
+        ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
+        : isRunCompletion
+          ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km run in ${realDuration}. 💪`
+          : `Just completed a workout — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
+      await createPost({
+        uid: user.uid,
+        authorName: displayName,
+        authorAvatar: user.profileImage,
+        text,
+        type: isHikeCompletion ? 'hike' : isRunCompletion ? 'run' : 'workout',
+      });
+      setShared(true);
+    } catch (e) {
+      console.warn('[complete] share to community failed:', e?.message);
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Summary');
 
   const handleClose = () => {
-    router.replace('/workouts');
+    router.replace(isHikeCompletion || isRunCompletion ? '/running/program' : '/workouts');
   };
 
   return (
@@ -159,16 +223,16 @@ export default function WorkoutCompleteScreen() {
             <Ionicons name="checkmark" size={50} color="#000" />
           </View>
           <Text style={styles.celebrationTitle}>Great Job!</Text>
-          <Text style={styles.celebrationName}>Carlton Wright</Text>
+          <Text style={styles.celebrationName}>{displayName}</Text>
         </View>
 
-        {/* ââ Stats row ââ */}
+        {/* Stats row */}
         <View style={styles.statsRow}>
-          <StatCard icon="flash-outline" number="246" label="Total calories" />
-          <StatCard icon="star-outline" number="+100" label="XP Earned" />
+          <StatCard icon="flash-outline" number={String(realCalories)} label="Total calories" />
+          <StatCard icon="star-outline" number={`+${realXP}`} label="XP Earned" />
         </View>
 
-        {/* ââ Tabs ââ */}
+        {/* Tabs */}
         <View style={styles.tabRow}>
           <TabButton
             label="Summary"
@@ -187,16 +251,16 @@ export default function WorkoutCompleteScreen() {
           />
         </View>
 
-        {/* ââ Tab content ââ */}
+        {/* Tab content */}
         {activeTab === 'Summary' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Workout Summary</Text>
-            {SUMMARY_STATS.map((stat, idx) => (
+            {summaryStats.map((stat, idx) => (
               <SummaryRow
                 key={stat.label}
                 label={stat.label}
                 value={stat.value}
-                isLast={idx === SUMMARY_STATS.length - 1}
+                isLast={idx === summaryStats.length - 1}
               />
             ))}
           </View>
@@ -213,32 +277,54 @@ export default function WorkoutCompleteScreen() {
 
         {activeTab === 'Exercises' && (
           <View style={styles.tabContent}>
-            {COMPLETED_EXERCISES.map((exercise) => (
-              <ExerciseRow key={exercise.id} exercise={exercise} />
-            ))}
+            {exerciseList.length === 0 ? (
+              <Text style={styles.placeholderText}>No exercise detail recorded for this session.</Text>
+            ) : (
+              exerciseList.map((exercise, idx) => (
+                <ExerciseRow
+                  key={idx}
+                  exercise={{
+                    name: exercise.name,
+                    duration: exercise.sets && exercise.reps ? `${exercise.sets} \u00d7 ${exercise.reps}` : '',
+                  }}
+                />
+              ))
+            )}
           </View>
         )}
 
-        {/* ââ Rewards ââ */}
+        {/* Rewards */}
         <View style={styles.rewardsSection}>
           <Text style={styles.sectionTitle}>Rewards</Text>
           <Text style={styles.rewardsSubtitle}>
-            You've earned 2/10 of all Rewards.
+            You've earned {unlockedCount}/{badges.length} of all Rewards.
           </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.rewardsCarousel}
           >
-            {REWARDS.map((reward) => (
-              <RewardBadge key={reward.id} reward={reward} />
+            {badges.filter((b) => b.isUnlocked).map((badge) => (
+              <RewardBadge key={badge.id} reward={{ icon: 'trophy', label: badge.name }} />
             ))}
           </ScrollView>
         </View>
 
-        {/* ââ Bottom CTA ââ */}
+        {/* Share to Community — real post, via store/communityStore.js */}
+        <Pressable
+          style={[styles.shareButton, shared && styles.shareButtonShared]}
+          onPress={handleShareToCommunity}
+          disabled={sharing || shared}
+        >
+          <Ionicons name={shared ? 'checkmark-circle' : 'share-social-outline'} size={18} color={shared ? '#22C55E' : '#000'} />
+          <Text style={[styles.shareButtonText, shared && { color: '#22C55E' }]}>
+            {sharing ? 'Sharing…' : shared ? 'Shared to Community' : 'Share to Community'}
+          </Text>
+        </Pressable>
+
+        {/* Bottom CTA */}
         <Pressable style={styles.ctaButton} onPress={handleClose}>
-          <Text style={styles.ctaText}>Back to Workouts</Text>
+          <Text style={styles.ctaText}>{isHikeCompletion || isRunCompletion ? 'Back to Running' : 'Back to Workouts'}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -461,6 +547,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 6,
   },
+
+  /* Share to Community */
+  shareButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginHorizontal: 20, marginTop: 16,
+    borderWidth: 1, borderColor: '#000', borderRadius: 14, paddingVertical: 14,
+  },
+  shareButtonShared: { borderColor: '#22C55E' },
+  shareButtonText: { fontSize: 14, fontWeight: '700', color: '#000' },
 
   /* CTA */
   ctaButton: {
