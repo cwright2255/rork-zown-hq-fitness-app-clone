@@ -3,43 +3,36 @@ name: EAS Development Build
 on:
   workflow_dispatch:
 
-concurrency:
-  group: eas-development-build
-  cancel-in-progress: false
-
 jobs:
   build:
-    name: Trigger EAS development builds (iOS + Android)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: expo
-
     steps:
-      - name: Check out branch
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - name: Install dependencies
+        working-directory: expo
+        run: npm install
 
-      - name: Install Expo + EAS CLIs
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          expo-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Fix dependency versions
+        working-directory: expo
+        run: npx expo install --fix
 
-      - name: Install JS dependencies
-        run: bun install
+      - name: Commit updated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add expo/package-lock.json expo/package.json
+          git diff --cached --quiet || git commit -m "chore: fix dependency versions via expo install --fix"
+          git push
 
-      - name: Trigger EAS development build for iOS and Android
-        run: npx eas-cli build --profile development --platform all --non-interactive
+      - name: Run EAS Build
+        working-directory: expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest build --profile development --platform all --non-interactive
