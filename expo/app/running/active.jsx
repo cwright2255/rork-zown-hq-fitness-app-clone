@@ -10,15 +10,18 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as Speech from 'expo-speech';
 import RunningMap from '@/components/RunningMap';
 import { useRunningStore } from '@/store/runningStore';
+import { useVirtualChallengeStore } from '@/store/virtualChallengeStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { radarService } from '@/services/radarService';
+import { getSessionIntervals, getProgramWeek } from '@/data/runningPrograms';
 
 /* Ã¢ÂÂÃ¢ÂÂ Helpers Ã¢ÂÂÃ¢ÂÂ */
 
@@ -64,13 +67,31 @@ function MenuOption({ icon, label, onPress, danger }) {
 
 export default function ActiveRunScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const programId = typeof params.programId === 'string' ? params.programId : null;
+  const weekNumber = params.week ? parseInt(params.week, 10) : null;
+  const sessionIndex = params.sessionIndex ? parseInt(params.sessionIndex, 10) : 0;
 
-  const { startRun, endRun } = useRunningStore();
-  const { addExp } = useExpStore();
+  const { startRun, endRun, updateActiveRun, completeProgramSession } = useRunningStore();
+  const { addExpActivity } = useExpStore();
   const { user } = useUserStore();
   const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, playbackState } = useSpotifyStore();
   const runStartRef = useRef(new Date().toISOString());
   const [locationName, setLocationName] = useState('');
+
+  // Program (interval) mode — real Couch to 5K / interval structure from
+  // data/runningPrograms.js, driven the same way body-scan capture drives
+  // its voice-guided rotation steps: a countdown per phase, a spoken cue
+  // on each transition, toggled by the same audioEnabled switch this
+  // screen already had (previously wired to nothing — the toggle existed
+  // in the UI but there were no voice cues anywhere for it to control).
+  const programIntervals = programId && weekNumber
+    ? getSessionIntervals(programId, weekNumber, sessionIndex)
+    : null;
+  const programWeek = programId && weekNumber ? getProgramWeek(programId, weekNumber) : null;
+  const isProgramRun = !!programIntervals;
+  const [intervalIndex, setIntervalIndex] = useState(0);
+  const [intervalSecondsLeft, setIntervalSecondsLeft] = useState(programIntervals?.[0]?.seconds ?? 0);
 
   // Reverse geocode current position for display
   const updateLocationName = useCallback(async (lat, lng) => {
@@ -184,12 +205,41 @@ export default function ActiveRunScreen() {
     if (isRunning) {
       timerRef.current = setInterval(() => {
         setElapsed((e) => e + 1);
+        if (isProgramRun) {
+          setIntervalSecondsLeft((s) => Math.max(0, s - 1));
+        }
       }, 1000);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning]);
+  }, [isRunning, isProgramRun]);
+
+  // Handles advancing to the next interval and speaking its cue. Kept as
+  // its own effect (rather than inline in the setInterval callback above)
+  // specifically so it always sees the current intervalIndex/programIntervals
+  // -- a long-lived setInterval callback closes over whatever those values
+  // were when the interval was created, which would go stale the moment
+  // intervalIndex changes.
+  useEffect(() => {
+    if (!isProgramRun || !isRunning) return;
+    if (intervalSecondsLeft > 0) return;
+
+    const nextIndex = intervalIndex + 1;
+    if (nextIndex >= programIntervals.length) {
+      // Program session complete -- end the run the same way a manual end
+      // does, crediting the real session to the program's progress.
+      handleEndRun();
+      return;
+    }
+    const next = programIntervals[nextIndex];
+    setIntervalIndex(nextIndex);
+    setIntervalSecondsLeft(next.seconds);
+    if (audioEnabled) {
+      Speech.stop();
+      Speech.speak(next.cue === 'Run' ? "Run now" : "Walk now -- recover your breath", { rate: 1.0 });
+    }
+  }, [intervalSecondsLeft, isProgramRun, isRunning, handleEndRun]);
 
   /* Ã¢ÂÂÃ¢ÂÂ Controls Ã¢ÂÂÃ¢ÂÂ */
   const handlePause = useCallback(() => {
@@ -207,14 +257,43 @@ export default function ActiveRunScreen() {
     setShowPauseOptions(false);
     setShowMenu(false);
     try {
-      const calories = Math.round(distance * 60);
-      endRun(user?.uid);
-      if (addExp) addExp(Math.round(distance * 30), 'run');
+      // This was the core bug in this screen: distance/elapsed/calories/
+      // coordinates were all tracked in local component state only.
+      // updateActiveRun() — the function that writes those values into the
+      // store's activeRun — was never called anywhere, so endRun() was
+      // spreading the store's still-zeroed startRun() defaults into the
+      // saved record. The on-screen numbers during the run were correct;
+      // none of them were ever actually being saved. Fixed by writing the
+      // real tracked values in before ending.
+      const rawPaceSecPerKm = distance > 0.01 ? elapsed / distance : 0;
+      updateActiveRun({
+        distance,
+        duration: elapsed,
+        pace: rawPaceSecPerKm,
+        calories: Math.round(calories),
+        coords: coordinates,
+      });
+      const completed = endRun(user?.uid);
+      useVirtualChallengeStore.getState().creditDistance(distance, user?.uid);
+      if (isProgramRun && programWeek) {
+        completeProgramSession(programId, programWeek.sessionsPerWeek, user?.uid);
+      }
+      addExpActivity?.({
+        id: Date.now().toString(),
+        type: 'running',
+        baseExp: Math.round(distance * 30),
+        multiplier: 1.0,
+        date: new Date().toISOString().split('T')[0],
+        description: isProgramRun
+          ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
+          : `Completed a ${distance.toFixed(2)}km run`,
+        completed: true,
+      });
     } catch (e) {
       console.warn('Failed to save run:', e?.message);
     }
-    router.replace('/workout/complete');
-  }, [router, distance, endRun, addExp, user]);
+    router.replace('/workout/complete?type=run');
+  }, [router, distance, elapsed, calories, coordinates, updateActiveRun, endRun, addExpActivity, user, isProgramRun, programWeek, programId, weekNumber, sessionIndex, completeProgramSession]);
 
   const pace = formatPace(distance, elapsed);
   const goalPercent = Math.min(100, Math.round((distance / 5) * 100));
@@ -243,6 +322,18 @@ export default function ActiveRunScreen() {
           </Pressable>
         </View>
       </View>
+
+      {isProgramRun && intervalIndex < programIntervals.length && (
+        <View style={[styles.intervalBanner, programIntervals[intervalIndex].type === 'run' ? styles.intervalBannerRun : styles.intervalBannerWalk]}>
+          <Text style={styles.intervalBannerLabel}>{programIntervals[intervalIndex].cue.toUpperCase()}</Text>
+          <Text style={styles.intervalBannerTime}>{formatTimer(intervalSecondsLeft)}</Text>
+          <Text style={styles.intervalBannerNext}>
+            {intervalIndex + 1 < programIntervals.length
+              ? `Next: ${programIntervals[intervalIndex + 1].cue}`
+              : 'Final interval'}
+          </Text>
+        </View>
+      )}
 
       {/* Ã¢ÂÂÃ¢ÂÂ Stats panel Ã¢ÂÂÃ¢ÂÂ */}
       <View style={styles.statsPanel}>
@@ -330,6 +421,14 @@ export default function ActiveRunScreen() {
 /* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
 const styles = StyleSheet.create({
+  intervalBanner: {
+    paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
+  },
+  intervalBannerRun: { backgroundColor: '#22C55E' },
+  intervalBannerWalk: { backgroundColor: '#4A90D9' },
+  intervalBannerLabel: { color: '#FFF', fontSize: 13, fontWeight: '800', letterSpacing: 1.5 },
+  intervalBannerTime: { color: '#FFF', fontSize: 34, fontWeight: '800', marginTop: 2 },
+  intervalBannerNext: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
   container: { flex: 1, backgroundColor: '#0D1117' },
 
   /* Map */

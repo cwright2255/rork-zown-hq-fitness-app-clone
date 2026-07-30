@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,25 +9,27 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRunningStore } from '@/store/runningStore';
+import { useUserStore } from '@/store/userStore';
+import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
+import { getTargetMuscles } from '@/lib/muscleFatigue';
 
-
-
-/* ââ Placeholder data ââ */
-
-const WEEKLY_PLAN = [
-  { week: 'W1', title: 'Walk/Run Intervals', desc: 'Run 1 min, Walk 2 min \u00d7 8 sets', duration: '20 min' },
-  { week: 'W2', title: 'Building Endurance', desc: 'Run 2 min, Walk 1 min \u00d7 7 sets', duration: '25 min' },
-  { week: 'W3', title: 'Longer Runs', desc: 'Run 3 min, Walk 1 min \u00d7 6 sets', duration: '25 min' },
-  { week: 'W4', title: 'Pushing Further', desc: 'Run 5 min, Walk 1 min \u00d7 4 sets', duration: '28 min' },
-];
+// Turns a real interval list into a short, human-readable description,
+// e.g. "Run 1 min, Walk 90 sec x 8" — used in the weekly plan preview.
+function summarizeIntervals(intervals) {
+  const runIv = intervals.find((iv) => iv.type === 'run');
+  const walkIv = intervals.find((iv) => iv.type === 'walk');
+  const reps = intervals.filter((iv) => iv.type === 'run').length;
+  const fmt = (secs) => (secs % 60 === 0 ? `${secs / 60} min` : `${secs} sec`);
+  if (!walkIv) return `Run ${fmt(runIv?.seconds || 0)} continuous`;
+  return `Run ${fmt(runIv.seconds)}, Walk ${fmt(walkIv.seconds)} x ${reps}`;
+}
 
 const TOOLS = [
   { icon: 'navigate-outline', label: 'Track Distance & Pace with GPS' },
   { icon: 'musical-notes-outline', label: 'Sync with Your Playlists' },
-  { icon: 'people-outline', label: 'Connect to Running Community' },
+  { icon: 'people-outline', label: 'Share to the Community Feed' },
 ];
-
-/* ââ Stat pill ââ */
 
 function StatPill({ icon, label }) {
   return (
@@ -72,13 +74,50 @@ function ToolCard({ icon, label }) {
 
 export default function RunPreviewScreen() {
   const params = useLocalSearchParams();
-  const title = params.title || 'Couch to 5K';
+  const programId = typeof params.id === 'string' ? params.id : 'c25k';
   const router = useRouter();
+
+  const { programProgress, loadRuns, programs, loadRunningPrograms } = useRunningStore();
+  const program = programs.find((p) => p.id === programId);
+  const title = program?.title || 'Program';
+  const { user } = useUserStore();
+
+  useEffect(() => {
+    if (user?.uid) loadRuns(user.uid);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    loadRunningPrograms();
+  }, []);
+
+  const progress = programProgress[programId];
+  const currentWeek = progress?.currentWeek || 1;
+  const nextSessionIndex = progress?.completedSessionIndexes?.length || 0;
+  const hasStarted = !!progress;
 
   const [bookmarked, setBookmarked] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState('Motivator');
   const [audioCues, setAudioCues] = useState(true);
-  const [hasStarted] = useState(false);
+
+  // Real weekly plan, built from the actual program structure rather than
+  // a fixed 4-week hardcoded preview shown for every program regardless
+  // of which one was selected.
+  const weeklyPlan = (program?.weeks || []).map((w) => {
+    const seconds = w.intervals
+      ? w.intervals.reduce((s, iv) => s + iv.seconds, 0)
+      : w.sessionOverrides
+        ? w.sessionOverrides[0].reduce((s, iv) => s + iv.seconds, 0)
+        : w.targetDistanceKm ? null : 0;
+    const duration = seconds != null
+      ? `${Math.round(seconds / 60)} min`
+      : `${w.targetDistanceKm} km`;
+    const desc = w.intervals
+      ? summarizeIntervals(w.intervals)
+      : w.sessionOverrides
+        ? 'Varies by session'
+        : `${w.targetDistanceKm}km continuous run`;
+    return { week: `W${w.week}`, title: w.title, desc, duration };
+  });
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -185,12 +224,19 @@ export default function RunPreviewScreen() {
         {/* ââ Weekly Plan ââ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Plan</Text>
-          {WEEKLY_PLAN.map((item) => (
+          {weeklyPlan.map((item) => (
             <WeekRow key={item.week} item={item} />
           ))}
         </View>
 
         {/* ââ Race Training Tools ââ */}
+        {/* Real muscles this program primarily targets -- same real
+            primary-muscle model used for fatigue tracking on the Health
+            screen, so both views agree with each other. */}
+        <View style={styles.section}>
+          <MuscleHeatmapCard mode="target" targetMuscles={getTargetMuscles('running')} title="Muscles You'll Work" />
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Race Training Tools</Text>
           <View style={styles.toolsStack}>
@@ -204,9 +250,15 @@ export default function RunPreviewScreen() {
       {/* ââ Floating CTA ââ */}
       <Pressable
         style={styles.ctaButton}
-        onPress={() => router.push('/running/active')}
+        onPress={() => {
+          if (!hasStarted) useRunningStore.getState().startProgram(programId, user?.uid);
+          router.push({
+            pathname: '/running/session/[id]',
+            params: { id: `${programId}-w${currentWeek}-s${nextSessionIndex}`, programId, week: String(currentWeek), sessionIndex: String(nextSessionIndex) },
+          });
+        }}
       >
-        <Text style={styles.ctaText}>{hasStarted ? 'Continue Run' : 'Start Run'}</Text>
+        <Text style={styles.ctaText}>{hasStarted ? 'Continue Program' : 'Start Program'}</Text>
         <Ionicons name={hasStarted ? 'play-forward' : 'play'} size={22} color="#FFF" />
       </Pressable>
     </View>

@@ -1,149 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Check } from 'lucide-react-native';
-import ScreenHeader from '@/components/ScreenHeader';
-import PrimaryButton from '@/components/PrimaryButton';
-import { useWorkoutStore } from '@/store/workoutStore';
-import { tokens } from '../../../../theme/tokens';
+// app/running/program/[id].jsx
+//
+// A third, separate program-detail implementation, alongside
+// app/running/[id].jsx and app/running/session/[id].jsx. This one read
+// `runningPrograms`/`startProgram`/`activeProgram` from store/workoutStore.js
+// -- fields that were removed earlier this session as fake mock data (see
+// the audit's "only real data" pass), meaning this screen's `program`
+// lookup always resolved to null and it always rendered "Program not
+// found." Confirmed via search that nothing in the app actually links to
+// this route. app/running/[id].jsx is the real, working program-detail
+// screen -- redirects there instead of maintaining a third dead-end copy.
 
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-
-export default function RunningProgramDetailScreen() {
+export default function RunningProgramDetailRedirect() {
   const params = useLocalSearchParams();
-  const programId = typeof params.id === 'string' ? params.id : '';
-  const { runningPrograms, startProgram, activeProgram } = useWorkoutStore();
-
-  const [program, setProgram] = useState(null);
-
-  useEffect(() => {
-    const found = (runningPrograms || []).find(p => p.id === programId);
-    setProgram(found || null);
-  }, [programId, runningPrograms]);
-
-  if (!program) {
-    return (
-      <View style={styles.container}>
-        <ScreenHeader showBack />
-        <View style={styles.center}>
-          <Text style={styles.empty}>Program not found</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const weeks = program.duration || 8;
-  const sessions = program.sessions || [];
-  const isActive = activeProgram?.id === program.id;
-
-  const handleStart = () => {
-    try {
-      startProgram?.(program.id);
-      Alert.alert('Started', `${program.name} is now your active program.`);
-    } catch (e) {
-      Alert.alert('Error', 'Unable to start program.');
-    }
-  };
-
-  const sessionsByWeek = {};
-  sessions.forEach(s => {
-    const w = s.week || 1;
-    (sessionsByWeek[w] = sessionsByWeek[w] || []).push(s);
-  });
-
-  return (
-    <View style={styles.container}>
-      <ScreenHeader showBack />
-
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
-        <Text style={styles.title}>{program.name}</Text>
-        {program.description ? (
-          <Text style={styles.desc}>{program.description}</Text>
-        ) : null}
-
-        <View style={styles.metaRow}>
-          <View style={styles.metaChip}>
-            <Text style={styles.metaText}>{weeks} weeks</Text>
-          </View>
-          <View style={styles.metaChip}>
-            <Text style={styles.metaText}>{sessions.length} sessions</Text>
-          </View>
-          {program.difficulty ? (
-            <View style={styles.metaChip}>
-              <Text style={styles.metaText}>{program.difficulty}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        <Text style={styles.sectionLabel}>Schedule</Text>
-        {Object.keys(sessionsByWeek).sort((a, b) => +a - +b).map(week => (
-          <View key={week} style={styles.weekCard}>
-            <Text style={styles.weekLabel}>Week {week}</Text>
-            {sessionsByWeek[week].map((s) => (
-              <TouchableOpacity
-                key={s.id}
-                style={styles.sessionRow}
-                onPress={() =>
-                  router.push(`/running/session/${s.id}?programId=${program.id}`)
-                }>
-                <View style={styles.dayBadge}>
-                  <Text style={styles.dayText}>Day {s.day || ''}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sessionName}>{s.name || `Session ${s.day}`}</Text>
-                  {s.description ? (
-                    <Text style={styles.sessionDesc} numberOfLines={1}>{s.description}</Text>
-                  ) : null}
-                </View>
-                {s.completed ? <Check size={16} color="#22C55E" /> : null}
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.bottomBar}>
-        <PrimaryButton
-          title={isActive ? 'Continue Program' : 'Start Program'}
-          onPress={handleStart}
-        />
-      </View>
-    </View>
-  );
+  const id = typeof params.id === 'string' ? params.id : '';
+  return <Redirect href={`/running/${id}`} />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.dark_navy.text_muted },
-  title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  desc: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, lineHeight: 20, marginTop: 8 },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
-  metaChip: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-  },
-  metaText: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, fontWeight: '600' },
-  sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: tokens.spacing.lg,
-  },
-  weekCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: 14, marginBottom: 10,
-  },
-  weekLabel: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700', marginBottom: 10 },
-  sessionRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, gap: 10,
-    borderTopWidth: 1, borderTopColor: '#2A2A2A',
-  },
-  dayBadge: {
-    backgroundColor: tokens.colors.dark_navy.bg_card,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: tokens.radius.sm,
-  },
-  dayText: { color: tokens.colors.dark_navy.text_muted, fontSize: 11, fontWeight: '600' },
-  sessionName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '500' },
-  sessionDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
-  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
-});
