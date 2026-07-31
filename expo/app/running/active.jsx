@@ -23,7 +23,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { radarService } from '@/services/radarService';
 import { getSessionIntervals, getProgramWeek } from '@/data/runningPrograms';
 
-/* Ã¢ÂÂÃ¢ÂÂ Helpers Ã¢ÂÂÃ¢ÂÂ */
+/* ── Helpers ── */
 
 function formatTimer(secs) {
   const h = Math.floor(secs / 3600);
@@ -52,7 +52,7 @@ function haversineKm(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Menu option Ã¢ÂÂÃ¢ÂÂ */
+/* ── Menu option ── */
 
 function MenuOption({ icon, label, onPress, danger }) {
   return (
@@ -63,7 +63,7 @@ function MenuOption({ icon, label, onPress, danger }) {
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
+/* ── Main screen ── */
 
 export default function ActiveRunScreen() {
   const router = useRouter();
@@ -107,7 +107,7 @@ export default function ActiveRunScreen() {
   }, []);
 
 
-  /* Ã¢ÂÂÃ¢ÂÂ Core state Ã¢ÂÂÃ¢ÂÂ */
+  /* ── Core state ── */
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
@@ -116,7 +116,7 @@ export default function ActiveRunScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
 
-  /* Ã¢ÂÂÃ¢ÂÂ GPS state Ã¢ÂÂÃ¢ÂÂ */
+  /* ── GPS state ── */
   const [coordinates, setCoordinates] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
@@ -124,7 +124,7 @@ export default function ActiveRunScreen() {
   const timerRef = useRef(null);
   const locationSubRef = useRef(null);
 
-  /* Ã¢ÂÂÃ¢ÂÂ Request location permission on mount Ã¢ÂÂÃ¢ÂÂ */
+  /* ── Request location permission on mount ── */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -148,7 +148,7 @@ export default function ActiveRunScreen() {
     };
   }, []);
 
-  /* Ã¢ÂÂÃ¢ÂÂ GPS tracking Ã¢ÂÂÃ¢ÂÂ */
+  /* ── GPS tracking ── */
   useEffect(() => {
     if (isRunning && locationPermission === 'granted') {
       startLocationTracking();
@@ -200,7 +200,7 @@ export default function ActiveRunScreen() {
     }
   };
 
-  /* Ã¢ÂÂÃ¢ÂÂ Elapsed time timer Ã¢ÂÂÃ¢ÂÂ */
+  /* ── Elapsed time timer ── */
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -241,7 +241,7 @@ export default function ActiveRunScreen() {
     }
   }, [intervalSecondsLeft, isProgramRun, isRunning, handleEndRun]);
 
-  /* Ã¢ÂÂÃ¢ÂÂ Controls Ã¢ÂÂÃ¢ÂÂ */
+  /* ── Controls ── */
   const handlePause = useCallback(() => {
     setIsRunning(false);
     setShowPauseOptions(true);
@@ -302,7 +302,7 @@ export default function ActiveRunScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Map area with RunningMap component Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ── Map area with RunningMap component ── */}
       <View style={styles.mapArea}>
         <RunningMap
           coordinates={coordinates}
@@ -335,7 +335,7 @@ export default function ActiveRunScreen() {
         </View>
       )}
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Stats panel Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ── Stats panel ── */}
       <View style={styles.statsPanel}>
         {/* Distance goal row */}
         <View style={styles.goalRow}>
@@ -404,7 +404,7 @@ export default function ActiveRunScreen() {
         )}
       </View>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Three-dot popup menu Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ── Three-dot popup menu ── */}
       <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
@@ -418,7 +418,7 @@ export default function ActiveRunScreen() {
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
+/* ── Styles ── */
 
 const styles = StyleSheet.create({
   intervalBanner: {

@@ -88,7 +88,7 @@ export default function RecipeDetailScreen() {
         <View style={{ padding: tokens.spacing.md }}>
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.meta}>
-            {recipe.prepTime} min ÃÂÃÂ· Serves {recipe.servings}
+            {recipe.prepTime} min · Serves {recipe.servings}
           </Text>
 
           {recipe.hasNutritionEstimate !== false && recipe.calories != null ? (
