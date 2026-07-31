@@ -6,10 +6,10 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const EVENT_TYPES = [
-{ id: 'workout', label: 'Workout', icon: '    ', color: Colors.primary },
-{ id: 'reminder', label: 'Reminder', icon: '    ', color: Colors.warning },
-{ id: 'goal', label: 'Goal', icon: '    ', color: Colors.success },
-{ id: 'habit', label: 'Habit', icon: '   ', color: Colors.info }];
+{ id: 'workout', label: 'Workout', icon: '💪', color: Colors.primary },
+{ id: 'reminder', label: 'Reminder', icon: '🔔', color: Colors.warning },
+{ id: 'goal', label: 'Goal', icon: '🎯', color: Colors.success },
+{ id: 'habit', label: 'Habit', icon: '✅', color: Colors.info }];
 
 
 const REMINDER_TIMES = [

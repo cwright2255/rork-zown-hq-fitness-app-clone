@@ -9,7 +9,7 @@ import { useUserStore } from '@/store/userStore';
 
 
 
-/*              Static placeholder data              */
+/* ââ Static placeholder data ââ */
 
 function SectionHeader({ title, onViewAll }) {
   return (
@@ -24,7 +24,7 @@ function SectionHeader({ title, onViewAll }) {
   );
 }
 
-/*              Cards              */
+/* ââ Cards ââ */
 
 function ProgramCard({ item }) {
   return (
@@ -56,7 +56,7 @@ function ChallengeCard({ item }) {
         </View>
       </View>
       <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardSubtitle}>{item.distanceKm}km     {item.region}</Text>
+      <Text style={styles.cardSubtitle}>{item.distanceKm}km • {item.region}</Text>
     </Pressable>
   );
 }

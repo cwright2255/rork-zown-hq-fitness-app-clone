@@ -3,7 +3,7 @@ import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-/*              Tab configurations              */
+/* ââ Tab configurations ââ */
 
 const HOME_TABS = [
   { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
@@ -60,7 +60,7 @@ export default function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
 
-  /*              Pick tab config based on current screen              */
+  /* ââ Pick tab config based on current screen ââ */
   const isWorkoutContext = useMemo(() => {
     return (
       pathname.startsWith('/workout') ||
@@ -92,7 +92,7 @@ export default function BottomNavigation() {
 
   const tabs = isWorkoutContext ? WORKOUT_TABS : isHealthContext ? HEALTH_TABS : isProfileContext ? PROFILE_TABS : HOME_TABS;
 
-  /*              Active tab detection              */
+  /* ââ Active tab detection ââ */
   const activeKey = useMemo(() => {
     if (pathname === '/hq' || pathname === '/') return 'home';
 

@@ -43,9 +43,9 @@ import {
 } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-//
-// Icon primitives (pure RN              no external lib required)
-//
+// ---------------------------------------------------------------------------
+// Icon primitives (pure RN Ã¢ÂÂ no external lib required)
+// ---------------------------------------------------------------------------
 
 const HomeIcon = ({ color, size = 22 }) => (
   <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -203,9 +203,9 @@ const PlusIcon = ({ size = 26 }) => (
   </View>
 );
 
-//
+// ---------------------------------------------------------------------------
 // Tab configuration
-//
+// ---------------------------------------------------------------------------
 
 const TABS = [
   { key: 'home',      label: 'Home',      Icon: HomeIcon },
@@ -215,9 +215,9 @@ const TABS = [
   { key: 'profile',   label: 'Profile',   Icon: ProfileIcon },
 ];
 
-//
+// ---------------------------------------------------------------------------
 // Sub-components
-//
+// ---------------------------------------------------------------------------
 
 const TabItem = ({ tab, isActive, onPress }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -357,9 +357,9 @@ const CenterFAB = ({ onPress }) => {
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // Main component
-//
+// ---------------------------------------------------------------------------
 
 const BottomTabBar = ({
   activeTab = 'home',
@@ -395,9 +395,9 @@ const BottomTabBar = ({
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // Styles
-//
+// ---------------------------------------------------------------------------
 
 const FAB_SIZE = 60;
 

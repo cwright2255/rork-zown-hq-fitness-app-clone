@@ -18,13 +18,13 @@ const { width } = Dimensions.get('window');
 
 // Option Lists
 const GOALS = [
-  { id: 'lose_weight', label: 'Lose Weight', icon: '      ' },
-  { id: 'build_muscle', label: 'Build Muscle', icon: '    ' },
-  { id: 'improve_endurance', label: 'Improve Endurance', icon: '      ' },
-  { id: 'stay_active', label: 'Stay Active', icon: '    ' },
-  { id: 'train_for_race', label: 'Train for a Race', icon: '      ' },
-  { id: 'eat_healthier', label: 'Eat Healthier', icon: '    ' },
-  { id: 'reduce_stress', label: 'Reduce Stress', icon: '    ' }
+  { id: 'lose_weight', label: 'Lose Weight', icon: '⚖️' },
+  { id: 'build_muscle', label: 'Build Muscle', icon: '💪' },
+  { id: 'improve_endurance', label: 'Improve Endurance', icon: '❤️' },
+  { id: 'stay_active', label: 'Stay Active', icon: '🏃' },
+  { id: 'train_for_race', label: 'Train for a Race', icon: '⏱️' },
+  { id: 'eat_healthier', label: 'Eat Healthier', icon: '🍎' },
+  { id: 'reduce_stress', label: 'Reduce Stress', icon: '🧠' }
 ];
 
 const ACTIVITY_LEVELS = [
@@ -438,7 +438,7 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.stepContainer}>
             <View style={styles.successCelebration}>
-              <Text style={styles.celebrationIcon}>    </Text>
+              <Text style={styles.celebrationIcon}>🎉</Text>
               <Text style={styles.titleText}>All Set!</Text>
               <Text style={styles.descText}>Your profile is ready to go.</Text>
             </View>

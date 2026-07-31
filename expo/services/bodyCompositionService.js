@@ -3,4 +3,4 @@
 // Service for processing raw 360 capture frames into a 3D mesh and estimating body composition:
 // - Photogrammetry / keypoint triangulation stub
 -// - Body fat %, Lean Mass, Skeletal Muscle Mass calculations based on volumetric estimation
-// - Girth radial extraction (Chest, Waist, Hips, Thighs, Biceps)     +    '      w       ,        '    '      z   q    z  "  v    w,z  "  
+// - Girth radial extraction (Chest, Waist, Hips, Thighs, Biceps)∆ö+µ '≤÷Ëw ®öö,äÿ®ù'´æ'¶∫zÀq©“zÀ"¢v¨ w,zÀ"¢

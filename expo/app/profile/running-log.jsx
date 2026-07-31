@@ -120,7 +120,7 @@ return (
                 <View style={styles.runHeader}>
                   <View>
                     <Text style={styles.runTitle}>{run.route || 'Free Run'}</Text>
-                    <Text style={styles.runDate}>{dateStr}              {timeStr}</Text>
+                    <Text style={styles.runDate}>{dateStr} Ã¢ÂÂ¢ {timeStr}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#999" />
                 </View>

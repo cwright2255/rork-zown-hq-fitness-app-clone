@@ -20,7 +20,7 @@ export const useHikingStore = create((set, get) => ({
   savedTrailIds: [],
   completedHikes: [],
 
-  // Real location permission + real GPS fix - not a default/assumed
+  // Real location permission + real GPS fix — not a default/assumed
   // location. Returns null (rather than throwing) if permission is
   // denied, so the screen can show a real "enable location" state.
   loadNearbyTrails: async (radiusMeters = 24000) => {
@@ -36,7 +36,7 @@ export const useHikingStore = create((set, get) => ({
       set({ userLocation });
 
       const trails = await searchNearbyTrails({ ...userLocation, radiusMeters });
-      // Closest first - this is a "near you" feature, distance is the
+      // Closest first — this is a "near you" feature, distance is the
       // primary sort, not an afterthought.
       trails.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
       set({ trails, isLoading: false });
@@ -80,7 +80,7 @@ export const useHikingStore = create((set, get) => ({
   },
 
   // Real completed hike, computed from an actual tracked session (see
-  // app/running/hiking/monitor.jsx) - distance and elevation gain from
+  // app/running/hiking/monitor.jsx) — distance and elevation gain from
   // real GPS data, difficulty from the verified Shenandoah formula, not
   // fabricated or estimated after the fact.
   addCompletedHike: (hike, uid) => {

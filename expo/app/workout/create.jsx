@@ -365,7 +365,7 @@ export default function CreateWorkoutScreen() {
           {libraryLoading && libraryExercises.length === 0 ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={colors.text} />
-              <Text style={styles.loadingText}>Loading exercises                        </Text>
+              <Text style={styles.loadingText}>Loading exercisesÃÂ¢ÃÂÃÂ¦</Text>
             </View>
           ) : (
             <FlatList
@@ -390,7 +390,7 @@ export default function CreateWorkoutScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.libTitle} numberOfLines={2}>{item.name}</Text>
                       <Text style={styles.libMeta} numberOfLines={1}>
-                        {[equipment, target].filter(Boolean).join('                          ')}
+                        {[equipment, target].filter(Boolean).join(' ÃÂ¢ÃÂÃÂ¢ ')}
                       </Text>
                     </View>
                   </TouchableOpacity>

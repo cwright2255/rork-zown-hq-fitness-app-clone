@@ -1,24 +1,24 @@
 // app/running/hiking/monitor.jsx
 //
-// Live tracking for an active hike - real GPS position tracking (same
+// Live tracking for an active hike — real GPS position tracking (same
 // expo-location pattern already proven in app/running/active.jsx), with
 // two things built on top of the same position stream:
 //   1. Periodic weather/alert re-checks (every 15 min) tied to the
-//
-//
+//      hiker's actual current position, not just a one-time check at the
+//      trailhead before setting out.
 //   2. Real distance and elevation gain tracked from the same GPS
-//
-//
-//
+//      readings, used on completion to compute a real difficulty rating
+//      (see lib/hikeDifficulty.js — the verified Shenandoah National Park
+//      formula) and award XP/badges scaled to it.
 // This was originally scoped to weather-only, deliberately not duplicating
 // the running feature's distance tracker. Difficulty-based gamification
 // needs real distance and elevation to compute from, though, and this
 // screen is already collecting exactly that from the same position
-// stream it needs for weather checks - reusing it here is not the same
+// stream it needs for weather checks — reusing it here is not the same
 // thing as building a second, separate fitness tracker; it's the same
 // data serving two purposes it was already being read for.
 //
-// Polls every 15 minutes, not continuously - real weather conditions
+// Polls every 15 minutes, not continuously — real weather conditions
 // don't meaningfully change faster than that, and hammering a free public
 // API on a fast interval would be inconsiderate of a service that costs
 // NWS nothing to offer and everyone something to keep working.
@@ -91,15 +91,15 @@ export default function HikeWeatherMonitorScreen() {
   const locationSubRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const elapsedIntervalRef = useRef(null);
-  const lastTrackedPointRef = useRef(null); // { latitude, longitude, altitude } - for distance/elevation deltas
+  const lastTrackedPointRef = useRef(null); // { latitude, longitude, altitude } — for distance/elevation deltas
   // Refs mirroring the state the poll callback needs, specifically so the
   // interval itself can be created exactly ONCE on mount and never torn
   // down. A first version of this depended on currentLocation directly in
-  // the effect that owns the interval - but currentLocation updates from
+  // the effect that owns the interval — but currentLocation updates from
   // GPS roughly every 60 seconds while actually hiking, which cleared and
   // recreated the interval before it ever reached its real 15-minute
   // mark. Verified this concretely (simulated 30 minutes of 60-second GPS
-  // updates against a 15-minute interval) before trusting the fix - the
+  // updates against a 15-minute interval) before trusting the fix — the
   // interval never once got an uninterrupted 15 minutes to fire.
   const currentLocationRef = useRef(null);
   const previousAlertIdsRef = useRef(new Set());
@@ -113,7 +113,7 @@ export default function HikeWeatherMonitorScreen() {
 
       const newAlertIds = new Set(result.alerts.map((a) => a.id));
       // Only speak/flag alerts that are genuinely NEW since the last
-      // check - re-announcing the same still-active alert every 15
+      // check — re-announcing the same still-active alert every 15
       // minutes would train someone to tune the warning out, exactly the
       // opposite of what a safety feature should do.
       const newlyAppeared = result.alerts.filter((a) => !previousAlertIdsRef.current.has(a.id));
@@ -156,7 +156,7 @@ export default function HikeWeatherMonitorScreen() {
           setCurrentLocation(updated);
 
           // Real distance/elevation tracking for difficulty scoring on
-          // completion - same haversine formula already verified against
+          // completion — same haversine formula already verified against
           // real coordinates elsewhere in this feature (lib/parseGpx.js,
           // services/hikingService.js). Only counts positive elevation
           // deltas as "gain," matching how lib/parseGpx.js computes it
@@ -181,11 +181,11 @@ export default function HikeWeatherMonitorScreen() {
 
     elapsedIntervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
 
-    // Created exactly once, on mount - reads currentLocationRef at fire
+    // Created exactly once, on mount — reads currentLocationRef at fire
     // time rather than depending on currentLocation state directly, so
     // frequent GPS updates during real movement can't keep resetting this
     // before it ever reaches its real 15-minute mark (see the comment on
-    // currentLocationRef above - this was verified as a real bug, not a
+    // currentLocationRef above — this was verified as a real bug, not a
     // theoretical one, before being fixed this way).
     pollIntervalRef.current = setInterval(() => {
       if (currentLocationRef.current) {
@@ -214,7 +214,7 @@ export default function HikeWeatherMonitorScreen() {
   };
 
   // A minimum real distance before this counts as a "completed hike" for
-  // rewards purposes - otherwise opening this screen and immediately
+  // rewards purposes — otherwise opening this screen and immediately
   // ending it would trivially farm XP and badges for a hike that never
   // actually happened.
   const hasTrackedRealHike = distanceKm >= 0.3;
@@ -227,8 +227,8 @@ export default function HikeWeatherMonitorScreen() {
       const baseXp = Math.round(distanceKm * 40); // same per-km rate order of magnitude as running's XP, before the difficulty multiplier
       const totalXp = Math.round(baseXp * difficulty.xpMultiplier);
       // Real weight from the most recent body scan when available (see
-      //   15 - the body-composition feature), rather than always falling
-      // back to a generic default - the MET-based calorie formula scales
+      // §15 — the body-composition feature), rather than always falling
+      // back to a generic default — the MET-based calorie formula scales
       // directly with body weight, so a real value meaningfully improves
       // the estimate over a stranger's average.
       const latestScan = [...bodyScans].sort((a, b) => new Date(b.createdAtLocal || 0) - new Date(a.createdAtLocal || 0))[0];
@@ -256,11 +256,11 @@ export default function HikeWeatherMonitorScreen() {
         baseExp: baseXp,
         multiplier: difficulty.xpMultiplier,
         date: new Date().toISOString().split('T')[0],
-        description: `Completed a ${difficulty.tier.toLowerCase()} hike - ${record.distanceKm}km, ${difficulty.elevationGainFt}ft gain`,
+        description: `Completed a ${difficulty.tier.toLowerCase()} hike — ${record.distanceKm}km, ${difficulty.elevationGainFt}ft gain`,
         completed: true,
       });
 
-      // Real badge conditions, checked against actual tracked data - not
+      // Real badge conditions, checked against actual tracked data — not
       // instant-unlocked the way badge-1/badge-2 used to be before that
       // was fixed earlier in this app's audit.
       const { completedHikes } = useHikingStore.getState();
@@ -379,12 +379,12 @@ export default function HikeWeatherMonitorScreen() {
               <Text style={styles.forecastText}>{current.shortForecast}</Text>
               <Text style={styles.forecastSub}>{current.windDirection} {current.windSpeed}</Text>
             </View>
-            <Text style={styles.tempText}>{current.temperatureF}  F</Text>
+            <Text style={styles.tempText}>{current.temperatureF}°F</Text>
           </View>
         )}
 
         <Text style={styles.lastCheckedText}>
-          {isChecking ? 'Checking current conditions...' : snapshot ? `Last checked ${new Date(snapshot.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} - rechecks automatically every 15 min` : ''}
+          {isChecking ? 'Checking current conditions…' : snapshot ? `Last checked ${new Date(snapshot.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} — rechecks automatically every 15 min` : ''}
         </Text>
 
         <Pressable style={styles.manualCheckBtn} onPress={handleManualCheck} disabled={isChecking}>
@@ -396,7 +396,7 @@ export default function HikeWeatherMonitorScreen() {
       <View style={styles.bottomBar}>
         {hasTrackedRealHike ? (
           <PrimaryButton
-            title={completing ? 'Saving...' : `Complete Hike (+${Math.round(distanceKm * 40 * liveDifficulty.xpMultiplier)} XP)`}
+            title={completing ? 'Saving…' : `Complete Hike (+${Math.round(distanceKm * 40 * liveDifficulty.xpMultiplier)} XP)`}
             onPress={handleCompleteHike}
             disabled={completing}
           />

@@ -50,7 +50,7 @@ const ExerciseItem = ({
               </View> :
 
             <View style={styles.statItem}>
-                <Text style={styles.statText}>{sets ?? 3} sets    {reps ?? 10} reps</Text>
+                <Text style={styles.statText}>{sets ?? 3} sets × {reps ?? 10} reps</Text>
               </View>
             }
             

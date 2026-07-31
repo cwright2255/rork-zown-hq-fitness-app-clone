@@ -5,16 +5,16 @@
 // Architecture (committed, not optional):
 //   Camera capture -> react-native-vision-camera
 //   Pose landmarks -> MediaPipe Pose Landmarker, via react-native-mediapipe's
-//
-//
+//                      frame processor (runs fully on-device, no network call,
+//                      no per-frame cost, works offline)
 //   Landmark topology -> BlazePose 33-point (same topology Google standardized
-//
+//                      across MediaPipe and ML Kit Pose Detection)
 //   Analysis -> pure JS angle math in this file (ported from formfit-ai's
-//
+//                      MoveNet-based logic, re-indexed to BlazePose's 33 points)
 //   Persistence -> Firestore, via the SAME `db` instance the rest of the app's
+//                      live stores already use (src/config/firebase.js)
 //
-//
-// This file only consumes landmarks - it doesn't touch the camera or the model.
+// This file only consumes landmarks — it doesn't touch the camera or the model.
 // See app/workout/form-check.jsx for the screen that owns the camera and feeds
 // this service one frame at a time.
 
@@ -26,7 +26,7 @@ const MIN_LANDMARK_VISIBILITY = 0.5; // BlazePose gives 0-1 visibility per landm
 const REP_COOLDOWN_MS = 700;
 
 // BlazePose / MediaPipe Pose 33-point topology (standardized by Google across
-// MediaPipe Tasks and ML Kit Pose Detection - same indices either way).
+// MediaPipe Tasks and ML Kit Pose Detection — same indices either way).
 const LM = {
   LEFT_SHOULDER: 11, RIGHT_SHOULDER: 12,
   LEFT_ELBOW: 13, RIGHT_ELBOW: 14,
@@ -72,7 +72,7 @@ function analyzeSquat(lm) {
   const leftAnkle = lm[LM.LEFT_ANKLE], rightAnkle = lm[LM.RIGHT_ANKLE];
 
   if (!allVisible([leftHip, rightHip, leftKnee, rightKnee, leftAnkle, rightAnkle])) {
-    return { feedback: [{ message: 'Move into frame - show your full body', type: 'warning' }], score: 0, state: 'up', inPosition: false };
+    return { feedback: [{ message: 'Move into frame — show your full body', type: 'warning' }], score: 0, state: 'up', inPosition: false };
   }
 
   const avgKneeAngle = (
@@ -217,7 +217,7 @@ class FormAnalysisService {
       return saved;
     } catch (e) {
       console.error('[FormAnalysis] failed to save session', e);
-      // Don't throw - losing analytics shouldn't block the user from finishing
+      // Don't throw — losing analytics shouldn't block the user from finishing
       // their workout. Return the local summary so the UI can still show it.
       return { ...session, id: null, saved: false };
     }
@@ -226,7 +226,7 @@ class FormAnalysisService {
   async _saveSession(session) {
     const user = useUserStore.getState().user;
     if (!user?.uid) {
-      console.warn('[FormAnalysis] no authenticated user - session not saved');
+      console.warn('[FormAnalysis] no authenticated user — session not saved');
       return { ...session, id: null, saved: false };
     }
 
@@ -250,7 +250,7 @@ class FormAnalysisService {
   }
 
   // Call this once per pose-detection frame with a 33-point BlazePose landmark
-  // array (each entry {x, y, z, visibility}, normalized 0-1 image coordinates -
+  // array (each entry {x, y, z, visibility}, normalized 0-1 image coordinates —
   // exactly what react-native-mediapipe's onResults callback provides).
   processPoseFrame(landmarks) {
     if (!this.isAnalyzing) return null;
@@ -262,7 +262,7 @@ class FormAnalysisService {
       result = {
         feedback: [{
           message: NOT_YET_IMPLEMENTED.includes(this.currentExercise)
-            ? `Form tracking for ${this.currentExercise} isn't built yet - rep counting only`
+            ? `Form tracking for ${this.currentExercise} isn't built yet — rep counting only`
             : 'Exercise tracking active',
           type: 'info',
         }],
@@ -325,7 +325,7 @@ class FormAnalysisService {
       return [
         'Keep elbows pinned to your sides',
         'Curl through a full range of motion',
-        'Control the descent - don\u2019t let it drop',
+        'Control the descent — don\u2019t let it drop',
         'Avoid swinging your torso for momentum',
       ];
     }

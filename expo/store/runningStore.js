@@ -12,7 +12,7 @@ export const useRunningStore = create(
       activeRun: null,
       isLoading: false,
       // Real program catalog, loaded from Firestore so the admin console
-      // (see admin/) can actually edit it - falls back to the verified
+      // (see admin/) can actually edit it — falls back to the verified
       // static data (data/runningPrograms.js) if Firestore's collection
       // is empty or unreachable, so the app never shows nothing just
       // because a migration hasn't run yet or a device is offline.
@@ -34,7 +34,7 @@ export const useRunningStore = create(
         }
       },
 
-      // Program tracking - which structured program (e.g. Couch to 5K) the
+      // Program tracking — which structured program (e.g. Couch to 5K) the
       // user has started, and how far through it they are. Real content
       // lives in data/runningPrograms.js, not duplicated here.
       activeProgramId: null,
@@ -107,7 +107,7 @@ export const useRunningStore = create(
         get()._persist(uid);
       },
 
-      // Real personal records, computed from actual run history - not
+      // Real personal records, computed from actual run history — not
       // fabricated placeholder numbers. Returns null for any record with
       // no qualifying run yet, so the UI can show an honest "not set yet"
       // state instead of a fake number.
@@ -121,7 +121,7 @@ export const useRunningStore = create(
         const fastestPace = runsWithPace.length
           ? runsWithPace.reduce((best, r) => (r.pace < best.pace ? r : best))
           : null;
-        // "5K" here means any run of at least 4.5km - real-world GPS runs
+        // "5K" here means any run of at least 4.5km — real-world GPS runs
         // rarely land on exactly 5.00km, so this uses the same tolerance
         // most running apps use for a qualifying 5K time.
         const fiveKRuns = runs.filter((r) => r.distance >= 4.5);

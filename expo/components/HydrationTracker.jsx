@@ -142,7 +142,7 @@ const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
     const percentage = currentAmount / dailyGoal * 100;
 
     if (percentage >= 100) {
-      return { text: 'Goal reached!     ', color: Colors.success };
+      return { text: 'Goal reached! 🎉', color: Colors.success };
     } else if (percentage >= 75) {
       return { text: 'Almost there!', color: Colors.primary };
     } else if (percentage >= 50) {

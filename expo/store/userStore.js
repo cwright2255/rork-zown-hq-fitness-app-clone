@@ -97,9 +97,9 @@ const createDefaultSubscription = () => ({
   autoRenew: false
 });
 
-// Lazy default user creation - these are neutral, honest defaults (zero
+// Lazy default user creation — these are neutral, honest defaults (zero
 // progress, no fabricated identity), not fake data. This used to return
-// exp:150/level:2/streak:3/name:'Fitness Enthusiast' - a fully fabricated
+// exp:150/level:2/streak:3/name:'Fitness Enthusiast' — a fully fabricated
 // profile that could appear for a genuinely new user (before real Firestore
 // data loads) or, worse, for a RETURNING onboarded user whose persisted
 // state failed to load (see the onRehydrateStorage case below), making it
@@ -341,7 +341,7 @@ export const useUserStore = create(
       },
 
 
-      /*        Firestore sync        */
+      /* ── Firestore sync ── */
       loadProfile: async (uid) => {
         if (!uid) return;
         try {

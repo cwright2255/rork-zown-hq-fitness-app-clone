@@ -1,7 +1,7 @@
 // lib/openDirections.js
 //
 // Opens the device's native maps app with navigation pre-loaded to a real
-// trailhead/parking lot coordinate - Apple Maps on iOS, Google Maps on
+// trailhead/parking lot coordinate — Apple Maps on iOS, Google Maps on
 // Android, matching how every real navigation hand-off in a mobile app
 // works (this is the same mechanism Yelp, AllTrails, etc. use, not a
 // custom map view Zown has to build and maintain itself).
@@ -24,7 +24,7 @@ export async function openDirections({ latitude, longitude, label = 'Trailhead',
   // Try the native app URL scheme first (opens the actual app, not a
   // browser tab); fall back to the universal web URL, which still opens
   // the native app on both platforms if it's installed, or the browser
-  // if not - so this always gets the user *somewhere* usable.
+  // if not — so this always gets the user *somewhere* usable.
   const nativeUrl = Platform.select({
     ios: `maps://app?daddr=${latitude},${longitude}&dirflg=${iosMode}&q=${encodedLabel}`,
     android: `google.navigation:q=${latitude},${longitude}&mode=${mode === 'walking' ? 'w' : 'd'}`,
@@ -48,7 +48,7 @@ export async function openDirections({ latitude, longitude, label = 'Trailhead',
 }
 
 /**
- * Presents the drive/walk choice before opening directions - the running
+ * Presents the drive/walk choice before opening directions — the running
  * section cares about both (driving to a trailhead vs. a trail close
  * enough to walk to), unlike a typical business-listing "get directions"
  * button which only ever means driving.

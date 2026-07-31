@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchExercises } from '@/services/exerciseDbService';
 
-/*                          Static placeholder data                          */
+/* Ã¢ÂÂÃ¢ÂÂ Static placeholder data Ã¢ÂÂÃ¢ÂÂ */
 
 const FEATURED_WORKOUTS = [
   { id: '1', title: 'Full Body HIIT', subtitle: '30 min \u2022 Intermediate' },
@@ -34,7 +34,7 @@ const YOUTUBE_WORKOUTS = [
   { id: '5', channel: 'Pamela Reif', title: '20 Min Full Body Stretch', duration: '20:00' },
 ];
 
-/*                          Section header                          */
+/* Ã¢ÂÂÃ¢ÂÂ Section header Ã¢ÂÂÃ¢ÂÂ */
 
 function SectionHeader({ title, onViewAll }) {
   return (
@@ -47,7 +47,7 @@ function SectionHeader({ title, onViewAll }) {
   );
 }
 
-/*                          Cards                          */
+/* Ã¢ÂÂÃ¢ÂÂ Cards Ã¢ÂÂÃ¢ÂÂ */
 
 function FeaturedCard({ item }) {
   return (
@@ -104,7 +104,7 @@ function YouTubeCard({ item }) {
   );
 }
 
-/*                          Main screen                          */
+/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
 
 export default function WorkoutsScreen() {
   const [apiExercises, setApiExercises] = useState([]);
@@ -119,7 +119,7 @@ export default function WorkoutsScreen() {
         setApiExercises(exercises.map(e => ({
           id: e.id || e.exerciseId,
           title: e.name || 'Exercise',
-          subtitle: (e.bodyPart || '') + (e.equipment ? '    ' + e.equipment : ''),
+          subtitle: (e.bodyPart || '') + (e.equipment ? ' · ' + e.equipment : ''),
           gifUrl: e.gifUrl || null,
           bodyPart: e.bodyPart || '',
           target: e.target || '',
@@ -237,7 +237,7 @@ return (
   );
 }
 
-/*                          Styles                          */
+/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
 const styles = StyleSheet.create({
   safe: {

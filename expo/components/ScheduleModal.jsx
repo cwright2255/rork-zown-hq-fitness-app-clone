@@ -6,12 +6,12 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const ACTIVITY_TYPES = [
-{ id: 'workout', label: 'Workout', icon: '    ', color: Colors.primary },
-{ id: 'meal', label: 'Meal', icon: '       ', color: Colors.success },
-{ id: 'meditation', label: 'Meditation', icon: '    ', color: Colors.info },
-{ id: 'meeting', label: 'Meeting', icon: '    ', color: Colors.secondary },
-{ id: 'study', label: 'Study', icon: '    ', color: Colors.warning },
-{ id: 'other', label: 'Other', icon: '    ', color: Colors.text.secondary }];
+{ id: 'workout', label: 'Workout', icon: '💪', color: Colors.primary },
+{ id: 'meal', label: 'Meal', icon: '🍽️', color: Colors.success },
+{ id: 'meditation', label: 'Meditation', icon: '🧘', color: Colors.info },
+{ id: 'meeting', label: 'Meeting', icon: '👥', color: Colors.secondary },
+{ id: 'study', label: 'Study', icon: '📚', color: Colors.warning },
+{ id: 'other', label: 'Other', icon: '📝', color: Colors.text.secondary }];
 
 
 const TIME_SLOTS = [

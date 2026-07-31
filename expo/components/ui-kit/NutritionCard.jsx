@@ -45,9 +45,9 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import { tokens } from '../../theme/tokens';
 
-//
+// ---------------------------------------------------------------------------
 // Mini Progress Ring
-//
+// ---------------------------------------------------------------------------
 
 /**
  * MiniRing renders a small SVG circular progress ring.
@@ -92,9 +92,9 @@ const MiniRing = ({ size = 64, strokeWidth = 5, progress = 0, color, trackColor 
   );
 };
 
-//
-// MacroRingItem              ring + labels stacked
-//
+// ---------------------------------------------------------------------------
+// MacroRingItem Ã¢ÂÂ ring + labels stacked
+// ---------------------------------------------------------------------------
 
 const MacroRingItem = ({ label, value, goal, color, trackColor }) => {
   const progress = goal > 0 ? value / goal : 0;
@@ -125,9 +125,9 @@ const MacroRingItem = ({ label, value, goal, color, trackColor }) => {
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // CalorieCenterDisplay
-//
+// ---------------------------------------------------------------------------
 
 const CalorieCenterDisplay = ({ calories, calorieGoal }) => {
   const remaining = Math.max(calorieGoal - calories, 0);
@@ -183,9 +183,9 @@ const CalorieCenterDisplay = ({ calories, calorieGoal }) => {
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // NutritionCard (main export)
-//
+// ---------------------------------------------------------------------------
 
 const NutritionCard = ({
   calories = 1840,
@@ -297,9 +297,9 @@ const NutritionCard = ({
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // LegendDot helper
-//
+// ---------------------------------------------------------------------------
 
 const LegendDot = ({ color, label }) => (
   <View style={styles.legendItem}>
@@ -308,12 +308,12 @@ const LegendDot = ({ color, label }) => (
   </View>
 );
 
-//
+// ---------------------------------------------------------------------------
 // Styles
-//
+// ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-//
+  // ---- Card ----
   card: {
     backgroundColor: tokens.colors.ink.darker,
     borderRadius: tokens.radius.xl,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
   },
 
-//
+  // ---- Header ----
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -375,14 +375,14 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.lg,
   },
 
-//
+  // ---- Body ----
   body: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
 
-//
+  // ---- Calorie center ----
   calorieCenterContainer: {
     width: 140,
     height: 140,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-//
+  // ---- Macros column ----
   macrosColumn: {
     flex: 1,
     flexDirection: 'row',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-//
+  // ---- Footer ----
   footer: {
     marginTop: tokens.spacing.lg,
     paddingTop: tokens.spacing.md,

@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 
 
-/*              Data              */
+/* ââ Data ââ */
 
 const ACTIVE_CHALLENGES = [
   { id: 'a1', title: '7-Day Workout Streak', desc: 'Complete a workout every day for 7 days', type: 'Workout', xp: 500, current: 3, total: 7, unit: 'workouts', cta: 'Go to Workouts', route: '/workouts' },
@@ -37,7 +37,7 @@ const LEADERBOARD = [
   { rank: 3, name: 'Sarah M.', xp: '7,800' },
 ];
 
-/*              Filter pill              */
+/* ââ Filter pill ââ */
 
 function FilterPill({ label, active, onPress }) {
   return (
@@ -47,7 +47,7 @@ function FilterPill({ label, active, onPress }) {
   );
 }
 
-/*              Active challenge card              */
+/* ââ Active challenge card ââ */
 
 function ActiveCard({ item }) {
   const pct = Math.round((item.current / item.total) * 100);
@@ -82,7 +82,7 @@ function ActiveCard({ item }) {
   );
 }
 
-/*              Completed challenge card              */
+/* ââ Completed challenge card ââ */
 
 function CompletedCard({ item }) {
   return (
@@ -111,7 +111,7 @@ function CompletedCard({ item }) {
   );
 }
 
-/*              Main screen              */
+/* ââ Main screen ââ */
 
 export default function ChallengesScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -187,7 +187,7 @@ export default function ChallengesScreen() {
   );
 }
 
-/*              Styles              */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

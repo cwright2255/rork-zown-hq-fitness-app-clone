@@ -2,46 +2,46 @@
 //
 // Two real data sources, tried in order:
 //
-// 1. TrailAPI (RapidAPI, built on Singletracks' trail database) - tried
+// 1. TrailAPI (RapidAPI, built on Singletracks' trail database) — tried
 //    first because its data is genuinely more hiking-specific than
 //    Google's: a real trail length in miles, a dedicated activity type
 //    (hiking vs. mountain biking vs. skiing), real driving directions text,
 //    and GPX route downloads for a specific trail. Confidence level, to be
 //    upfront about it:
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
+//      - Base URL, header names (x-rapidapi-host, x-rapidapi-key), and two
+//        endpoints — GET /trails/map/{id}/gpx/ and GET /trails/{id}/maps/
+//        — are CONFIRMED directly: both verified against real curl
+//        examples copied from RapidAPI's own docs for this API (checked
+//        the constructed URLs are byte-identical to the real examples,
+//        not just similar-looking).
+//      - The lat/lon/radius nearby-search query pattern and the /trails/{id}
+//        trail-detail endpoint — confirmed from a real third-party
+//        project's working fetch() call plus a real example response
+//        TrailAPI's own team posted in a support thread. Concrete, but
+//        several years old.
+//      - What's still genuinely unconfirmed: the *response shape* of
+//        GET /trails/{id}/maps/. A curl example only shows what gets sent,
+//        not what comes back — the endpoint path is now verified, but
+//        getTrailMaps() below is still guessing at how to parse the
+//        response (tries a couple of plausible shapes, fails soft rather
+//        than assuming one is right). This is the one piece left to
+//        actually smoke-test.
+//      - A newer "MCP server" listing for the same API was checked
+//        specifically for anything more current than the above — it
+//        turned out to be a single-commit README with no verifiable
+//        parameters, so it confirmed the tool *categories* (nearby search,
+//        trail detail, GPX, maps list) without adding field-level detail.
 //    Freemium: ~500 requests/day before billing, per a real developer's
 //    account of using it. Needs a RapidAPI account + subscription to the
 //    TrailAPI product, set as EXPO_PUBLIC_TRAILAPI_KEY.
 //
-// 2. Google Places API (New) - the fallback. This one WAS verified with a
+// 2. Google Places API (New) — the fallback. This one WAS verified with a
 //    real live search against a real location before any code was written
 //    (see the audit) and is kept rather than discarded, specifically so a
 //    TrailAPI outage, empty result set, or an unverified field mismatch
 //    doesn't take the whole feature down. Needs its own key, see below.
 //
-// Neither Trek4Free nor AllTrails were used directly - neither exposes a
+// Neither Trek4Free nor AllTrails were used directly — neither exposes a
 // public API for third-party apps (confirmed by checking, not assumed).
 
 import { parseGpxToRoute } from '@/lib/parseGpx';
@@ -53,7 +53,7 @@ const PLACES_API_BASE = 'https://places.googleapis.com/v1';
 // Trail-relevant Places types. `hiking_area` is the direct match; `park`
 // and `state_park`/`national_park` are included too since many real trail
 // systems (state forests, county parks) are typed as parks rather than
-// hiking_area specifically - confirmed by real search results returning
+// hiking_area specifically — confirmed by real search results returning
 // Wharton State Forest as `state_park` even though it has real trails.
 const TRAIL_TYPES = ['hiking_area', 'park', 'state_park', 'national_park'];
 
@@ -124,7 +124,7 @@ async function searchTrailApi({ latitude, longitude, radiusMeters, apiKey }) {
   const trails = [];
   places.forEach((place) => {
     // A single physical location can have multiple activity types (e.g. a
-    // resort with both hiking and mountain biking) - only surface the
+    // resort with both hiking and mountain biking) — only surface the
     // hiking-relevant ones here, this is the hiking section, not a general
     // outdoor-recreation directory.
     const hikingActivities = (place.activities || []).filter((a) =>
@@ -215,7 +215,7 @@ function normalizePlacesTrail(place, userLat, userLng) {
 
 /**
  * Resolves a Google Places photo resource name to an actual image URL.
- * Only relevant for source:'places' trails - TrailAPI results already have
+ * Only relevant for source:'places' trails — TrailAPI results already have
  * a direct photoUrl and don't need this.
  */
 export function getPhotoUrl(photoName, maxWidthPx = 500) {
@@ -225,13 +225,13 @@ export function getPhotoUrl(photoName, maxWidthPx = 500) {
 }
 
 /**
- * Real trail route data (GPX format - lat/lon/elevation points along the
- * actual path, not just the trailhead location). CONFIRMED endpoint -
- * GET /trails/map/{id}/gpx/ - verified directly against a real curl
+ * Real trail route data (GPX format — lat/lon/elevation points along the
+ * actual path, not just the trailhead location). CONFIRMED endpoint —
+ * GET /trails/map/{id}/gpx/ — verified directly against a real curl
  * example from RapidAPI's own docs for this API, not inferred.
  *
  * Requires a real map id, which currently has no confirmed way to obtain
- * for an arbitrary trail (see getTrailMaps() below) - this function is
+ * for an arbitrary trail (see getTrailMaps() below) — this function is
  * correct and ready to use once a real id is available (e.g. from a
  * response you've inspected directly, or once getTrailMaps() is verified).
  */
@@ -252,18 +252,18 @@ export async function getTrailGpx(mapId) {
     throw new Error(`TrailAPI GPX request failed: ${res.status}`);
   }
 
-  // GPX is XML, not JSON - returned as text for the caller to parse or
+  // GPX is XML, not JSON — returned as text for the caller to parse or
   // hand off to a GPX-rendering library / share sheet as-is.
   return res.text();
 }
 
 /**
- * The endpoint itself is now CONFIRMED - GET /trails/{id}/maps/ - verified
+ * The endpoint itself is now CONFIRMED — GET /trails/{id}/maps/ — verified
  * directly against a real curl example (checked the constructed URL is
  * byte-identical to it, same as getTrailGpx() below). What's still
  * genuinely unconfirmed is the response *shape*: a curl request only shows
  * what gets sent, not what comes back, so the parsing below is still a
- * reasonable guess, not verified fact - tries a couple of plausible
+ * reasonable guess, not verified fact — tries a couple of plausible
  * response shapes rather than assuming one, but if you run this for real
  * and it comes back empty or wrong, the JSON parsing here (not the URL)
  * is where to look first.
@@ -295,7 +295,7 @@ export async function getTrailMaps(trailId) {
 /**
  * Orchestrates the full real-route chain: list a trail's maps, download
  * the first one's GPX, parse it into coordinates. Built defensively on
- * purpose - every step in this chain has a different confidence level
+ * purpose — every step in this chain has a different confidence level
  * (see the header comment), so any single failure returns null rather
  * than throwing, and the caller (the trail detail screen) treats null as
  * "no route available" and simply doesn't show that section, rather than

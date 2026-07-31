@@ -19,7 +19,7 @@ export const useHealthStore = create(
       steps: 0,
       isLoading: false,
 
-      /*        Firestore sync        */
+      /* ── Firestore sync ── */
       loadAllHealth: async (uid) => {
         if (!uid) return;
         set({ isLoading: true });
@@ -65,20 +65,20 @@ export const useHealthStore = create(
         }
       },
 
-      /*        Weight        */
+      /* ── Weight ── */
       logWeight: (value, unit, uid) => {
         const entry = { value, unit: unit || 'lbs', date: new Date().toISOString() };
         set((s) => ({ weight: [...s.weight, entry] }));
         get()._persist(uid);
       },
 
-      /*        Measurements        */
+      /* ── Measurements ── */
       updateMeasurements: (data, uid) => {
         set({ measurements: { ...data, date: new Date().toISOString() } });
         get()._persist(uid);
       },
 
-      /*        Goals        */
+      /* ── Goals ── */
       addGoal: (goal, uid) => {
         const id = Date.now().toString(36);
         set((s) => ({ goals: [...s.goals, { ...goal, id, startDate: new Date().toISOString() }] }));
@@ -95,7 +95,7 @@ export const useHealthStore = create(
         get()._persist(uid);
       },
 
-      /*        Hydration        */
+      /* ── Hydration ── */
       addGlass: (uid) => {
         const today = todayStr();
         set((s) => {
@@ -109,32 +109,32 @@ export const useHealthStore = create(
         get()._persist(uid);
       },
 
-      /*        Meals        */
+      /* ── Meals ── */
       logMeal: (meal, uid) => {
         const entry = { ...meal, id: Date.now().toString(36), timestamp: new Date().toISOString() };
         set((s) => ({ meals: [...s.meals, entry] }));
         get()._persist(uid);
       },
 
-      /*        Body Scan        */
+      /* ── Body Scan ── */
       saveBodyScan: (results, uid) => {
         set({ bodyScan: { ...results, date: new Date().toISOString() } });
         get()._persist(uid);
       },
 
-      /*        Sleep        */
+      /* ── Sleep ── */
       logSleep: (hours, quality, uid) => {
         set({ sleep: { hours, quality, date: todayStr() } });
         get()._persist(uid);
       },
 
-      /*        Steps        */
+      /* ── Steps ── */
       setSteps: (count, uid) => {
         set({ steps: count });
         get()._persist(uid);
       },
 
-      /*        Computed helpers        */
+      /* ── Computed helpers ── */
       getTodayCalories: () => {
         const today = todayStr();
         return get().meals

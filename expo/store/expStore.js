@@ -83,7 +83,7 @@ export const useExpStore = create(
         set({ expSystem: defaultExpSystem });
       },
 
-      /*        Firestore sync        */
+      /* ── Firestore sync ── */
       loadXP: async (uid) => {
         if (!uid) return;
         try {

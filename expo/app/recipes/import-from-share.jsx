@@ -1,19 +1,19 @@
 // app/recipes/import-from-share.jsx
 //
 // The one and only destination for anything shared into Zown from another
-// app (Instagram, Safari, etc. - see the expo-sharing config in app.json
+// app (Instagram, Safari, etc. — see the expo-sharing config in app.json
 // and app/+native-intent.js). Scoped deliberately narrowly:
 //
 //   - The OS-level share config only offers Zown as a share target for
 //     URLs/text (app.json: ios.activationRule has no image/file/video/
 //     attachment support enabled; android.singleShareMimeTypes is
-//     ["text/plain"] only) - Zown literally cannot receive a shared photo,
+//     ["text/plain"] only) — Zown literally cannot receive a shared photo,
 //     video, or file. This isn't a UI choice, it's enforced by the OS
 //     share sheet itself.
 //   - This screen re-validates that anyway (defense in depth) before
 //     doing anything with the shared content.
 //   - The shared content only ever flows into the existing recipe
-//     extraction pipeline (services/recipeExtractionService.js - the same
+//     extraction pipeline (services/recipeExtractionService.js — the same
 //     one the in-app "paste a link" import already uses). There is no
 //     generic "shared content" inbox and no other code path that consumes
 //     what gets shared here.
@@ -59,7 +59,7 @@ export default function ImportFromShareScreen() {
         console.error('[ImportFromShare] failed to read shared payload', e);
       }
 
-      // Only ever look at text/url payloads - even though the OS-level
+      // Only ever look at text/url payloads — even though the OS-level
       // config already prevents anything else from reaching this screen,
       // this re-check means a future config change can't silently widen
       // what this screen is willing to act on.
@@ -116,7 +116,7 @@ export default function ImportFromShareScreen() {
           <View style={styles.centerBlock}>
             <ActivityIndicator size="large" color={colors.text} />
             <Text style={styles.statusText}>
-              {status === 'reading' ? 'Reading shared link...' : 'Extracting the recipe...'}
+              {status === 'reading' ? 'Reading shared link…' : 'Extracting the recipe…'}
             </Text>
             {sharedUrl && <Text style={styles.urlText} numberOfLines={1}>{sharedUrl}</Text>}
           </View>
@@ -185,7 +185,7 @@ export default function ImportFromShareScreen() {
         {status === 'saving' && (
           <View style={styles.centerBlock}>
             <ActivityIndicator size="large" color={colors.text} />
-            <Text style={styles.statusText}>Saving...</Text>
+            <Text style={styles.statusText}>Saving…</Text>
           </View>
         )}
 

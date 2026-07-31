@@ -4,4 +4,4 @@
 
 import { DeviceMotion } from 'expo-sensors';
 
-export const rotationTracker = {      r      *'    e        :  rH            	^R-Z  
+export const rotationTracker = {²æìr¸©¶*'žée²Ö«µ:ÚrH§‚‰Àž	^R—Zµ

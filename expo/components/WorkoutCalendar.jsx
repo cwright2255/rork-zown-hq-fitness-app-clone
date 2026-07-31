@@ -266,14 +266,14 @@ export default function WorkoutCalendar({ onDateSelect, onEventPress, onAddEvent
                         <Clock size={14} color={Colors.text.secondary} />
                         <Text style={styles.eventTime}>{event.time}</Text>
                         {event.duration &&
-                <Text style={styles.eventDuration}>    {event.duration}min</Text>
+                <Text style={styles.eventDuration}>• {event.duration}min</Text>
                 }
                       </View>
               }
                     
                     {event.completed &&
               <View style={styles.completedBadge}>
-                        <Text style={styles.completedText}>    Completed</Text>
+                        <Text style={styles.completedText}>✓ Completed</Text>
                       </View>
               }
                   </View>

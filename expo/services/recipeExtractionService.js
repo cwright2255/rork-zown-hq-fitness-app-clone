@@ -190,7 +190,7 @@ Please extract and return a JSON object with the following structure if a recipe
   }
 }
 
-Estimate the nutrition object from the actual ingredients and serving count you extracted above - do not return placeholder or generic values. If the ingredients don't give you enough information to estimate confidently, omit the "nutrition" field entirely rather than guessing.
+Estimate the nutrition object from the actual ingredients and serving count you extracted above — do not return placeholder or generic values. If the ingredients don't give you enough information to estimate confidently, omit the "nutrition" field entirely rather than guessing.
 
 If no recipe is found, return null. Only return valid JSON.
 `;

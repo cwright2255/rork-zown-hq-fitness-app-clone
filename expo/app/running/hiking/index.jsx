@@ -1,6 +1,6 @@
 // app/running/hiking/index.jsx
 //
-// Real hiking trails near the user - only local trails, per the request
+// Real hiking trails near the user — only local trails, per the request
 // (no browsing a national database, this is strictly "near you"). Cards
 // show a real photo where the Places API has one, real distance, and real
 // rating. Tapping a card opens the trail's own preview page
@@ -50,7 +50,7 @@ export default function HikingListScreen() {
       {isLoading && (
         <View style={styles.centerBlock}>
           <ActivityIndicator size="large" color={colors.text} />
-          <Text style={styles.centerText}>Finding trails near you...</Text>
+          <Text style={styles.centerText}>Finding trails near you…</Text>
         </View>
       )}
 
@@ -58,7 +58,7 @@ export default function HikingListScreen() {
         <View style={styles.centerBlock}>
           <Ionicons name="location-outline" size={40} color={colors.textSecondary} />
           <Text style={styles.centerText}>
-            Location access is needed to show trails near you - this only shows local results, not a general directory.
+            Location access is needed to show trails near you — this only shows local results, not a general directory.
           </Text>
           <PrimaryButton title="Enable Location" onPress={openSettings} style={{ marginTop: spacing.lg }} />
         </View>

@@ -1,7 +1,7 @@
 // components/TrainingLoadCard.jsx
 //
 // The one thing genuinely nobody else can build well: Strava only sees
-// runs/rides, AllTrails only sees hikes - Zown has real completed
+// runs/rides, AllTrails only sees hikes — Zown has real completed
 // workouts, runs, AND hikes in one place. This surfaces that as a real
 // acute:chronic training load reading (lib/trainingLoad.js), not a
 // vague "how are you feeling" prompt.
@@ -40,7 +40,7 @@ export default function TrainingLoadCard({ trainingLoad, aiInsight }) {
 
       {trainingLoad.zone === 'insufficient_data' ? (
         <Text style={styles.insufficientText}>
-          Keep logging workouts, runs, and hikes - this needs about a week of history to give a real reading.
+          Keep logging workouts, runs, and hikes — this needs about a week of history to give a real reading.
         </Text>
       ) : (
         <>

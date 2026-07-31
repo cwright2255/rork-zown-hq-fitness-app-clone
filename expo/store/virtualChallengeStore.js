@@ -1,31 +1,31 @@
 // store/virtualChallengeStore.js
 //
 // Conqueror-style virtual challenges: pick a real-world route (e.g. "walk
-// the length of the Grand Canyon rim trail - 34km"), and your real
+// the length of the Grand Canyon rim trail — 34km"), and your real
 // cumulative run/walk distance counts toward completing it.
 //
-// Built as a genuinely real data model - not a UI mockup - but the actual
+// Built as a genuinely real data model — not a UI mockup — but the actual
 // screen entry point (app/running/program/index.jsx) presents this behind
 // a "Coming Soon" state on purpose. The reason isn't technical: this kind
 // of feature (see The Conqueror as the reference) usually ships a real
 // medal or physical reward on completion, and that needs a fulfillment
-// vendor, inventory, and shipping logistics set up on the business side -
+// vendor, inventory, and shipping logistics set up on the business side —
 // none of which exists yet. Shipping the tracking/progress mechanic while
 // implying a physical reward that can't actually be fulfilled would be
 // worse than not shipping it at all, so this stays gated until that's
-// resolved. The moment it is, this store needs no further backend work -
+// resolved. The moment it is, this store needs no further backend work —
 // only the UI gate needs to come off.
 
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-// Real-world reference distances for each route - public geographic fact,
+// Real-world reference distances for each route — public geographic fact,
 // not invented. Progress is tracked in km throughout.
 export const VIRTUAL_CHALLENGES = [
   { id: 'grand-canyon-rim', title: 'Grand Canyon Rim Trail', distanceKm: 34, region: 'Arizona, USA' },
   { id: 'hadrians-wall', title: "Hadrian's Wall Path", distanceKm: 135, region: 'England, UK' },
-  { id: 'camino-frances', title: 'Camino de Santiago (Camino Franc  s)', distanceKm: 780, region: 'France-Spain' },
+  { id: 'camino-frances', title: 'Camino de Santiago (Camino Francés)', distanceKm: 780, region: 'France–Spain' },
   { id: 'john-muir-trail', title: 'John Muir Trail', distanceKm: 340, region: 'California, USA' },
 ];
 
@@ -70,7 +70,7 @@ export const useVirtualChallengeStore = create((set, get) => ({
     get()._persist(uid);
   },
 
-  // Called after a real run completes (see app/running/active.jsx) -
+  // Called after a real run completes (see app/running/active.jsx) —
   // credits that run's real distance toward every challenge the user has
   // joined, same real-run-driven-progress model as the real reference apps.
   creditDistance: (distanceKm, uid) => {

@@ -94,7 +94,7 @@ const RunningProgramCard = ({ program, onPress, userProgress }) => {
             
             </View>
             <Text style={styles.progressText}>
-              Week {userProgress.currentWeek}     {Math.round(progressPercentage)}% complete
+              Week {userProgress.currentWeek} • {Math.round(progressPercentage)}% complete
             </Text>
           </View>
         }

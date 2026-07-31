@@ -49,7 +49,7 @@ export async function processAdminLink(url) {
 
     console.log('[RemoteAdmin] Admin link detected', { path, cmd, q });
 
-    // Optional token gate - if provided we just log presence; project has no secure secret storage for tokens here.
+    // Optional token gate — if provided we just log presence; project has no secure secret storage for tokens here.
     if (q.token) {
       console.log('[RemoteAdmin] Token provided');
     }

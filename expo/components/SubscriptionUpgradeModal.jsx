@@ -183,7 +183,7 @@ const SubscriptionUpgradeModal = ({
         
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-                Cancel anytime     No hidden fees     30-day money-back guarantee
+            • Cancel anytime • No hidden fees • 30-day money-back guarantee
           </Text>
         </View>
       </View>

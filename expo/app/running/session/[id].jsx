@@ -3,10 +3,10 @@
 // Preview + launch screen for one specific day within a running program
 // (e.g. "Couch to 5K, Week 3"). Previously read `runningPrograms` from
 // store/workoutStore.js, which was emptied out earlier this session as
-// fake mock data - meaning `foundProgram` was always undefined here, and
+// fake mock data — meaning `foundProgram` was always undefined here, and
 // the screen always fell back to hardcoded placeholder stats ("3.2km,
 // 5:42 pace...") regardless of which session was actually opened. It also
-// never launched a real run at all - "End Run" just navigated back.
+// never launched a real run at all — "End Run" just navigated back.
 //
 // Rewritten to show the real interval structure from data/runningPrograms.js
 // and to actually start app/running/active.jsx in program (interval) mode.
@@ -58,12 +58,12 @@ export default function RunningSessionDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader showBack title={`${program.title} - Week ${weekNumber}`} />
+      <ScreenHeader showBack title={`${program.title} — Week ${weekNumber}`} />
 
       <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
         <Text style={styles.weekTitle}>{week.title}</Text>
         <Text style={styles.sessionMeta}>
-          Session {sessionIndex + 1} of {week.sessionsPerWeek}     {formatMinSec(totalSeconds)} total
+          Session {sessionIndex + 1} of {week.sessionsPerWeek} • {formatMinSec(totalSeconds)} total
           {runSeconds > 0 && `, ${formatMinSec(runSeconds)} running`}
         </Text>
 

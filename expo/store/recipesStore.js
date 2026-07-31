@@ -10,7 +10,7 @@ export const useRecipesStore = create(
       savedRecipes: [],
       isLoading: false,
 
-      /*        Firestore sync        */
+      /* ── Firestore sync ── */
       loadRecipes: async (uid) => {
         if (!uid) return;
         set({ isLoading: true });
@@ -38,7 +38,7 @@ export const useRecipesStore = create(
         }
       },
 
-      /*        Actions        */
+      /* ── Actions ── */
       addRecipe: (recipe, uid) => {
         const newRecipe = {
           id: Date.now().toString(),

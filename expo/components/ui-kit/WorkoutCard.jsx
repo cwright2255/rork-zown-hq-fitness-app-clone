@@ -13,7 +13,7 @@
  * @param {number} [props.progress=0.65] - Progress value between 0 and 1
  * @param {boolean} [props.showProgress=true] - Whether to show the progress bar
  * @param {string} [props.accentColor] - Override accent color
- * @param {string} [props.iconEmoji='                '] - Emoji used in the icon area
+ * @param {string} [props.iconEmoji='Ã°ÂÂÂ'] - Emoji used in the icon area
  * @param {boolean} [props.isActive=false] - Highlights card if workout is active
  * @param {function} [props.onPress] - Callback when card is pressed
  *
@@ -26,7 +26,7 @@
  *   calories={320}
  *   progress={0.65}
  *   showProgress={true}
- *   iconEmoji="                "
+ *   iconEmoji="Ã°ÂÂÂ"
  *   onPress={() => console.log('Card pressed')}
  * />
  *
@@ -38,7 +38,7 @@
  *   calories={410}
  *   progress={0.4}
  *   isActive={true}
- *   iconEmoji="            "
+ *   iconEmoji="Ã¢ÂÂ¡"
  *   accentColor="#00D4FF"
  * />
  */
@@ -54,9 +54,9 @@ import {
 } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-//
+// ---------------------------------------------------------------------------
 // Fallback tokens in case the import path isn't resolved in isolation
-//
+// ---------------------------------------------------------------------------
 const COLORS = {
   background: tokens?.colors?.ink?.darkest ?? '#0A0E1A',
   card: tokens?.colors?.ink?.darker ?? '#141824',
@@ -83,9 +83,9 @@ const RADIUS = {
   xl: tokens?.radius?.xl ?? 16,
 };
 
-//
-// StatPill              small metric display (duration / calories)
-//
+// ---------------------------------------------------------------------------
+// StatPill Ã¢ÂÂ small metric display (duration / calories)
+// ---------------------------------------------------------------------------
 const StatPill = ({ label, value, unit, color }) => (
   <View style={styles.statPill}>
     <Text style={[styles.statValue, { color: color ?? COLORS.white }]}>
@@ -96,9 +96,9 @@ const StatPill = ({ label, value, unit, color }) => (
   </View>
 );
 
-//
+// ---------------------------------------------------------------------------
 // AnimatedProgressBar
-//
+// ---------------------------------------------------------------------------
 const AnimatedProgressBar = ({ progress, color }) => {
   const animatedWidth = useRef(new Animated.Value(0)).current;
 
@@ -134,9 +134,9 @@ const AnimatedProgressBar = ({ progress, color }) => {
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // WorkoutCard
-//
+// ---------------------------------------------------------------------------
 const WorkoutCard = ({
   title = 'Morning Run',
   subtitle = 'Cardio',
@@ -145,7 +145,7 @@ const WorkoutCard = ({
   progress = 0.65,
   showProgress = true,
   accentColor,
-  iconEmoji = '                ',
+  iconEmoji = 'Ã°ÂÂÂ',
   isActive = false,
   onPress,
 }) => {
@@ -236,7 +236,7 @@ const WorkoutCard = ({
 
           {/* Chevron */}
           <View style={styles.chevronContainer}>
-            <Text style={[styles.chevron, { color: COLORS.mutedGray }]}>            </Text>
+            <Text style={[styles.chevron, { color: COLORS.mutedGray }]}>Ã¢ÂÂº</Text>
           </View>
         </View>
 
@@ -285,9 +285,9 @@ const WorkoutCard = ({
   );
 };
 
-//
+// ---------------------------------------------------------------------------
 // Styles
-//
+// ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
 
-//
+  // ---- Active badge ----
   activeBadge: {
     position: 'absolute',
     top: SPACING.md,
@@ -331,14 +331,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
 
-//
+  // ---- Top row ----
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.md,
   },
 
-//
+  // ---- Icon ----
   iconContainer: {
     width: 56,
     height: 56,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
 
-//
+  // ---- Title block ----
   titleBlock: {
     flex: 1,
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-//
+  // ---- Chevron ----
   chevronContainer: {
     marginLeft: SPACING.sm,
     justifyContent: 'center',
@@ -402,14 +402,14 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
 
-//
+  // ---- Divider ----
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
     marginBottom: SPACING.md,
   },
 
-//
+  // ---- Stats ----
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
   },
 
-//
+  // ---- Progress ----
   progressSection: {
     marginTop: SPACING.xs,
   },

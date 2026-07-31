@@ -15,7 +15,7 @@ export const useRecipeStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  // Real cloud sync - previously this store was AsyncStorage-only, meaning
+  // Real cloud sync — previously this store was AsyncStorage-only, meaning
   // a recipe imported on one device (including via the share-to-app flow)
   // never showed up on another. Matches the subcollection pattern used for
   // workouts/bodyScans/formSessions elsewhere in the app.
@@ -25,7 +25,7 @@ export const useRecipeStore = create((set, get) => ({
       const q = query(collection(db, 'users', uid, 'recipes'), orderBy('dateAdded', 'desc'), limit(200));
       const snap = await getDocs(q);
       const cloudRecipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // Merge rather than replace - anything saved locally before this sync
+      // Merge rather than replace — anything saved locally before this sync
       // existed (or while offline) isn't silently dropped.
       const { savedRecipes } = get();
       const localOnlyIds = new Set(cloudRecipes.map((r) => r.id));
@@ -57,7 +57,7 @@ export const useRecipeStore = create((set, get) => ({
         ingredients: recipeData.ingredients,
         instructions: recipeData.instructions,
         // Real per-recipe estimate from the AI extraction when available
-        // (see services/recipeExtractionService.js's prompt) - this used to
+        // (see services/recipeExtractionService.js's prompt) — this used to
         // be hardcoded to the same {400, 25, 30, 15, 5} for every recipe
         // regardless of what it actually was. `hasNutritionEstimate` lets
         // the UI show an honest "not available" state instead of a
