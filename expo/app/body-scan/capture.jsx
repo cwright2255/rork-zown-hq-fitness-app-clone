@@ -1,10 +1,39 @@
-// app/body-scan/capture.jsx
-//
-// Tutî®table-style body scan capture: the user holds still while helper rotates phone around them,
-// OR user rotates in place on a turntable / spinning spot.
-//
-// Key features:// - VisionCamera frame processor analyzing keypoint tracking or DeviceMotion orientation
--// - Audio cues via voiceGuidanceService ("Turn slightly right", "Hold still", "Front complete")
-// - Visual angle gauge / turntable progress wheel (0..360 deg)
-// - Front / Side / Back automatic frame capture triggers
-// - Mesh quality indicator (lighting, distance, blur score)
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import ScreenHeader from '@/components/ScreenHeader';
+import { tokens } from '../../theme/tokens';
+
+export default function BodyScanCaptureScreen() {
+  return (
+    <View style={styles.container}>
+      <ScreenHeader title="Body Scan Capture" showBack />
+      <View style={styles.content}>
+        <Text style={styles.title}>3D Body Scan</Text>
+        <Text style={styles.subtitle}>Rotate 360 degrees or hold still while recording</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: tokens.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: tokens.typography.sizes.lg,
+    fontWeight: 'bold',
+    color: tokens.colors.textPrimary,
+  },
+  subtitle: {
+    fontSize: tokens.typography.sizes.sm,
+    color: tokens.colors.textSecondary,
+    marginTop: tokens.spacing.xs,
+  },
+});
