@@ -1,12 +1,12 @@
 // app/running/hiking/[id].jsx
 //
-// Trail preview page — the hero photo, real trail info, and the
+// Trail preview page  the hero photo, real trail info, and the
 // directions action that opens Apple Maps (iOS) or Google Maps (Android)
 // pre-loaded with the real trailhead/parking coordinates, ready to drive
 // or walk to. See lib/openDirections.js for the actual native hand-off.
 //
 // Also attempts to show the trail's actual route (not just the trailhead
-// point) via services/hikingService.js's fetchTrailRoute() — this chains
+// point) via services/hikingService.js's fetchTrailRoute()  this chains
 // together the least-certain parts of the TrailAPI integration (see the
 // audit), so it's built to fail silently: if the route can't be fetched
 // or parsed, this section just doesn't render, rather than showing an
@@ -30,7 +30,7 @@ import TrailWeather from '@/components/TrailWeather';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 import { getTargetMuscles } from '@/lib/muscleFatigue';
 
-// Same defensive-load pattern already used in components/RunningMap.jsx —
+// Same defensive-load pattern already used in components/RunningMap.jsx 
 // react-native-maps isn't web-compatible, and loading it via a bare
 // top-level import would break the web build for everyone, not just
 // hiking. Matches the existing convention rather than introducing a new one.
@@ -65,7 +65,7 @@ export default function TrailPreviewScreen() {
   useEffect(() => {
     if (!trail || trail.source !== 'trailapi' || !MapView) return;
     // The stored id is prefixed ("trailapi-721") to keep it unambiguous
-    // from a Places id in the same store — strip it back off to get the
+    // from a Places id in the same store  strip it back off to get the
     // real TrailAPI id that getTrailMaps()/getTrailGpx() actually expect.
     const rawId = trail.id.replace(/^trailapi-/, '');
     let cancelled = false;
@@ -80,7 +80,7 @@ export default function TrailPreviewScreen() {
       <SafeAreaView style={styles.safe}>
         <ScreenHeader title="Trail" showBack />
         <View style={styles.centerBlock}>
-          <Text style={styles.centerText}>Trail not found — go back and pick one from the list.</Text>
+          <Text style={styles.centerText}>Trail not found  go back and pick one from the list.</Text>
         </View>
       </SafeAreaView>
     );
@@ -177,12 +177,12 @@ export default function TrailPreviewScreen() {
                   provider={PROVIDER_DEFAULT}
                   mapType="terrain"
                   // A tilted camera + terrain-style tiles is what gives this
-                  // a real "2.5D" perspective — the tilt plus the map's own
+                  // a real "2.5D" perspective  the tilt plus the map's own
                   // topographic relief shading, not a rendered 3D mesh built
                   // from the GPX elevation data itself (that would need a
                   // full 3D engine, a much bigger undertaking than a
                   // camera angle). Must set the FULL camera object here, not
-                  // just pitch — a real, confirmed Android crash
+                  // just pitch  a real, confirmed Android crash
                   // (NoSuchKeyException: pitch) happens if pitch is set
                   // without heading/zoom/altitude alongside it.
                   initialCamera={{
@@ -211,7 +211,7 @@ export default function TrailPreviewScreen() {
                   <Text style={styles.routeStatText}>{route.elevationGainM} m elevation gain</Text>
                 )}
               </View>
-              {/* The precise complement to the tilted map above — exact
+              {/* The precise complement to the tilted map above  exact
                   elevation at any point along the route, not just a visual
                   impression of relief. Built from the same real per-point
                   GPX data. */}

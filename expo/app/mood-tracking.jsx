@@ -6,7 +6,7 @@ import { tokens } from '../../theme/tokens';
 
 
 
-const MOODS = ['ÃÂ°ÃÂÃÂÃÂ´', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ'];
+const MOODS = [' deg', ' deg', ' deg', ' deg', ' deg'];
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export default function MoodTrackingScreen() {

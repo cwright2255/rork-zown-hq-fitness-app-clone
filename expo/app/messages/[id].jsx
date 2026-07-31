@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Send, ArrowLeft } from 'locide-react-native';
+import { Send, ArrowLeft } from 'lucide-react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { tokens } from '../../../theme/tokens';
 import { useMessagingStore } from '@/store/messagingStore';
@@ -65,15 +65,13 @@ export default function ConversationScreen() {
 
     return (
       <View
-        style=[
-          styles.messageBubble,
+        style={[styles.messageBubble,
           isMine ? styles.myMessage : styles.otherMessage,
-        ]
-      >
-        <Text style=[isMine ? styles.myMessageText : styles.otherMessageText]>
+        ]}>
+        <Text style={[isMine ? styles.myMessageText : styles.otherMessageText]}>
           {item.text}
         </Text>
-        <Text style=[isMine ? styles.myTimeText : styles.otherTimeText]>
+        <Text style={[isMine ? styles.myTimeText : styles.otherTimeText]}>
           {item.timestamp
             ? new Date(item.timestamp.toMillis()).toLocaleTimeString([), {
                 hour: '2-digit',
@@ -101,4 +99,4 @@ export default function ConversationScreen() {
         <View style={styles.avatarBadge}>
           <Text style={styles.avatarText}>
             {otherParticipantName ? otherParticipantName[0].toUpperCase() : 'C'}
-          </Text>ýXžÁ7±¶Ër•
+          </Text>X7r

@@ -3,7 +3,7 @@
 // Where the bookmark button on the trail list/detail screens actually
 // leads. Before this, toggleSaveTrail() correctly wrote to Firestore and
 // toggled the bookmark icon, but there was no way to ever look at the
-// list you'd built — a real, functional save with no way to ever see
+// list you'd built  a real, functional save with no way to ever see
 // what you'd saved.
 
 import React, { useEffect, useMemo } from 'react';
@@ -27,7 +27,7 @@ export default function SavedTrailsScreen() {
   }, [user?.uid]);
 
   // Saved trails are only ever shown here if they're also present in the
-  // current `trails` list (populated by the last nearby search) — this
+  // current `trails` list (populated by the last nearby search)  this
   // screen doesn't re-fetch each saved trail individually, so a trail
   // saved on a previous visit that's now outside search range won't
   // appear until a nearby search including it runs again. Simpler and
