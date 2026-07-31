@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Send, ArrowLeft } from 'locide-react-native';
+import { Send, ArrowLeft } from 'lucide-react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { tokens } from '../../../theme/tokens';
 import { useMessagingStore } from '@/store/messagingStore';

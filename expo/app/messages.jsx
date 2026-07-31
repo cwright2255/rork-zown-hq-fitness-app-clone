@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { MessageCircle } from 'locide-react-native';
+import { MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
