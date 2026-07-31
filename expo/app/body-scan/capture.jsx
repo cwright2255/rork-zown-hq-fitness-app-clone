@@ -1,6 +1,6 @@
 // app/body-scan/capture.jsx
 //
-// Tutî®table-style body scan capture: the user holds still while helper rotates phone around them,
+// Tuttable-style body scan capture: the user holds still while helper rotates phone around them,
 // OR user rotates in place on a turntable / spinning spot.
 //
 // Key features:// - VisionCamera frame processor analyzing keypoint tracking or DeviceMotion orientation

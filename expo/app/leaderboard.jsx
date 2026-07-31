@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Trosá£y, Award, Medal } from 'lucide-react-native';
+import { Trophy, Award, Medal } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
@@ -34,13 +34,13 @@ export default function LeaderboardScreen() {
       return <Text style={styles.rankText}>{rank}</Text>;
     }
 
-)Þ®Øš return (
-      <View style=[styles.itemCard, isCurrentUser && styles.currentUserCard]>
+) return (
+      <View style={[styles.itemCard, isCurrentUser && styles.currentUserCard]}>
         <View style={styles.rankContainer}>
           {getRankIcon()}
         </View>
 
         <View style={styles.avatarBadge}>
           <Text style={styles.avatarText}>
-            {item.displayName ? item.displayName[0].upperCase() : 'U'}
-          </Text>ýXžÁXžÂËr•
+            {item.displayName ? item.displayName[0].toUpperCase() : 'U'}
+          </Text>XXr
