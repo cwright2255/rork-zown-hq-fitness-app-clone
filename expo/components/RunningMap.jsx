@@ -220,7 +220,7 @@ export default function RunningMap({
     if (coordinates.length === 0) {
       return (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>📍</Text>
+          <Text style={styles.noDataText}>    </Text>
           <Text style={styles.noDataSubtext}>Waiting for GPS signal...</Text>
           <Text style={styles.noDataHint}>Press START to begin tracking</Text>
         </View>

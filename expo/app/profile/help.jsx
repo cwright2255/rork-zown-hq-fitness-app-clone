@@ -240,7 +240,7 @@ export default function HelpSupportScreen() {
     {
       id: 'welcome',
       role: 'assistant',
-      content: "👋 Hi! I'm ZOWN's AI fitness coach. Ask me anything about workouts, nutrition, running, or your fitness goals!"
+      content: "     Hi! I'm ZOWN's AI fitness coach. Ask me anything about workouts, nutrition, running, or your fitness goals!"
     }
   ]);
   const [isAiThinking, setIsAiThinking] = useState(false);

@@ -68,7 +68,7 @@ export default function AchievementsScreen() {
   }, [user?.uid]);
 
   const unlocked = getUnlockedAchievements();
-  // Real values only — this used to fall back to a hardcoded 27975 XP /
+  // Real values only - this used to fall back to a hardcoded 27975 XP /
   // level 12 whenever `user` was null (e.g. still loading), which looked
   // like a plausible power-user profile rather than a loading state.
   const xp = user?.xp ?? 0;
@@ -78,12 +78,12 @@ export default function AchievementsScreen() {
   const levelProgress = Math.min(100, Math.max(0, ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100));
 
   // There is no real leaderboard/ranking system anywhere in this app (see
-  // the audit) — this used to hardcode `position = 2`, claiming a specific
+  // the audit) - this used to hardcode `position = 2`, claiming a specific
   // competitive rank that was never actually computed from anything.
   // Showing level/XP honestly instead of a fabricated placement.
 
   const seasons = useMemo(() => {
-    // No more fake "Run/Lift/Mind/Burn/Streak/Hydrate" fallback data —
+    // No more fake "Run/Lift/Mind/Burn/Streak/Hydrate" fallback data -
     // if there are no real achievements loaded yet, show an empty season
     // rather than fabricated progress percentages.
     const list = achievements && achievements.length ? achievements : [];

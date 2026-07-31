@@ -9,7 +9,7 @@
 // Uses a regex extraction rather than a full XML parser. GPX's <trkpt>
 // structure is simple and standardized enough that this is reliable
 // without pulling in a new dependency (React Native doesn't ship a
-// dependable DOMParser across environments) — this is the same practical
+// dependable DOMParser across environments) - this is the same practical
 // tradeoff, not a shortcut taken without considering the real option.
 
 const TRKPT_REGEX = /<trkpt\s+lat="(-?\d+\.?\d*)"\s+lon="(-?\d+\.?\d*)"[^>]*>([\s\S]*?)<\/trkpt>/g;
@@ -23,7 +23,7 @@ const ELE_REGEX = /<ele>(-?\d+\.?\d*)<\/ele>/;
  *   elevationGainM: number|null,
  *   elevationProfile: Array<{distanceKm:number, elevationM:number}> | null
  * } | null}
- *   Returns null if no track points were found — the caller should treat
+ *   Returns null if no track points were found - the caller should treat
  *   that as "no route available" and hide the route UI, not as an error.
  *   elevationProfile is null (not an empty array) when the GPX has no
  *   elevation data at all, so callers can distinguish "no chart to draw"

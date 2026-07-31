@@ -37,7 +37,7 @@ import { useExpStore } from '@/store/expStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRunningStore } from '@/store/runningStore';
 
-/* Ã¢ÂÂÃ¢ÂÂ Data by time filter Ã¢ÂÂÃ¢ÂÂ */
+/*                          Data by time filter                          */
 
 const OVERVIEW = {
   Day:   { workouts: 1,  calories: '320',   xp: '100' },
@@ -87,7 +87,7 @@ const RECENT = [
   { id: 'r5', title: 'Hill Sprints',  sub: 'Running \u2022 20 min \u2022 2.8 km',  xp: '+100 XP', icon: 'fitness' },
 ];
 
-/* Ã¢ÂÂÃ¢ÂÂ Pill component Ã¢ÂÂÃ¢ÂÂ */
+/*                          Pill component                          */
 function Pill({ label, active, onPress, small }) {
   return (
     <Pressable
@@ -100,7 +100,7 @@ function Pill({ label, active, onPress, small }) {
     </Pressable>
   );
 }
-/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
+/*                          Main screen                          */
 
 export default function AnalysisScreen() {
   const [timeFilter, setTimeFilter] = useState('Week');
@@ -263,7 +263,7 @@ export default function AnalysisScreen() {
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
+/*                          Styles                          */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

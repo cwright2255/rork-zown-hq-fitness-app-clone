@@ -2,14 +2,14 @@
 //
 // Real anatomical muscle visualization in two modes, toggleable:
 //   - "Target": which muscles a specific activity works (a fixed
-//     highlight, one color) — used on activity preview screens, before
+//     highlight, one color) - used on activity preview screens, before
 //     you've done it.
 //   - "Fatigue": real per-muscle recent load, decayed on the real DOMS
-//     recovery timeline (see lib/muscleFatigue.js) — a heatmap, colored
+//     recovery timeline (see lib/muscleFatigue.js) - a heatmap, colored
 //     by actual recent activity, not a static highlight.
 // Both modes render through services/muscleVisualizerService.js, fixed
 // this session after finding it had never actually worked (wrong base
-// path, wrong auth method, wrong muscle-name casing — see the audit).
+// path, wrong auth method, wrong muscle-name casing - see the audit).
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, Pressable } from 'react-native';

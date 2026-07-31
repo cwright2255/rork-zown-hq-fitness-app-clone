@@ -101,4 +101,4 @@ export default function ConversationScreen() {
         <View style={styles.avatarBadge}>
           <Text style={styles.avatarText}>
             {otherParticipantName ? otherParticipantName[0].toUpperCase() : 'C'}
-          </Text>ýXžÁ7±¶Ër•
+          </Text>  X    7      r   

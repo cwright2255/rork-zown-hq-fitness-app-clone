@@ -26,7 +26,7 @@ function StatCard({ icon, number, label }) {
   );
 }
 
-/* ââ Summary row ââ */
+/*              Summary row              */
 
 function SummaryRow({ label, value, isLast }) {
   return (
@@ -37,7 +37,7 @@ function SummaryRow({ label, value, isLast }) {
   );
 }
 
-/* ââ Exercise completion row ââ */
+/*              Exercise completion row              */
 
 function ExerciseRow({ exercise }) {
   return (
@@ -54,7 +54,7 @@ function ExerciseRow({ exercise }) {
   );
 }
 
-/* ââ Reward badge ââ */
+/*              Reward badge              */
 
 function RewardBadge({ reward }) {
   return (
@@ -69,7 +69,7 @@ function RewardBadge({ reward }) {
   );
 }
 
-/* ââ Tab button ââ */
+/*              Tab button              */
 
 function TabButton({ label, active, onPress }) {
   return (
@@ -84,7 +84,7 @@ function TabButton({ label, active, onPress }) {
   );
 }
 
-/* ââ Main screen ââ */
+/*              Main screen              */
 
 function formatDurationFromSeconds(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -126,7 +126,7 @@ export default function WorkoutCompleteScreen() {
   // freshest. Hike completions carry their own data directly in the route
   // params (already fully computed in the monitor screen before
   // navigating here) rather than reading from a store, since there's
-  // nothing to look up — the hike that was just completed IS the data.
+  // nothing to look up - the hike that was just completed IS the data.
   const realDuration = isHikeCompletion
     ? formatDurationFromSeconds(parseInt(params.durationSeconds, 10) || 0)
     : isRunCompletion
@@ -168,10 +168,10 @@ export default function WorkoutCompleteScreen() {
     setSharing(true);
     try {
       const text = isHikeCompletion
-        ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
+        ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike - ${params.distanceKm}km, ${params.elevationGainM}m elevation gain.     `
         : isRunCompletion
-          ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km run in ${realDuration}. 💪`
-          : `Just completed a workout — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
+          ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km run in ${realDuration}.     `
+          : `Just completed a workout - ${realExercises} exercises, ${realCalories} kcal burned.     `;
       await createPost({
         uid: user.uid,
         authorName: displayName,
@@ -201,7 +201,7 @@ export default function WorkoutCompleteScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ââ Header ââ */}
+        {/*              Header              */}
         <View style={styles.header}>
           <Pressable style={styles.headerBtn} onPress={handleClose}>
             <Ionicons name="close" size={24} color="#000" />
@@ -217,7 +217,7 @@ export default function WorkoutCompleteScreen() {
           </Pressable>
         </View>
 
-        {/* ââ Celebration ââ */}
+        {/*              Celebration              */}
         <View style={styles.celebration}>
           <View style={styles.celebrationCircle}>
             <Ionicons name="checkmark" size={50} color="#000" />
@@ -310,7 +310,7 @@ export default function WorkoutCompleteScreen() {
           </ScrollView>
         </View>
 
-        {/* Share to Community — real post, via store/communityStore.js */}
+        {/* Share to Community - real post, via store/communityStore.js */}
         <Pressable
           style={[styles.shareButton, shared && styles.shareButtonShared]}
           onPress={handleShareToCommunity}
@@ -318,7 +318,7 @@ export default function WorkoutCompleteScreen() {
         >
           <Ionicons name={shared ? 'checkmark-circle' : 'share-social-outline'} size={18} color={shared ? '#22C55E' : '#000'} />
           <Text style={[styles.shareButtonText, shared && { color: '#22C55E' }]}>
-            {sharing ? 'Sharing…' : shared ? 'Shared to Community' : 'Share to Community'}
+            {sharing ? 'Sharing...' : shared ? 'Shared to Community' : 'Share to Community'}
           </Text>
         </Pressable>
 
@@ -331,7 +331,7 @@ export default function WorkoutCompleteScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/*              Styles              */
 
 const styles = StyleSheet.create({
   container: {

@@ -24,7 +24,7 @@ export const useNutritionStore = create(
       // addMeal/addFoodToMeal below), starting genuinely empty.
       recentFoods: [],
       favoriteFood: [],
-      syncUid: null, // set once via setSyncUid(uid) — drives the auto-sync subscription below
+      syncUid: null, // set once via setSyncUid(uid) - drives the auto-sync subscription below
       setSyncUid: (uid) => set({ syncUid: uid }),
 
       loadNutritionData: async (uid) => {

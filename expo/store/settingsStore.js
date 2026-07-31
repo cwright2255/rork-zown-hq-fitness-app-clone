@@ -24,7 +24,7 @@ export const useSettingsStore = create(
       weeklySummary: true,
       showInLeaderboards: true,
       allowFriendRequests: true,
-      // 'indefinite' matches current (pre-existing) behavior — sessions
+      // 'indefinite' matches current (pre-existing) behavior - sessions
       // never expired before this setting existed, so defaulting to
       // anything else would silently log out existing users the moment
       // this ships. '1month' | '3months' | 'indefinite'.

@@ -3,7 +3,7 @@
 // Real elevation-vs-distance chart, built from a trail's actual GPX
 // elevation profile (lib/parseGpx.js). This is the precise complement to
 // the tilted "2.5D" map view on the trail detail screen: the tilted map
-// gives a visual sense of terrain relief, this shows the exact climb —
+// gives a visual sense of terrain relief, this shows the exact climb -
 // where it's steep, where it's flat, the real high and low points along
 // the route. Plain react-native-svg (already installed, already used
 // elsewhere in the app), no new charting dependency.
@@ -48,7 +48,7 @@ export default function ElevationProfileChart({ profile, width = 320 }) {
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
         <Text style={styles.headerLabel}>Elevation</Text>
-        <Text style={styles.headerRange}>{Math.round(minEle)}–{Math.round(maxEle)} m</Text>
+        <Text style={styles.headerRange}>{Math.round(minEle)}-{Math.round(maxEle)} m</Text>
       </View>
       <Svg width={width} height={CHART_HEIGHT}>
         <Line

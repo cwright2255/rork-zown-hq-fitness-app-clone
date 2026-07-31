@@ -495,9 +495,9 @@ class SpotifyService {
 Spotify Integration (Client Credentials Flow):
 
 This app uses Client Credentials flow which:
-ÃÂ¢ÃÂÃÂ Does NOT require redirect URIs
-ÃÂ¢ÃÂÃÂ Works immediately with valid credentials
-ÃÂ¢ÃÂÃÂ Allows searching tracks, playlists, and recommendations
+                         Does NOT require redirect URIs
+                         Works immediately with valid credentials
+                         Allows searching tracks, playlists, and recommendations
 
 Setup:
 1. Go to https://developer.spotify.com/dashboard
@@ -506,12 +506,12 @@ Setup:
 4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
 
 Current Status:
-- Client ID: ${this.clientId} ÃÂ¢ÃÂÃÂ
-- Client Secret: ${hasValidClientSecret ? 'Configured ÃÂ¢ÃÂÃÂ' : 'Not configured or invalid ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ'}
-- Token Status: ${this.token ? 'Active ÃÂ¢ÃÂÃÂ' : 'Not available'}
+- Client ID: ${this.clientId}                         
+- Client Secret: ${hasValidClientSecret ? 'Configured                         ' : 'Not configured or invalid                                                '}
+- Token Status: ${this.token ? 'Active                         ' : 'Not available'}
 - Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasValidClientSecret ? 'ÃÂ¢ÃÂÃÂ Ready! You can search playlists and get recommendations.' : 'ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ Add your Client Secret to enable Spotify features.'}
+${hasValidClientSecret ? '                         Ready! You can search playlists and get recommendations.' : '                                                Add your Client Secret to enable Spotify features.'}
 
 Note: Client Credentials flow provides access to:
 - Search tracks and playlists

@@ -44,9 +44,9 @@ import {
 } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// ---------------------------------------------------------------------------
+//
 // Sub-component: StatItem
-// ---------------------------------------------------------------------------
+//
 
 /**
  * A single stat column used inside the stats row.
@@ -60,15 +60,15 @@ const StatItem = ({ value, label, accentColor }) => (
   </View>
 );
 
-// ---------------------------------------------------------------------------
+//
 // Sub-component: StatDivider
-// ---------------------------------------------------------------------------
+//
 
 const StatDivider = () => <View style={styles.statDivider} />;
 
-// ---------------------------------------------------------------------------
+//
 // Main Component: ProfileHeader
-// ---------------------------------------------------------------------------
+//
 
 const ProfileHeader = ({
   avatarUri = 'https://i.pravatar.cc/300?img=11',
@@ -82,10 +82,10 @@ const ProfileHeader = ({
 }) => {
   return (
     <View style={styles.wrapper}>
-      {/* Ã¢ÂÂÃ¢ÂÂ Card container Ã¢ÂÂÃ¢ÂÂ */}
+      {/*                          Card container                          */}
       <View style={styles.card}>
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Top row: avatar + identity + edit button Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Top row: avatar + identity + edit button                          */}
         <View style={styles.topRow}>
 
           {/* Avatar with accent ring */}
@@ -129,10 +129,10 @@ const ProfileHeader = ({
           )}
         </View>
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Divider Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Divider                          */}
         <View style={styles.horizontalDivider} />
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Stats row Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Stats row                          */}
         <View style={styles.statsRow}>
           <StatItem
             value={workouts}
@@ -141,7 +141,7 @@ const ProfileHeader = ({
           />
           <StatDivider />
           <StatItem
-            value={`${streaks}Ã°ÂÂÂ¥`}
+            value={`${streaks}                `}
             label="Day Streak"
             accentColor={tokens.colors.accent.orange}
           />
@@ -157,9 +157,9 @@ const ProfileHeader = ({
   );
 };
 
-// ---------------------------------------------------------------------------
+//
 // Inline SVG-like Edit Icon (pure RN, no external libs)
-// ---------------------------------------------------------------------------
+//
 
 const EditIcon = () => (
   <View style={styles.editIconContainer}>
@@ -170,9 +170,9 @@ const EditIcon = () => (
   </View>
 );
 
-// ---------------------------------------------------------------------------
+//
 // Styles
-// ---------------------------------------------------------------------------
+//
 
 const AVATAR_SIZE = 72;
 const RING_BORDER = 2.5;
@@ -181,7 +181,7 @@ const RING_OUTER_SIZE =
   AVATAR_SIZE + (RING_BORDER + GAP_BETWEEN_RING_AND_AVATAR) * 2;
 
 const styles = StyleSheet.create({
-  // Ã¢ÂÂÃ¢ÂÂ Wrapper Ã¢ÂÂÃ¢ÂÂ
+//
   wrapper: {
     paddingHorizontal: tokens.spacing.lg,
     paddingTop: tokens.spacing.lg,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.ink.darkest,
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Card Ã¢ÂÂÃ¢ÂÂ
+//
   card: {
     backgroundColor: tokens.colors.ink.darker,
     borderRadius: tokens.radius.xl,
@@ -205,13 +205,13 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Top row Ã¢ÂÂÃ¢ÂÂ
+//
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Avatar Ã¢ÂÂÃ¢ÂÂ
+//
   avatarRingOuter: {
     width: RING_OUTER_SIZE,
     height: RING_OUTER_SIZE,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR_SIZE / 2,
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Identity block Ã¢ÂÂÃ¢ÂÂ
+//
   identityBlock: {
     flex: 1,
     marginLeft: tokens.spacing.md,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Edit button Ã¢ÂÂÃ¢ÂÂ
+//
   editButton: {
     width: 36,
     height: 36,
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-45deg' }, { translateX: 1 }, { translateY: 3 }],
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Horizontal divider Ã¢ÂÂÃ¢ÂÂ
+//
   horizontalDivider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.07)',
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -tokens.spacing.sm,
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Stats row Ã¢ÂÂÃ¢ÂÂ
+//
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',

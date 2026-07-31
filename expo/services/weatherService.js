@@ -1,15 +1,15 @@
 // services/weatherService.js
 //
-// Real weather data via api.weather.gov — the National Weather Service's
+// Real weather data via api.weather.gov - the National Weather Service's
 // public API. Chosen specifically for the alerts endpoint: this is the
 // actual, authoritative source real severe weather warnings come from in
 // the US (tornado warnings, flash flood warnings, extreme heat advisories,
-// etc.) — the exact "unforeseen risk" signal this feature exists to catch,
+// etc.) - the exact "unforeseen risk" signal this feature exists to catch,
 // not a generic weather app's own severity heuristic.
 //
 // Real, meaningful advantages for this specific use case:
 //   - No API key, no account, no billing. A User-Agent header identifying
-//     the app is the only requirement — confirmed directly from NWS's own
+//     the app is the only requirement - confirmed directly from NWS's own
 //     current documentation, not assumed.
 //   - point={lat},{lon} alerts filtering is real and documented (checked
 //     specifically, since a state-wide alert isn't precise enough to tell
@@ -17,12 +17,12 @@
 //
 // Real limitation, stated plainly: NWS is a US government service and
 // only covers the US. Every function here fails soft (returns null) for
-// coordinates outside NWS's coverage rather than throwing — consistent
+// coordinates outside NWS's coverage rather than throwing - consistent
 // with this feature's existing US/Canada-centered scope (see
 // hikingService.js's TrailAPI integration).
 
 const NWS_BASE = 'https://api.weather.gov';
-// Identifies the app per NWS's authentication requirement — not a secret,
+// Identifies the app per NWS's authentication requirement - not a secret,
 // doesn't need an env var. Update the contact if this ships for real.
 const USER_AGENT = '(zownhq.app, contact@zownhq.app)';
 
@@ -40,10 +40,10 @@ async function nwsFetch(url) {
 /**
  * Resolves a lat/lon to its NWS forecast grid, needed before fetching an
  * actual forecast. Cache the result per the location if calling this
- * often — NWS's own docs note the office/grid mapping rarely changes.
+ * often - NWS's own docs note the office/grid mapping rarely changes.
  */
 async function getGridPoint(latitude, longitude) {
-  // NWS doesn't accept more than 4 decimal places of precision — rounds
+  // NWS doesn't accept more than 4 decimal places of precision - rounds
   // rather than letting a more-precise GPS coordinate cause a request
   // error.
   const lat = Math.round(latitude * 10000) / 10000;
@@ -53,7 +53,7 @@ async function getGridPoint(latitude, longitude) {
 }
 
 /**
- * Real current/near-term forecast for a location — temperature, short
+ * Real current/near-term forecast for a location - temperature, short
  * forecast text, wind, precipitation chance, for the next several 12-hour
  * periods. Returns null for non-US coordinates or any request failure,
  * never throws to the caller.
@@ -86,7 +86,7 @@ const SEVERITY_RANK = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1, Unknown: 0
 
 /**
  * Real, currently-active severe weather alerts for the exact coordinate
- * given — not state-wide, the specific point. This is the core "avoid
+ * given - not state-wide, the specific point. This is the core "avoid
  * unforeseen risk" data: tornado/severe thunderstorm/flash flood warnings,
  * extreme heat/cold advisories, etc., as actually issued by NWS, not a
  * generic bad-weather guess.
@@ -121,7 +121,7 @@ export async function getActiveAlerts(latitude, longitude) {
 
 /**
  * Combines both calls for a single "here's the real risk picture right
- * now" check — used both for the pre-hike preview and for periodic
+ * now" check - used both for the pre-hike preview and for periodic
  * polling during an active hike.
  */
 export async function getWeatherSnapshot(latitude, longitude) {

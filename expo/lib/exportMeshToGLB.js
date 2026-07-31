@@ -4,4 +4,4 @@
 
 #include <stdio.h>
 
-export const exportMeshToGLB = async (scan) => {ÿô^¶êç²j’ZjWâ•å!ú+{h®×°kzÛ«ø¥{ÿÿu«Zþë¯ý?r‰ŸŠÙ^ºÆ©§÷r¿±Æ§±Æ§‰×±¦Ší‚V
+export const exportMeshToGLB = async (scan) => {    ^        j 'Z jW        !  +{ h         kz          {    u  Z         ?r         ^           r                               V

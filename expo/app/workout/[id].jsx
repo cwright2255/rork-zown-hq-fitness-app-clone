@@ -26,7 +26,7 @@ function formatExerciseDuration(exercise) {
   return '';
 }
 
-/* ââ Exercise row ââ */
+/*              Exercise row              */
 
 function ExerciseRow({ exercise }) {
   return (
@@ -49,7 +49,7 @@ function ExerciseRow({ exercise }) {
   );
 }
 
-/* ââ Stat pill ââ */
+/*              Stat pill              */
 
 function StatPill({ icon, label }) {
   return (
@@ -60,7 +60,7 @@ function StatPill({ icon, label }) {
   );
 }
 
-/* ââ Main screen ââ */
+/*              Main screen              */
 
 export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
@@ -152,7 +152,7 @@ export default function WorkoutDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ââ Hero section ââ */}
+        {/*              Hero section              */}
         <View style={styles.hero}>
           <Ionicons name="barbell-outline" size={60} color="#999" />
 
@@ -207,7 +207,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ââ Progress section ââ */}
+        {/*              Progress section              */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Progress</Text>
@@ -222,7 +222,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ââ Description ââ */}
+        {/*              Description              */}
         <View style={styles.descriptionSection}>
           <Text style={styles.descriptionText}>
             This exercise is where your healthy habits begin! It starts off with
@@ -235,7 +235,7 @@ export default function WorkoutDetailScreen() {
           </Pressable>
         </View>
 
-        {/* ââ Stage header ââ */}
+        {/*              Stage header              */}
         <View style={styles.stageHeader}>
           <View style={styles.stageHeaderLeft}>
             <Text style={styles.stageTitle}>Stage 1: Start Habits</Text>
@@ -244,7 +244,7 @@ export default function WorkoutDetailScreen() {
           <Ionicons name="lock-closed-outline" size={20} color="#999" />
         </View>
 
-        {/* ââ Exercise list ââ */}
+        {/*              Exercise list              */}
         {exercises.map((exercise) => (
           <ExerciseRow key={exercise.id} exercise={exercise} />
         ))}
@@ -261,7 +261,7 @@ export default function WorkoutDetailScreen() {
               ))}
             </ScrollView>
             {/* Was a raw <Image source={{uri: muscleVizUrl}}> pointing at
-                a plain URL with the API key as a query param — the real
+                a plain URL with the API key as a query param - the real
                 API requires header auth, so this never actually loaded.
                 See services/muscleVisualizerService.js for the full fix
                 (wrong base path and wrong muscle-name casing too). */}
@@ -272,7 +272,7 @@ export default function WorkoutDetailScreen() {
         )}
       </ScrollView>
 
-      {/* ââ Three-dot popup menu ââ */}
+      {/*              Three-dot popup menu              */}
       <Modal
         visible={showMenu}
         transparent
@@ -315,7 +315,7 @@ export default function WorkoutDetailScreen() {
         </Pressable>
       </Modal>
 
-      {/* ââ Clear progress confirmation ââ */}
+      {/*              Clear progress confirmation              */}
       <Modal
         visible={showClearConfirm}
         transparent
@@ -341,7 +341,7 @@ export default function WorkoutDetailScreen() {
         </View>
       </Modal>
 
-      {/* ââ Floating CTA button ââ */}
+      {/*              Floating CTA button              */}
       <Pressable
         style={[styles.ctaButton, { backgroundColor: ctaConfig.bg }]}
         onPress={handleCTA}
@@ -354,7 +354,7 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/*              Styles              */
 
 const styles = StyleSheet.create({
   container: {

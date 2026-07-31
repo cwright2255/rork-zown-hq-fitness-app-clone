@@ -7,7 +7,7 @@ import { tokens } from '../../theme/tokens';
 
 
 
-const MOODS = ['ÃÂ°ÃÂÃÂÃÂ´', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ', 'ÃÂ°ÃÂÃÂÃÂ'];
+const MOODS = ['                                ', '                                ', '                                ', '                                ', '                                '];
 const STRESS = ['Low', 'Medium', 'High'];
 
 export default function WellbeingScreen() {
@@ -35,7 +35,7 @@ export default function WellbeingScreen() {
             })}
           </View>
           <TouchableOpacity onPress={() => router.push('/mood-tracking')}>
-            <Text style={styles.link}>Track your mood ÃÂ¢ÃÂÃÂ</Text>
+            <Text style={styles.link}>Track your mood                         </Text>
           </TouchableOpacity>
         </View>
 

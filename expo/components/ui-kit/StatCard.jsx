@@ -44,9 +44,9 @@ import {
 } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// ---------------------------------------------------------------------------
+//
 // Fallback tokens in case the import is unavailable in isolation
-// ---------------------------------------------------------------------------
+//
 const fallbackTokens = {
   colors: {
     ink: {
@@ -110,12 +110,12 @@ const S = resolvedTokens.spacing || fallbackTokens.spacing;
 const R = resolvedTokens.radius || fallbackTokens.radius;
 const T = resolvedTokens.typography || fallbackTokens.typography;
 
-// ---------------------------------------------------------------------------
+//
 // Sub-components
-// ---------------------------------------------------------------------------
+//
 
 /**
- * TrendBadge Ã¢ÂÂ shows an arrow + percentage for positive/negative trends
+ * TrendBadge              shows an arrow + percentage for positive/negative trends
  */
 const TrendBadge = ({ trend, trendLabel }) => {
   if (trend === null || trend === undefined) return null;
@@ -124,7 +124,7 @@ const TrendBadge = ({ trend, trendLabel }) => {
   const trendColor = isPositive
     ? (C.status?.success || fallbackTokens.colors.status.success)
     : (C.status?.danger || fallbackTokens.colors.status.danger);
-  const arrow = isPositive ? 'Ã¢ÂÂ²' : 'Ã¢ÂÂ¼';
+  const arrow = isPositive ? '            ' : '            ';
   const absValue = Math.abs(trend).toFixed(1);
 
   return (
@@ -177,7 +177,7 @@ const trendStyles = StyleSheet.create({
 });
 
 /**
- * IconPlaceholder Ã¢ÂÂ renders a colored rounded square as an icon placeholder
+ * IconPlaceholder              renders a colored rounded square as an icon placeholder
  */
 const IconPlaceholder = ({ accentColor, compact }) => {
   const size = compact ? 32 : 40;
@@ -194,7 +194,7 @@ const IconPlaceholder = ({ accentColor, compact }) => {
         },
       ]}
     >
-      {/* Simple geometric icon placeholder Ã¢ÂÂ three stacked lines */}
+      {/* Simple geometric icon placeholder              three stacked lines */}
       <View style={iconStyles.iconInner}>
         {[0, 1, 2].map((i) => (
           <View
@@ -229,9 +229,9 @@ const iconStyles = StyleSheet.create({
   },
 });
 
-// ---------------------------------------------------------------------------
+//
 // Main Component
-// ---------------------------------------------------------------------------
+//
 
 const StatCard = ({
   label = 'Steps Today',
@@ -323,9 +323,9 @@ const StatCard = ({
   );
 };
 
-// ---------------------------------------------------------------------------
+//
 // Styles
-// ---------------------------------------------------------------------------
+//
 
 const styles = StyleSheet.create({
   card: {

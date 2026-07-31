@@ -351,8 +351,8 @@ export default function SettingsScreen() {
             right={
               <SegmentedControl
                 options={[
-                  { label: 'Â°F', value: 'fahrenheit' },
-                  { label: 'Â°C', value: 'celsius' },
+                  { label: '    F', value: 'fahrenheit' },
+                  { label: '    C', value: 'celsius' },
                 ]}
                 value={temperatureUnits}
                 onChange={(val) => updateSetting('temperatureUnits', val, uid)}

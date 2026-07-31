@@ -138,7 +138,7 @@ export const useBadgeStore = create(
       isLoading: false,
 
       // Only unlock state needs to sync (name/description/imageUrl/rarity
-      // is the same fixed catalog for every user) — stores just the set of
+      // is the same fixed catalog for every user) - stores just the set of
       // unlocked badge ids + timestamps, applied on top of the local catalog.
       loadBadges: async (uid) => {
         if (!uid) return;

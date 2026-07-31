@@ -77,7 +77,7 @@ class NotificationService {
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Achievement Unlocked! 🏆',
+        title: 'Achievement Unlocked!     ',
         body: `Congratulations! You've earned: ${achievementName}`,
         data: { type: 'achievement' }
       },
@@ -107,7 +107,7 @@ class NotificationService {
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Hydration Reminder 💧',
+        title: 'Hydration Reminder     ',
         body: 'Time to drink some water!',
         data: { type: 'hydration' }
       },

@@ -1,27 +1,27 @@
 // services/muscleVisualizerService.js
 //
 // Real anatomical muscle diagrams via the Muscle Visualizer API
-// (ExerciseDB/AscendAPI — the same provider family as
+// (ExerciseDB/AscendAPI - the same provider family as
 // services/exerciseDbService.js's oss.exercisedb.dev, confirmed by
 // matching domains, not assumed). This file existed before this session
-// touched it, wired into app/workout/[id].jsx — but had three real bugs
+// touched it, wired into app/workout/[id].jsx - but had three real bugs
 // that would have made every call fail, found by checking the actual
 // published API docs rather than trusting the existing code:
-//   1. Wrong base path: called /api/v1/visualize/... — the real,
-//      documented path (confirmed via the API's own GitHub README) is
-//      /v1/visualize/..., no /api segment.
+//   1. Wrong base path: called /api/v1/visualize/... - the real,
+//
+//
 //   2. Wrong auth method: passed the key as a &rapidapi-key= query
-//      param. The real, documented auth is the X-RapidAPI-Key header —
-//      confirmed directly from the API's own curl examples.
+//
+//
 //   3. Wrong muscle-name casing: uppercased every name (BICEPS,
-//      PECTORALS). A real exercise record from the same provider family
-//      returns lowercase names ("pectorals", "triceps", "shoulders"),
-//      matching the visualizer API's own curl example
-//      (muscles=biceps,triceps) — also lowercase.
+//
+//
+//
+//
 //
 // Fixed all three. Also switched from "return a plain URL for
 // <Image source={{uri}}>" to "fetch with real headers, return a base64
-// data URI" — a bare <Image> tag can't reliably send a custom
+// data URI" - a bare <Image> tag can't reliably send a custom
 // X-RapidAPI-Key header across platforms/caching the way a real fetch()
 // call can, and auth headers are exactly what this API requires.
 
@@ -32,7 +32,7 @@ function getApiKey() {
   return process.env.EXPO_PUBLIC_RAPIDAPI_KEY || null;
 }
 
-// Real names, lowercase — matches confirmed real exercise data from the
+// Real names, lowercase - matches confirmed real exercise data from the
 // same provider (oss.exercisedb.dev) and the visualizer API's own
 // documented curl examples. Not uppercased.
 export function normalizeMuscleNames(muscles = []) {
@@ -79,7 +79,7 @@ async function fetchAsDataUri(url, apiKey) {
 /**
  * Simple highlight: given muscle groups, one color. Returns a real
  * base64 data URI ready for <Image source={{uri}} />, or null if
- * unconfigured/failed — callers should render nothing rather than a
+ * unconfigured/failed - callers should render nothing rather than a
  * broken image, same pattern used throughout this app's other optional
  * AI/external-data cards.
  */
@@ -100,7 +100,7 @@ export async function getMuscleVisualizeImage({
 }
 
 /**
- * Primary vs. secondary muscle activation — used on activity preview
+ * Primary vs. secondary muscle activation - used on activity preview
  * screens to show which muscles an exercise/workout/run/hike will
  * actually target.
  */
@@ -123,7 +123,7 @@ export async function getWorkoutVisualizeImage({
 }
 
 /**
- * Real intensity-based heatmap — one color per muscle, intensity driven
+ * Real intensity-based heatmap - one color per muscle, intensity driven
  * by real per-muscle fatigue (see lib/muscleFatigue.js), not a flat
  * highlight. This is the "fatigue mapping" use case the API's own docs
  * explicitly describe as a real, intended purpose.

@@ -49,7 +49,7 @@ const mapFirebaseAuthError = (error) => {
   }
   if (code === 'auth/invalid-email') return new Error('Please enter a valid email address');
   if (code === 'auth/email-already-in-use') return new Error('An account with that email already exists');
-  if (code === 'auth/weak-password') return new Error('Password is too weak — use at least 6 characters');
+  if (code === 'auth/weak-password') return new Error('Password is too weak - use at least 6 characters');
   if (code === 'auth/too-many-requests') return new Error('Too many attempts. Please wait and try again.');
   if (code === 'auth/network-request-failed') return new Error('Network error. Check your connection and try again.');
   return new Error(error?.message || 'Authentication failed');
@@ -197,7 +197,7 @@ class AuthService {
     return await AsyncStorage.getItem('auth_token');
   }
 
-  // Stores the token alongside the moment it was issued — isAuthenticated()
+  // Stores the token alongside the moment it was issued - isAuthenticated()
   // below is what actually uses that timestamp to decide whether a
   // "remembered" session has expired.
   async _storeToken(token) {
@@ -205,11 +205,11 @@ class AuthService {
     await AsyncStorage.setItem('auth_token_issued_at', new Date().toISOString());
   }
 
-  // Session length is user-configurable (Settings → Account → "Keep me
+  // Session length is user-configurable (Settings     Account     "Keep me
   // signed in") rather than hardcoded, so this reads the live setting
   // rather than assuming a fixed duration. Reading Zustand state directly
   // here (outside a React component) is the same pattern used elsewhere
-  // in this app for cross-store reads — see e.g. useWorkoutStore.getState()
+  // in this app for cross-store reads - see e.g. useWorkoutStore.getState()
   // calls in app/workout/active.jsx.
   async isAuthenticated() {
     const token = await this.getStoredToken();
@@ -221,7 +221,7 @@ class AuthService {
       duration = useSettingsStore.getState().rememberMeDuration || 'indefinite';
     } catch (e) {
       // Settings store not ready yet (e.g. very first cold start before
-      // persisted state rehydrates) — fail open to "indefinite" rather
+      // persisted state rehydrates) - fail open to "indefinite" rather
       // than logging a real, valid session out over a timing race.
     }
 
@@ -230,7 +230,7 @@ class AuthService {
     const issuedAtRaw = await AsyncStorage.getItem('auth_token_issued_at');
     if (!issuedAtRaw) {
       // A token exists but predates this feature (no timestamp was ever
-      // recorded for it) — treat as freshly issued rather than
+      // recorded for it) - treat as freshly issued rather than
       // immediately expiring a session that was working fine yesterday.
       await AsyncStorage.setItem('auth_token_issued_at', new Date().toISOString());
       return true;

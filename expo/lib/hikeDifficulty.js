@@ -1,15 +1,15 @@
 // lib/hikeDifficulty.js
 //
-// Real trail difficulty rating — the Shenandoah National Park formula,
+// Real trail difficulty rating - the Shenandoah National Park formula,
 // the same one used by NPS's own site and widely adopted across hiking
 // guides (Rocky Mountain NP, TrailsNH, and others independently cite the
 // same formula and tier thresholds). Verified against two real, published
 // worked examples before trusting it: a 10mi/2200ft hike computing to
 // 209.8 (NPS's own example) and an 11mi/4077ft hike computing to 299.5
-// (a second, independent source) — both matched exactly, not
+// (a second, independent source) - both matched exactly, not
 // approximately.
 //
-// Difficulty = √(elevation gain in feet × 2 × distance in miles)
+// Difficulty =    (elevation gain in feet    2    distance in miles)
 
 const TIERS = [
   { max: 50, label: 'Easy', xpMultiplier: 1.0, met: 3.8 },
@@ -20,10 +20,10 @@ const TIERS = [
 ];
 
 // MET (Metabolic Equivalent of Task) values by terrain/grade, from the
-// Compendium of Physical Activities (Ainsworth et al.) — the standard
+// Compendium of Physical Activities (Ainsworth et al.) - the standard
 // academic reference sports scientists use for this, not an invented
 // scale. Mapped from the same difficulty tier already computed above
-// (steeper/harder hikes → higher MET), rather than maintaining a second,
+// (steeper/harder hikes     higher MET), rather than maintaining a second,
 // disconnected difficulty classification just for calories.
 const DEFAULT_WEIGHT_KG = 70; // used only if no real body-scan weight is available
 
@@ -53,7 +53,7 @@ export function calculateHikeDifficulty({ distanceKm, elevationGainM }) {
   const elevationGainFt = (elevationGainM || 0) * METERS_TO_FEET;
 
   // A flat or near-flat short walk shouldn't compute to a real Shenandoah
-  // score at all — the formula was designed for actual trail hikes, not a
+  // score at all - the formula was designed for actual trail hikes, not a
   // 200m stroll, and would otherwise report a technically-accurate but
   // meaningless "Easy: 3.2" for something that isn't really a rated hike.
   if (distanceMiles < 0.25) {

@@ -9,7 +9,7 @@ const defaultAchievements = [
   id: 'first-workout',
   name: 'First Steps',
   description: 'Complete your first workout',
-  icon: '🏃‍♂️',
+  icon: '           ',
   category: 'workout',
   xpReward: 50,
   condition: {
@@ -22,7 +22,7 @@ const defaultAchievements = [
   id: 'workout-streak-7',
   name: 'Week Warrior',
   description: 'Maintain a 7-day workout streak',
-  icon: '🔥',
+  icon: '    ',
   category: 'streak',
   xpReward: 200,
   condition: {
@@ -35,7 +35,7 @@ const defaultAchievements = [
   id: 'workout-streak-30',
   name: 'Monthly Master',
   description: 'Maintain a 30-day workout streak',
-  icon: '💪',
+  icon: '    ',
   category: 'streak',
   xpReward: 500,
   condition: {
@@ -48,7 +48,7 @@ const defaultAchievements = [
   id: 'calories-1000',
   name: 'Calorie Crusher',
   description: 'Burn 1000 calories in a single workout',
-  icon: '🔥',
+  icon: '    ',
   category: 'workout',
   xpReward: 150,
   condition: {
@@ -61,7 +61,7 @@ const defaultAchievements = [
   id: 'workouts-10',
   name: 'Dedicated Athlete',
   description: 'Complete 10 workouts',
-  icon: '🏆',
+  icon: '    ',
   category: 'workout',
   xpReward: 300,
   condition: {
@@ -74,7 +74,7 @@ const defaultAchievements = [
   id: 'workouts-50',
   name: 'Fitness Enthusiast',
   description: 'Complete 50 workouts',
-  icon: '🌟',
+  icon: '    ',
   category: 'workout',
   xpReward: 750,
   condition: {
@@ -87,7 +87,7 @@ const defaultAchievements = [
   id: 'workouts-100',
   name: 'Fitness Legend',
   description: 'Complete 100 workouts',
-  icon: '👑',
+  icon: '    ',
   category: 'workout',
   xpReward: 1500,
   condition: {
@@ -100,7 +100,7 @@ const defaultAchievements = [
   id: 'nutrition-streak-7',
   name: 'Nutrition Ninja',
   description: 'Log nutrition for 7 consecutive days',
-  icon: '🥗',
+  icon: '    ',
   category: 'nutrition',
   xpReward: 150,
   condition: {
@@ -113,7 +113,7 @@ const defaultAchievements = [
   id: 'weight-loss-5',
   name: 'Weight Warrior',
   description: 'Lose 5 pounds',
-  icon: '⚖️',
+  icon: '      ',
   category: 'progress',
   xpReward: 400,
   condition: {
@@ -126,7 +126,7 @@ const defaultAchievements = [
   id: 'social-butterfly',
   name: 'Social Butterfly',
   description: 'Make 10 social interactions',
-  icon: '🦋',
+  icon: '    ',
   category: 'social',
   xpReward: 100,
   condition: {
@@ -139,7 +139,7 @@ const defaultAchievements = [
   id: 'level-5',
   name: 'Rising Star',
   description: 'Reach level 5',
-  icon: '⭐',
+  icon: '   ',
   category: 'level',
   xpReward: 250,
   condition: {
@@ -152,7 +152,7 @@ const defaultAchievements = [
   id: 'level-10',
   name: 'Elite Athlete',
   description: 'Reach level 10',
-  icon: '🏅',
+  icon: '    ',
   category: 'level',
   xpReward: 500,
   condition: {
@@ -165,7 +165,7 @@ const defaultAchievements = [
   id: 'xp-1000',
   name: 'XP Collector',
   description: 'Earn 1000 XP',
-  icon: '💎',
+  icon: '    ',
   category: 'xp',
   xpReward: 100,
   condition: {
@@ -178,7 +178,7 @@ const defaultAchievements = [
   id: 'xp-5000',
   name: 'XP Master',
   description: 'Earn 5000 XP',
-  icon: '💰',
+  icon: '    ',
   category: 'xp',
   xpReward: 300,
   condition: {
@@ -191,7 +191,7 @@ const defaultAchievements = [
   id: 'early-bird',
   name: 'Early Bird',
   description: 'Complete 5 morning workouts',
-  icon: '🌅',
+  icon: '    ',
   category: 'workout',
   xpReward: 200,
   condition: {
@@ -209,7 +209,7 @@ export const useAchievementStore = create(
       unlockedAchievements: [],
 
       // Same pattern as badgeStore: the achievement catalog (name/icon/
-      // condition) is fixed app content, identical for every user — only
+      // condition) is fixed app content, identical for every user - only
       // which ones are unlocked, and when, needs to sync.
       loadAchievements: async (uid) => {
         if (!uid) return;

@@ -6,23 +6,23 @@
 // Stack (committed):
 //   react-native-vision-camera  -> camera capture + frame processor host
 //   react-native-mediapipe      -> MediaPipe Pose Landmarker frame-processor
-//                                   plugin (runs fully on-device, BlazePose
-//                                   33-point topology, no network call)
+//
+//
 //   services/formAnalysisService -> pure angle-math analysis + Firestore save
 //
 // SETUP THIS SCREEN NEEDS BEFORE IT WILL RUN (one-time, not code):
 //   1. npm install react-native-vision-camera react-native-mediapipe
-//   2. A custom dev client build (EAS Build) — this will NOT run in Expo Go.
-//      The app already builds a custom dev client elsewhere (see IS_EXPO_GO
-//      checks in app/health.jsx / services/authService.js), so this is
-//      consistent with how the app already handles native-module screens.
+//   2. A custom dev client build (EAS Build) - this will NOT run in Expo Go.
+//
+//
+//
 //   3. Bundle a MediaPipe Pose Landmarker .task model file as a native asset
-//      and reference its path below (POSE_MODEL) — see react-native-mediapipe's
-//      current README for the exact asset-linking step, since that's the one
-//      piece of this integration most likely to have shifted since this was
-//      written. Everything else in this file is stable regardless.
+//
+//
+//
+//
 //   4. Add NSCameraUsageDescription (iOS) / CAMERA permission (Android) to
-//      app.json if not already present from expo-camera.
+//
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
@@ -38,7 +38,7 @@ import { colors, typography, spacing, radius, shadows } from '@/constants/theme'
 import { useExpStore } from '@/store/expStore';
 import formAnalysisService, { SKELETON_CONNECTIONS } from '@/services/formAnalysisService';
 
-const POSE_MODEL = 'pose_landmarker_lite.task'; // bundled asset — see setup note above
+const POSE_MODEL = 'pose_landmarker_lite.task'; // bundled asset - see setup note above
 
 const EXERCISES = [
   { id: 'squat', label: 'Squat' },
@@ -214,7 +214,7 @@ export default function FormCheckScreen() {
         )}
       </View>
 
-      {/* Exercise picker — only exercises with real angle-based analysis are listed */}
+      {/* Exercise picker - only exercises with real angle-based analysis are listed */}
       {!isActive && (
         <View style={styles.exerciseRow}>
           {EXERCISES.map((ex) => (
@@ -236,11 +236,11 @@ export default function FormCheckScreen() {
           <Text style={styles.summaryTitle}>Session complete</Text>
           <View style={styles.summaryRow}>
             <SummaryStat label="Reps" value={summary.reps} />
-            <SummaryStat label="Avg Form" value={summary.avgScore != null ? `${summary.avgScore}%` : '—'} />
+            <SummaryStat label="Avg Form" value={summary.avgScore != null ? `${summary.avgScore}%` : '-'} />
             <SummaryStat label="Duration" value={`${summary.durationSec}s`} />
           </View>
           {!summary.saved && (
-            <Text style={styles.summaryWarning}>Saved locally only — couldn't sync to your account.</Text>
+            <Text style={styles.summaryWarning}>Saved locally only - couldn't sync to your account.</Text>
           )}
         </View>
       )}

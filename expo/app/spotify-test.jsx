@@ -48,7 +48,7 @@ export default function SpotifyTestScreen() {
           <Text style={styles.title}>Connection Status</Text>
           <Text style={styles.sub}>
             {isConnected ? 'Connected' : 'Disconnected'}
-            {user?.display_name ? ` ÃÂÃÂ· ${user.display_name}` : ''}
+            {user?.display_name ? `                  ${user.display_name}` : ''}
           </Text>
           <Text style={styles.sub}>Platform: {Platform.OS}</Text>
         </View>

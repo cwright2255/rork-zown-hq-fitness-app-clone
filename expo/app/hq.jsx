@@ -65,7 +65,7 @@ const WORKOUTS = [
   { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Circular Progress Ring Component ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/*                                                                          Circular Progress Ring Component                                                                          */
 function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#000000', label, subLabel }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -105,7 +105,7 @@ function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#00
   );
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Workout carousel item ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/*                                                                          Workout carousel item                                                                          */
 function WorkoutItem({ item, onPress }) {
   return (
     <Pressable style={styles.workoutItem} onPress={onPress}>

@@ -20,7 +20,7 @@ import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
-// moves are sets x reps, performed at the user's own pace) — this estimates a
+// moves are sets x reps, performed at the user's own pace) - this estimates a
 // reasonable on-screen timer duration from whatever the workout actually
 // specifies, instead of a fixed placeholder list.
 function estimateExerciseSeconds(exercise) {
@@ -36,7 +36,7 @@ function estimateExerciseSeconds(exercise) {
 // Maps a workout exercise's display name to one of the three exercise keys
 // services/formAnalysisService.js has real angle-based analysis for, so the
 // "Check my form" entry point only appears when it can actually say
-// something useful — not for exercises it would just show a generic
+// something useful - not for exercises it would just show a generic
 // "tracking active" message for.
 function matchFormCheckExercise(name) {
   const n = (name || '').toLowerCase();
@@ -52,7 +52,7 @@ function formatTime(totalSeconds) {
   return m + ':' + (s < 10 ? '0' : '') + s;
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Next-move card Ã¢ÂÂÃ¢ÂÂ */
+/*                          Next-move card                          */
 
 function NextMoveCard({ exercise, onPress }) {
   return (
@@ -73,7 +73,7 @@ function NextMoveCard({ exercise, onPress }) {
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Popup menu option Ã¢ÂÂÃ¢ÂÂ */
+/*                          Popup menu option                          */
 
 function MenuOption({ icon, label, onPress, danger }) {
   return (
@@ -93,7 +93,7 @@ function MenuOption({ icon, label, onPress, danger }) {
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
+/*                          Main screen                          */
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
@@ -137,10 +137,10 @@ export default function ActiveWorkoutScreen() {
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
 
-  /* Ã¢ÂÂÃ¢ÂÂ Progress tracking Ã¢ÂÂÃ¢ÂÂ */
+  /*                          Progress tracking                          */
   const completedCount = completedSet.size;
 
-  /* Ã¢ÂÂÃ¢ÂÂ Timer Ã¢ÂÂÃ¢ÂÂ */
+  /*                          Timer                          */
   useEffect(() => {
     if (isPlaying && timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -230,17 +230,17 @@ export default function ActiveWorkoutScreen() {
   const overallProgressPercent =
     totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
 
-  /* Ã¢ÂÂÃ¢ÂÂ Upcoming exercises Ã¢ÂÂÃ¢ÂÂ */
+  /*                          Upcoming exercises                          */
   const upcomingExercises = exercises.slice(currentIndex + 1);
 
-  /* Ã¢ÂÂÃ¢ÂÂ Center button icon Ã¢ÂÂÃ¢ÂÂ */
+  /*                          Center button icon                          */
   const centerIcon = useMemo(() => {
     if (exerciseComplete) return 'play-forward';
     if (isPlaying) return 'pause';
     return 'play';
   }, [exerciseComplete, isPlaying]);
 
-  /* Ã¢ÂÂÃ¢ÂÂ Exit handlers Ã¢ÂÂÃ¢ÂÂ */
+  /*                          Exit handlers                          */
   const handleSaveAndExit = () => {
     setShowExitConfirm(false);
     // TODO: persist completion state to store
@@ -289,7 +289,7 @@ export default function ActiveWorkoutScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ã¢ÂÂÃ¢ÂÂ Header Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Header                          */}
         <View style={styles.header}>
           <Pressable
             onPress={() => {
@@ -304,7 +304,7 @@ export default function ActiveWorkoutScreen() {
           </Pressable>
         </View>
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Exercise title Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Exercise title                          */}
         <Text style={styles.exerciseTitle}>{currentExercise.name}</Text>
         {matchFormCheckExercise(currentExercise.name) && (
           <Pressable
@@ -317,7 +317,7 @@ export default function ActiveWorkoutScreen() {
         )}
 
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Video / demo area Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Video / demo area                          */}
         <View style={styles.videoArea}>
           <Ionicons name="body-outline" size={80} color="#666" />
 
@@ -340,7 +340,7 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Exercise progress bar Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Exercise progress bar                          */}
         <View style={styles.progressSection}>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>Exercise Progress</Text>
@@ -358,7 +358,7 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
 
-        {/* Ã¢ÂÂÃ¢ÂÂ Next moves Ã¢ÂÂÃ¢ÂÂ */}
+        {/*                          Next moves                          */}
         <View style={styles.nextMovesHeader}>
           <Text style={styles.nextMovesTitle}>Next Moves</Text>
           <Text style={styles.nextMovesCount}>
@@ -388,7 +388,7 @@ export default function ActiveWorkoutScreen() {
         )}
       </ScrollView>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Floating control pill Ã¢ÂÂÃ¢ÂÂ */}
+      {/*                          Floating control pill                          */}
       <View style={styles.floatingControlsWrapper}>
         <View style={styles.floatingPill}>
           {/* Skip back */}
@@ -436,7 +436,7 @@ export default function ActiveWorkoutScreen() {
                 startedAt: workoutStartRef.current,
               }, user?.uid);
 
-              // Real trigger for the "First Workout" badge — checks the
+              // Real trigger for the "First Workout" badge - checks the
               // actual completed-workout count rather than assuming.
               // Previously this badge (and "Nutrition Novice") were simply
               // hardcoded to isUnlocked:true for every user regardless of
@@ -447,7 +447,7 @@ export default function ActiveWorkoutScreen() {
                 unlockBadge?.('badge-1', user?.uid);
               }
 
-              // Real trigger for store/achievementStore.js — a well-designed
+              // Real trigger for store/achievementStore.js - a well-designed
               // condition-evaluation engine (checks workout_count, streak,
               // calories_burned, level, xp, etc.) that, like the badge
               // unlock above, was built but never actually called from
@@ -471,7 +471,7 @@ export default function ActiveWorkoutScreen() {
                 completed: true,
               });
 
-              // Public leaderboard sync (store/leaderboardStore.js) — reads
+              // Public leaderboard sync (store/leaderboardStore.js) - reads
               // useExpStore.getState() directly rather than the totalExp/
               // level values already destructured above, since those are a
               // snapshot from this render and won't reflect the XP just
@@ -512,7 +512,7 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Three-dot popup menu Ã¢ÂÂÃ¢ÂÂ */}
+      {/*                          Three-dot popup menu                          */}
       <Modal
         visible={showMenu}
         transparent
@@ -554,7 +554,7 @@ export default function ActiveWorkoutScreen() {
         </Pressable>
       </Modal>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Exit confirmation modal Ã¢ÂÂÃ¢ÂÂ */}
+      {/*                          Exit confirmation modal                          */}
       <Modal
         visible={showExitConfirm}
         transparent
@@ -621,7 +621,7 @@ export default function ActiveWorkoutScreen() {
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
+/*                          Styles                          */
 
 const styles = StyleSheet.create({
   container: {
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
 
-  /* Video area Ã¢ÂÂ CHANGE 1: taller */
+  /* Video area              CHANGE 1: taller */
   videoArea: {
     marginHorizontal: 16,
     height: 380,

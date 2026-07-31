@@ -144,9 +144,9 @@ class WorkoutStreamingService {
 
   generateMockComments() {
     const comments = [
-    "Great workout! 💪",
+    "Great workout!     ",
     "Love this instructor!",
-    "Feeling the burn already 🔥",
+    "Feeling the burn already     ",
     "Thanks for the motivation!",
     "This is exactly what I needed today",
     "Amazing energy! Keep it up!",
@@ -159,16 +159,16 @@ class WorkoutStreamingService {
 
   generateRandomComment() {
     const comments = [
-    "Awesome workout! 💪",
+    "Awesome workout!     ",
     "Loving this session!",
-    "Great music choice 🎵",
+    "Great music choice     ",
     "Perfect timing for this exercise",
     "Instructor is amazing!",
     "Feeling stronger already",
     "This is challenging but fun",
     "Thanks for the clear instructions",
     "Best workout of the week!",
-    "Can't stop, won't stop! 🔥"];
+    "Can't stop, won't stop!     "];
 
 
     return comments[Math.floor(Math.random() * comments.length)];

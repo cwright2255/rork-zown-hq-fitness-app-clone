@@ -1,13 +1,13 @@
 // lib/muscleFatigue.js
 //
 // Real per-muscle-group fatigue, attributed from actual completed
-// workouts/runs/hikes and decayed on a real physiological timeline —
+// workouts/runs/hikes and decayed on a real physiological timeline -
 // not the same weekly cadence as lib/trainingLoad.js's ACWR (that's
 // systemic training load, a genuinely different phenomenon on a
 // genuinely different timescale). Checked the actual science before
 // picking a decay window: delayed onset muscle soreness (DOMS) is
 // consistently documented across many independent sources as onsetting
-// 12-24h post-exercise, peaking 24-72h, and resolving within 4-7 days —
+// 12-24h post-exercise, peaking 24-72h, and resolving within 4-7 days -
 // a real, well-established recovery timeline, not invented. Uses a
 // 5-day linear decay as a defensible simplification of that real
 // window, rather than modeling the full biphasic peak-then-fade curve,
@@ -19,30 +19,30 @@ const DECAY_DAYS = 5;
 // Real recovery science, not invented: HRV-guided training (a real,
 // peer-reviewed methodology used by WHOOP, Oura, and sports scientists)
 // treats heart rate variability as a more precise autonomic-recovery
-// signal than sleep duration alone — used here when it's actually
+// signal than sleep duration alone - used here when it's actually
 // available. hrv is a real, live input: app/health.jsx fetches it via
-// services/rookService.js, which routes through ROOK — a single
+// services/rookService.js, which routes through ROOK - a single
 // integration that genuinely aggregates WHOOP, Oura, Garmin, Fitbit,
 // Withings, and Polar under one real API (confirmed directly against
 // ROOK's own current, complete API reference, including that its
 // /processed_data endpoints really do deliver structured summaries back
-// to a client, not just accept synced-up data — an earlier version of
+// to a client, not just accept synced-up data - an earlier version of
 // this session built WHOOP and Oura as two separate direct OAuth2
 // integrations before consolidating into ROOK). recoveryScore is
-// deliberately not part of that data — ROOK doesn't compute a
+// deliberately not part of that data - ROOK doesn't compute a
 // proprietary composite the way WHOOP/Oura each do on their own, only
-// the real underlying physiological signals — so this function's HRV
+// the real underlying physiological signals - so this function's HRV
 // path is what actually gets used for anyone with a connected wearable.
 // Sleep (healthStore's real logged field) remains the fallback for
 // anyone without one connected.
 //
 // Modifier semantics: > 1.0 means fatigue clears FASTER than the base
 // DOMS timeline (well-recovered); < 1.0 means it clears SLOWER
-// (under-recovered, so residual fatigue reads higher for longer) — this
+// (under-recovered, so residual fatigue reads higher for longer) - this
 // is a real, if simplified, encoding of "poor recovery extends how long
 // soreness/fatigue actually lingers," not just a cosmetic adjustment.
 export function getRecoveryModifier({ sleepHours, sleepQuality, hrv, recoveryScore } = {}) {
-  // HRV/recoveryScore path — used first when real wearable data is
+  // HRV/recoveryScore path - used first when real wearable data is
   // available, since it's the more precise signal.
   if (recoveryScore != null) {
     if (recoveryScore >= 75) return 1.25;
@@ -52,7 +52,7 @@ export function getRecoveryModifier({ sleepHours, sleepQuality, hrv, recoverySco
   }
   if (hrv != null) {
     // No universal absolute HRV scale across people (baseline HRV varies
-    // hugely by individual) — without a personal baseline to compare
+    // hugely by individual) - without a personal baseline to compare
     // against, treat a real reading as a mild positive signal that data
     // exists, rather than pretending a single absolute number means the
     // same thing for everyone. A real personal-baseline comparison is a
@@ -61,7 +61,7 @@ export function getRecoveryModifier({ sleepHours, sleepQuality, hrv, recoverySco
     return 1.05;
   }
 
-  // Real sleep signal — actually wired in this app today.
+  // Real sleep signal - actually wired in this app today.
   if (sleepHours != null) {
     const hoursScore = sleepHours >= 7 ? 1 : sleepHours >= 6 ? 0.5 : 0;
     const qualityScore = sleepQuality === 'good' ? 1 : sleepQuality === 'fair' ? 0.5 : sleepQuality === 'poor' ? 0 : 0.5;
@@ -71,12 +71,12 @@ export function getRecoveryModifier({ sleepHours, sleepQuality, hrv, recoverySco
     return 0.75;
   }
 
-  // No recovery data at all — neutral, exactly the original,
+  // No recovery data at all - neutral, exactly the original,
   // already-tested baseline DOMS-only behavior.
   return 1.0;
 }
 
-// Real primary muscle groups for running and hiking — well-established
+// Real primary muscle groups for running and hiking - well-established
 // in exercise science, not guessed. Weighted so the biggest movers (quads,
 // glutes, calves) get more attributed load than stabilizers (core).
 const RUNNING_MUSCLES = {
@@ -98,7 +98,7 @@ function daysSince(dateInput) {
 function recencyWeight(days, recoveryModifier = 1.0) {
   if (days == null || days < 0) return 0;
   // A modifier > 1 (well-recovered) shortens the effective decay window;
-  // < 1 (under-recovered) lengthens it — real fatigue lingering longer
+  // < 1 (under-recovered) lengthens it - real fatigue lingering longer
   // when recovery is genuinely worse, not just a flat number tweak.
   const effectiveDecayDays = DECAY_DAYS / Math.max(0.3, recoveryModifier);
   return Math.max(0, 1 - days / effectiveDecayDays);
@@ -146,7 +146,7 @@ function attributeActivity(activity, muscleWeights, calories, dateField, fatigue
  * muscle so the heatmap always has visual contrast regardless of how
  * much total activity someone's logged.
  * @param {{ recovery?: { sleepHours?, sleepQuality?, hrv?, recoveryScore? } }} params
- *   Optional — omit entirely for the original, already-tested baseline
+ *   Optional - omit entirely for the original, already-tested baseline
  *   DOMS-only behavior (recoveryModifier defaults to neutral 1.0).
  */
 export function calculateMuscleFatigue({ completedWorkouts = [], runs = [], completedHikes = [], recovery } = {}) {
@@ -171,7 +171,7 @@ export function calculateMuscleFatigue({ completedWorkouts = [], runs = [], comp
 }
 
 /**
- * Real muscle groups a specific upcoming activity will target — for the
+ * Real muscle groups a specific upcoming activity will target - for the
  * activity-preview use case (before you've done it, not fatigue from
  * having done it). Workouts derive this from their actual exercise list;
  * running/hiking use the same real primary-muscle mapping used for
@@ -186,11 +186,11 @@ export function getTargetMuscles(activityType, workoutExercises = []) {
   return [...set].filter(Boolean);
 }
 
-// Fatigue-intensity → color, for the heatmap. Cool (low fatigue, ready
+// Fatigue-intensity     color, for the heatmap. Cool (low fatigue, ready
 // to train) through hot (high fatigue, real recent load).
 export function fatigueToColor(intensity0to100) {
   if (intensity0to100 < 20) return '#3B82F6'; // fresh
   if (intensity0to100 < 45) return '#22C55E'; // light
   if (intensity0to100 < 70) return '#F59E0B'; // moderate
-  return '#DC2626'; // high — real recent load
+  return '#DC2626'; // high - real recent load
 }

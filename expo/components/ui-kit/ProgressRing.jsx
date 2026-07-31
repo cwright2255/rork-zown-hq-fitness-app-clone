@@ -171,14 +171,14 @@ const ProgressRing = ({
       {/* Stats row */}
       <View style={styles.statsRow}>
         <StatPill
-          icon="Ã°ÂÂÂ¥"
+          icon="                "
           value={`${clampedProgress}%`}
           desc="Achieved"
           accentColor={accentColor}
         />
         <View style={styles.statDivider} />
         <StatPill
-          icon="Ã°ÂÂÂ¯"
+          icon="                "
           value={`${100 - clampedProgress}%`}
           desc="Remaining"
           accentColor={tokens.colors?.accent?.cyan ?? '#00D4FF'}
@@ -193,9 +193,9 @@ const ProgressRing = ({
   );
 };
 
-// ---------------------------------------------------------------------------
+//
 // Sub-component
-// ---------------------------------------------------------------------------
+//
 
 const StatPill = ({ icon, value, desc, accentColor }) => (
   <View style={styles.statPill}>
@@ -205,9 +205,9 @@ const StatPill = ({ icon, value, desc, accentColor }) => (
   </View>
 );
 
-// ---------------------------------------------------------------------------
+//
 // Styles
-// ---------------------------------------------------------------------------
+//
 
 const styles = StyleSheet.create({
   card: {

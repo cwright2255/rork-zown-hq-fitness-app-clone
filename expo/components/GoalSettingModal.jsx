@@ -6,10 +6,10 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const GOAL_CATEGORIES = [
-{ id: 'fitness', label: 'Fitness', icon: '💪', color: Colors.primary },
-{ id: 'nutrition', label: 'Nutrition', icon: '🥗', color: Colors.success },
-{ id: 'wellness', label: 'Wellness', icon: '🧘', color: Colors.info },
-{ id: 'habits', label: 'Habits', icon: '✅', color: Colors.secondary }];
+{ id: 'fitness', label: 'Fitness', icon: '    ', color: Colors.primary },
+{ id: 'nutrition', label: 'Nutrition', icon: '    ', color: Colors.success },
+{ id: 'wellness', label: 'Wellness', icon: '    ', color: Colors.info },
+{ id: 'habits', label: 'Habits', icon: '   ', color: Colors.secondary }];
 
 
 const GOAL_TIMEFRAMES = [

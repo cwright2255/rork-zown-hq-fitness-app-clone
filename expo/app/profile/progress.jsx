@@ -389,9 +389,9 @@ export default function ProgressTrackerScreen() {
         
         <View style={styles.streakTips}>
           <Text style={styles.streakTipsTitle}>Streak Tips:</Text>
-          <Text style={styles.streakTip}>ÃÂ¢ÃÂÃÂ¢ Complete at least one workout every day to maintain your streak</Text>
-          <Text style={styles.streakTip}>ÃÂ¢ÃÂÃÂ¢ Longer streaks earn you more XP and special badges</Text>
-          <Text style={styles.streakTip}>ÃÂ¢ÃÂÃÂ¢ If you miss a day, your streak will reset to zero</Text>
+          <Text style={styles.streakTip}>                         Complete at least one workout every day to maintain your streak</Text>
+          <Text style={styles.streakTip}>                         Longer streaks earn you more XP and special badges</Text>
+          <Text style={styles.streakTip}>                         If you miss a day, your streak will reset to zero</Text>
         </View>
         
         <View style={styles.streakRewards}>

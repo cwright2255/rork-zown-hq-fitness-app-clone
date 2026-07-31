@@ -26,12 +26,12 @@ export const useWorkoutStore = create(
       runningBuddy: null,
       isLoading: false,
 
-      /* ── Firestore sync ──
+      /*        Firestore sync       
        * Real per-workout documents in the top-level `workouts` collection,
        * matching firestore.rules and functions/src/index.js (onWorkoutComplete,
        * getProgressSummary). Previously this wrote a single blob document at
        * users/{uid}/data/workouts, which neither the rules nor the Cloud
-       * Functions were watching — completions never triggered stats/goal
+       * Functions were watching - completions never triggered stats/goal
        * updates or notifications. */
       loadWorkouts: async (uid) => {
         if (!uid) return;

@@ -15,7 +15,7 @@ import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 import { getTargetMuscles } from '@/lib/muscleFatigue';
 
 // Turns a real interval list into a short, human-readable description,
-// e.g. "Run 1 min, Walk 90 sec x 8" — used in the weekly plan preview.
+// e.g. "Run 1 min, Walk 90 sec x 8" - used in the weekly plan preview.
 function summarizeIntervals(intervals) {
   const runIv = intervals.find((iv) => iv.type === 'run');
   const walkIv = intervals.find((iv) => iv.type === 'walk');
@@ -40,7 +40,7 @@ function StatPill({ icon, label }) {
   );
 }
 
-/* ââ Week row ââ */
+/*              Week row              */
 
 function WeekRow({ item }) {
   return (
@@ -57,7 +57,7 @@ function WeekRow({ item }) {
   );
 }
 
-/* ââ Tool card ââ */
+/*              Tool card              */
 
 function ToolCard({ icon, label }) {
   return (
@@ -70,7 +70,7 @@ function ToolCard({ icon, label }) {
   );
 }
 
-/* ââ Main screen ââ */
+/*              Main screen              */
 
 export default function RunPreviewScreen() {
   const params = useLocalSearchParams();
@@ -134,7 +134,7 @@ export default function RunPreviewScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ââ Hero ââ */}
+        {/*              Hero              */}
         <View style={styles.hero}>
           <Ionicons name="fitness-outline" size={60} color="#999" />
 
@@ -177,7 +177,7 @@ export default function RunPreviewScreen() {
           </View>
         </View>
 
-        {/* ââ Audio Coaching ââ */}
+        {/*              Audio Coaching              */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="headset-outline" size={20} color="#000" />
@@ -208,7 +208,7 @@ export default function RunPreviewScreen() {
           </View>
         </View>
 
-        {/* ââ Program Details ââ */}
+        {/*              Program Details              */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Program Details</Text>
           <Text style={styles.descriptionText}>
@@ -221,7 +221,7 @@ export default function RunPreviewScreen() {
           </Pressable>
         </View>
 
-        {/* ââ Weekly Plan ââ */}
+        {/*              Weekly Plan              */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Plan</Text>
           {weeklyPlan.map((item) => (
@@ -229,7 +229,7 @@ export default function RunPreviewScreen() {
           ))}
         </View>
 
-        {/* ââ Race Training Tools ââ */}
+        {/*              Race Training Tools              */}
         {/* Real muscles this program primarily targets -- same real
             primary-muscle model used for fatigue tracking on the Health
             screen, so both views agree with each other. */}
@@ -247,7 +247,7 @@ export default function RunPreviewScreen() {
         </View>
       </ScrollView>
 
-      {/* ââ Floating CTA ââ */}
+      {/*              Floating CTA              */}
       <Pressable
         style={styles.ctaButton}
         onPress={() => {
@@ -265,7 +265,7 @@ export default function RunPreviewScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/*              Styles              */
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
