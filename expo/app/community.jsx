@@ -12,10 +12,6 @@ import {
   getConversationId,
 } from '@/store/messagingStore';
 
-// No real challenge-tracking backend exists yet (participant tracking,
-// join state, progress toward a goal)  that's a separate, larger feature
-// than a post feed. Left as a clearly-marked placeholder rather than
-// building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
   { id: 'c1', name: '30-Day Cardio', participants: 412, daysLeft: 12 },
   { id: 'c2', name: 'Strength PR Month', participants: 289, daysLeft: 5 },
@@ -142,4 +138,4 @@ export default function CommunityScreen() {
               {item.authorName ? item.authorName[0].toUpperCase() : 'U'}
             </Text>
           </View>
-          <View style={styles.authorInfo}>Mmzrhz+^jgMmMmzr)Sgy-jy-"Xq^^Jn.h
+          <View style={styles.authorInfo}>Mmzrhz+^jgMmMmzr)Sgy-jy-"Xq^^Jn.h
