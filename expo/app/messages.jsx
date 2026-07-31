@@ -26,7 +26,7 @@ export default function MessagesScreen() {
   }, [user]);
 
   const handleOpenConversation = (conversationId) => {
-    router.push(/messages/${ conversationId });
+    router.push(`/messages/${conversationId}`);
   };
 
   const renderConversationItem = ({ item }) => {
