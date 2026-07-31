@@ -127,7 +127,7 @@ export default function CommunityScreen() {
       return;
     }
     const conversationId = getConversationId(user.uid, authorId);
-    router.push(/messages/${ conversationId });
+    router.push(`/messages/${conversationId}`);
   };
 
   const renderPostItem = ({ item }) => {
