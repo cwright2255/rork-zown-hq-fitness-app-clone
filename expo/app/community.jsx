@@ -7,7 +7,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 import { useCommunityStore } from '@/store/communityStore';
-import { useUserStore() => { user } } from '@/store/userStore';
+import { useUserStore } from '@/store/userStore';
 import {
   getConversationId,
 } from '@/store/messagingStore';
