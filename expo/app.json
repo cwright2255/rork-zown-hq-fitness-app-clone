@@ -68,7 +68,9 @@
       "expo-camera",
       "expo-image-picker",
       "expo-location",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-build-properties",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
