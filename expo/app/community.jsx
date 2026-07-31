@@ -11,7 +11,7 @@ import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
 
 // No real challenge-tracking backend exists yet (participant tracking,
-// join state, progress toward a goal) â€” that's a separate, larger feature
+// join state, progress toward a goal) - that's a separate, larger feature
 // than a post feed. Left as a clearly-marked placeholder rather than
 // building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
@@ -20,17 +20,14 @@ const CHALLENGES = [
   { id: 'c3', name: 'Summer Shred', participants: 894, daysLeft: 34 },
 ];
 
-function timeAgo(timestamp) {
-  if (!timestamp?.toDate) return '';
-  const diffMs = Date.now() - timestamp.toDate().getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m\;
+const timeAgo = (date) => {
+  const mins = Math.floor((Date.now() - date) / 60000);
+  if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
   return `${days}d`;
-}
+};
 
 export default function CommunityScreen() {
   const [tab, setTab] = useState('feed');
@@ -42,28 +39,28 @@ export default function CommunityScreen() {
   const { posts, isLoading, subscribeFeed, unsubscribeFeed, createPost, toggleLike, hasLiked, loadComments, addComment } = useCommunityStore();
   const { user } = useUserStore();
 
-  useEffect() => {
+  useEffect(() => {
     const unsub = subscribeFeed();
-    return () => unsub&& unsub();
+    return () => unsub && unsub();
   }, []);
 
   const handleLike = (postId) => {
-    toggleLike(postId, user?uid);
+    toggleLike(postId, user?.uid);
   };
 
   const handleCreatePost = async () => {
     if (!postText.trim()) return;
     setPosting(true);
     try {
-      await createPost(postText. trim(), {
-        uid: user?uid || 'anon',
-        displayName: user?displayName || 'Fitness Fan',
-        photoURL: user?photoURL || null,
+      await createPost(postText.trim(), {
+        uid: user?.uid || 'anon',
+        displayName: user?.displayName || 'Fitness Fan',
+        photoURL: user?.photoURL || null,
       });
       setPostText('');
       setComposerOpen(false);
     } catch (e) {
-      Alert.alert('Error', 'Failed to cseate post.');
+      Alert.alert('Error', 'Failed to create post.');
     } finally {
       setPosting(false);
     }
@@ -72,103 +69,388 @@ export default function CommunityScreen() {
   const handleShare = async (post) => {
     try {
       await Share.share({
-        message: `'p${post.text}' - by ${post.author&&.displayName} on RorkZeron`,
+        message: `'${post.text}' - by ${post.author?.displayName || 'Anonymous'} on RorkZeron`,
       });
     } catch (e) {}
   };
 
   const handleStartChat = (author) => {
-    if (!author?.uid || author.uid === user?uid) return;
-    const conversationId = getConversctionId(user.uid, author.uid);
-    router.push( { pathname: '/messages/[conversationId]', params: { conversationId, otherUserName: author.displayName } });
+    if (!author?.uid || author.uid === user?.uid) {
+      Alert.alert('Notice', 'You cannot message yourself.');
+      return;
+    }
+    const conversationId = getConversationId(user.uid, author.uid);
+    router.push(`/messages/${conversationId}`);
   };
 
   return (
     <View style={styles.container}>
       <ScreenHeader title="Community" />
 
-      <!-- Tab Bar -->
+      {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style=[styles.tab, tab === 'feed' && styles.activeTab]
-          onPress=() => setTab('feed')>
-          <Text style=[styles.tabText, tab === 'feed' && styles.activeTabText]>Feed</Text>
+          style={[styles.tab, tab === 'feed' && styles.activeTab]}
+          onPress={() => setTab('feed')}>
+          <Text style={[styles.tabText, tab === 'feed' && styles.activeTabText]}>Feed</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style=[styles.tab, tab === 'challenges' && styles.activeTab]
-          onPress=() => setTab('challenges')>
-          <Text style=[styles.tabText, tab === 'challenges' && styles.activeTabText]>Challenges</Text>
+          style={[styles.tab, tab === 'challenges' && styles.activeTab]}
+          onPress={() => setTab('challenges')}>
+          <Text style={[styles.tabText, tab === 'challenges' && styles.activeTabText]}>Challenges</Text>
         </TouchableOpacity>
       </View>
 
-      {tab === 'feed' < (
-        <View style={flex: 1}>
+      {tab === 'feed' ? (
+        <View style={{ flex: 1 }}>
           {isLoading ? (
-            <View style=styles.centered>
+            <View style={styles.centered}>
               <ActivityIndicator size="large" color={tokens.colors.primary} />
             </View>
           ) : (
             <FlatList
               data={posts}
-              keyExtractor?{(i) => i.id}
+              keyExtractor={(i) => i.id}
               contentContainerStyle={styles.listContent}
-              ListHeaderComponent=(() => (
+              ListHeaderComponent={() => (
                 <TouchableOpacity
                   style={styles.composerPrompt}
-                  onPress=() => setComposerOpen(true)>
+                  onPress={() => setComposerOpen(true)}>
                   <Text style={styles.composerPromptText}>What's on your mind? Share a workout or thought...</Text>
                 </TouchableOpacity>
-              ))
-              ListEmptyComponent=(() => (
+              )}
+              ListEmptyComponent={() => (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>No posts yet. Be the first to share!</Text>
                 </View>
-             ))
+              )}
               renderItem={({ item }) => {
-                const liked = hasLiked(item.id, user?uid) || %%likedByMe[item.id];
-                const likeCount = (item.likes || 0) + (liked && !item.likedByOrjk¢šâary ? 1 : 0);
+                const liked = hasLiked(item.id, user?.uid) || !!likedByMe[item.id];
+                const likeCount = (item.likes || 0) + (liked && !item.likedByMe ? 1 : 0);
                 return (
                   <View style={styles.postCard}>
-                    <!-- Author Header -->
+                    {/* Author Header */}
                     <View style={styles.postHeader}>
                       <TouchableOpacity
                         style={styles.authorInfo}
-                        onPress=() => handleStartChat(item.author)>
-                        <View style={styles.awatarBadge}>
+                        onPress={() => handleStartChat(item.author)}>
+                        <View style={styles.avatarBadge}>
                           <Text style={styles.avatarText}>
                             {(item.author?.displayName || 'A')[0].toUpperCase()}
                           </Text>
                         </View>
                         <View>
                           <Text style={styles.authorName}>
-                            }©tem.author?.displayName || 'Anonymous'}
+                            {item.author?.displayName || 'Anonymous'}
                           </Text>
                           <Text style={styles.postTime}>
-                            {timeAgo(item.createvAt)}
+                            {timeAgo(item.createdAt)}
                           </Text>
                         </View>
                       </TouchableOpacity>
                     </View>
 
-                    <!-- Post Content -->
-                    <Text style={styles.postText}>{item.text}<Õ^‚‚ˆKKHXİ[ÛœÈKO‚ˆšY]Èİ[O^Üİ[\ËœÜİXİ[ÛœßO‚ˆİXÚX›SÜXÚ]Bˆİ[O^Üİ[\Ë˜Xİ[ÛŸBˆÛ”™\ÜÏJ
-HOˆÂˆÙ]ZÙYSYJ
-™]ŠHOˆ
-È‹‹œ™]‹Ú][KšYNˆ[ZÙYJJNÂˆ[™SZÙJ][KšY
-NÂˆO‚ˆX\ˆÚ^™O]ÚÙ[œËšXÛÛ”Ú^™\ËœÛX[ˆÛÛÜ^ÛZÙYİÚÙ[œË˜ÛÛÜœË™\œ›ÜˆˆÚÙ[œË˜ÛÛÜœË^]]YBˆš[^ÛZÙYÈÚÙ[œË˜ÛÛÜœË™\œ›Üˆˆ	İ˜[œÜ\™[	ßBˆÏ‚ˆ^İ[OUÜİ[\Ë˜Xİ[Û•Ù^ZÙY	‰ˆÈÛÛÜˆÚÙ[œË˜ÛÛÜœË™\œ›ÜŸWO‚ˆÛZÙPÛİ[ˆÈZÙPÛİ[ˆ	ÓZÙIßBˆÕ^‚ˆÕİXÚX›SÜXÚ]O‚ˆİXÚX›SÜXÚ]Bˆİ[O^Üİ[\Ë˜Xİ[ÛŸBˆÛ”™\ÜÏJ
-HOˆ[™TÚ\™J][JO‚ˆÚ\™L‚ˆÚ^™O]ÚÙ[œËšXÛÛ”Ú^™\ËœÛX[ˆÛÛÜ^İÚÙ[œË˜ÛÛÜœË^]]YBˆÏ‚ˆ^İ[O^Üİ[\Ë˜Xİ[Û•^O”Ú\™OÕ^‚ˆÕİXÚX›SÜXÚ]O‚ˆÕšY]Ï‚ˆÕšY]Ï‚ˆ
-NÂˆ_BˆÏ‚ˆ
-BˆÕšY]Ï‚ˆ
-Hˆ
-ˆØÜ›ÛšY]Èİ[O^Ù›^ˆ_HÛÛ[ÛÛZ[™\”İ[O^Üİ[\Ë›\İÛÛ[O‚ˆĞÒSS‘ÑTË›X\
+                    {/* Post Content */}
+                    <Text style={styles.postText}>{item.text}</Text>
 
-ÊHOˆ
-ˆšY]ÈÙ^O^ØËšYHİ[O^Üİ[\ËœÜİØ\™O‚ˆ^İ[O^Üİ[\Ë˜Ú[[™ÙS˜[Y_OØË›˜[Y_OÕ^‚ˆ^İ[O^Üİ[\Ë˜Ú[[™ÙR[™›ßO‚ˆØËœ\XÚ\[ßH\XÚ\[ÈØË™^\ÓYH^\ÈYˆÕ^‚ˆİXÚX›SÜXÚ]Bˆİ[O^Üİ[\Ëš›Ú[ŸBˆÛ”™\ÜÏJ
-HOˆ[\˜[\
-	ĞÚ[[™ÙIË	ĞÚ[[™ÙH›Ú[š[™ÈÚ[™H]˜Z[X›H[ˆH]\™H\]K‰Ê_O‚ˆ^İ[O^Üİ[\Ëš›Ú[•^O’›Ú[Õ^‚ˆÕİXÚX›SÜXÚ]O‚ˆÕšY]Ï‚ˆ
-J_BˆÔØÜ›ÛšY]Ï‚ˆ
-_B‚ˆKKHÛÛ\ÜÙ\ˆ[Ù[KO‚ˆ[Ù[ˆš\ÚX›O^ØÛÛ\ÜÙ\“Ü[ŸBˆ[š[X][Û•\OHœÛYH‚ˆ˜[œÜ\™[^İY_BˆÛ”™\]Y\İÛÜÙOJ
-HOˆÙ]ÛÛ\ÜÙ\“Ü[Š˜[ÙJO‚ˆÙ^X›Ø\™]›ÚY[™ÕšY]Âˆ™Z]š[Ü^Ô]›Ü›K“ÔÈOOH	Ú[ÜÉÈÈ	ÜY[™ÉÈˆ	ÚZYÚ	ßBˆİ[O^Üİ[\Ë›[Ù[İ™\›^_O‚ˆšY]Èİ[O^Üİ[\Ë›[ÙHÛÛ[O‚ˆšY]Èİ[O^Üİ[\Ë›[Ù[XY\ŸO‚ˆ^İ[O^Üİ[\Ë›[Ù[]_O“™]ÈÜİÕ^‚ˆİXÚX›SÜXÚ]HÛ”™\ÜÏJ
-HOˆÙ]ÛÛ\ÜÙ\“Ü[Š˜[ÙJO‚ˆÚ^™O]ÚÙ[œËšXÛÛ”Ú^™\Ë›YY][HÛÛÜ^İÚÙ[œË˜ÛÛÜœË^]]YHÏ‚ˆÕİXÚX›SÜXÚ]O‚ˆÕšY]Ï‚‚ˆ^[œ]ˆİ[O^Üİ[\ËœÜİ[œ]Bˆ][[[™O^İY_BˆXÙZÛ\H•Ú]	ÜÈÛˆ[İ\ˆZ[™È‚ˆXÙZÛ\•^ÛÛÜ^İÚÙ[œË˜ÛÛÜœË^]]YBˆ˜[YO^ÜÜİ^BˆÛÚ[™ÙU^^ÜÙ]Üİ^Bˆ]]Ñ›Øİ\Ï^İY_BˆÏ‚‚ˆš[X\P]Û‚ˆ]O^ÜÜİ[™ÈÈ	ÔÜİ[™Ë‹‹‰Èˆ	ÔÜİ	ßBˆÛ”™\ÜÏ^Ú[™PÜ™X]TÜİBˆ\ØX›Y^ÜÜİ[™È\Üİ^š[J
-_BˆÏ‚ˆÕšY]Ï‚ˆÒÙ^X›Ø\™]›ÚY[™ÕšY]Ï‚ˆÓ[Ù[‚‚ˆ›İÛS˜]šYØ][ÛˆÏ‚ˆÕšY]Ï‚ˆ
-NÂŸB‚˜ÛÛœİİ[\ÈHİ[TÚY]˜Ü™X]JÂˆÛÛZ[™\ˆÂˆ›^ˆKˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜˜XÚÙÜ›İ[™ˆKˆX˜\ˆÂˆ›^\™Xİ[Ûˆ	Ü›İÉËˆ›Ü™\›İÛUÚYˆKˆ›Ü™\›İÛPÛÛÜˆÚÙ[œË˜ÛÛÜœË˜›Ü™\ˆKˆXˆÂˆ›^ˆKˆY[™ÎˆÚÙ[œËœÜXÚ[™Ë›YY][Kˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆKˆXİ]™UXˆÂˆ›Ü™\›İÛUÚYˆ‹ˆ›Ü™\›İÛPÛÛÜˆÚÙ[œË˜ÛÛÜœËœš[X\KˆKˆX•^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^]]Yˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][Kˆ›ÛÙZYÚˆ	İÙZYÚÙ[ZX›Û	ËˆKˆXİ]™UX•^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœËœš[X\KˆKˆ\İÛÛ[ˆÂˆY[™ÎˆÚÙ[œËœÜXÚ[™Ë›YY][KˆY[™Ğ›İÛNˆLˆKˆÙ[\™YˆÂˆ›^ˆKˆ\İYPÛÛ[ˆ	ØÙ[\‰Ëˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆY[™ÎˆÚÙ[œËœÜXÚ[™Ë\™ÙKˆKˆÛÛ\ÜÙ\”›Û\ˆÂˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜Ø\™ˆY[™ÎˆÚÙ[œËœÜXÚ[™Ë›YY][Kˆ›Ü™\”˜Y]\ÎˆÚÙ[œËœ˜YZK›YY][KˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™Ë›YY][Kˆ›Ü™\•ÚYˆKˆ›Ü™\ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜›Ü™\‹ˆKˆÛÛ\ÜÙ\”›Û\^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^]]Yˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][KˆKˆ[\PÛÛZ[™\ˆÂˆY[™ÎˆÚÙ[œËœÜXÚ[™Ë\™ÙKˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆKˆ[\U^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^]]Yˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][KˆKˆÜİØ\™ˆÂˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜Ø\™ˆY[™ŞˆÚÙ[œËœÜXÚ[™Ë›YY][Kˆ›Ü™\”˜Y]\ÎˆÚÙ[œËœ˜YZK›YY][KˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™Ë›YY][Kˆ›Ü™\•ÚYˆKˆ›Ü™\ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜›Ü™\ˆKˆÜİXY\ˆÂˆ›]‘\™Xİ[Ûˆ	Ü›İÉËˆ[YÛ’][\Îˆ	ØÙ[\‰Ëˆ\İYPÛÛ[ˆ	ÜÜXÙKX™]ÙY[‰ËˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™ËœÛX[ˆKˆ]]Ü’[™›ÎˆÂˆ›]‘\™Xİ[Ûˆ	Ü›İÉËˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆØ\ˆÚÙ[œËœÜXÚ[™ËœÛX[ˆKˆ]˜]\˜YÙNˆÂˆÚYˆÍ‹ˆZYÚˆÍ‹ˆ›Ü™\”˜Y]\ÎˆNˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœËœš[X\Kˆ\İYPÛÛ[ˆ	ØÙ[\‰Ëˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆKˆ]˜]\•^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœËÚ]Kˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][Kˆ›ÛÙZYÚˆ	İÙZYÚ›Û	ËˆKˆ]]Ü“˜[YNˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^ˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][Kˆ›ÛÙZYÚˆ	İÙZYÚÙ[ZX›Û	ËˆKˆÜİ[YNˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^]]Yˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\ËœÛX[ˆKˆÜİ^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^ˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][Kˆ[™RZYÚˆŒ‹ˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™Ë›YY][KˆKˆÜİXİ[ÛœÎˆÂˆ›^\™Xİ[Ûˆ	Ü›İÉËˆØ\ˆÚÙ[œËœÜXÚ[™Ë\™ÙKˆ›Ü™\•ÜÚYˆKˆ›Ü™\•ÜÛÛÜˆÚÙ[œË˜ÛÛÜœË˜›Ü™\‹ˆY[™ÕÜˆÚÙ[œËœÜXÚ[™ËœÛX[ˆKˆXİ[ÛˆÂˆ›]‘\™Xİ[Ûˆ	Ü›İÉËˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆØ\ˆÚÙ[œËœÜXÚ[™ËÛX[ˆKˆXİ[Û•^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^]]Yˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\ËœÛX[ˆKˆÚ[[™ÙS˜[YNˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^ˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›\™ÙKˆ›ÛÙZYÚˆ	İÙZYÚ›Û	ËˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™ËÛX[ˆKˆÚ[[™ÙR[™›ÎˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^]]Yˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\ËœÛX[ˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™Ë›YY][KˆKˆ›Ú[ˆÂˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœËœš[X\KˆY[™ÎˆÚÙ[œËœÜXÚ[™ËœÛX[ˆ›Ü™\”˜Y]\ÎˆÚÙ[œËœ˜YZKœÛX[ˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆKˆ›Ú[•^ˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœËÚ]Kˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\ËœÛX[ˆ›ÛÙZYÚˆ	İÙZYÚÙ[ZX›Û	ËˆKˆ[Ù[İ™\›^NˆÂˆ›^ˆKˆ˜XÚÙÜ›İ[™ÛÛÜˆ	Ü™Ø˜JJIËˆ\İYPÛÛ[ˆ	Ù›^Y[™	ËˆKˆ[ÙYÛÛ[ˆÂˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜˜XÚÙÜ›İ[™ˆ›Ü™\•ÜY˜Y]\ÎˆÚÙ[œËœ˜YZK›\™ÙKˆ›Ü™\•ÜšYÚ˜Y]\ÎˆÚÙ[œËœ˜YZK›\™ÙKˆY[™ÎˆÚÙ[œËœÜXÚ[™Ë›YY][KˆZS’ZYÚˆÌˆKˆ[Ù[XY\ˆÂˆ›]‘\™Xİ[Ûˆ	Ü›İÉËˆ\İYPÛÛ[ˆ	ÜÜXÙKX™]ÙY[‰Ëˆ[YÛ’][\Îˆ	ØÙ[\‰ËˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™Ë›YY][KˆKˆ[Ù[]NˆÂˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^ˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›\™ÙKˆ›ÛÙZYÚˆ	İÙZYÚ›Û	ËˆKˆÜİ[œ]ˆÂˆ˜XÚÙÜ›İ[™ÛÛÜˆÚÙ[œË˜ÛÛÜœË˜Ø\™ˆ›Ü™\”˜Y]\ÎˆÚÙ[œËœ˜YZK›YY][KˆY[™ŞˆÚÙ[œËœÜXÚ[™Ë›YY][KˆÛÛÜˆÚÙ[œË˜ÛÛÜœË^ˆ›ÛÚ^™NˆÚÙ[œË™›ÛÚ^™\Ë›YY][KˆZS’ZYÚˆLŒˆ^[YÛ•™\XØ[ˆ	İÜ	ËˆX\™Ú[›İÛNˆÚÙ[œËœÜXÚ[™Ë›YY][KˆKŸJNÂ
+                    {/* Post Actions */}
+                    <View style={styles.postActions}>
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => handleLike(item.id)}>
+                        <Heart
+                          size={20}
+                          color={liked ? tokens.colors.primary : tokens.colors.textMuted}
+                          fill={liked ? tokens.colors.primary : 'none'}
+                        />
+                        <Text style={[styles.actionText, liked && styles.activeActionText]}>
+                          {likeCount}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => handleShare(item)}>
+                        <Share2 size={20} color={tokens.colors.textMuted} />
+                        <Text style={styles.actionText}>Share</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          )}
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollContent} contentContainerStyle={styles.challengesContainer}>
+          <Text style={styles.sectionTitle}>Active Challenges</Text>
+          <Text style={styles.sectionSubtitle}>Join a community goal and track progress together</Text>
+
+          {CHALLENGES.map((ch) => (
+            <View key={ch.id} style={styles.challengeCard}>
+              <View style={styles.challengeHeader}>
+                <Text style={styles.challengeName}>{ch.name}</Text>
+                <Text style={styles.daysLeft}>{ch.daysLeft} days left</Text>
+              </View>
+              <Text style={styles.participantCount}>{ch.participants} participants</Text>
+              <PrimaryButton
+                title="Join Challenge"
+                onPress={() => Alert.alert('Joined!', `You joined ${ch.name}`)}
+                style={styles.joinBtn}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Create Post Modal */}
+      <Modal
+        visible={composerOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setComposerOpen(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Create Post</Text>
+              <TouchableOpacity onPress={() => setComposerOpen(false)}>
+                <X size={24} color={tokens.colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="What's on your mind?"
+              placeholderTextColor={tokens.colors.textMuted}
+              multiline
+              value={postText}
+              onChangeText={setPostText}
+              autoFocus
+            />
+
+            <PrimaryButton
+              title={posting ? 'Posting...' : 'Post'}
+              onPress={handleCreatePost}
+              disabled={posting || !postText.trim()}
+              style={styles.postBtn}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <BottomNavigation activeTab="community" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.colors.background,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.border,
+    backgroundColor: tokens.colors.surface,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: tokens.spacing.md,
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: tokens.colors.primary,
+  },
+  tabText: {
+    fontSize: tokens.typography.fontSize.md,
+    fontWeight: '600',
+    color: tokens.colors.textMuted,
+  },
+  activeTabText: {
+    color: tokens.colors.primary,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    padding: tokens.spacing.md,
+    paddingBottom: 100,
+  },
+  composerPrompt: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: tokens.borderRadius.lg,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.md,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  composerPromptText: {
+    color: tokens.colors.textMuted,
+    fontSize: tokens.typography.fontSize.md,
+  },
+  emptyContainer: {
+    padding: tokens.spacing.xl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: tokens.colors.textMuted,
+    fontSize: tokens.typography.fontSize.md,
+  },
+  postCard: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: tokens.borderRadius.lg,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.md,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: tokens.spacing.sm,
+  },
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: tokens.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: tokens.spacing.sm,
+  },
+  avatarText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: tokens.typography.fontSize.md,
+  },
+  authorName: {
+    fontSize: tokens.typography.fontSize.md,
+    fontWeight: '600',
+    color: tokens.colors.textPrimary,
+  },
+  postTime: {
+    fontSize: tokens.typography.fontSize.xs,
+    color: tokens.colors.textMuted,
+  },
+  postText: {
+    fontSize: tokens.typography.fontSize.md,
+    color: tokens.colors.textPrimary,
+    lineHeight: 22,
+    marginBottom: tokens.spacing.md,
+  },
+  postActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: tokens.colors.border,
+    paddingTop: tokens.spacing.sm,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: tokens.spacing.lg,
+  },
+  actionText: {
+    marginLeft: tokens.spacing.xs,
+    fontSize: tokens.typography.fontSize.sm,
+    color: tokens.colors.textMuted,
+  },
+  activeActionText: {
+    color: tokens.colors.primary,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  challengesContainer: {
+    padding: tokens.spacing.md,
+    paddingBottom: 100,
+  },
+  sectionTitle: {
+    fontSize: tokens.typography.fontSize.xl,
+    fontWeight: 'bold',
+    color: tokens.colors.textPrimary,
+    marginBottom: tokens.spacing.xs,
+  },
+  sectionSubtitle: {
+    fontSize: tokens.typography.fontSize.sm,
+    color: tokens.colors.textMuted,
+    marginBottom: tokens.spacing.md,
+  },
+  challengeCard: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: tokens.borderRadius.lg,
+    padding: tokens.spacing.md,
+    marginBottom: tokens.spacing.md,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: tokens.spacing.xs,
+  },
+  challengeName: {
+    fontSize: tokens.typography.fontSize.lg,
+    fontWeight: '600',
+    color: tokens.colors.textPrimary,
+  },
+  daysLeft: {
+    fontSize: tokens.typography.fontSize.sm,
+    color: tokens.colors.primary,
+    fontWeight: '500',
+  },
+  participantCount: {
+    fontSize: tokens.typography.fontSize.sm,
+    color: tokens.colors.textMuted,
+    marginBottom: tokens.spacing.md,
+  },
+  joinBtn: {
+    marginTop: tokens.spacing.xs,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: tokens.colors.surface,
+    borderTopLeftRadius: tokens.borderRadius.xl,
+    borderTopRightRadius: tokens.borderRadius.xl,
+    padding: tokens.spacing.lg,
+    minHeight: 300,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: tokens.spacing.md,
+  },
+  modalTitle: {
+    fontSize: tokens.typography.fontSize.lg,
+    fontWeight: 'bold',
+    color: tokens.colors.textPrimary,
+  },
+  input: {
+    backgroundColor: tokens.colors.background,
+    borderRadius: tokens.borderRadius.md,
+    padding: tokens.spacing.md,
+    fontSize: tokens.typography.fontSize.md,
+    color: tokens.colors.textPrimary,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    marginBottom: tokens.spacing.md,
+  },
+  postBtn: {
+    marginTop: 'auto',
+  },
+});
