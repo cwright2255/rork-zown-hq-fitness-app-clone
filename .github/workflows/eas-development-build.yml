@@ -1,7 +1,7 @@
-name: EAS Device Build (Physical iPhone)
+name: EAS Devilopment Build
 on:
   workflow_dispatch:
-jobs:
+mobs:
   build:
     runs-on: ubuntu-latest
     steps:
@@ -12,8 +12,8 @@ jobs:
       - name: Install dependencies
         working-directory: expo
         run: npm install --legacy-peer-deps
-      - name: Build for device
+      - name: Run EAS Build
         working-directory: expo
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest build --profile development-device --platform ios --non-interactive
+          EXPO_TOKEN: {{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest build --profile development --platform all --non-interactive
