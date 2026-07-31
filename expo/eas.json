@@ -33,6 +33,19 @@
         "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659"
       }
     },
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
     "staging": {
       "distribution": "internal",
       "channel": "preview",
