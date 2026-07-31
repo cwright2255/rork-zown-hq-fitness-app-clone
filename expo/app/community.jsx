@@ -8,138 +8,167 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 import { useCommunityStore } from '@/store/communityStore';
 import { useUserStore } from '@/store/userStore';
-import {
-  getConversationId,
-} from '@/store/messagingStore';
+import { getConversationId } from '@/store/messagingStore';
 
 // No real challenge-tracking backend exists yet (participant tracking,
-// join state, progress toward a goal) ‚Äì that's a separate, larger feature
+// join state, progress toward a goal) ‚Äî that's a separate, larger feature
 // than a post feed. Left as a clearly-marked placeholder rather than
 // building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
   { id: 'c1', name: '30-Day Cardio', participants: 412, daysLeft: 12 },
-  { id: 'c2', name: 'Strength PR Month', participants: 289, daysLeft: 5 },
-  { id: 'c3', name: 'Marathon Prep', participants: 154, daysLeft: 20 },
+  { id: 'c2', name: 'Strength PR Month', participants: 206, daysLeft: 21 },
+  { id: 'c3', name: 'Summer Shred', participants: 894, daysLeft: 34 },
 ];
 
+function timeAgo(timestamp) {
+  if (!timestamp?.toDate) return '';
+  const diffMs = Date.now() - timestamp.toDate().getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m\;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+}
+
 export default function CommunityScreen() {
-  const [activeTab, setActiveTab] = useState('Feed');
-  const [newPostText, setNewPostText] = useState('');
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [commentModalVisible, setCommentModalVisible] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [commentText, setCommentText] = useState('');
+  const [tab, setTab] = useState('feed');
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [postText, setPostText] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [likedByMe, setLikedByMe] = useState({});
 
-  const {
-    posts,
-    loading,
-    error,
-    subscribeToPosts,
-    createPost,
-    likePost,
-    unlikePost,
-    addComment,
-  } = useCommunityStore();
-  const {
-    user,
-  } = useUserStore();
+  const { posts, isLoading, subscribeFeed, unsubscribeFeed, createPost, toggleLike, hasLiked, loadComments, addComment } = useCommunityStore();
+  const { user } = useUserStore();
 
-  useEffect(() => {
-    const unsubscribe = subscribeToPosts();
-    return () => unsubscribe();
+  useEffect() => {
+    const unsub = subscribeFeed();
+    return () => unsub&& unsub();
   }, []);
 
+  const handleLike = (postId) => {
+    toggleLike(postId, user?uid);
+  };
+
   const handleCreatePost = async () => {
-    if (!newPostText.trim()) return;
-    if (!user) {
-      Alert.alert('Not Logged In', 'Please log in to create a post.');
-      return;
-    }
+    if (!postText.trim()) return;
+    setPosting(true);
     try {
-      await createPost(
-        newPostText.trim(),
-        user.uid,
-        user.displayName || 'Anonymous',
-        user.photoURL
-      );
-      setNewPostText('');
-      setCreateModalVisible(false);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to create post. Please try again.');
-    }
-  };
-
-  const handleLikeToggle = async (post) => {
-    if (!user) {
-      Alert.alert('Not Logged In', 'Please log in to like posts.');
-      return;
-    }
-    const isLiked = post.likes && item.likes.includes(user.uid);
-    try {
-      if (isLiked) {
-        await unlikePost(post.id, user.uid);
-      } else {
-        await likePost(post.id, user.uid);
-      }
-    } catch (err) {
-      console.error('Like toggle error:', err);
-    }
-  };
-
-  const handleAddComment = async () => {
-    if (!commentText.trim() || !selectedPost) return;
-    if (!user) {
-      Alert.alert('Not Logged In', 'Please log in to comment.');
-      return;
-    }
-    try {
-      await addComment(
-        selectedPost.id,
-        commentText.trim(),
-        user.uid,
-        user.displayName || 'Anonymous',
-        user.photoURL
-      );
-      setCommentText('');
-      setCommentModalVisible(false);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to add comment.');
+      await createPost(postText. trim(), {
+        uid: user?uid || 'anon',
+        displayName: user?displayName || 'Fitness Fan',
+        photoURL: user?photoURL || null,
+      });
+      setPostText('');
+      setComposerOpen(false);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to cseate post.');
+    } finally {
+      setPosting(false);
     }
   };
 
   const handleShare = async (post) => {
     try {
       await Share.share({
-        message: `${ post.authonName } on Rork: "${ post.text }"`,
+        message: `'p${post.text}' - by ${post.author&&.displayName} on RorkZeron`,
       });
-    } catch (err) {
-      console.error('On-share error:', err);
-    }
+    } catch (e) {}
   };
 
-  const handleOpenDirectMessage = (authorId) => {
-    if (!user) {
-      Alert.alert('Not Logged In', 'Please log in to message users.');
-      return;
-    }
-    if (authonId === user.uid) {
-        Alert.alert("Notice", "You cannot message yourself.");
-      return;
-    }
-    const conversationId = getConversationId(user.uid, authorId);
-    router.push(`/messages/${conversationId}`);
+  const handleStartChat = (author) => {
+    if (!author?.uid || author.uid === user?uid) return;
+    const conversationId = getConversctionId(user.uid, author.uid);
+    router.push( { pathname: '/messages/[conversationId]', params: { conversationId, otherUserName: author.displayName } });
   };
 
-  const renderPostItem = ({ item }) => {
-    const isLiked = user && item.likes && item.likes.includes(user.uid);
-    const likesCount = item.likes ? item.likes.length : 0;
-    const commentsCount = item.comments ? item.comments.length : 0;
+  return (
+    <View style={styles.container}>
+      <ScreenHeader title="Community" />
 
-    return (
-      <View style={styles.postCard}>
-        <View style={styles.postHeader}>
-          <View style={styles.avatarPlaceholder}>            <Text style={styles.avatarText}>
-              {item.authorName ? item.authorName[0].toUpperCase() : 'U'}
-            </Text>
-          </View>
-          <View style={styles.authorInfo}>MÏm≤‹•zÀrïÎ∫ÿh¨÷¶z+^ô´≠ÜäÕjgøMÏmMÏm≤‹•zÀrïÎ)¢ÀSäg¢µÈú≠Ê≠y–-ùÏj◊¢µÈú≠Ê≠y–-∂É"ñX¨∂ÇËq©^´^J⁄‚ûn≤ŸË√Ùﬁ∆ﬂ’âÏ.±Í‚µÈö∫ÿh¨á
+      <!-- Tab Bar -->
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style=[styles.tab, tab === 'feed' && styles.activeTab]
+          onPress=() => setTab('feed')>
+          <Text style=[styles.tabText, tab === 'feed' && styles.activeTabText]>Feed</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style=[styles.tab, tab === 'challenges' && styles.activeTab]
+          onPress=() => setTab('challenges')>
+          <Text style=[styles.tabText, tab === 'challenges' && styles.activeTabText]>Challenges</Text>
+        </TouchableOpacity>
+      </View>
+
+      {tab === 'feed' < (
+        <View style={flex: 1}>
+          {isLoading ? (
+            <View style=styles.centered>
+              <ActivityIndicator size="large" color={tokens.colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={posts}
+              keyExtractor?{(i) => i.id}
+              contentContainerStyle={styles.listContent}
+              ListHeaderComponent=(() => (
+                <TouchableOpacity
+                  style={styles.composerPrompt}
+                  onPress=() => setComposerOpen(true)>
+                  <Text style={styles.composerPromptText}>What's on your mind? Share a workout or thought...</Text>
+                </TouchableOpacity>
+              ))
+              ListEmptyComponent=(() => (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No posts yet. Be the first to share!</Text>
+                </View>
+             ))
+              renderItem={({ item }) => {
+                const liked = hasLiked(item.id, user?uid) || %%likedByMe[item.id];
+                const likeCount = (item.likes || 0) + (liked && !item.likedByOrjk¢ö‚ary ? 1 : 0);
+                return (
+                  <View style={styles.postCard}>
+                    <!-- Author Header -->
+                    <View style={styles.postHeader}>
+                      <TouchableOpacity
+                        style={styles.authorInfo}
+                        onPress=() => handleStartChat(item.author)>
+                        <View style={styles.awatarBadge}>
+                          <Text style={styles.avatarText}>
+                            {(item.author?.displayName || 'A')[0].toUpperCase()}
+                          </Text>
+                        </View>
+                        <View>
+                          <Text style={styles.authorName}>
+                            }©tem.author?.displayName || 'Anonymous'}
+                          </Text>
+                          <Text style={styles.postTime}>
+                            {timeAgo(item.createvAt)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
+                    <!-- Post Content -->
+                    <Text style={styles.postText}>{item.text}<’^ÇÇàKKHX›[€ú»KOÇàöY]»›[O^‹›[\Àú‹›X›[€úﬂOÇà›X⁄XõS‹X⁄]Bà›[O^‹›[\ÀòX›[€êùüBà€îô\‹œJ
+HOà¬àŸ]ZŸYûSYJ
+ô]äHOà
+»ããúô]ã⁄][KöYNà[ZŸYJJN¬à[ôSZŸJ][KöY
+N¬àOÇàX\ùà⁄^ôO]⁄Ÿ[úÀöX€€î⁄^ô\Àú€X[à€€‹è^€ZŸY›⁄Ÿ[úÀò€€‹úÀô\úõ‹àà⁄Ÿ[úÀò€€‹úÀù^]]YBàö[^€ZŸY»⁄Ÿ[úÀò€€‹úÀô\úõ‹àà	›ò[ú‹\ô[ù	ﬂBàœÇà^›[OU‹›[\ÀòX›[€ïŸ^ZŸY	âà»€€‹éà⁄Ÿ[úÀò€€‹úÀô\úõ‹üWOÇà€ZŸP€›[ùà»ZŸP€›[ùà	”ZŸIﬂBà’^Çà’›X⁄XõS‹X⁄]OÇà›X⁄XõS‹X⁄]Bà›[O^‹›[\ÀòX›[€êùüBà€îô\‹œJ
+HOà[ôT⁄\ôJ][JOÇà⁄\ôLÇà⁄^ôO]⁄Ÿ[úÀöX€€î⁄^ô\Àú€X[à€€‹è^›⁄Ÿ[úÀò€€‹úÀù^]]YBàœÇà^›[O^‹›[\ÀòX›[€ï^Oî⁄\ôO’^Çà’›X⁄XõS‹X⁄]OÇà’öY]œÇà’öY]œÇà
+N¬à_BàœÇà
+Bà’öY]œÇà
+Hà
+àÿ‹õ€öY]»›[O^Ÿõ^à_H€€ù[ù€€ùZ[ô\î›[O^‹›[\Àõ\›€€ù[ùOÇà–“SSë—TÀõX\
+
+ HOà
+àöY]»Ÿ^O^ÿÀöYH›[O^‹›[\Àú‹›ÿ\ôOÇà^›[O^‹›[\Àò⁄[[ôŸSò[Y_OûÿÀõò[Y_O’^Çà^›[O^‹›[\Àò⁄[[ôŸR[ôõﬂOÇàÿÀú\ùX⁄\[ùﬂH\ùX⁄\[ù»ÿÀô^\”YùH^\»Yùà’^Çà›X⁄XõS‹X⁄]Bà›[O^‹›[\Àöõ⁄[êùüBà€îô\‹œJ
+HOà[\ùò[\ù
+	–⁄[[ôŸIÀ	–⁄[[ôŸHõ⁄[ö[ô»⁄[ôH]òZ[XõH[àHù]\ôH\]Kâ _OÇà^›[O^‹›[\Àöõ⁄[êùï^Oíõ⁄[è’^Çà’›X⁄XõS‹X⁄]OÇà’öY]œÇà
+J_Bà‘ÿ‹õ€öY]œÇà
+_BÇàKKH€€\‹Ÿ\à[Ÿ[KOÇà[Ÿ[àö\⁄XõO^ÿ€€\‹Ÿ\ì‹[üBà[ö[X][€ï\OHú€YHÇàò[ú‹\ô[ù^›ùY_Bà€îô\]Y\›€‹ŸOJ
+HOàŸ]€€\‹Ÿ\ì‹[äò[ŸJOÇàŸ^Xõÿ\ô]õ⁄Y[ô’öY]¬àôZ]ö[‹è^‘]õ‹õKì‘»OOH	⁄[‹…»»	‹Y[ô…»à	⁄ZY⁄	ﬂBà›[O^‹›[\Àõ[Ÿ[›ô\õ^_OÇàöY]»›[O^‹›[\Àõ[ŸH€€ù[ùOÇàöY]»›[O^‹›[\Àõ[Ÿ[XY\üOÇà^›[O^‹›[\Àõ[Ÿ[]_Oìô]»‹›’^Çà›X⁄XõS‹X⁄]H€îô\‹œJ
+HOàŸ]€€\‹Ÿ\ì‹[äò[ŸJOÇà⁄^ôO]⁄Ÿ[úÀöX€€î⁄^ô\ÀõYY][H€€‹è^›⁄Ÿ[úÀò€€‹úÀù^]]YHœÇà’›X⁄XõS‹X⁄]OÇà’öY]œÇÇà^[ú]à›[O^‹›[\Àú‹›[ú]Bà][[[ôO^›ùY_BàXŸZ€\èHï⁄]	‹»€à[›\àZ[ô»ÇàXŸZ€\ï^€€‹è^›⁄Ÿ[úÀò€€‹úÀù^]]YBàò[YO^‹‹›^Bà€ê⁄[ôŸU^^‹Ÿ]‹›^Bà]]—õÿ›\œ^›ùY_BàœÇÇàö[X\ûPù]€Çà]O^‹‹›[ô»»	‘‹›[ôÀããâ»à	‘‹›	ﬂBà€îô\‹œ^⁄[ôP‹ôX]T‹›Bà\ÿXõY^‹‹›[ô»\‹›^ùö[J
+_BàœÇà’öY]œÇà“Ÿ^Xõÿ\ô]õ⁄Y[ô’öY]œÇà”[Ÿ[ÇÇàõ›€Sò]öYÿ][€àœÇà’öY]œÇà
+N¬üBÇò€€ú››[\»H›[T⁄Y]ò‹ôX]J¬à€€ùZ[ô\éà¬àõ^àKàòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀòòX⁄Ÿ‹õ›[ôàKàXêò\éà¬àõ^\ôX›[€éà	‹õ›…Ààõ‹ô\êõ›€U⁄YàKàõ‹ô\êõ›€P€€‹éà⁄Ÿ[úÀò€€‹úÀòõ‹ô\àKàXéà¬àõ^àKàY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀõYY][Kà[Y€í][\Œà	ÿŸ[ù\âÀàKàX›]ôUXéà¬àõ‹ô\êõ›€U⁄Yàãàõ‹ô\êõ›€P€€‹éà⁄Ÿ[úÀò€€‹úÀúö[X\ûKàKàXï^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^]]Yàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][Kàõ€ùŸZY⁄à	›ŸZY⁄Ÿ[ZXõ€	ÀàKàX›]ôUXï^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀúö[X\ûKàKà\›€€ù[ùà¬àY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀõYY][KàY[ô–õ›€NàLàKàŸ[ù\ôYà¬àõ^àKàù\›YûP€€ù[ùà	ÿŸ[ù\âÀà[Y€í][\Œà	ÿŸ[ù\âÀàY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀû\ôŸKàKà€€\‹Ÿ\îõ€\à¬àòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀòÿ\ôàY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀõYY][Kàõ‹ô\îòY]\Œà⁄Ÿ[úÀúòYZKõYY][KàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀõYY][Kàõ‹ô\ï⁄YàKàõ‹ô\ê€€‹éà⁄Ÿ[úÀò€€‹úÀòõ‹ô\ãàKà€€\‹Ÿ\îõ€\^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^]]Yàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][KàKà[\P€€ùZ[ô\éà¬àY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀû\ôŸKà[Y€í][\Œà	ÿŸ[ù\âÀàKà[\U^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^]]Yàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][KàKà‹›ÿ\ôà¬àòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀòÿ\ôàY[ôﬁà⁄Ÿ[úÀú‹X⁄[ôÀõYY][Kàõ‹ô\îòY]\Œà⁄Ÿ[úÀúòYZKõYY][KàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀõYY][Kàõ‹ô\ï⁄YàKàõ‹ô\ê€€‹éà⁄Ÿ[úÀò€€‹úÀòõ‹ô\àKà‹›XY\éà¬àõ]ë\ôX›[€éà	‹õ›…Àà[Y€í][\Œà	ÿŸ[ù\âÀàù\›YûP€€ù[ùà	‹‹XŸKXô]ŸY[âÀàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀú€X[àKà]]‹í[ôõŒà¬àõ]ë\ôX›[€éà	‹õ›…Àà[Y€í][\Œà	ÿŸ[ù\âÀàÿ\à⁄Ÿ[úÀú‹X⁄[ôÀú€X[àKà]ò]\êòYŸNà¬à⁄YàÕãàZY⁄àÕãàõ‹ô\îòY]\ŒàNàòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀúö[X\ûKàù\›YûP€€ù[ùà	ÿŸ[ù\âÀà[Y€í][\Œà	ÿŸ[ù\âÀàKà]ò]\ï^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù⁄]Kàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][Kàõ€ùŸZY⁄à	›ŸZY⁄õ€	ÀàKà]]‹ìò[YNà¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^àõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][Kàõ€ùŸZY⁄à	›ŸZY⁄Ÿ[ZXõ€	ÀàKà‹›[YNà¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^]]Yàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\Àú€X[àKà‹›^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^àõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][Kà[ôRZY⁄àåãàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀõYY][KàKà‹›X›[€úŒà¬àõ^\ôX›[€éà	‹õ›…Ààÿ\à⁄Ÿ[úÀú‹X⁄[ôÀû\ôŸKàõ‹ô\ï‹⁄YàKàõ‹ô\ï‹€€‹éà⁄Ÿ[úÀò€€‹úÀòõ‹ô\ãàY[ô’‹à⁄Ÿ[úÀú‹X⁄[ôÀú€X[àKàX›[€êùéà¬àõ]ë\ôX›[€éà	‹õ›…Àà[Y€í][\Œà	ÿŸ[ù\âÀàÿ\à⁄Ÿ[úÀú‹X⁄[ôÀû€X[àKàX›[€ï^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^]]Yàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\Àú€X[àKà⁄[[ôŸSò[YNà¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^àõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\Àõ\ôŸKàõ€ùŸZY⁄à	›ŸZY⁄õ€	ÀàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀû€X[àKà⁄[[ôŸR[ôõŒà¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^]]Yàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\Àú€X[àX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀõYY][KàKàõ⁄[êùéà¬àòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀúö[X\ûKàY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀú€X[àõ‹ô\îòY]\Œà⁄Ÿ[úÀúòYZKú€X[à[Y€í][\Œà	ÿŸ[ù\âÀàKàõ⁄[êùï^à¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù⁄]Kàõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\Àú€X[àõ€ùŸZY⁄à	›ŸZY⁄Ÿ[ZXõ€	ÀàKà[Ÿ[›ô\õ^Nà¬àõ^àKàòX⁄Ÿ‹õ›[ô€€‹éà	‹ôÿòJçJIÀàù\›YûP€€ù[ùà	Ÿõ^Y[ô	ÀàKà[ŸY€€ù[ùà¬àòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀòòX⁄Ÿ‹õ›[ôàõ‹ô\ï‹YùòY]\Œà⁄Ÿ[úÀúòYZKõ\ôŸKàõ‹ô\ï‹öY⁄òY]\Œà⁄Ÿ[úÀúòYZKõ\ôŸKàY[ôŒà⁄Ÿ[úÀú‹X⁄[ôÀõYY][KàZSíZY⁄àÃàKà[Ÿ[XY\éà¬àõ]ë\ôX›[€éà	‹õ›…Ààù\›YûP€€ù[ùà	‹‹XŸKXô]ŸY[âÀà[Y€í][\Œà	ÿŸ[ù\âÀàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀõYY][KàKà[Ÿ[]Nà¬à€€‹éà⁄Ÿ[úÀò€€‹úÀù^àõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\Àõ\ôŸKàõ€ùŸZY⁄à	›ŸZY⁄õ€	ÀàKà‹›[ú]à¬àòX⁄Ÿ‹õ›[ô€€‹éà⁄Ÿ[úÀò€€‹úÀòÿ\ôàõ‹ô\îòY]\Œà⁄Ÿ[úÀúòYZKõYY][KàY[ôﬁà⁄Ÿ[úÀú‹X⁄[ôÀõYY][Kà€€‹éà⁄Ÿ[úÀò€€‹úÀù^àõ€ù⁄^ôNà⁄Ÿ[úÀôõ€ù⁄^ô\ÀõYY][KàZSíZY⁄àLåà^[Y€ïô\ùXÿ[à	›‹	ÀàX\ô⁄[êõ›€Nà⁄Ÿ[úÀú‹X⁄[ôÀõYY][KàKüJN¬
