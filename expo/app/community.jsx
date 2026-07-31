@@ -123,7 +123,7 @@ export default function CommunityScreen() {
       return;
     }
     if (authonId === user.uid) {
-      Alert.alert('Notice', "You cannot message yourselflf.');
+        Alert.alert("Notice", "You cannot message yourself.");
       return;
     }
     const conversationId = getConversationId(user.uid, authorId);
