@@ -65,17 +65,17 @@ export default function ConversationScreen() {
 
     return (
       <View
-        style=[
+        style={[
           styles.messageBubble,
           isMine ? styles.myMessage : styles.otherMessage,
-        ]
+        ]}
       >
-        <Text style=[isMine ? styles.myMessageText : styles.otherMessageText]>
+        <Text style={[isMine ? styles.myMessageText : styles.otherMessageText]}>
           {item.text}
         </Text>
-        <Text style=[isMine ? styles.myTimeText : styles.otherTimeText]>
+        <Text style={[isMine ? styles.myTimeText : styles.otherTimeText]}>
           {item.timestamp
-            ? new Date(item.timestamp.toMillis()).toLocaleTimeString([), {
+            ? new Date(item.timestamp.toMillis()).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
               })
