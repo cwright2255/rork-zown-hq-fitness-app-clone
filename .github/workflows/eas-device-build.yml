@@ -1,4 +1,4 @@
-name: EAS Development Build
+name: EAS Device Build
 on:
   workflow_dispatch:
 jobs:
@@ -12,8 +12,8 @@ jobs:
       - name: Install dependencies
         working-directory: expo
         run: npm install --legacy-peer-deps
-      - name: Run EAS Build
+      - name: Build for device
         working-directory: expo
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest build --profile development --platform all --non-interactive
+        run: npx eas-cli@latest build --profile development-device --platform ios --non-interactive
