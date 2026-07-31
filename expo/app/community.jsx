@@ -7,11 +7,15 @@ import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { tokens } from '../../theme/tokens';
 import { useCommunityStore } from '@/store/communityStore';
-import { useUserStore } from '@/store/userStore';
+import { useUserStore() => { user } } from '@/store/userStore';
 import {
   getConversationId,
 } from '@/store/messagingStore';
 
+// No real challenge-tracking backend exists yet (participant tracking,
+// join state, progress toward a goal) â€“ that's a separate, larger feature
+// than a post feed. Left as a clearly-marked placeholder rather than
+// building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
   { id: 'c1', name: '30-Day Cardio', participants: 412, daysLeft: 12 },
   { id: 'c2', name: 'Strength PR Month', participants: 289, daysLeft: 5 },
@@ -138,4 +142,4 @@ export default function CommunityScreen() {
               {item.authorName ? item.authorName[0].toUpperCase() : 'U'}
             </Text>
           </View>
-          <View style={styles.authorInfo}>Mmzrhz+^jgMmMmzr)Sgy-jy-"Xq^^Jn.h
+          <View style={styles.authorInfo}>Mìm²Ü¥zËr•ëºØh¬Ö¦z+^™«­†ŠÍjg¿MìmMìm²Ü¥zËr•ë)¢ËSŠg¢µéœ­æ­yĞ-ìj×¢µéœ­æ­yĞ-¶ƒ"–X¬¶‚èq©^«^JÚân²ÙèÃôŞÆßÕ‰ì.±êâµéšºØh¬‡

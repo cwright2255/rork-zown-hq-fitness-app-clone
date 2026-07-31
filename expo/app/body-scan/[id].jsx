@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { tokens } from '../../theme/tokens';
+import { tokens } from '../../../theme/tokens';
 
 export default function BodyScanDetailScreen() {
   return (
@@ -23,10 +23,6 @@ export default function BodyScanDetailScreen() {
           <Text style={styles.metricLabel}>Muscle Mass</Text>
           <Text style={styles.metricValue}>35.4 kg</Text>
         </View>
-        <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>BMR</Text>
-          <Text style={styles.metricValue}>1,780 kcal</Text>
-        </View>
       </View>
     </ScrollView>
   );
@@ -41,14 +37,14 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.lg || 16,
   },
   title: {
-    fontSize: tokens.fontSize.xl || 22,
+    fontSize: tokens.fontSize.xxl || 24,
     fontWeight: 'bold',
     color: tokens.colors.textPrimary || '#FFFFFF',
     marginBottom: tokens.spacing.md || 12,
   },
   card: {
-    backgroundColor: tokens.colors.cardBackground || '#1E1E1E',
-    borderRadius: 12,
+    backgroundColor: tokens.colors.surface || '#1E1E1E',
+    borderRadius: tokens.borderRadius.lg || 12,
     padding: tokens.spacing.md || 16,
     marginBottom: tokens.spacing.md || 16,
   },
@@ -56,32 +52,32 @@ const styles = StyleSheet.create({
     fontSize: tokens.fontSize.lg || 18,
     fontWeight: '600',
     color: tokens.colors.textPrimary || '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: tokens.spacing.xs || 4,
   },
   cardText: {
-    fontSize: tokens.fontSize.md || 14,
+    fontSize: tokens.fontSize.sm || 14,
     color: tokens.colors.textSecondary || '#AAAAAA',
   },
   metricsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: tokens.spacing.xs || 8,
   },
   metricBox: {
-    width: '48%',
-    backgroundColor: tokens.colors.cardBackground || '#1E1E1E',
-    borderRadius: 8,
-    padding: tokens.spacing.md || 12,
-    marginBottom: tokens.spacing.md || 12,
+    flex: 1,
+    backgroundColor: tokens.colors.surface || '#1E1E1E',
+    borderRadius: tokens.borderRadius.md || 8,
+    padding: tokens.spacing.sm || 12,
+    alignItems: 'center',
   },
   metricLabel: {
-    fontSize: tokens.fontSize.sm || 12,
+    fontSize: tokens.fontSize.xs || 12,
     color: tokens.colors.textSecondary || '#AAAAAA',
+    marginBottom: tokens.spacing.xs || 4,
   },
   metricValue: {
-    fontSize: tokens.fontSize.lg || 18,
+    fontSize: tokens.fontSize.md || 16,
     fontWeight: 'bold',
-    color: tokens.colors.accent || '#00E676',
-    marginTop: 4,
+    color: tokens.colors.primary || '#FF5500',
   },
 });

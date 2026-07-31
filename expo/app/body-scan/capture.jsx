@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { tokens } from '../../theme/tokens';
+import { tokens } from '../../../theme/tokens';
 
 export default function BodyScanCaptureScreen() {
   return (
@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.lg || 16,
   },
   title: {
-    fontSize: tokens.fontSize.xl || 22,
+    fontSize: tokens.fontSize.xxl || 22,
     fontWeight: 'bold',
     color: tokens.colors.textPrimary || '#FFFFFF',
     marginBottom: tokens.spacing.sm || 8,
@@ -35,13 +35,13 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.xl || 24,
   },
   captureButton: {
-    backgroundColor: tokens.colors.primary || '#00E676',
-    paddingVertical: tokens.spacing.md || 12,
-    paddingHorizontal: tokens.spacing.xl || 24,
-    borderRadius: 8,
+    backgroundColor: tokens.colors.primary || '#FF5500',
+    paddingHorizontal: tokens.spacing.xl || 32,
+    paddingVertical: tokens.spacing.md || 14,
+    borderRadius: tokens.borderRadius.lg || 24,
   },
   buttonText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: tokens.fontSize.md || 16,
   },
