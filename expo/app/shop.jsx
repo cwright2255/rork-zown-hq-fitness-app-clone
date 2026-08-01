@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 const { width: SCREEN_W } = Dimensions.get('window');
 const GRID_CARD_W = (SCREEN_W - 52) / 2;
 
-/*  Data  */
+/* ââ Data ââ */
 
 const CATEGORIES = ['All', 'Apparel', 'Footwear', 'Equipment', 'Accessories', 'Supplements', 'Tech'];
 
@@ -43,7 +43,7 @@ const RECENT = [
   { id: 'rv4', price: '$55', icon: 'fitness-outline' },
 ];
 
-/*  Section header  */
+/* ââ Section header ââ */
 
 function SectionHeader({ title, action, onAction }) {
   return (
@@ -54,7 +54,7 @@ function SectionHeader({ title, action, onAction }) {
   );
 }
 
-/*  Product card  */
+/* ââ Product card ââ */
 
 function ProductCard({ item }) {
   return (
@@ -72,7 +72,7 @@ function ProductCard({ item }) {
   );
 }
 
-/*  Look card  */
+/* ââ Look card ââ */
 
 function LookCard({ item }) {
   return (
@@ -87,7 +87,7 @@ function LookCard({ item }) {
   );
 }
 
-/*  Main screen  */
+/* ââ Main screen ââ */
 
 export default function ShopScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -183,7 +183,7 @@ export default function ShopScreen() {
   );
 }
 
-/*  Styles  */
+/* ââ Styles ââ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

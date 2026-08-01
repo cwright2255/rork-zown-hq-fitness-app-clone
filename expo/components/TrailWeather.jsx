@@ -1,6 +1,6 @@
 // components/TrailWeather.jsx
 //
-// Pre-hike risk check on the trail preview page  real forecast plus any
+// Pre-hike risk check on the trail preview page — real forecast plus any
 // real, currently-active NWS severe weather alerts for that exact
 // trailhead coordinate. This is the "avoid unforeseen risk" moment that
 // matters most: before committing to the drive/walk out there, not after.
@@ -46,7 +46,7 @@ export default function TrailWeather({ latitude, longitude }) {
     );
   }
 
-  // No data at all (non-US coordinate, or the request failed)  this
+  // No data at all (non-US coordinate, or the request failed) — this
   // section just doesn't render, same "fail silent, don't show a broken
   // state for an optional-but-important enhancement" pattern used for the
   // route/elevation features on this same screen.
@@ -85,7 +85,7 @@ export default function TrailWeather({ latitude, longitude }) {
             )}
             <Text style={styles.forecastSub}>{current.windDirection} {current.windSpeed}</Text>
           </View>
-          <Text style={styles.tempText}>{current.temperatureF} degF</Text>
+          <Text style={styles.tempText}>{current.temperatureF}°F</Text>
         </View>
       )}
     </View>

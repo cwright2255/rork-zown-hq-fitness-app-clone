@@ -7,7 +7,6 @@ import {
 
 'react-native';
 import { Colors, Radius, Spacing } from '../../constants/tokens';
-import { tokens } from '../../../../theme/tokens';
 
 export function Card({
   onPress,
@@ -37,6 +36,7 @@ export function Card({
       </TouchableOpacity>);
 
   }
+import { tokens } from '../../../../theme/tokens';
 
   return (
     <View accessibilityLabel={accessibilityLabel} style={containerStyle} {...rest}>

@@ -218,7 +218,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
         <View style={styles.supportedPlatforms}>
           <Text style={styles.supportedTitle}>Supported Platforms</Text>
           <Text style={styles.supportedText}>
-            Instagram  TikTok  YouTube  Pinterest  Facebook  Recipe Websites
+            Instagram Ã¢ÂÂ¢ TikTok Ã¢ÂÂ¢ YouTube Ã¢ÂÂ¢ Pinterest Ã¢ÂÂ¢ Facebook Ã¢ÂÂ¢ Recipe Websites
           </Text>
         </View>
       </View>

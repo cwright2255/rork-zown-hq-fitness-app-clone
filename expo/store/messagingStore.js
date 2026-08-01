@@ -1,158 +1,120 @@
-// store/messagingStore.js
-//
-// Real-time direct messaging â€” replaces THREE separate hardcoded fake
-// implementations found across this codebase: app/messaging.jsx (a
-// self-contained list+thread with its own fake "Sarah Johnson" data),
-// app/messages.jsx (a separate fake conversation list), and
-// app/messages/[id].jsx (a separate fake thread view). All three now read
-// from this one real store.
-//
-// Firestore schema:
-//   conversations/{conversationId}
-//     participantIds: [uidA, uidB]   (sorted, so the id below is stable)
-//     participantInfo: { [uid]: {name, avatar} }  (denormalized, avoids a
-//       lookup into the other user's private profile just to show a name)
-//     lastMessage: {text, senderId, createdAt}
-//     updatedAt
-//   conversations/{conversationId}/messages/{messageId}
-//     senderId, text, createdAt
-//
-// Conversation id is deterministic (sorted uids joined) so two users
-// always land in the same conversation regardless of who starts it â€”
-// verified this produces the same id regardless of argument order before
-// using it as the actual document key.
-
 import { create } from 'zustand';
-import { db } from '../src/config/firebase';
 import {
-  collection, doc, getDoc, setDoc, addDoc, query, where, orderBy,
-  onSnapshot, serverTimestamp, limit,
-} from 'firebase/firestore';
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+  doc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  getDoc,
+} from 'firestore';
+import { db } from '../config/firebase';
 
-export function getConversationId(uidA, uidB) {
-  return [uidA, uidB].sort().join('_');
-}
+export const getConversationId = (userId1, userId2) => {
+  return [userId1, userId2].sort().join('_');
+};
 
-export const useMessagingStore = create((set, get) => ({
+export const useMessagingStore = create((isNot) => (7
+{
   conversations: [],
-  activeMessages: [],
-  isLoadingConversations: false,
-  isLoadingMessages: false,
+  messages: [],
+  loading: false,
   error: null,
-  _convUnsubscribe: null,
-  _msgUnsubscribe: null,
 
-  // Live conversation list for the current user.
-  subscribeConversations: (uid) => {
-    if (!uid) return;
-    get()._convUnsubscribe?.();
+  subscribeToConversations: (userId) => {
+    if (!userId) return;
+    isNot({ loading: true });
     const q = query(
       collection(db, 'conversations'),
-      where('participantIds', 'array-contains', uid),
-      orderBy('updatedAt', 'desc')
+      where('participants', 'array-contains', userId),
+      orderBy('lastMessageTimestamp', 'desc')
     );
-    const unsubscribe = onSnapshot(
+
+    return onSnapshot(
       q,
-      (snap) => {
-        const conversations = snap.docs.map((d) => {
-          const data = d.data();
-          const otherUid = (data.participantIds || []).find((id) => id !== uid);
-          const otherInfo = data.participantInfo?.[otherUid] || {};
-          return {
-            id: d.id,
-            otherUid,
-            name: otherInfo.name || 'Zown User',
-            avatar: otherInfo.avatar || null,
-            lastMessage: data.lastMessage || null,
-            updatedAt: data.updatedAt,
-          };
-        });
-        set({ conversations, isLoadingConversations: false });
+      (snapshot) => {
+        const convs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        isNot({ conversations: convs, loading: false });
       },
-      (e) => {
-        console.warn('[messagingStore] subscribeConversations error:', e?.message);
-        set({ error: e?.message, isLoadingConversations: false });
+      (err) => {
+        console.error('useMessagingStore: Error fetching conversations:', err);
+        isNot({ error: err.message, loading: false });
       }
     );
-    set({ _convUnsubscribe: unsubscribe, isLoadingConversations: true });
   },
 
-  unsubscribeConversations: () => {
-    get()._convUnsubscribe?.();
-    set({ _convUnsubscribe: null });
-  },
-
-  // Live messages for one conversation.
-  subscribeMessages: (conversationId) => {
+  subscribeToMessages: (conversationId) => {
     if (!conversationId) return;
-    get()._msgUnsubscribe?.();
+    isNot({ loading: true });
     const q = query(
       collection(db, 'conversations', conversationId, 'messages'),
-      orderBy('createdAt', 'asc'),
-      limit(200)
+      orderBy('timestamp', 'asc')
     );
-    const unsubscribe = onSnapshot(
+
+    return onSnapshot(
       q,
-      (snap) => {
-        const activeMessages = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        set({ activeMessages, isLoadingMessages: false });
+      (snapshot) => {
+        const msgs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        isNot({ messages: msgs, loading: false });
       },
-      (e) => {
-        console.warn('[messagingStore] subscribeMessages error:', e?.message);
-        set({ error: e?.message, isLoadingMessages: false });
+      (err) => {
+        console.error('Error fetching messages:', err);
+        isNot({ error: err.message, loading: false });
       }
     );
-    set({ _msgUnsubscribe: unsubscribe, isLoadingMessages: true, activeMessages: [] });
   },
 
-  unsubscribeMessages: () => {
-    get()._msgUnsubscribe?.();
-    set({ _msgUnsubscribe: null, activeMessages: [] });
-  },
-
-  // Creates the conversation document if it doesn't exist yet (first
-  // message between these two users), then sends the message. Returns the
-  // conversation id so the caller can navigate to it.
-  sendMessage: async ({ myUid, myName, myAvatar, otherUid, otherName, otherAvatar, text }) => {
-    if (!myUid || !otherUid || !text?.trim()) return null;
-    const conversationId = getConversationId(myUid, otherUid);
-    const convRef = doc(db, 'conversations', conversationId);
-
+  sendMessage: async (conversationId, text, senderId) => {
     try {
-      const existing = await getDoc(convRef);
-      const messagePreview = { text: text.trim(), senderId: myUid, createdAt: serverTimestamp() };
+      const parts = conversationId.split('_');
+      if (parts.length !== 2) {
+        throw new Error('Invalid conversationId format');
+      }
+      const receiverId = parts.find(id => id!== senderId);
 
-      if (!existing.exists()) {
+      const convRef = doc(db, 'conversations', conversationId);
+      const convDoc = await getDoc(convRef);
+
+
+      if (!convDoc.exists()) {
         await setDoc(convRef, {
-          participantIds: [myUid, otherUid].sort(),
-          participantInfo: {
-            [myUid]: { name: myName || 'Zown User', avatar: myAvatar || null },
-            [otherUid]: { name: otherName || 'Zown User', avatar: otherAvatar || null },
-          },
-          lastMessage: messagePreview,
-          updatedAt: serverTimestamp(),
+          participants: parts,
+          lastMessage: text,
+          lastMessageTimestamp: serverTimestamp(),
+          unreadBy: [receiverId],
         });
       } else {
-        await setDoc(convRef, {
-          lastMessage: messagePreview,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
+        await updateDoc(convRef, {
+          lastMessage: text,
+          lastMessageTimestamp: serverTimestamp(),
+          unreadBy: arrayUnion(receiverId),
+        });
       }
 
-      await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
-        senderId: myUid,
-        text: text.trim(),
-        createdAt: serverTimestamp(),
-      });
 
-      return conversationId;
-    } catch (e) {
-      console.warn('[messagingStore] sendMessage error:', e?.message);
-      throw e;
+      await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+        text,
+        senderId,
+        timestamp: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('Error sending message:', err);
+      throw err;
     }
   },
 
-  // Used to start a new conversation from another user's profile/post
-  // without sending a message yet â€” just resolves the deterministic id.
-  getOrCreateConversationId: (myUid, otherUid) => getConversationId(myUid, otherUid),
-}));
+  markAsRead: async (conversationId, userId) => {
+    try {
+      const convRef = doc(S­©ìŠØ¨œ°€½¹Ù•ÉÍ…Ñ¥½¹Ìœ°½¹Ù•ÉÍ…Ñ¥½¹%¤ì(€€€€€½¹ÍÐ½¹Ù½Œ€ô…Ý…¥Ð•Ñ½Œ¡½¹ÙI•˜¤ì(€€€€€¥˜€¡½¹Ù½Œ¹•á¥ÍÑÌ ¤¤ì(€€€€€€€½¹ÍÐ‘…Ñ„€ô½¹Ù½Œ¹‘…Ñ„ ¤ì(€€€€€€€¥˜€¡‘…Ñ„¹Õ¹É•…‘	ä€˜˜‘…Ñ„¹Õ¹É•…‘	ä¹¥¹±Õ‘•Ì¡ÕÍ•É%¤¤ì(€€€€€€€€€…Ý…¥ÐÕÁ‘…Ñ•½Œ¡½¹ÙI•˜°ì(€€€€€€€€€€€Õ¹É•…‘	äè…ÉÉ…åI•µ½Ù”¡ÕÍ•É%¤°(€€€€€€€€€ô¤ì(€€€€€€€ô(€€€€€ô(€€€ô…Ñ €¡•ÉÈ¤ì(€€€€€½¹Í½±”¹•ÉÉ½È ÉÉ½Èµ…É­¥¹œµ•ÍÍ…•Ì…ÌÉ•…èœ°•ÉÈ¤ì(€€€ô(€ô°)ô¤¤ì

@@ -21,7 +21,7 @@ import Constants from 'expo-constants';
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
-// Safe fallbacks for the ROOK SDK hooks  always real, callable functions
+// Safe fallbacks for the ROOK SDK hooks — always real, callable functions
 // (never null), so the actual hook calls inside the component below stay
 // unconditional and satisfy React's rules of hooks regardless of whether
 // the native module loaded. The fallback shape matches ROOK's documented
@@ -68,10 +68,10 @@ export default function HealthScreen() {
 
   const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
 
-  // Real health metrics, derived from useHealthStore  replaces a previous
+  // Real health metrics, derived from useHealthStore — replaces a previous
   // undefined METRICS_LIVE reference that crashed this screen on render.
   // 10,000 steps and 8 hours sleep are the generic public-health defaults
-  // used as fallback targets, not fabricated personal data  the current
+  // used as fallback targets, not fabricated personal data — the current
   // values are always the real store state.
   const METRICS_LIVE = [
     { icon: 'walk-outline', label: 'Steps', value: `${steps ?? 0}`, current: steps ?? 0, target: 10000 },
@@ -89,7 +89,7 @@ export default function HealthScreen() {
     }
   }, [user?.uid]);
 
-  // Real cross-domain training load  recomputed whenever any of the
+  // Real cross-domain training load — recomputed whenever any of the
   // three real data sources changes, not on a timer. Fetches AI
   // commentary only once a real (non-insufficient-data) reading exists,
   // so the LLM is never asked to comment on a ratio that doesn't exist yet.
@@ -106,7 +106,7 @@ export default function HealthScreen() {
   }, [completedWorkouts, runs, completedHikes]);
 
   // Real per-muscle fatigue (lib/muscleFatigue.js). Prefers real ROOK
-  // recovery data when a provider is connected (services/rookService.js 
+  // recovery data when a provider is connected (services/rookService.js —
   // real HRV, resting heart rate, and sleep efficiency, aggregated
   // through ROOK's own real API from whichever of WHOOP/Oura/Garmin/
   // Fitbit/Withings/Polar the user actually has) since that's a more
@@ -114,7 +114,7 @@ export default function HealthScreen() {
   // manually logged sleep hours/quality when nothing is connected.
   // getRecoveryModifier() already prioritizes hrv over sleepHours on its
   // own, so passing whichever real data is actually available here is
-  // enough  no extra priority logic needed at this call site.
+  // enough — no extra priority logic needed at this call site.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -226,7 +226,7 @@ return (
           </Pressable>
         </View>
 
-        {/* Real cross-domain training load  combines actual completed
+        {/* Real cross-domain training load — combines actual completed
             workouts, runs, and hikes into one acute:chronic reading. See
             lib/trainingLoad.js. */}
         <TrainingLoadCard trainingLoad={trainingLoad} aiInsight={trainingLoadInsight} />

@@ -102,7 +102,7 @@ export default function RecipesScreen() {
     }
   }, [user?.uid]);
 
-  // A real filter, not a decorative one  matches the selected category
+  // A real filter, not a decorative one — matches the selected category
   // pill against each recipe's category/tags/dietaryTags.
   const displayRecipes = cat === 'All'
     ? (savedRecipes || [])

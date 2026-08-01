@@ -20,7 +20,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 
-/*  Placeholder data  */
+/* âââ Placeholder data âââ */
 
 const EARNED_BADGES = [
   { icon: 'trophy', label: 'First Workout' },
@@ -73,7 +73,7 @@ const MENU_GROUPS = [
   },
 ];
 
-/*  Menu row  */
+/* âââ Menu row âââ */
 
 function MenuRow({ item }) {
   const handlePress = async () => {
@@ -122,7 +122,7 @@ function MenuRow({ item }) {
   );
 }
 
-/*  Main screen  */
+/* âââ Main screen âââ */
 
 export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -271,7 +271,7 @@ return (
   );
 }
 
-/*  Styles  */
+/* âââ Styles âââ */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },

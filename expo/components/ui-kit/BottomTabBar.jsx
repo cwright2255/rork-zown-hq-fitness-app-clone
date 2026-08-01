@@ -21,7 +21,7 @@
  *   return (
  *     <View style={{ flex: 1 }}>
  *       <View style={{ flex: 1 }}>
- *         (screen content area)
+ *         {/* screen content */}
  *       </View>
  *       <BottomTabBar
  *         activeTab={activeTab}
