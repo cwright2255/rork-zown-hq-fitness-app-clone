@@ -34,10 +34,12 @@ jobs:
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install Expo + EAS CLIs
         uses: expo/expo-github-action@v8
@@ -46,6 +48,9 @@ jobs:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Install JS dependencies
+        run: bun install
+
       - name: Resolve EAS branch name
         id: branch
         run: |
@@ -53,7 +58,7 @@ jobs:
             echo "name=pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
           else
             REF="${{ github.ref_name }}"
-            SAFE="${REF//\//-}"
+            SAFE="$REF//\//-}"
             echo "name=$SAFE" >> "$GITHUB_OUTPUT"
           fi
 
@@ -61,20 +66,4 @@ jobs:
         id: message
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "text=PR #${{ github.event.number }}: ${{ github.event.pull_request.title }}" >> "$GITHUB_OUTPUT"
-          else
-            COMMIT_MSG=$(git log -1 --pretty=%s)
-            echo "text=$COMMIT_MSG" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Publish JS update to EAS
-        run: eas update --branch "${{ steps.branch.outputs.name }}" --message "${{ steps.message.outputs.text }}" --non-interactive
-
-      - name: Comment QR + preview link on PR
-        if: github.event_name == 'pull_request'
-        uses: expo/expo-github-action/preview@v8
-        with:
-          command: eas update --branch ${{ steps.branch.outputs.name }} --channel preview --message "${{ steps.message.outputs.text }}" --non-interactive
-          working-directory: expo
-          comment: true
-          qr-target: 'expo-go'
+            echo "message=PR #develop-changes"ãâ"Dt•D…T%ôõUEUB ¢VÇ6P¢V6†ò&ÖW76vSÔ6öÖÖ—B#v&6FVb""ãâ"Dt•D…T%ôõUEUB ¢f’À ¢ÒæÖS¢V&Æ—6‚T2WFFP¢–C¢WFFP¢'Vã¢À¢V2WFFRÒÖWFòÒÖ'&æ6‚"G·²7FW2æ'&æ6‚æ÷WGWG2ææÖR×Ò"ÒÖÖW76vR"G·²7FW2æÖW76vRæ÷WGWG2æÖW76vR×Ò"ÒÖæöâÖ–çFW&7F—fP 
