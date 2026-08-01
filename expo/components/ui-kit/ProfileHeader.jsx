@@ -42,7 +42,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { tokens } from '../../theme/tokens';
+import { tokens } from '../../../theme/tokens';
 
 // ---------------------------------------------------------------------------
 // Sub-component: StatItem

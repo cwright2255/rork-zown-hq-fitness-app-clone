@@ -28,18 +28,22 @@ import { useUserStore } from '@/store/userStore';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { buildBodyMesh } from '@/lib/bodyMeshBuilder';
 import { buildSkinnedBodyMesh } from '@/lib/applySkeletonToMesh';
-import { Asset } from 'expo-asset';
 
-// Set to true once scripts/generateReferenceRig.mjs has been run and
-// assets/body-rig/reference-rigged.glb committed to the repo. Left false by
-// default so the app builds and runs correctly (using the static mesh
-// fallback below) before that one-time setup step has happened — a static
-// `require()` of a file that doesn't exist yet would fail the Metro bundle
-// entirely, so this is a deliberate manual flag rather than an auto-detect.
-// Also requires adding 'glb' to resolver.assetExts in metro.config.js.
+// Real Metro constraint, not just a runtime concern: Metro statically
+// analyzes every require() call to build its bundle graph at build time,
+// regardless of whether the surrounding code path is ever actually
+// executed at runtime. A require() of assets/body-rig/reference-rigged.glb
+// here would fail the build the moment this file is touched, even with
+// REFERENCE_RIG_BUNDLED left false, because the file doesn't exist yet
+// and 'glb' isn't in metro.config.js's resolver.assetExts yet either.
+// Once scripts/generateReferenceRig.mjs has been run and that file is
+// actually committed, uncomment the require() below (and add 'glb' to
+// resolver.assetExts) rather than relying on a boolean flag alone —
+// Metro needs the real file to exist at the time this line is bundled,
+// not just at the time it's executed.
 const REFERENCE_RIG_BUNDLED = false;
 const getReferenceRigUri = REFERENCE_RIG_BUNDLED
-  ? () => Asset.fromModule(require('../../assets/body-rig/reference-rigged.glb')).downloadAsync().then((a) => a.localUri ?? a.uri)
+  ? () => Promise.resolve(null) // ? () => Asset.fromModule(require('../../assets/body-rig/reference-rigged.glb')).downloadAsync().then((a) => a.localUri ?? a.uri)
   : () => Promise.resolve(null);
 
 const MANNEQUIN_GRAY = '#9CA3AF';
