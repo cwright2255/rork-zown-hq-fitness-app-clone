@@ -35,11 +35,11 @@
       "distribution": "internal",
       "channel": "preview",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "buildConfiguration": "Release"
       },
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleStaging"
+        "buildType": "apk"
       },
       "env": {
         "APP_ENV": "staging",
@@ -53,13 +53,13 @@
         "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
         "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
         "EXPO_PUBLIC_ROOK_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659"
+        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
       }
     },
     "production": {
       "channel": "production",
       "ios": {
-        "simulator": false
+        "buildConfiguration": "Release"
       },
       "env": {
         "APP_ENV": "production",
@@ -72,15 +72,16 @@
         "EXPO_PUBLIC_SPOTIFY_CLIENT_ID": "cb884c0e045d4683bd3f0b38cb0e151e",
         "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
         "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
-        "EXPO_PUBLIC_ROOK_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659"
+        "EXPO_PUBLIC_ROOK_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleTeamId": "XX6YM5S6U7"
+        "appleTeamId": "GLFKG8342N",
+        "appleId": "Cj123024@yahoo.com"
       }
     }
   }
