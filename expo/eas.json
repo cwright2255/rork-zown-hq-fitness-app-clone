@@ -4,83 +4,15 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
+    "preview": {
       "distribution": "internal",
-      "channel": "development",
-      "ios": {
-        "simulator": false,
-        "buildConfiguration": "Debug"
-      },
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleDebug"
-      },
-      "env": {
-        "APP_ENV": "development",
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDf0HJWw1edlKDqJHF4pvjVuIZTsSGriy4",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "zown-3c512.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "zown-3c512",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "zown-3c512.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "431690627943",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:431690627943:ios:452de869042bbce299cdc2",
-        "EXPO_PUBLIC_SPOTIFY_CLIENT_ID": "cb884c0e045d4683bd3f0b38cb0e151e",
-        "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
-        "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
-        "EXPO_PUBLIC_ROOK_CLIENT_UUID": "78e6b253-ee09-43bf-b89b-a2983a59de06",
-        "EXPO_PUBLIC_ROOK_SECRET": "ZownHQ2026",
-        "EXPO_PUBLIC_ROOK_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659"
+        "buildType": "apk
       }
     },
-    "staging": {
-      "distribution": "internal",
-      "channel": "preview",
-      "ios": {
-        "simulator": false,
-        "buildConfiguration": "Release"
-      },
-      "android": {
-        "buildType": "apk"
-      },
-      "env": {
-        "APP_ENV": "staging",
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDf0HJWw1edlKDqJHF4pvjVuIZTsSGriy4",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "zown-3c512.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "zown-3c512",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "zown-3c512.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "431690627943",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:431690627943:ios:452de869042bbce299cdc2",
-        "EXPO_PUBLIC_SPOTIFY_CLIENT_ID": "cb884c0e045d4683bd3f0b38cb0e151e",
-        "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
-        "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
-        "EXPO_PUBLIC_ROOK_CLIENT_UUID": "78e6b253-ee09-43bf-b89b-a2983a59de06",
-        "EXPO_PUBLIC_ROOK_SECRET": "ZownHQ2026",
-        "EXPO_PUBLIC_ROOK_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
-      }
-    },
-    "production": {
-      "channel": "production",
-      "ios": {
-        "buildConfiguration": "Release"
-      },
-      "env": {
-        "APP_ENV": "production",
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDf0HJWw1edlKDqJHF4pvjVuIZTsSGriy4",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "zown-3c512.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "zown-3c512",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "zown-3c512.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "431690627943",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:431690627943:ios:452de869042bbce299cdc2",
-        "EXPO_PUBLIC_SPOTIFY_CLIENT_ID": "cb884c0e045d4683bd3f0b38cb0e151e",
-        "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
-        "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
-        "EXPO_PUBLIC_ROOK_CLIENT_UUID": "78e6b253-ee09-43bf-b89b-a2983a59de06",
-        "EXPO_PUBLIC_ROOK_SECRET": "ZownHQ2026",
-        "EXPO_PUBLIC_ROOK_ENVIRONMENT": "production",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
-      }
-    }
+    "production": {}
+  },
+  "submit": {
+    "production": {}
   }
 }
