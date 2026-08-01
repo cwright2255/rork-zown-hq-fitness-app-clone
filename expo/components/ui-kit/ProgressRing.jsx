@@ -38,7 +38,7 @@ import {
   Platform,
 } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { tokens } from '../../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 

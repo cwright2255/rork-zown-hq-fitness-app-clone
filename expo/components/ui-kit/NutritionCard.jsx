@@ -43,7 +43,7 @@ import {
   Platform,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { tokens } from '../../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 
 // ---------------------------------------------------------------------------
 // Mini Progress Ring

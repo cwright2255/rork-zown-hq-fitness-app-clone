@@ -36,7 +36,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { tokens } from '../../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 
 const CardContainer = ({
   children,

@@ -52,7 +52,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { tokens } from '../../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 
 // ---------------------------------------------------------------------------
 // Fallback tokens in case the import path isn't resolved in isolation

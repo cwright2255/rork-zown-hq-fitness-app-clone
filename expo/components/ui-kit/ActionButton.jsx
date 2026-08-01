@@ -28,7 +28,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { tokens } from '../../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 
 const ActionButton = ({
   title = 'Get Started',

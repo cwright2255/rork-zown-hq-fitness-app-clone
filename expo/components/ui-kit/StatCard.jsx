@@ -42,7 +42,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { tokens } from '../../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 
 // ---------------------------------------------------------------------------
 // Fallback tokens in case the import is unavailable in isolation
