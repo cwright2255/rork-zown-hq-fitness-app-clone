@@ -10,8 +10,6 @@
     "@trpc/client": "^11.5.0",
     "@trpc/react-query": "^11.5.0",
     "@trpc/server": "^11.5.0",
-    "@types/leaflet": "^1.9.20",
-    "@types/lodash": "^4.17.20",
     "axios": "^1.10.0",
     "expo": "^54.0.31",
     "expo-apple-authentication": "~7.2.2",
