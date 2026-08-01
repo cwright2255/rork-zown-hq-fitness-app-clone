@@ -1,6 +1,16 @@
 name: EAS Development Build
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        required: true
+        default: ios
+        type: choice
+        options:
+          - ios
+          - android
+          - all
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,6 +25,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Run EAS Build
-        run: npx eas-cli@latest build --profile development --platform all --non-interactive
+        run: npx eas-cli@latest build --profile development --platform ${ github.event.inputs.platform } --non-interactive
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_TOKEN: ${ secrets.EXPO_TOKEN }

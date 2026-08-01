@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 16.0.0",
+    "version": ">= 10.2.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -10,35 +10,30 @@
       "channel": "development",
       "ios": {
         "simulator": true
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
       }
-    },
-    "staging": {
-      "distribution": "internal",
-      "channel": "preview"
-    },
-    "production": {
-      "channel": "production"
     },
     "development-device": {
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
       "ios": {
-        "simulator": false,
-        "buildConfiguration": "Debug"
-      },
-      "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleDebug"
+        "simulator": false
       }
+    },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging"
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "appleTeamId": "GLFKG8342N",
-        "appleId": "Cj123024@yahoo.com"
-      }
-    }
+    "production": {}
   }
 }
