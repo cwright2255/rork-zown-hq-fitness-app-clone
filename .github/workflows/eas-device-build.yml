@@ -1,10 +1,8 @@
-name: Publish EAS Update
+name: EAS Device Build (Physical iPhone)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 jobs:
-  update:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -16,7 +14,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-      - name: Publish EAS Update
-        run: npx eas-cli@latest update --branch development --message "OTA update from CI" --non-interactive --platform all
+      - name: Run EAS Build
+        run: npx eas-cli@latest build --profile development-device --platform ios --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
