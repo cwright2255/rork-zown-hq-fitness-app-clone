@@ -21,7 +21,7 @@
  *   return (
  *     <View style={{ flex: 1 }}>
  *       <View style={{ flex: 1 }}>
- *         {/* screen content */}
+ *         (screen content area)
  *       </View>
  *       <BottomTabBar
  *         activeTab={activeTab}
@@ -41,7 +41,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { tokens } from '../../theme/tokens';
+import { tokens } from '../../../theme/tokens';
 
 // ---------------------------------------------------------------------------
 // Icon primitives (pure RN Ã¢ÂÂ no external lib required)

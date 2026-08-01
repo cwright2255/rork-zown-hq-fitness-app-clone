@@ -13,6 +13,7 @@ module.exports = function (api) {
           extensions: ['.ios.js', '.android.js', '.js', '.jsx', '.json', '.ts', '.tsx'],
         },
       ],
+      ['react-native-worklets-core/plugin'],
       'react-native-reanimated/plugin', // must be last
     ],
   };

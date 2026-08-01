@@ -95,6 +95,4 @@ export const legacyColorMap = {
   "#FFEB3B": "colors.yellow.base",
   "#FFF": "colors.background.default",
   "#FFFFFF": "colors.background.default"
-} as const;
-
-export type LegacyColorKey = keyof typeof legacyColorMap;
+};

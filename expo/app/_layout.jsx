@@ -3,7 +3,7 @@ import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST  before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -51,7 +51,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
-import { useRecipesStore } from '@/store/recipesStore';
+import { useRecipeStore } from '@/store/recipeStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useShopStore } from '@/store/shopStore';
@@ -59,24 +59,49 @@ import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { auth, isFirebaseConfigured } from '../src/config/firebase';
+import { auth, isFirebaseConfigured, functions } from '../src/config/firebase';
+import { httpsCallable } from 'firebase/functions';
 import { onAuthStateChanged } from 'firebase/auth';
 import Constants from 'expo-constants';
-import { ROOK_CONFIG } from '../src/services/wearables';
 
 void SplashScreen.preventAutoHideAsync();
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
+// Real security fix: this used to import a static ROOK_CONFIG object
+// built from EXPO_PUBLIC_ROOK_CLIENT_UUID / EXPO_PUBLIC_ROOK_SECRET —
+// which ROOK's own official SDK docs explicitly warn against, verbatim:
+// "Do not include client uuid and secret in .env files or directly in
+// the source code. These values will be embedded in the JavaScript
+// bundle at build time and can be extracted through reverse
+// engineering." <RookSyncGate> genuinely does need these as props
+// on-device (confirmed from ROOK's own SDK docs, not avoidable) — the
+// fix is fetching them here, from an authenticated Cloud Function
+// (functions/src/index.js's getRookSdkCredentials), at runtime, instead
+// of baking them into the static build.
 function RookWrapper({ children }) {
-  if (IS_EXPO_GO) return children;
+  const [credentials, setCredentials] = useState(null);
+
+  useEffect(() => {
+    if (IS_EXPO_GO || !isFirebaseConfigured) return;
+    let cancelled = false;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) return; // credentials require a real authenticated user; stay ungated until signed in
+      httpsCallable(functions, 'getRookSdkCredentials')()
+        .then((result) => { if (!cancelled) setCredentials(result.data); })
+        .catch((e) => console.log('[ROOK] credential fetch failed, running without wearables:', e?.message));
+    });
+    return () => { cancelled = true; unsubscribe(); };
+  }, []);
+
+  if (IS_EXPO_GO || !credentials) return children;
   try {
     const { RookSyncGate } = require('react-native-rook-sdk');
     return (
       <RookSyncGate
-        environment={ROOK_CONFIG.environment}
-        clientUUID={ROOK_CONFIG.clientUUID}
-        secret={ROOK_CONFIG.secret}
+        environment={credentials.environment}
+        clientUUID={credentials.clientUUID}
+        secret={credentials.secret}
         enableLogs={__DEV__}
         enableBackgroundSync={false}>
         
@@ -87,6 +112,7 @@ function RookWrapper({ children }) {
     console.log('[ROOK] SDK not available, running without wearables:', e.message);
     return children;
   }
+
 }
 
 
@@ -100,7 +126,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component  rendered INSIDE expo-router's navigation context
+// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 
 function SplashAnimation({ onFinish }) {
@@ -275,7 +301,7 @@ function RootLayoutInner() {
   const { loadXP } = useExpStore();
   const { loadWorkouts } = useWorkoutStore();
   const { loadAllHealth } = useHealthStore();
-  const { loadRecipes } = useRecipesStore();
+  const { loadRecipes } = useRecipeStore();
   const { loadRuns } = useRunningStore();
   const { loadSettings } = useSettingsStore();
   const [storesReady, setStoresReady] = useState(false);

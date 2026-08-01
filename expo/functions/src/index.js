@@ -394,6 +394,38 @@ export const getRookRecoveryData = onCall(
   }
 );
 
+// Real security fix, not a style preference: ROOK's own official
+// "Getting Started" documentation explicitly warns "Do not include
+// client uuid and secret in .env files or directly in the source code.
+// These values will be embedded in the JavaScript bundle at build time
+// and can be extracted through reverse engineering" — which is exactly
+// what app/_layout.jsx's RookWrapper was doing, reading
+// EXPO_PUBLIC_ROOK_SECRET (and EXPO_PUBLIC_ROOK_CLIENT_UUID) directly
+// from a static build-time env var, baking the real secret into every
+// compiled app binary regardless of platform. ROOK's <RookSyncGate>
+// component genuinely does need these values as props on-device (this
+// is real, confirmed from ROOK's own SDK docs, not avoidable) — the fix
+// is fetching them from here, an authenticated callable, at runtime,
+// instead of embedding them in the static bundle. This reuses the exact
+// same ROOK_CLIENT_UUID/ROOK_CLIENT_SECRET secrets already defined above
+// for the REST API functions, rather than introducing a second,
+// redundant credential scheme.
+export const getRookSdkCredentials = onCall(
+  { secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    return {
+      clientUUID: ROOK_CLIENT_UUID.value(),
+      secret: ROOK_CLIENT_SECRET.value(),
+      // Hardcoded rather than a 4th secret — matches this app's current
+      // real stage (still sandbox everywhere; see the ROOK_ENVIRONMENT
+      // value already used by the REST API functions above). Update
+      // this when the app actually moves to a production ROOK account.
+      environment: 'sandbox',
+    };
+  }
+);
+
 export const onWorkoutComplete = onDocumentCreated(
   { document: 'workouts/{workoutId}', region: 'us-central1' },
   async (event) => {

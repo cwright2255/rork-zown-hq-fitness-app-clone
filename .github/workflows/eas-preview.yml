@@ -82,4 +82,4 @@ jobs:
           command: eas update --branch ${{ steps.branch.outputs.name }} --channel preview --message "${{ steps.message.outputs.text }}" --non-interactive
           working-directory: expo
           comment: true
-          qr-target: 'expo-go'
+          qr-target: dev-build
