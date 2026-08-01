@@ -23,715 +23,131 @@ export const lightColors = {
   },
   background: {
     default: "#FFFFFF",
-    secondary: "#F7F9FA"
-  },
-  blue: {
-    base: "#2EC0F9",
-    darkest: "#1F83A9",
-    light: "#5ECEFA",
-    lighter: "#84DAFB",
-    lightest: "#D5F2FE"
-  },
-  brand: {
-    base: "#4564EE",
-    darkest: "#3053EC",
-    light: "#5975F0",
-    lighter: "#6E87F2",
-    lightest: "#C3CCF4"
-  },
-  cyan: {
-    cyan: "#69E0C7"
-  },
-  dark_navy: {
-    bg_card: "#262A35",
-    bg_input: "#1F222A",
-    bg_primary: "#181A20",
-    bg_secondary: "#1F222A",
-    border: "#35383F",
-    divider: "#35383F",
-    icon_active: "#FFFFFF",
-    icon_inactive: "#9E9E9E",
-    primary: "#304FFE",
-    primary_light: "#F0ECFF",
-    tab_active: "#304FFE",
-    text_hint: "#616161",
-    text_muted: "#9E9E9E",
-    text_primary: "#FFFFFF",
-    text_secondary: "#E0E0E0"
-  },
-  fuschia: {
-    _100: "#EF5DA8"
-  },
-  gofit: {
-    primary: "#304FFE",
-    purple: "#6842FF",
-    purple_light: "#F0ECFF",
-    sky_blue: "#50B0FF",
-    yellow: "#FFD300"
-  },
-  gold: {
-    gold: "#FFB432"
-  },
-  gray: {
-    gray: "#9F9F9F"
-  },
-  grayscale: {
-    black: "#000000"
-  },
-  green: {
-    base: "#23C16B",
-    darkest: "#198155",
-    light: "#4CD471",
-    lighter: "#7DDE86",
-    lightest: "#ECFCE5"
-  },
-  ink: {
-    base: "#404446",
-    dark: "#303437",
-    darker: "#202325",
-    darkest: "#090A0A",
-    light: "#6C7072",
-    lighter: "#72777A"
-  },
-  navy: {
-    _100: "#161626"
-  },
-  orange: {
-    orange: "#F15223"
-  },
-  pink: {
-    pink: "#FF7D7D"
+    secondary: "#F7F9FA",
+    tertiary: "#EFF165",
+    quaternary: "#F5F5F5"
   },
   primary: {
-    base: "#6B4EFF"
+    base: "#070FCE",
+    onBase: "#FFFFFF",
+    container: "#EFF165",
+    onContainer: "#050CB2"
   },
-  red: {
-    base: "#FF1654",
-    darkest: "#AD0F39",
-    light: "#FF4C7B",
-    lighter: "#FF769A",
-    lightest: "#FFD0DD"
+  secondary: {
+    base: "#1E153B",
+    onBase: "#FFFFFF",
+    container: "#F5F5F5",
+    onContainer: "#1E153B"
   },
-  sky: {
-    base: "#CDCFD0",
-    dark: "#979C9E",
-    light: "#E3E5E5",
-    lighter: "#F2F4F5",
-    lightest: "#F7F9FA",
-    white: "#FFFFFF"
+  tertiary: {
+    base: "#050CB2",
+    onBase: "#FFFFFF",
+    container: "#EFF1F5",
+    onContainer: "#050CB2"
   },
-  socials: {
-    facebook: "#1D4BFF"
+  error: {
+    base: "#FF4D46",
+    onBase: "#FFFFFF",
+    container: "#FFCDA0",
+    onContainer: "#FF3D39"
   },
-  surface: {
-    card: "#FFFFFF",
-    default: "#F5F6F8",
-    elevated: "#FFFFFF"
+  success: {
+    base: "#00CB68",
+    onBase: "#FFFFFF",
+    container: "#50FBBC",
+    onContainer: "#00AB55"
   },
-  text: {
-    base: "#6D7289",
-    dark: "#595D78",
-    darker: "#444967",
-    darkest: "#2F3556",
-    light: "#82869A",
-    lighter: "#979AAA"
+  warning: {
+    base: "#FF9800",
+    onBase: "#FFFFFF",
+    container: "#FFF900",
+    onContainer: "#FF9000"
   },
-  vivid_sky_blue: {
-    base: "#36D3F5"
+  info: {
+    base: "#01B8CC",
+    onBase: "#FFFFFF",
+    container: "#51B8CC",
+    onContainer: "#01A8CC"
   },
-  yellow: {
-    base: "#FFD639",
-    darkest: "#AD9227",
-    light: "#FFDF67",
-    lighter: "#FFE78A",
-    lightest: "#FFF7D7"
-  }
-} as const;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Dark Theme Colors Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export const darkColors = {
-  _3rd_party: {
-    facebook_base: "#0078FF",
-    facebook_dark: "#0067DB",
-    twitter_base: "#1DA1F2",
-    twitter_dark: "#0C90E1"
-  },
-  background: {
-    default: "#121212",
-    secondary: "#1E1E1E"
-  },
-  blue: {
-    base: "#2EC0F9",
-    darkest: "#1F83A9",
-    light: "#5ECEFA",
-    lighter: "#84DAFB",
-    lightest: "#D5F2FE"
-  },
-  brand: {
-    base: "#4564EE",
-    darkest: "#3053EC",
-    light: "#5975F0",
-    lighter: "#6E87F2",
-    lightest: "#C3CCF4"
-  },
-  cyan: {
-    cyan: "#69E0C7"
-  },
-  dark_navy: {
-    bg_card: "#262A35",
-    bg_input: "#1F222A",
-    bg_primary: "#181A20",
-    bg_secondary: "#1F222A",
-    border: "#35383F",
-    divider: "#35383F",
-    icon_active: "#FFFFFF",
-    icon_inactive: "#9E9E9E",
-    primary: "#304FFE",
-    primary_light: "#F0ECFF",
-    tab_active: "#304FFE",
-    text_hint: "#616161",
-    text_muted: "#9E9E9E",
-    text_primary: "#FFFFFF",
-    text_secondary: "#E0E0E0"
-  },
-  fuschia: {
-    _100: "#EF5DA8"
-  },
-  gofit: {
-    primary: "#304FFE",
-    purple: "#6842FF",
-    purple_light: "#F0ECFF",
-    sky_blue: "#50B0FF",
-    yellow: "#FFD300"
-  },
-  gold: {
-    gold: "#FFB432"
-  },
-  gray: {
-    gray: "#9F9F9F"
-  },
-  grayscale: {
-    black: "#FFFFFF"
-  },
-  green: {
-    base: "#23C16B",
-    darkest: "#198155",
-    light: "#4CD471",
-    lighter: "#7DDE86",
-    lightest: "#ECFCE5"
-  },
-  ink: {
-    base: "#B0B0B0",
-    dark: "#CCCCCC",
-    darker: "#E0E0E0",
-    darkest: "#F5F5F5",
-    light: "#888888",
-    lighter: "#999999"
-  },
-  navy: {
-    _100: "#161626"
-  },
-  orange: {
-    orange: "#F15223"
-  },
-  pink: {
-    pink: "#FF7D7D"
-  },
-  primary: {
-    base: "#6B4EFF"
-  },
-  red: {
-    base: "#FF1654",
-    darkest: "#AD0F39",
-    light: "#FF4C7B",
-    lighter: "#FF769A",
-    lightest: "#FFD0DD"
-  },
-  sky: {
-    base: "#444444",
-    dark: "#555555",
-    light: "#333333",
-    lighter: "#2A2A2A",
-    lightest: "#222222",
-    white: "#1A1A1A"
-  },
-  socials: {
-    facebook: "#1D4BFF"
-  },
-  surface: {
-    card: "#252525",
-    default: "#1E1E1E",
-    elevated: "#2C2C2C"
+  neutral: {
+    50: "#898F6D",
+    100: "#7W110FA",
+    200: "#6C2F2A",
+    300: "#604EF7",
+    400: "#576DC4",
+    500: "#4C8CB1",
+    600: "#410A9E",
+    700: "#35898A",
+    800: "#2A6776",
+    900: "#1E153B",
+    940: "#18191B"
   },
   text: {
-    base: "#B0B0B0",
-    dark: "#CCCCCC",
-    darker: "#E0E0E0",
-    darkest: "#F5F5F5",
-    light: "#999999",
-    lighter: "#777777"
+    primary: "#000000",
+    secondary: "#41C0A9E",
+    tertiary: "#576DC4",
+    disabled: "#4C8CB1",
+    inverse: "#FFFFFF",
+    link: "#070FCE"
   },
-  vivid_sky_blue: {
-    base: "#36D3F5"
+  icon: {
+    primary: "#000000",
+    secondary: "#410A9E",
+    tertiary: "#576DC4",
+    disabled: "#4C8CB1",
+    inverse: "#FFFFFF"
   },
-  yellow: {
-    base: "#FFD639",
-    darkest: "#AD9227",
-    light: "#FFDF67",
-    lighter: "#FFE78A",
-    lightest: "#FFF7D7"
+  border: {
+    default: "#6C2F2A",
+    strong: "#410A9E",
+    subtle: "#7W110FA",
+    focus: "#070FCE"
+  },
+  activity: {
+    running: "#070FCE",
+    cycling: "#00CB68",
+    walking: "#01B8CC",
+    fitness: "#FF9800",
+    gym: "#FF4D46",
+    yoga: "#6C&2F2A",
+    swimming: "#0500B2",
+    boxing: "#18191B"
+  },
+  muscle: {
+    chest: "#FF4D46",
+    back: "#070FCE",
+    legs: "#00CB68",
+    shoulders: "#FF9800",
+    arms: "#01B8CC",
+    abs: "#6C2F2A",
+    glutes: "#0500B2",
+    full_body: "#18191B"
+  },
+  status: {
+    active: "#00CB68",
+    inactive: "#4C8CB1",
+    pending: "#FF9800",
+    cancelled: "#FF4D46",
+    completed: "#070FCE"
+  },
+  nutrition: {
+    calories: "#FF4D46",
+    protein: "#070FCE",
+    carbs: "#FF9800",
+    fat: "#00CB68",
+    water: "#01B8CC",
+    fiber: "#6C2F2A"
+  },
+  vitas: {
+    heart_rate: "#FF4D46",
+    ste`s: "#00CB68",
+    sleep: "#070FCE",
+    calories: "#FF9800",
+    water: "#01B8CC",
+    weight: "#18191B",
+    blood_pressure: "#FF4D46",
+    spo2: "#070FCE"
   }
-} as const;
+};
 
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Backward-compatible alias (defaults to light) Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export const colors = lightColors;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Typography Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export const typography = {
-  small_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  large_tight_bold: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  large_tight_medium: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  large_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  tiny_tight_medium: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  tiny_tight_bold: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  tiny_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  large_normal_medium: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  regular_normal_regular: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  large_normal_bold: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  small_normal_bold: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  small_normal_medium: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  regular_normal_medium: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  large_normal_regular: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  large_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 18
-  },
-  regular_tight_medium: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  tiny_normal_regular: {
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  regular_tight_bold: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  regular_normal_bold: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  title2: {
-    fontFamily: "Rubik",
-    fontSize: 32,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 36
-  },
-  regular_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  large_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 18
-  },
-  regular_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  tiny_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 12
-  },
-  large_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 18
-  },
-  small_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  _small_one_liner_regular: {
-    fontFamily: "Inter",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  small_tight_medium: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  small_tight_bold: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  small_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  tiny_normal_medium: {
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  tiny_normal_bold: {
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  tiny_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 12
-  },
-  tiny_none_bold: {
-    fontFamily: "Rubik",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 12
-  },
-  title1: {
-    fontFamily: "Rubik",
-    fontSize: 48,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 56
-  },
-  title3: {
-    fontFamily: "Rubik",
-    fontSize: 24,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 32
-  },
-  small_normal_regular: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  regular_none_medium: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 500,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  regular_tight_regular: {
-    fontFamily: "Rubik",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 20
-  },
-  small_none_regular: {
-    fontFamily: "Rubik",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 14
-  },
-  ff_headline_06: {
-    fontFamily: "Circular Std",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  ff_headline_05: {
-    fontFamily: "Circular Std",
-    fontSize: 16,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 26
-  },
-  ff_paragraph_03: {
-    fontFamily: "Circular Std",
-    fontSize: 14,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 24
-  },
-  ff_headline_bold_h4: {
-    fontFamily: "Roboto",
-    fontSize: 28,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 33
-  },
-  ff_body_body1: {
-    fontFamily: "Roboto",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0.5,
-    lineHeight: 23
-  },
-  ff_paragraph_04: {
-    fontFamily: "Circular Std",
-    fontSize: 12,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  ff_headline_04: {
-    fontFamily: "Circular Std",
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 28
-  },
-  ff_paragraph_02: {
-    fontFamily: "Circular Std",
-    fontSize: 16,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 26
-  },
-  ff_headline_01: {
-    fontFamily: "Circular Std",
-    fontSize: 36,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 46
-  },
-  ff_headline_07: {
-    fontFamily: "Circular Std",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 16
-  },
-  ff_headline_02: {
-    fontFamily: "Circular Std",
-    fontSize: 24,
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 34
-  },
-  ff_paragraph_01: {
-    fontFamily: "Circular Std",
-    fontSize: 18,
-    fontWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 28
-  }
-} as const;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Shadows Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export const shadows = {
-  shadow_large: {
-    shadowColor: "#141414",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 24,
-    elevation: 12
-  },
-  sample: {
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 14.078854560852053,
-    elevation: 7
-  },
-  shadow_small: {
-    shadowColor: "#141414",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 8,
-    elevation: 4
-  },
-  shadow_medium: {
-    shadowColor: "#141414",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 8,
-    elevation: 4
-  },
-} as const;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Spacing Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48
-} as const;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Border Radius Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export const radius = {
-  none: 0,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  full: 9999
-} as const;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Theme Type Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-export type ThemeColors = typeof lightColors;
-export type ThemeName = 'light' | 'dark';
-
-export const themes = {
-  light: lightColors,
-  dark: darkColors,
-} as const;
-
-// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€ Convenience Barrel Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€
-// â”€â”€â”€ ThemeProvider Compatibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export const darkTheme = darkColors;
-export const lightTheme = lightColors;
-export type Theme = typeof lightColors;
-export type ThemeMode = ThemeName;
-export function getTheme(mode: ThemeMode): Theme {
-  return mode === 'dark' ? darkColors : lightColors;
-}
-
-export const tokens = {
-  colors: lightColors,
-  darkColors,
-  typography,
-  shadows,
-  spacing,
-  radius,
-  themes,
-} as const;
+// Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Dark Theme Colors Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€™^ÜÛÛœİ\šÍŒHÂˆÌÜ™Ü\NˆÂˆ˜XÙX›ÛÚ×Ø˜\ÙNˆˆÌÎ‘ˆ‹ˆ˜XÙX›ÛÚ×Ù\šÎˆˆÌÑˆ‹ˆÚ]\—Ø˜\ÙNˆˆÌQLQŒˆ‹ˆÚ]\—Ù\šÎˆˆÌÎLLH‚ˆKˆ˜XÚÙÜ›İ[™ˆÂˆY˜][ˆˆÌNNLPˆ‹ˆÙXÛÛ™\NˆˆÌQLMLĞˆ‹ˆ\X\NˆˆÌMÍÍˆ‹ˆ]X]\›˜\NˆˆÌÍNNH‚ˆKˆš[X\NˆÂˆ˜\ÙNˆˆÌÌÑH‹ˆÛ˜\ÙNˆˆÑ‘‘‘‘‘ˆ‹ˆÛÛZ[™\ˆˆÌMÍÍˆ‹ˆÛÛÛZ[™\ˆˆÌÌÑH‚ˆKˆÙXÛÛ™\NˆÂˆ˜\ÙNˆˆÑ‘‘‘‘‘ˆ‹ˆÛ˜\ÙNˆˆÌNNLPˆ‹ˆÛÛZ[™\ˆˆÌÍNNH‹ˆÛÛÛZ[™\ˆˆÑ‘‘‘‘‘ˆ‚ˆKˆ\X\NˆÂˆ˜\ÙNˆˆÌÌÑH‹ˆÛ˜\ÙNˆˆÑ‘‘‘‘‘ˆ‹ˆÛÛZ[™\ˆˆÌMÍÍˆ‹ˆÛÛÛZ[™\ˆˆÌÌÑH‚ˆKˆ\œ›ÜˆÂˆ˜\ÙNˆˆÑ‘ˆ‹ˆÛ˜\ÙNˆˆÑ‘‘‘‘‘ˆ‹ˆÛÛZ[™\ˆˆÙ™ŒÙÎH‹ˆÛÛÛZ[™\ˆˆÑ‘ÑL‚ˆKˆİXØÙ\ÜÎˆÂˆ˜\ÙNˆˆÌĞ‹ˆÛ˜\ÙNˆˆÑ‘‘‘‘‘ˆ‹ˆÛÛZ[™\ˆˆÌXMH‹ˆÛÛÛZ[™\ˆˆÍLÈ‚ˆKˆØ\›š[™ÎˆÂˆ˜\ÙNˆˆÑ‘N‹ˆÛ˜\ÙNˆˆÑ‘‘‘‘‘‘ˆ‹ˆÛÛZ[™\ˆˆÙ™L‹ˆÛÛÛZ[™\ˆˆÑ‘‘L‚ˆKˆ[™›ÎˆÂˆ˜\ÙNˆˆÌPĞÈ‹ˆÛ˜\ÙNˆˆÑ‘‘‘‘‘ˆ‹ˆÛÛZ[™\ˆˆÌXNØÈ‹ˆÛÛÛZ[™\ˆˆÍLPĞÈ‚ˆKˆ™]]˜[ˆÂˆLˆˆÌNNLPˆ‹ˆLˆˆÌQLMLĞˆ‹ˆŒˆˆÌMÍÍˆ‹ˆÌˆˆÌÍNNH‹ˆˆˆÍLNQH‹ˆLˆˆÍPÎĞŒH‹ˆŒˆˆÍŒQÈ‹ˆÌˆˆÍÌ‘ŒH‹ˆˆˆÍÕÌLLH‹ˆLˆˆÎN‘‹ˆMˆˆÑ‘‘‘‘‘ˆ‚ˆKˆ^ˆÂˆš[X\NˆˆÑ‘‘‘‘‘ˆ‹ˆÙXÛÛ™\NˆˆÍŒQÈ‹ˆ\X\NˆˆÍLNQH‹ˆ\ØX›YˆˆÌÍNNH‹ˆ[™\œÙNˆˆÌNNLPˆ‹ˆ[šÎˆˆÌÌÑH‚ˆKˆXÛÛˆÂˆš[X\NˆˆÑ‘‘‘‘‘ˆ‹ˆÙXÛÛ™\NˆˆÍŒQÈ‹ˆ\X\NˆˆÍLNQH‹ˆ\ØX›YˆˆÌÍNNH‹ˆ[™\œÙNˆˆÌNNLPˆ‚ˆKˆ›Ü™\ˆÂˆY˜][ˆˆÌMÍÍˆ‹ˆİ›Û™ÎˆˆÌÍNNH‹ˆİXNˆˆÌQLMLĞˆ‹ˆ›Øİ\ÎˆˆÌÌÑH‚ˆKˆXİ]š]NˆÂˆ[›š[™ÎˆˆÌÌÑH‹ˆŞXÛ[™ÎˆˆÌĞ‹ˆØ[Ú[™ÎˆˆÌPĞÈ‹ˆš]™\ÜÎˆˆÑ‘N‹ˆŞ[NˆˆÑ‘ˆ‹ˆ[ÙØNˆˆÌMÍÍˆ‹ˆİÚ[[Z[™ÎˆˆÌLŒˆ‹ˆ›Ş[™ÎˆˆÑ‘‘‘‘‘ˆ‚ˆKˆ]\ØÛNˆÂˆÚ\İˆˆÑ‘ˆ‹ˆ˜XÚÎˆˆÌÌÑH‹ˆYÜÎˆˆÌĞ‹ˆÚİ[\œÎˆˆÑ‘N‹ˆ\›\ÎˆˆÌPĞÈ‹ˆXœÎˆˆÌMÍÍˆ‹ˆÛ]\ÎˆˆÌLŒˆ‹ˆ[Ø›ÙNˆˆÑ‘‘‘‘‘ˆ‚ˆKˆİ]\ÎˆÂˆXİ]™NˆˆÌĞ‹ˆ[˜Xİ]™NˆˆÌÍNNH‹ˆ[™[™ÎˆˆÑ‘N‹ˆØ[˜Ù[YˆˆÑ‘ˆ‹ˆÛÛ\]YˆˆÌÌÑH‚ˆKˆ]š][ÛˆÂˆØ[ÜšY\ÎˆˆÑ‘ˆ‹ˆ›İZ[ˆˆÌÌÑH‹ˆØ\˜œÎˆˆÑ‘N‹ˆ˜]ˆˆÌĞ‹ˆØ]\ˆˆÌPĞÈ‹ˆšX™\ˆˆÌMÍÍˆ‚ˆKˆš]\ÎˆÂˆX\Ü˜]NˆˆÑ‘ˆ‹ˆİXÎˆˆÌĞ‹ˆÛY\ˆˆÌÌÑH‹ˆØ[ÜšY\ÎˆˆÑ‘N‹ˆØ]\ˆˆÌPĞÈ‹ˆÙZYÚˆˆÑ‘‘‘‘‘ˆ‹ˆ›ÛÙÜ™\Üİ\™NˆˆÑ‘ˆ‹ˆÜÌˆˆÌÌÑH‚ˆBŸNÂ‚Ù^ÜÛÛœİ\šÕ[YHH\šÍŒÂ‚‹ËÈ0è°¥0 0è°¥0 0è°¥0 Typography Scale Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€Ã¢Â”Â€™^ÜÛÛœİ\ÙÜ˜\HHÂˆ\Ü^LNˆÈ›ÛÚ^™Nˆ[™RZYÚˆ›ÛÙZYÚˆ	ÍÍ	Ë]\”ÜXÚ[™ÎˆLHKˆ\Ü^LˆÈ›ÛÚ^™NˆÍ‹[™RZYÚˆ›ÛÙZYÚˆ	ÍÍ	Ë]\”ÜXÚ[™ÎˆLHKˆNˆÈ›ÛÚ^™NˆÌ‹[™RZYÚˆ›ÛÙZYÚˆ	ÍÍ	Ë]\”ÜXÚ[™ÎˆLŒÈKŠˆˆÈ›ÛÚ^™Nˆ[™RZYÚˆÌ‹›ÛÙZYÚˆ	ÍÍ	Ë]\”ÜXÚ[™ÎˆLŒˆKˆÎˆÈ›ÛÚ^™NˆŒ[™RZYÚˆ›ÛÙZYÚˆ	ÍŒ	Ë]\”ÜXÚ[™ÎˆKˆˆÈ›ÛÚ^™NˆN[™RZYÚˆ›ÛÙZYÚˆ	ÍŒ	Ë]\”ÜXÚ[™ÎˆKˆ›ÙS^Y\ŒNˆÈ›ÛÚ^™NˆM‹[™RZYÚˆ›ÛÙZYÚˆ	Í	Ë]\”ÜXÚ[™ÎˆKˆ›ÙS^Y\Œ“YY][NˆÈ›ÛÚ^™NˆM‹[™RZYÚˆ›ÛÙZYÚˆ	ÍL	Ë]\”ÜXÚ[™ÎˆKˆ›ÙS^Y\Œ”Ù[ZX›ÛˆÈ›ÛÚ^™NˆM‹[™RZYÚˆ›ÛÙZYÚˆ	ÍŒ	Ë]\”ÜXÚ[™ÎˆKˆ›ÙSYY][LNˆÈ›ÛÚ^™NˆM[™RZYÚˆŒ›ÛÙZYÚˆ	Í	Ë]\”ÜXÚ[™ÎˆKˆ›ÙSYY][L“YY][NˆÈ›ÛÚ^™NˆM[™RZYÚˆŒ›ÛÙZYÚˆ	ÍL	Ë]\”ÜXÚ[™ÎˆKˆ›ÙSYY][L”Ù[ZX›ÛˆÈ›ÛÚ^™NˆM[™RZYÚˆŒ›ÛÙZYÚˆ	ÍŒ	Ë]\”ÜXÚ[™ÎˆKˆØ\[ÛŒNˆÈ›ÛÚ^™NˆL‹[™RZYÚˆM‹›ÛÙZYÚˆ	Í	Ë]\”ÜXÚ[™ÎˆŒHKˆØ\[ÛŒ“YY][NˆÈ›ÛÚ^™NˆL‹[™RZYÚˆM‹›ÛÙZYÚˆ	ÍL	Ë]\”ÜXÚ[™ÎˆŒHKˆØ\[ÛŒ”Ù[ZX›ÛˆÈ›ÛÚ^™NˆL‹[™RZYÚˆM‹›ÛÙZYÚˆ	ÍŒ	Ë]\”ÜXÚ[™ÎˆŒHKˆİ™\›[™NˆÈ›ÛÚ^™NˆL[™RZYÚˆL‹›ÛÙZYÚˆ	ÍŒ	Ë]\”ÜXÚ[™ÎˆKK^˜[œÙ›Ü›Nˆ	İ\\˜Ø\ÙIÈBŸNÂ‚‹ËÈ0è°¥0 0è°¥0 0è°¥0 \™ÛÙYÜXÚ[™Ë˜Y]\Ë	ˆY™™XİÈ0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0 0è°¥0  ¦W‡÷'B6öç7B76–ærÒ°¢‡2¢BÀ¢6Ò¢‚À¢ÖB¢bÀ¢Ær¢#BÀ¢†Â¢3"À¢'†Â¢C‚À¢7†Â¢c@§Ó° ¦W‡÷'B6öç7B&F—W2Ò°¢6Ò¢BÀ¢ÖB¢‚À¢Ær¢"À¢†Â¢bÀ¢gVÆÂ¢“““§Ó° ¦W‡÷'B6öç7B6†F÷w2Ò°¢6ÖÆÃ¢°¢6†F÷t6öÆ÷#¢r3rÀ¢6†F÷töfg6WC¢²v–GFƒ¢Â†V–v‡C¢"ÒÀ¢6†F÷t÷6—G“¢ã‚À¢6†F÷u&F—W3¢BÀ¢VÆWfF–öã¢ ¢ÒÀ¢ÖVF—VÓ¢°¢6†F÷t6öÆ÷#¢r3rÀ¢6†F÷töfg6WC¢²v–GFƒ¢Â†V–v‡C¢BÒÀ¢6†F÷t÷6—G“¢ã"À¢6†F÷u&F—W3¢‚À¢VÆWfF–öã¢@¢ÒÀ¢Æ&vS¢°¢6†F÷t6öÆ÷#¢r3rÀ¢6†F÷töfg6WC¢²v–GFƒ¢Â†V–v‡C¢‚ÒÀ¢6†F÷t÷6—G“¢ãbÀ¢6†F÷u&F—W3¢bÀ¢VÆWfF–öã¢€¢Ğ§Ó° ¢òò:,)L(:,)L(:,)L(†VÇW"FòvWBF†VÖR'’ÖöFRæÖR:,)L(:,)L(:,)L(6W‡÷'B6öç7BvWEF†VÖRÒ†ÖöFRÒvÆ–v‡Br’Óâ°¢&WGW&âÖöFRÓÓÒvF&²ròF&³c¢Æ–v‡D6öÆ÷'3°§Ó° ¦W‡÷'B6öç7BÆ–v‡EF†VÖRÒÆ–v‡D6öÆ÷'3° 
