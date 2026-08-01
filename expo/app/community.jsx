@@ -13,7 +13,7 @@ import {
 } from '@/store/messagingStore';
 
 // No real challenge-tracking backend exists yet (participant tracking,
-// join state, progress toward a goal) â€“ that's a separate, larger feature
+// join state, progress toward a goal)  that's a separate, larger feature
 // than a post feed. Left as a clearly-marked placeholder rather than
 // building a shallow version of it in the same pass as the real feed.
 const CHALLENGES = [
@@ -142,4 +142,4 @@ export default function CommunityScreen() {
               {item.authorName ? item.authorName[0].toUpperCase() : 'U'}
             </Text>
           </View>
-          <View style={styles.authorInfo}>Mìm²Ü¥zËr•ëºØh¬Ö¦z+^™«­†ŠÍjg¿MìmMìm²Ü¥zËr•ë)¢ËSŠg¢µéœ­æ­yĞ-ìj×¢µéœ­æ­yĞ-¶ƒ"–X¬¶‚èq©^«^JÚân²ÙèÃôŞÆßÕ‰ì.±êâµéšºØh¬‡
+          <View style={styles.authorInfo}>Mmzrhz+^jgMmMmzr)Sgy-jy-"Xq^^Jn.h
