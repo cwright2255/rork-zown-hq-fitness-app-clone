@@ -3,7 +3,7 @@ import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST  before any other imports that could
+// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
 // throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
 // loading this route, and if any later top-level import/execution fails,
 // the rest of the module never runs. Defining ErrorBoundary here guarantees
@@ -51,7 +51,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
-import { useRecipeStore } from '@/store/recipeStore';
+import { useRecipesStore } from '@/store/recipesStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useShopStore } from '@/store/shopStore';
@@ -100,7 +100,7 @@ const queryClient = new QueryClient({
   }
 });
 
-// Inner component  rendered INSIDE expo-router's navigation context
+// Inner component ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ rendered INSIDE expo-router's navigation context
 // so usePathname() and router hooks are safe to call here.
 
 function SplashAnimation({ onFinish }) {
@@ -275,7 +275,7 @@ function RootLayoutInner() {
   const { loadXP } = useExpStore();
   const { loadWorkouts } = useWorkoutStore();
   const { loadAllHealth } = useHealthStore();
-  const { loadRecipes } = useRecipeStore();
+  const { loadRecipes } = useRecipesStore();
   const { loadRuns } = useRunningStore();
   const { loadSettings } = useSettingsStore();
   const [storesReady, setStoresReady] = useState(false);
