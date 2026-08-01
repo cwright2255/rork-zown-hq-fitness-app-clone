@@ -51,7 +51,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
-import { useRecipesStore } from '@/store/recipesStore';
+import { useRecipeStore } from '@/store/recipeStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useShopStore } from '@/store/shopStore';
@@ -275,7 +275,7 @@ function RootLayoutInner() {
   const { loadXP } = useExpStore();
   const { loadWorkouts } = useWorkoutStore();
   const { loadAllHealth } = useHealthStore();
-  const { loadRecipes } = useRecipesStore();
+  const { loadRecipes } = useRecipeStore();
   const { loadRuns } = useRunningStore();
   const { loadSettings } = useSettingsStore();
   const [storesReady, setStoresReady] = useState(false);
