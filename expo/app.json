@@ -68,6 +68,7 @@
       "expo-image-picker",
       "expo-location",
       "expo-apple-authentication",
+      "./plugins/withPoseModel.js",
       [
         "expo-build-properties",
         {

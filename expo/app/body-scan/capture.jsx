@@ -29,8 +29,8 @@ import { createRotationTracker } from '@/lib/rotationTracker';
 import {
   loadVoiceGuidancePreference, setVoiceGuidanceEnabled, speakPrompt, stopSpeaking,
 } from '@/services/voiceGuidanceService';
-import { ensurePoseModelDownloaded } from '@/lib/poseModelDownloader';
 
+const POSE_MODEL = 'pose_landmarker_lite.task';
 const RING_SIZE = 88;
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
@@ -56,7 +56,7 @@ const STEP_CAPTIONS = {
   done: 'All done!',
 };
 
-function CaptureFlow({ modelPath }) {
+export default function BodyScanCaptureScreen() {
   const router = useRouter();
   const { user } = useUserStore();
   const { runScan, isScanning, error } = useBodyCompositionStore();
@@ -203,7 +203,7 @@ function CaptureFlow({ modelPath }) {
   const { cameraDevice, cameraViewLayoutChangeHandler, frameProcessor, fpsMode } = usePoseDetection(
     { onResults: handlePoseResults, onError: (e) => console.error('[BodyScan] pose error', e) },
     'LIVE_STREAM',
-    modelPath,
+    POSE_MODEL,
     { delegate: 'GPU', numPoses: 1, minPoseDetectionConfidence: 0.5 }
   );
 
@@ -527,85 +527,4 @@ const styles = StyleSheet.create({
   errorText: { ...typography.bodySmall, color: colors.red ?? '#E5484D', flex: 1 },
   retryText: { ...typography.bodySmall, color: colors.green, fontWeight: '700' },
 });
-
-// Real fix for the reported MODEL_NOT_FOUND crash: react-native-mediapipe's
-// native code resolves the model string via Swift's
-// URL(fileURLWithPath:) - a raw file path, not a bundle-resource lookup -
-// so the bare filename this screen used to pass could never have worked.
-// The package's own example apps solve this with an Xcode build-phase
-// script that isn't available in a managed Expo project without ejecting.
-// This wraps the real capture flow (CaptureFlow, above) and only mounts it
-// once the model has actually been downloaded to a real, absolute path on
-// device - avoiding the hook's unconditional, immediate detector-creation
-// attempt (which happens as soon as it mounts, before any camera or
-// permission screen is even shown) from ever running against an invalid
-// path in the first place.
-export default function BodyScanCaptureScreen() {
-  const [modelPath, setModelPath] = useState(null);
-  const [modelSize, setModelSize] = useState(null);
-  const [modelError, setModelError] = useState(null);
-  const [confirmed, setConfirmed] = useState(false);
-
-  const startDownload = useCallback(() => {
-    setModelError(null);
-    setModelPath(null);
-    setConfirmed(false);
-    ensurePoseModelDownloaded()
-      .then(({ path, size }) => {
-        setModelPath(path);
-        setModelSize(size);
-      })
-      .catch((e) => setModelError(e?.message || 'Could not prepare the scan model.'));
-  }, []);
-
-  useEffect(() => {
-    startDownload();
-  }, [startDownload]);
-
-  if (modelError) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
-        <View style={styles.centerMessage}>
-          <Ionicons name="cloud-offline-outline" size={40} color={colors.textSecondary} />
-          <Text style={styles.centerMessageText}>{modelError}</Text>
-          <PrimaryButton title="Try Again" onPress={startDownload} style={{ marginTop: spacing.lg }} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!modelPath) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
-        <View style={styles.centerMessage}>
-          <ActivityIndicator size="large" color={colors.text} />
-          <Text style={styles.centerMessageText}>Preparing scan…</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Temporary diagnostic checkpoint: shows exactly what was resolved
-  // before handing off to the camera/pose-detection screen, so if
-  // MODEL_NOT_FOUND happens again, there's a concrete path and size to
-  // screenshot and compare against - rather than only seeing the
-  // generic native error with no detail.
-  if (!confirmed) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
-        <View style={styles.centerMessage}>
-          <Ionicons name="checkmark-circle-outline" size={40} color={colors.green} />
-          <Text style={styles.centerMessageText}>Model ready ({(modelSize / 1000000).toFixed(1)} MB)</Text>
-          <Text style={[styles.centerMessageText, { fontSize: 11, opacity: 0.6 }]} selectable>{modelPath}</Text>
-          <PrimaryButton title="Continue to Camera" onPress={() => setConfirmed(true)} style={{ marginTop: spacing.lg }} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return <CaptureFlow modelPath={modelPath} />;
-}
 
