@@ -543,13 +543,11 @@ const styles = StyleSheet.create({
 export default function BodyScanCaptureScreen() {
   const [modelPath, setModelPath] = useState(null);
   const [modelError, setModelError] = useState(null);
-  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const startDownload = useCallback(() => {
     setModelError(null);
     setModelPath(null);
-    setDownloadProgress(0);
-    ensurePoseModelDownloaded(setDownloadProgress)
+    ensurePoseModelDownloaded()
       .then(setModelPath)
       .catch((e) => setModelError(e?.message || 'Could not prepare the scan model.'));
   }, []);
@@ -577,11 +575,7 @@ export default function BodyScanCaptureScreen() {
         <ScreenHeader title="Body Scan" showBack />
         <View style={styles.centerMessage}>
           <ActivityIndicator size="large" color={colors.text} />
-          <Text style={styles.centerMessageText}>
-            {downloadProgress > 0
-              ? `Preparing scan (${Math.round(downloadProgress * 100)}%)…`
-              : 'Preparing scan…'}
-          </Text>
+          <Text style={styles.centerMessageText}>Preparing scan…</Text>
         </View>
       </SafeAreaView>
     );
