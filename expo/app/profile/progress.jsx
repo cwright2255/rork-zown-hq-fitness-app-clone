@@ -181,7 +181,15 @@ export default function ProgressTrackerScreen() {
   };
 
   const handleRecordBodyScan = () => {
-    router.push('/profile/body-scan');
+    // Real fix: this pointed at the old, mocked body-scan screen
+    // (profile/body-scan.jsx - manual photo capture, manual measurement
+    // entry, body fat computed via Math.random()) instead of the actual,
+    // working, automated pose-detection system this whole session has
+    // been building and fixing (body-scan/capture.jsx). This was the
+    // real reason nothing from that work ever showed up when reached
+    // through the Profile tab - it was a completely different,
+    // unconnected screen the whole time.
+    router.push('/body-scan/capture');
   };
 
   const renderChampionPassTab = () =>
