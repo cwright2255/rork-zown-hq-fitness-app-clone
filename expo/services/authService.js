@@ -81,7 +81,7 @@ class AuthService {
         requiresMFA: false
       };
     } catch (error) {
-      console.error('[AuthService] Login error:', error?.code, error?.message);
+      console.warn('[AuthService] Login error:', error?.code, error?.message);
       throw mapFirebaseAuthError(error);
     }
   }
@@ -115,7 +115,7 @@ class AuthService {
 
       return { user, token };
     } catch (error) {
-      console.error('[AuthService] Register error:', error?.code, error?.message);
+      console.warn('[AuthService] Register error:', error?.code, error?.message);
       throw mapFirebaseAuthError(error);
     }
   }
@@ -131,7 +131,7 @@ class AuthService {
       await sendPasswordResetEmail(auth, email);
       return true;
     } catch (error) {
-      console.error('[AuthService] Password reset error:', error?.code, error?.message);
+      console.warn('[AuthService] Password reset error:', error?.code, error?.message);
       throw mapFirebaseAuthError(error);
     }
   }
