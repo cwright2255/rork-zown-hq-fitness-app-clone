@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Eye, EyeOff, Mail, Lock, User, ChevronLeft, Target, Dumbbell, Flame, TrendingUp, Activity, Zap } from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants/theme';
+import { radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
@@ -109,7 +109,7 @@ export default function RegisterScreen() {
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8}>
-          <ChevronLeft size={24} color={colors.text} />
+          <ChevronLeft size={24} color={'#000000'} />
         </TouchableOpacity>
         <Text style={styles.brand}>ZOWN HQ</Text>
         <View style={styles.backBtn} />
@@ -135,11 +135,11 @@ export default function RegisterScreen() {
 
               <View style={styles.form}>
                 <View style={styles.inputRow}>
-                  <User size={18} color={colors.textSecondary} style={styles.inputIcon} />
+                  <User size={18} color={'#666666'} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Full Name"
-                    placeholderTextColor={colors.textTertiary}
+                    placeholderTextColor={'#666666'}
                     value={formData.name}
                     onChangeText={(v) => updateFormData('name', v)}
                     autoCapitalize="words"
@@ -147,11 +147,11 @@ export default function RegisterScreen() {
                 </View>
 
                 <View style={styles.inputRow}>
-                  <Mail size={18} color={colors.textSecondary} style={styles.inputIcon} />
+                  <Mail size={18} color={'#666666'} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Email"
-                    placeholderTextColor={colors.textTertiary}
+                    placeholderTextColor={'#666666'}
                     value={formData.email}
                     onChangeText={(v) => updateFormData('email', v)}
                     keyboardType="email-address"
@@ -160,11 +160,11 @@ export default function RegisterScreen() {
                 </View>
 
                 <View style={styles.inputRow}>
-                  <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
+                  <Lock size={18} color={'#666666'} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Password"
-                    placeholderTextColor={colors.textTertiary}
+                    placeholderTextColor={'#666666'}
                     value={formData.password}
                     onChangeText={(v) => updateFormData('password', v)}
                     secureTextEntry={!showPassword}
@@ -172,16 +172,16 @@ export default function RegisterScreen() {
                     autoCorrect={false}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
-                    {showPassword ? <EyeOff size={18} color={colors.textSecondary} /> : <Eye size={18} color={colors.textSecondary} />}
+                    {showPassword ? <EyeOff size={18} color={'#666666'} /> : <Eye size={18} color={'#666666'} />}
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.inputRow}>
-                  <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
+                  <Lock size={18} color={'#666666'} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Confirm Password"
-                    placeholderTextColor={colors.textTertiary}
+                    placeholderTextColor={'#666666'}
                     value={formData.confirmPassword}
                     onChangeText={(v) => updateFormData('confirmPassword', v)}
                     secureTextEntry={!showConfirmPassword}
@@ -189,7 +189,7 @@ export default function RegisterScreen() {
                     autoCorrect={false}
                   />
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={8}>
-                    {showConfirmPassword ? <EyeOff size={18} color={colors.textSecondary} /> : <Eye size={18} color={colors.textSecondary} />}
+                    {showConfirmPassword ? <EyeOff size={18} color={'#666666'} /> : <Eye size={18} color={'#666666'} />}
                   </TouchableOpacity>
                 </View>
 
@@ -219,7 +219,7 @@ export default function RegisterScreen() {
                       activeOpacity={0.85}
                       style={[styles.goalCard, selected && styles.goalCardActive]}
                       onPress={() => setGoal(g.id)}>
-                      <Icon size={28} color={selected ? '#000' : colors.text} />
+                      <Icon size={28} color={selected ? '#000' : '#000000'} />
                       <Text style={[styles.goalLabel, selected && styles.goalLabelActive]}>
                         {g.label}
                       </Text>
@@ -248,7 +248,7 @@ export default function RegisterScreen() {
                       style={[styles.activityCard, selected && styles.activityCardActive]}
                       onPress={() => setActivityLevel(a.id)}>
                       <View style={[styles.activityIcon, selected && styles.activityIconActive]}>
-                        <Icon size={20} color={selected ? '#000' : colors.text} />
+                        <Icon size={20} color={selected ? '#000' : '#000000'} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.activityLabel}>{a.label}</Text>
@@ -275,7 +275,7 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
   },
-  brand: { fontSize: 20, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
+  brand: { fontSize: 20, fontWeight: '800', color: '#000000', letterSpacing: -0.3 },
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -297,14 +297,14 @@ const styles = StyleSheet.create({
   },
   dot: {
     width: 8, height: 8, borderRadius: tokens.radius.xs,
-    backgroundColor: colors.border,
+    backgroundColor: '#E5E5E5',
   },
   dotActive: {
     width: 24,
-    backgroundColor: colors.text,
+    backgroundColor: '#000000',
   },
   dotDone: {
-    backgroundColor: colors.textSecondary,
+    backgroundColor: '#666666',
   },
   keyboardView: { flex: 1 },
   scrollContent: {
@@ -313,25 +313,25 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  title: { ...typography.h1, marginBottom: spacing.xs },
-  subtitle: { ...typography.bodySmall, marginBottom: spacing.xl },
+  title: { ...typography.h1, color: '#000000', marginBottom: spacing.xs },
+  subtitle: { ...typography.bodySmall, color: '#666666', marginBottom: spacing.xl },
   form: { gap: spacing.md },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E5E5',
     borderRadius: radius.md,
     paddingHorizontal: spacing.base,
     height: 56,
   },
   inputIcon: { marginRight: spacing.md },
-  input: { flex: 1, fontSize: 16, color: colors.text },
+  input: { flex: 1, fontSize: 16, color: '#000000' },
   submit: { marginTop: spacing.lg },
   linkButton: { alignItems: 'center', paddingVertical: spacing.md },
-  linkLight: { ...typography.bodySmall, color: colors.textSecondary },
-  linkStrong: { color: colors.text, fontWeight: '700' },
+  linkLight: { ...typography.bodySmall, color: '#666666' },
+  linkStrong: { color: '#000000', fontWeight: '700' },
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -340,9 +340,9 @@ const styles = StyleSheet.create({
   goalCard: {
     width: '47%',
     aspectRatio: 1,
-    backgroundColor: colors.card,
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E5E5',
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -350,32 +350,32 @@ const styles = StyleSheet.create({
     padding: spacing.base,
   },
   goalCardActive: {
-    backgroundColor: colors.text,
-    borderColor: colors.text,
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
-  goalLabel: { ...typography.h4, textAlign: 'center' },
+  goalLabel: { ...typography.h4, color: '#000000', textAlign: 'center' },
   goalLabelActive: { color: tokens.colors.dark_navy.text_primary },
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E5E5',
     borderRadius: radius.lg,
     padding: spacing.base,
     gap: spacing.md,
   },
   activityCardActive: {
-    borderColor: colors.text,
+    borderColor: '#000000',
   },
   activityIcon: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: colors.cardElevated,
+    backgroundColor: '#EEEEEE',
     alignItems: 'center', justifyContent: 'center',
   },
   activityIconActive: {
-    backgroundColor: colors.text,
+    backgroundColor: '#000000',
   },
-  activityLabel: { ...typography.h4, marginBottom: 2 },
-  activityDesc: { ...typography.bodySmall },
+  activityLabel: { ...typography.h4, color: '#000000', marginBottom: 2 },
+  activityDesc: { ...typography.bodySmall, color: '#666666' },
 });

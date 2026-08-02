@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platfor
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { ChevronLeft, Mail } from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants/theme';
+import { radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { authService } from '@/services/authService';
 import { tokens } from '../../../theme/tokens';
@@ -42,7 +42,7 @@ export default function ForgotPasswordScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8}>
-          <ChevronLeft size={24} color={colors.text} />
+          <ChevronLeft size={24} color={'#000000'} />
         </TouchableOpacity>
         <Text style={styles.brand}>ZOWN HQ</Text>
         <View style={styles.backBtn} />
@@ -56,11 +56,11 @@ export default function ForgotPasswordScreen() {
           <Text style={styles.subtitle}>We'll send a link to your email</Text>
 
           <View style={styles.inputRow}>
-            <Mail size={18} color={colors.textSecondary} style={styles.inputIcon} />
+            <Mail size={18} color={'#666666'} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Email"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={'#666666'}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -81,7 +81,7 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 28,
     fontWeight: '800',
-    color: colors.text,
+    color: '#000000',
     letterSpacing: -0.5,
   },
   keyboardView: { flex: 1 },
@@ -109,20 +109,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
   },
-  title: { ...typography.h1, marginBottom: spacing.sm },
-  subtitle: { ...typography.bodySmall, marginBottom: spacing.xl },
+  title: { ...typography.h1, color: '#000000', marginBottom: spacing.sm },
+  subtitle: { ...typography.bodySmall, color: '#666666', marginBottom: spacing.xl },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E5E5',
     borderRadius: radius.md,
     paddingHorizontal: spacing.base,
     height: 56,
     marginBottom: spacing.base,
   },
   inputIcon: { marginRight: spacing.md },
-  input: { flex: 1, fontSize: 16, color: colors.text },
+  input: { flex: 1, fontSize: 16, color: '#000000' },
   submit: { marginTop: spacing.sm },
 });

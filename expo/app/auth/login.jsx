@@ -81,7 +81,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* ââ login content ââ */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
@@ -166,7 +166,7 @@ export default function LoginScreen() {
               disabled={isLoading}
               activeOpacity={0.85}>
               {isLoading ? (
-                <ActivityIndicator size="small" color="#000" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.enterBtnText}>Enter</Text>
               )}
@@ -185,7 +185,7 @@ export default function LoginScreen() {
                 style={styles.socialBtn}
                 activeOpacity={0.7}
                 onPress={() => Alert.alert('Meta Sign-In', 'Meta authentication coming soon.', [{ text: 'OK' }])}>
-                <Ionicons name="infinite-outline" size={18} color="#fff" />
+                <Ionicons name="infinite-outline" size={18} color="#000000" />
                 <Text style={styles.socialLabel}>Meta</Text>
               </TouchableOpacity>
             </View>
@@ -226,7 +226,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
   flex: {
     flex: 1,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   diagonalWrap: {
     height: DIAGONAL_HEIGHT,
     position: 'relative',
-    backgroundColor: '#000',
+    backgroundColor: '#F5F5F5',
     overflow: 'hidden',
   },
   whiteBlock: {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     left: -100,
     right: -20,
     height: 300,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
     transform: [{ rotate: '-20deg' }],
   },
   blackCut: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tagline1: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 38,
     fontWeight: '900',
     letterSpacing: 1,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     lineHeight: 44,
   },
   tagline2: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 38,
     fontWeight: '900',
     letterSpacing: 1,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#E0E0E0',
     paddingVertical: 8,
   },
   inputIcon: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#fff',
+    color: '#000000',
     paddingVertical: 6,
   },
 
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   enterBtn: {
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 16,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   enterBtnText: {
-    color: '#000',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     width: 130,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -363,10 +363,10 @@ const styles = StyleSheet.create({
   socialIcon: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: '#000000',
   },
   socialLabel: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   forgotText: {
-    color: '#aaa',
+    color: '#666666',
     fontSize: 13,
   },
   signUpRow: {
@@ -385,11 +385,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signUpGray: {
-    color: '#aaa',
+    color: '#666666',
     fontSize: 13,
   },
   signUpBold: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },
