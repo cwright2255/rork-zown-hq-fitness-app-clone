@@ -1,3 +1,53 @@
 // services/voiceGuidanceService.js
 //
-// UZ"qâwV–Fæ6R6W'f–6RW6–ærW‡ò×7VV6‚f÷"&VÂ×F–ÖRfö–6R7VW2GW&–ær3c6GW&S ¢òòÒ%6Æ÷vÇ’&÷FFR&–v‡B ¢òòÒ$†öÆB7F–ÆÂÂ6GW&–ærg&ÖR ¢ÒòòÒ6GW&R6ö×ÆWFR&VW6÷VæG8¦¦ŠíjÄ©yç!~º&{h²—r%jË¢'èjwIêï‰Çœ¢{-®ç-¢»aŠÈ¬2ë^uö¥±ë)y©-{b~Øb²+º×­ën®t©yç!²Ú)J—r)y©-{ejx.jD©Š×!×JÚµít¦V²ç©ÿğ.v*yêm®( z·Ú–VÚrKh‚	^2ë^¶¬ŠÃ.µç
+// Thin wrapper around expo-speech (already an installed dependency â€” no new
+// native module needed for this) for the body-scan capture flow's spoken
+// prompts, plus a persisted on/off preference so the toggle in the capture
+// screen survives app restarts.
+
+import * as Speech from 'expo-speech';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY = 'zown:bodyScan:voiceGuidanceEnabled';
+
+let enabledCache = true; // optimistic default while AsyncStorage read resolves
+
+export async function loadVoiceGuidancePreference() {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    enabledCache = stored === null ? true : stored === 'true';
+  } catch (e) {
+    console.warn('[voiceGuidance] failed to load preference, defaulting to on:', e?.message);
+    enabledCache = true;
+  }
+  return enabledCache;
+}
+
+export async function setVoiceGuidanceEnabled(enabled) {
+  enabledCache = enabled;
+  if (!enabled) Speech.stop();
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, String(enabled));
+  } catch (e) {
+    console.warn('[voiceGuidance] failed to persist preference:', e?.message);
+  }
+}
+
+export function isVoiceGuidanceEnabled() {
+  return enabledCache;
+}
+
+/**
+ * Speaks a prompt if voice guidance is enabled. Interrupts any in-progress
+ * speech first â€” step transitions and "turn slower" corrections should
+ * always be heard immediately, not queued up behind a stale prompt.
+ */
+export function speakPrompt(text, options = {}) {
+  if (!enabledCache) return;
+  Speech.stop();
+  Speech.speak(text, { rate: 0.95, pitch: 1.0, ...options });
+}
+
+export function stopSpeaking() {
+  Speech.stop();
+}
