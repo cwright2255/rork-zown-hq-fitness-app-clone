@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
 import { ChevronLeft } from 'lucide-react-native';
+import { colors } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -197,7 +198,7 @@ export default function OnboardingScreen() {
               <TextInput
                 style={styles.textInput}
                 placeholder="Carlton Wright"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textTertiary}
                 value={name}
                 onChangeText={setName}
               />
@@ -208,7 +209,7 @@ export default function OnboardingScreen() {
               <TextInput
                 style={styles.textInput}
                 placeholder="YYYY-MM-DD (e.g. 1995-04-12)"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textTertiary}
                 value={dob}
                 onChangeText={setDob}
               />
@@ -267,7 +268,7 @@ export default function OnboardingScreen() {
                   <TextInput
                     style={styles.numericInput}
                     placeholder="175"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textTertiary}
                     keyboardType="numeric"
                     value={heightVal}
                     onChangeText={setHeightVal}
@@ -280,7 +281,7 @@ export default function OnboardingScreen() {
                     <TextInput
                       style={styles.numericInput}
                       placeholder="5"
-                      placeholderTextColor="#999"
+                      placeholderTextColor={colors.textTertiary}
                       keyboardType="numeric"
                       value={heightVal}
                       onChangeText={setHeightVal}
@@ -292,7 +293,7 @@ export default function OnboardingScreen() {
                     <TextInput
                       style={styles.numericInput}
                       placeholder="7"
-                      placeholderTextColor="#999"
+                      placeholderTextColor={colors.textTertiary}
                       keyboardType="numeric"
                       value={heightInches}
                       onChangeText={setHeightInches}
@@ -310,7 +311,7 @@ export default function OnboardingScreen() {
                 <TextInput
                   style={styles.numericInput}
                   placeholder={isMetric ? "70" : "150"}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="numeric"
                   value={weightVal}
                   onChangeText={setWeightVal}
@@ -476,13 +477,13 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       
       {/* Header bar with Back button and progress dots */}
       <View style={styles.headerBar}>
         {step > 1 && step < 6 ? (
           <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
-            <ChevronLeft size={24} color="#000000" />
+            <ChevronLeft size={24} color={colors.text} />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 40 }} />
@@ -514,7 +515,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bg,
   },
   headerBar: {
     flexDirection: 'row',
@@ -524,7 +525,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5'
+    borderBottomColor: colors.border
   },
   backBtn: {
     width: 40,
@@ -540,15 +541,15 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: colors.border,
     marginHorizontal: 4
   },
   progressDotActive: {
     width: 16,
-    backgroundColor: '#000000'
+    backgroundColor: colors.accent
   },
   progressDotCompleted: {
-    backgroundColor: '#333333'
+    backgroundColor: colors.borderLight
   },
   scrollContent: {
     flexGrow: 1,
@@ -567,13 +568,13 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '900',
     letterSpacing: 4,
-    color: '#000000'
+    color: colors.text
   },
   taglineText: {
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 6,
-    color: '#666666',
+    color: colors.textTertiary,
     marginTop: 8
   },
   welcomeInfo: {
@@ -582,30 +583,30 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 12,
     lineHeight: 34
   },
   descText: {
     fontSize: 15,
-    color: '#666666',
+    color: colors.textTertiary,
     lineHeight: 22,
     marginBottom: 24
   },
   blackButton: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.accent,
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 4 }, // shadow stays black - correct on any bg
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 4
   },
   blackButtonText: {
-    color: '#FFFFFF',
+    color: colors.bg,
     fontSize: 16,
     fontWeight: '700'
   },
@@ -618,26 +619,26 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#666666',
+    color: colors.textTertiary,
     letterSpacing: 1.5,
     marginBottom: 8
   },
   textInput: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#000000'
+    color: colors.text
   },
   segmentedContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#EAEAEA'
+    borderColor: colors.border
   },
   segmentButton: {
     flex: 1,
@@ -646,20 +647,20 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   segmentButtonActive: {
-    backgroundColor: '#000000'
+    backgroundColor: colors.accent
   },
   segmentButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666666'
+    color: colors.textTertiary
   },
   segmentButtonTextActive: {
-    color: '#FFFFFF'
+    color: colors.bg
   },
   unitToggleRow: {
     flexDirection: 'row',
     marginBottom: 24,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 4
   },
@@ -670,22 +671,22 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   unitToggleBtnActive: {
-    backgroundColor: '#000000'
+    backgroundColor: colors.accent
   },
   unitToggleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666666'
+    color: colors.textTertiary
   },
   unitToggleTextActive: {
-    color: '#FFFFFF'
+    color: colors.bg
   },
   numericInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16
   },
@@ -693,45 +694,45 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#000000'
+    color: colors.text
   },
   inputUnitLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#666666'
+    color: colors.textTertiary
   },
   imperialHeightRow: {
     flexDirection: 'row',
     alignItems: 'center'
   },
   activityCard: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12
   },
   cardSelected: {
-    backgroundColor: '#000000',
-    borderColor: '#000000'
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
   },
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 4
   },
   cardTitleSelected: {
-    color: '#FFFFFF'
+    color: colors.bg
   },
   cardDesc: {
     fontSize: 12,
-    color: '#666666',
+    color: colors.textTertiary,
     lineHeight: 16
   },
   cardDescSelected: {
-    color: '#CCCCCC'
+    color: colors.surface
   },
   goalsGrid: {
     flexDirection: 'row',
@@ -741,9 +742,9 @@ const styles = StyleSheet.create({
   },
   goalCard: {
     width: (width - 64) / 2,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -757,11 +758,11 @@ const styles = StyleSheet.create({
   goalLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text,
     textAlign: 'center'
   },
   goalLabelSelected: {
-    color: '#FFFFFF'
+    color: colors.bg
   },
   pillsRow: {
     flexDirection: 'row',
@@ -770,9 +771,9 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   pillBtn: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24,
@@ -780,16 +781,16 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   pillBtnActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000'
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
   },
   pillText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666666'
+    color: colors.textTertiary
   },
   pillTextActive: {
-    color: '#FFFFFF'
+    color: colors.bg
   },
   successCelebration: {
     alignItems: 'center',
@@ -801,9 +802,9 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   summaryCard: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
     marginVertical: 16
@@ -811,7 +812,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#666666',
+    color: colors.textTertiary,
     letterSpacing: 1.5,
     marginBottom: 16
   },
@@ -820,15 +821,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA'
+    borderBottomColor: colors.border
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#666666'
+    color: colors.textTertiary
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#000000'
+    color: colors.text
   }
 });
