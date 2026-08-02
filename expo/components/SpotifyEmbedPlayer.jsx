@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   headerTrackName: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.colors.dark_navy.bg_primary
+    color: tokens.colors.dark_navy.text_primary
   },
   headerArtistName: {
     fontSize: 11,

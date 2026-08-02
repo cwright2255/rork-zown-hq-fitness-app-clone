@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: 20, marginBottom: 12,
   },
-  cardTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600', marginBottom: tokens.spacing.md },
+  cardTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '600', marginBottom: tokens.spacing.md },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   moodBtn: {
     width: 44, height: 44, borderRadius: 22,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
   },
-  bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
+  bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.dark_navy.text_primary, letterSpacing: -0.5 },
   sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, marginTop: 2 },
   pillRow: { flexDirection: 'row', gap: tokens.spacing.sm },
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },

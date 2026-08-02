@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.md, height: 52, paddingHorizontal: tokens.spacing.md,
-    color: tokens.colors.dark_navy.bg_primary, fontSize: 15,
+    color: tokens.colors.dark_navy.text_primary, fontSize: 15,
   },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: 14, marginBottom: 10,
   },
-  foodName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '500' },
+  foodName: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '500' },
   foodServing: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',

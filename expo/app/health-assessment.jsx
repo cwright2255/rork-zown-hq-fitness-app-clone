@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: 20,
   },
-  question: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '600', lineHeight: 24 },
+  question: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '600', lineHeight: 24 },
   option: {
     backgroundColor: '#0F0F0F', borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.md, padding: tokens.spacing.md,
   },
   optionActive: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
   optionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 15, fontWeight: '500' },
-  optionTextActive: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '600' },
+  optionTextActive: { color: tokens.colors.dark_navy.text_primary, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

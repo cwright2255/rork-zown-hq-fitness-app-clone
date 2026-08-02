@@ -52,7 +52,7 @@ export default function LeaderboardScreen() {
         width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.colors.dark_navy.bg_card,
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <Text style={{ color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: size * 0.35 }}>
+        <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: size * 0.35 }}>
           {'?'}
         </Text>
       </View>
@@ -119,7 +119,7 @@ export default function LeaderboardScreen() {
           <View key={u.id} style={[styles.row, u.isMe && styles.rowMe]}>
             <Text style={styles.rank}>{idx + 4}</Text>
             <Avatar uri={u.avatar} />
-            <Text style={[styles.name, u.isMe && { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700' }]}>
+            <Text style={[styles.name, u.isMe && { color: tokens.colors.dark_navy.text_primary, fontWeight: '700' }]}>
               {u.name}
             </Text>
             <Text style={styles.pts}>{u.pts}</Text>
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   podiumSpot: { alignItems: 'center', flex: 1 },
   podiumName: {
-    color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontWeight: '600', marginTop: 6,
+    color: tokens.colors.dark_navy.text_primary, fontSize: 12, fontWeight: '600', marginTop: 6,
     maxWidth: 80,
   },
   podiumPts: { color: tokens.colors.dark_navy.text_muted, fontSize: 11, marginTop: 2 },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderTopLeftRadius: 12, borderTopRightRadius: 12,
   },
-  podiumPlace: { color: tokens.colors.dark_navy.bg_primary, fontSize: 20, fontWeight: '700' },
+  podiumPlace: { color: tokens.colors.dark_navy.text_primary, fontSize: 20, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
   rowMe: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
   rank: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '700', width: 24 },
   name: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '500', flex: 1 },
-  pts: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700' },
+  pts: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '700' },
 });

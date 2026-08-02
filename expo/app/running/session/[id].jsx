@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
-  weekTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 20, fontWeight: '700' },
+  weekTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 20, fontWeight: '700' },
   sessionMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4, marginBottom: 16 },
   card: {
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
@@ -111,8 +111,8 @@ const styles = StyleSheet.create({
   intervalDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
   dotRun: { backgroundColor: '#22C55E' },
   dotWalk: { backgroundColor: '#4A90D9' },
-  intervalText: { flex: 1, color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  intervalText: { flex: 1, color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
   intervalDuration: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
-  distanceGoal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 24, fontWeight: '700' },
+  distanceGoal: { color: tokens.colors.dark_navy.text_primary, fontSize: 24, fontWeight: '700' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

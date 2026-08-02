@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '600' },
+  name: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '600' },
   specialty: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   ratingText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },

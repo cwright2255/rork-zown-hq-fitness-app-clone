@@ -164,10 +164,10 @@ export default function FoodDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
+  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, letterSpacing: -0.5 },
   serving: { fontSize: 13, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
   calWrap: { alignItems: 'center', marginVertical: 24 },
-  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -1 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.dark_navy.text_primary, letterSpacing: -1 },
   calLabel: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
   },
   macroRow: { marginBottom: 12 },
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  macroLabel: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14 },
-  macroValue: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  macroLabel: { color: tokens.colors.dark_navy.text_primary, fontSize: 14 },
+  macroValue: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
   track: { height: 6, backgroundColor: tokens.colors.dark_navy.bg_card, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  qtyText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '600' },
+  qtyText: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '600' },
   mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
   pill: { paddingVertical: 10, paddingHorizontal: tokens.spacing.md, borderRadius: 999 },
   pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },

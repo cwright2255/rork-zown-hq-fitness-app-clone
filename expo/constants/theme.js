@@ -34,19 +34,19 @@ export const colors = {
 };
 
 export const typography = {
-  hero: { fontSize: 36, fontWeight: '800', letterSpacing: -1, color: tokens.colors.dark_navy.bg_primary },
-  h1: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: tokens.colors.dark_navy.bg_primary },
-  h2: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: tokens.colors.dark_navy.bg_primary },
-  h3: { fontSize: 18, fontWeight: '600', color: tokens.colors.dark_navy.bg_primary },
-  h4: { fontSize: 16, fontWeight: '600', color: tokens.colors.dark_navy.bg_primary },
-  body: { fontSize: 15, fontWeight: '400', lineHeight: 22, color: tokens.colors.dark_navy.bg_primary },
+  hero: { fontSize: 36, fontWeight: '800', letterSpacing: -1, color: tokens.colors.dark_navy.text_primary },
+  h1: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: tokens.colors.dark_navy.text_primary },
+  h2: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: tokens.colors.dark_navy.text_primary },
+  h3: { fontSize: 18, fontWeight: '600', color: tokens.colors.dark_navy.text_primary },
+  h4: { fontSize: 16, fontWeight: '600', color: tokens.colors.dark_navy.text_primary },
+  body: { fontSize: 15, fontWeight: '400', lineHeight: 22, color: tokens.colors.dark_navy.text_primary },
   bodySmall: { fontSize: 13, fontWeight: '400', lineHeight: 18, color: tokens.colors.dark_navy.text_muted },
   caption: { fontSize: 11, fontWeight: '500', letterSpacing: 0.5, color: tokens.colors.dark_navy.text_secondary },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted },
   button: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
   buttonSmall: { fontSize: 14, fontWeight: '600' },
-  number: { fontSize: 32, fontWeight: '800', letterSpacing: -1, color: tokens.colors.dark_navy.bg_primary },
-  numberSmall: { fontSize: 20, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary },
+  number: { fontSize: 32, fontWeight: '800', letterSpacing: -1, color: tokens.colors.dark_navy.text_primary },
+  numberSmall: { fontSize: 20, fontWeight: '700', color: tokens.colors.dark_navy.text_primary },
 };
 
 export const spacing = {
@@ -72,14 +72,14 @@ export const radius = {
 
 export const shadows = {
   card: {
-    shadowColor: tokens.colors.dark_navy.text_primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   modal: {
-    shadowColor: tokens.colors.dark_navy.text_primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.5,
     shadowRadius: 16,

@@ -109,9 +109,9 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
-  orderNum: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
+  orderNum: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '700' },
   orderDate: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
-  orderTotal: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, marginTop: 8 },
+  orderTotal: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, marginTop: 8 },
   statusBadge: {
     alignSelf: 'flex-start', marginTop: 8,
     backgroundColor: 'rgba(34,197,94,0.15)',
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   line: { flex: 1, width: 2, backgroundColor: tokens.colors.dark_navy.text_primary, marginTop: 2 },
   lineDone: { backgroundColor: tokens.colors.dark_navy.bg_primary },
   timelineContent: { flex: 1, paddingBottom: 16, paddingLeft: 8 },
-  stepName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '500' },
+  stepName: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '500' },
   stepDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
   stepTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 11, marginTop: 4 },
 });

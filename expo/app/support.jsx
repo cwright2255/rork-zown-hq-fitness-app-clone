@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
   faqRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  faqQ: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
+  faqQ: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
   faqA: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, lineHeight: 19, marginTop: 10 },
 });

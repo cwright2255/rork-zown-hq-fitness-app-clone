@@ -99,11 +99,11 @@ const variantStyles = {
   },
   danger: {
     container: { backgroundColor: colors.red },
-    label: { color: tokens.colors.dark_navy.bg_primary },
+    label: { color: tokens.colors.dark_navy.text_primary },
   },
   spotify: {
     container: { backgroundColor: colors.spotify },
-    label: { color: tokens.colors.dark_navy.bg_primary },
+    label: { color: tokens.colors.dark_navy.text_primary },
   },
   dark: {
     container: {

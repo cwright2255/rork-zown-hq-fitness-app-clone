@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700' },
+  title: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '700' },
   sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg, padding: 14, minHeight: 120, gap: 4,
   },
   muted: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
-  logLine: { color: tokens.colors.dark_navy.bg_primary, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  logLine: { color: tokens.colors.dark_navy.text_primary, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
 });

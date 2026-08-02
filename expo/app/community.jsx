@@ -299,7 +299,7 @@ export default function CommunityScreen() {
                 renderItem={({ item }) => (
                   <View style={styles.commentRow}>
                     <View style={styles.commentAvatar}>
-                      <Text style={{ color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 11 }}>
+                      <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: 11 }}>
                         {initials(item.authorName)}
                       </Text>
                     </View>
@@ -354,10 +354,10 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: tokens.colors.dark_navy.bg_primary, fontWeight: '700', fontSize: 13 },
-  postName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  avatarText: { color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: 13 },
+  postName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
   postTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 12 },
-  postText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, lineHeight: 20, marginTop: 10 },
+  postText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, lineHeight: 20, marginTop: 10 },
   postActions: {
     flexDirection: 'row', gap: 20,
     marginTop: 12, paddingTop: 12,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   actionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
   challengeRow: { flexDirection: 'row', alignItems: 'center' },
-  challengeName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
+  challengeName: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '600' },
   challengeMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
   daysBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
@@ -379,18 +379,18 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.md, gap: tokens.spacing.md,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  modalTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '700' },
+  modalTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '700' },
   composerInput: {
     minHeight: 100, borderWidth: 1, borderColor: tokens.colors.dark_navy.border, borderRadius: tokens.radius.lg,
-    padding: tokens.spacing.md, color: tokens.colors.dark_navy.bg_primary, fontSize: 14, textAlignVertical: 'top',
+    padding: tokens.spacing.md, color: tokens.colors.dark_navy.text_primary, fontSize: 14, textAlignVertical: 'top',
   },
   commentRow: { flexDirection: 'row', paddingVertical: 8 },
   commentAvatar: {
     width: 28, height: 28, borderRadius: 14, backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  commentAuthor: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600' },
-  commentText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, marginTop: 2 },
+  commentAuthor: { color: tokens.colors.dark_navy.text_primary, fontSize: 13, fontWeight: '600' },
+  commentText: { color: tokens.colors.dark_navy.text_primary, fontSize: 13, marginTop: 2 },
   commentInputRow: {
     flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.sm,
     marginTop: tokens.spacing.sm, paddingTop: tokens.spacing.sm,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1, borderWidth: 1, borderColor: tokens.colors.dark_navy.border, borderRadius: 999,
-    paddingHorizontal: tokens.spacing.md, paddingVertical: 10, color: tokens.colors.dark_navy.bg_primary, fontSize: 14,
+    paddingHorizontal: tokens.spacing.md, paddingVertical: 10, color: tokens.colors.dark_navy.text_primary, fontSize: 14,
   },
   commentSendBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: tokens.colors.dark_navy.bg_primary,

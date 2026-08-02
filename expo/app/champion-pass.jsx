@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  heroTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
+  heroTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
   heroSub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4, textAlign: 'center' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -118,14 +118,14 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  tierBadgeText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '700' },
-  tierName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 15, fontWeight: '600' },
+  tierBadgeText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '700' },
+  tierName: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '600' },
   tierDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   currentPill: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  currentText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 11, fontWeight: '600' },
+  currentText: { color: tokens.colors.dark_navy.text_primary, fontSize: 11, fontWeight: '600' },
   emptyCard: {
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',

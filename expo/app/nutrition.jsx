@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  dateText: { fontSize: 18, fontWeight: '600', color: tokens.colors.dark_navy.bg_primary },
+  dateText: { fontSize: 18, fontWeight: '600', color: tokens.colors.dark_navy.text_primary },
   calCard: {
     backgroundColor: tokens.colors.dark_navy.text_primary,
     borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.lg, alignItems: 'center',
     marginTop: 8, marginBottom: tokens.spacing.md,
   },
-  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -1 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.dark_navy.text_primary, letterSpacing: -1 },
   calLabel: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
   macroRow: { flexDirection: 'row', gap: tokens.spacing.sm, marginBottom: 20 },
   macroChip: {
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg,
     padding: 12,
   },
-  macroVal: { fontSize: 16, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary },
+  macroVal: { fontSize: 16, fontWeight: '700', color: tokens.colors.dark_navy.text_primary },
   macroLabel: { fontSize: 12, color: tokens.colors.dark_navy.text_muted, marginTop: 2 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.md, marginBottom: 12,
   },
   mealHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mealName: { fontSize: 16, fontWeight: '600', color: tokens.colors.dark_navy.bg_primary },
+  mealName: { fontSize: 16, fontWeight: '600', color: tokens.colors.dark_navy.text_primary },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
@@ -183,13 +183,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: '#2A2A2A',
   },
-  foodName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, flex: 1 },
+  foodName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, flex: 1 },
   foodCal: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
   addFoodBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, marginTop: 12, paddingVertical: 10,
   },
-  addFoodText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '500' },
+  addFoodText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '500' },
   bottomBar: {
     position: 'absolute', left: 16, right: 16, bottom: 84,
   },

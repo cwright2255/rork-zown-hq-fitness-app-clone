@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 16, fontWeight: '600' },
+  name: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '600' },
   sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
   badge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
@@ -98,6 +98,6 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     paddingVertical: tokens.spacing.sm, paddingHorizontal: tokens.spacing.md, borderRadius: 999,
   },
-  syncText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 13, fontWeight: '600' },
+  syncText: { color: tokens.colors.dark_navy.text_primary, fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
 });

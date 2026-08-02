@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   body: { padding: 12 },
-  name: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  price: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  name: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  price: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
 });
 
 export default ProductCard;

@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontSize: 24, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, textAlign: 'center', letterSpacing: -0.5 },
+  title: { fontSize: 24, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, textAlign: 'center', letterSpacing: -0.5 },
   desc: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
 });

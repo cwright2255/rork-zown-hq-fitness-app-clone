@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
   levelLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
-  levelNumber: { color: tokens.colors.dark_navy.bg_primary, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
+  levelNumber: { color: tokens.colors.dark_navy.text_primary, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
   progressTrack: {
     width: '100%', height: 6, backgroundColor: tokens.colors.dark_navy.bg_card,
     borderRadius: 3, marginTop: 12, overflow: 'hidden',
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, alignItems: 'center',
   },
-  statValue: { color: tokens.colors.dark_navy.bg_primary, fontSize: 24, fontWeight: '700' },
+  statValue: { color: tokens.colors.dark_navy.text_primary, fontSize: 24, fontWeight: '700' },
   statLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  activityName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '500' },
+  activityName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '500' },
   activityDate: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   activityXp: { color: '#22C55E', fontSize: 14, fontWeight: '700' },
 });

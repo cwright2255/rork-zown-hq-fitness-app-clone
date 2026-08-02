@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1DB954',
     alignItems: 'center', justifyContent: 'center', marginBottom: tokens.spacing.md,
   },
-  title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
+  title: { color: tokens.colors.dark_navy.text_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
   sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 6, textAlign: 'center' },
   embedWrap: { marginBottom: 20 },
   sectionLabel: {
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.md, padding: 14, marginBottom: tokens.spacing.sm,
   },
-  plName: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  plName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
   plMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
   emptyCard: {
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,

@@ -105,6 +105,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },
-  bannerTitle: { color: tokens.colors.dark_navy.bg_primary, fontSize: 20, fontWeight: '700' },
+  bannerTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 20, fontWeight: '700' },
   bannerDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
 });

@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.dark_navy.bg_card,
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, fontWeight: '600' },
+  title: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
   body: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
   time: { color: tokens.colors.dark_navy.text_secondary, fontSize: 11, marginTop: 4 },
   dot: {

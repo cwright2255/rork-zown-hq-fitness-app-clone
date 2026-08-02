@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
-    color: tokens.colors.dark_navy.bg_primary, fontSize: 15, minHeight: 120,
+    color: tokens.colors.dark_navy.text_primary, fontSize: 15, minHeight: 120,
   },
   weekRow: {
     flexDirection: 'row', justifyContent: 'space-between',

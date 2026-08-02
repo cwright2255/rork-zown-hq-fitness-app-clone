@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   empty: { color: tokens.colors.dark_navy.text_muted },
   image: { width: '100%', height: 260 },
   imagePh: { backgroundColor: tokens.colors.dark_navy.text_primary },
-  title: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.bg_primary, letterSpacing: -0.5 },
+  title: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, letterSpacing: -0.5 },
   meta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 6 },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: tokens.spacing.sm },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   ingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.dark_navy.bg_primary, marginRight: 10 },
-  ingText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, flex: 1 },
+  ingText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, flex: 1 },
   stepCard: {
     flexDirection: 'row',
     backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
@@ -166,9 +166,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', gap: tokens.spacing.md,
   },
   stepNum: {
-    color: tokens.colors.dark_navy.bg_primary, fontSize: 18, fontWeight: '700',
+    color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '700',
     width: 28, textAlign: 'center',
   },
-  stepText: { color: tokens.colors.dark_navy.bg_primary, fontSize: 14, flex: 1, lineHeight: 20 },
+  stepText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, flex: 1, lineHeight: 20 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });
