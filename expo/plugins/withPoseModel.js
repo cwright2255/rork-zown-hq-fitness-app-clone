@@ -114,6 +114,23 @@ const withPoseModelXcodeEntry = (config) => {
     const relativePath = `${projectName}/${MODEL_FILENAME}`;
     const targetUuid = project.getFirstTarget().uuid;
 
+    // Real build failure, not a guess: addResourceFile unconditionally
+    // runs an internal path-correction step that calls
+    // project.pbxGroupByName('Resources').path - no null guard. Confirmed
+    // this is a documented upstream bug (expo/expo-cli#4293): a newer
+    // version of this exact file (in the standalone cordova-node-xcode
+    // project) has the guard (`pbxGroupByName(group) &&
+    // pbxGroupByName(group).path`), but the version bundled with Expo's
+    // tooling doesn't. Expo's freshly-generated Xcode project genuinely
+    // has no group literally named "Resources", so this always crashed.
+    // Creating that group first - with no path property, so the
+    // unrelated string-replace this same check gates never even runs -
+    // makes pbxGroupByName('Resources') return a real object instead of
+    // null, avoiding the crash without needing to patch the dependency.
+    if (!project.pbxGroupByName('Resources')) {
+      project.addPbxGroup([], 'Resources');
+    }
+
     const result = project.addResourceFile(relativePath, { target: targetUuid });
     if (result === false) {
       console.log(`[withPoseModel] ${MODEL_FILENAME} already registered in Xcode project, skipping`);
