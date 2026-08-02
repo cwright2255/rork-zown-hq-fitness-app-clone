@@ -168,6 +168,8 @@ export default function RegisterScreen() {
                     value={formData.password}
                     onChangeText={(v) => updateFormData('password', v)}
                     secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
                     {showPassword ? <EyeOff size={18} color={colors.textSecondary} /> : <Eye size={18} color={colors.textSecondary} />}
@@ -183,6 +185,8 @@ export default function RegisterScreen() {
                     value={formData.confirmPassword}
                     onChangeText={(v) => updateFormData('confirmPassword', v)}
                     secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={8}>
                     {showConfirmPassword ? <EyeOff size={18} color={colors.textSecondary} /> : <Eye size={18} color={colors.textSecondary} />}
