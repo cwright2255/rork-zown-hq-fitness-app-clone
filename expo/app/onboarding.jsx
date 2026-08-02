@@ -101,17 +101,46 @@ export default function OnboardingScreen() {
     }
   };
 
+  // Real age from the YYYY-MM-DD date of birth already collected in step 2 -
+  // accounts for whether this year's birthday has actually happened yet,
+  // not just a year subtraction. Returns null (not a guessed default) if
+  // the date doesn't parse, so downstream consumers can tell "unknown"
+  // apart from a real age of 0.
+  const getAgeFromDob = (dobString) => {
+    if (!dobString) return null;
+    const parsed = new Date(dobString);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const today = new Date();
+    let years = today.getFullYear() - parsed.getFullYear();
+    const monthDiff = today.getMonth() - parsed.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsed.getDate())) {
+      years -= 1;
+    }
+    return years >= 0 && years < 130 ? years : null;
+  };
+
   // Save profile and finish
-  const handleFinish = async () => {
+  const handleFinish = async (destination = '/hq') => {
     try {
       const calculatedHeight = getCalculatedHeight();
       const calculatedWeight = getCalculatedWeight();
+      const calculatedAge = getAgeFromDob(dob);
 
       // Setup clean, well-structured user object matching Firestore requirements
       const profileData = {
         name: name || 'User',
         dob: dob || '1995-01-01',
         gender: gender,
+        // Real fix, not redundant with fitnessMetrics below: body-scan/capture.jsx
+        // pre-fills its own form from these exact top-level field names
+        // (user.heightCm, user.weightKg, user.age, user.gender) and skips
+        // showing that form entirely once heightCm is present. Without these,
+        // completing onboarding wouldn't actually carry height/weight/age
+        // into the scan flow - the scan would silently start with those
+        // fields empty despite the person having just provided them here.
+        heightCm: calculatedHeight,
+        weightKg: calculatedWeight,
+        age: calculatedAge,
         fitnessMetrics: {
           height: calculatedHeight,
           weight: calculatedWeight,
@@ -147,18 +176,19 @@ export default function OnboardingScreen() {
         await saveProfile(user.uid);
       }
 
-      // Navigate home
-      router.replace('/hq');
+      // Navigate to wherever the person chose - home, or straight into the scan
+      router.replace(destination);
     } catch (e) {
       console.error('[Onboarding] Save error:', e);
-      // Fallback redirect
+      // Fallback redirect - always home on error, never into the scan flow
+      // with a profile that may not have actually saved
       completeOnboarding();
       router.replace('/hq');
     }
   };
 
   const nextStep = () => {
-    if (step < 6) setStep(step + 1);
+    if (step < 7) setStep(step + 1);
   };
 
   const prevStep = () => {
@@ -464,8 +494,38 @@ export default function OnboardingScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.blackButton} onPress={handleFinish}>
-              <Text style={styles.blackButtonText}>Let's Go!</Text>
+            <TouchableOpacity style={styles.blackButton} onPress={nextStep}>
+              <Text style={styles.blackButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 7:
+        return (
+          <View style={styles.stepContainer}>
+            <View style={styles.successCelebration}>
+              <Text style={styles.celebrationIcon}>🌗</Text>
+              <Text style={styles.titleText}>Create your Shadow</Text>
+              <Text style={styles.descText}>
+                Your Shadow is a living record of your training — a 3D avatar
+                that reflects real changes in your body as you put in the work.
+                A quick scan gives it a real starting point. You can always do
+                this later from your profile instead.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.blackButton}
+              onPress={() => handleFinish('/body-scan/capture')}
+            >
+              <Text style={styles.blackButtonText}>Scan Now</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.skipButton}
+              onPress={() => handleFinish('/hq')}
+            >
+              <Text style={styles.skipButtonText}>Skip for now</Text>
             </TouchableOpacity>
           </View>
         );
@@ -481,7 +541,7 @@ export default function OnboardingScreen() {
       
       {/* Header bar with Back button and progress dots */}
       <View style={styles.headerBar}>
-        {step > 1 && step < 6 ? (
+        {step > 1 && step < 7 ? (
           <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
             <ChevronLeft size={24} color={colors.text} />
           </TouchableOpacity>
@@ -491,7 +551,7 @@ export default function OnboardingScreen() {
         
         {/* Progress Dots */}
         <View style={styles.progressDotsContainer}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <View
               key={i}
               style={[
@@ -612,6 +672,16 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.5
+  },
+  skipButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 12
+  },
+  skipButtonText: {
+    color: colors.textTertiary,
+    fontSize: 15,
+    fontWeight: '600'
   },
   inputGroup: {
     marginBottom: 24

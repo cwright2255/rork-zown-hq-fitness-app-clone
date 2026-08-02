@@ -72,9 +72,9 @@ export default function BodyScanCaptureScreen() {
   const [heightInchesInput, setHeightInchesInput] = useState('');
 
   // Weight — single field, unit follows unitSystem
-  const [weightInput, setWeightInput] = useState('');
+  const [weightInput, setWeightInput] = useState(user?.weightKg ? String(user.weightKg) : '');
 
-  const [age, setAgeInput] = useState('');
+  const [age, setAgeInput] = useState(user?.age ? String(user.age) : '');
 
   const [neckInput, setNeckInput] = useState(''); // optional — see the "I have a tape measure" toggle below; unit follows unitSystem
   const [showNeckInput, setShowNeckInput] = useState(false);
