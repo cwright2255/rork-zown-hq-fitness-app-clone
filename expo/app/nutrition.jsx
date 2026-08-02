@@ -41,6 +41,72 @@ export default function NutritionScreen() {
       setRefreshing(false);
     }
   };
+
+  // Real fix: everything below was referenced throughout the render
+  // logic (date nav, macro totals, per-meal breakdown) but never
+  // declared anywhere in this file - the whole logic layer was missing
+  // while the JSX that depends on it was intact. Built directly from
+  // the real meals data shape confirmed in healthStore.js
+  // (timestamp/calories/protein/carbs/fat), mirroring the pattern
+  // already used there for getTodayMacros, but for the selected date
+  // rather than only today.
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const shiftDate = (days) => {
+    setSelectedDate((prev) => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + days);
+      return next;
+    });
+  };
+
+  const formatDate = (date) => {
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    if (isToday) return 'Today';
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  const mealsForSelectedDate = useMemo(() => {
+    const dateStr = selectedDate.toISOString().slice(0, 10);
+    return (meals || []).filter((m) => m.timestamp && m.timestamp.startsWith(dateStr));
+  }, [meals, selectedDate]);
+
+  const totals = useMemo(() => ({
+    protein: mealsForSelectedDate.reduce((s, m) => s + (m.protein || 0), 0),
+    carbs: mealsForSelectedDate.reduce((s, m) => s + (m.carbs || 0), 0),
+    fat: mealsForSelectedDate.reduce((s, m) => s + (m.fat || 0), 0),
+  }), [mealsForSelectedDate]);
+
+  // No calorie-goal field exists anywhere in the user or health store -
+  // using a standard baseline rather than a real personalized target.
+  const DAILY_CALORIE_GOAL = 2000;
+  const caloriesConsumed = mealsForSelectedDate.reduce((s, m) => s + (m.calories || 0), 0);
+  const caloriesRemaining = Math.max(0, DAILY_CALORIE_GOAL - caloriesConsumed);
+
+  const mealTypes = [
+    { name: 'Breakfast' },
+    { name: 'Lunch' },
+    { name: 'Dinner' },
+    { name: 'Snacks' },
+  ];
+
+  const getMealForType = (typeName) => {
+    return mealsForSelectedDate.find((m) => m.type === typeName || m.mealType === typeName) || null;
+  };
+
+  const sumMealCalories = (meal) => {
+    if (!meal) return 0;
+    if (meal.calories) return meal.calories;
+    return (meal.foods || []).reduce((s, f) => s + (f.calories || 0), 0);
+  };
+
+  const handleAddMealType = (type) => {
+    router.push('/nutrition/search');
+  };
 return (
     <View style={styles.container}>
       <ScreenHeader title="Nutrition" />

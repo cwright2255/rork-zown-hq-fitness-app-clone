@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Alert, TextInput } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Scan, Save, Ruler, Aperture, RefreshCw } from 'lucide-react-native';
+import { Scan, Save, Ruler, Aperture, RefreshCw, Camera as CameraIcon } from 'lucide-react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import Colors from '@/constants/colors';
 import Button from '@/components/Button';
@@ -33,7 +33,7 @@ export default function BodyScanScreen() {
   const poses = useMemo(() => ['Front', 'Side', 'Back'], []);
 
   const [currentPoseIndex, setCurrentPoseIndex] = useState(0);
-  const [photos, setPhotos] = useState({ Front, Side, Back: null });
+  const [photos, setPhotos] = useState({ Front: null, Side: null, Back: null });
   const [isCapturing, setIsCapturing] = useState(false);
 
   const handleNextStep = () => {
@@ -62,7 +62,7 @@ export default function BodyScanScreen() {
         }
       }
       setScanComplete(false);
-      setPhotos({ Front, Side, Back: null });
+      setPhotos({ Front: null, Side: null, Back: null });
       setCurrentPoseIndex(0);
     } catch (e) {
       console.error('[BodyScan] Error starting scan', e);
@@ -328,7 +328,7 @@ export default function BodyScanScreen() {
   }, [currentPoseIndex, poses]);
 
   const resetCapture = useCallback(() => {
-    setPhotos({ Front, Side, Back: null });
+    setPhotos({ Front: null, Side: null, Back: null });
     setCurrentPoseIndex(0);
     setScanComplete(false);
   }, []);

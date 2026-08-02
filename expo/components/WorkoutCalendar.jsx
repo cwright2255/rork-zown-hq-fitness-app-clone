@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { ChevronLeft, ChevronRight, Plus, Clock } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -338,8 +338,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20
   },
   dayCell: {
-    width,
-    height,
+    width: CELL_SIZE,
+    height: CELL_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',

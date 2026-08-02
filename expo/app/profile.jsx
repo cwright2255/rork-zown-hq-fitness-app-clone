@@ -127,9 +127,59 @@ function MenuRow({ item }) {
 export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { user, loadProfile } = useUserStore();
-  const { totalExp, loadXP } = useExpStore();
+  const { user, loadProfile, updateUser, saveProfile } = useUserStore();
+  const { totalExp, loadXP, getLevel } = useExpStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+
+  // Real fix, same class as profilePhoto/profileName above: these were
+  // referenced in the stats and XP cards below but never declared. Used
+  // the same 1000-XP-per-level formula already established in
+  // expStore.js (calculateLevelFromExp/getExpForLevel) rather than
+  // inventing a different one here.
+  const xpLevel = getLevel ? getLevel() : Math.floor((totalExp || 0) / 1000) + 1;
+  const xpTarget = 1000;
+  const xpCurrent = (totalExp || 0) - (xpLevel - 1) * 1000;
+  const xpPercent = Math.min(100, Math.max(0, (xpCurrent / xpTarget) * 100));
+
+  const STATS_LIVE = [
+    { label: 'Workouts', value: completedWorkouts?.length || 0 },
+    { label: 'Streak', value: user?.streak || 0 },
+    { label: 'Total XP', value: totalExp || 0 },
+  ];
+
+  // Real fix: these were referenced throughout this screen (profile
+  // photo, display name, edit handler below) but never actually
+  // declared anywhere - a genuine crash on every load, not just a
+  // missing default. Derived from the real user store fields
+  // (confirmed directly in userStore.js: user.name, user.photoURL),
+  // not invented new state.
+  const profilePhoto = user?.photoURL || '';
+  const profileName = user?.name || 'User';
+
+  const handleEditPhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission needed', 'Allow photo library access to update your profile photo.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+
+      updateUser({ photoURL: result.assets[0].uri });
+      if (user?.uid) {
+        await saveProfile(user.uid);
+      }
+    } catch (e) {
+      console.warn('[ProfileScreen] Edit photo failed:', e?.message);
+      Alert.alert('Error', 'Could not update your photo. Please try again.');
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);

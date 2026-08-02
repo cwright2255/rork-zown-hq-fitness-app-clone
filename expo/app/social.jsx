@@ -81,6 +81,88 @@ export default function SocialScreen() {
       setRefreshing(false);
     }
   };
+
+  // Real fix: same class as nutrition.jsx - tab state and all four render
+  // functions were referenced below but never declared, while the demo
+  // data they need (FEED_POSTS, DUELS, COMMUNITIES, MEDAL_COLORS) was
+  // already intact above. No leaderboard-specific array existed at all,
+  // so LEADERBOARD below is new, matching the same demo-data style as
+  // the other three arrays already in this file.
+  const displayName = user?.name || 'Athlete';
+  const dateStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
+  const [activeTab, setActiveTab] = useState('Feed');
+
+  const LEADERBOARD = [
+    { name: 'Sarah M.', xp: 4820 },
+    { name: 'Alex R.', xp: 4310 },
+    { name: displayName, xp: user?.totalExp || 0 },
+    { name: 'Mike T.', xp: 2890 },
+    { name: 'Jessica L.', xp: 2415 },
+  ].sort((a, b) => b.xp - a.xp);
+
+  const renderFeed = () => (
+    <View>
+      {FEED_POSTS.map((post) => (
+        <View key={post.id} style={s.feedCard}>
+          <View style={s.feedHeader}>
+            <View style={s.feedAvatar}><Ionicons name="person" size={18} color="#999" /></View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={s.feedUser}>{post.user}</Text>
+              <Text style={s.feedTime}>{post.time}</Text>
+            </View>
+          </View>
+          <Text style={s.feedText}>{post.text}</Text>
+          {post.workout ? (
+            <View style={s.feedWorkoutChip}>
+              <Text style={s.feedWorkoutText}>{post.workout.name} · {post.workout.duration} · {post.workout.calories} cal</Text>
+            </View>
+          ) : null}
+          <View style={s.feedActionsRow}>
+            <Text style={s.feedActionText}>♡ {post.likes}</Text>
+            <Text style={s.feedActionText}>💬 {post.comments}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderLeaderboard = () => (
+    <View>
+      {LEADERBOARD.map((entry, i) => (
+        <View key={entry.name} style={s.leaderRow}>
+          <Text style={[s.leaderRank, i < 3 && { color: MEDAL_COLORS[i] }]}>{i + 1}</Text>
+          <Text style={s.leaderName}>{entry.name}</Text>
+          <Text style={s.leaderXp}>{entry.xp.toLocaleString()} XP</Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderDuels = () => (
+    <View>
+      {DUELS.map((duel, i) => (
+        <View key={i} style={s.duelCard}>
+          <Text style={s.duelTitle}>{duel.challenge} vs {duel.opponent}</Text>
+          <Text style={s.duelProgress}>You: {duel.yours} ({duel.yourPct}%)  ·  Them: {duel.theirs} ({duel.theirPct}%)</Text>
+          <Text style={s.duelDays}>{duel.days} days left</Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderCommunity = () => (
+    <View>
+      {COMMUNITIES.map((c) => (
+        <View key={c.name} style={s.communityRow}>
+          <Ionicons name={c.icon} size={20} color="#000" />
+          <Text style={s.communityName}>{c.name}</Text>
+          <Text style={s.communityMembers}>{c.members.toLocaleString()} members</Text>
+        </View>
+      ))}
+    </View>
+  );
 return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollPad} showsVerticalScrollIndicator={false}

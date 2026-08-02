@@ -42,7 +42,7 @@ export function SkeletonLoader({
       accessibilityRole="progressbar"
       style={[
       styles.base,
-      { width: width | `${number}%`, height, borderRadius, opacity },
+      { width, height, borderRadius, opacity },
       style]
       } />);
 

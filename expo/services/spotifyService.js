@@ -247,7 +247,7 @@ class SpotifyService {
           continue;
         }
 
-        const data = (await response.json()) | SpotifyClientCredentialsResponse;
+        const data = await response.json();
         console.log('SpotifyService: Spotify token proxy succeeded via:', url);
         return data;
       } catch (error) {

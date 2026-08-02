@@ -1,33 +1,6 @@
 import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useMemo } from 'react';
-  const { completedWorkouts } = useWorkoutStore();
-  const { totalExp } = useExpStore();
-  const { hydration, sleep, steps: storeSteps } = useHealthStore();
-  const { runs } = useRunningStore();
-
-  const filterByPeriod = (items, period, dateKey) => {
-    const key = dateKey || 'completedAt';
-    const now = new Date();
-    return (items || []).filter(item => {
-      const d = item[key];
-      if (!d) return false;
-      const date = new Date(d);
-      if (period === 'Day') return date.toDateString() === now.toDateString();
-      if (period === 'Week') return date >= new Date(now.getTime() - 7*24*60*60*1000);
-      if (period === 'Month') return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-      return true;
-    });
-  };
-
-  const filteredWorkouts = filterByPeriod(completedWorkouts || [], period);
-  const filteredRuns = filterByPeriod(runs || [], period, 'endTime');
-  const liveOverview = {
-    workouts: filteredWorkouts.length,
-    calories: (filteredWorkouts.reduce((s,w) => s+(w.caloriesBurned||w.calories||0),0) + filteredRuns.reduce((s,r) => s+(r.calories||0),0)).toLocaleString(),
-    xp: (totalExp || 0).toLocaleString(),
-  };
-
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,7 +10,7 @@ import { useExpStore } from '@/store/expStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRunningStore } from '@/store/runningStore';
 
-/* Ã¢ÂÂÃ¢ÂÂ Data by time filter Ã¢ÂÂÃ¢ÂÂ */
+/* -- Data by time filter -- */
 
 const OVERVIEW = {
   Day:   { workouts: 1,  calories: '320',   xp: '100' },
@@ -104,6 +77,12 @@ function Pill({ label, active, onPress, small }) {
 
 export default function AnalysisScreen() {
   const [timeFilter, setTimeFilter] = useState('Week');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  };
   const [activityFilter, setActivityFilter] = useState('All');
 
   const ov = OVERVIEW[timeFilter];

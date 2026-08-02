@@ -7,13 +7,54 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
+import { useUserStore } from '@/store/userStore';
 import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { runs, loadRuns } = useRunningStore();
+  const { runs, loadRuns, getStats } = useRunningStore();
   const { user } = useUserStore();
+
+  // Real fix: filter/setFilter/filteredRuns/stats were referenced below
+  // but never declared. getStats() already existed in runningStore.js
+  // and returns raw totalDuration/avgPace - formatted here for display
+  // rather than duplicating the aggregation logic itself.
+  const [filter, setFilter] = useState('All');
+
+  const filteredRuns = useMemo(() => {
+    if (filter === 'All') return runs || [];
+    const now = new Date();
+    return (runs || []).filter((r) => {
+      if (!r.endTime) return false;
+      const d = new Date(r.endTime);
+      if (filter === 'Week') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      if (filter === 'Month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      if (filter === 'Year') return d.getFullYear() === now.getFullYear();
+      return true;
+    });
+  }, [runs, filter]);
+
+  const formatDuration = (totalSeconds) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  const formatPace = (paceMinPerKm) => {
+    if (!paceMinPerKm) return '--';
+    const min = Math.floor(paceMinPerKm);
+    const sec = Math.round((paceMinPerKm - min) * 60);
+    return `${min}'${String(sec).padStart(2, '0')}"/km`;
+  };
+
+  const rawStats = getStats ? getStats() : { totalRuns: 0, totalDistance: 0, totalDuration: 0, avgPace: 0 };
+  const stats = {
+    totalRuns: rawStats.totalRuns,
+    totalDistance: `${rawStats.totalDistance.toFixed(1)} km`,
+    totalTime: formatDuration(rawStats.totalDuration),
+    avgPace: formatPace(rawStats.avgPace),
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);

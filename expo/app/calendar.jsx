@@ -32,6 +32,12 @@ export default function CalendarScreen(){
   const [year,setYear]=useState(2026);
   const [month,setMonth]=useState(5); // June
   const [selectedDay,setSelectedDay]=useState(3);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   const daysInMonth=getDaysInMonth(year,month);
   const firstDay=getFirstDayOfMonth(year,month);

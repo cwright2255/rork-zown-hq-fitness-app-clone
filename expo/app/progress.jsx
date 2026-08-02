@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useHealthStore } from '@/store/healthStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useUserStore } from '@/store/userStore';
 const WEIGHT_DATA_LIVE = [
   {month:'Jan',val:185},{month:'Feb',val:183},{month:'Mar',val:181},
   {month:'Apr',val:180},{month:'May',val:178},{month:'Jun',val:177},{month:'Jul',val:175},
@@ -31,6 +32,15 @@ export default function ProgressScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { weightHistory, loadAllHealth } = useHealthStore();
   const { user } = useUserStore();
+
+  // Real fix: maxW/range were used in the chart height formula below but
+  // never computed anywhere - standard min/max scaling derived from the
+  // actual values being charted.
+  const weightVals = WEIGHT_DATA_LIVE.map((d) => d.val);
+  const maxW = Math.max(...weightVals);
+  const minW = Math.min(...weightVals);
+  const range = maxW - minW || 1;
+  const bodyScan = null;
 
   const onRefresh = async () => {
     setRefreshing(true);
