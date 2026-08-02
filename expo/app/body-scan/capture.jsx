@@ -542,13 +542,19 @@ const styles = StyleSheet.create({
 // path in the first place.
 export default function BodyScanCaptureScreen() {
   const [modelPath, setModelPath] = useState(null);
+  const [modelSize, setModelSize] = useState(null);
   const [modelError, setModelError] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
 
   const startDownload = useCallback(() => {
     setModelError(null);
     setModelPath(null);
+    setConfirmed(false);
     ensurePoseModelDownloaded()
-      .then(setModelPath)
+      .then(({ path, size }) => {
+        setModelPath(path);
+        setModelSize(size);
+      })
       .catch((e) => setModelError(e?.message || 'Could not prepare the scan model.'));
   }, []);
 
@@ -581,5 +587,25 @@ export default function BodyScanCaptureScreen() {
     );
   }
 
+  // Temporary diagnostic checkpoint: shows exactly what was resolved
+  // before handing off to the camera/pose-detection screen, so if
+  // MODEL_NOT_FOUND happens again, there's a concrete path and size to
+  // screenshot and compare against - rather than only seeing the
+  // generic native error with no detail.
+  if (!confirmed) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenHeader title="Body Scan" showBack />
+        <View style={styles.centerMessage}>
+          <Ionicons name="checkmark-circle-outline" size={40} color={colors.green} />
+          <Text style={styles.centerMessageText}>Model ready ({(modelSize / 1000000).toFixed(1)} MB)</Text>
+          <Text style={[styles.centerMessageText, { fontSize: 11, opacity: 0.6 }]} selectable>{modelPath}</Text>
+          <PrimaryButton title="Continue to Camera" onPress={() => setConfirmed(true)} style={{ marginTop: spacing.lg }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return <CaptureFlow modelPath={modelPath} />;
 }
+
