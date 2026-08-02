@@ -75,7 +75,7 @@ return (
           padding: 18,
           marginBottom: 18,
         }}
-        onPress={() => router.push('/body-scan')}
+        onPress={() => router.push('/body-scan/capture')}
         activeOpacity={0.7}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
