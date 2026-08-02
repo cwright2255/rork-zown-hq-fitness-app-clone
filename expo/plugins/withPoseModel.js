@@ -31,8 +31,22 @@
 // file reference doesn't point to a real file, crashing when the app
 // tries to load it. addResourceFile properly creates both the
 // PBXBuildFile and PBXResourcesBuildPhase entries directly.
+//
+// Real fix after a real build failure: the first version of this
+// plugin used config.modRequest.projectName inside withDangerousMod.
+// That property is genuinely optional in @expo/config-plugins' own
+// type definition (projectName?: string) - confirmed directly against
+// the type declaration, not assumed - and evidently isn't reliably
+// populated at the point a dangerous mod runs, causing path.join() to
+// throw on undefined and crash the whole prebuild with an opaque
+// "Unknown error". Switched to IOSConfig.XcodeUtils.getProjectName(),
+// which derives the name by reading the actual generated project
+// structure from disk rather than depending on mod-request state -
+// verified against its real implementation (ios/utils/Xcodeproj.js),
+// which is exactly what @expo/config-plugins' own internals use for
+// the same purpose.
 
-const { withDangerousMod, withXcodeProject } = require('@expo/config-plugins');
+const { withDangerousMod, withXcodeProject, IOSConfig } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -72,7 +86,8 @@ const withPoseModelDownload = (config) => {
   return withDangerousMod(config, [
     'ios',
     async (config) => {
-      const iosDir = path.join(config.modRequest.platformProjectRoot, config.modRequest.projectName);
+      const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
+      const iosDir = path.join(config.modRequest.platformProjectRoot, projectName);
       const destPath = path.join(iosDir, MODEL_FILENAME);
 
       if (fs.existsSync(destPath) && fs.statSync(destPath).size > 100000) {
@@ -80,7 +95,7 @@ const withPoseModelDownload = (config) => {
         return config;
       }
 
-      console.log(`[withPoseModel] Downloading ${MODEL_FILENAME} into iOS project...`);
+      console.log(`[withPoseModel] Downloading ${MODEL_FILENAME} into ${iosDir}...`);
       await downloadFile(MODEL_URL, destPath);
       const size = fs.statSync(destPath).size;
       if (size < 100000) {
@@ -95,7 +110,7 @@ const withPoseModelDownload = (config) => {
 const withPoseModelXcodeEntry = (config) => {
   return withXcodeProject(config, (config) => {
     const project = config.modResults;
-    const projectName = config.modRequest.projectName;
+    const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
     const relativePath = `${projectName}/${MODEL_FILENAME}`;
     const targetUuid = project.getFirstTarget().uuid;
 
