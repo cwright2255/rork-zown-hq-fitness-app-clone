@@ -16,20 +16,31 @@ const POLL_TIMEOUT_MS = 180000;
 /**
  * Submits a rigging task for a GLB model provided as a data URI (avoids
  * needing separate public file hosting for a one-time reference asset).
- * @param {{ apiKey: string, modelDataUri: string, heightMeters: number }} params
+ * @param {{ apiKey: string, modelDataUri: string, heightMeters: number, textureImageUri?: string }} params
  * @returns {Promise<string>} the rigging task id
  */
-export async function submitRiggingTask({ apiKey, modelDataUri, heightMeters }) {
+export async function submitRiggingTask({ apiKey, modelDataUri, heightMeters, textureImageUri }) {
+  const body = {
+    model_url: modelDataUri,
+    height_meters: heightMeters,
+  };
+  // Real fix, not optional in practice: Meshy's own docs list "Untextured
+  // meshes" first among models auto-rigging is not suitable for, and a
+  // real submission with no texture failed. texture_image_url is a real,
+  // documented parameter (UV-unwrapped base color image, .png, URL or
+  // Data URI) - only included when provided, since not every caller of
+  // this function necessarily has one.
+  if (textureImageUri) {
+    body.texture_image_url = textureImageUri;
+  }
+
   const res = await fetch(MESHY_API_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model_url: modelDataUri,
-      height_meters: heightMeters,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -79,7 +90,7 @@ export async function pollRiggingTask({ apiKey, taskId }) {
 /**
  * Convenience wrapper: submit + poll in one call.
  */
-export async function rigModel({ apiKey, modelDataUri, heightMeters }) {
-  const taskId = await submitRiggingTask({ apiKey, modelDataUri, heightMeters });
+export async function rigModel({ apiKey, modelDataUri, heightMeters, textureImageUri }) {
+  const taskId = await submitRiggingTask({ apiKey, modelDataUri, heightMeters, textureImageUri });
   return pollRiggingTask({ apiKey, taskId });
 }

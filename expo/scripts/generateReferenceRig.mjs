@@ -20,21 +20,86 @@
 //                                              offset between the reference
 //                                              shape and each user's shape.
 //
-// Before running: read the two open questions flagged in the audit —
-// (1) does Meshy's rigging pipeline need an actual bitmap texture, or is a
-//     flat PBR material (baseColorFactor, no texture map — what this script
-//     exports) sufficient, and
-// (2) does the +Z forward-facing convention line up correctly.
+// Resolved, not an open question anymore: a real submission with no
+// texture failed with a pose-estimation error, and Meshy's own rigging
+// docs explicitly list "Untextured meshes" first among models auto-rigging
+// is not suitable for. This script now generates a plain solid-color PNG
+// (matching the mesh's own flat gray material) and submits it as
+// texture_image_url alongside the model.
 // This script logs the exported GLB to a local file FIRST and pauses,
 // so you can sanity-check orientation/material in a glTF viewer before it
 // spends credits submitting to Meshy — see the --export-only flag.
 
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 import { buildBodyMesh } from '../lib/bodyMeshBuilder.js';
 import { exportBodyMeshToGLB, glbToDataUri } from '../lib/exportMeshToGLB.js';
 import { rigModel } from '../services/meshyRiggingService.js';
+
+// Real fix, not part of the original script: Meshy's rigging API docs
+// explicitly list "Untextured meshes" first among models auto-rigging is
+// not suitable for, and a real submission with the flat-material-only GLB
+// this script produced failed with a pose-estimation error. Rather than
+// add an external image-generation dependency for a one-time dev script,
+// this constructs a minimal valid PNG by hand - signature + IHDR + IDAT
+// (zlib-deflated raw RGB rows) + IEND, using only Node's built-in zlib.
+// Verified independently before wiring in: the `file` command correctly
+// identifies the output as real PNG image data, and it renders correctly
+// in an image viewer.
+function makeSolidColorPng(width, height, [r, g, b]) {
+  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+  const crcTable = [];
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    crcTable[n] = c;
+  }
+  function crc32(buf) {
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) | 0;
+  }
+  function chunk(type, data) {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length, 0);
+    const typeBuf = Buffer.from(type, 'ascii');
+    const crc = Buffer.alloc(4);
+    crc.writeInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
+    return Buffer.concat([len, typeBuf, data, crc]);
+  }
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // color type: RGB
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+
+  const rowLen = 1 + width * 3;
+  const raw = Buffer.alloc(rowLen * height);
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * rowLen;
+    raw[rowStart] = 0; // filter type: none
+    for (let x = 0; x < width; x++) {
+      const px = rowStart + 1 + x * 3;
+      raw[px] = r;
+      raw[px + 1] = g;
+      raw[px + 2] = b;
+    }
+  }
+  const idatData = zlib.deflateSync(raw);
+
+  return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idatData), chunk('IEND', Buffer.alloc(0))]);
+}
+
+function pngToDataUri(pngBuffer) {
+  return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+}
 
 // This script runs in plain Node (it's a dev tool, run once from the
 // command line), which — unlike React Native — has no built-in FileReader.
@@ -100,10 +165,15 @@ async function main() {
 
   console.log('\nSubmitting to Meshy for rigging (this consumes credits)...');
   const dataUri = glbToDataUri(glbBuffer);
+  // Same color as MANNEQUIN_GRAY in lib/exportMeshToGLB.js (#9CA3AF), so
+  // the texture matches the material already visible in the local export
+  const texturePng = makeSolidColorPng(64, 64, [0x9c, 0xa3, 0xaf]);
+  const textureDataUri = pngToDataUri(texturePng);
   const { riggedGlbUrl, basicAnimations } = await rigModel({
     apiKey,
     modelDataUri: dataUri,
     heightMeters: REFERENCE_SCAN.heightCm / 100,
+    textureImageUri: textureDataUri,
   });
 
   console.log('Rigging succeeded. Downloading rigged GLB...');
