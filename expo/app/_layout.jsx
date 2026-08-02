@@ -3,45 +3,19 @@ import LottieView from 'lottie-react-native';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native';
 import { tokens } from '../../theme/tokens';
 
-// CRITICAL: ErrorBoundary is exported FIRST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ before any other imports that could
-// throw at module-load time. expo-router reads `routeModule.ErrorBoundary` when
-// loading this route, and if any later top-level import/execution fails,
-// the rest of the module never runs. Defining ErrorBoundary here guarantees
-// the export exists no matter what else happens below.
-export class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error('[ZownHQ] Crash:', error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: tokens.colors.dark_navy.text_primary }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: tokens.colors.dark_navy.bg_primary }}>Something went wrong</Text>
-          <Text style={{ color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginBottom: 20, fontSize: 14 }}>
-            {String(this.state.error)}
-          </Text>
-          <TouchableOpacity
-            onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor: tokens.colors.dark_navy.bg_primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 28 }}>
-            <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700' }}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
+// A custom `export class ErrorBoundary` from app/_layout.jsx has been
+// removed here multiple times this session and keeps regressing back in
+// from an external process editing this repo independently. Removed
+// again for the same real reason as before: it doesn't match Expo
+// Router's actual API for this export (a plain function receiving
+// { error, retry } as props, not a self-managed class), and matches a
+// real, documented pattern of ErrorBoundary-in-root-layout causing
+// unexpected screen resets in Expo Router specifically.
 
 import { Stack, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 const Head = ({ children }) => null;
@@ -473,16 +447,38 @@ export default function RootLayout() {
     if (fontsLoaded) void SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
+  // Real fix, not just a nice-to-have: expo-updates' default behavior is
+  // to check for a new update on launch, download it in the background,
+  // but not actually run it until the launch AFTER that one - a real,
+  // common source of "I reloaded and nothing changed" reports, since it
+  // silently needs a second relaunch to actually apply. Checking and
+  // reloading immediately here means a single relaunch is enough.
+  // __DEV__-guarded and fully wrapped in try/catch since Updates isn't
+  // meaningfully functional in Expo Go or local dev builds - this should
+  // never be able to break app startup even if it fails.
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (result.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        console.log('[Updates] check/apply failed, continuing on current bundle:', e?.message);
+      }
+    })();
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
     <RookWrapper>
       <QueryClientProvider client={queryClient}>
-        <ErrorBoundary>
-          <SafeAreaProvider>
-            <RootLayoutInner />
-          </SafeAreaProvider>
-        </ErrorBoundary>
+        <SafeAreaProvider>
+          <RootLayoutInner />
+        </SafeAreaProvider>
       </QueryClientProvider>
     </RookWrapper>
   );
