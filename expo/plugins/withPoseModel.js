@@ -112,7 +112,25 @@ const withPoseModelXcodeEntry = (config) => {
     const project = config.modResults;
     const projectName = IOSConfig.XcodeUtils.getProjectName(config.modRequest.projectRoot);
     const relativePath = `${projectName}/${MODEL_FILENAME}`;
-    const targetUuid = project.getFirstTarget().uuid;
+    // Real, likely bug: getFirstTarget() takes whatever is listed first
+    // in the project's targets array - not necessarily the app itself.
+    // Expo-generated projects also have a Tests target; if that's ever
+    // ordered first, the model would get added to its Resources build
+    // phase instead of the real app's, so it would never actually ship
+    // in the installed app despite prebuild succeeding and the file
+    // genuinely existing in the project. getTarget() filters explicitly
+    // by product type (com.apple.product-type.application), so it's
+    // correct regardless of array order - verified against its real
+    // implementation (lib/pbxProject.js). Using this directly rather
+    // than the higher-level getApplicationNativeTarget helper, which
+    // adds a strict target-name assertion on top - not worth the risk
+    // of a new, unrelated failure mode for what's otherwise the same
+    // underlying lookup.
+    const applicationTarget = project.getTarget('com.apple.product-type.application');
+    if (!applicationTarget) {
+      throw new Error('[withPoseModel] Could not find the application target in the Xcode project');
+    }
+    const targetUuid = applicationTarget.uuid;
 
     // Real build failure, not a guess: addResourceFile unconditionally
     // runs an internal path-correction step that calls
