@@ -211,15 +211,27 @@ export function buildBodyMesh(scan) {
   // geometric signal for which side is "front" — Meshy's rigging docs
   // specifically require the character to face +Z for pose estimation to
   // work, so this isn't just a cosmetic nicety.
+  //
+  // Real fix: arms previously hung straight down at the sides (centerX
+  // barely changed from shoulder to wrist). Confirmed directly against
+  // Meshy's own rigging docs and a real submission failure - "Pose
+  // estimation failed. The provided model may not be a valid humanoid
+  // character" is their documented error for exactly this, and their docs
+  // explicitly say to use a T-pose or A-pose. armOutwardReach adds a
+  // progressive outward horizontal displacement from shoulder (0) to wrist
+  // (full reach), at roughly 35 degrees from vertical - a standard A-pose
+  // angle, preferred over a full T-pose since it reduces shoulder-area
+  // mesh distortion once the rig is actually animated.
   const armLength = heightM * 0.44;
   const shoulderR = shoulderHalfWidth * 0.30;
   const elbowR = shoulderHalfWidth * 0.22;
   const wristR = shoulderHalfWidth * 0.16;
   const armForwardBias = chestShape.depthRadius * 0.35;
+  const armOutwardReach = armLength * Math.tan(35 * Math.PI / 180); // ~0.70x armLength
   const buildArm = (side) => buildLoftTube([
     { y: shouldersY, widthRadius: shoulderR, depthRadius: shoulderR, centerX: side * (shoulderHalfWidth + shoulderR * 0.6), centerZ: armForwardBias * 0.6 },
-    { y: shouldersY - armLength * 0.5, widthRadius: elbowR, depthRadius: elbowR, centerX: side * (shoulderHalfWidth + shoulderR), centerZ: armForwardBias },
-    { y: shouldersY - armLength, widthRadius: wristR, depthRadius: wristR, centerX: side * (shoulderHalfWidth + shoulderR * 1.1), centerZ: armForwardBias },
+    { y: shouldersY - armLength * 0.5, widthRadius: elbowR, depthRadius: elbowR, centerX: side * (shoulderHalfWidth + shoulderR + armOutwardReach * 0.5), centerZ: armForwardBias },
+    { y: shouldersY - armLength, widthRadius: wristR, depthRadius: wristR, centerX: side * (shoulderHalfWidth + shoulderR * 1.1 + armOutwardReach), centerZ: armForwardBias },
   ], { ringsPerSegment: 6, capStart: true, capEnd: true });
 
   // Head: an ellipsoid loft (taller than wide), fully smooth, no features —
