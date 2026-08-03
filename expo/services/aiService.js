@@ -33,6 +33,10 @@ const postLLM = async (messages, timeoutMs = 30000, retries = 1) => {
         signal: controller.signal
       });
       const res = await withTimeout(req, timeoutMs, controller.signal);
+      if (!res.ok) {
+        const bodyPreview = await res.text().then((t) => t.slice(0, 200)).catch(() => '');
+        throw new Error(`LLM endpoint returned ${res.status} ${res.statusText}: ${bodyPreview}`);
+      }
       const data = await res.json();
       if (!data || typeof data.completion !== 'string') throw new Error('Invalid LLM response');
       return data;
