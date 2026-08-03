@@ -69,6 +69,7 @@
       "expo-location",
       "expo-apple-authentication",
       "./plugins/withPoseModel.js",
+      "./plugins/withPoseDetectorErrorPatch.js",
       [
         "expo-build-properties",
         {
