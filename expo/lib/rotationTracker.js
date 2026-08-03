@@ -19,6 +19,17 @@ export const SCAN_STEPS = ['front', 'right', 'back', 'left', 'done'];
 
 const PROFILE_RATIO_THRESHOLD = 0.45; // shoulder ratio below this ~= profile reached
 const BACK_VISIBILITY_THRESHOLD = 0.3; // nose visibility below this ~= back to camera
+// Real, on-device evidence (not a guess): a full recording showed ratio
+// sitting at 0.20-0.38 - well past profile - for nearly a minute straight
+// on the 'back' step, while noseVisibility stayed pinned at 1.00 the whole
+// time. Nose visibility alone assumes the head turns with the body, but
+// people naturally keep facing the screen to watch the progress ring while
+// their torso keeps rotating - head and torso aren't rigidly locked
+// together. If shoulder ratio stays low this long, the body has genuinely
+// kept turning well past profile regardless of where the head is pointed,
+// so this is used as a second, independent way to confirm "back" without
+// requiring the nose to ever actually disappear.
+const BACK_SUSTAINED_LOW_RATIO_MS = 3000;
 const FRONT_HOLD_MS = 900; // how long to hold still at the front step
 const TURN_TOO_FAST_RATIO_DELTA = 0.18; // per ~150ms frame gap
 const TURN_SLOWER_COOLDOWN_MS = 3000;
@@ -36,6 +47,7 @@ export function createRotationTracker() {
   let lastFrameAt = null;
   let lastShoulderRatio = 1;
   let lastTurnSlowerAt = null;
+  let backLowRatioStartedAt = null;
   const capturedLandmarks = {};
 
   function reset() {
@@ -45,6 +57,7 @@ export function createRotationTracker() {
     lastFrameAt = null;
     lastShoulderRatio = 1;
     lastTurnSlowerAt = null;
+    backLowRatioStartedAt = null;
     Object.keys(capturedLandmarks).forEach((k) => delete capturedLandmarks[k]);
   }
 
@@ -84,14 +97,28 @@ export function createRotationTracker() {
       }
       lastShoulderRatio = ratio;
 
+      if (step === 'back') {
+        if (ratio < PROFILE_RATIO_THRESHOLD) {
+          if (backLowRatioStartedAt == null) backLowRatioStartedAt = now;
+        } else {
+          // Turned back toward the camera without ever reaching a genuine
+          // back-facing position - not sustained rotation, reset the clock.
+          backLowRatioStartedAt = null;
+        }
+      }
+
+      const sustainedLowRatio =
+        backLowRatioStartedAt != null && now - backLowRatioStartedAt > BACK_SUSTAINED_LOW_RATIO_MS;
+
       if (step === 'right' && ratio < PROFILE_RATIO_THRESHOLD) {
         capturedLandmarks.right = landmarks;
         justCapturedStep = 'right';
         stepIndex += 1;
-      } else if (step === 'back' && noseVisibility < BACK_VISIBILITY_THRESHOLD) {
+      } else if (step === 'back' && (noseVisibility < BACK_VISIBILITY_THRESHOLD || sustainedLowRatio)) {
         capturedLandmarks.back = landmarks;
         justCapturedStep = 'back';
         stepIndex += 1;
+        backLowRatioStartedAt = null;
       } else if (step === 'left' && ratio < PROFILE_RATIO_THRESHOLD && noseVisibility > BACK_VISIBILITY_THRESHOLD) {
         capturedLandmarks.left = landmarks;
         justCapturedStep = 'left';
