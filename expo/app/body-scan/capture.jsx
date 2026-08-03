@@ -126,6 +126,7 @@ export default function BodyScanCaptureScreen() {
   const [lastError, setLastError] = useState(null);
   const [trackerDebug, setTrackerDebug] = useState({ ratio: null, noseVisibility: null });
   const [stuckFallbackVisible, setStuckFallbackVisible] = useState(false);
+  const [capturedStatus, setCapturedStatus] = useState({ front: false, right: false, back: false, left: false });
 
   const trackerRef = useRef(null);
   const captionOverrideTimeoutRef = useRef(null);
@@ -191,6 +192,13 @@ export default function BodyScanCaptureScreen() {
 
   const applyTrackerResult = useCallback((result) => {
     setTrackerDebug({ ratio: result.ratio, noseVisibility: result.noseVisibility });
+    const captured = trackerRef.current.getCapturedLandmarks();
+    setCapturedStatus({
+      front: !!captured.front,
+      right: !!captured.right,
+      back: !!captured.back,
+      left: !!captured.left,
+    });
     setStep(result.step);
     setOverallProgress(result.progress);
 
@@ -277,6 +285,7 @@ export default function BodyScanCaptureScreen() {
     setStep('front');
     setRingProgress(0);
     setOverallProgress(0);
+    setCapturedStatus({ front: false, right: false, back: false, left: false });
   };
 
   const { cameraDevice, cameraViewLayoutChangeHandler, frameProcessor: innerFrameProcessorObj, fpsMode } = usePoseDetection(
@@ -503,6 +512,9 @@ export default function BodyScanCaptureScreen() {
           <Text style={styles.debugText}>pixelFormat: {actualPixelFormat ?? '...'}</Text>
           <Text style={styles.debugText}>
             step: {step}  ratio: {trackerDebug.ratio != null ? trackerDebug.ratio.toFixed(2) : '...'}  noseVis: {trackerDebug.noseVisibility != null ? trackerDebug.noseVisibility.toFixed(2) : '...'}
+          </Text>
+          <Text style={styles.debugText}>
+            captured: front={capturedStatus.front ? '✓' : '✗'} right={capturedStatus.right ? '✓' : '✗'} back={capturedStatus.back ? '✓' : '✗'} left={capturedStatus.left ? '✓' : '✗'}
           </Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
