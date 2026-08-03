@@ -125,9 +125,12 @@ export default function BodyScanCaptureScreen() {
   const [posesFound, setPosesFound] = useState(0);
   const [lastError, setLastError] = useState(null);
   const [trackerDebug, setTrackerDebug] = useState({ ratio: null, noseVisibility: null });
+  const [stuckFallbackVisible, setStuckFallbackVisible] = useState(false);
 
   const trackerRef = useRef(null);
   const captionOverrideTimeoutRef = useRef(null);
+  const latestPoseRef = useRef(null);
+  const stepStartedAtRef = useRef(Date.now());
   if (trackerRef.current == null) trackerRef.current = createRotationTracker();
 
   // Canonical metric values — every downstream consumer (the estimation
@@ -169,20 +172,24 @@ export default function BodyScanCaptureScreen() {
     return () => stopSpeaking();
   }, [step, showProfileForm]);
 
+  useEffect(() => {
+    // If someone's stuck on the same step for a while - poor lighting, an
+    // unusual angle, or a detection edge case - show a manual way forward
+    // rather than leaving them with no feedback and no path out.
+    stepStartedAtRef.current = Date.now();
+    setStuckFallbackVisible(false);
+    if (showProfileForm || step === 'front' || step === 'done') return;
+    const STUCK_TIMEOUT_MS = 15000;
+    const timer = setTimeout(() => setStuckFallbackVisible(true), STUCK_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [step, showProfileForm]);
+
   const handleToggleVoice = async (value) => {
     setVoiceEnabledState(value);
     await setVoiceGuidanceEnabled(value);
   };
 
-  const handlePoseResults = useCallback((results) => {
-    setResultsReceived((n) => n + 1);
-    const pose = results?.results?.[0]?.landmarks?.[0];
-    if (pose) setPosesFound((n) => n + 1);
-    const fullBodyVisible = isFullBodyVisible(pose);
-    setTracking(fullBodyVisible);
-    if (!fullBodyVisible) return;
-
-    const result = trackerRef.current.processFrame(pose, Date.now());
+  const applyTrackerResult = useCallback((result) => {
     setTrackerDebug({ ratio: result.ratio, noseVisibility: result.noseVisibility });
     setStep(result.step);
     setOverallProgress(result.progress);
@@ -211,6 +218,26 @@ export default function BodyScanCaptureScreen() {
       handleScanComplete();
     }
   }, []);
+
+  const handlePoseResults = useCallback((results) => {
+    setResultsReceived((n) => n + 1);
+    const pose = results?.results?.[0]?.landmarks?.[0];
+    if (pose) setPosesFound((n) => n + 1);
+    latestPoseRef.current = pose ?? null;
+    const fullBodyVisible = isFullBodyVisible(pose);
+    setTracking(fullBodyVisible);
+    if (!fullBodyVisible) return;
+
+    const result = trackerRef.current.processFrame(pose, Date.now());
+    applyTrackerResult(result);
+  }, [applyTrackerResult]);
+
+  const handleManualAdvance = useCallback(() => {
+    setStuckFallbackVisible(false);
+    const result = trackerRef.current.forceAdvanceStep(latestPoseRef.current);
+    applyTrackerResult(result);
+  }, [applyTrackerResult]);
+
 
   const handleScanComplete = async () => {
     speakPrompt('Scan complete!');
@@ -482,6 +509,12 @@ export default function BodyScanCaptureScreen() {
             <Text style={styles.captionSubtext}>Step back until your full body is visible</Text>
           )}
         </View>
+
+        {stuckFallbackVisible && (
+          <Pressable style={styles.stuckButton} onPress={handleManualAdvance}>
+            <Text style={styles.stuckButtonText}>Trouble detecting your turn? Tap to continue</Text>
+          </Pressable>
+        )}
       </View>
 
       {error && (
@@ -601,6 +634,12 @@ const styles = StyleSheet.create({
   captionText: { ...typography.h4, color: colors.text, textAlign: 'center' },
   captionTextAlert: { color: colors.bg },
   captionSubtext: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center' },
+  stuckButton: {
+    position: 'absolute', bottom: spacing.base + 64, left: spacing.base, right: spacing.base,
+    backgroundColor: colors.orange, borderRadius: radius.md,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md, alignItems: 'center',
+  },
+  stuckButtonText: { ...typography.bodySmall, color: colors.bg, fontWeight: '700', textAlign: 'center' },
   errorRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: spacing.base, paddingVertical: spacing.sm,

@@ -121,5 +121,27 @@ export function createRotationTracker() {
     return { ...capturedLandmarks };
   }
 
-  return { processFrame, getCapturedLandmarks, reset };
+  /**
+   * Manually advance past the current step, for when someone is stuck for
+   * any reason - poor lighting, an unusual angle, or a detection edge case.
+   * Captures whatever landmarks are currently available (may be null if
+   * nothing's been detected at all) rather than requiring the automatic
+   * threshold to have been met, and returns the same shape processFrame
+   * does so the calling code can handle both paths identically.
+   */
+  function forceAdvanceStep(landmarks) {
+    const step = SCAN_STEPS[stepIndex];
+    if (step === 'done') {
+      return { step, stepIndex, progress: 1, turnSlower: false, justCapturedStep: null, ratio: null, noseVisibility: null };
+    }
+    if (step === 'front' && landmarks) {
+      frontBaselineWidth = shoulderWidth(landmarks);
+    }
+    capturedLandmarks[step] = landmarks;
+    stepIndex += 1;
+    const progress = Math.min(1, stepIndex / (SCAN_STEPS.length - 1));
+    return { step: SCAN_STEPS[stepIndex], stepIndex, progress, turnSlower: false, justCapturedStep: step, ratio: null, noseVisibility: null };
+  }
+
+  return { processFrame, getCapturedLandmarks, forceAdvanceStep, reset };
 }
