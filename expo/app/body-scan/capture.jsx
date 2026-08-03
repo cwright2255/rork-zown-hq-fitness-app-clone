@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
+import { useRunOnJS } from 'react-native-worklets-core';
 import { usePoseDetection, Delegate } from 'react-native-mediapipe';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -95,6 +96,7 @@ export default function BodyScanCaptureScreen() {
   // reliably answers the one question code inspection alone couldn't:
   // is the native side calling back into JS at all, even with an empty
   // result, or not.
+  const [framesSeen, setFramesSeen] = useState(0);
   const [resultsReceived, setResultsReceived] = useState(0);
   const [posesFound, setPosesFound] = useState(0);
   const [lastError, setLastError] = useState(null);
@@ -214,12 +216,29 @@ export default function BodyScanCaptureScreen() {
     setOverallProgress(0);
   };
 
-  const { cameraDevice, cameraViewLayoutChangeHandler, frameProcessor, fpsMode } = usePoseDetection(
+  const { cameraDevice, cameraViewLayoutChangeHandler, frameProcessor: innerFrameProcessorObj, fpsMode } = usePoseDetection(
     { onResults: handlePoseResults, onError: (e) => { setLastError(e?.message || String(e)); console.error('[BodyScan] pose error', e); } },
     'LIVE_STREAM',
     POSE_MODEL,
     { delegate: Delegate.GPU, numPoses: 1, minPoseDetectionConfidence: 0.5 }
   );
+
+  // Temporary diagnostic, one layer more fundamental than onResults/onError:
+  // those only tell us whether MediaPipe's native module calls back into JS.
+  // This tells us whether the camera is delivering frames to the frame
+  // processor at all, independent of MediaPipe entirely - confirmed
+  // against the real vision-camera source that useFrameProcessor returns
+  // { frameProcessor, type: 'readonly' }, not a directly-callable function,
+  // before wrapping it this way.
+  const incrementFramesSeen = useRunOnJS(() => {
+    setFramesSeen((n) => n + 1);
+  }, []);
+  const innerFrameProcessor = innerFrameProcessorObj.frameProcessor;
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    incrementFramesSeen();
+    innerFrameProcessor(frame);
+  }, [innerFrameProcessor, incrementFramesSeen]);
 
   if (!device) {
     return (
@@ -412,7 +431,7 @@ export default function BodyScanCaptureScreen() {
 
         {/* Temporary diagnostics - remove once tracking is confirmed working */}
         <View pointerEvents="none" style={styles.debugOverlay}>
-          <Text style={styles.debugText}>results: {resultsReceived}  poses: {posesFound}</Text>
+          <Text style={styles.debugText}>frames: {framesSeen}  results: {resultsReceived}  poses: {posesFound}</Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
 
