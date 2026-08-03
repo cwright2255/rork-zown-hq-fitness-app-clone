@@ -142,6 +142,7 @@ export default function BodyScanCaptureScreen() {
   const captionOverrideTimeoutRef = useRef(null);
   const latestPoseRef = useRef(null);
   const stepStartedAtRef = useRef(Date.now());
+  const handleScanCompleteRef = useRef(null);
   if (trackerRef.current == null) trackerRef.current = createRotationTracker();
 
   // Canonical metric values — every downstream consumer (the estimation
@@ -240,7 +241,7 @@ export default function BodyScanCaptureScreen() {
     }
 
     if (result.step === 'done' && result.justCapturedStep === 'left') {
-      handleScanComplete();
+      handleScanCompleteRef.current();
     }
   }, []);
 
@@ -296,6 +297,16 @@ export default function BodyScanCaptureScreen() {
       // 'done' — user can back out and retry
     }
   };
+  // Real bug, not defensive boilerplate: applyTrackerResult is a stable
+  // useCallback (empty deps, by design, so handlePoseResults and the
+  // frame-processor wiring don't get recreated every render) that invokes
+  // this through handleScanCompleteRef rather than closing over
+  // handleScanComplete directly. Without this line, that stable callback
+  // would permanently call whatever handleScanComplete closed over at the
+  // component's very first render - including height/weight/age read from
+  // form fields as they were before the user had typed anything at all.
+  // This keeps the ref pointed at the current render's version every time.
+  handleScanCompleteRef.current = handleScanComplete;
 
   const handleRetry = () => {
     trackerRef.current.reset();
