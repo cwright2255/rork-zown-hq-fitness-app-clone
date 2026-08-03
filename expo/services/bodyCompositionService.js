@@ -83,8 +83,11 @@ function calibrateScale(landmarks, heightCm) {
 export function estimateMeasurementsFromLandmarks({
   frontLandmarks, sideLandmarks, rightLandmarks, leftLandmarks, heightCm,
 }) {
-  if (!frontLandmarks || !heightCm) {
-    throw new Error('Front-photo landmarks and height are required.');
+  if (!frontLandmarks) {
+    throw new Error('Front-pose landmarks are required.');
+  }
+  if (!heightCm) {
+    throw new Error('Height is required.');
   }
 
   const scale = calibrateScale(frontLandmarks, heightCm); // cm per normalized-unit, front photo

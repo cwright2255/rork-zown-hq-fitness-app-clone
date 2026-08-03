@@ -233,6 +233,15 @@ export default function BodyScanCaptureScreen() {
   }, [applyTrackerResult]);
 
   const handleManualAdvance = useCallback(() => {
+    if (!latestPoseRef.current) {
+      // Advancing with no real landmark data at all would just guarantee a
+      // failure further downstream - worse than staying put. Ask for a real
+      // detection first instead of silently capturing nothing.
+      setCaptionOverride("Make sure you're fully in frame, then try again");
+      if (captionOverrideTimeoutRef.current) clearTimeout(captionOverrideTimeoutRef.current);
+      captionOverrideTimeoutRef.current = setTimeout(() => setCaptionOverride(null), 2500);
+      return;
+    }
     setStuckFallbackVisible(false);
     const result = trackerRef.current.forceAdvanceStep(latestPoseRef.current);
     applyTrackerResult(result);
