@@ -87,6 +87,18 @@ export default function BodyScanCaptureScreen() {
   const [captionOverride, setCaptionOverride] = useState(null); // temporarily replaces the step caption, e.g. for "turn slower"
   const [tracking, setTracking] = useState(false); // is a body currently detected
 
+  // Temporary diagnostics: the reported symptom ("nothing happens") gives
+  // no signal about *where* in camera frame -> native detector -> JS
+  // callback -> UI the chain actually breaks. onResults/onError run on
+  // the JS thread via the native event bridge (not inside the frame
+  // processor worklet itself), so counting real invocations here
+  // reliably answers the one question code inspection alone couldn't:
+  // is the native side calling back into JS at all, even with an empty
+  // result, or not.
+  const [resultsReceived, setResultsReceived] = useState(0);
+  const [posesFound, setPosesFound] = useState(0);
+  const [lastError, setLastError] = useState(null);
+
   const trackerRef = useRef(null);
   const captionOverrideTimeoutRef = useRef(null);
   if (trackerRef.current == null) trackerRef.current = createRotationTracker();
@@ -136,7 +148,9 @@ export default function BodyScanCaptureScreen() {
   };
 
   const handlePoseResults = useCallback((results) => {
+    setResultsReceived((n) => n + 1);
     const pose = results?.landmarks?.[0];
+    if (pose) setPosesFound((n) => n + 1);
     setTracking(!!pose);
     if (!pose) return;
 
@@ -201,7 +215,7 @@ export default function BodyScanCaptureScreen() {
   };
 
   const { cameraDevice, cameraViewLayoutChangeHandler, frameProcessor, fpsMode } = usePoseDetection(
-    { onResults: handlePoseResults, onError: (e) => console.error('[BodyScan] pose error', e) },
+    { onResults: handlePoseResults, onError: (e) => { setLastError(e?.message || String(e)); console.error('[BodyScan] pose error', e); } },
     'LIVE_STREAM',
     POSE_MODEL,
     { delegate: Delegate.GPU, numPoses: 1, minPoseDetectionConfidence: 0.5 }
@@ -396,6 +410,12 @@ export default function BodyScanCaptureScreen() {
           <View style={[styles.guideSilhouette, tracking && styles.guideSilhouetteDetected]} />
         </View>
 
+        {/* Temporary diagnostics - remove once tracking is confirmed working */}
+        <View pointerEvents="none" style={styles.debugOverlay}>
+          <Text style={styles.debugText}>results: {resultsReceived}  poses: {posesFound}</Text>
+          {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
+        </View>
+
         {/* Segmented circular progress ring — one arc per step */}
         <View style={styles.ringWrap} pointerEvents="none">
           <RotationRing overallProgress={overallProgress} currentStepProgress={ringProgress} step={step} />
@@ -505,6 +525,12 @@ const styles = StyleSheet.create({
   voiceToggleBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.base },
   cameraWrap: { flex: 1, marginHorizontal: spacing.base, marginTop: spacing.xs, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card },
   guideOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  debugOverlay: {
+    position: 'absolute', top: spacing.base, left: spacing.base, right: spacing.base,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.sm, padding: spacing.xs,
+  },
+  debugText: { color: '#FFFFFF', fontSize: 12 },
+  debugTextError: { color: '#FF6B6B', fontSize: 11, marginTop: 2 },
   guideSilhouette: {
     width: '55%', height: '80%', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
     borderRadius: 200, borderStyle: 'dashed',
