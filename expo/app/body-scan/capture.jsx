@@ -413,6 +413,11 @@ export default function BodyScanCaptureScreen() {
                   />
                 </View>
               )}
+              <Text style={heightIsValid ? styles.heightConfirmText : styles.heightMissingText}>
+                {heightIsValid
+                  ? `✓ Using ${Math.round(getHeightCm())} cm for your scan`
+                  : 'Enter your height to continue'}
+              </Text>
             </View>
 
             <View style={styles.fieldGroup}>
@@ -628,6 +633,8 @@ const styles = StyleSheet.create({
   unitChipTextActive: { color: colors.bg, fontWeight: '700' },
   fieldGroup: { marginBottom: spacing.lg },
   inputLabel: { ...typography.bodySmall, color: colors.text, marginBottom: spacing.xs },
+  heightConfirmText: { ...typography.caption, color: colors.green, marginTop: spacing.xs },
+  heightMissingText: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
   input: {
     minHeight: 44, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm, color: colors.text, ...typography.body,
