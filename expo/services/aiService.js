@@ -1,6 +1,8 @@
 import { useExpStore } from '@/store/expStore';
 import { wearableService } from '@/services/wearableService';
 import { useUserStore } from '@/store/userStore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../src/config/firebase';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
 const LLM_URL = `${API_BASE_URL}/text/llm/`;
@@ -436,35 +438,10 @@ export const generateBodyCompositionInsight = async ({ goal, age, scans }) => {
     };
   }
 
-  const sys = {
-    role: 'system',
-    content:
-      'You are a supportive, honest fitness coach reviewing a body-composition scan trend for a user. ' +
-      'You will be given a goal, optionally the user\'s age, and a time-ordered list of scan measurements ' +
-      '(circumferences in cm, estimated body fat % and BMI where available). Body-fat percentage derived from ' +
-      'photos has real error margins (roughly ±3-5 percentage points is typical for single/dual-image ' +
-      'estimation) — never state it with false precision or as a clinical diagnosis. Age, if provided, is for ' +
-      'contextualizing realistic pacing only (e.g. don\'t suggest timelines typical of a 20-year-old to a ' +
-      '55-year-old) — never mention it as a health risk factor or diagnose anything from it. Comment only on ' +
-      'what the data actually shows; do not invent improvement or decline that is not supported by the numbers. ' +
-      'Respond with strict JSON only: ' +
-      '{"summary": string, "trend": "improving"|"steady"|"declining"|"mixed", "suggestion": string}.',
-  };
-  const usr = {
-    role: 'user',
-    content: JSON.stringify({ goal, age: age ?? null, scans }),
-  };
-
   try {
-    const data = await postLLM([sys, usr], 20000, 1);
-    const text = data?.choices?.[0]?.message?.content ?? data?.content ?? '';
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
-    return {
-      summary: parsed.summary || 'Scan recorded.',
-      trend: parsed.trend || 'steady',
-      suggestion: parsed.suggestion || '',
-    };
+    const fn = httpsCallable(functions, 'generateBodyCompositionInsight');
+    const result = await fn({ goal, age: age ?? null, scans });
+    return result.data;
   } catch (error) {
     console.error('Error generating body composition insight', error);
     return {

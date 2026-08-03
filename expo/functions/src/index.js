@@ -149,6 +149,64 @@ export const getProgressSummary = onCall(
   }
 );
 
+export const generateBodyCompositionInsight = onCall(
+  { secrets: [OPENAI_API_KEY], region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const { goal, age, scans } = req.data;
+
+    if (!scans || scans.length === 0) {
+      return {
+        summary: 'No scans yet — take your first body scan to start tracking progress.',
+        trend: 'none',
+      };
+    }
+
+    const prompt = JSON.stringify({ goal, age: age ?? null, scans });
+
+    const openai = getOpenAI();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a supportive, honest fitness coach reviewing a body-composition scan trend for a user. ' +
+            'You will be given a goal, optionally the user\'s age, and a time-ordered list of scan measurements ' +
+            '(circumferences in cm, estimated body fat % and BMI where available). Body-fat percentage derived from ' +
+            'photos has real error margins (roughly ±3-5 percentage points is typical for single/dual-image ' +
+            'estimation) — never state it with false precision or as a clinical diagnosis. Age, if provided, is for ' +
+            'contextualizing realistic pacing only (e.g. don\'t suggest timelines typical of a 20-year-old to a ' +
+            '55-year-old) — never mention it as a health risk factor or diagnose anything from it. Comment only on ' +
+            'what the data actually shows; do not invent improvement or decline that is not supported by the numbers. ' +
+            'Respond with strict JSON only: ' +
+            '{"summary": string, "trend": "improving"|"steady"|"declining"|"mixed", "suggestion": string}.',
+        },
+        { role: 'user', content: prompt },
+      ],
+    });
+
+    const text = completion.choices[0]?.message?.content ?? '';
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    const result = {
+      summary: parsed.summary || 'Scan recorded.',
+      trend: parsed.trend || 'steady',
+      suggestion: parsed.suggestion || '',
+    };
+
+    await saveRecommendation({
+      userId: uid,
+      type: 'body_composition_insight',
+      content: result.summary,
+      prompt,
+      structuredData: { trend: result.trend, suggestion: result.suggestion, scanCount: scans.length },
+    });
+
+    return result;
+  }
+);
+
 export const getNutritionRecommendations = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
