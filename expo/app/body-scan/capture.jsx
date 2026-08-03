@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
 import { useRunOnJS } from 'react-native-worklets-core';
-import { usePoseDetection, Delegate, RunningMode } from 'react-native-mediapipe';
+import { usePoseDetection, Delegate, RunningMode, KnownPoseLandmarks } from 'react-native-mediapipe';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -33,6 +33,29 @@ import {
 
 const POSE_MODEL = 'pose_landmarker_full.task';
 const RING_SIZE = 88;
+
+// A pose being detected at all isn't the same as the full body being in
+// frame - MediaPipe happily returns landmarks for a close-up face shot too,
+// just with low visibility on everything below the shoulders. This checks
+// that landmarks spanning head-to-ankles are each confidently visible,
+// which is what the "step back, get your whole body in frame" indicator
+// is actually supposed to mean.
+const FULL_BODY_VISIBILITY_THRESHOLD = 0.6;
+function isFullBodyVisible(pose) {
+  if (!pose) return false;
+  const vis = (index) => pose[index]?.visibility ?? 0;
+  const pairMax = (leftIndex, rightIndex) => Math.max(vis(leftIndex), vis(rightIndex));
+
+  const headVisible = vis(KnownPoseLandmarks.nose) >= FULL_BODY_VISIBILITY_THRESHOLD;
+  const shouldersVisible =
+    pairMax(KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder) >= FULL_BODY_VISIBILITY_THRESHOLD;
+  const hipsVisible =
+    pairMax(KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip) >= FULL_BODY_VISIBILITY_THRESHOLD;
+  const anklesVisible =
+    pairMax(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle) >= FULL_BODY_VISIBILITY_THRESHOLD;
+
+  return headVisible && shouldersVisible && hipsVisible && anklesVisible;
+}
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -154,8 +177,9 @@ export default function BodyScanCaptureScreen() {
     setResultsReceived((n) => n + 1);
     const pose = results?.results?.[0]?.landmarks?.[0];
     if (pose) setPosesFound((n) => n + 1);
-    setTracking(!!pose);
-    if (!pose) return;
+    const fullBodyVisible = isFullBodyVisible(pose);
+    setTracking(fullBodyVisible);
+    if (!fullBodyVisible) return;
 
     const result = trackerRef.current.processFrame(pose, Date.now());
     setStep(result.step);
