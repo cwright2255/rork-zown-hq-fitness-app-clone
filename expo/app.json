@@ -70,6 +70,7 @@
       "expo-apple-authentication",
       "./plugins/withPoseModel.js",
       "./plugins/withPoseDetectorErrorPatch.js",
+      "./plugins/withPoseDetectionThreadingPatch.js",
       [
         "expo-build-properties",
         {
