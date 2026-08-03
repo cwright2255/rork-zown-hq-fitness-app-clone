@@ -124,6 +124,7 @@ export default function BodyScanCaptureScreen() {
   const [resultsReceived, setResultsReceived] = useState(0);
   const [posesFound, setPosesFound] = useState(0);
   const [lastError, setLastError] = useState(null);
+  const [trackerDebug, setTrackerDebug] = useState({ ratio: null, noseVisibility: null });
 
   const trackerRef = useRef(null);
   const captionOverrideTimeoutRef = useRef(null);
@@ -182,6 +183,7 @@ export default function BodyScanCaptureScreen() {
     if (!fullBodyVisible) return;
 
     const result = trackerRef.current.processFrame(pose, Date.now());
+    setTrackerDebug({ ratio: result.ratio, noseVisibility: result.noseVisibility });
     setStep(result.step);
     setOverallProgress(result.progress);
 
@@ -463,6 +465,9 @@ export default function BodyScanCaptureScreen() {
         <View pointerEvents="none" style={styles.debugOverlay}>
           <Text style={styles.debugText}>frames: {framesSeen}  results: {resultsReceived}  poses: {posesFound}</Text>
           <Text style={styles.debugText}>pixelFormat: {actualPixelFormat ?? '...'}</Text>
+          <Text style={styles.debugText}>
+            step: {step}  ratio: {trackerDebug.ratio != null ? trackerDebug.ratio.toFixed(2) : '...'}  noseVis: {trackerDebug.noseVisibility != null ? trackerDebug.noseVisibility.toFixed(2) : '...'}
+          </Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
 

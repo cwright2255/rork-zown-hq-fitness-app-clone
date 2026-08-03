@@ -55,16 +55,17 @@ export function createRotationTracker() {
   function processFrame(landmarks, now = Date.now()) {
     const step = SCAN_STEPS[stepIndex];
     if (step === 'done' || !landmarks) {
-      return { step, stepIndex, progress: 1, turnSlower: false, justCapturedStep: null };
+      return { step, stepIndex, progress: 1, turnSlower: false, justCapturedStep: null, ratio: null, noseVisibility: null };
     }
 
     const width = shoulderWidth(landmarks);
     const noseVisibility = landmarks[LM.NOSE]?.visibility ?? 1;
     let turnSlower = false;
     let justCapturedStep = null;
+    let ratio = null;
 
     if (frontBaselineWidth != null) {
-      const ratio = width / frontBaselineWidth;
+      ratio = width / frontBaselineWidth;
       if (lastFrameAt != null) {
         const dt = now - lastFrameAt;
         const ratioDelta = Math.abs(ratio - lastShoulderRatio);
@@ -113,7 +114,7 @@ export function createRotationTracker() {
     lastFrameAt = now;
 
     const progress = Math.min(1, stepIndex / (SCAN_STEPS.length - 1));
-    return { step: SCAN_STEPS[stepIndex], stepIndex, progress, turnSlower, justCapturedStep };
+    return { step: SCAN_STEPS[stepIndex], stepIndex, progress, turnSlower, justCapturedStep, ratio, noseVisibility };
   }
 
   function getCapturedLandmarks() {
