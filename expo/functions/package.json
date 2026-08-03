@@ -1,6 +1,7 @@
 {
   "name": "zown-functions",
   "scripts": {
+    "build": "echo 'No build step needed - plain JavaScript, nothing to compile'",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
