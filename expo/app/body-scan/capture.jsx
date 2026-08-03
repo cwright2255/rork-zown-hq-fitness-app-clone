@@ -152,7 +152,7 @@ export default function BodyScanCaptureScreen() {
 
   const handlePoseResults = useCallback((results) => {
     setResultsReceived((n) => n + 1);
-    const pose = results?.landmarks?.[0];
+    const pose = results?.results?.[0]?.landmarks?.[0];
     if (pose) setPosesFound((n) => n + 1);
     setTracking(!!pose);
     if (!pose) return;

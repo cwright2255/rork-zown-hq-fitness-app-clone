@@ -75,7 +75,7 @@ export default function FormCheckScreen() {
   }, [hasPermission, requestPermission]);
 
   const handlePoseResults = useCallback((results) => {
-    const pose = results?.landmarks?.[0];
+    const pose = results?.results?.[0]?.landmarks?.[0];
     if (!pose) return;
     setLandmarks(pose);
     const payload = formAnalysisService.processPoseFrame(pose);
@@ -166,6 +166,7 @@ export default function FormCheckScreen() {
           isActive={isActive}
           frameProcessor={frameProcessor}
           frameProcessorFps={fpsMode}
+          pixelFormat="rgb"
         />
 
         {/* Skeleton overlay */}
