@@ -97,6 +97,7 @@ export default function BodyScanCaptureScreen() {
   // is the native side calling back into JS at all, even with an empty
   // result, or not.
   const [framesSeen, setFramesSeen] = useState(0);
+  const [actualPixelFormat, setActualPixelFormat] = useState(null);
   const [resultsReceived, setResultsReceived] = useState(0);
   const [posesFound, setPosesFound] = useState(0);
   const [lastError, setLastError] = useState(null);
@@ -233,12 +234,16 @@ export default function BodyScanCaptureScreen() {
   const incrementFramesSeen = useRunOnJS(() => {
     setFramesSeen((n) => n + 1);
   }, []);
+  const reportPixelFormat = useRunOnJS((format) => {
+    setActualPixelFormat((prev) => prev ?? format);
+  }, []);
   const innerFrameProcessor = innerFrameProcessorObj.frameProcessor;
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
     incrementFramesSeen();
+    reportPixelFormat(frame.pixelFormat);
     innerFrameProcessor(frame);
-  }, [innerFrameProcessor, incrementFramesSeen]);
+  }, [innerFrameProcessor, incrementFramesSeen, reportPixelFormat]);
 
   if (!device) {
     return (
@@ -423,6 +428,7 @@ export default function BodyScanCaptureScreen() {
           isActive={true}
           frameProcessor={frameProcessor}
           frameProcessorFps={fpsMode}
+          pixelFormat="rgb"
         />
 
         <View pointerEvents="none" style={styles.guideOverlay}>
@@ -432,6 +438,7 @@ export default function BodyScanCaptureScreen() {
         {/* Temporary diagnostics - remove once tracking is confirmed working */}
         <View pointerEvents="none" style={styles.debugOverlay}>
           <Text style={styles.debugText}>frames: {framesSeen}  results: {resultsReceived}  poses: {posesFound}</Text>
+          <Text style={styles.debugText}>pixelFormat: {actualPixelFormat ?? '...'}</Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
 
