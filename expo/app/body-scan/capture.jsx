@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
-import { usePoseDetection } from 'react-native-mediapipe';
+import { usePoseDetection, Delegate } from 'react-native-mediapipe';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -30,7 +30,7 @@ import {
   loadVoiceGuidancePreference, setVoiceGuidanceEnabled, speakPrompt, stopSpeaking,
 } from '@/services/voiceGuidanceService';
 
-const POSE_MODEL = 'pose_landmarker_lite.task';
+const POSE_MODEL = 'pose_landmarker_full.task';
 const RING_SIZE = 88;
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
@@ -204,7 +204,7 @@ export default function BodyScanCaptureScreen() {
     { onResults: handlePoseResults, onError: (e) => console.error('[BodyScan] pose error', e) },
     'LIVE_STREAM',
     POSE_MODEL,
-    { delegate: 'GPU', numPoses: 1, minPoseDetectionConfidence: 0.5 }
+    { delegate: Delegate.GPU, numPoses: 1, minPoseDetectionConfidence: 0.5 }
   );
 
   if (!device) {

@@ -51,9 +51,9 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const MODEL_FILENAME = 'pose_landmarker_lite.task';
+const MODEL_FILENAME = 'pose_landmarker_full.task';
 const MODEL_URL =
-  'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
+  'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
 
 function downloadFile(url, destPath, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
