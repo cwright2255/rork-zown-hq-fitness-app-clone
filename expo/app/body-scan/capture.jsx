@@ -90,10 +90,20 @@ export default function BodyScanCaptureScreen() {
   const [voiceEnabled, setVoiceEnabledState] = useState(true);
   const [unitSystem, setUnitSystem] = useState('metric'); // 'metric' | 'imperial' — one toggle, applied consistently to height/weight/neck rather than mixing units per field
 
-  // Height — cm in metric mode, feet+inches in imperial mode
+  // Height — cm in metric mode, feet+inches in imperial mode. Both derived
+  // from any existing user.heightCm, not just the metric field - otherwise
+  // switching to imperial with a height already on file left those fields
+  // silently empty, which is exactly what happened here.
   const [heightCmInput, setHeightCmInput] = useState(user?.heightCm ? String(user.heightCm) : '');
-  const [heightFeetInput, setHeightFeetInput] = useState('');
-  const [heightInchesInput, setHeightInchesInput] = useState('');
+  const initialHeightFeetInches = (() => {
+    if (!user?.heightCm) return { feet: '', inches: '' };
+    const totalInches = user.heightCm / INCH_TO_CM;
+    const feet = Math.floor(totalInches / 12);
+    const inches = Math.round(totalInches - feet * 12);
+    return { feet: String(feet), inches: String(inches) };
+  })();
+  const [heightFeetInput, setHeightFeetInput] = useState(initialHeightFeetInches.feet);
+  const [heightInchesInput, setHeightInchesInput] = useState(initialHeightFeetInches.inches);
 
   // Weight — single field, unit follows unitSystem
   const [weightInput, setWeightInput] = useState(user?.weightKg ? String(user.weightKg) : '');
@@ -139,11 +149,18 @@ export default function BodyScanCaptureScreen() {
   // which unit system the person is currently typing in. Converted here,
   // once, rather than scattered across every call site.
   const getHeightCm = () => {
-    if (unitSystem === 'metric') return parseFloat(heightCmInput) || null;
-    const ft = parseFloat(heightFeetInput) || 0;
-    const inch = parseFloat(heightInchesInput) || 0;
-    const cm = ft * FEET_TO_CM + inch * INCH_TO_CM;
-    return cm > 0 ? cm : null;
+    const fromInputs = unitSystem === 'metric'
+      ? parseFloat(heightCmInput) || null
+      : (() => {
+          const ft = parseFloat(heightFeetInput) || 0;
+          const inch = parseFloat(heightInchesInput) || 0;
+          const cm = ft * FEET_TO_CM + inch * INCH_TO_CM;
+          return cm > 0 ? cm : null;
+        })();
+    // Last-resort fallback to the stored profile value - a completed scan
+    // shouldn't be lost over a form-state edge case when the real number is
+    // sitting right there on the user's profile.
+    return fromInputs ?? user?.heightCm ?? null;
   };
   const getWeightKg = () => {
     const w = parseFloat(weightInput);
