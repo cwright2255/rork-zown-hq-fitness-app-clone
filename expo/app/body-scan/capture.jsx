@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
 import { useRunOnJS } from 'react-native-worklets-core';
-import { usePoseDetection, Delegate } from 'react-native-mediapipe';
+import { usePoseDetection, Delegate, RunningMode } from 'react-native-mediapipe';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -218,7 +218,7 @@ export default function BodyScanCaptureScreen() {
 
   const { cameraDevice, cameraViewLayoutChangeHandler, frameProcessor: innerFrameProcessorObj, fpsMode } = usePoseDetection(
     { onResults: handlePoseResults, onError: (e) => { setLastError(e?.message || String(e)); console.error('[BodyScan] pose error', e); } },
-    'LIVE_STREAM',
+    RunningMode.LIVE_STREAM,
     POSE_MODEL,
     { delegate: Delegate.GPU, numPoses: 1, minPoseDetectionConfidence: 0.5 }
   );
