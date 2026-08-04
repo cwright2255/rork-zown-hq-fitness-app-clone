@@ -55,13 +55,26 @@ function pixelDist(a, b) {
  * conservative proxy and correcting by a fixed anthropometric ratio
  * (ear-to-ankle is ~0.94 of total standing height on average).
  */
+// A properly-framed full-body photo (which the capture screen's own
+// full-body-visibility gate requires before letting a step complete)
+// should have the person's head-to-ankle span occupy most of the frame's
+// height - realistically at least a third of it, generally more. If this
+// comes out much smaller than that, scale becomes huge and inflates
+// every downstream measurement, regardless of any clamp further down the
+// pipeline that only bounds depth relative to width - a too-small
+// pixelSpan here would already make width itself wrong before depth is
+// ever considered. This is a floor, not a typical value.
+const MIN_REASONABLE_PIXEL_SPAN = 0.30;
+
 function calibrateScale(landmarks, heightCm) {
   const earY = Math.min(landmarks[LM.LEFT_EAR].y, landmarks[LM.RIGHT_EAR].y);
   const ankleY = Math.max(landmarks[LM.LEFT_ANKLE].y, landmarks[LM.RIGHT_ANKLE].y);
-  const pixelSpan = Math.abs(ankleY - earY);
+  const rawPixelSpan = Math.abs(ankleY - earY);
+  const pixelSpan = Math.max(rawPixelSpan, MIN_REASONABLE_PIXEL_SPAN);
   const EAR_TO_ANKLE_RATIO = 0.94;
   const realSpanCm = heightCm * EAR_TO_ANKLE_RATIO;
-  return realSpanCm / pixelSpan; // cm per pixel-unit (landmarks are normalized 0-1, see note below)
+  const scale = realSpanCm / pixelSpan; // cm per normalized-unit (landmarks are normalized 0-1)
+  return { scale, rawPixelSpan, earY, ankleY, wasClamped: rawPixelSpan < MIN_REASONABLE_PIXEL_SPAN };
 }
 
 /**
@@ -90,7 +103,8 @@ export function estimateMeasurementsFromLandmarks({
     throw new Error('Height is required.');
   }
 
-  const scale = calibrateScale(frontLandmarks, heightCm); // cm per normalized-unit, front photo
+  const frontScaleInfo = calibrateScale(frontLandmarks, heightCm); // cm per normalized-unit, front photo
+  const scale = frontScaleInfo.scale;
   const shoulderWidthCm = pixelDist(frontLandmarks[LM.LEFT_SHOULDER], frontLandmarks[LM.RIGHT_SHOULDER]) * scale;
   const hipWidthCm = pixelDist(frontLandmarks[LM.LEFT_HIP], frontLandmarks[LM.RIGHT_HIP]) * scale;
   // Waist sits between shoulder and hip landmarks vertically; approximate its
@@ -105,7 +119,7 @@ export function estimateMeasurementsFromLandmarks({
 
   if (profileShots.length > 0) {
     const depthSamples = profileShots.map((lm) => {
-      const s = calibrateScale(lm, heightCm);
+      const s = calibrateScale(lm, heightCm).scale;
       // In a profile photo, torso "depth" is approximated as the horizontal
       // pixel spread of the hip/shoulder landmarks visible in profile — a
       // rough but real, inspectable measurement, not an invented number.
@@ -149,6 +163,13 @@ export function estimateMeasurementsFromLandmarks({
     waistCircumferenceCm: round1(waistCircumferenceCm),
     hipCircumferenceCm: round1(hipCircumferenceCm),
     profileShotsUsed: profileShots.length,
+    _debug: {
+      frontRawPixelSpan: round1(frontScaleInfo.rawPixelSpan * 1000) / 1000,
+      frontScaleClamped: frontScaleInfo.wasClamped,
+      frontScale: round1(scale),
+      hipWidthCm: round1(hipWidthCm),
+      waistWidthCm: round1(waistWidthCm),
+    },
   };
 }
 

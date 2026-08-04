@@ -204,6 +204,17 @@ export default function BodyScanViewerScreen() {
         Estimated from your photos using the Navy circumference method — a trend indicator, not a clinical measurement.
       </Text>
 
+      {!!scan.measurements?._debug && (
+        <View style={styles.debugCard}>
+          <Text style={styles.debugTitle}>Debug (temporary)</Text>
+          <Text style={styles.debugText}>front raw pixelSpan: {scan.measurements._debug.frontRawPixelSpan}</Text>
+          <Text style={styles.debugText}>scale clamped: {scan.measurements._debug.frontScaleClamped ? 'YES' : 'no'}</Text>
+          <Text style={styles.debugText}>front scale: {scan.measurements._debug.frontScale} cm/unit</Text>
+          <Text style={styles.debugText}>hip width: {scan.measurements._debug.hipWidthCm} cm</Text>
+          <Text style={styles.debugText}>waist width: {scan.measurements._debug.waistWidthCm} cm</Text>
+        </View>
+      )}
+
       {latestInsight && (
         <View style={styles.insightCard}>
           <Text style={styles.insightTrend}>{trendLabel(latestInsight.trend)}</Text>
@@ -286,6 +297,9 @@ const styles = StyleSheet.create({
   statValue: { ...typography.h4, color: colors.text },
   statLabel: { ...typography.caption, color: colors.textSecondary },
   methodNote: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.sm },
+  debugCard: { backgroundColor: '#3a1a1a', borderRadius: radius.md, padding: spacing.base, marginHorizontal: spacing.xl, marginBottom: spacing.base },
+  debugTitle: { ...typography.bodySmall, color: '#ff8a8a', marginBottom: spacing.xs, fontWeight: '700' },
+  debugText: { ...typography.caption, color: '#ffcccc' },
   insightCard: {
     marginHorizontal: spacing.base, marginBottom: spacing.sm,
     padding: spacing.base, borderRadius: radius.lg, backgroundColor: colors.card,
