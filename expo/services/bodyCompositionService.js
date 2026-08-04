@@ -158,10 +158,26 @@ export function estimateMeasurementsFromLandmarks({
     hipCircumferenceCm = Math.PI * hipWidthCm;
   }
 
+  // Final, robust safeguard - not a substitute for getting calibration
+  // right, but a backstop that catches any upstream error regardless of
+  // its specific cause. Real human anthropometry bounds these ratios even
+  // for very large body types: shoulder (biacromial) width tops out
+  // around a third of standing height, and waist/hip circumference, even
+  // for someone genuinely very heavy, essentially never exceeds standing
+  // height itself. These bounds are deliberately generous - wide enough
+  // to never touch a real body, only to catch results that are already
+  // physically impossible (whatever produced them upstream).
+  const rawShoulderWidthCm = shoulderWidthCm;
+  const rawWaistCircumferenceCm = waistCircumferenceCm;
+  const rawHipCircumferenceCm = hipCircumferenceCm;
+  const finalShoulderWidthCm = Math.min(shoulderWidthCm, heightCm * 0.35);
+  const finalWaistCircumferenceCm = Math.min(waistCircumferenceCm, heightCm * 1.0);
+  const finalHipCircumferenceCm = Math.min(hipCircumferenceCm, heightCm * 1.05);
+
   return {
-    shoulderWidthCm: round1(shoulderWidthCm),
-    waistCircumferenceCm: round1(waistCircumferenceCm),
-    hipCircumferenceCm: round1(hipCircumferenceCm),
+    shoulderWidthCm: round1(finalShoulderWidthCm),
+    waistCircumferenceCm: round1(finalWaistCircumferenceCm),
+    hipCircumferenceCm: round1(finalHipCircumferenceCm),
     profileShotsUsed: profileShots.length,
     _debug: {
       frontRawPixelSpan: round1(frontScaleInfo.rawPixelSpan * 1000) / 1000,
@@ -169,6 +185,12 @@ export function estimateMeasurementsFromLandmarks({
       frontScale: round1(scale),
       hipWidthCm: round1(hipWidthCm),
       waistWidthCm: round1(waistWidthCm),
+      finalClampApplied: finalShoulderWidthCm !== rawShoulderWidthCm
+        || finalWaistCircumferenceCm !== rawWaistCircumferenceCm
+        || finalHipCircumferenceCm !== rawHipCircumferenceCm,
+      rawShoulderWidthCm: round1(rawShoulderWidthCm),
+      rawWaistCircumferenceCm: round1(rawWaistCircumferenceCm),
+      rawHipCircumferenceCm: round1(rawHipCircumferenceCm),
     },
   };
 }

@@ -212,6 +212,9 @@ export default function BodyScanViewerScreen() {
           <Text style={styles.debugText}>front scale: {scan.measurements._debug.frontScale} cm/unit</Text>
           <Text style={styles.debugText}>hip width: {scan.measurements._debug.hipWidthCm} cm</Text>
           <Text style={styles.debugText}>waist width: {scan.measurements._debug.waistWidthCm} cm</Text>
+          <Text style={styles.debugText}>final clamp applied: {scan.measurements._debug.finalClampApplied ? 'YES' : 'no'}</Text>
+          <Text style={styles.debugText}>raw (pre-clamp) waist: {scan.measurements._debug.rawWaistCircumferenceCm} cm</Text>
+          <Text style={styles.debugText}>raw (pre-clamp) hip: {scan.measurements._debug.rawHipCircumferenceCm} cm</Text>
         </View>
       )}
 
