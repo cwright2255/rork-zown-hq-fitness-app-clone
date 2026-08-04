@@ -31,6 +31,20 @@ const BACK_VISIBILITY_THRESHOLD = 0.3; // nose visibility below this ~= back to 
 // requiring the nose to ever actually disappear.
 const BACK_SUSTAINED_LOW_RATIO_MS = 3000;
 const FRONT_HOLD_MS = 900; // how long to hold still at the front step
+// Real, confirmed bug (not a hypothesis): a screen recording showed back
+// completing via the sustained-low-ratio path above, then left completing
+// on literally the next frame - the person never turned further at all.
+// Both steps' conditions can be satisfied by the exact same body position,
+// since left's check (ratio low, nose visible) doesn't know which side of
+// the rotation it's looking at - it was true the instant back finished,
+// because nothing about the person's position had changed yet. Requiring
+// left's condition to hold continuously, the same pattern already used for
+// front, means a person would have to remain still at whatever position
+// satisfies it for a real, noticeable stretch - long enough that if it's
+// truly the same unchanged post-back position, it reads as "stuck" and the
+// existing manual-fallback button surfaces, rather than silently completing
+// the entire scan in under a second with no turn ever having happened.
+const LEFT_HOLD_MS = 1400;
 const TURN_TOO_FAST_RATIO_DELTA = 0.18; // per ~150ms frame gap
 const TURN_SLOWER_COOLDOWN_MS = 3000;
 
@@ -48,6 +62,7 @@ export function createRotationTracker() {
   let lastShoulderRatio = 1;
   let lastTurnSlowerAt = null;
   let backLowRatioStartedAt = null;
+  let leftHoldStartedAt = null;
   const capturedLandmarks = {};
 
   function reset() {
@@ -58,6 +73,7 @@ export function createRotationTracker() {
     lastShoulderRatio = 1;
     lastTurnSlowerAt = null;
     backLowRatioStartedAt = null;
+    leftHoldStartedAt = null;
     Object.keys(capturedLandmarks).forEach((k) => delete capturedLandmarks[k]);
   }
 
@@ -110,6 +126,14 @@ export function createRotationTracker() {
       const sustainedLowRatio =
         backLowRatioStartedAt != null && now - backLowRatioStartedAt > BACK_SUSTAINED_LOW_RATIO_MS;
 
+      const leftConditionMet = step === 'left' && ratio < PROFILE_RATIO_THRESHOLD && noseVisibility > BACK_VISIBILITY_THRESHOLD;
+      if (leftConditionMet) {
+        if (leftHoldStartedAt == null) leftHoldStartedAt = now;
+      } else {
+        leftHoldStartedAt = null;
+      }
+      const leftHeldLongEnough = leftHoldStartedAt != null && now - leftHoldStartedAt > LEFT_HOLD_MS;
+
       if (step === 'right' && ratio < PROFILE_RATIO_THRESHOLD) {
         capturedLandmarks.right = landmarks;
         justCapturedStep = 'right';
@@ -119,10 +143,11 @@ export function createRotationTracker() {
         justCapturedStep = 'back';
         stepIndex += 1;
         backLowRatioStartedAt = null;
-      } else if (step === 'left' && ratio < PROFILE_RATIO_THRESHOLD && noseVisibility > BACK_VISIBILITY_THRESHOLD) {
+      } else if (step === 'left' && leftConditionMet && leftHeldLongEnough) {
         capturedLandmarks.left = landmarks;
         justCapturedStep = 'left';
         stepIndex += 1;
+        leftHoldStartedAt = null;
       }
     }
 
