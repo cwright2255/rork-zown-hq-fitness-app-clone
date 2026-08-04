@@ -48,13 +48,67 @@ const FULL_BODY_VISIBILITY_THRESHOLD = 0.6;
 // head, completely absent from the frame (camera pointed up from a low
 // angle), still reported 0.97 visibility. Requiring the coordinate to sit
 // comfortably inside the frame, not just have a high confidence score,
-// catches this even though the confidence score alone does not.
+// catches this even though the confidence score alone does not. This
+// margin-based approach works at any camera height or angle, as long as
+// the camera's own field of view genuinely captures the full body - it
+// makes no assumption about where the phone itself is positioned.
 const FRAME_EDGE_MARGIN = 0.03;
 function isOnScreen(landmark) {
   if (!landmark) return false;
   return landmark.x >= FRAME_EDGE_MARGIN && landmark.x <= 1 - FRAME_EDGE_MARGIN
     && landmark.y >= FRAME_EDGE_MARGIN && landmark.y <= 1 - FRAME_EDGE_MARGIN;
 }
+
+// A genuinely upright, straight-standing person's shoulder, hip, and ankle
+// midpoints sit close to a single vertical line - the body's natural
+// centerline. Leaning to one side, bending forward, or crouching shifts
+// these out of alignment in a way a simple in-frame check alone can't
+// catch, since a leaning or crouching person can still have every
+// landmark genuinely visible and well inside the frame.
+const UPRIGHT_ALIGNMENT_TOLERANCE = 0.12;
+function midpointX(pose, leftIndex, rightIndex) {
+  const l = pose[leftIndex];
+  const r = pose[rightIndex];
+  if (!l || !r) return null;
+  return (l.x + r.x) / 2;
+}
+function isStandingUpright(pose) {
+  const shoulderX = midpointX(pose, KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder);
+  const hipX = midpointX(pose, KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip);
+  const ankleX = midpointX(pose, KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle);
+  if (shoulderX == null || hipX == null || ankleX == null) return false;
+
+  const shoulderY = pose[KnownPoseLandmarks.leftShoulder]?.y ?? pose[KnownPoseLandmarks.rightShoulder]?.y;
+  const hipY = pose[KnownPoseLandmarks.leftHip]?.y ?? pose[KnownPoseLandmarks.rightHip]?.y;
+  const ankleY = pose[KnownPoseLandmarks.leftAnkle]?.y ?? pose[KnownPoseLandmarks.rightAnkle]?.y;
+  // Basic orientation sanity check: shoulders above hips above ankles in
+  // the frame (y increases downward) - true for any normal standing
+  // posture, and a cheap way to reject a badly wrong pose read entirely.
+  if (shoulderY == null || hipY == null || ankleY == null) return false;
+  if (!(shoulderY < hipY && hipY < ankleY)) return false;
+
+  const maxDeviation = Math.max(
+    Math.abs(shoulderX - hipX),
+    Math.abs(hipX - ankleX),
+    Math.abs(shoulderX - ankleX),
+  );
+  if (maxDeviation > UPRIGHT_ALIGNMENT_TOLERANCE) return false;
+
+  // Horizontal alignment alone misses bending forward at the waist while
+  // staying centered - shoulders drop toward the hips without shifting
+  // sideways, which the check above can't see. Adult leg length is
+  // consistently longer than torso length in a genuine upright stance, so
+  // shoulder-to-hip should be a real, substantial fraction of hip-to-ankle
+  // - a collapsed ratio here means bending or crouching, not standing.
+  const shoulderToHip = hipY - shoulderY;
+  const hipToAnkle = ankleY - hipY;
+  if (hipToAnkle <= 0) return false;
+  const torsoToLegRatio = shoulderToHip / hipToAnkle;
+  const MIN_TORSO_TO_LEG_RATIO = 0.35;
+  const MAX_TORSO_TO_LEG_RATIO = 0.85;
+  return torsoToLegRatio >= MIN_TORSO_TO_LEG_RATIO && torsoToLegRatio <= MAX_TORSO_TO_LEG_RATIO;
+}
+
 function isFullBodyVisible(pose) {
   if (!pose) return false;
   const vis = (index) => pose[index]?.visibility ?? 0;
@@ -73,7 +127,7 @@ function isFullBodyVisible(pose) {
     pairMax(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle) >= FULL_BODY_VISIBILITY_THRESHOLD
     && pairOnScreen(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle);
 
-  return headVisible && shouldersVisible && hipsVisible && anklesVisible;
+  return headVisible && shouldersVisible && hipsVisible && anklesVisible && isStandingUpright(pose);
 }
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
