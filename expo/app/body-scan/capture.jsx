@@ -164,7 +164,21 @@ function isFullBodyVisible(pose) {
     pairMax(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle) >= FULL_BODY_VISIBILITY_THRESHOLD
     && pairOnScreen(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle);
 
-  return headVisible && shouldersVisible && hipsVisible && anklesVisible && isStandingUpright(pose);
+  // Not gating on isStandingUpright here - proven fragile across three
+  // consecutive real-world failures. The horizontal-alignment check in
+  // particular assumes a level, straight-on camera; direct video evidence
+  // showed alignment deviation reaching 0.439 (nearly double the
+  // already-widened 0.22 tolerance) for a genuinely, visibly upright
+  // person, because the camera itself was tilted upward - perspective
+  // distortion shifts shoulder/hip/ankle x-coordinates apart even for a
+  // perfectly vertical body once the camera isn't level, and phones
+  // propped up in the real world are often not perfectly level. The check
+  // that actually resolved the original, confirmed bug (catastrophic
+  // measurement errors from a head that was genuinely off-screen) is the
+  // position-based framing check above (isOnScreen) - that stays fully
+  // intact. The upright diagnostic itself is left in place and still
+  // visible in the debug overlay, just no longer blocking progress.
+  return headVisible && shouldersVisible && hipsVisible && anklesVisible;
 }
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
