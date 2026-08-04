@@ -175,16 +175,23 @@ export function buildBodyMesh(scan) {
 
   // Legs, torso, and arms are each built as their own loft rather than one
   // fused tube, so the figure reads as a two-legged body from the front
-  // instead of a single tapered lower body — the tradeoff is a visible
-  // (if smooth-shaded) seam at the hip/thigh junction rather than a true
-  // topological Y-junction, which is a materially harder meshing problem
-  // and unnecessary for a stylized progress-tracking mannequin.
+  // instead of a single tapered lower body. A true topological Y-junction
+  // (torso smoothly splitting into two legs as one continuous surface) is
+  // a materially harder meshing problem and unnecessary for a stylized
+  // progress-tracking mannequin — instead, each leg's top ring extends
+  // well up into the torso's own lower volume (toward waist height, not
+  // stopping right at the hip line) so the capped end that would otherwise
+  // create a visible seam sits hidden inside the overlapping torso
+  // geometry rather than exposed exactly where the two separate tubes
+  // would otherwise just touch.
+  const legTopY = hipsY + (waistY - hipsY) * 0.7;
   const rightLeg = buildLoftTube([
     { y: anklesY, widthRadius: legAnkleR, depthRadius: legAnkleR * 0.9, centerX: hipR * 0.45 },
     { y: kneesY * 0.5, widthRadius: legCalfR, depthRadius: legCalfR * 0.85, centerX: hipR * 0.45 },
     { y: kneesY, widthRadius: legKneeR, depthRadius: legKneeR * 0.85, centerX: hipR * 0.45 },
     { y: (kneesY + hipsY) / 2, widthRadius: legThighR, depthRadius: legThighR * 0.9, centerX: hipR * 0.4 },
-    { y: hipsY * 0.98, widthRadius: legThighR * 0.9, depthRadius: legThighR * 0.85, centerX: hipR * 0.3 },
+    { y: hipsY * 0.98, widthRadius: legThighR * 0.95, depthRadius: legThighR * 0.9, centerX: hipR * 0.3 },
+    { y: legTopY, widthRadius: legThighR * 0.85, depthRadius: legThighR * 0.8, centerX: hipR * 0.18 },
   ], { ringsPerSegment: 6, capStart: true, capEnd: true });
 
   const leftLeg = buildLoftTube([
@@ -192,7 +199,8 @@ export function buildBodyMesh(scan) {
     { y: kneesY * 0.5, widthRadius: legCalfR, depthRadius: legCalfR * 0.85, centerX: -hipR * 0.45 },
     { y: kneesY, widthRadius: legKneeR, depthRadius: legKneeR * 0.85, centerX: -hipR * 0.45 },
     { y: (kneesY + hipsY) / 2, widthRadius: legThighR, depthRadius: legThighR * 0.9, centerX: -hipR * 0.4 },
-    { y: hipsY * 0.98, widthRadius: legThighR * 0.9, depthRadius: legThighR * 0.85, centerX: -hipR * 0.3 },
+    { y: hipsY * 0.98, widthRadius: legThighR * 0.95, depthRadius: legThighR * 0.9, centerX: -hipR * 0.3 },
+    { y: legTopY, widthRadius: legThighR * 0.85, depthRadius: legThighR * 0.8, centerX: -hipR * 0.18 },
   ], { ringsPerSegment: 6, capStart: true, capEnd: true });
 
   const torsoOnly = buildLoftTube([
