@@ -113,8 +113,26 @@ export function estimateMeasurementsFromLandmarks({
       const shoulderDepthCm = pixelDist(lm[LM.LEFT_SHOULDER], lm[LM.RIGHT_SHOULDER]) * s * 1.8;
       return { hipDepthCm, waistDepthCm: shoulderDepthCm * 0.4 + hipDepthCm * 0.6 };
     });
-    const avgWaistDepthCm = average(depthSamples.map((d) => d.waistDepthCm));
-    const avgHipDepthCm = average(depthSamples.map((d) => d.hipDepthCm));
+    const rawAvgWaistDepthCm = average(depthSamples.map((d) => d.waistDepthCm));
+    const rawAvgHipDepthCm = average(depthSamples.map((d) => d.hipDepthCm));
+
+    // A real, physical constraint, not an arbitrary tolerance: this raw
+    // depth estimate is extremely sensitive to exactly how close to a true
+    // 90-degree profile the capture actually was — even a modest angle
+    // imperfection makes the two hip landmarks visually spread apart far
+    // more than genuine front-to-back body depth ever would, and that
+    // error compounds through the 1.8x multiplier and the ellipse formula
+    // into wildly, physically-impossible circumferences (confirmed
+    // directly: simulating a realistic, only mildly imperfect profile
+    // angle already produces measurements several times too large).
+    // Front-to-back torso depth is well-established anthropometrically to
+    // run roughly 50-85% of side-to-side width for adult body types —
+    // clamping to that range against the front-view width (which comes
+    // from a much less angle-sensitive measurement) prevents this specific
+    // failure mode without discarding a genuinely good profile capture,
+    // since real, well-aligned captures should already fall inside it.
+    const avgWaistDepthCm = clampDepthToWidth(rawAvgWaistDepthCm, waistWidthCm);
+    const avgHipDepthCm = clampDepthToWidth(rawAvgHipDepthCm, hipWidthCm);
 
     waistCircumferenceCm = ellipsePerimeter(waistWidthCm / 2, avgWaistDepthCm / 2);
     hipCircumferenceCm = ellipsePerimeter(hipWidthCm / 2, avgHipDepthCm / 2);
@@ -132,6 +150,18 @@ export function estimateMeasurementsFromLandmarks({
     hipCircumferenceCm: round1(hipCircumferenceCm),
     profileShotsUsed: profileShots.length,
   };
+}
+
+// Front-to-back torso depth is well-established anthropometrically to run
+// roughly 50-85% of side-to-side width for adult body types. Used as a
+// sanity bound on the profile-derived depth estimate, which is far more
+// sensitive to capture-angle imperfection than the front-view width is.
+const MIN_DEPTH_TO_WIDTH_RATIO = 0.5;
+const MAX_DEPTH_TO_WIDTH_RATIO = 0.85;
+function clampDepthToWidth(depthCm, widthCm) {
+  const minDepth = widthCm * MIN_DEPTH_TO_WIDTH_RATIO;
+  const maxDepth = widthCm * MAX_DEPTH_TO_WIDTH_RATIO;
+  return Math.min(Math.max(depthCm, minDepth), maxDepth);
 }
 
 function average(nums) {
