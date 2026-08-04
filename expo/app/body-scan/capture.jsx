@@ -64,19 +64,25 @@ function isOnScreen(landmark) {
 // centerline. Leaning to one side, bending forward, or crouching shifts
 // these out of alignment in a way a simple in-frame check alone can't
 // catch, since a leaning or crouching person can still have every
-// landmark genuinely visible and well inside the frame.
-const UPRIGHT_ALIGNMENT_TOLERANCE = 0.12;
+// landmark genuinely visible and well inside the frame. Widened from an
+// initial, unvalidated estimate after real evidence showed it was too
+// strict for real body proportions - a false rejection of a genuinely
+// valid, upright capture is clearly worse than being too permissive here,
+// since the goal is catching dramatically bad posture, not fine variation.
+const UPRIGHT_ALIGNMENT_TOLERANCE = 0.22;
 function midpointX(pose, leftIndex, rightIndex) {
   const l = pose[leftIndex];
   const r = pose[rightIndex];
   if (!l || !r) return null;
   return (l.x + r.x) / 2;
 }
-function isStandingUpright(pose) {
+function standingUprightDiagnostics(pose) {
   const shoulderX = midpointX(pose, KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder);
   const hipX = midpointX(pose, KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip);
   const ankleX = midpointX(pose, KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle);
-  if (shoulderX == null || hipX == null || ankleX == null) return false;
+  if (shoulderX == null || hipX == null || ankleX == null) {
+    return { ok: false, reason: 'missing-landmark', maxDeviation: null, torsoToLegRatio: null };
+  }
 
   const shoulderY = pose[KnownPoseLandmarks.leftShoulder]?.y ?? pose[KnownPoseLandmarks.rightShoulder]?.y;
   const hipY = pose[KnownPoseLandmarks.leftHip]?.y ?? pose[KnownPoseLandmarks.rightHip]?.y;
@@ -84,15 +90,18 @@ function isStandingUpright(pose) {
   // Basic orientation sanity check: shoulders above hips above ankles in
   // the frame (y increases downward) - true for any normal standing
   // posture, and a cheap way to reject a badly wrong pose read entirely.
-  if (shoulderY == null || hipY == null || ankleY == null) return false;
-  if (!(shoulderY < hipY && hipY < ankleY)) return false;
+  if (shoulderY == null || hipY == null || ankleY == null) {
+    return { ok: false, reason: 'missing-y', maxDeviation: null, torsoToLegRatio: null };
+  }
+  if (!(shoulderY < hipY && hipY < ankleY)) {
+    return { ok: false, reason: 'bad-order', maxDeviation: null, torsoToLegRatio: null };
+  }
 
   const maxDeviation = Math.max(
     Math.abs(shoulderX - hipX),
     Math.abs(hipX - ankleX),
     Math.abs(shoulderX - ankleX),
   );
-  if (maxDeviation > UPRIGHT_ALIGNMENT_TOLERANCE) return false;
 
   // Horizontal alignment alone misses bending forward at the waist while
   // staying centered - shoulders drop toward the hips without shifting
@@ -100,13 +109,27 @@ function isStandingUpright(pose) {
   // consistently longer than torso length in a genuine upright stance, so
   // shoulder-to-hip should be a real, substantial fraction of hip-to-ankle
   // - a collapsed ratio here means bending or crouching, not standing.
+  // Widened for the same reason as the alignment tolerance above.
   const shoulderToHip = hipY - shoulderY;
   const hipToAnkle = ankleY - hipY;
-  if (hipToAnkle <= 0) return false;
+  if (hipToAnkle <= 0) {
+    return { ok: false, reason: 'bad-leg-span', maxDeviation, torsoToLegRatio: null };
+  }
   const torsoToLegRatio = shoulderToHip / hipToAnkle;
-  const MIN_TORSO_TO_LEG_RATIO = 0.35;
-  const MAX_TORSO_TO_LEG_RATIO = 0.85;
-  return torsoToLegRatio >= MIN_TORSO_TO_LEG_RATIO && torsoToLegRatio <= MAX_TORSO_TO_LEG_RATIO;
+  const MIN_TORSO_TO_LEG_RATIO = 0.20;
+  const MAX_TORSO_TO_LEG_RATIO = 1.10;
+
+  const alignmentOk = maxDeviation <= UPRIGHT_ALIGNMENT_TOLERANCE;
+  const ratioOk = torsoToLegRatio >= MIN_TORSO_TO_LEG_RATIO && torsoToLegRatio <= MAX_TORSO_TO_LEG_RATIO;
+  return {
+    ok: alignmentOk && ratioOk,
+    reason: !alignmentOk ? 'alignment' : !ratioOk ? 'ratio' : 'ok',
+    maxDeviation,
+    torsoToLegRatio,
+  };
+}
+function isStandingUpright(pose) {
+  return standingUprightDiagnostics(pose).ok;
 }
 
 function isFullBodyVisible(pose) {
@@ -208,6 +231,7 @@ export default function BodyScanCaptureScreen() {
   const [posesFound, setPosesFound] = useState(0);
   const [lastError, setLastError] = useState(null);
   const [trackerDebug, setTrackerDebug] = useState({ ratio: null, noseVisibility: null });
+  const [uprightDebug, setUprightDebug] = useState({ reason: null, maxDeviation: null, torsoToLegRatio: null });
   const [stuckFallbackVisible, setStuckFallbackVisible] = useState(false);
   const [capturedStatus, setCapturedStatus] = useState({ front: false, right: false, back: false, left: false });
 
@@ -323,6 +347,10 @@ export default function BodyScanCaptureScreen() {
     const pose = results?.results?.[0]?.landmarks?.[0];
     if (pose) setPosesFound((n) => n + 1);
     latestPoseRef.current = pose ?? null;
+    if (pose) {
+      const diag = standingUprightDiagnostics(pose);
+      setUprightDebug({ reason: diag.reason, maxDeviation: diag.maxDeviation, torsoToLegRatio: diag.torsoToLegRatio });
+    }
     const fullBodyVisible = isFullBodyVisible(pose);
     setTracking(fullBodyVisible);
     if (!fullBodyVisible) return;
@@ -632,6 +660,9 @@ export default function BodyScanCaptureScreen() {
           </Text>
           <Text style={styles.debugText}>
             captured: front={capturedStatus.front ? '✓' : '✗'} right={capturedStatus.right ? '✓' : '✗'} back={capturedStatus.back ? '✓' : '✗'} left={capturedStatus.left ? '✓' : '✗'}
+          </Text>
+          <Text style={styles.debugText}>
+            upright: {uprightDebug.reason ?? '...'}  dev: {uprightDebug.maxDeviation != null ? uprightDebug.maxDeviation.toFixed(3) : '...'}  ratio: {uprightDebug.torsoToLegRatio != null ? uprightDebug.torsoToLegRatio.toFixed(2) : '...'}
           </Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
