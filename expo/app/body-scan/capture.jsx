@@ -41,18 +41,37 @@ const RING_SIZE = 88;
 // which is what the "step back, get your whole body in frame" indicator
 // is actually supposed to mean.
 const FULL_BODY_VISIBILITY_THRESHOLD = 0.6;
+// A landmark MediaPipe is confident about but had to extrapolate (because
+// it's genuinely outside the visible frame) tends to land pinned at or
+// beyond a normalized-coordinate edge, since the model is guessing rather
+// than seeing - confirmed directly from a real recording where a person's
+// head, completely absent from the frame (camera pointed up from a low
+// angle), still reported 0.97 visibility. Requiring the coordinate to sit
+// comfortably inside the frame, not just have a high confidence score,
+// catches this even though the confidence score alone does not.
+const FRAME_EDGE_MARGIN = 0.03;
+function isOnScreen(landmark) {
+  if (!landmark) return false;
+  return landmark.x >= FRAME_EDGE_MARGIN && landmark.x <= 1 - FRAME_EDGE_MARGIN
+    && landmark.y >= FRAME_EDGE_MARGIN && landmark.y <= 1 - FRAME_EDGE_MARGIN;
+}
 function isFullBodyVisible(pose) {
   if (!pose) return false;
   const vis = (index) => pose[index]?.visibility ?? 0;
   const pairMax = (leftIndex, rightIndex) => Math.max(vis(leftIndex), vis(rightIndex));
+  const pairOnScreen = (leftIndex, rightIndex) => isOnScreen(pose[leftIndex]) || isOnScreen(pose[rightIndex]);
 
-  const headVisible = vis(KnownPoseLandmarks.nose) >= FULL_BODY_VISIBILITY_THRESHOLD;
+  const headVisible = vis(KnownPoseLandmarks.nose) >= FULL_BODY_VISIBILITY_THRESHOLD
+    && isOnScreen(pose[KnownPoseLandmarks.nose]);
   const shouldersVisible =
-    pairMax(KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder) >= FULL_BODY_VISIBILITY_THRESHOLD;
+    pairMax(KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder) >= FULL_BODY_VISIBILITY_THRESHOLD
+    && pairOnScreen(KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder);
   const hipsVisible =
-    pairMax(KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip) >= FULL_BODY_VISIBILITY_THRESHOLD;
+    pairMax(KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip) >= FULL_BODY_VISIBILITY_THRESHOLD
+    && pairOnScreen(KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip);
   const anklesVisible =
-    pairMax(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle) >= FULL_BODY_VISIBILITY_THRESHOLD;
+    pairMax(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle) >= FULL_BODY_VISIBILITY_THRESHOLD
+    && pairOnScreen(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle);
 
   return headVisible && shouldersVisible && hipsVisible && anklesVisible;
 }
@@ -264,6 +283,17 @@ export default function BodyScanCaptureScreen() {
       // failure further downstream - worse than staying put. Ask for a real
       // detection first instead of silently capturing nothing.
       setCaptionOverride("Make sure you're fully in frame, then try again");
+      if (captionOverrideTimeoutRef.current) clearTimeout(captionOverrideTimeoutRef.current);
+      captionOverrideTimeoutRef.current = setTimeout(() => setCaptionOverride(null), 2500);
+      return;
+    }
+    if (!isFullBodyVisible(latestPoseRef.current)) {
+      // Same standard as the automatic path - capturing through the manual
+      // fallback with bad framing (e.g. head out of frame) is exactly as
+      // harmful as the automatic path doing it, just via a different
+      // trigger. The fallback exists to rescue stuck rotation tracking,
+      // not to bypass a genuine framing problem.
+      setCaptionOverride('Make sure your whole body, including your head, is in frame');
       if (captionOverrideTimeoutRef.current) clearTimeout(captionOverrideTimeoutRef.current);
       captionOverrideTimeoutRef.current = setTimeout(() => setCaptionOverride(null), 2500);
       return;
