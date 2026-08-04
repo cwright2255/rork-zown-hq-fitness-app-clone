@@ -84,16 +84,30 @@ function standingUprightDiagnostics(pose) {
     return { ok: false, reason: 'missing-landmark', maxDeviation: null, torsoToLegRatio: null };
   }
 
-  const shoulderY = pose[KnownPoseLandmarks.leftShoulder]?.y ?? pose[KnownPoseLandmarks.rightShoulder]?.y;
-  const hipY = pose[KnownPoseLandmarks.leftHip]?.y ?? pose[KnownPoseLandmarks.rightHip]?.y;
-  const ankleY = pose[KnownPoseLandmarks.leftAnkle]?.y ?? pose[KnownPoseLandmarks.rightAnkle]?.y;
+  // Average left+right when both are available, rather than only ever
+  // reading the left side and falling back to right only if left is
+  // completely missing - a single noisy landmark on one side shouldn't be
+  // able to throw this off when the other side is perfectly fine.
+  function pairAvgY(leftIndex, rightIndex) {
+    const l = pose[leftIndex]?.y;
+    const r = pose[rightIndex]?.y;
+    if (l != null && r != null) return (l + r) / 2;
+    return l ?? r ?? null;
+  }
+  const shoulderY = pairAvgY(KnownPoseLandmarks.leftShoulder, KnownPoseLandmarks.rightShoulder);
+  const hipY = pairAvgY(KnownPoseLandmarks.leftHip, KnownPoseLandmarks.rightHip);
+  const ankleY = pairAvgY(KnownPoseLandmarks.leftAnkle, KnownPoseLandmarks.rightAnkle);
   // Basic orientation sanity check: shoulders above hips above ankles in
   // the frame (y increases downward) - true for any normal standing
   // posture, and a cheap way to reject a badly wrong pose read entirely.
+  // A small margin allows for normal landmark jitter - direct video
+  // evidence showed this failing even for a visually, genuinely correct
+  // upright pose under a strict, zero-tolerance version of this check.
   if (shoulderY == null || hipY == null || ankleY == null) {
     return { ok: false, reason: 'missing-y', maxDeviation: null, torsoToLegRatio: null };
   }
-  if (!(shoulderY < hipY && hipY < ankleY)) {
+  const ORDER_JITTER_MARGIN = 0.02;
+  if (!(shoulderY < hipY + ORDER_JITTER_MARGIN && hipY < ankleY + ORDER_JITTER_MARGIN)) {
     return { ok: false, reason: 'bad-order', maxDeviation: null, torsoToLegRatio: null };
   }
 
