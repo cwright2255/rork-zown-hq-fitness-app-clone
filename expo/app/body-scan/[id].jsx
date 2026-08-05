@@ -211,7 +211,8 @@ export default function BodyScanViewerScreen() {
           <Text style={styles.debugText}>front nose Y: {scan.measurements._debug.frontNoseY} (expect ~0.1-0.2 for a well-framed shot)</Text>
           <Text style={styles.debugText}>front ankle Y: {scan.measurements._debug.frontAnkleY} (expect ~0.85-0.95)</Text>
           <Text style={styles.debugText}>scale clamped: {scan.measurements._debug.frontScaleClamped ? 'YES' : 'no'}</Text>
-          <Text style={styles.debugText}>front scale: {scan.measurements._debug.frontScale} cm/unit</Text>
+          <Text style={styles.debugText}>shoulder-based scale (used): {scan.measurements._debug.shoulderBasedScale} cm/unit</Text>
+          <Text style={styles.debugText}>vertical-span scale (diagnostic only): {scan.measurements._debug.verticalSpanBasedScale} cm/unit</Text>
           <Text style={styles.debugText}>hip width: {scan.measurements._debug.hipWidthCm} cm</Text>
           <Text style={styles.debugText}>waist width: {scan.measurements._debug.waistWidthCm} cm</Text>
           <Text style={styles.debugText}>final clamp applied: {scan.measurements._debug.finalClampApplied ? 'YES' : 'no'}</Text>
