@@ -283,6 +283,7 @@ export default function BodyScanCaptureScreen() {
   const [posesFound, setPosesFound] = useState(0);
   const [lastError, setLastError] = useState(null);
   const [trackerDebug, setTrackerDebug] = useState({ ratio: null, noseVisibility: null });
+  const [frameFillDebug, setFrameFillDebug] = useState({ span: null, noseY: null, ankleY: null });
   const [uprightDebug, setUprightDebug] = useState({ reason: null, maxDeviation: null, torsoToLegRatio: null });
   const [stuckFallbackVisible, setStuckFallbackVisible] = useState(false);
   const [capturedStatus, setCapturedStatus] = useState({ front: false, right: false, back: false, left: false });
@@ -402,6 +403,12 @@ export default function BodyScanCaptureScreen() {
     if (pose) {
       const diag = standingUprightDiagnostics(pose);
       setUprightDebug({ reason: diag.reason, maxDeviation: diag.maxDeviation, torsoToLegRatio: diag.torsoToLegRatio });
+      const noseY = pose[KnownPoseLandmarks.nose]?.y ?? null;
+      const ankleY = Math.max(
+        pose[KnownPoseLandmarks.leftAnkle]?.y ?? 0,
+        pose[KnownPoseLandmarks.rightAnkle]?.y ?? 0,
+      );
+      setFrameFillDebug({ span: noseY != null ? Math.abs(ankleY - noseY) : null, noseY, ankleY });
     }
     const fullBodyVisible = isFullBodyVisible(pose);
     setTracking(fullBodyVisible);
@@ -716,6 +723,9 @@ export default function BodyScanCaptureScreen() {
           </Text>
           <Text style={styles.debugText}>
             upright: {uprightDebug.reason ?? '...'}  dev: {uprightDebug.maxDeviation != null ? uprightDebug.maxDeviation.toFixed(3) : '...'}  ratio: {uprightDebug.torsoToLegRatio != null ? uprightDebug.torsoToLegRatio.toFixed(2) : '...'}
+          </Text>
+          <Text style={styles.debugText}>
+            frameFill: span={frameFillDebug.span != null ? frameFillDebug.span.toFixed(3) : '...'} (need ≥0.45)  nose={frameFillDebug.noseY != null ? frameFillDebug.noseY.toFixed(3) : '...'}  ankle={frameFillDebug.ankleY != null ? frameFillDebug.ankleY.toFixed(3) : '...'}
           </Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
