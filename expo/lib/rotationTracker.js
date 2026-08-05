@@ -45,7 +45,16 @@ const FRONT_HOLD_MS = 900; // how long to hold still at the front step
 // existing manual-fallback button surfaces, rather than silently completing
 // the entire scan in under a second with no turn ever having happened.
 const LEFT_HOLD_MS = 1400;
-const TURN_TOO_FAST_RATIO_DELTA = 0.18; // per ~150ms frame gap
+// Widened substantially from an earlier, much stricter value after a real
+// report of this triggering on the slightest movement. At actual camera
+// frame rates (faster than the ~150ms this was seemingly calibrated
+// against), the time-scaled expected delta for a short frame gap becomes
+// tiny, while ordinary pose-detection jitter stays roughly constant in
+// absolute terms - making even minimal real movement look disproportionately
+// fast by comparison. This is a UI prompt only, not load-bearing for the
+// actual ratio-threshold capture logic below, so there's very little
+// downside to being far more permissive here.
+const TURN_TOO_FAST_RATIO_DELTA = 0.55; // per ~150ms frame gap
 const TURN_SLOWER_COOLDOWN_MS = 3000;
 
 function shoulderWidth(landmarks) {
