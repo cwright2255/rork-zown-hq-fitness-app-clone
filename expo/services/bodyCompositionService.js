@@ -64,7 +64,20 @@ function pixelDist(a, b) {
 // pipeline that only bounds depth relative to width - a too-small
 // pixelSpan here would already make width itself wrong before depth is
 // ever considered. This is a floor, not a typical value.
-const MIN_REASONABLE_PIXEL_SPAN = 0.30;
+//
+// Recalibrated alongside the matching gate in capture.jsx: real,
+// visually-confirmed on-device evidence showed a genuinely well-framed
+// capture producing a span around 0.094, not the far larger value this
+// was originally set to assume - a real mismatch between what's
+// displayed and the actual coordinate space the camera library's frame
+// processor operates in on this device (documented as a known category
+// of issue in the library itself). Leaving the floor at the old value
+// would mean every real capture gets clamped to the same artificial
+// number instead of reflecting genuine distance variation. Set with
+// margin below the confirmed-good 0.094, but still above the earlier,
+// genuinely unusable 0.016 span, so this remains a real floor against
+// the most extreme cases rather than a number every capture always hits.
+const MIN_REASONABLE_PIXEL_SPAN = 0.05;
 
 function calibrateScale(landmarks, heightCm) {
   // Nose, not ear: the capture screen's own framing gate (isFullBodyVisible

@@ -158,7 +158,23 @@ function isStandingUpright(pose) {
 // producing an unreliable scale calculation. This is a different failure
 // mode from "landmark is genuinely off-screen" (the bug fixed earlier),
 // and needs its own, direct check on the span itself.
-const MIN_FRAME_FILL_RATIO = 0.45;
+//
+// Recalibrated after the original 0.45 proved unworkable in practice: a
+// screen recording showed a person who was clearly, visually well-framed
+// (head near the top of the display, feet near the bottom, full body
+// plainly visible) still only producing a span of 0.094. This points to
+// a real mismatch between what's displayed and the actual coordinate
+// space react-native-vision-camera's frame processor operates in on this
+// device - documented as a known category of issue in the library itself,
+// not something fully within this app's control. Rather than keep
+// chasing that upstream behavior, recalibrated this threshold to the
+// real, confirmed relationship observed on-device, with some margin
+// below it - low enough to accept a genuinely well-framed capture like
+// the one observed, but still well above the earlier, genuinely
+// unusable 0.016 span. The scale floor in calibrateScale and the final
+// anthropometric clamp on the output measurements remain as downstream
+// safeguards regardless of exactly where this number sits.
+const MIN_FRAME_FILL_RATIO = 0.06;
 function fillsFrameVertically(pose) {
   const noseY = pose[KnownPoseLandmarks.nose]?.y;
   const ankleY = Math.max(
