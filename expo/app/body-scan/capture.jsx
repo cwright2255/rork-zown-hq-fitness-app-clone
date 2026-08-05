@@ -705,6 +705,7 @@ export default function BodyScanCaptureScreen() {
           frameProcessor={frameProcessor}
           frameProcessorFps={fpsMode}
           pixelFormat="rgb"
+          resizeMode="contain"
         />
 
         <View pointerEvents="none" style={styles.guideOverlay}>
