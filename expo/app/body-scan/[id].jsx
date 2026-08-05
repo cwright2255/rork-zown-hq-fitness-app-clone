@@ -208,6 +208,8 @@ export default function BodyScanViewerScreen() {
         <View style={styles.debugCard}>
           <Text style={styles.debugTitle}>Debug (temporary)</Text>
           <Text style={styles.debugText}>front raw pixelSpan: {scan.measurements._debug.frontRawPixelSpan}</Text>
+          <Text style={styles.debugText}>front nose Y: {scan.measurements._debug.frontNoseY} (expect ~0.1-0.2 for a well-framed shot)</Text>
+          <Text style={styles.debugText}>front ankle Y: {scan.measurements._debug.frontAnkleY} (expect ~0.85-0.95)</Text>
           <Text style={styles.debugText}>scale clamped: {scan.measurements._debug.frontScaleClamped ? 'YES' : 'no'}</Text>
           <Text style={styles.debugText}>front scale: {scan.measurements._debug.frontScale} cm/unit</Text>
           <Text style={styles.debugText}>hip width: {scan.measurements._debug.hipWidthCm} cm</Text>

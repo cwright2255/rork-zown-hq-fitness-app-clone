@@ -202,6 +202,8 @@ export function estimateMeasurementsFromLandmarks({
       frontRawPixelSpan: round1(frontScaleInfo.rawPixelSpan * 1000) / 1000,
       frontScaleClamped: frontScaleInfo.wasClamped,
       frontScale: round1(scale),
+      frontNoseY: round1(frontScaleInfo.noseY * 1000) / 1000,
+      frontAnkleY: round1(frontScaleInfo.ankleY * 1000) / 1000,
       hipWidthCm: round1(hipWidthCm),
       waistWidthCm: round1(waistWidthCm),
       finalClampApplied: finalShoulderWidthCm !== rawShoulderWidthCm
