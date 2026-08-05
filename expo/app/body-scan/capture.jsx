@@ -146,6 +146,29 @@ function isStandingUpright(pose) {
   return standingUprightDiagnostics(pose).ok;
 }
 
+// Real evidence, not a guess: a completed scan's debug output showed
+// frontNoseY at 0.52 and frontAnkleY at 0.57 - both clustered near the
+// center of the frame, only ~0.06 apart, rather than spanning from near
+// the top to near the bottom the way a properly-filled full-body shot
+// should. Both landmarks independently passed isOnScreen (each is
+// individually within [0,1]), since that check only verifies position,
+// never how much of the frame the person's body actually fills - someone
+// standing far enough back that their whole body occupies only a small,
+// centered portion of the frame passes every existing check while still
+// producing an unreliable scale calculation. This is a different failure
+// mode from "landmark is genuinely off-screen" (the bug fixed earlier),
+// and needs its own, direct check on the span itself.
+const MIN_FRAME_FILL_RATIO = 0.45;
+function fillsFrameVertically(pose) {
+  const noseY = pose[KnownPoseLandmarks.nose]?.y;
+  const ankleY = Math.max(
+    pose[KnownPoseLandmarks.leftAnkle]?.y ?? 0,
+    pose[KnownPoseLandmarks.rightAnkle]?.y ?? 0,
+  );
+  if (noseY == null) return false;
+  return Math.abs(ankleY - noseY) >= MIN_FRAME_FILL_RATIO;
+}
+
 function isFullBodyVisible(pose) {
   if (!pose) return false;
   const vis = (index) => pose[index]?.visibility ?? 0;
@@ -178,7 +201,7 @@ function isFullBodyVisible(pose) {
   // position-based framing check above (isOnScreen) - that stays fully
   // intact. The upright diagnostic itself is left in place and still
   // visible in the debug overlay, just no longer blocking progress.
-  return headVisible && shouldersVisible && hipsVisible && anklesVisible;
+  return headVisible && shouldersVisible && hipsVisible && anklesVisible && fillsFrameVertically(pose);
 }
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
@@ -244,6 +267,7 @@ export default function BodyScanCaptureScreen() {
   const [overallProgress, setOverallProgress] = useState(0);
   const [captionOverride, setCaptionOverride] = useState(null); // temporarily replaces the step caption, e.g. for "turn slower"
   const [tracking, setTracking] = useState(false); // is a body currently detected
+  const [tooFarAway, setTooFarAway] = useState(false); // in frame, but not filling enough of it for a reliable scale
 
   // Temporary diagnostics: the reported symptom ("nothing happens") gives
   // no signal about *where* in camera frame -> native detector -> JS
@@ -381,6 +405,7 @@ export default function BodyScanCaptureScreen() {
     }
     const fullBodyVisible = isFullBodyVisible(pose);
     setTracking(fullBodyVisible);
+    setTooFarAway(!!pose && !fullBodyVisible && !fillsFrameVertically(pose));
     if (!fullBodyVisible) return;
 
     const result = trackerRef.current.processFrame(pose, Date.now());
@@ -703,7 +728,9 @@ export default function BodyScanCaptureScreen() {
         <View style={[styles.captionBox, captionOverride && styles.captionBoxAlert]}>
           <Text style={[styles.captionText, captionOverride && styles.captionTextAlert]}>{captionOverride ?? STEP_CAPTIONS[step]}</Text>
           {!captionOverride && !tracking && step !== 'done' && (
-            <Text style={styles.captionSubtext}>Step back until your full body is visible</Text>
+            <Text style={styles.captionSubtext}>
+              {tooFarAway ? 'Move closer so your body fills more of the frame' : "Step back until your full body is visible"}
+            </Text>
           )}
         </View>
 
