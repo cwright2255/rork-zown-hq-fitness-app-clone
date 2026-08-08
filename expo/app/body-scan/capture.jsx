@@ -174,7 +174,17 @@ function isStandingUpright(pose) {
 // unusable 0.016 span. The scale floor in calibrateScale and the final
 // anthropometric clamp on the output measurements remain as downstream
 // safeguards regardless of exactly where this number sits.
-const MIN_FRAME_FILL_RATIO = 0.06;
+//
+// Lowered further after real evidence showed 0.06 still wasn't enough
+// margin: a recording showed span dipping to 0.042 mid-rotation, on the
+// 'back' step specifically - below the 0.06 gate, meaning isFullBodyVisible
+// returns false and processFrame never runs for that frame at all. Since
+// the back-step detection logic needs consecutive, uninterrupted frames
+// to accumulate its own sustained-low-ratio timer, an intermittently
+// failing gate during rotation could directly disrupt that timer, not
+// just delay it - a real, different mechanism from a person standing too
+// far away, and worth a lower margin specifically because of it.
+const MIN_FRAME_FILL_RATIO = 0.025;
 function fillsFrameVertically(pose) {
   const noseY = pose[KnownPoseLandmarks.nose]?.y;
   const ankleY = Math.max(
@@ -742,7 +752,7 @@ export default function BodyScanCaptureScreen() {
             upright: {uprightDebug.reason ?? '...'}  dev: {uprightDebug.maxDeviation != null ? uprightDebug.maxDeviation.toFixed(3) : '...'}  ratio: {uprightDebug.torsoToLegRatio != null ? uprightDebug.torsoToLegRatio.toFixed(2) : '...'}
           </Text>
           <Text style={styles.debugText}>
-            frameFill: span={frameFillDebug.span != null ? frameFillDebug.span.toFixed(3) : '...'} (need ≥0.45)  nose={frameFillDebug.noseY != null ? frameFillDebug.noseY.toFixed(3) : '...'}  ankle={frameFillDebug.ankleY != null ? frameFillDebug.ankleY.toFixed(3) : '...'}
+            frameFill: span={frameFillDebug.span != null ? frameFillDebug.span.toFixed(3) : '...'} (need ≥{MIN_FRAME_FILL_RATIO})  nose={frameFillDebug.noseY != null ? frameFillDebug.noseY.toFixed(3) : '...'}  ankle={frameFillDebug.ankleY != null ? frameFillDebug.ankleY.toFixed(3) : '...'}
           </Text>
           {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
         </View>
