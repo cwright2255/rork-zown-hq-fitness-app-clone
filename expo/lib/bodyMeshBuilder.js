@@ -203,6 +203,26 @@ export function buildBodyMesh(scan) {
     { y: legTopY, widthRadius: legThighR * 0.85, depthRadius: legThighR * 0.8, centerX: -hipR * 0.18 },
   ], { ringsPerSegment: 6, capStart: true, capEnd: true });
 
+  // Feet: previously the leg just ended in a flat, capped ankle disc.
+  // Extends forward (+Z) from the ankle using the same center-shift
+  // technique the arms already use for outward reach - the tube's
+  // centerline moves through space across its rings, not just its radius
+  // growing at a fixed point. A tiny, strictly-increasing Y rise from
+  // ankle to toe-tip (not a real arch, which rises then falls) satisfies
+  // buildLoftTube's ascending-Y requirement while still reading as
+  // essentially flat-on-the-ground at this scale.
+  const footLength = legAnkleR * 3.4;
+  const footWidth = legAnkleR * 1.15;
+  const footRise = heightM * 0.012;
+  const buildFoot = (side) => buildLoftTube([
+    { y: anklesY, widthRadius: legAnkleR * 0.95, depthRadius: legAnkleR * 0.8, centerX: side * hipR * 0.45, centerZ: 0 },
+    { y: anklesY + footRise * 0.3, widthRadius: footWidth, depthRadius: footLength * 0.4, centerX: side * hipR * 0.45, centerZ: footLength * 0.35 },
+    { y: anklesY + footRise * 0.7, widthRadius: footWidth * 0.85, depthRadius: footLength * 0.32, centerX: side * hipR * 0.45, centerZ: footLength * 0.72 },
+    { y: anklesY + footRise, widthRadius: footWidth * 0.4, depthRadius: footLength * 0.18, centerX: side * hipR * 0.45, centerZ: footLength * 0.98 },
+  ], { ringsPerSegment: 5, capStart: true, capEnd: true });
+  const rightFoot = buildFoot(1);
+  const leftFoot = buildFoot(-1);
+
   const torsoOnly = buildLoftTube([
     { y: hipsY, widthRadius: hipShape.widthRadius, depthRadius: hipShape.depthRadius, centerX: 0 },
     { y: waistY, widthRadius: waistShape.widthRadius, depthRadius: waistShape.depthRadius, centerX: 0 },
@@ -242,6 +262,47 @@ export function buildBodyMesh(scan) {
     { y: shouldersY - armLength, widthRadius: wristR, depthRadius: wristR, centerX: side * (shoulderHalfWidth + shoulderR * 1.1 + armOutwardReach), centerZ: armForwardBias },
   ], { ringsPerSegment: 6, capStart: true, capEnd: true });
 
+  // Hands: previously the arm just ended in a flat, capped wrist disc.
+  // Attaches at the exact same position the arm loft's own final ring
+  // already computes, so there's no gap or misalignment between the two
+  // separate geometries. A short palm segment, then four separate finger
+  // tubes plus a thumb (angled outward and slightly forward, as a real
+  // thumb sits), each its own small loft continuing downward from the
+  // palm's base - not individually jointed, but genuinely separate digits
+  // rather than a single undifferentiated stub.
+  const wristY = shouldersY - armLength;
+  const wristX = (side) => side * (shoulderHalfWidth + shoulderR * 1.1 + armOutwardReach);
+  const handLength = wristR * 3.6;
+  const palmWidth = wristR * 1.25;
+  const palmBaseY = wristY - handLength * 0.4;
+  const fingerTipY = wristY - handLength;
+  const fingerR = wristR * 0.22;
+  const fingerSpread = palmWidth * 0.65;
+  const buildHand = (side) => {
+    const wx = wristX(side);
+    const palm = buildLoftTube([
+      { y: wristY, widthRadius: wristR, depthRadius: wristR * 0.85, centerX: wx, centerZ: armForwardBias },
+      { y: palmBaseY, widthRadius: palmWidth, depthRadius: wristR * 0.7, centerX: wx, centerZ: armForwardBias },
+    ], { ringsPerSegment: 5, capStart: true, capEnd: false });
+
+    const fingerOffsets = [-1.5, -0.5, 0.5, 1.5]; // four fingers spread across the palm's width
+    const fingers = fingerOffsets.map((offset) => buildLoftTube([
+      { y: palmBaseY, widthRadius: fingerR, depthRadius: fingerR, centerX: wx + offset * (fingerSpread / 3), centerZ: armForwardBias },
+      { y: fingerTipY - Math.abs(offset) * handLength * 0.04, widthRadius: fingerR * 0.55, depthRadius: fingerR * 0.55, centerX: wx + offset * (fingerSpread / 3), centerZ: armForwardBias },
+    ], { ringsPerSegment: 4, capStart: false, capEnd: true }));
+
+    // Thumb: shorter, offset toward the body's centerline and forward -
+    // roughly where a real thumb sits relative to the palm.
+    const thumb = buildLoftTube([
+      { y: palmBaseY + handLength * 0.1, widthRadius: fingerR * 1.1, depthRadius: fingerR * 1.1, centerX: wx - side * palmWidth * 0.75, centerZ: armForwardBias * 1.3 },
+      { y: palmBaseY - handLength * 0.28, widthRadius: fingerR * 0.6, depthRadius: fingerR * 0.6, centerX: wx - side * palmWidth * 1.15, centerZ: armForwardBias * 1.7 },
+    ], { ringsPerSegment: 4, capStart: false, capEnd: true });
+
+    return [palm, ...fingers, thumb];
+  };
+  const rightHand = buildHand(1);
+  const leftHand = buildHand(-1);
+
   // Head: an ellipsoid loft (taller than wide), fully smooth, no features —
   // faceless by construction.
   const headRadius = heightM * 0.065;
@@ -253,7 +314,7 @@ export function buildBodyMesh(scan) {
   ], { ringsPerSegment: 8, capStart: false, capEnd: true });
 
   const merged = mergeGeometries(
-    [torsoOnly, leftLeg, rightLeg, buildArm(-1), buildArm(1), head],
+    [torsoOnly, leftLeg, rightLeg, buildArm(-1), buildArm(1), head, leftFoot, rightFoot, ...leftHand, ...rightHand],
     false
   );
   merged.computeVertexNormals();
