@@ -1,0 +1,15 @@
+# --extra-index-url pulls CPU-only torch wheels from PyTorch's own index
+# instead of PyPI's default (CUDA-bundled) build. Confirmed directly during
+# development: the default PyPI torch wheel hard-requires CUDA shared
+# libraries even for pure CPU inference (raises on import without them,
+# not just when GPU features are actually used) - not a guess, an observed
+# failure. This service has no GPU access on Cloud Run, so the CPU build is
+# both smaller and the only one that will actually run here.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.13.0
+anny==0.6.0
+fastapi==0.121.2
+pydantic==2.13.0
+uvicorn[standard]==0.38.0
+trimesh==5.0.0
