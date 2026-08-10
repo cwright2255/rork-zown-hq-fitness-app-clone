@@ -92,6 +92,8 @@ async function loadHighQualityMesh(scan) {
         weight_kg: scan.weightKg ?? undefined,
         gender: scan.gender,
         body_fat_percent: scan.bodyFatPercent ?? undefined,
+        waist_cm: scan.measurements?.waistCircumferenceCm ?? undefined,
+        hip_cm: scan.measurements?.hipCircumferenceCm ?? undefined,
       }),
       signal: controller.signal,
     });
