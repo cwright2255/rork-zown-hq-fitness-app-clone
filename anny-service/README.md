@@ -62,12 +62,20 @@ that can be done from this side. Steps:
      --source . \
      --region us-central1 \
      --allow-unauthenticated \
-     --memory 2Gi \
+     --memory 4Gi \
      --cpu 2 \
-     --timeout 60
+     --timeout 600
    ```
-   `--memory 2Gi` because Anny's blend shape data and a loaded PyTorch
-   model need real headroom - 512Mi (Cloud Run's default) will likely OOM.
+   `--memory 4Gi` (raised from an initial 2Gi after real evidence, not a
+   guess: a direct log from a female-gender request showed the process go
+   completely silent - no error, no graceful shutdown message - partway
+   through female-specific breast blend-shape computation, which is
+   consistent with an out-of-memory kill rather than a clean timeout or
+   exception). `--timeout 600` because the real, measured cold-start time
+   (loading Anny's blend shape data on a fresh instance) has been
+   80-100+ seconds in direct testing - the original 60s value used on the
+   very first deploy was too short and caused a real, observed truncated
+   response.
    `--allow-unauthenticated` for now since there's no auth wiring on the
    app side yet - **tighten this before any real user traffic reaches it**,
    this flag makes the endpoint public.

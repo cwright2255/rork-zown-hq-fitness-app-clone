@@ -172,13 +172,29 @@ _PECTORAL_MAX_CHANGE = 0.4
 def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
     result = {}
 
+    # Key names below were wrong until now, confirmed directly from a real
+    # deployed-service log: every one of these was being silently dropped
+    # as invalid on every test so far (visible in the service's own
+    # "Dropping local_changes keys..." warning), meaning none of these
+    # adjustments have actually been applied yet, despite passing local
+    # verification - the formulas were right, the key names weren't.
+    # Traced the real cause directly in Anny's own source
+    # (models/full_model.py): local_change_labels only ever stores the
+    # *positive*-variant name (e.g. "stomach-tone-incr"), never the
+    # combined "-decr-incr" form - that combined form only exists in
+    # target.json's own display metadata, not in the actual runtime key
+    # list the model checks incoming kwargs against. The model still
+    # applies negative values correctly under this same key (it
+    # interpolates by the sign of the value passed, not by having a
+    # separate negative-named key) - only the key name itself needed
+    # fixing, not the sign conventions in any of the formulas below.
     if m.body_fat_percent is not None:
         intensity = _normalize(
             m.body_fat_percent, _STOMACH_EFFECT_START_BODY_FAT, _STOMACH_EFFECT_FULL_BODY_FAT
         )
         if intensity > 0.0:
-            result["stomach-pregnant-decr-incr"] = intensity * _STOMACH_MAX_PROTRUSION
-            result["stomach-tone-decr-incr"] = intensity * _STOMACH_MAX_DETONE
+            result["stomach-pregnant-incr"] = intensity * _STOMACH_MAX_PROTRUSION
+            result["stomach-tone-incr"] = intensity * _STOMACH_MAX_DETONE
 
     if m.waist_cm is not None and m.hip_cm is not None and m.hip_cm > 0:
         whr = m.waist_cm / m.hip_cm
@@ -187,7 +203,7 @@ def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
         # glute volume), negative when above (relatively narrower hips ->
         # less), clamped to +-1 before scaling to this control's real range.
         signed_intensity = max(-1.0, min(1.0, (median_whr - whr) / _WHR_SPREAD))
-        result["buttocks-volume-decr-incr"] = signed_intensity * _BUTTOCKS_MAX_VOLUME_CHANGE
+        result["buttocks-volume-incr"] = signed_intensity * _BUTTOCKS_MAX_VOLUME_CHANGE
 
     # Thighs and chest, added on explicit request despite being less
     # precisely grounded than stomach/glutes above: those two use a
@@ -209,8 +225,8 @@ def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
             # combined key for this control, only independent left/right
             # ones. Set both to the same value for a symmetric result,
             # since nothing in this app's data suggests asymmetry.
-            result["l-upperleg-fat-decr-incr"] = thigh_value
-            result["r-upperleg-fat-decr-incr"] = thigh_value
+            result["l-upperleg-fat-incr"] = thigh_value
+            result["r-upperleg-fat-incr"] = thigh_value
 
     muscle_estimate = _muscle_estimate_from_body_fat(m.body_fat_percent)
     if muscle_estimate != 0.5:
@@ -219,7 +235,7 @@ def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
         # before scaling correctly reaches the full +-_PECTORAL_MAX_CHANGE
         # range at muscle_estimate's own extremes, rather than only ever
         # reaching half of it.
-        result["torso-muscle-pectoral-decr-incr"] = ((muscle_estimate - 0.5) / 0.25) * _PECTORAL_MAX_CHANGE
+        result["torso-muscle-pectoral-incr"] = ((muscle_estimate - 0.5) / 0.25) * _PECTORAL_MAX_CHANGE
 
     return result
 
