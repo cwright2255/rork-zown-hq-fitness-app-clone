@@ -78,12 +78,18 @@ def measurements_to_phenotype_kwargs(m: ScanMeasurements) -> dict:
         # Adult average per Anny's own default (anny_inverter.py); overridden
         # below if the app ever collects real age.
         "age": 0.8,
-        # Neutral defaults for axes this app has no real data for - left at
-        # 0.5 rather than guessed, since a wrong guess here is worse than an
-        # honest "average" default.
+        # Neutral default for the one axis this app has no real data for -
+        # left at 0.5 rather than guessed, since a wrong guess here is worse
+        # than an honest "average" default.
         "proportions": 0.5,
-        "cupsize": 0.5,
-        "firmness": 0.5,
+        # cupsize and firmness deliberately omitted: the default Anny()
+        # model's real, available phenotype set doesn't include them
+        # (confirmed directly from the deployed service's own error message:
+        # "available: ['gender', 'age', 'muscle', 'weight', 'height',
+        # 'proportions']") - they're defined in the model's underlying data
+        # but excluded from this default configuration, matching
+        # EXCLUDED_PHENOTYPES seen directly in Anny's own source. Passing
+        # them raises, rather than being silently ignored.
     }
 
     if m.age_years is not None:
