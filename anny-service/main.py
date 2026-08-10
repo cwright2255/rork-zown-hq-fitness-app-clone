@@ -135,6 +135,13 @@ def generate_mesh(measurements: ScanMeasurements):
         faces = model.faces.detach().cpu().numpy()
 
         mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        # Force smooth vertex normal computation before export - confirmed
+        # directly that trimesh computes this lazily only on explicit
+        # access, and export() alone doesn't trigger it. Without this, the
+        # GLB exports with flat, faceted shading instead of the smooth
+        # surface Anny's own mesh data actually supports - visually
+        # confirmed faceted in the first real render from this service.
+        _ = mesh.vertex_normals
         glb_bytes = mesh.export(file_type="glb")
 
         return Response(content=glb_bytes, media_type="model/gltf-binary")
