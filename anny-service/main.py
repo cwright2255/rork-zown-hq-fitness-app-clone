@@ -44,7 +44,15 @@ def get_model():
     global _model
     if _model is None:
         logger.info("Loading Anny model (first request on this instance)...")
-        _model = anny.Anny()
+        # local_changes="default" enables a broader set of granular,
+        # localized shape controls beyond the base phenotype axes -
+        # confirmed directly in Anny's own data (data/mpfb2/targets/
+        # target.json) that the stomach category has
+        # "include_per_default": true, so "default" genuinely includes the
+        # stomach-tone and stomach-pregnant controls this service uses
+        # below, without needing to guess at passing a specific list of
+        # exact key names.
+        _model = anny.Anny(local_changes="default")
         logger.info("Anny model loaded.")
     return _model
 
@@ -116,6 +124,43 @@ def measurements_to_phenotype_kwargs(m: ScanMeasurements) -> dict:
     return kwargs
 
 
+# The broad weight/muscle phenotype axes alone tend to distribute mass
+# fairly evenly across the whole figure, which is a real, common reason a
+# generated body can look more idealized than someone's actual body -
+# real abdominal fat concentration (especially for men) is a well-
+# established pattern the global axes alone don't capture. These two
+# specific, localized controls (confirmed directly in Anny's own data,
+# not guessed) target that directly: how much the stomach visibly
+# protrudes, and how toned vs. soft/hanging it appears.
+#
+# Below a body-fat threshold most people carry minimal visible abdominal
+# fat, so this stays at genuinely neutral (0.0, no adjustment) rather
+# than nudging everyone toward a bigger stomach regardless of their
+# actual measurements. Scales linearly above that threshold, capped at a
+# moderate maximum rather than these controls' full extreme range - the
+# goal is an honest, not an exaggerated or unflattering, representation.
+_STOMACH_EFFECT_START_BODY_FAT = 15.0
+_STOMACH_EFFECT_FULL_BODY_FAT = 35.0
+_STOMACH_MAX_PROTRUSION = 0.5
+_STOMACH_MAX_DETONE = -0.5
+
+
+def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
+    if m.body_fat_percent is None:
+        return {}
+
+    intensity = _normalize(
+        m.body_fat_percent, _STOMACH_EFFECT_START_BODY_FAT, _STOMACH_EFFECT_FULL_BODY_FAT
+    )
+    if intensity <= 0.0:
+        return {}
+
+    return {
+        "stomach-pregnant-decr-incr": intensity * _STOMACH_MAX_PROTRUSION,
+        "stomach-tone-decr-incr": intensity * _STOMACH_MAX_DETONE,
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -126,10 +171,35 @@ def generate_mesh(measurements: ScanMeasurements):
     try:
         model = get_model()
         phenotype_kwargs = measurements_to_phenotype_kwargs(measurements)
-        logger.info("Generating mesh with phenotype_kwargs=%s", phenotype_kwargs)
+        local_changes_kwargs = measurements_to_local_changes_kwargs(measurements)
+
+        # Defensive: these key names were confirmed directly from Anny's own
+        # data files, but not yet verified against a live model at runtime.
+        # Rather than assume they're exactly right and let a mismatch crash
+        # the whole request, check against the model's own real label list -
+        # apply only what genuinely exists, log anything that doesn't so a
+        # naming mismatch is visible and fixable rather than silently wrong.
+        valid_local_change_keys = set(model.local_change_labels)
+        dropped_keys = set(local_changes_kwargs) - valid_local_change_keys
+        if dropped_keys:
+            logger.warning(
+                "Dropping local_changes keys not in model.local_change_labels: %s",
+                dropped_keys,
+            )
+        local_changes_kwargs = {
+            k: v for k, v in local_changes_kwargs.items() if k in valid_local_change_keys
+        }
+
+        logger.info(
+            "Generating mesh with phenotype_kwargs=%s local_changes_kwargs=%s",
+            phenotype_kwargs, local_changes_kwargs,
+        )
 
         with torch.no_grad():
-            output = model(phenotype_kwargs=phenotype_kwargs)
+            output = model(
+                phenotype_kwargs=phenotype_kwargs,
+                local_changes_kwargs=local_changes_kwargs or None,
+            )
 
         vertices = output["vertices"][0].detach().cpu().numpy()
         faces = model.faces.detach().cpu().numpy()

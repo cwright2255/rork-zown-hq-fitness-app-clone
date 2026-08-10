@@ -1,19 +1,30 @@
 // app/body-scan/[id].jsx
 //
-// Renders a procedurally-built gray mannequin sized from the scan's real
-// measurements — no external mesh file, no external API, nothing SMPL-
-// related. Faceless by construction (a blank sphere for a head, no
-// features), matte gray material throughout. Uses expo-gl + three.js for
-// real native 3D rendering (not a WebView), with a simple drag-to-rotate
-// interaction, a comparison view against an earlier scan, and the
-// AI-generated commentary on the trend.
+// Renders a 3D mannequin sized from the scan's real measurements. Uses
+// expo-gl + three.js for real native 3D rendering (not a WebView), with a
+// simple drag-to-rotate interaction, a comparison view against an earlier
+// scan, and the AI-generated commentary on the trend.
 //
-// Why procedural instead of a loaded mesh: see services/bodyCompositionService.js
-// for the full explanation — Meshcapade (the only commercial SMPL API) shut
-// down in April 2026, and there's currently no licensed replacement API.
-// Building a simple custom mannequin sidesteps that entirely: it's an
-// original shape driven by real measurement data, not a derivative of any
-// patented statistical body model.
+// Two mesh sources, tried in order:
+// 1. High-quality: a remote call to the Anny body-mesh service
+//    (anny-service/, Apache 2.0), which returns a detailed mesh (real
+//    fingers, toes, facial features) generated from the scan's actual
+//    measurements. See anny-service/README.md for how that service works.
+// 2. Fallback: the original procedural mannequin (lib/bodyMeshBuilder.js) -
+//    always used if the remote call fails for any reason (network, timeout,
+//    service error), so this screen never breaks just because an external
+//    service is temporarily unavailable.
+//
+// Why the procedural fallback exists in the first place, and why it avoids
+// SMPL specifically: see services/bodyCompositionService.js for the full
+// explanation — Meshcapade (the only commercial SMPL API) shut down in
+// April 2026, and SMPL itself is patented, with no licensed replacement API
+// since. The procedural mannequin sidesteps that entirely: an original
+// shape driven by real measurement data, not a derivative of any patented
+// statistical body model. Anny (the primary path above) is a different,
+// separate situation, not a quiet reversal of that reasoning: it's Apache
+// 2.0 licensed and built on MakeHuman's CC0 (public-domain-equivalent)
+// assets, not on SMPL's own proprietary training data or topology.
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, PanResponder, ActivityIndicator } from 'react-native';
@@ -22,6 +33,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
@@ -47,6 +59,66 @@ const getReferenceRigUri = REFERENCE_RIG_BUNDLED
   : () => Promise.resolve(null);
 
 const MANNEQUIN_GRAY = '#9CA3AF';
+
+// Real, measured latency, not a guess: cold-start requests to this service
+// took 80-90+ seconds in direct testing (loading Anny's blend shape data on
+// a fresh container instance). 120s gives real margin above that without
+// leaving a hung request effectively unbounded if the service is genuinely
+// unreachable.
+const ANNY_SERVICE_URL = 'https://anny-mesh-service-431690627943.us-central1.run.app/generate-mesh';
+const ANNY_REQUEST_TIMEOUT_MS = 120000;
+
+// Loads a real, detailed mesh (individual fingers, toes, facial features -
+// see anny-service/README.md) from the Anny body-mesh service, built from
+// this scan's actual measurements. Throws on any failure (network, timeout,
+// service error, malformed response) rather than returning null, so the
+// caller's own try/catch is the single place that decides what happens
+// next - this function's only job is "get a real mesh or fail clearly."
+async function loadHighQualityMesh(scan) {
+  if (!scan.heightCm || !scan.gender) {
+    throw new Error('Missing height or gender - required for high-quality mesh generation.');
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ANNY_REQUEST_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(ANNY_SERVICE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        height_cm: scan.heightCm,
+        weight_kg: scan.weightKg ?? undefined,
+        gender: scan.gender,
+        body_fat_percent: scan.bodyFatPercent ?? undefined,
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Anny service returned ${response.status}: ${detail.slice(0, 200)}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+
+  const gltf = await new Promise((resolve, reject) => {
+    new GLTFLoader().parse(arrayBuffer, '', resolve, reject);
+  });
+
+  let mesh = null;
+  gltf.scene.traverse((child) => {
+    if (child.isMesh && !mesh) mesh = child;
+  });
+  if (!mesh) {
+    throw new Error('Anny service response contained no mesh.');
+  }
+  return mesh;
+}
 
 export default function BodyScanViewerScreen() {
   const params = useLocalSearchParams();
@@ -117,28 +189,50 @@ export default function BodyScanViewerScreen() {
     scene.add(fill);
 
     try {
-      const geometry = buildBodyMesh(scan);
-      const material = new THREE.MeshStandardMaterial({
-        color: MANNEQUIN_GRAY, roughness: 0.85, metalness: 0.05,
-      });
-      disposablesRef.current.geometries.push(geometry);
-      disposablesRef.current.materials.push(material);
-
-      // Use the rigged/posable mesh if the one-time reference rig has been
-      // generated and bundled (see scripts/generateReferenceRig.mjs) —
-      // falls back to the plain static mesh otherwise, so this screen keeps
-      // working before that setup step has been done.
+      let geometry;
+      let material;
       let displayObject;
-      const referenceRigUri = await getReferenceRigUri();
-      if (referenceRigUri) {
-        try {
-          displayObject = await buildSkinnedBodyMesh(geometry, material, referenceRigUri);
-        } catch (rigError) {
-          console.warn('[BodyScanViewer] skinned mesh unavailable, falling back to static mesh:', rigError.message);
-        }
+      let usedHighQualityMesh = false;
+
+      try {
+        setLoadState('loadingHighQuality');
+        const loadedMesh = await loadHighQualityMesh(scan);
+        material = new THREE.MeshStandardMaterial({
+          color: MANNEQUIN_GRAY, roughness: 0.85, metalness: 0.05,
+        });
+        loadedMesh.material = material;
+        geometry = loadedMesh.geometry;
+        displayObject = loadedMesh;
+        usedHighQualityMesh = true;
+        disposablesRef.current.geometries.push(geometry);
+        disposablesRef.current.materials.push(material);
+      } catch (highQualityError) {
+        console.warn('[BodyScanViewer] high-quality mesh unavailable, falling back to local mesh:', highQualityError?.message);
       }
-      if (!displayObject) {
-        displayObject = new THREE.Mesh(geometry, material);
+
+      if (!usedHighQualityMesh) {
+        geometry = buildBodyMesh(scan);
+        material = new THREE.MeshStandardMaterial({
+          color: MANNEQUIN_GRAY, roughness: 0.85, metalness: 0.05,
+        });
+        disposablesRef.current.geometries.push(geometry);
+        disposablesRef.current.materials.push(material);
+
+        // Use the rigged/posable mesh if the one-time reference rig has been
+        // generated and bundled (see scripts/generateReferenceRig.mjs) —
+        // falls back to the plain static mesh otherwise, so this screen keeps
+        // working before that setup step has been done.
+        const referenceRigUri = await getReferenceRigUri();
+        if (referenceRigUri) {
+          try {
+            displayObject = await buildSkinnedBodyMesh(geometry, material, referenceRigUri);
+          } catch (rigError) {
+            console.warn('[BodyScanViewer] skinned mesh unavailable, falling back to static mesh:', rigError.message);
+          }
+        }
+        if (!displayObject) {
+          displayObject = new THREE.Mesh(geometry, material);
+        }
       }
 
       // Center vertically so drag-to-rotate pivots around the figure's
@@ -185,6 +279,12 @@ export default function BodyScanViewerScreen() {
         <GLView style={StyleSheet.absoluteFill} onContextCreate={onContextCreate} />
         {loadState === 'loading' && (
           <View style={styles.loadingOverlay}><ActivityIndicator size="large" color={colors.text} /></View>
+        )}
+        {loadState === 'loadingHighQuality' && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.text} />
+            <Text style={styles.centerMessageText}>Building your detailed 3D model — this can take a minute the first time</Text>
+          </View>
         )}
         {loadState === 'error' && (
           <View style={styles.loadingOverlay}>
