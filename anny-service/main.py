@@ -81,6 +81,20 @@ def _normalize(value: float, lo: float, hi: float) -> float:
     return max(0.0, min(1.0, (value - lo) / (hi - lo)))
 
 
+def _muscle_estimate_from_body_fat(body_fat_percent):
+    """Shared with the pectoral local-change below - same signal, same
+    formula, used consistently in both places rather than duplicated."""
+    if body_fat_percent is None:
+        return 0.5
+    # Rough, deliberately conservative heuristic, not a validated
+    # mapping: lower body fat % nudges toward higher muscle definition.
+    # Clamped to a narrower band than the full 0-1 range so an
+    # unusual body-fat reading can't push this to an extreme the rest
+    # of the shape wasn't built to support.
+    muscle_estimate = _normalize(30.0 - body_fat_percent, 0.0, 25.0)
+    return max(0.25, min(0.75, muscle_estimate))
+
+
 def measurements_to_phenotype_kwargs(m: ScanMeasurements) -> dict:
     kwargs = {
         "gender": 1.0 if m.gender == "female" else 0.0,
@@ -112,16 +126,7 @@ def measurements_to_phenotype_kwargs(m: ScanMeasurements) -> dict:
     else:
         kwargs["weight"] = 0.5
 
-    if m.body_fat_percent is not None:
-        # Rough, deliberately conservative heuristic, not a validated
-        # mapping: lower body fat % nudges toward higher muscle definition.
-        # Clamped to a narrower band than the full 0-1 range so an
-        # unusual body-fat reading can't push this to an extreme the rest
-        # of the shape wasn't built to support.
-        muscle_estimate = _normalize(30.0 - m.body_fat_percent, 0.0, 25.0)
-        kwargs["muscle"] = max(0.25, min(0.75, muscle_estimate))
-    else:
-        kwargs["muscle"] = 0.5
+    kwargs["muscle"] = _muscle_estimate_from_body_fat(m.body_fat_percent)
 
     return kwargs
 
@@ -160,6 +165,8 @@ _WHR_MEDIAN_MALE = 0.94
 _WHR_MEDIAN_FEMALE = 0.87
 _WHR_SPREAD = 0.12  # roughly matches the observed population range above
 _BUTTOCKS_MAX_VOLUME_CHANGE = 0.4
+_THIGH_MAX_FAT = 0.4
+_PECTORAL_MAX_CHANGE = 0.4
 
 
 def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
@@ -181,6 +188,38 @@ def measurements_to_local_changes_kwargs(m: ScanMeasurements) -> dict:
         # less), clamped to +-1 before scaling to this control's real range.
         signed_intensity = max(-1.0, min(1.0, (median_whr - whr) / _WHR_SPREAD))
         result["buttocks-volume-decr-incr"] = signed_intensity * _BUTTOCKS_MAX_VOLUME_CHANGE
+
+    # Thighs and chest, added on explicit request despite being less
+    # precisely grounded than stomach/glutes above: those two use a
+    # region-specific measurement (waist, hip circumference) the app
+    # actually captures. These two use the same general body-fat/muscle
+    # signal instead, since the app has no thigh-circumference or
+    # chest-specific measurement to drive a more targeted estimate from -
+    # a real, general pattern (fat and muscle distribution do correlate
+    # with overall body-fat % and leanness), but a broader, less targeted
+    # signal than the region-specific ones above.
+    if m.body_fat_percent is not None:
+        thigh_intensity = _normalize(
+            m.body_fat_percent, _STOMACH_EFFECT_START_BODY_FAT, _STOMACH_EFFECT_FULL_BODY_FAT
+        )
+        if thigh_intensity > 0.0:
+            thigh_value = thigh_intensity * _THIGH_MAX_FAT
+            # has_left_and_right in Anny's own data (data/mpfb2/targets/
+            # target.json) - unlike stomach/buttocks, there's no single,
+            # combined key for this control, only independent left/right
+            # ones. Set both to the same value for a symmetric result,
+            # since nothing in this app's data suggests asymmetry.
+            result["l-upperleg-fat-decr-incr"] = thigh_value
+            result["r-upperleg-fat-decr-incr"] = thigh_value
+
+    muscle_estimate = _muscle_estimate_from_body_fat(m.body_fat_percent)
+    if muscle_estimate != 0.5:
+        # muscle_estimate is clamped to [0.25, 0.75] (see
+        # _muscle_estimate_from_body_fat) - dividing by that 0.25 half-span
+        # before scaling correctly reaches the full +-_PECTORAL_MAX_CHANGE
+        # range at muscle_estimate's own extremes, rather than only ever
+        # reaching half of it.
+        result["torso-muscle-pectoral-decr-incr"] = ((muscle_estimate - 0.5) / 0.25) * _PECTORAL_MAX_CHANGE
 
     return result
 
