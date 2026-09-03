@@ -5,6 +5,8 @@ import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useExpStore } from './expStore';
 import { gradeToMealStars } from '@/services/passioService';
+import { rookService } from '@/services/rookService';
+import { appleHealthService } from '@/services/appleHealthService';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -21,18 +23,14 @@ export const useHealthStore = create(
       steps: 0,
       isLoading: false,
 
-      // Real fix: these three fields, and the two load functions below,
-      // were destructured by app/hq.jsx but didn't exist anywhere in
-      // this file - confirmed directly against git history
-      // (git log --oneline -- store/healthStore.js shows 3 commits,
-      // none of which ever contained these), meaning they were added
-      // locally at some point and never committed, then lost entirely
-      // when this file was last overwritten. Restored here as safe,
-      // honest placeholders (null/empty, not fabricated data) so
-      // hq.jsx stops crashing on mount - the real Rook recovery /
-      // Apple Health activity integration logic itself is NOT
-      // reconstructed, since there's no record of what it actually
-      // did. That needs to be rebuilt as its own task.
+      // rookRecovery/stepsHistory/flightsClimbed: destructured by
+      // app/hq.jsx. loadRookRecovery/loadAppleHealthActivity below are
+      // real implementations against services/rookService.js and
+      // services/appleHealthService.js, both of which already existed
+      // and worked - stepsHistory itself isn't populated by either
+      // function (neither service exposes a historical series, only
+      // "today"), so it stays an empty array until something explicitly
+      // needs it.
       rookRecovery: null,
       stepsHistory: [],
       flightsClimbed: 0,
@@ -63,26 +61,65 @@ export const useHealthStore = create(
         }
       },
 
-      // Real, honest placeholder - not a reconstruction of whatever the
-      // original Rook recovery integration did, since there's no
-      // record of it (see the note on rookRecovery above). Safe no-op:
-      // resolves without throwing so hq.jsx's mount-time call doesn't
-      // crash, but doesn't fabricate a recovery score. Needs a real
-      // implementation (an actual Rook API call) before rookRecovery
-      // will ever hold real data.
+      // Real, live recovery data. Tries appleHealthService first
+      // (faster, on-device, no Cloud Function round trip) - this exact
+      // order is what appleHealthService.js's own header comment
+      // documents as the intended design ("store/healthStore.js's
+      // loadRookRecovery(), which now tries this service first"), not
+      // a guess. Falls back to rookService (covers Android, or an iOS
+      // user who hasn't granted HealthKit permission but has connected
+      // a Rook-supported wearable instead, e.g. Whoop/Oura/Garmin).
+      // Both are confirmed to return the same shape (restingHeartRate,
+      // hrv, sleepHours, source), so no re-shaping happens here.
       loadRookRecovery: async () => {
-        console.warn('[healthStore] loadRookRecovery is a placeholder - no real Rook integration exists yet');
-        return null;
+        try {
+          const appleData = await appleHealthService.getTodayRecovery();
+          if (appleData) {
+            set({ rookRecovery: appleData });
+            return appleData;
+          }
+        } catch (e) {
+          console.warn('[healthStore] appleHealthService.getTodayRecovery failed:', e?.message);
+        }
+
+        try {
+          const rookData = await rookService.getTodayRecovery();
+          set({ rookRecovery: rookData || null });
+          return rookData || null;
+        } catch (e) {
+          console.warn('[healthStore] rookService.getTodayRecovery failed:', e?.message);
+          set({ rookRecovery: null });
+          return null;
+        }
       },
 
-      // Same situation as loadRookRecovery above - a safe no-op
-      // placeholder, not a reconstruction of the original Apple Health
-      // sync. Needs a real implementation (e.g. via expo-health or
-      // similar) before steps/stepsHistory/flightsClimbed will ever
-      // reflect real Apple Health data through this path.
-      loadAppleHealthActivity: async () => {
-        console.warn('[healthStore] loadAppleHealthActivity is a placeholder - no real Apple Health sync exists yet');
-        return null;
+      // Real, live Apple Health activity sync (steps, flights climbed).
+      // requestAuthorization is called and awaited before any
+      // get/query call - appleHealthService's own docs are explicit
+      // that skipping this exact ordering is what crashes this
+      // library. uid is optional (hq.jsx's current call site doesn't
+      // pass one) - setSteps/awardStepsXp already handle a missing uid
+      // safely (no Firestore sync, no crash), so this works either
+      // way, but passing the real uid lets Apple-Health-sourced steps
+      // sync and award XP through the same path manually-set steps do.
+      loadAppleHealthActivity: async (uid) => {
+        try {
+          const available = await appleHealthService.isAvailable();
+          if (!available) return null;
+
+          await appleHealthService.requestAuthorization();
+          const activity = await appleHealthService.getTodayActivity();
+          if (!activity) return null;
+
+          set({ flightsClimbed: activity.flightsClimbed ?? 0 });
+          if (activity.steps != null) {
+            get().setSteps(activity.steps, uid);
+          }
+          return activity;
+        } catch (e) {
+          console.warn('[healthStore] loadAppleHealthActivity failed:', e?.message);
+          return null;
+        }
       },
 
       _persist: async (uid) => {

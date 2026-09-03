@@ -164,7 +164,7 @@ export default function HQScreen() {
   useEffect(() => {
     if (user?.uid) {
       loadRookRecovery();
-      loadAppleHealthActivity();
+      loadAppleHealthActivity(user.uid);
     }
   }, [user?.uid]);
   const { layout: widgetLayout, loadLayout: loadWidgetLayout, isEditing } = useHomeWidgetsStore();
