@@ -14,8 +14,6 @@ import { useUserStore } from '@/store/userStore';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 import { getTargetMuscles } from '@/lib/muscleFatigue';
 
-// Turns a real interval list into a short, human-readable description,
-// e.g. "Run 1 min, Walk 90 sec x 8" — used in the weekly plan preview.
 function summarizeIntervals(intervals) {
   const runIv = intervals.find((iv) => iv.type === 'run');
   const walkIv = intervals.find((iv) => iv.type === 'walk');
@@ -24,12 +22,6 @@ function summarizeIntervals(intervals) {
   if (!walkIv) return `Run ${fmt(runIv?.seconds || 0)} continuous`;
   return `Run ${fmt(runIv.seconds)}, Walk ${fmt(walkIv.seconds)} x ${reps}`;
 }
-
-const TOOLS = [
-  { icon: 'navigate-outline', label: 'Track Distance & Pace with GPS' },
-  { icon: 'musical-notes-outline', label: 'Sync with Your Playlists' },
-  { icon: 'people-outline', label: 'Share to the Community Feed' },
-];
 
 function StatPill({ icon, label }) {
   return (
@@ -40,11 +32,9 @@ function StatPill({ icon, label }) {
   );
 }
 
-/* ââ Week row ââ */
-
-function WeekRow({ item }) {
+function WeekRow({ item, onPress }) {
   return (
-    <View style={styles.weekRow}>
+    <Pressable style={styles.weekRow} onPress={onPress}>
       <View style={styles.weekCircle}>
         <Text style={styles.weekNum}>{item.week}</Text>
       </View>
@@ -53,32 +43,19 @@ function WeekRow({ item }) {
         <Text style={styles.weekDesc}>{item.desc}</Text>
       </View>
       <Text style={styles.weekDuration}>{item.duration}</Text>
-    </View>
+      <Ionicons name="chevron-forward" size={18} color="#999" style={{ marginLeft: 6 }} />
+    </Pressable>
   );
 }
-
-/* ââ Tool card ââ */
-
-function ToolCard({ icon, label }) {
-  return (
-    <View style={styles.toolCard}>
-      <View style={styles.toolIcon}>
-        <Ionicons name={icon} size={18} color="#FFF" />
-      </View>
-      <Text style={styles.toolLabel}>{label}</Text>
-    </View>
-  );
-}
-
-/* ââ Main screen ââ */
 
 export default function RunPreviewScreen() {
   const params = useLocalSearchParams();
   const programId = typeof params.id === 'string' ? params.id : 'c25k';
   const router = useRouter();
 
-  const { programProgress, loadRuns, programs, loadRunningPrograms } = useRunningStore();
+  const { programProgress, loadRuns, programs, loadRunningPrograms, favoriteProgramIds } = useRunningStore();
   const program = programs.find((p) => p.id === programId);
+  const isFavorited = favoriteProgramIds.includes(programId);
   const title = program?.title || 'Program';
   const { user } = useUserStore();
 
@@ -95,13 +72,8 @@ export default function RunPreviewScreen() {
   const nextSessionIndex = progress?.completedSessionIndexes?.length || 0;
   const hasStarted = !!progress;
 
-  const [bookmarked, setBookmarked] = useState(false);
-  const [selectedCoach, setSelectedCoach] = useState('Motivator');
   const [audioCues, setAudioCues] = useState(true);
 
-  // Real weekly plan, built from the actual program structure rather than
-  // a fixed 4-week hardcoded preview shown for every program regardless
-  // of which one was selected.
   const weeklyPlan = (program?.weeks || []).map((w) => {
     const seconds = w.intervals
       ? w.intervals.reduce((s, iv) => s + iv.seconds, 0)
@@ -119,6 +91,23 @@ export default function RunPreviewScreen() {
     return { week: `W${w.week}`, title: w.title, desc, duration };
   });
 
+  const weekCount = program?.weeks?.length || 0;
+  const sessionsPerWeek = program?.weeks?.[0]?.sessionsPerWeek;
+
+  // Real progress across the whole program, not just the current week -
+  // programProgress only directly tracks completedSessionIndexes within
+  // the CURRENT week, so full-program completion is derived: every
+  // session from weeks already passed (assumes a user completes a week
+  // before advancing, matching how currentWeek actually increments)
+  // plus the current week's own real tracked completions. Correctly
+  // resolves to 0 when the program hasn't been started at all.
+  const totalSessions = (program?.weeks || []).reduce((sum, w) => sum + (w.sessionsPerWeek || 0), 0);
+  const completedSessions = (program?.weeks || [])
+    .filter((w) => w.week < currentWeek)
+    .reduce((sum, w) => sum + (w.sessionsPerWeek || 0), 0)
+    + (progress?.completedSessionIndexes?.length || 0);
+  const progressPercent = totalSessions > 0 ? Math.min(100, Math.round((completedSessions / totalSessions) * 100)) : 0;
+
   const handleBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -134,70 +123,59 @@ export default function RunPreviewScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ââ Hero ââ */}
         <View style={styles.hero}>
           <Ionicons name="fitness-outline" size={60} color="#999" />
 
-          {/* High XP badge */}
-          <View style={styles.xpBadge}>
-            <Text style={styles.xpBadgeText}>High XP</Text>
-          </View>
-
-          {/* Back button */}
           <Pressable style={styles.backBtn} onPress={handleBack}>
             <Ionicons name="chevron-back" size={20} color="#000" />
           </Pressable>
 
-          {/* Top-right actions */}
-          <View style={styles.topRightActions}>
-            <Pressable style={styles.actionBtn} onPress={() => setBookmarked(!bookmarked)}>
-              <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color="#000" />
-            </Pressable>
-            <Pressable style={styles.actionBtn}>
-              <Ionicons name="ellipsis-vertical" size={18} color="#000" />
-            </Pressable>
-          </View>
+          <Pressable
+            style={styles.favoriteBtn}
+            onPress={() => useRunningStore.getState().toggleFavoriteProgram(programId, user?.uid)}
+          >
+            <Ionicons name={isFavorited ? 'bookmark' : 'bookmark-outline'} size={18} color="#000" />
+          </Pressable>
 
-          {/* Overlay */}
           <View style={styles.heroOverlay}>
             <Text style={styles.heroTitle}>{title}</Text>
-            <Text style={styles.heroDesc}>Running for Beginners \u2022 12 Week Program</Text>
+            <Text style={styles.heroDesc}>{program?.subtitle || ''}</Text>
             <View style={styles.statsRow}>
-              <StatPill icon="speedometer-outline" label="6:30 /km" />
-              <StatPill icon="time-outline" label="30 min" />
-              <StatPill icon="map-outline" label="5K" />
-              <StatPill icon="flash-outline" label="+150 XP" />
+              {weekCount > 0 && <StatPill icon="calendar-outline" label={`${weekCount} Weeks`} />}
+              {sessionsPerWeek != null && <StatPill icon="repeat-outline" label={`${sessionsPerWeek}x / week`} />}
             </View>
             <View style={styles.overlayBottomRow}>
-              <View style={styles.difficultyBadge}>
-                <Text style={styles.difficultyText}>BEGINNER</Text>
-              </View>
+              {program?.level && (
+                <View style={styles.difficultyBadge}>
+                  <Text style={styles.difficultyText}>{program.level.toUpperCase()}</Text>
+                </View>
+              )}
               <Text style={styles.categoryLabel}>Running</Text>
             </View>
           </View>
         </View>
 
-        {/* ââ Audio Coaching ââ */}
+        {hasStarted && (
+          <View style={styles.section}>
+            <View style={styles.progressHeaderRow}>
+              <Text style={styles.sectionTitle}>Progress</Text>
+              <Text style={styles.progressCount}>{completedSessions}/{totalSessions} sessions</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="headset-outline" size={20} color="#000" />
             <Text style={styles.sectionTitle}>Audio Coaching</Text>
           </View>
           <View style={styles.coachCard}>
-            <Text style={styles.coachSelectLabel}>Select Your Coach</Text>
-            <View style={styles.coachPills}>
-              {['Motivator', 'Calm', 'Technical'].map((c) => (
-                <Pressable
-                  key={c}
-                  style={[styles.coachPill, selectedCoach === c && styles.coachPillActive]}
-                  onPress={() => setSelectedCoach(c)}
-                >
-                  <Text style={[styles.coachPillText, selectedCoach === c && styles.coachPillTextActive]}>{c}</Text>
-                </Pressable>
-              ))}
-            </View>
             <Text style={styles.coachDesc}>
-              Audio cues for pace, intervals, and encouragement during your run
+              Voice cues for run/walk intervals during your session, powered by the same real
+              coaching system used on the active run screen.
             </Text>
             <View style={styles.toggleRow}>
               <Text style={styles.toggleLabel}>Audio Cues Enabled</Text>
@@ -208,53 +186,42 @@ export default function RunPreviewScreen() {
           </View>
         </View>
 
-        {/* ââ Program Details ââ */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Program Details</Text>
-          <Text style={styles.descriptionText}>
-            The first place to visit for anyone looking to start running. Provides a heap of good
-            advice for those wanting to run 5K. Go from the couch to running for 30 minutes in
-            just 12 weeks with structured intervals and audio coaching.
-          </Text>
-          <Pressable>
-            <Text style={styles.seeAll}>See All</Text>
-          </Pressable>
-        </View>
+        {program?.description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Program Details</Text>
+            <Text style={styles.descriptionText}>{program.description}</Text>
+          </View>
+        )}
 
-        {/* ââ Weekly Plan ââ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Plan</Text>
           {weeklyPlan.map((item) => (
-            <WeekRow key={item.week} item={item} />
+            <WeekRow
+              key={item.week}
+              item={item}
+              onPress={() => router.push(`/running/week/${programId}-${item.week.toLowerCase()}`)}
+            />
           ))}
         </View>
 
-        {/* ââ Race Training Tools ââ */}
-        {/* Real muscles this program primarily targets -- same real
-            primary-muscle model used for fatigue tracking on the Health
-            screen, so both views agree with each other. */}
         <View style={styles.section}>
           <MuscleHeatmapCard mode="target" targetMuscles={getTargetMuscles('running')} title="Muscles You'll Work" />
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Race Training Tools</Text>
-          <View style={styles.toolsStack}>
-            {TOOLS.map((t) => (
-              <ToolCard key={t.icon} icon={t.icon} label={t.label} />
-            ))}
-          </View>
-        </View>
       </ScrollView>
 
-      {/* ââ Floating CTA ââ */}
       <Pressable
         style={styles.ctaButton}
         onPress={() => {
           if (!hasStarted) useRunningStore.getState().startProgram(programId, user?.uid);
           router.push({
             pathname: '/running/session/[id]',
-            params: { id: `${programId}-w${currentWeek}-s${nextSessionIndex}`, programId, week: String(currentWeek), sessionIndex: String(nextSessionIndex) },
+            params: {
+              id: `${programId}-w${currentWeek}-s${nextSessionIndex}`,
+              programId,
+              week: String(currentWeek),
+              sessionIndex: String(nextSessionIndex),
+              audioCues: String(audioCues),
+            },
           });
         }}
       >
@@ -265,14 +232,11 @@ export default function RunPreviewScreen() {
   );
 }
 
-/* ââ Styles ââ */
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 120 },
 
-  /* Hero */
   hero: {
     height: 320,
     backgroundColor: '#E0E0E0',
@@ -280,11 +244,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  xpBadge: {
-    position: 'absolute', top: 100, left: 16,
-    backgroundColor: '#E8873A', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, zIndex: 10,
-  },
-  xpBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
   heroOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 16, paddingBottom: 14, paddingTop: 65,
@@ -305,27 +264,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center', alignItems: 'center', zIndex: 10,
   },
-  topRightActions: { position: 'absolute', top: 50, right: 16, flexDirection: 'row', gap: 8, zIndex: 10 },
-  actionBtn: {
+  favoriteBtn: {
+    position: 'absolute', top: 50, right: 16,
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center', zIndex: 10,
   },
 
-  /* Sections */
   section: { paddingHorizontal: 20, marginTop: 20 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
+  progressHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  progressCount: { fontSize: 14, color: '#999' },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: '#E5E5E5', overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: '#000' },
 
-  /* Audio coaching */
   coachCard: { backgroundColor: '#F5F5F5', borderRadius: 14, padding: 16, marginTop: 10 },
-  coachSelectLabel: { fontSize: 15, fontWeight: '600', color: '#000' },
-  coachPills: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  coachPill: { backgroundColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  coachPillActive: { backgroundColor: '#000' },
-  coachPillText: { fontSize: 12, fontWeight: '600', color: '#333' },
-  coachPillTextActive: { color: '#FFF' },
-  coachDesc: { fontSize: 13, color: '#666', marginTop: 10 },
+  coachDesc: { fontSize: 13, color: '#666' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   toggleLabel: { fontSize: 14, color: '#000' },
   toggle: {
@@ -338,11 +293,8 @@ const styles = StyleSheet.create({
   },
   toggleCircleActive: { alignSelf: 'flex-end' },
 
-  /* Description */
   descriptionText: { fontSize: 14, color: '#444', lineHeight: 22, marginTop: 8 },
-  seeAll: { fontSize: 14, fontWeight: '600', color: '#000', marginTop: 6 },
 
-  /* Weekly plan */
   weekRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
@@ -357,19 +309,6 @@ const styles = StyleSheet.create({
   weekDesc: { fontSize: 12, color: '#999', marginTop: 2 },
   weekDuration: { fontSize: 13, color: '#666' },
 
-  /* Tools */
-  toolsStack: { gap: 10, marginTop: 10 },
-  toolCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F5F5F5', borderRadius: 12, padding: 14, gap: 12,
-  },
-  toolIcon: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#000',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  toolLabel: { fontSize: 14, fontWeight: '600', color: '#000' },
-
-  /* CTA */
   ctaButton: {
     position: 'absolute', bottom: 24, left: 24, right: 24,
     height: 52, borderRadius: 26, backgroundColor: '#000',

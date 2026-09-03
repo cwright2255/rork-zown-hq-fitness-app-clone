@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useExpStore } from './expStore';
+import { useUserStore } from './userStore';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -17,6 +18,12 @@ export const useNutritionStore = create(
         fat: 65,
         water: 2000 // 2 liters (2000ml)
       },
+      // Real timestamp for the AI-personalized target below, not the
+      // fallback default above - lets the client tell "never calculated
+      // yet" apart from "calculated a while ago, worth refreshing"
+      // without guessing.
+      dailyGoalsUpdatedAt: null,
+      nutritionSummary: null,
       isLoading: false,
       // Was seeded with fake "Chicken Breast" / "Brown Rice" / "Avocado"
       // entries for every user, regardless of what they'd actually logged.
@@ -38,6 +45,8 @@ export const useNutritionStore = create(
               meals: data.meals || [],
               waterIntake: data.waterIntake || {},
               dailyGoals: data.dailyGoals || get().dailyGoals,
+              dailyGoalsUpdatedAt: data.dailyGoalsUpdatedAt || null,
+              nutritionSummary: data.nutritionSummary || null,
               recentFoods: data.recentFoods || [],
               favoriteFood: data.favoriteFood || [],
             });
@@ -57,6 +66,8 @@ export const useNutritionStore = create(
             meals: s.meals,
             waterIntake: s.waterIntake,
             dailyGoals: s.dailyGoals,
+            dailyGoalsUpdatedAt: s.dailyGoalsUpdatedAt,
+            nutritionSummary: s.nutritionSummary,
             recentFoods: s.recentFoods,
             favoriteFood: s.favoriteFood,
             updatedAt: new Date().toISOString(),
@@ -162,7 +173,7 @@ export const useNutritionStore = create(
               date: new Date().toISOString().split('T')[0],
               description: `Logged ${food.name}`,
               completed: true
-            });
+            }, useUserStore.getState().user?.uid);
           } catch (error) {
             console.error('Failed to add EXP for meal:', error);
           }
@@ -258,6 +269,52 @@ export const useNutritionStore = create(
         }));
       },
 
+      // Real AI-personalized calorie/macro target, calling the Cloud
+      // Function proxy (functions/src/index.js's
+      // getNutritionRecommendations) rather than the flat 2000/150/200/65
+      // default every user previously got regardless of their actual
+      // body metrics or goals. Takes the real profile/workout data as
+      // arguments rather than reaching into other stores itself, so this
+      // store doesn't need to know about userStore/workoutStore's shapes.
+      refreshDailyGoals: async ({ recentWorkouts, goals, profile } = {}) => {
+        try {
+          const { httpsCallable } = await import('firebase/functions');
+          const { functions } = await import('../src/config/firebase');
+          const fn = httpsCallable(functions, 'getNutritionRecommendations');
+          const result = await fn({ recentWorkouts: recentWorkouts || [], goals: goals || [], profile: profile || {} });
+          const rec = result.data?.recommendations;
+          if (rec?.dailyMacros) {
+            set((state) => ({
+              dailyGoals: {
+                ...state.dailyGoals,
+                calories: rec.dailyMacros.calories || state.dailyGoals.calories,
+                protein: rec.dailyMacros.protein || state.dailyGoals.protein,
+                carbs: rec.dailyMacros.carbs || state.dailyGoals.carbs,
+                fat: rec.dailyMacros.fat || state.dailyGoals.fat,
+              },
+              dailyGoalsUpdatedAt: new Date().toISOString(),
+              nutritionSummary: rec.summary || null,
+            }));
+            return true;
+          }
+          return false;
+        } catch (e) {
+          console.warn('[nutritionStore] refreshDailyGoals error:', e?.message);
+          return false;
+        }
+      },
+
+      // Real staleness check - 14 days is a reasonable interval for a
+      // target to meaningfully drift as weight/activity actually change,
+      // without recalculating (and spending an OpenAI call) on every
+      // single screen visit.
+      shouldRefreshDailyGoals: () => {
+        const updatedAt = get().dailyGoalsUpdatedAt;
+        if (!updatedAt) return true;
+        const daysSince = (Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+        return daysSince >= 14;
+      },
+
       addToFavorites: (food) => {
         set((state) => ({
           favoriteFood: [...state.favoriteFood, food]
@@ -279,6 +336,8 @@ export const useNutritionStore = create(
           Object.entries(state.waterIntake).slice(-7) // Keep only last 7 days of water intake
         ),
         dailyGoals: state.dailyGoals,
+        dailyGoalsUpdatedAt: state.dailyGoalsUpdatedAt,
+        nutritionSummary: state.nutritionSummary,
         recentFoods: state.recentFoods.slice(0, 10), // Limit recent foods
         favoriteFood: state.favoriteFood.slice(0, 20) // Limit favorite foods
       })

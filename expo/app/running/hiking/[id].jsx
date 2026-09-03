@@ -23,12 +23,13 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
-import { getPhotoUrl, fetchTrailRoute } from '@/services/hikingService';
+import { getPhotoUrl, getTrailMaps, fetchRouteForMap } from '@/services/hikingService';
 import { promptDirections } from '@/lib/openDirections';
 import ElevationProfileChart from '@/components/ElevationProfileChart';
 import TrailWeather from '@/components/TrailWeather';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
-import { getTargetMuscles } from '@/lib/muscleFatigue';
+import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
+import { getTargetMuscles, getTargetMuscleIntensities } from '@/lib/muscleFatigue';
 
 // Same defensive-load pattern already used in components/RunningMap.jsx —
 // react-native-maps isn't web-compatible, and loading it via a bare
@@ -53,6 +54,17 @@ export default function TrailPreviewScreen() {
   const trailId = typeof params.id === 'string' ? params.id : '';
   const { getTrailById, savedTrailIds, toggleSaveTrail, userLocation } = useHikingStore();
   const { user } = useUserStore();
+  const { scans, loadScans } = useBodyCompositionStore();
+
+  useEffect(() => {
+    if (user?.uid) loadScans(user.uid);
+  }, [user?.uid]);
+
+  // Real fix, not a fallback shortcut: [-1] on an empty array is
+  // undefined, not an error, so this correctly resolves to "no scan
+  // yet" (MuscleMeshHighlight's own real empty state) rather than
+  // crashing when scans hasn't loaded yet or the user has none.
+  const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - spacing.base * 2;
 
@@ -61,19 +73,52 @@ export default function TrailPreviewScreen() {
   const photoUrl = trail?.photoUrl || (trail?.photoName ? getPhotoUrl(trail.photoName, 900) : null);
 
   const [route, setRoute] = useState(null); // { coordinates, distanceKm, elevationGainM } | null
+  const [availableMaps, setAvailableMaps] = useState([]); // [{ id, name }] - real, possibly-multiple named paths for this trail
+  const [selectedMapId, setSelectedMapId] = useState(null);
+  const [loadingMaps, setLoadingMaps] = useState(false);
+  const [mapsDebugInfo, setMapsDebugInfo] = useState(null);
 
   useEffect(() => {
-    if (!trail || trail.source !== 'trailapi' || !MapView) return;
-    // The stored id is prefixed ("trailapi-721") to keep it unambiguous
-    // from a Places id in the same store — strip it back off to get the
-    // real TrailAPI id that getTrailMaps()/getTrailGpx() actually expect.
+    if (!trail) {
+      setMapsDebugInfo(`trail is null (trailId param: "${typeof params.id === 'string' ? params.id : params.id?.[0] ?? '(missing)'}") - getTrailById found nothing in the store.`);
+      return;
+    }
+    if (trail.source !== 'trailapi') {
+      setMapsDebugInfo(`Skipped: trail.source is "${trail.source}", not "trailapi" - path data only exists for TrailAPI-sourced results.`);
+      return;
+    }
+    if (!MapView) {
+      setMapsDebugInfo('Skipped: react-native-maps did not load on this device.');
+      return;
+    }
     const rawId = trail.id.replace(/^trailapi-/, '');
     let cancelled = false;
-    fetchTrailRoute(rawId).then((result) => {
-      if (!cancelled) setRoute(result);
+    setLoadingMaps(true);
+    setMapsDebugInfo(`Fetching maps for TrailAPI id "${rawId}"...`);
+    getTrailMaps(rawId).then((maps) => {
+      if (cancelled) return;
+      setAvailableMaps(maps || []);
+      if (maps?.[0]?.id) setSelectedMapId(maps[0].id);
+      setLoadingMaps(false);
+      setMapsDebugInfo(`Got ${maps?.length ?? 0} maps back: ${JSON.stringify(maps).slice(0, 300)}`);
+    }).catch((e) => {
+      console.warn('[TrailDetail] getTrailMaps failed:', e?.message);
+      if (!cancelled) {
+        setLoadingMaps(false);
+        setMapsDebugInfo(`getTrailMaps threw: ${e?.message}`);
+      }
     });
     return () => { cancelled = true; };
   }, [trail?.id]);
+
+  useEffect(() => {
+    if (!selectedMapId) { setRoute(null); return; }
+    let cancelled = false;
+    fetchRouteForMap(selectedMapId).then((result) => {
+      if (!cancelled) setRoute(result);
+    });
+    return () => { cancelled = true; };
+  }, [selectedMapId]);
 
   if (!trail) {
     return (
@@ -95,7 +140,7 @@ export default function TrailPreviewScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={styles.heroWrap}>
           {photoUrl ? (
@@ -118,6 +163,11 @@ export default function TrailPreviewScreen() {
 
         <View style={styles.body}>
           <Text style={styles.title}>{trail.name}</Text>
+          {mapsDebugInfo && (
+            <View style={{ backgroundColor: '#FEF3C7', borderRadius: 8, padding: 10, marginTop: 8 }}>
+              <Text style={{ fontSize: 11, color: '#78350F' }} selectable>{mapsDebugInfo}</Text>
+            </View>
+          )}
           <Text style={styles.address}>{trail.address}</Text>
 
           <View style={styles.metaRow}>
@@ -152,7 +202,14 @@ export default function TrailPreviewScreen() {
           <TrailWeather latitude={trail.latitude} longitude={trail.longitude} />
 
           <View style={{ marginTop: spacing.md }}>
-            <MuscleHeatmapCard mode="target" targetMuscles={getTargetMuscles('hiking')} title="Muscles You'll Work" />
+            <MuscleHeatmapCard
+              mode="target"
+              targetMuscles={getTargetMuscles('hiking')}
+              muscleIntensities={getTargetMuscleIntensities('hiking')}
+              title="Muscles You'll Work"
+              scan={latestScan}
+              onRetryScan={() => user?.uid && loadScans(user.uid)}
+            />
           </View>
 
           {trail.directions && (
@@ -168,6 +225,24 @@ export default function TrailPreviewScreen() {
             </Pressable>
           )}
 
+          {availableMaps.length > 1 && (
+            <View style={{ marginTop: spacing.lg }}>
+              <Text style={styles.sectionLabel}>Choose a Path</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+                {availableMaps.map((m) => (
+                  <Pressable
+                    key={m.id}
+                    style={[styles.metaChip, selectedMapId === m.id && styles.pathChipActive]}
+                    onPress={() => setSelectedMapId(m.id)}
+                  >
+                    <Text style={[styles.metaChipText, selectedMapId === m.id && styles.pathChipTextActive]}>
+                      {m.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
           {route && (
             <View style={{ marginTop: spacing.lg }}>
               <Text style={styles.sectionLabel}>Trail Route</Text>
@@ -222,14 +297,23 @@ export default function TrailPreviewScreen() {
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <Pressable
-          style={styles.monitorBtn}
-          onPress={() => router.push({ pathname: '/running/hiking/monitor', params: { id: trail.id } })}
-        >
-          <Ionicons name="partly-sunny-outline" size={16} color={colors.text} />
-          <Text style={styles.monitorBtnText}>Monitor weather during hike</Text>
+        <PrimaryButton
+          title="Start Hike"
+          onPress={() => {
+            const selectedMap = availableMaps.find((m) => m.id === selectedMapId);
+            router.push({
+              pathname: '/running/hiking/monitor',
+              params: {
+                id: trail.id,
+                ...(selectedMap ? { pathName: selectedMap.name, mapId: String(selectedMap.id) } : {}),
+              },
+            });
+          }}
+        />
+        <Pressable style={styles.monitorBtn} onPress={handleDirections}>
+          <Ionicons name="navigate-outline" size={16} color={colors.text} />
+          <Text style={styles.monitorBtnText}>Get Directions</Text>
         </Pressable>
-        <PrimaryButton title="Get Directions" onPress={handleDirections} />
       </View>
     </SafeAreaView>
   );
@@ -260,6 +344,8 @@ const styles = StyleSheet.create({
   },
   metaChipText: { ...typography.caption, color: colors.text },
   viewOnMapsLink: { ...typography.bodySmall, color: colors.green, fontWeight: '600' },
+  pathChipActive: { backgroundColor: colors.text },
+  pathChipTextActive: { color: colors.bg, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase',
     color: colors.textSecondary, marginBottom: 6,

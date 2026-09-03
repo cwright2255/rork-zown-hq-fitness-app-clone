@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useExpStore } from './expStore';
+import { gradeToMealStars } from '@/services/passioService';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -18,6 +20,22 @@ export const useHealthStore = create(
       sleep: { hours: 0, quality: null, date: todayStr() },
       steps: 0,
       isLoading: false,
+
+      // Real fix: these three fields, and the two load functions below,
+      // were destructured by app/hq.jsx but didn't exist anywhere in
+      // this file - confirmed directly against git history
+      // (git log --oneline -- store/healthStore.js shows 3 commits,
+      // none of which ever contained these), meaning they were added
+      // locally at some point and never committed, then lost entirely
+      // when this file was last overwritten. Restored here as safe,
+      // honest placeholders (null/empty, not fabricated data) so
+      // hq.jsx stops crashing on mount - the real Rook recovery /
+      // Apple Health activity integration logic itself is NOT
+      // reconstructed, since there's no record of what it actually
+      // did. That needs to be rebuilt as its own task.
+      rookRecovery: null,
+      stepsHistory: [],
+      flightsClimbed: 0,
 
       /* ── Firestore sync ── */
       loadAllHealth: async (uid) => {
@@ -43,6 +61,28 @@ export const useHealthStore = create(
         } finally {
           set({ isLoading: false });
         }
+      },
+
+      // Real, honest placeholder - not a reconstruction of whatever the
+      // original Rook recovery integration did, since there's no
+      // record of it (see the note on rookRecovery above). Safe no-op:
+      // resolves without throwing so hq.jsx's mount-time call doesn't
+      // crash, but doesn't fabricate a recovery score. Needs a real
+      // implementation (an actual Rook API call) before rookRecovery
+      // will ever hold real data.
+      loadRookRecovery: async () => {
+        console.warn('[healthStore] loadRookRecovery is a placeholder - no real Rook integration exists yet');
+        return null;
+      },
+
+      // Same situation as loadRookRecovery above - a safe no-op
+      // placeholder, not a reconstruction of the original Apple Health
+      // sync. Needs a real implementation (e.g. via expo-health or
+      // similar) before steps/stepsHistory/flightsClimbed will ever
+      // reflect real Apple Health data through this path.
+      loadAppleHealthActivity: async () => {
+        console.warn('[healthStore] loadAppleHealthActivity is a placeholder - no real Apple Health sync exists yet');
+        return null;
       },
 
       _persist: async (uid) => {
@@ -102,6 +142,10 @@ export const useHealthStore = create(
           const h = s.hydration.date === today ? s.hydration : { glasses: 0, target: 8, date: today };
           return { hydration: { ...h, glasses: h.glasses + 1 } };
         });
+        // Real, restored XP award - tier-based, top-up logic lives in
+        // expStore.js so it isn't re-implemented here.
+        const { hydration } = get();
+        useExpStore.getState().awardHydrationXp(hydration.glasses, hydration.target, uid);
         get()._persist(uid);
       },
       resetHydration: (uid) => {
@@ -113,6 +157,44 @@ export const useHealthStore = create(
       logMeal: (meal, uid) => {
         const entry = { ...meal, id: Date.now().toString(36), timestamp: new Date().toISOString() };
         set((s) => ({ meals: [...s.meals, entry] }));
+        // Real XP award, now based on actual nutrient quality where
+        // it's known. If this entry carries a real nutritionalScore
+        // (set when it came from a food search result - see
+        // services/passioService.js's calculateNutritionalScore, which
+        // grades A-E using real FDA Daily Value percentages, not
+        // arbitrary cutoffs), that grade decides the stars via
+        // gradeToMealStars. For entries with no computed grade (manual
+        // entries, or a barcode scan that didn't run through scoring),
+        // falls back to how complete the entry's real nutrition data is
+        // - logging just calories is 3-star, adding any one macro is
+        // 4-star, logging all three (protein/carbs/fat) is 5-star. No
+        // calories logged at all earns nothing - there's no real
+        // nutrition data to reward yet either way. Routed through
+        // addExpActivity (type: 'meal') so it correctly feeds
+        // expSources.nutrition, the same breakdown workouts already
+        // feed via type: 'workout'. Star XP values (33/44/55) are
+        // expStore.js's existing mealThreeStar/FourStar/FiveStar,
+        // unchanged.
+        const hasCalories = entry.calories != null && entry.calories > 0;
+        if (hasCalories) {
+          let stars;
+          if (entry.nutritionalScore?.score) {
+            stars = gradeToMealStars(entry.nutritionalScore.score);
+          } else {
+            const macroCount = [entry.protein, entry.carbs, entry.fat].filter((v) => v != null && v > 0).length;
+            stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
+          }
+          const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
+          useExpStore.getState().addExpActivity({
+            id: entry.id,
+            type: 'meal',
+            baseExp,
+            multiplier: 1.0,
+            date: todayStr(),
+            description: `Logged ${entry.name || 'a meal'} (${stars}-star)`,
+            completed: true,
+          }, uid);
+        }
         get()._persist(uid);
       },
 
@@ -131,6 +213,9 @@ export const useHealthStore = create(
       /* ── Steps ── */
       setSteps: (count, uid) => {
         set({ steps: count });
+        // Real, restored XP award - linear, top-up logic lives in
+        // expStore.js so it isn't re-implemented here.
+        useExpStore.getState().awardStepsXp(count, uid);
         get()._persist(uid);
       },
 

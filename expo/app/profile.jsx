@@ -1,5 +1,5 @@
 import LoadingSkeleton from '@/src/components/LoadingSkeleton';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,14 +22,9 @@ import { useWorkoutStore } from '@/store/workoutStore';
 
 /* âââ Placeholder data âââ */
 
-const EARNED_BADGES = [
-  { icon: 'trophy', label: 'First Workout' },
-  { icon: 'fitness', label: '5K Runner' },
-  { icon: 'flame', label: '7-Day Streak' },
-  { icon: 'sunny', label: 'Early Bird' },
-];
+import { useAchievementStore } from '@/store/achievementStore';
 
-const LOCKED_BADGES = [
+const LOCKED_BADGES_UNUSED = [
   { icon: 'medal', label: 'Marathon' },
   { icon: 'star', label: '100 Workouts' },
   { icon: 'shield', label: 'Elite Level' },
@@ -40,7 +35,7 @@ const MENU_GROUPS = [
     label: 'Activity',
     items: [
       { icon: 'create-outline', label: 'Edit Profile', route: '/profile/edit' },
-      { icon: 'time-outline', label: 'Workout History', route: '/workouts' },
+      { icon: 'time-outline', label: 'Workout History', route: '/profile/workout-history' },
       { icon: 'fitness-outline', label: 'Running Log', route: '/profile/running-log' },
       { icon: 'trophy-outline', label: 'Personal Records', route: '/analytics' },
       { icon: 'body-outline', label: 'Body Scan', route: '/body-scan/capture' },
@@ -128,18 +123,42 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { user, loadProfile, updateUser, saveProfile } = useUserStore();
-  const { totalExp, loadXP, getLevel } = useExpStore();
+  const { loadXP, getLevel, getExpForLevel, getExpToNextLevel, getTotalExp } = useExpStore();
+  // Real fix: totalExp was destructured directly from useExpStore(),
+  // but that top-level property never existed on the store - it only
+  // ever lived nested inside expSystem.totalExp, so this was always
+  // reading undefined, always falling back to 0 regardless of the
+  // real, correctly-updating value.
+  const totalExp = getTotalExp ? getTotalExp() : 0;
+
+  // Real fix: loadXP was previously only ever called from onRefresh
+  // (pull-to-refresh) - opening this screen normally never fetched
+  // fresh XP at all, so it could silently show stale data from
+  // whatever was last cached, with no way to tell that had happened.
+  const { achievements, getUnlockedAchievements, getLockedAchievements, loadAchievements } = useAchievementStore();
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadXP(user.uid);
+      loadAchievements(user.uid);
+    }
+  }, [user?.uid]);
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
 
-  // Real fix, same class as profilePhoto/profileName above: these were
-  // referenced in the stats and XP cards below but never declared. Used
-  // the same 1000-XP-per-level formula already established in
-  // expStore.js (calculateLevelFromExp/getExpForLevel) rather than
-  // inventing a different one here.
-  const xpLevel = getLevel ? getLevel() : Math.floor((totalExp || 0) / 1000) + 1;
-  const xpTarget = 1000;
-  const xpCurrent = (totalExp || 0) - (xpLevel - 1) * 1000;
-  const xpPercent = Math.min(100, Math.max(0, (xpCurrent / xpTarget) * 100));
+  // Real fix: this previously hardcoded a flat "1000 XP per level"
+  // formula, matching what expStore.js used to do - but that store's
+  // own level curve is now the real, verified exponential curve from
+  // the design spreadsheet (LEVEL_GROWTH_RATE), where each level needs
+  // a different amount of XP, not a flat 1000. This now reads the
+  // store's own real thresholds (getExpForLevel/getExpToNextLevel)
+  // instead of recomputing a separate, now-incorrect assumption here.
+  const xpLevel = getLevel ? getLevel() : 1;
+  const currentLevelThreshold = getExpForLevel ? getExpForLevel(xpLevel) : 0;
+  const nextLevelThreshold = getExpForLevel ? getExpForLevel(xpLevel + 1) : currentLevelThreshold + 1000;
+  const xpCurrent = Math.max(0, (totalExp || 0) - currentLevelThreshold);
+  const xpNeededForLevel = Math.max(1, nextLevelThreshold - currentLevelThreshold);
+  const xpPercent = Math.min(100, Math.max(0, (xpCurrent / xpNeededForLevel) * 100));
+  const xpRemaining = getExpToNextLevel ? getExpToNextLevel() : Math.max(0, nextLevelThreshold - (totalExp || 0));
 
   const STATS_LIVE = [
     { label: 'Workouts', value: completedWorkouts?.length || 0 },
@@ -239,7 +258,9 @@ return (
             <Text style={styles.editPhoto}>Edit Photo</Text>
           </Pressable>
           <Text style={styles.userName}>{profileName}</Text>
-          <Text style={styles.userHandle}>@{profileName.toLowerCase().replace(/\s+/g, '_')}</Text>
+          {user?.username ? (
+            <Text style={styles.userHandle}>@{user.username}</Text>
+          ) : null}
           <Text style={styles.memberSince}>Member since May 2026</Text>
         </View>
 
@@ -266,7 +287,7 @@ return (
             <View style={[styles.xpBarFill, { width: xpPercent + '%' }]} />
           </View>
           <Text style={styles.xpRemaining}>
-            {xpTarget - xpCurrent} XP to Level {xpLevel + 1}
+            {xpRemaining} XP to Level {xpLevel + 1}
           </Text>
         </View>
 
@@ -282,23 +303,23 @@ return (
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.badgeScroll}
         >
-          {EARNED_BADGES.map((b) => (
-            <View key={b.label} style={styles.badgeItem}>
+          {getUnlockedAchievements().map((a) => (
+            <View key={a.id} style={styles.badgeItem}>
               <View style={styles.badgeCircleEarned}>
-                <Ionicons name={b.icon} size={22} color="#FFD700" />
+                <Text style={{ fontSize: 20 }}>{a.icon}</Text>
               </View>
               <Text style={styles.badgeLabel} numberOfLines={2}>
-                {b.label}
+                {a.name}
               </Text>
             </View>
           ))}
-          {LOCKED_BADGES.map((b) => (
-            <View key={b.label} style={styles.badgeItem}>
+          {getLockedAchievements().map((a) => (
+            <View key={a.id} style={styles.badgeItem}>
               <View style={styles.badgeCircleLocked}>
-                <Ionicons name={b.icon} size={22} color="#CCC" />
+                <Text style={{ fontSize: 20, opacity: 0.4 }}>{a.icon}</Text>
               </View>
               <Text style={styles.badgeLabel} numberOfLines={2}>
-                {b.label}
+                {a.name}
               </Text>
             </View>
           ))}

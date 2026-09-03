@@ -156,10 +156,14 @@ export default function WorkoutDetailScreen() {
         <View style={styles.hero}>
           <Ionicons name="barbell-outline" size={60} color="#999" />
 
-          {/* High XP badge */}
-          <View style={styles.xpBadge}>
-            <Text style={styles.xpBadgeText}>High XP</Text>
-          </View>
+          {/* High XP badge, only for workouts that actually earn it,
+              matching the >50 threshold components/WorkoutCard.jsx already
+              uses on the workouts list, so the two screens agree. */}
+          {workout?.xpReward > 50 && (
+            <View style={styles.xpBadge}>
+              <Text style={styles.xpBadgeText}>High XP</Text>
+            </View>
+          )}
 
           {/* Back button */}
           <Pressable style={styles.backBtn} onPress={handleBack}>
@@ -185,24 +189,28 @@ export default function WorkoutDetailScreen() {
 
           {/* Overlay */}
           <View style={styles.heroOverlay}>
-            <Text style={styles.heroTitle}>Kettlebell Step-Overs</Text>
-            <Text style={styles.heroDesc}>
-              High-intensity kettlebell step-over exercise
-            </Text>
+            <Text style={styles.heroTitle}>{workout?.name || 'Workout'}</Text>
+            {!!workout?.description && (
+              <Text style={styles.heroDesc}>{workout.description}</Text>
+            )}
 
             {/* Stats row */}
             <View style={styles.statsRow}>
-              <StatPill icon="time-outline" label="30 min" />
-              <StatPill icon="barbell-outline" label="1 exercises" />
-              <StatPill icon="flash-outline" label="+100 XP" />
+              <StatPill icon="time-outline" label={`${workout?.duration ?? 0} min`} />
+              <StatPill icon="barbell-outline" label={`${totalExercises} exercise${totalExercises === 1 ? '' : 's'}`} />
+              <StatPill icon="flash-outline" label={`+${workout?.xpReward ?? 0} XP`} />
             </View>
 
             {/* Bottom row: difficulty + category */}
             <View style={styles.overlayBottomRow}>
               <View style={styles.difficultyBadge}>
-                <Text style={styles.difficultyText}>INTERMEDIATE</Text>
+                <Text style={styles.difficultyText}>
+                  {(workout?.difficulty || 'N/A').toUpperCase()}
+                </Text>
               </View>
-              <Text style={styles.categoryLabel}>Hiit</Text>
+              {!!workout?.category && (
+                <Text style={styles.categoryLabel}>{workout.category}</Text>
+              )}
             </View>
           </View>
         </View>
@@ -223,25 +231,20 @@ export default function WorkoutDetailScreen() {
         </View>
 
         {/* ââ Description ââ */}
-        <View style={styles.descriptionSection}>
-          <Text style={styles.descriptionText}>
-            This exercise is where your healthy habits begin! It starts off with
-            a warm up and then takes you through 3 sets of bodyweight exercises
-            designed to build your foundation. Perfect for beginners or as a
-            recovery day workout.
-          </Text>
-          <Pressable>
-            <Text style={styles.seeAll}>See All</Text>
-          </Pressable>
-        </View>
+        {!!workout?.description && (
+          <View style={styles.descriptionSection}>
+            <Text style={styles.descriptionText}>{workout.description}</Text>
+          </View>
+        )}
 
-        {/* ââ Stage header ââ */}
+        {/* Exercise list header */}
         <View style={styles.stageHeader}>
           <View style={styles.stageHeaderLeft}>
-            <Text style={styles.stageTitle}>Stage 1: Start Habits</Text>
-            <Text style={styles.stageSubtitle}>30 moves, 25 minutes</Text>
+            <Text style={styles.stageTitle}>Exercises</Text>
+            <Text style={styles.stageSubtitle}>
+              {totalExercises} move{totalExercises === 1 ? '' : 's'} · {workout?.duration ?? 0} min
+            </Text>
           </View>
-          <Ionicons name="lock-closed-outline" size={20} color="#999" />
         </View>
 
         {/* ââ Exercise list ââ */}

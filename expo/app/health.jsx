@@ -1,7 +1,6 @@
-import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
-  RefreshControl, Pressable, Image, Platform, TouchableOpacity, Alert } from 'react-native';
+  RefreshControl, Pressable, Image, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -17,41 +16,11 @@ import { rookService } from '@/services/rookService';
 import { generateTrainingLoadInsight } from '@/services/aiService';
 import TrainingLoadCard from '@/components/TrainingLoadCard';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
-import Constants from 'expo-constants';
-
-const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
-
-// Safe fallbacks for the ROOK SDK hooks — always real, callable functions
-// (never null), so the actual hook calls inside the component below stay
-// unconditional and satisfy React's rules of hooks regardless of whether
-// the native module loaded. The fallback shape matches ROOK's documented
-// return type closely enough that call sites don't need their own branching.
-let useRookPermissions = () => ({ ready: false, checkPermissions: async () => false, requestPermissions: async () => false });
-let useRookAppleHealth = () => ({ ready: false });
-let useRookSummaries = () => ({ ready: false });
-
-if (!IS_EXPO_GO) {
-  try {
-    const rookSDK = require('react-native-rook-sdk');
-    useRookPermissions = rookSDK.useRookPermissions;
-    useRookAppleHealth = rookSDK.useRookAppleHealth;
-    useRookSummaries = rookSDK.useRookSummaries;
-  } catch (e) {
-    console.warn('[ROOK] Native modules not loaded:', e.message);
-  }
-}
-
-const DEVICES = [
-  { name: 'Apple Watch', icon: 'watch-outline' },
-  { name: 'Fitbit', icon: 'fitness-outline' },
-  { name: 'Garmin', icon: 'navigate-outline' },
-  { name: 'WHOOP', icon: 'pulse-outline' },
-];
 
 export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { loadAllHealth, steps, sleep, hydration } = useHealthStore();
+  const { loadAllHealth, loadAppleHealthActivity, steps, sleep, hydration } = useHealthStore();
   const { user } = useUserStore();
   const { scans, loadScans } = useBodyCompositionStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
@@ -61,18 +30,8 @@ export default function HealthScreen() {
   const [trainingLoadInsight, setTrainingLoadInsight] = useState(null);
   const [muscleFatigue, setMuscleFatigue] = useState({});
 
-  const rookPermissions = useRookPermissions();
-  const rookSummaries = useRookSummaries();
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-
   const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
 
-  // Real health metrics, derived from useHealthStore — replaces a previous
-  // undefined METRICS_LIVE reference that crashed this screen on render.
-  // 10,000 steps and 8 hours sleep are the generic public-health defaults
-  // used as fallback targets, not fabricated personal data — the current
-  // values are always the real store state.
   const METRICS_LIVE = [
     { icon: 'walk-outline', label: 'Steps', value: `${steps ?? 0}`, current: steps ?? 0, target: 10000 },
     { icon: 'moon-outline', label: 'Sleep', value: `${(sleep?.hours ?? 0).toFixed(1)}h`, current: sleep?.hours ?? 0, target: 8 },
@@ -82,6 +41,7 @@ export default function HealthScreen() {
   useEffect(() => {
     if (user?.uid) {
       loadAllHealth(user.uid);
+      loadAppleHealthActivity();
       loadScans(user.uid);
       loadWorkouts(user.uid);
       loadRuns(user.uid);
@@ -89,10 +49,6 @@ export default function HealthScreen() {
     }
   }, [user?.uid]);
 
-  // Real cross-domain training load — recomputed whenever any of the
-  // three real data sources changes, not on a timer. Fetches AI
-  // commentary only once a real (non-insufficient-data) reading exists,
-  // so the LLM is never asked to comment on a ratio that doesn't exist yet.
   useEffect(() => {
     const dailyLoad = aggregateDailyLoad({ completedWorkouts, runs, completedHikes });
     const result = calculateTrainingLoad(dailyLoad);
@@ -105,16 +61,6 @@ export default function HealthScreen() {
     }
   }, [completedWorkouts, runs, completedHikes]);
 
-  // Real per-muscle fatigue (lib/muscleFatigue.js). Prefers real ROOK
-  // recovery data when a provider is connected (services/rookService.js —
-  // real HRV, resting heart rate, and sleep efficiency, aggregated
-  // through ROOK's own real API from whichever of WHOOP/Oura/Garmin/
-  // Fitbit/Withings/Polar the user actually has) since that's a more
-  // precise recovery signal than sleep duration alone; falls back to
-  // manually logged sleep hours/quality when nothing is connected.
-  // getRecoveryModifier() already prioritizes hrv over sleepHours on its
-  // own, so passing whichever real data is actually available here is
-  // enough — no extra priority logic needed at this call site.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -139,42 +85,6 @@ export default function HealthScreen() {
     return () => { cancelled = true; };
   }, [completedWorkouts, runs, completedHikes, sleep?.hours, sleep?.quality]);
 
-  useEffect(() => {
-    let cancelled = false;
-    rookPermissions.checkPermissions?.()
-      .then((granted) => { if (!cancelled) setPermissionsGranted(!!granted); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [rookPermissions]);
-
-  const requestPermissions = async () => {
-    try {
-      await rookPermissions.requestPermissions?.();
-      const granted = await rookPermissions.checkPermissions?.();
-      setPermissionsGranted(!!granted);
-    } catch (e) {
-      console.error('[Health] ROOK permission request failed', e);
-      Alert.alert("Couldn't connect", 'Health app connection failed. Try again from Settings.');
-    }
-  };
-
-  const syncNow = async () => {
-    setSyncing(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      await Promise.all([
-        rookSummaries.syncPhysicalSummary?.(today),
-        rookSummaries.syncSleepSummary?.(today),
-        rookSummaries.syncBodySummary?.(today),
-      ]);
-      if (user?.uid) await loadAllHealth(user.uid);
-    } catch (e) {
-      console.error('[Health] ROOK sync failed', e);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     setIsLoading(true);
@@ -198,7 +108,6 @@ return (
         <View style={s.logoRow}><Image source={require('@/assets/branding/zown-logo-512.png')} style={s.logo} resizeMode="contain" /></View>
         <Text style={s.pageTitle}>Health</Text>
 
-        {/* Health Score */}
         <View style={s.card}>
           <Text style={s.cardHeader}>Your Health Score</Text>
           <View style={s.scoreCircle}><Text style={s.scoreNum}>82</Text></View>
@@ -206,7 +115,6 @@ return (
           <Text style={s.scoreUpdated}>Updated today at 9:15 AM</Text>
         </View>
 
-        {/* Quick Stats */}
         <View style={s.statsRow}>
           {[{icon:'heart-outline',val:'72',unit:'bpm',label:'Heart Rate'},{icon:'pulse-outline',val:'98',unit:'%',label:'Blood Oxygen'},{icon:'happy-outline',val:'Low',unit:'',label:'Stress Level'}].map(st=>(
             <View key={st.label} style={s.statCard}>
@@ -217,7 +125,6 @@ return (
           ))}
         </View>
 
-        {/* AI Insight */}
         <View style={s.insightCard}>
           <View style={s.insightBadge}><Ionicons name="sparkles" size={14} color="#FFD700" /><Text style={s.insightBadgeText}>AI Coach</Text></View>
           <Text style={s.insightText}>Based on your activity, consider adding a 10-minute stretch before your evening workout to improve recovery.</Text>
@@ -226,19 +133,12 @@ return (
           </Pressable>
         </View>
 
-        {/* Real cross-domain training load — combines actual completed
-            workouts, runs, and hikes into one acute:chronic reading. See
-            lib/trainingLoad.js. */}
         <TrainingLoadCard trainingLoad={trainingLoad} aiInsight={trainingLoadInsight} />
 
-        {/* Real per-muscle fatigue, decayed on the real DOMS recovery
-            timeline and adjusted for real logged sleep when available.
-            See lib/muscleFatigue.js. */}
         <View style={{ marginHorizontal: 20, marginBottom: 18 }}>
           <MuscleHeatmapCard mode="fatigue" fatigueByMuscle={muscleFatigue} title="Muscle Fatigue" />
         </View>
 
-        {/* Body Composition Scan Card */}
         <TouchableOpacity
           style={{
             backgroundColor: '#F5F5F5',
@@ -304,17 +204,14 @@ return (
           ))}
         </View>
 
-        {/* Wearable Sync */}
         <Text style={s.sectionTitle}>Wearable Sync</Text>
         <View style={s.syncCard}>
           <Text style={s.syncTitle}>Connect Your Device</Text>
-          <View style={s.devicesRow}>
-            {DEVICES.map(d=>(
-              <View key={d.name} style={s.deviceItem}><View style={s.deviceCircle}><Ionicons name={d.icon} size={18} color="#000" /></View><Text style={s.deviceName}>{d.name}</Text></View>
-            ))}
-          </View>
-          <Pressable style={s.syncBtn} onPress={permissionsGranted ? syncNow : requestPermissions} disabled={syncing}>
-            <Text style={s.syncBtnText}>{syncing ? 'Syncing...' : (permissionsGranted ? 'Sync Now' : 'Connect Apple Health')}</Text>
+          <Text style={s.syncSubtitle}>
+            Sync real heart rate, HRV, and sleep data from Garmin, Fitbit, WHOOP, Oura, Polar, Withings, or Dexcom.
+          </Text>
+          <Pressable style={s.syncBtn} onPress={() => router.push('/rook-connect')}>
+            <Text style={s.syncBtnText}>Manage Devices</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -349,11 +246,8 @@ const s = StyleSheet.create({
   metricBarBg:{width:60,height:4,borderRadius:2,backgroundColor:'#E5E5E5',overflow:'hidden'},
   metricBarFill:{height:4,borderRadius:2,backgroundColor:'#000'},
   syncCard:{backgroundColor:'#FFF',borderRadius:16,padding:16,marginHorizontal:20,marginBottom:24,...Platform.select({ios:{shadowColor:'#000',shadowOpacity:0.06,shadowRadius:8,shadowOffset:{width:0,height:2}},android:{elevation:3},default:{shadowColor:'#000',shadowOpacity:0.06,shadowRadius:8,shadowOffset:{width:0,height:2}}})},
-  syncTitle:{fontSize:16,fontWeight:'700',color:'#000',marginBottom:12},
-  devicesRow:{flexDirection:'row',justifyContent:'space-around',marginBottom:16},
-  deviceItem:{alignItems:'center'},
-  deviceCircle:{width:48,height:48,borderRadius:24,backgroundColor:'#F0F0F0',justifyContent:'center',alignItems:'center'},
-  deviceName:{fontSize:11,color:'#666',marginTop:4},
+  syncTitle:{fontSize:16,fontWeight:'700',color:'#000',marginBottom:6},
+  syncSubtitle:{fontSize:13,color:'#666',lineHeight:18,marginBottom:16},
   syncBtn:{backgroundColor:'#000',height:44,borderRadius:22,justifyContent:'center',alignItems:'center'},
   syncBtnText:{fontSize:14,fontWeight:'700',color:'#FFF'},
 });

@@ -33,8 +33,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { auth, isFirebaseConfigured, functions } from '../src/config/firebase';
-import { httpsCallable } from 'firebase/functions';
+import { auth, isFirebaseConfigured } from '../src/config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Constants from 'expo-constants';
 
@@ -42,52 +41,6 @@ void SplashScreen.preventAutoHideAsync();
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
-// Real security fix: this used to import a static ROOK_CONFIG object
-// built from EXPO_PUBLIC_ROOK_CLIENT_UUID / EXPO_PUBLIC_ROOK_SECRET —
-// which ROOK's own official SDK docs explicitly warn against, verbatim:
-// "Do not include client uuid and secret in .env files or directly in
-// the source code. These values will be embedded in the JavaScript
-// bundle at build time and can be extracted through reverse
-// engineering." <RookSyncGate> genuinely does need these as props
-// on-device (confirmed from ROOK's own SDK docs, not avoidable) — the
-// fix is fetching them here, from an authenticated Cloud Function
-// (functions/src/index.js's getRookSdkCredentials), at runtime, instead
-// of baking them into the static build.
-function RookWrapper({ children }) {
-  const [credentials, setCredentials] = useState(null);
-
-  useEffect(() => {
-    if (IS_EXPO_GO || !isFirebaseConfigured) return;
-    let cancelled = false;
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) return; // credentials require a real authenticated user; stay ungated until signed in
-      httpsCallable(functions, 'getRookSdkCredentials')()
-        .then((result) => { if (!cancelled) setCredentials(result.data); })
-        .catch((e) => console.log('[ROOK] credential fetch failed, running without wearables:', e?.message));
-    });
-    return () => { cancelled = true; unsubscribe(); };
-  }, []);
-
-  if (IS_EXPO_GO || !credentials) return children;
-  try {
-    const { RookSyncGate } = require('react-native-rook-sdk');
-    return (
-      <RookSyncGate
-        environment={credentials.environment}
-        clientUUID={credentials.clientUUID}
-        secret={credentials.secret}
-        enableLogs={__DEV__}
-        enableBackgroundSync={false}>
-        
-        {children}
-      </RookSyncGate>);
-
-  } catch (e) {
-    console.log('[ROOK] SDK not available, running without wearables:', e.message);
-    return children;
-  }
-
-}
 
 
 
@@ -399,6 +352,8 @@ function RootLayoutInner() {
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/register" />
         <Stack.Screen name="auth/forgot-password" />
+        <Stack.Screen name="exercise/index" />
+        <Stack.Screen name="exercise/[id]" />
         <Stack.Screen name="workout/[id]" />
         <Stack.Screen name="workout/active" />
         <Stack.Screen name="workout/create" />
@@ -406,6 +361,7 @@ function RootLayoutInner() {
         <Stack.Screen name="workout/form-check" />
         <Stack.Screen name="body-scan/capture" />
         <Stack.Screen name="body-scan/[id]" />
+        <Stack.Screen name="body-scan/compare" />
         <Stack.Screen name="recipes/import-from-share" />
         <Stack.Screen name="running/[id]" />
         <Stack.Screen name="running/active" />
@@ -426,6 +382,8 @@ function RootLayoutInner() {
         <Stack.Screen name="profile/progress" />
         <Stack.Screen name="profile/settings" />
         <Stack.Screen name="profile/body-scan" />
+        <Stack.Screen name="profile/workout-history" />
+        <Stack.Screen name="profile/calorie-history" />
         <Stack.Screen name="recipe/[id]" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="admin" />
@@ -435,7 +393,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/meal') && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/meal') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && <BottomNavigation />}
     </View>
   );
 }
@@ -474,13 +432,11 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <RookWrapper>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <RootLayoutInner />
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </RookWrapper>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <RootLayoutInner />
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
 

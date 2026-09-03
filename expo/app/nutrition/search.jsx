@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { searchFoods } from '@/services/passioService';
-import { tokens } from '../../../theme/tokens';
-
-
+import { searchFoods } from '@/services/calorieApiService';
 
 export default function SearchFoodScreen() {
   const { mealId, scannedFood } = useLocalSearchParams();
@@ -57,14 +54,12 @@ export default function SearchFoodScreen() {
 
   const handleSelect = (food) => {
     if (mealId && addFoodToMeal) {
-      addFoodToMeal(mealId.toString(), food);
+      addFoodToMeal(new Date().toISOString().slice(0, 10), mealId.toString(), food);
       (router.canGoBack() ? router.back() : router.replace('/'));
     } else {
       router.push(`/nutrition/food/${food.id}`);
     }
   };
-
-  const recentQueries = ['Chicken', 'Oatmeal', 'Eggs', 'Banana', 'Yogurt'];
 
   return (
     <View style={styles.container}>
@@ -76,27 +71,16 @@ export default function SearchFoodScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search foods..."
-          placeholderTextColor={tokens.colors.dark_navy.text_secondary}
+          placeholderTextColor="#999999"
           autoFocus
         />
       </View>
 
       {!query ? (
-        <View style={{ paddingHorizontal: tokens.spacing.md }}>
-          <Text style={styles.sectionLabel}>Recent</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {recentQueries.map((q) => (
-              <TouchableOpacity
-                key={q}
-                style={styles.chip}
-                onPress={() => setQuery(q)}>
-                <Text style={styles.chipText}>{q}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+        <View style={{ paddingHorizontal: 16 }}>
           {recentFoods?.length ? (
             <>
-              <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Recent Foods</Text>
+              <Text style={styles.sectionLabel}>Recent Foods</Text>
               <FlatList
                 data={recentFoods}
                 keyExtractor={(i) => i.id}
@@ -118,13 +102,13 @@ export default function SearchFoodScreen() {
         </View>
       ) : loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.dark_navy.bg_primary} />
+          <ActivityIndicator color="#000000" />
         </View>
       ) : (
         <FlatList
           data={results}
           keyExtractor={(i, idx) => i.id?.toString() || idx.toString()}
-          contentContainerStyle={{ padding: tokens.spacing.md }}
+          contentContainerStyle={{ padding: 16 }}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.foodCard} onPress={() => handleSelect(item)}>
               <View style={{ flex: 1 }}>
@@ -146,36 +130,30 @@ export default function SearchFoodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  searchWrap: { padding: tokens.spacing.md },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  searchWrap: { padding: 16 },
   input: {
-    backgroundColor: tokens.colors.dark_navy.text_primary,
-    borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.md, height: 52, paddingHorizontal: tokens.spacing.md,
-    color: tokens.colors.dark_navy.text_primary, fontSize: 15,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1, borderColor: '#DDDDDD',
+    borderRadius: 12, height: 52, paddingHorizontal: 16,
+    color: '#000000', fontSize: 15,
   },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 8,
   },
-  chip: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    paddingHorizontal: 14, paddingVertical: tokens.spacing.sm,
-    borderRadius: 999, marginRight: 8,
-  },
-  chipText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '500' },
   foodCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: 14, marginBottom: 10,
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDDDDD',
+    borderRadius: 14, padding: 14, marginBottom: 10,
   },
-  foodName: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '500' },
-  foodServing: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
+  foodName: { color: '#000000', fontSize: 15, fontWeight: '500' },
+  foodServing: { color: '#999999', fontSize: 13, marginTop: 2 },
   calBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
   calBadgeText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
+  empty: { color: '#999999', textAlign: 'center', marginTop: 40 },
 });

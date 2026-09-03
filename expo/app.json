@@ -18,7 +18,8 @@
         "NSCameraUsageDescription": "ZOWN HQ needs camera access to capture body scan photos for AI body composition analysis.",
         "NSPhotoLibraryUsageDescription": "ZOWN HQ needs photo library access to upload body scan photos and profile avatars.",
         "NSHealthShareUsageDescription": "ZOWN HQ needs access to sync workouts, steps, heart rate, and sleep data with Apple Health.",
-        "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health."
+        "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,
@@ -33,11 +34,12 @@
       },
       "package": "com.zownhq.app",
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "ACTIVITY_RECOGNITION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
@@ -77,6 +79,14 @@
           "android": {
             "compileSdkExtension": 19
           }
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "ZOWN HQ needs access to sync workouts, steps, heart rate, and sleep data with Apple Health.",
+          "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health.",
+          "background": false
         }
       ]
     ],

@@ -40,6 +40,25 @@ import { useBadgeStore } from '@/store/badgeStore';
 import { getWeatherSnapshot } from '@/services/weatherService';
 import { calculateHikeDifficulty, estimateHikeCalories } from '@/lib/hikeDifficulty';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
+import { fetchRouteForMap } from '@/services/hikingService';
+import { Platform } from 'react-native';
+
+// Same safe/conditional import pattern already established in
+// app/running/hiking/[id].jsx - react-native-maps needs a native
+// rebuild and isn't available on web, so a top-level import would break
+// the web build for everyone, not just hiking.
+let MapView, Polyline, Marker, PROVIDER_DEFAULT;
+if (Platform.OS !== 'web') {
+  try {
+    const Maps = require('react-native-maps');
+    MapView = Maps.default || Maps.MapView;
+    Polyline = Maps.Polyline;
+    Marker = Maps.Marker;
+    PROVIDER_DEFAULT = Maps.PROVIDER_DEFAULT;
+  } catch (e) {
+    console.warn('[hiking/monitor] react-native-maps failed to load:', e);
+  }
+}
 
 const POLL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -71,6 +90,8 @@ export default function HikeWeatherMonitorScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const trailId = typeof params.id === 'string' ? params.id : '';
+  const mapId = typeof params.mapId === 'string' ? params.mapId : null;
+  const pathName = typeof params.pathName === 'string' ? params.pathName : null;
   const { getTrailById, addCompletedHike } = useHikingStore();
   const { scans: bodyScans } = useBodyCompositionStore();
   const { user } = useUserStore();
@@ -80,6 +101,8 @@ export default function HikeWeatherMonitorScreen() {
 
   const [isMonitoring, setIsMonitoring] = useState(true);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [plannedRoute, setPlannedRoute] = useState(null); // { coordinates, ... } | null - the path the user picked before starting, if any
+  const [walkedPath, setWalkedPath] = useState([]); // real GPS points visited so far this session
   const [snapshot, setSnapshot] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
   const [elapsed, setElapsed] = useState(0);
@@ -132,6 +155,25 @@ export default function HikeWeatherMonitorScreen() {
     }
   }, []);
 
+
+  // Real fix, not decoration: this screen previously tracked live GPS
+  // position for weather/distance purposes but never showed a map at
+  // all, and never used the path the user picked on the trail detail
+  // screen (app/running/hiking/[id].jsx's new "Choose a Path" picker) -
+  // that selection reached this screen as a display-only pathName param
+  // with nothing to actually show for it. Independently re-fetches the
+  // real route here (rather than trying to serialize a whole GPX
+  // coordinate array through URL params, which would be fragile for a
+  // large track) using the same real fetchRouteForMap this screen's own
+  // mapId param references.
+  useEffect(() => {
+    if (!mapId) return;
+    let cancelled = false;
+    fetchRouteForMap(mapId).then((result) => {
+      if (!cancelled) setPlannedRoute(result);
+    });
+    return () => { cancelled = true; };
+  }, [mapId]);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -146,6 +188,7 @@ export default function HikeWeatherMonitorScreen() {
       currentLocationRef.current = loc;
       lastTrackedPointRef.current = { ...loc, altitude: position.coords.altitude };
       setCurrentLocation(loc);
+      setWalkedPath([loc]);
       await runWeatherCheck(loc.latitude, loc.longitude, true);
 
       locationSubRef.current = await Location.watchPositionAsync(
@@ -154,6 +197,7 @@ export default function HikeWeatherMonitorScreen() {
           const updated = { latitude: update.coords.latitude, longitude: update.coords.longitude };
           currentLocationRef.current = updated;
           setCurrentLocation(updated);
+          setWalkedPath((prev) => [...prev, updated]);
 
           // Real distance/elevation tracking for difficulty scoring on
           // completion — same haversine formula already verified against
@@ -241,6 +285,7 @@ export default function HikeWeatherMonitorScreen() {
       const record = addCompletedHike({
         trailId: trail?.id || null,
         trailName: trail?.name || 'Untitled hike',
+        pathName: pathName || null,
         distanceKm: Math.round(distanceKm * 100) / 100,
         elevationGainM: Math.round(elevationGainM),
         durationSeconds: elapsed,
@@ -258,7 +303,7 @@ export default function HikeWeatherMonitorScreen() {
         date: new Date().toISOString().split('T')[0],
         description: `Completed a ${difficulty.tier.toLowerCase()} hike — ${record.distanceKm}km, ${difficulty.elevationGainFt}ft gain`,
         completed: true,
-      });
+      }, user?.uid);
 
       // Real badge conditions, checked against actual tracked data — not
       // instant-unlocked the way badge-1/badge-2 used to be before that
@@ -306,7 +351,7 @@ export default function HikeWeatherMonitorScreen() {
   if (!isMonitoring) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Weather Monitor" showBack />
+        <ScreenHeader title="Weather Monitor" showBack variant="light" />
         <View style={styles.centerBlock}>
           <Ionicons name="location-outline" size={40} color={colors.textSecondary} />
           <Text style={styles.centerText}>
@@ -322,6 +367,7 @@ export default function HikeWeatherMonitorScreen() {
       <ScreenHeader
         title={trail?.name || 'Weather Monitor'}
         showBack
+        variant="light"
         onBack={handleStop}
         rightAction={
           <Pressable onPress={() => setAudioEnabled((v) => !v)} hitSlop={8}>
@@ -331,6 +377,28 @@ export default function HikeWeatherMonitorScreen() {
       />
 
       <ScrollView contentContainerStyle={{ padding: spacing.base, paddingBottom: 120 }}>
+        {MapView && currentLocation && (
+          <View style={styles.mapWrap}>
+            <MapView
+              style={styles.map}
+              provider={PROVIDER_DEFAULT}
+              region={{
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+            >
+              {plannedRoute?.coordinates && (
+                <Polyline coordinates={plannedRoute.coordinates} strokeColor={colors.textSecondary} strokeWidth={3} lineDashPattern={[6, 4]} />
+              )}
+              {walkedPath.length > 1 && (
+                <Polyline coordinates={walkedPath} strokeColor={colors.green} strokeWidth={4} />
+              )}
+              <Marker coordinate={currentLocation} pinColor="green" />
+            </MapView>
+          </View>
+        )}
         <View style={styles.elapsedCard}>
           <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.elapsedText}>Monitoring for {formatElapsed(elapsed)}</Text>
@@ -412,6 +480,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   centerBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
   centerText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
+  mapWrap: { height: 220, borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.md },
+  map: { width: '100%', height: '100%' },
   elapsedCard: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md },
   elapsedText: { ...typography.bodySmall, color: colors.textSecondary },
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },

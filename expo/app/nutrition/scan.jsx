@@ -1,14 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, SafeAreaView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { X, Camera, RotateCcw, Loader2, CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { tokens } from '../../../theme/tokens';
-
-
+import ScreenHeader from '@/components/ScreenHeader';
 
 export default function FoodScanScreen() {
   const [facing, setFacing] = useState('back');
@@ -16,6 +15,7 @@ export default function FoodScanScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const cameraRef = useRef(null);
+  const insets = useSafeAreaInsets();
 
   const toggleCameraFacing = useCallback(() => {
     setFacing((current) => current === 'back' ? 'front' : 'back');
@@ -27,7 +27,6 @@ export default function FoodScanScreen() {
     try {
       console.log('Analyzing food image:', imageUri);
 
-      // Convert image to base64 for AI analysis
       const response = await fetch(imageUri);
       const blob = await response.blob();
       const reader = new FileReader();
@@ -37,7 +36,6 @@ export default function FoodScanScreen() {
         const base64Image = base64Data.split(',')[1];
 
         try {
-          // Call AI service for food recognition
           const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
           const aiResponse = await fetch(`${apiBase}/text/llm/`, {
             method: 'POST',
@@ -119,7 +117,6 @@ export default function FoodScanScreen() {
   const addToMeal = useCallback(() => {
     if (!analysisResult) return;
 
-    // Navigate back to nutrition page with the analyzed food data
     router.push({
       pathname: '/nutrition/search',
       params: {
@@ -171,16 +168,7 @@ export default function FoodScanScreen() {
   if (analysisResult) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
-            
-            <X size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Food Identified</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <ScreenHeader title="Food Identified" showBack />
         
         <View style={styles.resultContainer}>
           <Card variant="elevated" style={styles.resultCard}>
@@ -239,23 +227,27 @@ export default function FoodScanScreen() {
 
   }
 
+  // Real full-bleed camera view, deliberately NOT wrapped in SafeAreaView
+  // here (unlike the other states above) - the camera should extend all
+  // the way to every edge of the screen, including behind the home
+  // indicator area. A SafeAreaView here reserves that bottom strip for
+  // padding, which left the container's background color visibly
+  // showing through underneath the camera instead of the camera filling
+  // it. The header below is absolutely positioned over the camera and
+  // gets its own real top inset directly, since it can't inherit one
+  // from a SafeAreaView it's no longer inside.
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
-          
-          <X size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Scan Food</Text>
-        <TouchableOpacity
-          style={styles.flipButton}
-          onPress={toggleCameraFacing}>
-          
-          <RotateCcw size={24} color={Colors.text.inverse} />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Scan Food"
+        showBack
+        transparent
+        rightAction={
+          <TouchableOpacity onPress={toggleCameraFacing} hitSlop={8}>
+            <RotateCcw size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        }
+      />
       
       {Platform.OS !== 'web' ?
       <CameraView
@@ -272,7 +264,7 @@ export default function FoodScanScreen() {
               </Text>
             </View>
             
-            <View style={styles.cameraControls}>
+            <View style={[styles.cameraControls, { paddingBottom: insets.bottom + 20 }]}>
               {isAnalyzing ?
             <View style={styles.analyzingContainer}>
                   <Loader2 size={32} color={Colors.text.inverse} />
@@ -303,21 +295,21 @@ export default function FoodScanScreen() {
         
         </View>
       }
-    </SafeAreaView>);
+    </View>);
 
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#FFFFFF'
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Colors.spacing.lg,
-    paddingVertical: Colors.spacing.md,
+    paddingBottom: Colors.spacing.md,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     position: 'absolute',
     top: 0,
@@ -363,7 +355,7 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: '#FFFFFF',
     borderRadius: Colors.radius.large,
     backgroundColor: 'transparent'
   },

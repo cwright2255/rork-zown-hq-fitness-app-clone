@@ -1,77 +1,54 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Dimensions } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useUserStore } from '@/store/userStore';
+import { useExpStore } from '@/store/expStore';
+import { useBattlePassStore } from '@/store/battlePassStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useNutritionStore } from '@/store/nutritionStore';
+import { useHealthStore } from '@/store/healthStore';
+import { useAchievementStore } from '@/store/achievementStore';
 
-
-
-
-const TIERS = [
-  {t:1,icon:'trophy',name:'Profile Badge',status:'claimed'},
-  {t:2,icon:'star',name:'100 Bonus XP',status:'claimed'},
-  {t:3,icon:'color-palette',name:'Dark Gold Theme',status:'claimed'},
-  {t:4,icon:'barbell',name:'HIIT Elite',status:'claimed'},
-  {t:5,icon:'nutrition',name:'Power Smoothie',status:'claimed'},
-  {t:6,icon:'star',name:'200 Bonus XP',status:'claimed'},
-  {t:7,icon:'person',name:'Avatar Frame',status:'current'},
-  {t:8,icon:'map',name:'Beach 10K Route',status:'locked',xp:500},
-  {t:9,icon:'star',name:'300 Bonus XP',status:'locked',xp:600},
-  {t:10,icon:'barbell',name:'Titan Core',status:'locked',xp:700},
-  {t:11,icon:'flame',name:'Fire Streak Badge',status:'locked',xp:800},
-  {t:12,icon:'restaurant',name:'Meal Prep Pack',status:'locked',xp:900},
-  {t:13,icon:'star',name:'500 Bonus XP',status:'locked',xp:1000},
-  {t:14,icon:'pricetag',name:'20% Gear Discount',status:'locked',xp:1200},
-  {t:15,icon:'fitness',name:'Pro Running Plan',status:'locked',xp:1400},
-  {t:16,icon:'star',name:'750 Bonus XP',status:'locked',xp:1600},
-  {t:17,icon:'color-palette',name:'Neon Theme',status:'locked',xp:1800},
-  {t:18,icon:'star',name:'1000 Bonus XP',status:'locked',xp:2000},
-  {t:19,icon:'shield',name:'Champion Badge',status:'locked',xp:2500},
-  {t:20,icon:'ribbon',name:'OWN THE DAY Title',status:'locked',xp:3000},
+const TIER_REWARDS = [
+  {t:1,icon:'trophy',name:'Profile Badge'},
+  {t:2,icon:'star',name:'100 Bonus XP'},
+  {t:3,icon:'color-palette',name:'Dark Gold Theme'},
+  {t:4,icon:'barbell',name:'HIIT Elite'},
+  {t:5,icon:'nutrition',name:'Power Smoothie'},
+  {t:6,icon:'star',name:'200 Bonus XP'},
+  {t:7,icon:'person',name:'Avatar Frame'},
+  {t:8,icon:'map',name:'Beach 10K Route'},
+  {t:9,icon:'star',name:'300 Bonus XP'},
+  {t:10,icon:'barbell',name:'Titan Core'},
+  {t:11,icon:'flame',name:'Fire Streak Badge'},
+  {t:12,icon:'restaurant',name:'Meal Prep Pack'},
+  {t:13,icon:'star',name:'500 Bonus XP'},
+  {t:14,icon:'pricetag',name:'20% Gear Discount'},
+  {t:15,icon:'fitness',name:'Pro Running Plan'},
+  {t:16,icon:'star',name:'750 Bonus XP'},
+  {t:17,icon:'color-palette',name:'Neon Theme'},
+  {t:18,icon:'star',name:'1000 Bonus XP'},
+  {t:19,icon:'shield',name:'Champion Badge'},
+  {t:20,icon:'ribbon',name:'OWN THE DAY Title'},
 ];
 
-const DAILY = [
-  {title:'Complete 1 workout',xp:50,current:0,target:1},
-  {title:'Log 3 meals',xp:30,current:2,target:3},
-  {title:'Walk 5,000 steps',xp:40,current:3200,target:5000},
-];
-const WEEKLY = [
-  {title:'Run 10km this week',xp:200,current:4.2,target:10,unit:'km'},
-  {title:'Complete 5 workouts',xp:300,current:2,target:5},
-];
+const SEASON_START = new Date('2026-06-01T00:00:00');
+const SEASON_LENGTH_DAYS = 90;
+
+function getMonday(date) {
+  const d = new Date(date);
+  const dayNum = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dayNum);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 const ACH_W = (Dimensions.get('window').width - 52) / 2;
-const ACH_CATS = ['All','Workout','Running','Health','Social','Special'];
 
-const ACH_EARNED = [
-  {id:'e1',icon:'trophy',title:'First Workout',xp:100,date:'May 15',cat:'Workout'},
-  {id:'e2',icon:'fitness',title:'5K Runner',xp:200,date:'May 22',cat:'Running'},
-  {id:'e3',icon:'flame',title:'7-Day Streak',xp:300,date:'May 28',cat:'Special'},
-  {id:'e4',icon:'sunny',title:'Early Bird',xp:150,date:'May 30',cat:'Workout'},
-  {id:'e5',icon:'flash',title:'Calorie Crusher',xp:250,date:'Jun 1',cat:'Workout'},
-  {id:'e6',icon:'water',title:'Hydration Hero',xp:200,date:'Jun 1',cat:'Health'},
-  {id:'e7',icon:'barbell',title:'10 Workouts',xp:300,date:'Jun 2',cat:'Workout'},
-  {id:'e8',icon:'speedometer',title:'Speed Demon',xp:400,date:'Jun 2',cat:'Running'},
-  {id:'e9',icon:'restaurant',title:'Meal Prep Master',xp:200,date:'Jun 3',cat:'Health'},
-  {id:'e10',icon:'people',title:'Social Butterfly',xp:150,date:'Jun 3',cat:'Social'},
-  {id:'e11',icon:'moon',title:'Night Owl',xp:100,date:'Jun 3',cat:'Special'},
-  {id:'e12',icon:'calendar',title:'Weekend Warrior',xp:200,date:'Jun 3',cat:'Special'},
-];
-
-const ACH_LOCKED = [
-  {id:'l1',icon:'medal',title:'Marathon Runner',progress:'0/1',cat:'Running'},
-  {id:'l2',icon:'star',title:'Century Club',progress:'42/100',cat:'Workout'},
-  {id:'l3',icon:'flame',title:'Elite Streak',progress:'7/30',cat:'Special'},
-  {id:'l4',icon:'barbell',title:'Iron Will',progress:'0/50',cat:'Workout'},
-  {id:'l5',icon:'fitness',title:'Ultra Runner',progress:'23/100 km',cat:'Running'},
-  {id:'l6',icon:'restaurant',title:'Master Chef',progress:'5/20',cat:'Health'},
-  {id:'l7',icon:'shield',title:'Legend',progress:'Lvl 12/25',cat:'Special'},
-  {id:'l8',icon:'trophy',title:'ZOWN Champion',progress:'Need all',cat:'Special'},
-];
-
-
-function TierCard({tier}){
-  const claimed = tier.status === 'claimed';
-  const current = tier.status === 'current';
+function TierCard({tier, onClaim}){
+  const {claimed, current, locked} = tier;
   const bg = claimed ? '#000' : current ? '#FFF' : '#F5F5F5';
   const border = claimed ? '#FFD700' : current ? '#FFD700' : '#E5E5E5';
   const iconColor = claimed ? '#FFD700' : current ? '#000' : '#CCC';
@@ -82,14 +59,14 @@ function TierCard({tier}){
         <Ionicons name={tier.icon} size={32} color={iconColor} />
         <Text style={[s.tierName,{color:claimed?'#FFF':current?'#000':'#999'}]} numberOfLines={2}>{tier.name}</Text>
         {claimed && <Text style={s.tierClaimed}>CLAIMED</Text>}
-        {current && <Pressable style={s.claimBtn}><Text style={s.claimBtnText}>CLAIM</Text></Pressable>}
-        {tier.status==='locked' && <Text style={s.tierXpNeed}>{tier.xp} XP</Text>}
+        {current && <Pressable style={s.claimBtn} onPress={onClaim}><Text style={s.claimBtnText}>CLAIM</Text></Pressable>}
+        {locked && <Text style={s.tierXpNeed}>{tier.xpNeeded} XP</Text>}
       </View>
     </View>
   );
 }
 
-function MissionRow({m,weekly}){
+function MissionRow({m}){
   const pct = Math.min(100,Math.round(m.current/m.target*100));
   return (
     <View style={s.missionCard}>
@@ -105,15 +82,141 @@ function MissionRow({m,weekly}){
 
 
 export default function BattlePassScreen(){
+  const { user } = useUserStore();
+  const uid = user?.uid;
+  const { getLevel, getExpForLevel, getExpToNextLevel, getTotalExp, loadXP } = useExpStore();
+  // Real fix: same bug as app/profile.jsx - totalExp destructured
+  // directly from useExpStore() was always undefined, since that
+  // top-level property never existed on the store.
+  const totalExp = getTotalExp ? getTotalExp() : 0;
+  const { claimedTiers, claimTier, loadBattlePass } = useBattlePassStore();
+  const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  const { runs, loadRuns } = useRunningStore();
+  const { getMealsByDate, loadNutritionData } = useNutritionStore();
+  const { steps, loadAllHealth } = useHealthStore();
+  const { achievements, getUnlockedAchievements, getLockedAchievements, loadAchievements } = useAchievementStore();
+
+  useEffect(() => {
+    if (uid) {
+      loadXP(uid);
+      loadBattlePass(uid);
+      loadWorkouts?.(uid);
+      loadRuns?.(uid);
+      loadNutritionData(uid);
+      loadAllHealth(uid);
+      loadAchievements(uid);
+    }
+  }, [uid]);
+
   const [track,setTrack]=useState('Free');
   const [achCat, setAchCat] = useState('All');
   const [showAllAch, setShowAllAch] = useState(false);
 
+  const xpLevel = getLevel ? getLevel() : 1;
+  const seasonMaxTier = TIER_REWARDS.length;
+  const currentLevelThreshold = getExpForLevel ? getExpForLevel(xpLevel) : 0;
+  const nextLevelThreshold = getExpForLevel ? getExpForLevel(xpLevel + 1) : currentLevelThreshold + 1000;
+  const xpIntoLevel = Math.max(0, (totalExp || 0) - currentLevelThreshold);
+  const xpNeededForLevel = Math.max(1, nextLevelThreshold - currentLevelThreshold);
+  const seasonPct = Math.min(100, Math.max(0, (xpIntoLevel / xpNeededForLevel) * 100));
+  const xpRemaining = getExpToNextLevel ? getExpToNextLevel() : 0;
+
+  const daysLeft = Math.max(0, SEASON_LENGTH_DAYS - Math.floor((Date.now() - SEASON_START.getTime()) / (1000*60*60*24)));
+
+  const TIERS = useMemo(() => {
+    const firstUnclaimedEligible = TIER_REWARDS.find(t => xpLevel >= t.t && !claimedTiers.includes(t.t));
+    return TIER_REWARDS.map((t) => {
+      const claimed = claimedTiers.includes(t.t);
+      const eligible = xpLevel >= t.t;
+      const current = !claimed && eligible && firstUnclaimedEligible?.t === t.t;
+      return {
+        ...t,
+        claimed,
+        current,
+        locked: !eligible,
+        xpNeeded: getExpForLevel ? getExpForLevel(t.t) : t.t * 1000,
+      };
+    });
+  }, [xpLevel, claimedTiers]);
+
+  const handleClaim = (tierNum) => {
+    claimTier(tierNum, uid);
+  };
+
+  const missions = useMemo(() => {
+    const now = new Date();
+    const todayKey = now.toISOString().slice(0, 10);
+    const monday = getMonday(now);
+    const isToday = (d) => d && new Date(d).toISOString().slice(0, 10) === todayKey;
+    const isThisWeek = (d) => d && new Date(d) >= monday;
+
+    const todayWorkouts = (completedWorkouts || []).filter(w => isToday(w.completedAt)).length;
+    const todayMealsLogged = (getMealsByDate ? getMealsByDate(todayKey) : []).filter(m => m.foods?.length > 0).length;
+    const weekRunKm = (runs || []).filter(r => isThisWeek(r.startTime)).reduce((s, r) => s + (r.distance || 0), 0);
+    const weekWorkouts = (completedWorkouts || []).filter(w => isThisWeek(w.completedAt)).length;
+
+    return {
+      daily: [
+        { title: 'Complete 1 workout', xp: 50, current: todayWorkouts, target: 1 },
+        { title: 'Log 3 meals', xp: 30, current: todayMealsLogged, target: 3 },
+        { title: 'Walk 5,000 steps', xp: 40, current: steps || 0, target: 5000 },
+      ],
+      weekly: [
+        { title: 'Run 10km this week', xp: 200, current: Math.round(weekRunKm * 10) / 10, target: 10, unit: 'km' },
+        { title: 'Complete 5 workouts', xp: 300, current: weekWorkouts, target: 5 },
+      ],
+    };
+  }, [completedWorkouts, runs, steps, getMealsByDate]);
+
+  const hoursUntilMidnight = useMemo(() => {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    return Math.max(0, Math.ceil((midnight - now) / (1000 * 60 * 60)));
+  }, []);
+
+  const achCategories = useMemo(() => {
+    const cats = new Set(achievements.map(a => a.category));
+    return ['All', ...Array.from(cats)];
+  }, [achievements]);
+
+  const achProgress = useMemo(() => {
+    const progress = {};
+    achievements.forEach((a) => {
+      const { type, target } = a.condition || {};
+      switch (type) {
+        case 'workout_count':
+          progress[a.id] = { current: (completedWorkouts || []).length, target };
+          break;
+        case 'streak':
+          progress[a.id] = { current: user?.streak || 0, target };
+          break;
+        case 'level':
+          progress[a.id] = { current: xpLevel, target };
+          break;
+        case 'xp':
+          progress[a.id] = { current: totalExp || 0, target };
+          break;
+        case 'calories_burned':
+          progress[a.id] = {
+            current: (completedWorkouts || []).reduce((max, w) => Math.max(max, w.caloriesBurned || 0), 0),
+            target,
+          };
+          break;
+        default:
+          progress[a.id] = null;
+      }
+    });
+    return progress;
+  }, [achievements, completedWorkouts, user?.streak, xpLevel, totalExp]);
+
   const filteredAch = useMemo(() => {
-    const earned = achCat === 'All' ? ACH_EARNED : ACH_EARNED.filter(a => a.cat === achCat);
-    const locked = achCat === 'All' ? ACH_LOCKED : ACH_LOCKED.filter(a => a.cat === achCat);
+    const allEarned = getUnlockedAchievements();
+    const allLocked = getLockedAchievements();
+    const earned = achCat === 'All' ? allEarned : allEarned.filter(a => a.category === achCat);
+    const locked = achCat === 'All' ? allLocked : allLocked.filter(a => a.category === achCat);
     return { earned, locked };
-  }, [achCat]);
+  }, [achCat, achievements]);
 
   const visibleAch = showAllAch ? [...filteredAch.earned, ...filteredAch.locked] : [...filteredAch.earned, ...filteredAch.locked].slice(0, 6);
   return (
@@ -121,24 +224,20 @@ export default function BattlePassScreen(){
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={s.logoRow}><Image source={require('@/assets/branding/zown-logo-512.png')} style={s.logo} resizeMode="contain" /></View>
 
-        {/* Season banner */}
         <View style={s.banner}>
           <Text style={s.seasonLabel}>SEASON 1</Text>
           <Text style={s.seasonTitle}>OWN THE DAY</Text>
-          <Text style={s.seasonDate}>June 2026</Text>
-          <View style={s.seasonBarBg}><View style={[s.seasonBarFill,{width:'35%'}]} /></View>
-          <View style={s.seasonRow}><Text style={s.seasonLevel}>Level 7 / 20</Text><Text style={s.seasonDays}>24 days left</Text></View>
+          <Text style={s.seasonDate}>{SEASON_START.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
+          <View style={s.seasonBarBg}><View style={[s.seasonBarFill,{width:seasonPct+'%'}]} /></View>
+          <View style={s.seasonRow}><Text style={s.seasonLevel}>Level {xpLevel} / {seasonMaxTier}</Text><Text style={s.seasonDays}>{daysLeft} days left</Text></View>
         </View>
 
-        {/* XP counter */}
-        <View style={s.xpRow}><Text style={s.xpLabel}>Current XP: <Text style={s.xpBold}>2,450</Text></Text><Text style={s.xpLabel}>Next Tier: <Text style={s.xpBold}>500 XP</Text></Text></View>
+        <View style={s.xpRow}><Text style={s.xpLabel}>Current XP: <Text style={s.xpBold}>{(totalExp||0).toLocaleString()}</Text></Text><Text style={s.xpLabel}>Next Tier: <Text style={s.xpBold}>{xpRemaining.toLocaleString()} XP</Text></Text></View>
 
-        {/* Tier carousel */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tierScroll}>
-          {TIERS.map(t=><TierCard key={t.t} tier={t} />)}
+          {TIERS.map(t=><TierCard key={t.t} tier={t} onClaim={() => handleClaim(t.t)} />)}
         </ScrollView>
 
-        {/* Track toggle */}
         <View style={s.trackRow}>
           {['Free','Premium'].map(t=>(<Pressable key={t} style={[s.trackPill,track===t&&s.trackPillActive]} onPress={()=>setTrack(t)}><Text style={[s.trackText,track===t&&s.trackTextActive]}>{t} Track</Text></Pressable>))}
         </View>
@@ -148,42 +247,49 @@ export default function BattlePassScreen(){
             <Text style={s.premiumTitle}>Upgrade to Premium</Text>
             <Text style={s.premiumPrice}>$9.99 / season</Text>
             {['Unlock all 20 tiers','Exclusive gear discounts','Premium recipes & workouts','Custom themes'].map(b=>(<View key={b} style={s.benefitRow}><Ionicons name="checkmark-circle" size={16} color="#FFD700" /><Text style={s.benefitText}>{b}</Text></View>))}
-            <Pressable style={s.upgradeBtn}><Text style={s.upgradeBtnText}>Upgrade Now</Text></Pressable>
+            <Pressable style={s.upgradeBtn} onPress={() => Alert.alert('Not Available Yet', 'Premium purchases aren\'t set up yet. Check back soon.')}>
+              <Text style={s.upgradeBtnText}>Upgrade Now</Text>
+            </Pressable>
           </View>
         )}
 
-        {/* Missions */}
-        <View style={s.missionHeader}><Text style={s.sectionTitle}>Missions</Text><Text style={s.resetTimer}>Resets in 14h</Text></View>
+        <View style={s.missionHeader}><Text style={s.sectionTitle}>Missions</Text><Text style={s.resetTimer}>Resets in {hoursUntilMidnight}h</Text></View>
         <Text style={s.missionGroup}>Daily</Text>
-        {DAILY.map((m,i)=><MissionRow key={i} m={m} />)}
+        {missions.daily.map((m,i)=><MissionRow key={i} m={m} />)}
         <Text style={s.missionGroup}>Weekly</Text>
-        {WEEKLY.map((m,i)=><MissionRow key={i} m={m} weekly />)}
-      
-        {/* Achievements Section */}
+        {missions.weekly.map((m,i)=><MissionRow key={i} m={m} />)}
+
         <View style={s.missionHeader}>
           <Text style={s.sectionTitle}>Achievements</Text>
-          <Text style={s.resetTimer}>{ACH_EARNED.length}/{ACH_EARNED.length + ACH_LOCKED.length}</Text>
+          <Text style={s.resetTimer}>{getUnlockedAchievements().length}/{achievements.length}</Text>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft:20,paddingRight:6,marginBottom:16}}>
-          {ACH_CATS.map(c => (
+          {achCategories.map(c => (
             <Pressable key={c} style={{backgroundColor: achCat === c ? '#000' : '#F0F0F0', paddingHorizontal:16, paddingVertical:8, borderRadius:20, marginRight:8}} onPress={() => setAchCat(c)}>
-              <Text style={{fontSize:13, fontWeight:'700', color: achCat === c ? '#FFF' : '#333'}}>{c}</Text>
+              <Text style={{fontSize:13, fontWeight:'700', color: achCat === c ? '#FFF' : '#333'}}>{c === 'All' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-between',paddingHorizontal:20,marginBottom:12}}>
           {visibleAch.map(a => {
-            const isEarned = a.xp !== undefined;
+            const isEarned = !!a.unlockedAt;
+            const prog = achProgress[a.id];
             return (
               <View key={a.id} style={{width:ACH_W,backgroundColor:'#FFF',borderRadius:16,padding:16,marginBottom:12,alignItems:'center',...Platform.select({ios:{shadowColor:'#000',shadowOpacity:0.04,shadowRadius:6,shadowOffset:{width:0,height:2}},android:{elevation:2},default:{}})}}>
                 <View style={{width:56,height:56,borderRadius:28,backgroundColor:isEarned?'#000':'#F0F0F0',justifyContent:'center',alignItems:'center',marginBottom:10}}>
-                  <Ionicons name={a.icon} size={28} color={isEarned ? '#FFD700' : '#CCC'} />
+                  <Text style={{fontSize:26}}>{a.icon}</Text>
                   {!isEarned && <View style={{position:'absolute',bottom:-2,right:-2,backgroundColor:'#FFF',borderRadius:8,padding:2}}><Ionicons name="lock-closed" size={12} color="#999" /></View>}
                 </View>
-                <Text style={{fontSize:13,fontWeight:'700',color:'#000',textAlign:'center',marginBottom:4}}>{a.title}</Text>
-                {isEarned ? <Text style={{fontSize:12,fontWeight:'600',color:'#22C55E'}}>+{a.xp} XP</Text> : <Text style={{fontSize:11,color:'#999'}}>{a.progress}</Text>}
+                <Text style={{fontSize:13,fontWeight:'700',color:'#000',textAlign:'center',marginBottom:4}}>{a.name}</Text>
+                {isEarned ? (
+                  <Text style={{fontSize:12,fontWeight:'600',color:'#22C55E'}}>+{a.xpReward} XP</Text>
+                ) : prog ? (
+                  <Text style={{fontSize:11,color:'#999'}}>{Math.min(prog.current, prog.target)}/{prog.target}</Text>
+                ) : (
+                  <Text style={{fontSize:11,color:'#999',textAlign:'center'}}>{a.description}</Text>
+                )}
               </View>
             );
           })}

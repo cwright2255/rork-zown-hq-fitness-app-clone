@@ -14,6 +14,7 @@ import {
   Platform,
   LayoutAnimation,
   UIManager,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -38,6 +39,12 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useHomeWidgetsStore } from '@/store/homeWidgetsStore';
+import { computeCalorieMetrics, estimateCaloriesFromSteps } from '@/lib/calorieMetrics';
+import SwipeableCaloriesContent from '@/components/SwipeableCaloriesContent';
+import { computeStepsMetrics } from '@/lib/stepsMetrics';
+import SwipeableStepsContent from '@/components/SwipeableStepsContent';
+import PromptModal from '@/components/PromptModal';
 import { useRunningStore } from '@/store/runningStore';
 import { tokens } from '../../theme/tokens';
 
@@ -149,17 +156,37 @@ export default function HQScreen() {
   };
 
   const router = useRouter();
-  const { user } = useUserStore();
-  const { totalExp } = useExpStore();
+  const { user, updateUser, saveProfile } = useUserStore();
+  const { getTotalExp } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
-  const { hydration, sleep, steps: storeSteps, meals, addGlass } = useHealthStore();
+  const { hydration, sleep, steps: storeSteps, stepsHistory, meals, addGlass, flightsClimbed } = useHealthStore();
+  const { rookRecovery, loadRookRecovery, loadAppleHealthActivity } = useHealthStore();
+  useEffect(() => {
+    if (user?.uid) {
+      loadRookRecovery();
+      loadAppleHealthActivity();
+    }
+  }, [user?.uid]);
+  const { layout: widgetLayout, loadLayout: loadWidgetLayout, isEditing } = useHomeWidgetsStore();
+  useEffect(() => {
+    if (user?.uid) loadWidgetLayout(user.uid);
+  }, [user?.uid]);
+  const isWidgetEnabled = (id) => {
+    const entry = widgetLayout.find((w) => w.id === id);
+    // Default to enabled if a widget genuinely isn't in the layout yet
+    // (e.g. a brand-new widget added to the registry after someone
+    // already saved a custom layout) - matches getDefaultWidgetLayout's
+    // own "everything on by default" behavior rather than silently
+    // hiding something new.
+    return entry ? entry.enabled : true;
+  };
   const { runs } = useRunningStore();
 
   const [expandedCard, setExpandedCard] = useState(null);
+  const [showWidgetMenu, setShowWidgetMenu] = useState(false);
+  const [showCalorieGoalModal, setShowCalorieGoalModal] = useState(false);
 
   const isToday = (d) => d && new Date(d).toDateString() === new Date().toDateString();
-  const todayWorkoutCals = (completedWorkouts || []).filter(w => isToday(w.completedAt)).reduce((s, w) => s + (w.caloriesBurned || w.calories || 0), 0);
-  const todayRunCals = (runs || []).filter(r => isToday(r.completedAt || r.endTime)).reduce((s, r) => s + (r.calories || 0), 0);
   const todayMealCals = (meals || []).filter(m => isToday(m.timestamp)).reduce((s, m) => s + (m.calories || 0), 0);
 
   const displayName = user?.name || user?.email?.split('@')[0] || 'there';
@@ -168,14 +195,42 @@ export default function HQScreen() {
   const dayName = DAYS[now.getDay()];
   const dateStr = String(now.getDate()).padStart(2, '0') + ' ' + MONTHS[now.getMonth()];
 
-  const caloriesVal = todayWorkoutCals + todayRunCals;
-  const caloriesGoal = 2200;
   const stepsVal = storeSteps || 0;
   const stepsGoal = 10000;
+
+  // Real steps-based calorie contribution, added into today's total
+  // only - see lib/calorieMetrics.js's own comment on
+  // estimateCaloriesFromSteps for exactly why this doesn't retroactively
+  // touch weekly/lifetime figures below.
+  const stepsCalorieEstimate = useMemo(
+    () => estimateCaloriesFromSteps(stepsVal, user?.weightKg),
+    [stepsVal, user?.weightKg]
+  );
+
+  // Single, real source of truth for burned-calorie numbers - replaces
+  // the previous todayWorkoutCals/todayRunCals pair, which computed the
+  // same "today" total in a slightly different way from calorieMetrics.js
+  // (risk of the two silently drifting apart over time).
+  const calorieMetrics = useMemo(
+    () => computeCalorieMetrics(completedWorkouts, runs, user?.dailyCalorieGoal, stepsCalorieEstimate),
+    [completedWorkouts, runs, user?.dailyCalorieGoal, stepsCalorieEstimate]
+  );
+  const caloriesVal = calorieMetrics.todayCalories;
+  const caloriesGoal = calorieMetrics.dailyCalorieGoal || 2200;
+
+  // Real Overview/Breakdown/Trends/Lifetime for Steps, mirroring
+  // calorieMetrics above exactly - see lib/stepsMetrics.js. stepsHistory
+  // only starts recording real per-day data going forward from when
+  // that field shipped, so this starts small and grows for real over
+  // time, same as calorieMetrics' own history-dependent fields do.
+  const stepsMetrics = useMemo(
+    () => computeStepsMetrics(stepsHistory, stepsGoal),
+    [stepsHistory, stepsGoal]
+  );
   const sleepVal = sleep?.hours || 7.5;
-  const hydrationVal = hydration?.glasses || 5;
+  const hydrationVal = hydration?.glasses || 0;
   const hydrationTarget = hydration?.target || 8;
-  const xpVal = totalExp || 0;
+  const xpVal = getTotalExp ? getTotalExp() : 0;
 
   const toggleExpand = (cardName) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -302,7 +357,7 @@ export default function HQScreen() {
             <Text style={styles.sectionTitle}>Today's Information</Text>
             <Text style={styles.sectionSub}>{MONTHS[now.getMonth()]} {now.getFullYear()}</Text>
           </View>
-          <TouchableOpacity hitSlop={8} onPress={() => { /* options menu */ }}>
+          <TouchableOpacity hitSlop={8} onPress={() => setShowWidgetMenu(true)}>
             <Ionicons name="ellipsis-vertical" size={20} color="#000" />
           </TouchableOpacity>
         </View>
@@ -310,195 +365,77 @@ export default function HQScreen() {
         {/* Expandable Grid */}
         <View style={styles.grid}>
           {/* 1. Calories Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('calories') && renderExpandableCard(
             'Calories',
             'flame-outline',
             caloriesVal.toLocaleString(),
             'Kcal',
             false,
             (
-              <View>
-                <View style={styles.expandedRow}>
-                  <ProgressRing
-                    size={90}
-                    progress={Math.min(caloriesVal / caloriesGoal, 1)}
-                    color="#FF6B6B"
-                    label={caloriesVal.toString()}
-                    subLabel="Kcal"
-                  />
-                  <View style={{ flex: 1, marginLeft: 16, gap: 6 }}>
-                    <Text style={styles.insightTitle}>Macro Breakdown</Text>
-                    {/* Protein */}
-                    <View>
-                      <View style={styles.macroHeader}>
-                        <Text style={styles.macroLabel}>Protein</Text>
-                        <Text style={styles.macroVal}>85g / 130g</Text>
-                      </View>
-                      <View style={styles.macroBarTrack}>
-                        <View style={[styles.macroBarFill, { width: '65%', backgroundColor: '#4CAF50' }]} />
-                      </View>
-                    </View>
-                    {/* Carbs */}
-                    <View>
-                      <View style={styles.macroHeader}>
-                        <Text style={styles.macroLabel}>Carbs</Text>
-                        <Text style={styles.macroVal}>180g / 250g</Text>
-                      </View>
-                      <View style={styles.macroBarTrack}>
-                        <View style={[styles.macroBarFill, { width: '72%', backgroundColor: '#4A90D9' }]} />
-                      </View>
-                    </View>
-                    {/* Fat */}
-                    <View>
-                      <View style={styles.macroHeader}>
-                        <Text style={styles.macroLabel}>Fat</Text>
-                        <Text style={styles.macroVal}>55g / 70g</Text>
-                      </View>
-                      <View style={styles.macroBarTrack}>
-                        <View style={[styles.macroBarFill, { width: '78%', backgroundColor: '#FF9800' }]} />
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={{ marginTop: 16 }}>
-                  <Text style={styles.chartTitle}>7-Day Intake Trend</Text>
-                  <LineChart
-                    data={{
-                      labels: ['P6', 'P5', 'P4', 'P3', 'P2', 'P1', 'Today'],
-                      datasets: [{ data: [1950, 2100, 1850, 2300, 2050, 1980, caloriesVal || 1847] }],
-                    }}
-                    width={chartWidth}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(255, 107, 107, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#FF6B6B' },
-                    }}
-                    bezier
-                    style={styles.chartStyle}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/nutrition/log')}
-                >
-                  <Text style={styles.panelBtnText}>View Full Log</Text>
-                </TouchableOpacity>
-              </View>
+              <SwipeableCaloriesContent
+                metrics={calorieMetrics}
+                onSetGoal={() => setShowCalorieGoalModal(true)}
+              />
             )
           )}
-
           {/* 2. Heart Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('heart') && renderExpandableCard(
             'Heart',
             'heart-outline',
-            '74',
+            rookRecovery?.restingHeartRate != null ? String(rookRecovery.restingHeartRate) : '\u2014',
             'bpm',
             false,
             (
               <View>
-                <View style={{ gap: 6, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>Today's HR Summary</Text>
-                  <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>58 bpm</Text></Text>
-                  <Text style={styles.detailStatText}>Max Peak Recorded: <Text style={{fontWeight: '700'}}>164 bpm</Text></Text>
-                </View>
-
-                <View style={{ marginTop: 8 }}>
-                  <Text style={styles.chartTitle}>7-Day HR Trend</Text>
-                  <LineChart
-                    data={{
-                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                      datasets: [{ data: [68, 72, 74, 71, 75, 78, 74] }],
-                    }}
-                    width={chartWidth}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(233, 30, 99, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                    }}
-                    bezier
-                    style={styles.chartStyle}
-                  />
-                </View>
-
+                {rookRecovery ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Today's Recovery</Text>
+                    {rookRecovery.restingHeartRate != null && (
+                      <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>{rookRecovery.restingHeartRate} bpm</Text></Text>
+                    )}
+                    {rookRecovery.hrv != null && (
+                      <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{rookRecovery.hrv} ms</Text></Text>
+                    )}
+                    {rookRecovery.sleepHours != null && (
+                      <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
+                    )}
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No wearable data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect a device to see real resting heart rate and HRV here.
+                    </Text>
+                  </View>
+                )}
                 <TouchableOpacity
                   style={styles.panelBtn}
-                  onPress={() => router.push('/analytics')}
+                  onPress={() => router.push('/rook-connect')}
                 >
-                  <Text style={styles.panelBtnText}>View Analytics</Text>
+                  <Text style={styles.panelBtnText}>{rookRecovery ? 'Manage Devices' : 'Connect Device'}</Text>
                 </TouchableOpacity>
               </View>
             )
           )}
 
           {/* 3. Steps Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('steps') && renderExpandableCard(
             'Steps',
             'footsteps-outline',
             stepsVal.toLocaleString(),
             'Steps',
             false,
             (
-              <View>
-                <View style={styles.expandedRow}>
-                  <ProgressRing
-                    size={90}
-                    progress={Math.min(stepsVal / stepsGoal, 1)}
-                    color="#4A90D9"
-                    label={stepsVal.toString()}
-                    subLabel="Steps"
-                  />
-                  <View style={{ flex: 1, marginLeft: 20, justifyContent: 'center', gap: 6 }}>
-                    <Text style={styles.insightTitle}>Weekly Progress</Text>
-                    <Text style={styles.detailStatText}>Average: <Text style={{fontWeight: '700'}}>7,840 steps/day</Text></Text>
-                    <Text style={styles.detailStatText}>Best Day: <Text style={{fontWeight: '700'}}>11,420 steps</Text></Text>
-                    <Text style={styles.detailStatText}>Weekly Total: <Text style={{fontWeight: '700'}}>54,880 steps</Text></Text>
-                  </View>
-                </View>
-
-                <View style={{ marginTop: 16 }}>
-                  <Text style={styles.chartTitle}>7-Day Steps Breakdown</Text>
-                  <BarChart
-                    data={{
-                      labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-                      datasets: [{ data: [6200, 8100, 7400, 9200, 5600, 8432, stepsVal > 8432 ? stepsVal : 4500] }],
-                    }}
-                    width={chartWidth}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(74, 144, 217, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                    }}
-                    style={styles.chartStyle}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/health')}
-                >
-                  <Text style={styles.panelBtnText}>View Health</Text>
-                </TouchableOpacity>
-              </View>
+              <SwipeableStepsContent
+                metrics={stepsMetrics}
+                onSetGoal={() => {}}
+              />
             )
           )}
 
           {/* 4. Sleep Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('sleep') && renderExpandableCard(
             'Sleep',
             'moon-outline',
             sleepVal.toLocaleString(),
@@ -539,7 +476,7 @@ export default function HQScreen() {
           )}
 
           {/* 5. Total XP Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('totalXp') && renderExpandableCard(
             'Total XP',
             'star-outline',
             xpVal.toLocaleString(),
@@ -585,53 +522,40 @@ export default function HQScreen() {
           )}
 
           {/* 6. Stories Climbed Card */}
-          {renderExpandableCard(
+          {/* 6. Stories Climbed Card */}
+          {isWidgetEnabled('storiesClimbed') && renderExpandableCard(
             'Stories Climbed',
             'trending-up-outline',
-            '42',
+            flightsClimbed != null ? String(flightsClimbed) : '\u2014',
             'floors',
             false,
             (
               <View>
-                <View style={{ gap: 6, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>Climbing Summary</Text>
-                  <Text style={styles.detailStatText}>Daily Average: <Text style={{fontWeight: '700'}}>6 floors/day</Text></Text>
-                  <Text style={styles.detailStatText}>Weekly Elevation: <Text style={{fontWeight: '700'}}>420 meters</Text></Text>
-                </View>
-
-                <View style={{ marginTop: 8 }}>
-                  <Text style={styles.chartTitle}>7-Day Elevation Trend</Text>
-                  <BarChart
-                    data={{
-                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                      datasets: [{ data: [4, 8, 3, 12, 5, 6, 4] }],
-                    }}
-                    width={chartWidth}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(76, 175, 80, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                    }}
-                    style={styles.chartStyle}
-                  />
-                </View>
-
+                {flightsClimbed != null ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Today's Climbing</Text>
+                    <Text style={styles.detailStatText}>Floors Climbed: <Text style={{fontWeight: '700'}}>{flightsClimbed}</Text></Text>
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: Apple Health</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect Apple Health to see real floors climbed here.
+                    </Text>
+                  </View>
+                )}
                 <TouchableOpacity
                   style={styles.panelBtn}
-                  onPress={() => router.push('/health')}
+                  onPress={() => router.push('/rook-connect')}
                 >
-                  <Text style={styles.panelBtnText}>View Health Metrics</Text>
+                  <Text style={styles.panelBtnText}>{flightsClimbed != null ? 'Manage Devices' : 'Connect Apple Health'}</Text>
                 </TouchableOpacity>
               </View>
             )
           )}
-
           {/* 7. Resting HRV Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('restingHrv') && renderExpandableCard(
             'Resting HRV',
             'pulse-outline',
             '58',
@@ -678,7 +602,7 @@ export default function HQScreen() {
           )}
 
           {/* 8. Hydration Card */}
-          {renderExpandableCard(
+          {isWidgetEnabled('hydration') && renderExpandableCard(
             'Hydration',
             'water-outline',
             hydrationVal + " / " + hydrationTarget,
@@ -734,6 +658,7 @@ export default function HQScreen() {
         </View>
 
         {/* Recommended Workouts carousel */}
+        {isWidgetEnabled('recommendedWorkouts') && (
         <View style={styles.carouselCard}>
           <Text style={styles.carouselTitle}>Recommended Workouts</Text>
           <ScrollView
@@ -750,8 +675,10 @@ export default function HQScreen() {
             ))}
           </ScrollView>
         </View>
+        )}
 
         {/* Invite banner */}
+        {isWidgetEnabled('inviteFriends') && (
         <TouchableOpacity
           style={styles.banner}
           activeOpacity={0.8}
@@ -765,14 +692,54 @@ export default function HQScreen() {
             <Text style={styles.bannerSub}>Invite your friends to get a free exercise right away</Text>
           </View>
         </TouchableOpacity>
+        )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
+      <Modal visible={showWidgetMenu} animationType="fade" transparent onRequestClose={() => setShowWidgetMenu(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setShowWidgetMenu(false)}>
+          <View style={styles.menuCard}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowWidgetMenu(false);
+                useHomeWidgetsStore.getState().setEditing(true);
+              }}
+            >
+              <Ionicons name="create-outline" size={18} color="#000" />
+              <Text style={styles.menuItemText}>Edit Home Screen</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+      <PromptModal
+        visible={showCalorieGoalModal}
+        title="Daily Calorie Goal"
+        submitLabel="Save"
+        fields={[
+          { key: 'goal', label: 'How many calories do you want to burn per day?', placeholder: 'e.g. 500', keyboardType: 'numeric' },
+        ]}
+        onCancel={() => setShowCalorieGoalModal(false)}
+        onSubmit={async (values) => {
+          const goal = parseFloat(values.goal);
+          if (!goal || Number.isNaN(goal)) {
+            setShowCalorieGoalModal(false);
+            return;
+          }
+          updateUser({ dailyCalorieGoal: goal });
+          if (user?.uid) saveProfile(user.uid);
+          setShowCalorieGoalModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  menuBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 100, paddingRight: 20 },
+  menuCard: { backgroundColor: '#FFF', borderRadius: 12, paddingVertical: 6, minWidth: 190, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 16 },
+  menuItemText: { fontSize: 14, fontWeight: '600', color: '#000' },
   safe: {
     flex: 1,
     backgroundColor: '#FFFFFF',

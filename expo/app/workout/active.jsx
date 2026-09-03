@@ -8,7 +8,9 @@ import {
   Pressable,
   Modal,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import { Video } from 'expo-av';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
@@ -18,6 +20,7 @@ import { useAchievementStore } from '@/store/achievementStore';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { searchAscendExercise, extractVideoUrl } from '@/services/exerciseDbService';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -101,7 +104,9 @@ export default function ActiveWorkoutScreen() {
   const workoutId = typeof params.id === 'string' ? params.id : '';
 
   const { workouts, customWorkouts, addCompletedWorkout } = useWorkoutStore();
-  const { addExpActivity, totalExp, level } = useExpStore();
+  const { addExpActivity, expSystem } = useExpStore();
+  const totalExp = expSystem.totalExp;
+  const level = expSystem.level;
   const { unlockBadge } = useBadgeStore();
   const { checkAchievements } = useAchievementStore();
   const { user } = useUserStore();
@@ -136,6 +141,59 @@ export default function ActiveWorkoutScreen() {
   const timerRef = useRef(null);
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
+
+  /* Demo video lookup, real per-exercise search against AscendAPI,
+     only for whichever exercise is on screen right now (not the whole
+     upcoming list) to keep API calls to a minimum on a free-tier key.
+     Cached by exercise id in a ref so skipping back to an exercise
+     already checked this session doesn't refetch it. */
+  const [videoUrls, setVideoUrls] = useState({});
+  const [videoLoadingId, setVideoLoadingId] = useState(null);
+  const [showFullscreenVideo, setShowFullscreenVideo] = useState(false);
+  const checkedVideoIdsRef = useRef(new Set());
+
+  useEffect(() => {
+    const ex = exercises[currentIndex];
+    if (!ex || checkedVideoIdsRef.current.has(ex.id)) return;
+    checkedVideoIdsRef.current.add(ex.id);
+    let cancelled = false;
+    setVideoLoadingId(ex.id);
+    (async () => {
+      let url = null;
+      try {
+        const record = await searchAscendExercise(ex.name);
+        url = extractVideoUrl(record);
+      } catch (e) {
+        console.warn('[ActiveWorkout] exercise video lookup failed:', ex.name, e?.message);
+      }
+      if (!cancelled) {
+        setVideoUrls((prev) => ({ ...prev, [ex.id]: url }));
+        setVideoLoadingId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentIndex, exercises]);
+
+  const currentVideoUrl = currentExercise ? videoUrls[currentExercise.id] : null;
+  const isCurrentVideoLoading = currentExercise ? videoLoadingId === currentExercise.id : false;
+
+  /* Real form-check matching: form-check.jsx only has pose-detection
+     rules built for squat/pushup/bicepCurl (see its EXERCISES const),
+     not an arbitrary exercise name, so this maps a generated name to
+     one of those three real ids and returns null for anything else.
+     The button below only renders when this resolves to a real id,
+     rather than linking to a check that would silently run against
+     the wrong movement. */
+  const formCheckExerciseId = useMemo(() => {
+    const normalized = (currentExercise?.name || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!normalized) return null;
+    if (normalized.includes('squat')) return 'squat';
+    if (normalized.includes('pushup')) return 'pushup';
+    if (normalized.includes('bicepcurl') || normalized.includes('curl')) return 'bicepCurl';
+    return null;
+  }, [currentExercise]);
 
   /* Ã¢ÂÂÃ¢ÂÂ Progress tracking Ã¢ÂÂÃ¢ÂÂ */
   const completedCount = completedSet.size;
@@ -284,46 +342,64 @@ export default function ActiveWorkoutScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header: back + three-dot menu. showMenu/setShowMenu and the
+          Modal it opens already existed further down this file with no
+          button anywhere that ever called setShowMenu(true), same for
+          the exit-confirm flow this back button now opens instead of
+          leaving the workout with no confirmation. */}
+      <View style={styles.header}>
+        <Pressable onPress={() => setShowExitConfirm(true)}>
+          <Ionicons name="chevron-back" size={26} color="#000" />
+        </Pressable>
+        <Pressable onPress={() => setShowMenu(true)}>
+          <Ionicons name="ellipsis-vertical" size={22} color="#000" />
+        </Pressable>
+      </View>
+
+      <Text style={styles.exerciseTitle}>{currentExercise?.name || 'Exercise'}</Text>
+
+      {formCheckExerciseId && (
+        <Pressable
+          style={styles.formCheckLink}
+          onPress={() => router.push(`/workout/form-check?exercise=${formCheckExerciseId}`)}
+        >
+          <Ionicons name="camera-outline" size={16} color="#FFF" />
+          <Text style={styles.formCheckLinkText}>Check my form</Text>
+        </Pressable>
+      )}
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ã¢ÂÂÃ¢ÂÂ Header Ã¢ÂÂÃ¢ÂÂ */}
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => {
-              setIsPlaying(false);
-              setShowExitConfirm(true);
-            }}
-          >
-            <Ionicons name="chevron-back" size={24} color="#000" />
-          </Pressable>
-          <Pressable onPress={() => setShowMenu(true)}>
-            <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
-          </Pressable>
-        </View>
-
-        {/* Ã¢ÂÂÃ¢ÂÂ Exercise title Ã¢ÂÂÃ¢ÂÂ */}
-        <Text style={styles.exerciseTitle}>{currentExercise.name}</Text>
-        {matchFormCheckExercise(currentExercise.name) && (
-          <Pressable
-            style={styles.formCheckLink}
-            onPress={() => router.push(`/workout/form-check?exercise=${matchFormCheckExercise(currentExercise.name)}`)}
-          >
-            <Ionicons name="camera-outline" size={14} color="#FFF" />
-            <Text style={styles.formCheckLinkText}>Check my form</Text>
-          </Pressable>
-        )}
-
-
-        {/* Ã¢ÂÂÃ¢ÂÂ Video / demo area Ã¢ÂÂÃ¢ÂÂ */}
+        {/* Video / demo area */}
         <View style={styles.videoArea}>
-          <Ionicons name="body-outline" size={80} color="#666" />
+          {currentVideoUrl ? (
+            <Video
+              source={{ uri: currentVideoUrl }}
+              style={StyleSheet.absoluteFillObject}
+              resizeMode="cover"
+              isLooping
+              isMuted
+              shouldPlay={isPlaying}
+              onError={(e) => console.warn('[ActiveWorkout] video playback error:', e)}
+            />
+          ) : (
+            <Ionicons name="body-outline" size={80} color="#666" />
+          )}
 
-          {/* Fullscreen button */}
-          <Pressable style={styles.fullscreenBtn}>
-            <Ionicons name="expand-outline" size={20} color="#FFF" />
+          {isCurrentVideoLoading && (
+            <ActivityIndicator size="small" color="#FFF" style={styles.videoLoadingSpinner} />
+          )}
+
+          {/* Fullscreen button, only enabled once a real demo video is loaded */}
+          <Pressable
+            style={styles.fullscreenBtn}
+            onPress={() => setShowFullscreenVideo(true)}
+            disabled={!currentVideoUrl}
+          >
+            <Ionicons name="expand-outline" size={20} color={currentVideoUrl ? '#FFF' : 'rgba(255,255,255,0.4)'} />
           </Pressable>
 
           {/* Playback progress + timer overlay */}
@@ -469,7 +545,7 @@ export default function ActiveWorkoutScreen() {
                 date: new Date().toISOString().split('T')[0],
                 description: `Completed ${selectedWorkout?.name || 'workout'}`,
                 completed: true,
-              });
+              }, user?.uid);
 
               // Public leaderboard sync (store/leaderboardStore.js) — reads
               // useExpStore.getState() directly rather than the totalExp/
@@ -481,8 +557,8 @@ export default function ActiveWorkoutScreen() {
                 useLeaderboardStore.getState()._syncLeaderboardEntry(user.uid, {
                   name: user?.name,
                   avatar: user?.profileImage,
-                  xp: freshExp.totalExp,
-                  level: freshExp.level,
+                  xp: freshExp.expSystem.totalExp,
+                  level: freshExp.expSystem.level,
                   streak: user?.streak,
                 });
               }
@@ -512,7 +588,34 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Three-dot popup menu Ã¢ÂÂÃ¢ÂÂ */}
+      {/* Fullscreen demo video */}
+      <Modal
+        visible={showFullscreenVideo}
+        animationType="fade"
+        onRequestClose={() => setShowFullscreenVideo(false)}
+      >
+        <View style={styles.fullscreenVideoContainer}>
+          <Pressable
+            style={styles.fullscreenCloseBtn}
+            onPress={() => setShowFullscreenVideo(false)}
+          >
+            <Ionicons name="close" size={28} color="#FFF" />
+          </Pressable>
+          {currentVideoUrl && (
+            <Video
+              source={{ uri: currentVideoUrl }}
+              style={styles.fullscreenVideo}
+              resizeMode="contain"
+              isLooping
+              isMuted
+              shouldPlay={showFullscreenVideo}
+              useNativeControls
+            />
+          )}
+        </View>
+      </Modal>
+
+      {/* Three-dot popup menu */}
       <Modal
         visible={showMenu}
         transparent
@@ -722,6 +825,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 38,
     textAlign: 'right',
+  },
+  videoLoadingSpinner: {
+    position: 'absolute',
+  },
+  fullscreenVideoContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenVideo: {
+    width: '100%',
+    height: '70%',
   },
 
   /* CHANGE 3: Progress bar */

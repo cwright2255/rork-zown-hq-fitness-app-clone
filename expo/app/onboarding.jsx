@@ -35,6 +35,17 @@ const ACTIVITY_LEVELS = [
   { id: 'extremely_active', label: 'Extremely Active', desc: 'Very hard exercise, physical job or athlete' }
 ];
 
+const NUTRITION_PREFERENCES = [
+  { id: 'no_preference', label: 'No Preference' },
+  { id: 'vegetarian', label: 'Vegetarian' },
+  { id: 'vegan', label: 'Vegan' },
+  { id: 'pescatarian', label: 'Pescatarian' },
+  { id: 'paleo', label: 'Paleo' },
+  { id: 'keto', label: 'Keto' },
+  { id: 'intermittent_fasting', label: 'Intermittent Fasting' },
+  { id: 'gluten_free', label: 'Gluten-Free' }
+];
+
 export default function OnboardingScreen() {
   const router = useRouter();
   const { user, completeOnboarding, saveProfile, loadProfile } = useUserStore();
@@ -55,6 +66,7 @@ export default function OnboardingScreen() {
 
   const [activityLevel, setActivityLevel] = useState('moderately_active');
   const [selectedGoals, setSelectedGoals] = useState([]);
+  const [nutritionPreference, setNutritionPreference] = useState('no_preference');
   
   // Workout preferences
   const [daysPerWeek, setDaysPerWeek] = useState('3');
@@ -144,7 +156,8 @@ export default function OnboardingScreen() {
           height: calculatedHeight,
           weight: calculatedWeight,
           activityLevel: activityLevel,
-          targetGoals: selectedGoals
+          targetGoals: selectedGoals,
+          nutritionPreference: nutritionPreference
         },
         preferences: {
           units: isMetric ? 'metric' : 'imperial',
@@ -395,6 +408,24 @@ export default function OnboardingScreen() {
                   </TouchableOpacity>
                 );
               })}
+
+              <Text style={styles.nutritionPrefLabel}>Nutrition Preference</Text>
+              <View style={styles.pillsRow}>
+                {NUTRITION_PREFERENCES.map((pref) => {
+                  const isSel = nutritionPreference === pref.id;
+                  return (
+                    <TouchableOpacity
+                      key={pref.id}
+                      style={[styles.pillBtn, isSel && styles.pillBtnActive]}
+                      onPress={() => setNutritionPreference(pref.id)}
+                    >
+                      <Text style={[styles.pillText, isSel && styles.pillTextActive]}>
+                        {pref.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </ScrollView>
 
             <TouchableOpacity
@@ -832,6 +863,14 @@ const styles = StyleSheet.create({
   },
   goalLabelSelected: {
     color: '#FFFFFF'
+  },
+  nutritionPrefLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
+    marginTop: 8,
+    marginBottom: 4,
+    width: '100%'
   },
   pillsRow: {
     flexDirection: 'row',

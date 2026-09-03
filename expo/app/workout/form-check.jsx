@@ -36,6 +36,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { useExpStore } from '@/store/expStore';
+import { useUserStore } from '@/store/userStore';
 import formAnalysisService, { SKELETON_CONNECTIONS } from '@/services/formAnalysisService';
 
 const POSE_MODEL = 'pose_landmarker_lite.task'; // bundled asset — see setup note above
@@ -56,6 +57,7 @@ export default function FormCheckScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
   const { addExpActivity } = useExpStore();
+  const { user } = useUserStore();
 
   const params = useLocalSearchParams();
   const validExerciseIds = EXERCISES.map((e) => e.id);
@@ -117,7 +119,7 @@ export default function FormCheckScreen() {
           date: new Date().toISOString().split('T')[0],
           description: `Form check: ${session.reps} ${EXERCISES.find(e => e.id === session.exercise)?.label ?? session.exercise} reps`,
           completed: true,
-        });
+        }, user?.uid);
       } catch (e) {
         console.error('[FormCheck] EXP add error', e);
       }

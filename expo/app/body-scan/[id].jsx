@@ -27,19 +27,17 @@
 // assets, not on SMPL's own proprietary training data or topology.
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, PanResponder, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, PanResponder, ActivityIndicator, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
-import { buildBodyMesh } from '@/lib/bodyMeshBuilder';
-import { buildSkinnedBodyMesh } from '@/lib/applySkeletonToMesh';
+import { loadScanMesh } from '@/lib/loadScanMesh';
 
 // Real Metro constraint, not just a runtime concern: Metro statically
 // analyzes every require() call to build its bundle graph at build time,
@@ -53,75 +51,6 @@ import { buildSkinnedBodyMesh } from '@/lib/applySkeletonToMesh';
 // resolver.assetExts) rather than relying on a boolean flag alone —
 // Metro needs the real file to exist at the time this line is bundled,
 // not just at the time it's executed.
-const REFERENCE_RIG_BUNDLED = false;
-const getReferenceRigUri = REFERENCE_RIG_BUNDLED
-  ? () => Promise.resolve(null) // ? () => Asset.fromModule(require('../../assets/body-rig/reference-rigged.glb')).downloadAsync().then((a) => a.localUri ?? a.uri)
-  : () => Promise.resolve(null);
-
-const MANNEQUIN_GRAY = '#9CA3AF';
-
-// Real, measured latency, not a guess: cold-start requests to this service
-// took 80-90+ seconds in direct testing (loading Anny's blend shape data on
-// a fresh container instance). 120s gives real margin above that without
-// leaving a hung request effectively unbounded if the service is genuinely
-// unreachable.
-const ANNY_SERVICE_URL = 'https://anny-mesh-service-431690627943.us-central1.run.app/generate-mesh';
-const ANNY_REQUEST_TIMEOUT_MS = 120000;
-
-// Loads a real, detailed mesh (individual fingers, toes, facial features -
-// see anny-service/README.md) from the Anny body-mesh service, built from
-// this scan's actual measurements. Throws on any failure (network, timeout,
-// service error, malformed response) rather than returning null, so the
-// caller's own try/catch is the single place that decides what happens
-// next - this function's only job is "get a real mesh or fail clearly."
-async function loadHighQualityMesh(scan) {
-  if (!scan.heightCm || !scan.gender) {
-    throw new Error('Missing height or gender - required for high-quality mesh generation.');
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), ANNY_REQUEST_TIMEOUT_MS);
-
-  let response;
-  try {
-    response = await fetch(ANNY_SERVICE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        height_cm: scan.heightCm,
-        weight_kg: scan.weightKg ?? undefined,
-        gender: scan.gender,
-        body_fat_percent: scan.bodyFatPercent ?? undefined,
-        waist_cm: scan.measurements?.waistCircumferenceCm ?? undefined,
-        hip_cm: scan.measurements?.hipCircumferenceCm ?? undefined,
-      }),
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`Anny service returned ${response.status}: ${detail.slice(0, 200)}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-
-  const gltf = await new Promise((resolve, reject) => {
-    new GLTFLoader().parse(arrayBuffer, '', resolve, reject);
-  });
-
-  let mesh = null;
-  gltf.scene.traverse((child) => {
-    if (child.isMesh && !mesh) mesh = child;
-  });
-  if (!mesh) {
-    throw new Error('Anny service response contained no mesh.');
-  }
-  return mesh;
-}
-
 export default function BodyScanViewerScreen() {
   const params = useLocalSearchParams();
   const scanId = typeof params.id === 'string' ? params.id : '';
@@ -129,6 +58,7 @@ export default function BodyScanViewerScreen() {
   const { scans, loadScans, latestInsight, getComparisonPair } = useBodyCompositionStore();
 
   const [loadState, setLoadState] = useState('loading');
+  const [meshBoundsDebug, setMeshBoundsDebug] = useState(null);
   const rotationRef = useRef(0);
   const meshGroupRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -191,57 +121,11 @@ export default function BodyScanViewerScreen() {
     scene.add(fill);
 
     try {
-      let geometry;
-      let material;
-      let displayObject;
-      let usedHighQualityMesh = false;
 
-      try {
-        setLoadState('loadingHighQuality');
-        const loadedMesh = await loadHighQualityMesh(scan);
-        material = new THREE.MeshStandardMaterial({
-          color: MANNEQUIN_GRAY, roughness: 0.85, metalness: 0.05,
-        });
-        loadedMesh.material = material;
-        geometry = loadedMesh.geometry;
-        displayObject = loadedMesh;
-        usedHighQualityMesh = true;
-        disposablesRef.current.geometries.push(geometry);
-        disposablesRef.current.materials.push(material);
-      } catch (highQualityError) {
-        console.warn('[BodyScanViewer] high-quality mesh unavailable, falling back to local mesh:', highQualityError?.message);
-      }
-
-      if (!usedHighQualityMesh) {
-        geometry = buildBodyMesh(scan);
-        material = new THREE.MeshStandardMaterial({
-          color: MANNEQUIN_GRAY, roughness: 0.85, metalness: 0.05,
-        });
-        disposablesRef.current.geometries.push(geometry);
-        disposablesRef.current.materials.push(material);
-
-        // Use the rigged/posable mesh if the one-time reference rig has been
-        // generated and bundled (see scripts/generateReferenceRig.mjs) —
-        // falls back to the plain static mesh otherwise, so this screen keeps
-        // working before that setup step has been done.
-        const referenceRigUri = await getReferenceRigUri();
-        if (referenceRigUri) {
-          try {
-            displayObject = await buildSkinnedBodyMesh(geometry, material, referenceRigUri);
-          } catch (rigError) {
-            console.warn('[BodyScanViewer] skinned mesh unavailable, falling back to static mesh:', rigError.message);
-          }
-        }
-        if (!displayObject) {
-          displayObject = new THREE.Mesh(geometry, material);
-        }
-      }
-
-      // Center vertically so drag-to-rotate pivots around the figure's
-      // middle rather than its feet.
-      geometry.computeBoundingBox();
-      const midY = (geometry.boundingBox.min.y + geometry.boundingBox.max.y) / 2;
-      displayObject.position.y = -midY;
+      setLoadState('loadingHighQuality');
+      const { displayObject, geometry, material } = await loadScanMesh(scan);
+      disposablesRef.current.geometries.push(geometry);
+      disposablesRef.current.materials.push(material);
 
       const group = new THREE.Group();
       group.add(displayObject);
@@ -265,7 +149,7 @@ export default function BodyScanViewerScreen() {
   if (!scan) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
+        <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <Text style={styles.centerMessageText}>No scan found. Take your first body scan to get started.</Text>
         </View>
@@ -275,7 +159,7 @@ export default function BodyScanViewerScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScreenHeader title="Body Composition" showBack />
+      <ScreenHeader title="Body Composition" showBack variant="light" />
 
       <View style={styles.viewerWrap} {...panResponder.panHandlers}>
         <GLView style={StyleSheet.absoluteFill} onContextCreate={onContextCreate} />
@@ -296,7 +180,7 @@ export default function BodyScanViewerScreen() {
         <Text style={styles.dragHint}>Drag to rotate</Text>
       </View>
 
-      <View style={styles.statsRow}>
+      <View style={styles.statsGrid}>
         <Stat label="Est. body fat" value={scan.bodyFatPercent != null ? `${scan.bodyFatPercent}%` : '—'} />
         <Stat label="BMI" value={scan.bmi != null ? `${scan.bmi}` : '—'} />
         <Stat label="Waist" value={scan.measurements?.waistCircumferenceCm ? `${scan.measurements.waistCircumferenceCm} cm` : '—'} />
@@ -306,7 +190,7 @@ export default function BodyScanViewerScreen() {
         Estimated from your photos using the Navy circumference method — a trend indicator, not a clinical measurement.
       </Text>
 
-      {!!scan.measurements?._debug && (
+      {__DEV__ && !!scan.measurements?._debug && (
         <View style={styles.debugCard}>
           <Text style={styles.debugTitle}>Debug (temporary)</Text>
           <Text style={styles.debugText}>front raw pixelSpan: {scan.measurements._debug.frontRawPixelSpan}</Text>
@@ -317,6 +201,9 @@ export default function BodyScanViewerScreen() {
           <Text style={styles.debugText}>vertical-span scale (diagnostic only): {scan.measurements._debug.verticalSpanBasedScale} cm/unit</Text>
           <Text style={styles.debugText}>hip width: {scan.measurements._debug.hipWidthCm} cm</Text>
           <Text style={styles.debugText}>waist width: {scan.measurements._debug.waistWidthCm} cm</Text>
+          {meshBoundsDebug && (
+            <Text style={styles.debugText}>Anny mesh bounds: x={meshBoundsDebug.x} y={meshBoundsDebug.y} z={meshBoundsDebug.z}</Text>
+          )}
           <Text style={styles.debugText}>final clamp applied: {scan.measurements._debug.finalClampApplied ? 'YES' : 'no'}</Text>
           <Text style={styles.debugText}>raw (pre-clamp) waist: {scan.measurements._debug.rawWaistCircumferenceCm} cm</Text>
           <Text style={styles.debugText}>raw (pre-clamp) hip: {scan.measurements._debug.rawHipCircumferenceCm} cm</Text>
@@ -341,13 +228,16 @@ export default function BodyScanViewerScreen() {
           {renderDeltas(comparison.previous, comparison.latest)}
         </View>
       )}
+      <Pressable style={styles.viewProgressBtn} onPress={() => router.push('/progress')}>
+        <Text style={styles.viewProgressBtnText}>View Progress</Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
 
 function Stat({ label, value }) {
   return (
-    <View style={styles.statBox}>
+    <View style={styles.statCard}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -396,26 +286,50 @@ const styles = StyleSheet.create({
   centerMessageText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   viewerWrap: {
     height: 340, marginHorizontal: spacing.base, marginBottom: spacing.sm,
-    borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card,
+    borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.bg,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 2 },
+    }),
   },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   dragHint: { position: 'absolute', bottom: spacing.sm, alignSelf: 'center', ...typography.caption, color: colors.textSecondary },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: spacing.xs },
-  statBox: { alignItems: 'center' },
-  statValue: { ...typography.h4, color: colors.text },
-  statLabel: { ...typography.caption, color: colors.textSecondary },
+  statsGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm,
+    paddingHorizontal: spacing.base, marginBottom: spacing.base,
+  },
+  statCard: {
+    flexBasis: '47%', flexGrow: 1, backgroundColor: colors.bg,
+    borderRadius: radius.lg, padding: spacing.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 2 },
+    }),
+  },
+  statValue: { fontSize: 28, fontWeight: '800', color: colors.text, marginBottom: spacing.xs },
+  statLabel: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   methodNote: { ...typography.caption, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl, marginBottom: spacing.sm },
   debugCard: { backgroundColor: '#3a1a1a', borderRadius: radius.md, padding: spacing.base, marginHorizontal: spacing.xl, marginBottom: spacing.base },
   debugTitle: { ...typography.bodySmall, color: '#ff8a8a', marginBottom: spacing.xs, fontWeight: '700' },
   debugText: { ...typography.caption, color: '#ffcccc' },
   insightCard: {
     marginHorizontal: spacing.base, marginBottom: spacing.sm,
-    padding: spacing.base, borderRadius: radius.lg, backgroundColor: colors.card,
+    padding: spacing.base, borderRadius: radius.lg, backgroundColor: colors.bg,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 2 },
+    }),
   },
   insightTrend: { ...typography.h4, color: colors.text, marginBottom: spacing.xs },
   insightSummary: { ...typography.bodySmall, color: colors.text },
   insightSuggestion: { ...typography.bodySmall, color: colors.textSecondary, marginTop: spacing.xs },
   comparisonSection: { marginHorizontal: spacing.base, paddingBottom: spacing.lg },
+  viewProgressBtn: {
+    marginHorizontal: spacing.base, marginBottom: spacing.xl,
+    backgroundColor: colors.text, borderRadius: radius.md,
+    paddingVertical: spacing.md, alignItems: 'center',
+  },
+  viewProgressBtnText: { ...typography.button, color: colors.bg },
   comparisonTitle: { ...typography.h4, color: colors.text, marginBottom: spacing.sm },
   deltaRow: {
     flexDirection: 'row', justifyContent: 'space-between',

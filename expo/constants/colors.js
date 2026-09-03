@@ -1,4 +1,3 @@
-import { tokens } from '../../theme/tokens';
 const Colors = {
   // Primary brand colors - black and white theme
   primary: '#000000',
@@ -11,7 +10,16 @@ const Colors = {
   secondaryDark: '#444444',
 
   // Background colors
-  background: tokens.colors.dark_navy.bg_primary,
+  // Real fix: this reached into theme/tokens.js's dark_navy token set,
+  // which the rest of this file never uses (every other value here is
+  // an explicit hex color matching the "black and white theme" this
+  // file's own top comment states) - tokens.js's own values are
+  // confirmed unverified/guessed elsewhere in this codebase. That gave
+  // every one of the 18 files using Colors.background a dark navy fill
+  // where a white one was clearly intended, including this file's own
+  // `card: '#FFFFFF'` and `text.primary: '#000000'` right below,
+  // which only make sense against a light background.
+  background: '#FFFFFF',
   backgroundSecondary: '#F5F5F5',
   backgroundTertiary: '#EEEEEE',
 
@@ -87,23 +95,30 @@ const Colors = {
   },
 
   // Shadows
+  // Real fix: shadowColor reached into the same broken dark_navy token
+  // set as background did above - text_primary in a dark-navy theme
+  // would be a LIGHT color (meant to be readable against a dark
+  // background), meaning these shadows were rendering light/white
+  // rather than the standard dark cast-shadow color every UI expects,
+  // regardless of overall theme. shadowOpacity already correctly
+  // controls how dark each actually appears.
   shadow: {
     small: {
-      shadowColor: tokens.colors.dark_navy.text_primary,
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 1
     },
     medium: {
-      shadowColor: tokens.colors.dark_navy.text_primary,
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2
     },
     large: {
-      shadowColor: tokens.colors.dark_navy.text_primary,
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.15,
       shadowRadius: 8,

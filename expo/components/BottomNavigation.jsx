@@ -17,7 +17,7 @@ const WORKOUT_TABS = [
   { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
   { key: 'running', label: 'Running', icon: 'fitness-outline', activeIcon: 'fitness', route: '/running/program' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
-  { key: 'challenges', label: 'Challenges', icon: 'trophy-outline', activeIcon: 'trophy', route: '/badges' },
+  { key: 'challenges', label: 'Challenges', icon: 'trophy-outline', activeIcon: 'trophy', route: '/challenges' },
   { key: 'analysis', label: 'Analysis', icon: 'analytics-outline', activeIcon: 'analytics', route: '/analytics' },
 ];
 

@@ -10,6 +10,7 @@ import { useExpStore } from './expStore';
 // Optimized default fitness metrics - reduced data size
 const createDefaultFitnessMetrics = () => ({
   weight: null,
+  targetWeight: null,
   height: null,
   bodyFat: null,
   muscleMass: null
@@ -349,14 +350,32 @@ export const useUserStore = create(
           if (snap.exists()) {
             const data = snap.data();
             const { user } = get();
-            if (user) {
+            // Real fix: this used to be gated behind `if (user)`, silently
+            // no-op'ing on a genuinely cold launch (user starts as null in
+            // this store's initial state) - only appeared to work when a
+            // stale cached user object happened to already be sitting in
+            // AsyncStorage from earlier in the same session. Falls back to
+            // {} so the merge always runs. Also: uid was NEVER set on the
+            // user object anywhere in this file (confirmed directly - no
+            // other line writes it), despite runScan/loadScans/loadGoals/
+            // loadWeightLogs/saveProfile all reading user?.uid to decide
+            // whether to persist anything to Firestore at all. That's not
+            // a guess about why scans "disappeared" - it's the direct
+            // cause: user.uid was undefined, so every one of those
+            // Firestore writes silently skipped its own `if (uid)` guard
+            // and only ever touched local, in-memory state. Setting it
+            // explicitly here, from this function's own uid parameter
+            // (not round-tripped through the Firestore document, which
+            // never stored it either) is the actual fix.
+            {
               set({
                 user: {
-                  ...user,
+                  ...(user || {}),
                   ...data,
-                  fitnessMetrics: data.fitnessMetrics || user.fitnessMetrics,
-                  preferences: data.preferences || user.preferences,
-                  streakData: data.streakData || user.streakData,
+                  uid,
+                  fitnessMetrics: data.fitnessMetrics || user?.fitnessMetrics,
+                  preferences: data.preferences || user?.preferences,
+                  streakData: data.streakData || user?.streakData,
                 }
               });
             }
@@ -380,6 +399,18 @@ export const useUserStore = create(
             preferences: user.preferences || {},
             streakData: user.streakData || {},
             goals: user.goals || [],
+            // Real gap, not new scope: onboarding (app/onboarding.jsx)
+            // sets these directly on the in-memory user object, but this
+            // whitelist never included them - they persisted for the rest
+            // of that app session (other code reads the in-memory object
+            // fine) but were silently dropped on every save, so a fresh
+            // app load after onboarding always came back without them.
+            heightCm: user.heightCm ?? null,
+            weightKg: user.weightKg ?? null,
+            age: user.age ?? null,
+            gender: user.gender ?? null,
+            targetWeightKg: user.targetWeightKg ?? null,
+            dailyCalorieGoal: user.dailyCalorieGoal ?? null,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {

@@ -199,7 +199,7 @@ export const generateWorkoutPlan = async (request) => {
           date: new Date().toISOString().split('T')[0],
           description: `Created ${workout.name} workout plan`,
           completed: true
-        });
+        }, useUserStore.getState().user?.uid);
       }
     } catch (e) {
       console.error('EXP add error', e);
@@ -260,7 +260,7 @@ dietaryRestrictions) =>
           date: new Date().toISOString().split('T')[0],
           description: `Received nutrition advice (${readiness} readiness)`,
           completed: true
-        });
+        }, useUserStore.getState().user?.uid);
       }
     } catch (e) {
       console.error('EXP add error', e);
@@ -443,7 +443,9 @@ export const generateBodyCompositionInsight = async ({ goal, age, scans }) => {
     const result = await fn({ goal, age: age ?? null, scans });
     return result.data;
   } catch (error) {
-    console.error('Error generating body composition insight', error);
+    if (error?.code !== 'functions/unauthenticated') {
+      console.error('Error generating body composition insight', error);
+    }
     return {
       summary: 'Scan saved. AI commentary is temporarily unavailable.',
       trend: 'unknown',

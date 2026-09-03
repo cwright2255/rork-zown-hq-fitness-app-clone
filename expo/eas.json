@@ -26,7 +26,8 @@
         "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
         "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
         "EXPO_PUBLIC_ROOK_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659"
+        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_test_pk_03203a89336bf90350c4c501c14037c4675f3659",
+        "EXPO_PUBLIC_GOOGLE_PLACES_API_KEY": "AIzaSyC7z_sr3nM--enMpg8_X6la1d3ZuxfX6_k"
       }
     },
     "staging": {
@@ -51,7 +52,8 @@
         "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
         "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
         "EXPO_PUBLIC_ROOK_ENVIRONMENT": "sandbox",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
+        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5",
+        "EXPO_PUBLIC_GOOGLE_PLACES_API_KEY": "AIzaSyC7z_sr3nM--enMpg8_X6la1d3ZuxfX6_k"
       }
     },
     "production": {
@@ -71,7 +73,8 @@
         "EXPO_PUBLIC_SPOTIFY_REDIRECT_URI": "zownhq://spotify-callback",
         "EXPO_PUBLIC_PASSIO_API_KEY": "hZ9L3TCxwksA48cEibv4pe43BNTRMVvHAorEJwPGjU8w",
         "EXPO_PUBLIC_ROOK_ENVIRONMENT": "production",
-        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5"
+        "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5",
+        "EXPO_PUBLIC_GOOGLE_PLACES_API_KEY": "AIzaSyC7z_sr3nM--enMpg8_X6la1d3ZuxfX6_k"
       }
     },
     "development-device": {

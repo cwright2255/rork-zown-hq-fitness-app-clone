@@ -89,7 +89,6 @@ export default function SettingsScreen() {
 
   const { user, logout } = useUserStore();
   const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
-  const [healthConnected, setHealthConnected] = useState(false);
   const uid = user?.uid;
 
   const redirectUri = AuthSession.makeRedirectUri();
@@ -529,78 +528,14 @@ export default function SettingsScreen() {
             }}
           />
           <SettingRow
-            icon="heart-outline"
-            label="Apple Health / Google Fit"
-            right={
-              <View style={s.statusBadge}>
-                <View style={[s.statusDot, { backgroundColor: healthConnected ? '#22C55E' : '#9E9E9E' }]} />
-                <Text style={s.statusText}>{healthConnected ? 'Connected' : 'Not Connected'}</Text>
-              </View>
-            }
-            onPress={async () => {
-              if (IS_EXPO_GO) {
-                Alert.alert('Expo Go', 'Apple Health and Google Fit permissions are simulated. Enabled mock connection!');
-                setHealthConnected(true);
-                return;
-              }
-              try {
-                const { useRookPermissions } = require('react-native-rook-sdk');
-                Alert.alert(
-                  'Connect Health',
-                  'Would you like to connect Apple Health via ROOK to sync your metrics?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Connect',
-                      onPress: async () => {
-                        try {
-                          // In React, hooks must be called inside components, but if we need immediate direct permission call
-                          // we can safely direct the user to trigger sync in the Health Screen tab.
-                          Alert.alert('Setup Guide', 'Please tap Sync Now in the main Health Tab to configure native Apple Health permissions.');
-                        } catch (err) {
-                          Alert.alert('Error', err.message);
-                        }
-                      }
-                    }
-                  ]
-                );
-              } catch (e) {
-                Alert.alert('SDK Error', 'ROOK SDK native hooks are only available in custom dev builds.');
-              }
-            }}
-          />
-          <SettingRow
             icon="watch-outline"
-            label="Fitbit"
+            label="Wearable Devices"
             right={
               <View style={s.statusBadge}>
-                <View style={[s.statusDot, { backgroundColor: '#9E9E9E' }]} />
-                <Text style={s.statusText}>Not Connected</Text>
+                <Text style={s.statusText}>Manage</Text>
               </View>
             }
-            onPress={() => Alert.alert('Coming Soon', 'Fitbit integration is coming soon!')}
-          />
-          <SettingRow
-            icon="fitness-outline"
-            label="Garmin"
-            right={
-              <View style={s.statusBadge}>
-                <View style={[s.statusDot, { backgroundColor: '#9E9E9E' }]} />
-                <Text style={s.statusText}>Not Connected</Text>
-              </View>
-            }
-            onPress={() => Alert.alert('Coming Soon', 'Garmin sync is in development.')}
-          />
-          <SettingRow
-            icon="pulse-outline"
-            label="Strava"
-            right={
-              <View style={s.statusBadge}>
-                <View style={[s.statusDot, { backgroundColor: '#9E9E9E' }]} />
-                <Text style={s.statusText}>Not Connected</Text>
-              </View>
-            }
-            onPress={() => Alert.alert('Coming Soon', 'Strava integration is coming soon!')}
+            onPress={() => router.push('/rook-connect')}
           />
         </View>
 

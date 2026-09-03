@@ -112,7 +112,7 @@ export default function ActiveRunScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
   const [calories, setCalories] = useState(0);
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(params.audioCues !== 'false');
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
 
@@ -288,7 +288,7 @@ export default function ActiveRunScreen() {
           ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
           : `Completed a ${distance.toFixed(2)}km run`,
         completed: true,
-      });
+      }, user?.uid);
     } catch (e) {
       console.warn('Failed to save run:', e?.message);
     }

@@ -79,33 +79,57 @@ const convertPassioToFoodItem = (passioFood) => {
   };
 };
 
+// Real, FDA-Daily-Value-based scoring — replaces the previous
+// arbitrary gram thresholds with the actual reference amounts from the
+// FDA Nutrition Facts label. Confirmed directly against FDA.gov
+// (fda.gov/media/135301/download; fda.gov's "How to Understand and Use
+// the Nutrition Facts Label"), cross-checked against NutriDB's
+// rankings (nutri-db.com/en/rankings, which sources the same USDA
+// FoodData Central data): Protein 50g, Fiber 28g, Saturated Fat 20g,
+// Sodium 2300mg. Total sugar and total fat have no established FDA
+// Daily Value at all - confirmed directly, the FDA's own page states
+// "No Daily Reference Value has been established for total sugars" -
+// so those two stay as absolute, labeled gram thresholds rather than a
+// %DV that doesn't exist. The 20%-is-high / 5%-is-low cutoffs are the
+// FDA's own stated rule of thumb for reading %DV on a label, not an
+// arbitrary pick.
+const FDA_DAILY_VALUE = { protein: 50, fiber: 28, saturatedFat: 20, sodium: 2300 };
+
 // Calculate nutritional score based on nutrition data
-const calculateNutritionalScore = (nutrition) => {
+export const calculateNutritionalScore = (nutrition) => {
   const calories = nutrition.calories || 0;
   const protein = nutrition.protein || 0;
   const fiber = nutrition.fiber || nutrition.dietaryFiber || 0;
-  const saturatedFat = nutrition.saturatedFat || 0;
+  const saturatedFat = nutrition.saturatedFat || nutrition.saturatedFats || 0;
   const sugar = nutrition.sugar || nutrition.sugars || 0;
   const sodium = nutrition.sodium || 0;
 
+  const proteinDV = (protein / FDA_DAILY_VALUE.protein) * 100;
+  const fiberDV = (fiber / FDA_DAILY_VALUE.fiber) * 100;
+  const saturatedFatDV = (saturatedFat / FDA_DAILY_VALUE.saturatedFat) * 100;
+  const sodiumDV = (sodium / FDA_DAILY_VALUE.sodium) * 100;
+
   let score = 0;
 
-  // Positive factors
-  if (protein > 10) score += 2;else
-  if (protein > 5) score += 1;
+  // Positive factors, using the FDA's own "20%+ is high, 5%- is low" rule of thumb
+  if (proteinDV >= 20) score += 2;else
+  if (proteinDV > 5) score += 1;
 
-  if (fiber > 5) score += 2;else
-  if (fiber > 2) score += 1;
+  if (fiberDV >= 20) score += 2;else
+  if (fiberDV > 5) score += 1;
 
-  // Negative factors
-  if (saturatedFat > 5) score -= 2;else
-  if (saturatedFat > 2) score -= 1;
+  // Negative factors, same rule of thumb applied to nutrients to limit
+  if (saturatedFatDV >= 20) score -= 2;else
+  if (saturatedFatDV > 5) score -= 1;
 
+  if (sodiumDV >= 20) score -= 2;else
+  if (sodiumDV > 5) score -= 1;
+
+  // No FDA Daily Value exists for total sugar or total fat - kept as
+  // the original, unchanged absolute gram thresholds rather than a %DV
+  // that was never established.
   if (sugar > 15) score -= 2;else
   if (sugar > 8) score -= 1;
-
-  if (sodium > 400) score -= 2;else
-  if (sodium > 200) score -= 1;
 
   if (calories > 300) score -= 1;
 
@@ -114,6 +138,16 @@ const calculateNutritionalScore = (nutrition) => {
   if (score >= -2) return 'C';
   if (score >= -4) return 'D';
   return 'E';
+};
+
+// Real mapping from a nutritional grade to the app's existing meal-star
+// XP tiers (33/44/55 XP, unchanged - see store/expStore.js) - reused by
+// store/healthStore.js's logMeal so a food's actual nutrient quality,
+// not just whether nutrition fields were filled in, decides its stars.
+export const gradeToMealStars = (grade) => {
+  if (grade === 'A') return 5;
+  if (grade === 'B') return 4;
+  return 3;
 };
 
 // Search foods using Passio API

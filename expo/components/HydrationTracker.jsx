@@ -86,7 +86,7 @@ const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 1: 20% of daily goal',
         completed: true
-      });
+      }, user?.uid);
     } else if (baseExp > 0 && currentAmount < dailyGoal * 0.4 && newAmount >= dailyGoal * 0.4) {
       addExpActivity({
         id: Date.now().toString(),
@@ -97,7 +97,7 @@ const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 2: 40% of daily goal',
         completed: true
-      });
+      }, user?.uid);
     } else if (baseExp > 0 && currentAmount < dailyGoal * 0.6 && newAmount >= dailyGoal * 0.6) {
       addExpActivity({
         id: Date.now().toString(),
@@ -108,7 +108,7 @@ const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 3: 60% of daily goal',
         completed: true
-      });
+      }, user?.uid);
     } else if (baseExp > 0 && currentAmount < dailyGoal * 0.8 && newAmount >= dailyGoal * 0.8) {
       addExpActivity({
         id: Date.now().toString(),
@@ -119,7 +119,7 @@ const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 4: 80% of daily goal',
         completed: true
-      });
+      }, user?.uid);
     } else if (baseExp > 0 && currentAmount < dailyGoal && newAmount >= dailyGoal) {
       addExpActivity({
         id: Date.now().toString(),
@@ -130,7 +130,7 @@ const HydrationTracker = ({ onUpdate, initialAmount = 0 }) => {
         date: new Date().toISOString().split('T')[0],
         description: 'Hydration Tier 5: 100% of daily goal',
         completed: true
-      });
+      }, user?.uid);
     }
   };
 

@@ -39,6 +39,7 @@ export const useRunningStore = create(
       // lives in data/runningPrograms.js, not duplicated here.
       activeProgramId: null,
       programProgress: {}, // { [programId]: { currentWeek, completedSessionIndexes: [] } }
+      favoriteProgramIds: [],
 
       loadRuns: async (uid) => {
         if (!uid) return;
@@ -51,6 +52,7 @@ export const useRunningStore = create(
               runs: d.runs || [],
               activeProgramId: d.activeProgramId || null,
               programProgress: d.programProgress || {},
+              favoriteProgramIds: d.favoriteProgramIds || [],
             });
           }
         } catch (e) {
@@ -67,6 +69,7 @@ export const useRunningStore = create(
             runs: get().runs.slice(-100),
             activeProgramId: get().activeProgramId,
             programProgress: get().programProgress,
+            favoriteProgramIds: get().favoriteProgramIds,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -81,6 +84,19 @@ export const useRunningStore = create(
             ...s.programProgress,
             [programId]: s.programProgress[programId] || { currentWeek: 1, completedSessionIndexes: [] },
           },
+        }));
+        get()._persist(uid);
+      },
+
+      // Real, Firestore-persisted favorites - reuses the exact same
+      // _persist write already proven for programProgress, rather than
+      // the local-only pattern seen elsewhere (store/workoutStore.js's
+      // toggleFavorite has no Firestore write at all).
+      toggleFavoriteProgram: (programId, uid) => {
+        set((s) => ({
+          favoriteProgramIds: s.favoriteProgramIds.includes(programId)
+            ? s.favoriteProgramIds.filter((id) => id !== programId)
+            : [...s.favoriteProgramIds, programId],
         }));
         get()._persist(uid);
       },

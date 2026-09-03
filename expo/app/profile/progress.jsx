@@ -11,6 +11,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useChampionPassStore } from '@/store/championPassStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useAchievementStore } from '@/store/achievementStore';
+import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import ChampionPassTier from '@/components/ChampionPassTier';
 import StreakCalendar from '@/components/StreakCalendar';
 import BadgeItem from '@/components/BadgeItem';
@@ -28,6 +29,11 @@ export default function ProgressTrackerScreen() {
   const { width } = useWindowDimensions();
 
   const { user, addXp, calculateLevel } = useUserStore();
+
+  const { scans, loadScans } = useBodyCompositionStore();
+  useEffect(() => {
+    if (user?.uid && scans.length === 0) loadScans(user.uid);
+  }, [user?.uid]);
 
 
 
@@ -605,30 +611,52 @@ export default function ProgressTrackerScreen() {
         <View style={styles.bodyScanHeader}>
           <Text style={styles.bodyScanTitle}>Body Measurements</Text>
         </View>
-        
-        {progressEntries.length > 0 ?
-      <View style={styles.bodyScanInfo}>
+
+        {scans.length > 0 ? (
+          <View>
             <Text style={styles.bodyScanText}>
-              You have {progressEntries.length} body scan{progressEntries.length !== 1 ? 's' : ''} recorded
+              You have {scans.length} body scan{scans.length !== 1 ? 's' : ''} recorded
             </Text>
             <Button
-          title="Record New Scan"
-          onPress={handleRecordBodyScan}
-          style={styles.bodyScanButton} />
-        
-          </View> :
-
-      <View style={styles.bodyScanEmpty}>
+              title="Record New Scan"
+              onPress={handleRecordBodyScan}
+              style={styles.bodyScanButton}
+            />
+            <View style={styles.scanList}>
+              {[...scans].reverse().map((scan) => (
+                <TouchableOpacity
+                  key={scan.id}
+                  style={styles.scanRow}
+                  onPress={() => router.push(`/body-scan/${scan.id}`)}
+                >
+                  <View style={styles.scanRowLeft}>
+                    <Text style={styles.scanDate}>
+                      {scan.createdAtLocal ? new Date(scan.createdAtLocal).toLocaleDateString() : '—'}
+                    </Text>
+                    <Text style={styles.scanMetrics}>
+                      {scan.bodyFatPercent != null ? `${scan.bodyFatPercent}% BF` : '—'}
+                      {scan.bmi != null ? `  ·  BMI ${scan.bmi}` : ''}
+                      {scan.measurements?.waistCircumferenceCm ? `  ·  Waist ${scan.measurements.waistCircumferenceCm}cm` : ''}
+                      {scan.measurements?.hipCircumferenceCm ? `  ·  Hip ${scan.measurements.hipCircumferenceCm}cm` : ''}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.bodyScanEmpty}>
             <Text style={styles.bodyScanEmptyText}>
               No body scans recorded yet. Create your first 3D body scan to track your progress and try on clothes virtually.
             </Text>
             <Button
-          title="Create Your First Scan"
-          onPress={handleRecordBodyScan}
-          style={styles.bodyScanButton} />
-        
+              title="Create Your First Scan"
+              onPress={handleRecordBodyScan}
+              style={styles.bodyScanButton}
+            />
           </View>
-      }
+        )}
       </Card>
     </ScrollView>;
 
@@ -1392,6 +1420,15 @@ const styles = StyleSheet.create({
   bodyScanButton: {
     minWidth: 200
   },
+  scanList: { marginTop: tokens.spacing.md, gap: tokens.spacing.sm },
+  scanRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: tokens.spacing.sm, paddingHorizontal: tokens.spacing.sm,
+    borderRadius: 12, backgroundColor: '#F5F5F5',
+  },
+  scanRowLeft: { flex: 1 },
+  scanDate: { fontSize: 14, fontWeight: '600', color: Colors.text.primary, marginBottom: 2 },
+  scanMetrics: { fontSize: 12, color: Colors.text.secondary },
   bodyScanEmpty: {
     alignItems: 'center',
     padding: tokens.spacing.md

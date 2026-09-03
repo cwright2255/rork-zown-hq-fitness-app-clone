@@ -3,19 +3,27 @@
 // Real anatomical muscle visualization in two modes, toggleable:
 //   - "Target": which muscles a specific activity works (a fixed
 //     highlight, one color) — used on activity preview screens, before
-//     you've done it.
+//     you've done it. When a real body scan is available, this renders
+//     as real 3D markers on the user's own mesh (components/
+//     MuscleMeshHighlight.jsx, lib/muscleAnchors.js) instead of the 2D
+//     diagram service. Falls back to the 2D service when no scan is
+//     provided, so callers that don't have scan data (or a user who
+//     hasn't scanned yet) still get a working visualization.
 //   - "Fatigue": real per-muscle recent load, decayed on the real DOMS
 //     recovery timeline (see lib/muscleFatigue.js) — a heatmap, colored
-//     by actual recent activity, not a static highlight.
-// Both modes render through services/muscleVisualizerService.js, fixed
-// this session after finding it had never actually worked (wrong base
-// path, wrong auth method, wrong muscle-name casing — see the audit).
+//     by actual recent activity, not a static highlight. Still uses the
+//     2D service — 3D fatigue-intensity coloring is a real, separate
+//     follow-up, not built in this pass.
+// Both 2D-mode paths render through services/muscleVisualizerService.js,
+// fixed this session after finding it had never actually worked (wrong
+// base path, wrong auth method, wrong muscle-name casing — see the audit).
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, Pressable } from 'react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { getWorkoutVisualizeImage, getHeatmapVisualizeImage } from '@/services/muscleVisualizerService';
 import { fatigueToColor } from '@/lib/muscleFatigue';
+import MuscleMeshHighlight from '@/components/MuscleMeshHighlight';
 
 /**
  * @param {{
@@ -24,6 +32,8 @@ import { fatigueToColor } from '@/lib/muscleFatigue';
  *   secondaryMuscles?: string[],
  *   fatigueByMuscle?: Record<string, number>,
  *   title?: string,
+ *   scan?: object,
+ *   onRetryScan?: () => void,
  * }} props
  */
 export default function MuscleHeatmapCard({
@@ -32,13 +42,22 @@ export default function MuscleHeatmapCard({
   secondaryMuscles = [],
   fatigueByMuscle = {},
   title = 'Muscles Worked',
+  scan = null,
+  onRetryScan = null,
+  muscleIntensities = null,
 }) {
   const [activeMode, setActiveMode] = useState(mode === 'both' ? 'target' : mode);
   const [imageUri, setImageUri] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
+  const use3D = !!scan && activeMode === 'target';
+
   useEffect(() => {
+    if (use3D) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setFailed(false);
@@ -68,7 +87,7 @@ export default function MuscleHeatmapCard({
     };
     load();
     return () => { cancelled = true; };
-  }, [activeMode, targetMuscles.join(','), JSON.stringify(fatigueByMuscle)]);
+  }, [use3D, activeMode, targetMuscles.join(','), JSON.stringify(fatigueByMuscle)]);
 
   const hasDataForMode = activeMode === 'target' ? targetMuscles.length > 0 : Object.values(fatigueByMuscle).some((v) => v > 0);
 
@@ -94,19 +113,29 @@ export default function MuscleHeatmapCard({
         )}
       </View>
 
-      <View style={styles.imageWrap}>
-        {loading ? (
-          <ActivityIndicator size="small" color={colors.textSecondary} />
-        ) : !hasDataForMode ? (
-          <Text style={styles.emptyText}>
-            {activeMode === 'target' ? 'No muscle data for this activity yet.' : 'Not enough recent activity to show fatigue yet.'}
-          </Text>
-        ) : failed ? (
-          <Text style={styles.emptyText}>Muscle diagram unavailable right now.</Text>
+      {use3D ? (
+        !hasDataForMode ? (
+          <View style={styles.imageWrap}>
+            <Text style={styles.emptyText}>No muscle data for this activity yet.</Text>
+          </View>
         ) : (
-          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
-        )}
-      </View>
+          <MuscleMeshHighlight scan={scan} muscleNames={targetMuscles} muscleIntensities={muscleIntensities} height={280} onRetry={onRetryScan} />
+        )
+      ) : (
+        <View style={styles.imageWrap}>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.textSecondary} />
+          ) : !hasDataForMode ? (
+            <Text style={styles.emptyText}>
+              {activeMode === 'target' ? 'No muscle data for this activity yet.' : 'Not enough recent activity to show fatigue yet.'}
+            </Text>
+          ) : failed ? (
+            <Text style={styles.emptyText}>Muscle diagram unavailable right now.</Text>
+          ) : (
+            <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
+          )}
+        </View>
+      )}
 
       {activeMode === 'fatigue' && hasDataForMode && (
         <View style={styles.legendRow}>

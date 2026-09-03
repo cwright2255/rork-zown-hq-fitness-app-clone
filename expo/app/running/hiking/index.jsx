@@ -40,6 +40,7 @@ export default function HikingListScreen() {
       <ScreenHeader
         title="Hiking Near You"
         showBack
+        variant="light"
         rightAction={
           <Pressable onPress={() => router.push('/running/hiking/saved')} hitSlop={8}>
             <Ionicons name="bookmark-outline" size={22} color={colors.text} />
@@ -68,6 +69,11 @@ export default function HikingListScreen() {
         <View style={styles.centerBlock}>
           <Ionicons name="alert-circle-outline" size={40} color={colors.orange} />
           <Text style={styles.centerText}>Couldn't load nearby trails.</Text>
+        {error && (
+          <Text style={[styles.centerText, { fontSize: 11, marginTop: 4 }]} selectable>
+            {String(error)}
+          </Text>
+        )}
           <PrimaryButton title="Try Again" onPress={() => loadNearbyTrails()} style={{ marginTop: spacing.lg }} />
         </View>
       )}

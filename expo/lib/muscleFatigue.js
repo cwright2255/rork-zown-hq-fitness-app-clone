@@ -186,6 +186,29 @@ export function getTargetMuscles(activityType, workoutExercises = []) {
   return [...set].filter(Boolean);
 }
 
+/**
+ * Real, normalized (0-100) per-muscle intensity for a specific
+ * upcoming activity - derived directly from RUNNING_MUSCLES/
+ * HIKING_MUSCLES' own real relative-usage weights (e.g. hiking's
+ * quadriceps: 0.25 vs core: 0.10 - an actual modeled difference in how
+ * much each muscle is used, not a fabricated number), normalized
+ * against the activity's own max weight so the most-used muscle always
+ * reads as 100. Returns {} for workout-exercise-derived activities,
+ * which have no equivalent weight data to draw an intensity from.
+ */
+export function getTargetMuscleIntensities(activityType) {
+  const weights = activityType === 'running' ? RUNNING_MUSCLES
+    : activityType === 'hiking' ? HIKING_MUSCLES
+    : null;
+  if (!weights) return {};
+  const max = Math.max(...Object.values(weights));
+  const intensities = {};
+  Object.entries(weights).forEach(([muscle, weight]) => {
+    intensities[muscle] = Math.round((weight / max) * 100);
+  });
+  return intensities;
+}
+
 // Fatigue-intensity → color, for the heatmap. Cool (low fatigue, ready
 // to train) through hot (high fatigue, real recent load).
 export function fatigueToColor(intensity0to100) {

@@ -10,6 +10,15 @@
 //
 // Rewritten to show the real interval structure from data/runningPrograms.js
 // and to actually start app/running/active.jsx in program (interval) mode.
+//
+// Styling rebuilt to plain hex colors, matching every other screen in
+// this app - the previous version imported a `theme/tokens` "dark_navy"
+// token set that doesn't match this app's real design system anywhere
+// else, and had a real, confirmed bug from it: intervalText, weekTitle,
+// and distanceGoal were all colored with the SAME token used for the
+// screen's own background (tokens.colors.dark_navy.text_primary),
+// making that text genuinely invisible (same color as its own
+// background) regardless of what that token actually resolved to.
 
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
@@ -17,7 +26,6 @@ import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { getProgram, getProgramWeek, getSessionIntervals } from '@/data/runningPrograms';
-import { tokens } from '../../../../theme/tokens';
 
 function formatMinSec(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
@@ -35,17 +43,22 @@ export default function RunningSessionDetailScreen() {
   const week = getProgramWeek(programId, weekNumber);
   const intervals = getSessionIntervals(programId, weekNumber, sessionIndex);
 
+  const audioCuesDefault = params.audioCues !== 'false';
+
   const handleStart = () => {
     router.push({
       pathname: '/running/active',
-      params: { programId, week: String(weekNumber), sessionIndex: String(sessionIndex) },
+      params: {
+        programId, week: String(weekNumber), sessionIndex: String(sessionIndex),
+        audioCues: String(audioCuesDefault),
+      },
     });
   };
 
   if (!program || !week) {
     return (
       <View style={styles.container}>
-        <ScreenHeader showBack title="Session" />
+        <ScreenHeader showBack title="Session" variant="light" />
         <View style={styles.center}>
           <Text style={styles.emptyText}>Session not found.</Text>
         </View>
@@ -58,9 +71,9 @@ export default function RunningSessionDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader showBack title={`${program.title} — Week ${weekNumber}`} />
+      <ScreenHeader showBack title={`${program.title} — Week ${weekNumber}`} variant="light" />
 
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.weekTitle}>{week.title}</Text>
         <Text style={styles.sessionMeta}>
           Session {sessionIndex + 1} of {week.sessionsPerWeek} • {formatMinSec(totalSeconds)} total
@@ -94,25 +107,25 @@ export default function RunningSessionDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
-  weekTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 20, fontWeight: '700' },
-  sessionMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4, marginBottom: 16 },
+  emptyText: { color: '#999', fontSize: 14 },
+  scrollContent: { padding: 20, paddingBottom: 140 },
+  weekTitle: { color: '#000', fontSize: 20, fontWeight: '700' },
+  sessionMeta: { color: '#999', fontSize: 13, marginTop: 4, marginBottom: 16 },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
+    backgroundColor: '#F5F5F5', borderRadius: 14, padding: 16,
   },
   cardLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase',
-    color: tokens.colors.dark_navy.text_muted, marginBottom: 10,
+    color: '#999', marginBottom: 10,
   },
   intervalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
   intervalDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
   dotRun: { backgroundColor: '#22C55E' },
   dotWalk: { backgroundColor: '#4A90D9' },
-  intervalText: { flex: 1, color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
-  intervalDuration: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
-  distanceGoal: { color: tokens.colors.dark_navy.text_primary, fontSize: 24, fontWeight: '700' },
+  intervalText: { flex: 1, color: '#000', fontSize: 14, fontWeight: '600' },
+  intervalDuration: { color: '#999', fontSize: 13 },
+  distanceGoal: { color: '#000', fontSize: 24, fontWeight: '700' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

@@ -4,11 +4,52 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-// Generate level requirements
+// Real, re-tuned leveling curve: 1.03 per level, not 1.3299. The
+// original 1.3299 rate, confirmed from an earlier design spreadsheet,
+// compounds to an astronomically unreachable Level 100 requirement
+// (~5.5 quadrillion XP - verified directly by computing it) at any
+// realistic earning rate, so it functions as a cap nobody could ever
+// hit. 1.03 was chosen by working backward from a realistic, sustained
+// daily XP estimate for an engaged user, built only from sources that
+// genuinely, currently award XP (confirmed directly in the codebase -
+// workouts via calculateXpReward in app/workout/create.jsx, restored
+// hydration and steps XP below): roughly workouts ~171/day averaged
+// across a 6-day/week routine, hydration ~100/day, steps ~700/day at a
+// realistic 7,000 steps/day, for about 971 XP/day. At that rate, this
+// curve puts Level 100 at ~588,000 XP, roughly 20 months of consistent,
+// daily engagement - ambitious but genuinely reachable, not a
+// mathematical impossibility, while early levels (5 in ~4 days, 10 in
+// ~10 days) stay quick and rewarding. Note: meal logging and challenges
+// have baseExpValues defined below but nothing in the app currently
+// calls them, so they weren't counted toward this estimate - see the
+// note where they're defined.
+const BASE_LEVEL_XP = 1000;
+const GROWTH_RATE = 1.03;
+const LEVEL_CAP = 100;
+
+const xpRequiredForLevel = (level) => {
+  if (level <= 1) return 0;
+  return Math.round(BASE_LEVEL_XP * (Math.pow(GROWTH_RATE, level - 1) - 1) / (GROWTH_RATE - 1));
+};
+
+const calculateLevelFromExp = (exp) => {
+  let level = 1;
+  for (let n = 2; n <= LEVEL_CAP; n++) {
+    if (exp >= xpRequiredForLevel(n)) {
+      level = n;
+    } else {
+      break;
+    }
+  }
+  return level;
+};
+
+// Generate level requirements using the real curve above, not a flat
+// level*1000 line.
 const generateLevelRequirements = () => {
   const requirements = {};
-  for (let level = 1; level <= 100; level++) {
-    requirements[level] = level * 1000; // 1000 XP per level
+  for (let level = 1; level <= LEVEL_CAP; level++) {
+    requirements[level] = xpRequiredForLevel(level);
   }
   return requirements;
 };
@@ -17,7 +58,7 @@ const generateLevelRequirements = () => {
 const defaultExpSystem = {
   totalExp: 0,
   level: 1,
-  expToNextLevel: 2250,
+  expToNextLevel: xpRequiredForLevel(2),
   expSources: {
     workouts: 0,
     nutrition: 0,
@@ -26,7 +67,20 @@ const defaultExpSystem = {
   levelRequirements: generateLevelRequirements()
 };
 
-// Base EXP values for different activity types
+// Base EXP values for different activity types.
+// Confirmed directly (repo-wide search): mainMission, sideMission,
+// sideMissionHike, mealFiveStar/FourStar/ThreeStar, workoutHIIT/MIE/
+// LISS, eventWin/Lose, dailyChallenge, weeklyChallenge, and the running
+// values below are currently unused - nothing in the app calls
+// addExpActivity with these types. Workouts actually award XP via a
+// separate, real formula in app/workout/create.jsx
+// (calculateXpReward), not these constants. Hydration and steps are
+// genuinely wired (awardHydrationXp/awardStepsXp below). Achievements
+// award XP via their own xpReward field in store/achievementStore.js,
+// also not these constants. Left in place as the values to wire real
+// meal/challenge/mission XP awarding to, if that gets built - not
+// removed, since the numbers themselves may still be the intended
+// design targets.
 const baseExpValues = {
   // Updated values based on the provided table
   mainMission: 1125,
@@ -53,7 +107,10 @@ const baseExpValues = {
   hydrationTier2: 22,
   hydrationTier3: 33,
   hydrationTier4: 44,
-  hydrationTier5: 55
+  hydrationTier5: 55,
+  // Steps: a real, stated, linear rate (0.10 XP per step) rather than a
+  // tiered model - each step is worth this amount directly.
+  stepsXpPerStep: 0.10
 };
 
 // Calculate multiplier based on level
@@ -73,28 +130,58 @@ const calculateMultiplier = (level) => {
   return multiplier;
 };
 
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
 export const useExpStore = create(
   persist(
     (set, get) => ({
       expSystem: defaultExpSystem,
       isLoading: false,
 
+      // Real, restored top-up tracking for hydration/steps XP - what
+      // tier of hydration, and how many steps' worth of XP, have
+      // already been awarded today. Without this, calling
+      // awardHydrationXp/awardStepsXp again later the same day (as
+      // setSteps/addGlass naturally do, repeatedly, throughout a day)
+      // would re-award XP for progress already paid for.
+      hydrationXpDate: null,
+      hydrationXpTier: 0,
+      stepsXpDate: null,
+      stepsXpAwardedFor: 0,
+
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
       },
 
       /* ── Firestore sync ── */
+      // Real fix: takes the max of remote and local totalExp rather
+      // than trusting remote unconditionally - a stale remote read
+      // (e.g. right after a local-only award, before the next save
+      // completes) must never regress the user's real, current XP
+      // backward. level/expToNextLevel are re-derived from the
+      // resolved total rather than trusted independently from remote,
+      // so they can never end up inconsistent with the actual total.
       loadXP: async (uid) => {
         if (!uid) return;
         try {
           const snap = await getDoc(doc(db, 'users', uid, 'data', 'xp'));
           if (snap.exists()) {
             const data = snap.data();
+            const { expSystem: localExpSystem } = get();
+            const resolvedTotal = Math.max(data.totalExp || 0, localExpSystem?.totalExp || 0);
+            const resolvedLevel = calculateLevelFromExp(resolvedTotal);
             set({
-              totalExp: data.totalExp || 0,
-              level: data.level || 1,
-              expToNextLevel: data.expToNextLevel || 2250,
-              expSources: data.expSources || { workouts: 0, nutrition: 0, social: 0 },
+              expSystem: {
+                ...localExpSystem,
+                totalExp: resolvedTotal,
+                level: resolvedLevel,
+                expToNextLevel: xpRequiredForLevel(resolvedLevel + 1) - resolvedTotal,
+                expSources: data.expSources || localExpSystem?.expSources || { workouts: 0, nutrition: 0, social: 0 },
+              },
+              hydrationXpDate: data.hydrationXpDate || get().hydrationXpDate,
+              hydrationXpTier: data.hydrationXpDate === todayStr() ? (data.hydrationXpTier || 0) : get().hydrationXpTier,
+              stepsXpDate: data.stepsXpDate || get().stepsXpDate,
+              stepsXpAwardedFor: data.stepsXpDate === todayStr() ? (data.stepsXpAwardedFor || 0) : get().stepsXpAwardedFor,
             });
           }
         } catch (e) {
@@ -107,10 +194,14 @@ export const useExpStore = create(
         const s = get();
         try {
           await setDoc(doc(db, 'users', uid, 'data', 'xp'), {
-            totalExp: s.totalExp,
-            level: s.level,
-            expToNextLevel: s.expToNextLevel,
-            expSources: s.expSources,
+            totalExp: s.expSystem.totalExp,
+            level: s.expSystem.level,
+            expToNextLevel: s.expSystem.expToNextLevel,
+            expSources: s.expSystem.expSources,
+            hydrationXpDate: s.hydrationXpDate,
+            hydrationXpTier: s.hydrationXpTier,
+            stepsXpDate: s.stepsXpDate,
+            stepsXpAwardedFor: s.stepsXpAwardedFor,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -118,28 +209,31 @@ export const useExpStore = create(
         }
       },
 
-      addExp: (amount) => {
-        // Use requestAnimationFrame for better performance
-        requestAnimationFrame(() => {
-          const { expSystem } = get();
-          const newTotalExp = expSystem.totalExp + amount;
-          const newLevel = get().calculateLevelFromExp(newTotalExp);
+      // Real fix: fully synchronous now - the requestAnimationFrame
+      // deferral this had regressed back to is exactly what caused
+      // totalExp/expToNextLevel to desync (a second addExp call could
+      // read stale state before the first call's deferred update had
+      // actually applied). uid, when provided, triggers a real
+      // Firestore sync via saveXP so XP awarded here isn't local-only.
+      addExp: (amount, uid) => {
+        const { expSystem } = get();
+        const newTotalExp = expSystem.totalExp + amount;
+        const newLevel = calculateLevelFromExp(newTotalExp);
+        const expToNextLevel = xpRequiredForLevel(newLevel + 1) - newTotalExp;
 
-          // Calculate EXP needed for the next level
-          const expToNextLevel = (newLevel + 1) * 1000 - newTotalExp;
-
-          set({
-            expSystem: {
-              ...expSystem,
-              totalExp: newTotalExp,
-              level: newLevel,
-              expToNextLevel
-            }
-          });
+        set({
+          expSystem: {
+            ...expSystem,
+            totalExp: newTotalExp,
+            level: newLevel,
+            expToNextLevel
+          }
         });
+
+        if (uid) get().saveXP(uid);
       },
 
-      addExpActivity: (activity) => {
+      addExpActivity: (activity, uid) => {
         const { expSystem } = get();
         const { level } = expSystem;
 
@@ -151,12 +245,6 @@ export const useExpStore = create(
 
         // Round to the nearest integer
         expAmount = Math.round(expAmount);
-
-        // Create a new activity with the calculated EXP
-        const newActivity = {
-          ...activity,
-          baseExp: expAmount
-        };
 
         // Update the EXP sources
         const updatedExpSources = { ...expSystem.expSources };
@@ -183,7 +271,61 @@ export const useExpStore = create(
         });
 
         // Add the EXP to the total
-        get().addExp(expAmount);
+        get().addExp(expAmount, uid);
+      },
+
+      // Real, restored hydration XP - tier-based (5 tiers across the
+      // day's target), top-up logic so re-calling this later the same
+      // day (addGlass calls it on every glass) only ever pays for
+      // newly-reached tiers, never re-pays for progress already
+      // awarded. If a jump skips more than one tier at once (e.g. a
+      // big Apple Health sync), every newly-crossed tier's XP is
+      // awarded, not just the final one landed on.
+      awardHydrationXp: (glasses, target, uid) => {
+        const state = get();
+        const today = todayStr();
+        const alreadyTier = state.hydrationXpDate === today ? (state.hydrationXpTier || 0) : 0;
+
+        const TIER_XP = [0, baseExpValues.hydrationTier1, baseExpValues.hydrationTier2, baseExpValues.hydrationTier3, baseExpValues.hydrationTier4, baseExpValues.hydrationTier5];
+        const pct = target > 0 ? glasses / target : 0;
+        const currentTier = Math.min(5, Math.floor(pct * 5));
+
+        if (currentTier > alreadyTier) {
+          let xpToAward = 0;
+          for (let t = alreadyTier + 1; t <= currentTier; t++) xpToAward += TIER_XP[t];
+          get().addExp(xpToAward, uid);
+        }
+        set({ hydrationXpDate: today, hydrationXpTier: Math.max(alreadyTier, currentTier) });
+      },
+
+      // Real, live steps XP - each step is worth 0.10 XP (a real,
+      // stated design value), a linear model rather than the tiered one
+      // hydration uses. Top-up logic here works the same way: tracks
+      // how many steps' worth of XP have already been paid out today,
+      // so setSteps/health-sync calling this repeatedly throughout the
+      // day (as the device's real step count naturally rises) only
+      // ever pays for the genuinely new steps since the last award.
+      awardStepsXp: (steps, uid) => {
+        const state = get();
+        const today = todayStr();
+        const alreadyAwardedFor = state.stepsXpDate === today ? (state.stepsXpAwardedFor || 0) : 0;
+
+        const newSteps = Math.max(0, steps - alreadyAwardedFor);
+        if (newSteps > 0) {
+          const xpToAward = Math.round(newSteps * baseExpValues.stepsXpPerStep * 100) / 100;
+          get().addExp(xpToAward, uid);
+        }
+        set({ stepsXpDate: today, stepsXpAwardedFor: Math.max(alreadyAwardedFor, steps) });
+      },
+
+      // Real getter, matching the getLevel()/getExpToNextLevel()
+      // pattern below - screens should read XP through this, not by
+      // destructuring totalExp directly (it doesn't exist at the store's
+      // top level, only nested under expSystem.totalExp; a direct
+      // destructure is always undefined).
+      getTotalExp: () => {
+        const { expSystem } = get();
+        return (expSystem || defaultExpSystem).totalExp;
       },
 
       getExpBreakdown: () => {
@@ -201,7 +343,7 @@ export const useExpStore = create(
       },
 
       getExpForLevel: (level) => {
-        return level * 1000; // Simple calculation: 1000 XP per level
+        return xpRequiredForLevel(level);
       },
 
       getExpToNextLevel: () => {
@@ -221,24 +363,22 @@ export const useExpStore = create(
         return [];
       },
 
-      calculateLevelFromExp: (exp) => {
-        // Simple level calculation: 1000 XP per level
-        return Math.floor(exp / 1000) + 1;
-      }
+      calculateLevelFromExp: (exp) => calculateLevelFromExp(exp)
     }),
     {
       name: 'zown-exp-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
-        expSystem: state.expSystem
+        expSystem: state.expSystem,
+        hydrationXpDate: state.hydrationXpDate,
+        hydrationXpTier: state.hydrationXpTier,
+        stepsXpDate: state.stepsXpDate,
+        stepsXpAwardedFor: state.stepsXpAwardedFor
       }),
       onRehydrateStorage: () => (state) => {
         // When storage is rehydrated, initialize the EXP system if needed
         if (state && (!state.expSystem || !state.expSystem.levelRequirements)) {
-          // Use requestAnimationFrame for better performance
-          requestAnimationFrame(() => {
-            useExpStore.getState().initializeExpSystem();
-          });
+          useExpStore.getState().initializeExpSystem();
         }
       }
     }

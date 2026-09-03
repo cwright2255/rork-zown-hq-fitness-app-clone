@@ -6,7 +6,6 @@ import Button from '@/components/Button';
 import recipeExtractionService from '@/services/recipeExtractionService';
 import { useRecipeStore } from '@/store/recipeStore';
 import { useUserStore } from '@/store/userStore';
-import { tokens } from '../../theme/tokens';
 
 export default function RecipeImportModal({ visible, onClose, onSuccess }) {
   const [activeTab, setActiveTab] = useState('url');
@@ -23,9 +22,10 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
       return;
     }
 
+    const trimmedUrl = urlInput.trim();
     setIsLoading(true);
     try {
-      const extractedRecipe = await recipeExtractionService.extractRecipeFromUrl(urlInput.trim());
+      const extractedRecipe = await recipeExtractionService.extractRecipeFromUrl(trimmedUrl);
 
       if (extractedRecipe) {
         await addRecipe(extractedRecipe, user?.uid);
@@ -34,7 +34,31 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
         onSuccess?.();
         onClose();
       } else {
-        Alert.alert('No Recipe Found', 'Could not extract a recipe from this URL. Please try a different link or enter the recipe manually.');
+        // Temporary diagnostic: this app's own extraction for
+        // Instagram/Pinterest is verified working via direct testing
+        // outside the app, but has failed when actually run inside the
+        // app itself, for a reason not yet understood - see
+        // services/recipeExtractionService.js's lastDiagnostic. Surfaced
+        // directly here so a real, in-app failure reveals its exact
+        // cause (HTTP status, response shape, etc.) instead of just
+        // that it failed, without needing a remote debugger attached.
+        const platform = recipeExtractionService.detectPlatform(trimmedUrl);
+        const diagnostic = recipeExtractionService.getLastDiagnostic();
+        if (platform === 'instagram') {
+          Alert.alert(
+            'Instagram Links Need a Little Help',
+            `Instagram doesn't let apps read a post's caption automatically. Open the post, copy the caption, then use the "From Text" tab above to paste it in.${diagnostic ? `\n\nDiagnostic: ${diagnostic}` : ''}`,
+            [
+              { text: 'Switch to From Text', onPress: () => setActiveTab('text') },
+              { text: 'Cancel', style: 'cancel' },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'No Recipe Found',
+            `Could not extract a recipe from this URL. Please try a different link or enter the recipe manually.${diagnostic ? `\n\nDiagnostic: ${diagnostic}` : ''}`
+          );
+        }
       }
     } catch (error) {
       console.error('Error importing recipe:', error);
@@ -218,7 +242,7 @@ export default function RecipeImportModal({ visible, onClose, onSuccess }) {
         <View style={styles.supportedPlatforms}>
           <Text style={styles.supportedTitle}>Supported Platforms</Text>
           <Text style={styles.supportedText}>
-            Instagram Ã¢ÂÂ¢ TikTok Ã¢ÂÂ¢ YouTube Ã¢ÂÂ¢ Pinterest Ã¢ÂÂ¢ Facebook Ã¢ÂÂ¢ Recipe Websites
+            Instagram, TikTok, YouTube, Pinterest, Facebook, Recipe Websites
           </Text>
         </View>
       </View>
@@ -268,7 +292,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: Colors.background,
-    shadowColor: tokens.colors.dark_navy.text_primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

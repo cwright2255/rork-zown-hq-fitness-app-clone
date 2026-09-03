@@ -1,9 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { tokens } from '../../theme/tokens';
 
+// Real safe-area top inset via useSafeAreaInsets, not a fixed guess and
+// not left to whatever the parent screen happens to wrap this in -
+// previously this component had zero safe-area awareness of its own,
+// so any screen that rendered it inside a plain View (not a
+// SafeAreaView) got a header sitting under the status bar/notch. This
+// makes the header safe regardless of how the parent screen wraps it.
+//
+// Also: solid and transparent modes need different contrast.
+// Transparent is used over a camera preview (see
+// app/nutrition/barcode-scan.jsx) and needs light icons/text to stay
+// legible against varied real camera imagery; solid is used on a white
+// background and needs dark icons/text. The previous version used one
+// fixed color for both, which is correct for at most one of the two.
 export default function ScreenHeader({
   title,
   subtitle,
@@ -13,6 +26,10 @@ export default function ScreenHeader({
   transparent = false,
   style,
 }) {
+  const insets = useSafeAreaInsets();
+  const fg = transparent ? '#FFFFFF' : '#000000';
+  const subFg = transparent ? 'rgba(255,255,255,0.75)' : '#666666';
+
   const handleBack = () => {
     if (onBack) return onBack();
     if (router.canGoBack()) return (router.canGoBack() ? router.back() : router.replace('/'));
@@ -23,19 +40,20 @@ export default function ScreenHeader({
     <View
       style={[
         styles.container,
+        { paddingTop: insets.top + 8 },
         transparent ? styles.transparent : styles.solid,
         style,
       ]}>
       <View style={styles.left}>
         {showBack ? (
           <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8}>
-            <ChevronLeft size={24} color={tokens.colors.dark_navy.text_primary} />
+            <ChevronLeft size={24} color={fg} />
           </TouchableOpacity>
         ) : null}
       </View>
       <View style={styles.center}>
-        {title ? <Text style={styles.title} numberOfLines={1}>{title}</Text> : null}
-        {subtitle ? <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text> : null}
+        {title ? <Text style={[styles.title, { color: fg }]} numberOfLines={1}>{title}</Text> : null}
+        {subtitle ? <Text style={[styles.subtitle, { color: subFg }]} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
       <View style={styles.right}>
         {rightAction}
@@ -48,12 +66,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: tokens.spacing.sm,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
     minHeight: 56,
   },
   solid: {
-    backgroundColor: tokens.colors.dark_navy.bg_primary,
+    backgroundColor: '#FFFFFF',
   },
   transparent: {
     backgroundColor: 'transparent',
@@ -73,17 +91,16 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: tokens.radius.full,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    ...tokens.typography.heading_2_bold,
-    color: tokens.colors.dark_navy.text_primary,
+    fontSize: 17,
+    fontWeight: '700',
   },
   subtitle: {
-    ...tokens.typography.xsmall_tight_regular,
-    color: tokens.colors.dark_navy.text_secondary,
-    marginTop: tokens.spacing.xs / 2,
+    fontSize: 12,
+    marginTop: 2,
   },
 });

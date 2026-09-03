@@ -7,7 +7,17 @@ const buildUserShape = (fbUser, overrides = {}) => {
   const email = overrides.email || fbUser?.email || 'user@example.com';
   const name = overrides.name || fbUser?.displayName || (email ? email.split('@')[0] : 'User');
   return {
+    // Real fix: this only ever set `id`, never `uid` - every store this
+    // app actually uses (bodyCompositionStore, goalsStore, weightLogStore,
+    // and the profile-persistence code in userStore.js) reads user?.uid,
+    // not user?.id. That's a second, independent cause of the same
+    // symptom as the userStore.js loadProfile bug fixed alongside this -
+    // that fix only helps once loadProfile's async Firestore round-trip
+    // completes; this ensures the very first, optimistic setUser() call
+    // right after login already has a real uid, with no gap to race
+    // against.
     id: overrides.id || fbUser?.uid || Math.random().toString(36).slice(2, 11),
+    uid: overrides.id || fbUser?.uid || null,
     name,
     email,
     profileImage: overrides.profileImage || fbUser?.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',

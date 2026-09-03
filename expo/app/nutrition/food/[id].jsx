@@ -5,10 +5,7 @@ import { Plus, Minus, Heart } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { getFoodById } from '@/services/passioService';
-import { tokens } from '../../../../theme/tokens';
-
-
+import { getFoodById } from '@/services/calorieApiService';
 
 export default function FoodDetailScreen() {
   const { id, mealId } = useLocalSearchParams();
@@ -37,7 +34,7 @@ export default function FoodDetailScreen() {
     return (
       <View style={styles.container}>
         <ScreenHeader showBack />
-        <View style={styles.center}><ActivityIndicator color={tokens.colors.dark_navy.bg_primary} /></View>
+        <View style={styles.center}><ActivityIndicator color="#000000" /></View>
       </View>
     );
   }
@@ -68,7 +65,7 @@ export default function FoodDetailScreen() {
       fat: fa,
       servingSize: `${quantity}x ${food.servingSize || '100g'}`,
     };
-    addFoodToMeal(selectedMealId, adjusted);
+    addFoodToMeal(new Date().toISOString().slice(0, 10), selectedMealId, adjusted);
     (router.canGoBack() ? router.back() : router.replace('/'));
   };
 
@@ -94,7 +91,7 @@ export default function FoodDetailScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
         <Text style={styles.name}>{food.name}</Text>
         {food.servingSize ? <Text style={styles.serving}>{food.servingSize}</Text> : null}
 
@@ -126,13 +123,13 @@ export default function FoodDetailScreen() {
           <TouchableOpacity
             style={styles.stepBtn}
             onPress={() => setQuantity(Math.max(0.5, quantity - 0.5))}>
-            <Minus size={18} color={tokens.colors.dark_navy.bg_primary} />
+            <Minus size={18} color="#000000" />
           </TouchableOpacity>
           <Text style={styles.qtyText}>{quantity}x</Text>
           <TouchableOpacity
             style={styles.stepBtn}
             onPress={() => setQuantity(quantity + 0.5)}>
-            <Plus size={18} color={tokens.colors.dark_navy.bg_primary} />
+            <Plus size={18} color="#000000" />
           </TouchableOpacity>
         </View>
 
@@ -145,7 +142,7 @@ export default function FoodDetailScreen() {
                 key={m.id}
                 style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
                 onPress={() => setSelectedMealId(m.id)}>
-                <Text style={[styles.pillText, { color: active ? '#000' : '#999' }]}>
+                <Text style={[styles.pillText, { color: active ? '#FFFFFF' : '#999' }]}>
                   {m.name}
                 </Text>
               </TouchableOpacity>
@@ -162,42 +159,46 @@ export default function FoodDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, letterSpacing: -0.5 },
-  serving: { fontSize: 13, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
+  name: { fontSize: 28, fontWeight: '700', color: '#000000', letterSpacing: -0.5 },
+  serving: { fontSize: 13, color: '#999999', marginTop: 4 },
   calWrap: { alignItems: 'center', marginVertical: 24 },
-  calNumber: { fontSize: 48, fontWeight: '800', color: tokens.colors.dark_navy.text_primary, letterSpacing: -1 },
-  calLabel: { fontSize: 14, color: tokens.colors.dark_navy.text_muted, marginTop: 4 },
+  calNumber: { fontSize: 48, fontWeight: '800', color: '#000000', letterSpacing: -1 },
+  calLabel: { fontSize: 14, color: '#999999', marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 12,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 8, marginTop: 12,
   },
   macroCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDDDDD',
+    borderRadius: 16, padding: 16,
   },
   macroRow: { marginBottom: 12 },
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  macroLabel: { color: tokens.colors.dark_navy.text_primary, fontSize: 14 },
-  macroValue: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
-  track: { height: 6, backgroundColor: tokens.colors.dark_navy.bg_card, borderRadius: 3, overflow: 'hidden' },
+  macroLabel: { color: '#000000', fontSize: 14 },
+  macroValue: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  track: { height: 6, backgroundColor: '#E5E5E5', borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
-    borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDDDDD',
+    borderRadius: 16, padding: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   stepBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F0F0F0',
     alignItems: 'center', justifyContent: 'center',
   },
-  qtyText: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '600' },
-  mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm },
-  pill: { paddingVertical: 10, paddingHorizontal: tokens.spacing.md, borderRadius: 999 },
-  pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
+  qtyText: { color: '#000000', fontSize: 18, fontWeight: '600' },
+  mealPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999 },
+  pillActive: { backgroundColor: '#000000' },
+  pillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDDDDD' },
   pillText: { fontSize: 13, fontWeight: '600' },
-  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
+  // Real fix: 24 sits under the persistent bottom tab bar (see
+  // app/nutrition.jsx's own "Log Food" button, which already correctly
+  // uses 84 for the same reason) - this button was rendering, just
+  // invisible behind the nav bar.
+  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 84 },
 });

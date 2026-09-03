@@ -1,5 +1,3 @@
-import LoadingSkeleton from '@/src/components/LoadingSkeleton';
-import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, TouchableOpacity } from 'react-native';
@@ -9,16 +7,28 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { useHealthStore } from '@/store/healthStore';
 import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../theme/tokens';
 
+// Same canonical meal slot ids as app/nutrition/log.jsx and
+// app/nutrition/food/[id].jsx -- lowercase singular. Previously this
+// screen used capitalized/plural display labels ('Breakfast', 'Snacks')
+// as if they were the real match key, which never actually matched a
+// meal's real id, and its own "Add Food" button dropped which slot was
+// tapped entirely (took a `type` argument but never used it), so every
+// added food landed with no meal assignment regardless of which button
+// was pressed.
+const MEAL_SLOTS = [
+  { id: 'breakfast', name: 'Breakfast' },
+  { id: 'lunch', name: 'Lunch' },
+  { id: 'dinner', name: 'Dinner' },
+  { id: 'snack', name: 'Snack' },
+];
+
 export default function NutritionScreen() {
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { meals, loadAllHealth } = useHealthStore();
   const { user } = useUserStore();
-  const { loadNutritionData, setSyncUid } = useNutritionStore();
+  const { meals, dailyGoals, loadNutritionData, setSyncUid, getMealsByDate } = useNutritionStore();
 
   useEffect(() => {
     if (user?.uid) {
@@ -29,27 +39,10 @@ export default function NutritionScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setIsLoading(true);
-    try {
-      if (user?.uid) {
-        await loadAllHealth(user.uid);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
+    if (user?.uid) await loadNutritionData(user.uid);
+    setRefreshing(false);
   };
 
-  // Real fix: everything below was referenced throughout the render
-  // logic (date nav, macro totals, per-meal breakdown) but never
-  // declared anywhere in this file - the whole logic layer was missing
-  // while the JSX that depends on it was intact. Built directly from
-  // the real meals data shape confirmed in healthStore.js
-  // (timestamp/calories/protein/carbs/fat), mirroring the pattern
-  // already used there for getTodayMacros, but for the selected date
-  // rather than only today.
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const shiftDate = (days) => {
@@ -70,48 +63,39 @@ export default function NutritionScreen() {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
-  const mealsForSelectedDate = useMemo(() => {
-    const dateStr = selectedDate.toISOString().slice(0, 10);
-    return (meals || []).filter((m) => m.timestamp && m.timestamp.startsWith(dateStr));
-  }, [meals, selectedDate]);
+  const dateStr = selectedDate.toISOString().slice(0, 10);
+  const mealsForSelectedDate = useMemo(() => getMealsByDate(dateStr), [meals, dateStr]);
 
-  const totals = useMemo(() => ({
-    protein: mealsForSelectedDate.reduce((s, m) => s + (m.protein || 0), 0),
-    carbs: mealsForSelectedDate.reduce((s, m) => s + (m.carbs || 0), 0),
-    fat: mealsForSelectedDate.reduce((s, m) => s + (m.fat || 0), 0),
-  }), [mealsForSelectedDate]);
+  const totals = useMemo(() => {
+    const allFoods = mealsForSelectedDate.flatMap((m) => m.foods || []);
+    return {
+      protein: allFoods.reduce((s, f) => s + (f.protein || 0), 0),
+      carbs: allFoods.reduce((s, f) => s + (f.carbs || 0), 0),
+      fat: allFoods.reduce((s, f) => s + (f.fat || 0), 0),
+    };
+  }, [mealsForSelectedDate]);
 
-  // No calorie-goal field exists anywhere in the user or health store -
-  // using a standard baseline rather than a real personalized target.
-  const DAILY_CALORIE_GOAL = 2000;
-  const caloriesConsumed = mealsForSelectedDate.reduce((s, m) => s + (m.calories || 0), 0);
-  const caloriesRemaining = Math.max(0, DAILY_CALORIE_GOAL - caloriesConsumed);
+  const dailyCalorieGoal = dailyGoals?.calories || 2000;
+  const caloriesConsumed = mealsForSelectedDate.reduce((s, m) => s + (m.foods || []).reduce((fs, f) => fs + (f.calories || 0), 0), 0);
+  const caloriesRemaining = Math.max(0, dailyCalorieGoal - caloriesConsumed);
 
-  const mealTypes = [
-    { name: 'Breakfast' },
-    { name: 'Lunch' },
-    { name: 'Dinner' },
-    { name: 'Snacks' },
-  ];
+  const getMealForSlot = (slotId) => mealsForSelectedDate.find((m) => m.id === slotId) || null;
 
-  const getMealForType = (typeName) => {
-    return mealsForSelectedDate.find((m) => m.type === typeName || m.mealType === typeName) || null;
+  const sumMealCalories = (meal) => (meal?.foods || []).reduce((s, f) => s + (f.calories || 0), 0);
+
+  const handleAddMealType = (slot) => {
+    router.push({ pathname: '/nutrition/search', params: { mealId: slot.id } });
   };
 
-  const sumMealCalories = (meal) => {
-    if (!meal) return 0;
-    if (meal.calories) return meal.calories;
-    return (meal.foods || []).reduce((s, f) => s + (f.calories || 0), 0);
-  };
-
-  const handleAddMealType = (type) => {
-    router.push('/nutrition/search');
-  };
-return (
+  return (
     <View style={styles.container}>
       <ScreenHeader title="Nutrition" />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 160 }}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: 160 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.dateRow}>
           <TouchableOpacity onPress={() => shiftDate(-1)} style={styles.dateBtn} hitSlop={8}>
             <ChevronLeft size={22} color={tokens.colors.dark_navy.bg_primary} />
@@ -144,13 +128,13 @@ return (
 
         <Text style={styles.sectionLabel}>Meals</Text>
 
-        {mealTypes.map((type) => {
-          const meal = getMealForType(type.name);
+        {MEAL_SLOTS.map((slot) => {
+          const meal = getMealForSlot(slot.id);
           const cals = sumMealCalories(meal);
           return (
-            <View key={type.name} style={styles.mealCard}>
+            <View key={slot.id} style={styles.mealCard}>
               <View style={styles.mealHeader}>
-                <Text style={styles.mealName}>{type.name}</Text>
+                <Text style={styles.mealName}>{slot.name}</Text>
                 <View style={styles.calBadge}>
                   <Text style={styles.calBadgeText}>{cals} kcal</Text>
                 </View>
@@ -170,7 +154,7 @@ return (
               ) : null}
               <TouchableOpacity
                 style={styles.addFoodBtn}
-                onPress={() => handleAddMealType(type)}>
+                onPress={() => handleAddMealType(slot)}>
                 <Plus size={16} color={tokens.colors.dark_navy.bg_primary} />
                 <Text style={styles.addFoodText}>Add Food</Text>
               </TouchableOpacity>

@@ -10,7 +10,6 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
-import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useRunningStore } from '@/store/runningStore';
@@ -99,7 +98,6 @@ export default function WorkoutCompleteScreen() {
 
   const completedWorkouts = useWorkoutStore(s => s.completedWorkouts) || [];
   const runs = useRunningStore(s => s.runs) || [];
-  const { totalExp } = useExpStore();
   const { user } = useUserStore();
   const { badges, loadBadges } = useBadgeStore();
   const { loadRuns } = useRunningStore();

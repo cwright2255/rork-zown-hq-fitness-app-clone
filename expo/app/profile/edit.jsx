@@ -5,34 +5,125 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
 
+// Same options as app/onboarding.jsx's GOALS/NUTRITION_PREFERENCES -
+// onboarding is a one-time flow with no way back in once completed, so
+// these need to live here too for ongoing adjustment, not just at
+// signup. Kept identical to onboarding's lists (same ids) so a value
+// set in either place means the same thing in both.
+const GOALS = [
+  { id: 'lose_weight', label: 'Lose Weight' },
+  { id: 'build_muscle', label: 'Build Muscle' },
+  { id: 'improve_endurance', label: 'Improve Endurance' },
+  { id: 'stay_active', label: 'Stay Active' },
+  { id: 'train_for_race', label: 'Train for a Race' },
+  { id: 'eat_healthier', label: 'Eat Healthier' },
+  { id: 'reduce_stress', label: 'Reduce Stress' },
+];
+
+const NUTRITION_PREFERENCES = [
+  { id: 'no_preference', label: 'No Preference' },
+  { id: 'vegetarian', label: 'Vegetarian' },
+  { id: 'vegan', label: 'Vegan' },
+  { id: 'pescatarian', label: 'Pescatarian' },
+  { id: 'paleo', label: 'Paleo' },
+  { id: 'keto', label: 'Keto' },
+  { id: 'intermittent_fasting', label: 'Intermittent Fasting' },
+  { id: 'gluten_free', label: 'Gluten-Free' },
+];
+
 export default function EditProfileScreen() {
-  const { user, updateUser } = useUserStore();
+  const { user, updateUser, saveProfile } = useUserStore();
 
   const [name, setName] = useState(user?.name || '');
+  // Real fix: strips a leading "@" the person may have typed themselves
+  // (a completely natural thing to do, given "@username" is how every
+  // other app shows a handle) - without this, the helper text below
+  // ("Shown as @{username}") would render a literal "@@" for anyone who
+  // typed the symbol.
+  const [username, setUsername] = useState((user?.username || '').replace(/^@+/, ''));
   const [email, setEmail] = useState(user?.email || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [weight, setWeight] = useState(user?.fitnessMetrics?.weight?.toString() || '');
-  const [height, setHeight] = useState(user?.fitnessMetrics?.height?.toString() || '');
-  const [age, setAge] = useState(user?.fitnessMetrics?.age?.toString() || '');
+  const [targetWeight, setTargetWeight] = useState(user?.targetWeightKg ? Math.round(user.targetWeightKg / 0.453592).toString() : '');
+  // Real fix: fitnessMetrics.height is always stored in cm by
+  // onboarding (see getCalculatedHeight in app/onboarding.jsx), but
+  // this field is labeled "Height (in)" and was reading/writing that
+  // same raw number as if it were already inches, with no conversion.
+  // Converts to inches for display here, matching how targetWeight
+  // above already converts kg to lbs for the same reason. Falls back to
+  // empty (not "0") when unset, so this reads like the real empty
+  // state Age below already showed rather than a misleading zero.
+  const [height, setHeight] = useState(user?.fitnessMetrics?.height ? Math.round(user.fitnessMetrics.height / 2.54).toString() : '');
+  // Real fix: onboarding stores age at the top level (user.age), not
+  // nested under fitnessMetrics - this was reading a path onboarding
+  // never writes to, so it always fell back to empty/placeholder
+  // regardless of the real age on file.
+  const [age, setAge] = useState(user?.age?.toString() || '');
   const [fitnessLevel, setFitnessLevel] = useState(user?.fitnessLevel || 'intermediate');
+  // Real fields onboarding.jsx already writes to (fitnessMetrics.targetGoals,
+  // fitnessMetrics.nutritionPreference) - reading the same real data here,
+  // not a separate copy.
+  const [selectedGoals, setSelectedGoals] = useState(user?.fitnessMetrics?.targetGoals || []);
+  const [nutritionPreference, setNutritionPreference] = useState(user?.fitnessMetrics?.nutritionPreference || 'no_preference');
   const [isSaving, setIsSaving] = useState(false);
 
   const LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'];
+
+  const toggleGoal = (id) => {
+    if (selectedGoals.includes(id)) {
+      setSelectedGoals(selectedGoals.filter((g) => g !== id));
+    } else if (selectedGoals.length < 3) {
+      setSelectedGoals([...selectedGoals, id]);
+    }
+  };
+
+  // Real, read-only - gender is set once during onboarding (see
+  // app/onboarding.jsx) and intentionally isn't editable from here, so
+  // this always reflects exactly what the person selected when they
+  // created their profile, not something that can drift afterward.
+  const gender = user?.gender;
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
       await updateUser({
         name: name.trim(),
+        username: username.trim().replace(/\s+/g, '').replace(/^@+/, ''),
         bio: bio.trim(),
         fitnessLevel,
+        // Real fix: targetWeightKg is the field another session already
+        // wired into saveProfile's Firestore whitelist (see the comment
+        // there) - this screen's own field was writing to
+        // fitnessMetrics.targetWeight instead, a disconnected duplicate
+        // nothing else reads. Converts the lbs this field collects to kg
+        // the same way onboarding.jsx already converts weight (* 0.453592),
+        // so both target-weight write paths agree on the same unit.
+        targetWeightKg: targetWeight ? Math.round(parseFloat(targetWeight) * 0.453592) : null,
+        // Real fix: age belongs at the top level (user.age), matching
+        // exactly where onboarding.jsx actually writes it - saving it
+        // under fitnessMetrics instead meant a saved edit here would
+        // never actually correct the real, misread value.
+        age: age ? parseInt(age) : null,
         fitnessMetrics: {
           ...(user?.fitnessMetrics || {}),
           weight: weight ? parseFloat(weight) : null,
-          height: height ? parseFloat(height) : null,
-          age: age ? parseInt(age) : null,
+          // Real fix: converts inches back to cm before saving, matching
+          // the unit onboarding.jsx actually stores here - previously
+          // this field saved the raw inches number directly into a
+          // centimeters field with no conversion either way.
+          height: height ? Math.round(parseFloat(height) * 2.54) : null,
+          targetGoals: selectedGoals,
+          nutritionPreference: nutritionPreference,
         },
       });
+      // Real fix: this screen previously only updated local state and
+      // never actually synced to Firestore (unlike the photo-edit
+      // handler in app/profile.jsx, which does call saveProfile) - every
+      // edit made here, old fields and these new ones alike, was silently
+      // local-only.
+      if (user?.uid) {
+        await saveProfile(user.uid);
+      }
       Alert.alert('Profile Updated', 'Your changes have been saved.');
       router.back();
     } catch (e) {
@@ -71,11 +162,24 @@ export default function EditProfileScreen() {
         </View>
 
         {renderInput('Name', name, setName, { placeholder: 'Your name', autoCapitalize: 'words' })}
+        {renderInput('Username', username, setUsername, { placeholder: 'yourname', autoCapitalize: 'none', autoCorrect: false })}
+        <Text style={s.helperText}>Shown as @{username || 'yourname'} on social and shared posts</Text>
         {renderInput('Email', email, setEmail, { placeholder: 'Email', keyboardType: 'email-address', editable: false })}
         {renderInput('Bio', bio, setBio, { placeholder: 'Tell us about yourself', multiline: true, style: [s.input, { height: 80, textAlignVertical: 'top' }] })}
 
+        {gender ? (
+          <View style={s.field}>
+            <Text style={s.label}>Gender</Text>
+            <View style={s.readOnlyRow}>
+              <Text style={s.readOnlyText}>{gender}</Text>
+            </View>
+            <Text style={s.helperTextBelow}>Set when your profile was created</Text>
+          </View>
+        ) : null}
+
         <Text style={s.sectionLabel}>Fitness Details</Text>
         {renderInput('Weight (lbs)', weight, setWeight, { placeholder: '175', keyboardType: 'numeric' })}
+        {renderInput('Target Weight (lbs)', targetWeight, setTargetWeight, { placeholder: '165', keyboardType: 'numeric' })}
         {renderInput('Height (in)', height, setHeight, { placeholder: '70', keyboardType: 'numeric' })}
         {renderInput('Age', age, setAge, { placeholder: '28', keyboardType: 'numeric' })}
 
@@ -87,6 +191,35 @@ export default function EditProfileScreen() {
                 <Text style={[s.levelText, fitnessLevel === l && s.levelTextActive]}>{l.charAt(0).toUpperCase() + l.slice(1)}</Text>
               </Pressable>
             ))}
+          </View>
+        </View>
+
+        <Text style={s.sectionLabel}>Goals</Text>
+        <View style={s.field}>
+          <Text style={s.helperTextTight}>Select up to 3</Text>
+          <View style={s.levelRow}>
+            {GOALS.map((g) => {
+              const active = selectedGoals.includes(g.id);
+              return (
+                <Pressable key={g.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => toggleGoal(g.id)}>
+                  <Text style={[s.levelText, active && s.levelTextActive]}>{g.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <Text style={s.sectionLabel}>Nutrition Preference</Text>
+        <View style={s.field}>
+          <View style={s.levelRow}>
+            {NUTRITION_PREFERENCES.map((p) => {
+              const active = nutritionPreference === p.id;
+              return (
+                <Pressable key={p.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => setNutritionPreference(p.id)}>
+                  <Text style={[s.levelText, active && s.levelTextActive]}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -109,6 +242,11 @@ const s = StyleSheet.create({
   field: { paddingHorizontal: 20, marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 6 },
   input: { backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#000' },
+  helperText: { fontSize: 12, color: '#999', paddingHorizontal: 20, marginTop: -10, marginBottom: 16 },
+  helperTextTight: { fontSize: 12, color: '#999', marginBottom: 8 },
+  helperTextBelow: { fontSize: 12, color: '#999', marginTop: 6 },
+  readOnlyRow: { backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  readOnlyText: { fontSize: 15, color: '#666' },
   levelRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   levelPill: { backgroundColor: '#F0F0F0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   levelPillActive: { backgroundColor: '#000' },

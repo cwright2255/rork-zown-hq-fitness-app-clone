@@ -255,7 +255,7 @@ const STEP_CAPTIONS = {
 
 export default function BodyScanCaptureScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { user, updateUser, saveProfile } = useUserStore();
   const { runScan, isScanning, error } = useBodyCompositionStore();
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
@@ -282,6 +282,10 @@ export default function BodyScanCaptureScreen() {
   const [weightInput, setWeightInput] = useState(user?.weightKg ? String(user.weightKg) : '');
 
   const [age, setAgeInput] = useState(user?.age ? String(user.age) : '');
+  useEffect(() => {
+    if (user?.weightKg && !weightInput) setWeightInput(String(user.weightKg));
+    if (user?.age && !age) setAgeInput(String(user.age));
+  }, [user?.weightKg, user?.age]);
 
   const [neckInput, setNeckInput] = useState(''); // optional — see the "I have a tape measure" toggle below; unit follows unitSystem
   const [showNeckInput, setShowNeckInput] = useState(false);
@@ -489,6 +493,20 @@ export default function BodyScanCaptureScreen() {
         gender,
         goal: (user?.goals && user.goals[0]) || 'general fitness',
       });
+      // Sync latest real measurements back to the profile, so the next
+      // scan (and anywhere else that reads user.heightCm/weightKg/age/
+      // gender) reflects the most recent scan rather than stale
+      // onboarding numbers. Only overwrite fields this scan actually
+      // measured - never null out something the scan didn't touch.
+      const profileUpdates = {};
+      if (getHeightCm()) profileUpdates.heightCm = getHeightCm();
+      if (getWeightKg()) profileUpdates.weightKg = getWeightKg();
+      if (parsedAge != null) profileUpdates.age = parsedAge;
+      if (gender) profileUpdates.gender = gender;
+      if (Object.keys(profileUpdates).length > 0) {
+        updateUser(profileUpdates);
+        if (user?.uid) saveProfile(user.uid);
+      }
       router.replace(`/body-scan/${scan.id}`);
     } catch (e) {
       // error surfaced via the store's `error` field, tracker stays at
@@ -545,7 +563,7 @@ export default function BodyScanCaptureScreen() {
   if (!device) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
+        <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <Text style={styles.centerMessageText}>No camera available on this device.</Text>
         </View>
@@ -556,7 +574,7 @@ export default function BodyScanCaptureScreen() {
   if (!hasPermission) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
+        <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
           <Text style={styles.centerMessageText}>Camera access is needed to scan your body composition.</Text>
@@ -569,7 +587,7 @@ export default function BodyScanCaptureScreen() {
   if (showProfileForm) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
+        <ScreenHeader title="Body Scan" showBack variant="light" />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -700,7 +718,7 @@ export default function BodyScanCaptureScreen() {
   if (isScanning) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Body Scan" showBack />
+        <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <ActivityIndicator size="large" color={colors.text} />
           <Text style={styles.centerMessageText}>Estimating your body composition…</Text>
@@ -712,7 +730,7 @@ export default function BodyScanCaptureScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.headerRow}>
-        <ScreenHeader title="Body Scan" showBack transparent />
+        <ScreenHeader title="Body Scan" showBack transparent variant="light" />
         <Pressable onPress={() => handleToggleVoice(!voiceEnabled)} style={styles.voiceToggleBtn}>
           <Ionicons name={voiceEnabled ? 'volume-high' : 'volume-mute'} size={18} color={colors.text} />
           <Switch

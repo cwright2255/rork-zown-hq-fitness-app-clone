@@ -50,6 +50,27 @@ const TRAILAPI_BASE = 'https://trailapi-trailapi.p.rapidapi.com';
 const TRAILAPI_HOST = 'trailapi-trailapi.p.rapidapi.com';
 const PLACES_API_BASE = 'https://places.googleapis.com/v1';
 
+// Real fix, found from a screen-recording review: TrailAPI (the
+// separate, non-Google data source merged in below) was observed
+// returning the literal STRING "null" for at least one field
+// (thumbnail) rather than actual JSON null when a value is genuinely
+// absent - a plain `|| null`/`?? null` only catches real JS falsy
+// values, so that string sails through as truthy. For a photo URL that
+// crashed React Native's image loader outright; for rating/length,
+// downstream .toFixed(1) calls on a non-numeric string would throw.
+// Applied consistently across every TrailAPI field below rather than
+// only the one that already crashed, since the same API quirk could
+// affect any of them.
+function sanitizeApiString(value) {
+  if (!value || value === 'null' || value === 'undefined') return null;
+  return value;
+}
+function sanitizeApiNumber(value) {
+  if (value == null || value === 'null' || value === 'undefined') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
 // Trail-relevant Places types. `hiking_area` is the direct match; `park`
 // and `state_park`/`national_park` are included too since many real trail
 // systems (state forests, county parks) are typed as parks rather than
@@ -135,18 +156,18 @@ async function searchTrailApi({ latitude, longitude, radiusMeters, apiKey }) {
 
     trails.push({
       id: `trailapi-${place.unique_id}`,
-      name: activity?.name || place.name || 'Unnamed Trail',
+      name: sanitizeApiString(activity?.name) || place.name || 'Unnamed Trail',
       address: [place.city, place.state].filter(Boolean).join(', ') || place.country || '',
       latitude: place.lat,
       longitude: place.lon,
-      rating: activity?.rating ?? null,
+      rating: sanitizeApiNumber(activity?.rating),
       ratingCount: 0, // TrailAPI's example response doesn't include a review count
       isOpen: null, // no opening-hours concept for a trail in this data source
       types: ['hiking_area'],
       googleMapsUri: null,
       directions: place.directions || null,
-      lengthMiles: activity?.length ?? null,
-      photoUrl: activity?.thumbnail || null, // direct URL, no two-step fetch needed unlike Places
+      lengthMiles: sanitizeApiNumber(activity?.length),
+      photoUrl: sanitizeApiString(activity?.thumbnail), // direct URL, no two-step fetch needed unlike Places
       photoName: null,
       distanceKm: haversineKm(latitude, longitude, place.lat, place.lon),
       source: 'trailapi',
@@ -289,6 +310,14 @@ export async function getTrailMaps(trailId) {
   // {maps: [...]} wrappers matching the shapes seen elsewhere in this
   // API) rather than assuming one is correct.
   const list = Array.isArray(data) ? data : (data.maps || data.data || []);
+  // Real diagnostic, not decoration: a live test showed the path picker
+  // never appearing at all, meaning this returned 0 or 1 maps for that
+  // trail - logging the actual raw shape here (not guessing a fourth
+  // time) tells us definitively whether that's because this trail
+  // genuinely has no multi-path data, or because the response shape
+  // guess above doesn't match what the API actually returns.
+  console.log('[hikingService] getTrailMaps raw response:', JSON.stringify(data).slice(0, 500));
+  console.log('[hikingService] getTrailMaps parsed list length:', list.length);
   return list.map((m) => ({ id: m.id ?? m.unique_id ?? m.map_id, name: m.name || 'Trail Map' }));
 }
 
@@ -308,10 +337,28 @@ export async function fetchTrailRoute(trailId) {
     const firstMap = maps?.[0];
     if (!firstMap?.id) return null;
 
-    const gpxXml = await getTrailGpx(firstMap.id);
-    return parseGpxToRoute(gpxXml);
+    return await fetchRouteForMap(firstMap.id);
   } catch (e) {
     console.warn('[hikingService] fetchTrailRoute failed (non-fatal, route section will just be hidden):', e?.message);
+    return null;
+  }
+}
+
+/**
+ * Real route data for ONE specific map id - the piece fetchTrailRoute
+ * above now delegates to, extracted so the trail detail screen can also
+ * fetch a route for whichever specific path the user picks from
+ * getTrailMaps()'s real list, not just automatically the first one.
+ * Same defensive contract: returns null on any failure rather than
+ * throwing, since a route is always an optional enhancement.
+ */
+export async function fetchRouteForMap(mapId) {
+  if (!mapId) return null;
+  try {
+    const gpxXml = await getTrailGpx(mapId);
+    return parseGpxToRoute(gpxXml);
+  } catch (e) {
+    console.warn('[hikingService] fetchRouteForMap failed:', e?.message);
     return null;
   }
 }

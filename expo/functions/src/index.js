@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
@@ -26,7 +26,7 @@ const RADAR_TEST_SECRET_KEY = defineSecret('RADAR_TEST_SECRET_KEY');
 // whoopService.js/ouraService.js were.
 const ROOK_CLIENT_UUID = defineSecret('ROOK_CLIENT_UUID');
 const ROOK_CLIENT_SECRET = defineSecret('ROOK_CLIENT_SECRET');
-const ROOK_API_BASE = 'https://api.rook-connect.com';
+const ROOK_API_BASE = 'https://api.rook-connect.review'; // sandbox host - see comment above for why
 
 function rookBasicAuthHeader() {
   const basic = Buffer.from(`${ROOK_CLIENT_UUID.value()}:${ROOK_CLIENT_SECRET.value()}`).toString('base64');
@@ -49,7 +49,6 @@ async function saveRecommendation(data)
 
 
 
-
 {
   const db = getFirestore();
   const ref = await db.collection('aiRecommendations').add({
@@ -65,7 +64,6 @@ export const generateWorkoutPlan = onCall(
   async (req) => {
     const uid = requireAuth(req.auth);
     const { fitnessLevel, goals, history } = req.data;
-
 
 
 
@@ -224,21 +222,44 @@ export const getNutritionRecommendations = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
-    const { recentWorkouts, goals } = req.data;
+    const { recentWorkouts, goals, profile } = req.data;
 
+    // Real profile data, when available, grounds this in an actual BMR
+    // calculation instead of a generic estimate - previously this was
+    // never called with anything but goals/workouts (in fact never
+    // called at all before this), so there was no real personalization
+    // possible. Each line is only included if the real value is
+    // present, rather than padding the prompt with unknowns.
+    const p = profile || {};
+    const profileLines = [];
+    if (p.weightKg) profileLines.push(`Current weight: ${p.weightKg} kg`);
+    if (p.targetWeightKg) profileLines.push(`Target weight: ${p.targetWeightKg} kg`);
+    if (p.heightCm) profileLines.push(`Height: ${p.heightCm} cm`);
+    if (p.age) profileLines.push(`Age: ${p.age}`);
+    if (p.gender) profileLines.push(`Gender: ${p.gender}`);
+    if (p.activityLevel) profileLines.push(`Activity level: ${p.activityLevel}`);
+    if (p.nutritionPreference && p.nutritionPreference !== 'no_preference') {
+      profileLines.push(`Dietary preference: ${p.nutritionPreference}`);
+    }
 
+    const prompt = `Calculate a personalized daily calorie and macro target for this user, and suggest 3 meal ideas that genuinely fit their real dietary preference.
 
+Real profile data:
+${profileLines.length ? profileLines.join('\n') : 'No profile data provided - use general population defaults and say so honestly in the summary rather than presenting the estimate as personalized.'}
 
-    const prompt = `Provide nutrition recommendations for a user with goals: ${goals.join(
-      ', '
-    )}. Recent workouts: ${JSON.stringify(recentWorkouts)}. Include daily macro targets and 3 meal ideas. Return strict JSON { "dailyMacros": { "calories": number, "protein": number, "carbs": number, "fat": number }, "mealIdeas": [{ "name": string, "description": string }] }.`;
+Stated goals: ${(goals || []).join(', ') || 'none stated'}
+Recent workouts (last 30 days): ${JSON.stringify(recentWorkouts ?? [])}
+
+Base the calorie target on a real, honest calculation: derive BMR using the Mifflin-St Jeor equation from the real weight/height/age/gender given (if gender is not Male or Female, average the male and female formula results rather than guessing which applies), multiply by a realistic activity factor for the stated activity level, then adjust for the goal - a real, moderate deficit of roughly 300-500 kcal/day if target weight is below current weight, a moderate surplus of roughly 200-300 kcal/day if above, maintenance if equal or no target weight was given. Never recommend a deficit below 1200 kcal/day for any adult regardless of the numbers. If a real dietary preference was given, make all 3 meal ideas genuinely fit it, not generic meals with a note bolted on.
+
+Return strict JSON { "dailyMacros": { "calories": number, "protein": number, "carbs": number, "fat": number }, "mealIdeas": [{ "name": string, "description": string }], "summary": string }. "summary" is one honest sentence naming what actually shaped this number (e.g. "Based on your BMR, moderately active level, and a goal to lose 10 lbs, this targets a 400 kcal/day deficit.") - if profile data was missing, say that honestly instead.`;
 
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
       messages: [
-      { role: 'system', content: 'You are a sports nutrition expert. Return valid JSON.' },
+      { role: 'system', content: 'You are a sports nutrition expert calculating real, personalized calorie and macro targets from real body metrics using established formulas (Mifflin-St Jeor for BMR). Always return valid JSON. Never invent a number you have not actually derived from the given data, and never state an estimate with false precision or as personalized when the real inputs to personalize it were not provided.' },
       { role: 'user', content: prompt }]
 
     });
@@ -294,7 +315,6 @@ export const refreshSpotifyToken = onCall(
     }
 
     const data = await res.json();
-
 
 
 
@@ -358,7 +378,15 @@ export const getRookAuthorizerUrl = onCall(
       { headers: rookBasicAuthHeader() }
     );
     if (!res.ok) {
-      throw new HttpsError('internal', `ROOK authorizer request failed: ${res.status}`);
+      // Real diagnostic, not decoration: surfacing only res.status (no
+      // body) on the first 401 hid the actual reason ROOK's server
+      // rejected the request, which is why the sandbox-host fix alone
+      // wasn't enough to resolve this - we were guessing at a second
+      // cause with no real evidence. This exposes exactly what ROOK's
+      // API itself says is wrong.
+      const bodyText = await res.text().catch(() => '');
+      console.error('[ROOK] authorizer request failed', { status: res.status, body: bodyText });
+      throw new HttpsError('internal', `ROOK authorizer request failed: ${res.status} - ${bodyText}`);
     }
     const data = await res.json();
     return { authorized: data.authorized, authorizationUrl: data.authorization_url || null };
@@ -497,6 +525,351 @@ export const getRookSdkCredentials = onCall(
   }
 );
 
+// Real calendar boundaries for each cadence — not arbitrary day counts.
+// periodKey is a stable identifier for "which day/week/month/season this
+// is", used below to check whether a current challenge already exists
+// for a cadence before generating a new one, and by the client to know
+// which loaded challenge is the CURRENT one for each cadence. All in
+// UTC for server/client consistency; not user-timezone-aware, which
+// only matters right at a boundary edge and isn't worth the added
+// complexity here.
+function getDayBounds(now) {
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(start);
+  end.setUTCHours(23, 59, 59, 999);
+  return { periodKey: `day-${start.toISOString().slice(0, 10)}`, start, end };
+}
+
+function getWeekBounds(now) {
+  const dayNum = (now.getUTCDay() + 6) % 7; // Mon=0 .. Sun=6
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayNum));
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  sunday.setUTCHours(23, 59, 59, 999);
+  return { periodKey: `week-${monday.toISOString().slice(0, 10)}`, start: monday, end: sunday };
+}
+
+function getMonthBounds(now) {
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+  const periodKey = `month-${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  return { periodKey, start, end };
+}
+
+// Real meteorological seasons (Northern Hemisphere convention — a known
+// simplification; Southern Hemisphere users get labels six months out
+// of sync with their actual weather, worth revisiting if that matters
+// for this app's real user base): Winter=Dec-Feb, Spring=Mar-May,
+// Summer=Jun-Aug, Fall=Sep-Nov.
+function getSeasonBounds(now) {
+  const month = now.getUTCMonth(); // 0-11
+  const year = now.getUTCFullYear();
+  let seasonName, startYear, startMonth, endYear, endMonthExclusive;
+
+  if (month === 11) {
+    seasonName = 'winter'; startYear = year; startMonth = 11; endYear = year + 1; endMonthExclusive = 2;
+  } else if (month <= 1) {
+    seasonName = 'winter'; startYear = year - 1; startMonth = 11; endYear = year; endMonthExclusive = 2;
+  } else if (month <= 4) {
+    seasonName = 'spring'; startYear = year; startMonth = 2; endYear = year; endMonthExclusive = 5;
+  } else if (month <= 7) {
+    seasonName = 'summer'; startYear = year; startMonth = 5; endYear = year; endMonthExclusive = 8;
+  } else {
+    seasonName = 'fall'; startYear = year; startMonth = 8; endYear = year; endMonthExclusive = 11;
+  }
+
+  const start = new Date(Date.UTC(startYear, startMonth, 1));
+  const end = new Date(Date.UTC(endYear, endMonthExclusive, 0, 23, 59, 59, 999));
+  const periodKey = `season-${seasonName}-${startYear}`;
+  return { periodKey, start, end, seasonName };
+}
+
+const CADENCE_GUIDANCE = {
+  daily: 'achievable within a single day — a concrete, specific target like a rep count, a single workout, or minutes of activity today',
+  weekly: 'achievable within 7 days — typically 3-5 workouts or a multi-day streak within the week',
+  monthly: 'achievable within about 30 days — a larger cumulative goal, e.g. 12-16 workouts, or trying multiple categories for variety',
+};
+
+// Real per-user opt-in for AI-generated community challenges (see
+// generateChallenges below). Challenges themselves live in the shared
+// /challenges collection, not here — this just tracks which ones this
+// user has joined. Nothing to update: leaving and rejoining is a
+// delete + recreate, not an edit, so there's no partial-state case to
+// handle.
+export const generateChallenges = onCall(
+  { secrets: [OPENAI_API_KEY], region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const db = getFirestore();
+    const now = new Date();
+
+    const periods = {
+      daily: getDayBounds(now),
+      weekly: getWeekBounds(now),
+      monthly: getMonthBounds(now),
+      seasonal: getSeasonBounds(now),
+    };
+
+    // Only generate cadences that don't already have a current challenge
+    // — repeat visits within the same day/week/month/season should never
+    // create duplicates.
+    const existingChecks = await Promise.all(
+      Object.entries(periods).map(([cadence, period]) =>
+        db.collection('challenges')
+          .where('cadence', '==', cadence)
+          .where('periodKey', '==', period.periodKey)
+          .limit(1)
+          .get()
+      )
+    );
+
+    const cadenceNames = Object.keys(periods);
+    const needed = cadenceNames.filter((_, i) => existingChecks[i].empty);
+
+    if (needed.length === 0) {
+      return { generated: [], communityStats: null };
+    }
+
+    // Real community stats, computed fresh on every call rather than
+    // cached on a schedule — current real usage (see /workouts
+    // collection size today) is small enough that this is cheap. Worth
+    // moving to a scheduled daily aggregate instead of computing this
+    // inline once usage grows enough to make that cost noticeable.
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const workoutsSnap = await db.collection('workouts')
+      .where('completed', '==', true)
+      .where('date', '>=', thirtyDaysAgo)
+      .limit(500)
+      .get();
+
+    const categoryCounts = {};
+    const difficultyCounts = {};
+    const activeUserIds = new Set();
+    workoutsSnap.docs.forEach((doc) => {
+      const w = doc.data();
+      if (w.category) categoryCounts[w.category] = (categoryCounts[w.category] || 0) + 1;
+      if (w.difficulty) difficultyCounts[w.difficulty] = (difficultyCounts[w.difficulty] || 0) + 1;
+      if (w.userId) activeUserIds.add(w.userId);
+    });
+
+    // Real leaderboard/streak/level distribution — the other half of
+    // "community data" (see store/leaderboardStore.js), already
+    // client-readable but not previously used to inform anything.
+    const leaderboardSnap = await db.collection('leaderboard').limit(200).get();
+    let totalStreak = 0;
+    let totalLevel = 0;
+    let lbCount = 0;
+    leaderboardSnap.docs.forEach((doc) => {
+      const l = doc.data();
+      if (typeof l.streak === 'number') totalStreak += l.streak;
+      if (typeof l.level === 'number') totalLevel += l.level;
+      lbCount += 1;
+    });
+
+    const communityStats = {
+      activeUsersLast30Days: activeUserIds.size,
+      totalCompletedWorkoutsLast30Days: workoutsSnap.size,
+      topCategories: Object.entries(categoryCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count })),
+      difficultyBreakdown: difficultyCounts,
+      avgStreakDays: lbCount > 0 ? Math.round((totalStreak / lbCount) * 10) / 10 : null,
+      avgLevel: lbCount > 0 ? Math.round((totalLevel / lbCount) * 10) / 10 : null,
+      leaderboardSampleSize: lbCount,
+    };
+
+    const guidanceLines = needed.map((c) => {
+      if (c === 'seasonal') {
+        return `- seasonal: tied to the current ${periods.seasonal.seasonName} season — an ambitious, multi-week cumulative goal or long streak, scaled to however many days remain in the season (${Math.max(1, Math.round((periods.seasonal.end - now) / (24 * 60 * 60 * 1000)))} days left)`;
+      }
+      return `- ${c}: ${CADENCE_GUIDANCE[c]}`;
+    });
+
+    const prompt = `Generate exactly one fitness challenge for each of these cadences: ${needed.join(', ')}.
+
+What "achievable" means for each requested cadence:
+${guidanceLines.join('\n')}
+
+Real community activity data from the last 30 days (${communityStats.totalCompletedWorkoutsLast30Days} completed workouts from ${communityStats.activeUsersLast30Days} active users):
+${JSON.stringify(communityStats, null, 2)}
+
+Base these on established fitness industry guidelines (e.g. ACSM/CDC recommend 150+ minutes/week of moderate cardio or 75+ minutes/week vigorous, plus 2+ strength sessions/week) and well-known real challenge formats. Use the community data to calibrate difficulty and focus: if average streak is low, lean beginner-friendly; if one category dominates activity, favor a different, underrepresented category to encourage variety. Do not invent statistics beyond what's given above.
+
+Return strict JSON: { "challenges": [{ "cadence": string, "title": string, "description": string, "category": string, "difficulty": "beginner"|"intermediate"|"advanced", "goalType": "workout_count"|"streak_days", "goalTarget": number, "basedOn": string }] }. Return exactly one object per requested cadence, with "cadence" set to exactly one of: ${needed.join(', ')}. "basedOn" is one honest sentence naming the specific guideline or community stat that shaped this challenge.`;
+
+    const openai = getOpenAI();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a fitness program designer creating realistic, achievable community challenges grounded in real activity data and established exercise science guidelines. Always return valid JSON. Never invent statistics beyond what you are given.',
+        },
+        { role: 'user', content: prompt },
+      ],
+    });
+
+    const content = completion.choices[0]?.message?.content ?? '{}';
+    let structured = {};
+    try {
+      structured = JSON.parse(content);
+    } catch {
+      structured = { challenges: [] };
+    }
+
+    const rawChallenges = Array.isArray(structured.challenges) ? structured.challenges : [];
+    const batch = db.batch();
+    const created = [];
+    const usedCadences = new Set();
+
+    rawChallenges.forEach((c) => {
+      // Defensive: only accept a cadence we actually asked for, and only
+      // once each — an LLM occasionally returning a duplicate or
+      // unexpected cadence shouldn't silently overwrite another one.
+      if (!needed.includes(c.cadence) || usedCadences.has(c.cadence)) return;
+      usedCadences.add(c.cadence);
+
+      const cadence = c.cadence;
+      const period = periods[cadence];
+      const ref = db.collection('challenges').doc();
+      const goalType = c.goalType === 'streak_days' ? 'streak_days' : 'workout_count';
+      const doc = {
+        title: c.title || 'Fitness Challenge',
+        description: c.description || '',
+        category: c.category || 'General',
+        difficulty: ['beginner', 'intermediate', 'advanced'].includes(c.difficulty) ? c.difficulty : 'beginner',
+        cadence,
+        periodKey: period.periodKey,
+        goalType,
+        goalTarget: typeof c.goalTarget === 'number' && c.goalTarget > 0 ? Math.round(c.goalTarget) : 1,
+        basedOn: c.basedOn || '',
+        startDate: period.start,
+        endDate: period.end,
+        communityStatsSnapshot: communityStats,
+        createdBy: uid,
+        source: 'ai_generated',
+        createdAt: FieldValue.serverTimestamp(),
+      };
+      batch.set(ref, doc);
+      created.push({
+        id: ref.id,
+        ...doc,
+        startDate: period.start.toISOString(),
+        endDate: period.end.toISOString(),
+      });
+    });
+
+    if (created.length > 0) {
+      await batch.commit();
+    }
+
+    return { generated: created, communityStats };
+  }
+);
+
+// Real proxy for Calorie API's food search - kept server-side rather
+// than called directly from the app because Calorie API's own React
+// Native integration guide explicitly recommends against embedding this
+// key in a mobile client (a compiled binary can be decompiled and the
+// key extracted). The real key lives only in CALORIE_API_KEY below,
+// never in the app bundle. Returns the raw Calorie API response
+// verbatim - services/calorieApiService.js on the client already has
+// the field-mapping logic for the real per-100g response shape, no
+// need to duplicate that here.
+const CALORIE_API_KEY = defineSecret('CALORIE_API_KEY');
+const CALORIE_API_BASE_URL = 'https://calorieapiadmin.com/api/v1'; // real base URL confirmed from https://calorieapi.com/docs - NOT api.calorieapi.com, which their own blog content inconsistently uses
+
+export const searchCalorieApiFoods = onCall(
+  { secrets: [CALORIE_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { query } = req.data;
+    if (!query || !query.trim()) {
+      throw new HttpsError('invalid-argument', 'query required');
+    }
+
+    const res = await fetch(
+      `${CALORIE_API_BASE_URL}/search/foods?q=${encodeURIComponent(query)}`,
+      { headers: { 'X-API-Key': CALORIE_API_KEY.value() } }
+    );
+
+    if (!res.ok) {
+      // Real diagnostic on failure, matching the same pattern already
+      // proven useful for ROOK above - the previous direct-from-client
+      // 401 gave no visibility into Calorie API's own stated reason.
+      const bodyText = await res.text().catch(() => '');
+      console.error('[searchCalorieApiFoods] request failed', { status: res.status, body: bodyText });
+      throw new HttpsError('internal', `Calorie API search failed: ${res.status} - ${bodyText}`);
+    }
+
+    return await res.json();
+  }
+);
+
+export const getCalorieApiFoodById = onCall(
+  { secrets: [CALORIE_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { id } = req.data;
+    if (!id) {
+      throw new HttpsError('invalid-argument', 'id required');
+    }
+
+    const res = await fetch(`${CALORIE_API_BASE_URL}/foods/${id}`, {
+      headers: { 'X-API-Key': CALORIE_API_KEY.value() }
+    });
+
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      console.error('[getCalorieApiFoodById] request failed', { status: res.status, body: bodyText });
+      throw new HttpsError('internal', `Calorie API food detail failed: ${res.status} - ${bodyText}`);
+    }
+
+    return await res.json();
+  }
+);
+
+// Real barcode lookup - replaces the previous approach in
+// app/nutrition/barcode-scan.jsx, which sent the barcode number to an
+// LLM and explicitly asked it to "create a plausible food product" when
+// the barcode wasn't recognized, fabricating data rather than reporting
+// an honest miss. Calorie API's real barcode endpoint checks its own
+// catalog first, falls back to Open Food Facts, and returns a genuine
+// 404 ("Food not found for barcode") when neither has it - that 404 is
+// a real, expected outcome here, not an error condition, so it's
+// returned as { found: false } rather than thrown, letting the client
+// route to manual search exactly as Calorie API's own docs recommend,
+// instead of inventing a product that doesn't exist.
+export const lookupCalorieApiBarcode = onCall(
+  { secrets: [CALORIE_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { barcode } = req.data;
+    if (!barcode) {
+      throw new HttpsError('invalid-argument', 'barcode required');
+    }
+
+    const res = await fetch(`${CALORIE_API_BASE_URL}/search/barcode/${encodeURIComponent(barcode)}`, {
+      headers: { 'X-API-Key': CALORIE_API_KEY.value() }
+    });
+
+    if (res.status === 404) {
+      return { found: false };
+    }
+
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      console.error('[lookupCalorieApiBarcode] request failed', { status: res.status, body: bodyText });
+      throw new HttpsError('internal', `Calorie API barcode lookup failed: ${res.status} - ${bodyText}`);
+    }
+
+    const data = await res.json();
+    return { found: true, ...data };
+  }
+);
+
 export const onWorkoutComplete = onDocumentCreated(
   { document: 'workouts/{workoutId}', region: 'us-central1' },
   async (event) => {
@@ -534,6 +907,44 @@ export const onWorkoutComplete = onDocumentCreated(
         });
       }
     }
+
+    // Real duel progress, computed and written server-side because
+    // neither participant's device can read the other's private workout
+    // history directly (see firestore.rules: workouts/{id} is
+    // owner-only read) - this is the only place duel progress is ever
+    // written, clients only ever read it. workout_count duels get +1
+    // per completed workout; calories/duration duels get the real value
+    // straight off this completion event, never estimated.
+    // first_to_target duels settle the instant someone reaches the
+    // target, right here. most_by_deadline duels are deliberately NOT
+    // settled here - "most by a date" has no single completion event to
+    // hook, so that mode is settled by real deadline comparison
+    // client-side instead (see app/social.jsx).
+    const duelsSnap = await db.collection('duels')
+      .where('participantIds', 'array-contains', userId)
+      .where('status', '==', 'active')
+      .get();
+
+    duelsSnap.docs.forEach((docSnap) => {
+      const duel = docSnap.data();
+      let delta = 0;
+      if (duel.type === 'workout_count') delta = 1;
+      else if (duel.type === 'calories') delta = data.caloriesBurned || 0;
+      else if (duel.type === 'duration') delta = data.duration || 0;
+      if (delta <= 0) return;
+
+      const currentProgress = duel.progress?.[userId] || 0;
+      const newProgress = currentProgress + delta;
+      const update = { [`progress.${userId}`]: newProgress };
+
+      if (duel.mode === 'first_to_target' && newProgress >= duel.goalTarget) {
+        update.status = 'completed';
+        update.winnerId = userId;
+        update.completedAt = FieldValue.serverTimestamp();
+      }
+      batch.update(docSnap.ref, update);
+    });
+
     await batch.commit();
 
     const devicesSnap = await db.
@@ -553,6 +964,88 @@ export const onWorkoutComplete = onDocumentCreated(
           body: 'Great work! Your stats have been updated.'
         }
       });
+    }
+  }
+);
+
+// Real fix for Instagram recipe import: confirmed directly, in-app
+// requests to Instagram from the user's phone get served a generic
+// blocked/login-wall page (HTTP 200, title="Instagram", login/error
+// markers present) even though the exact same request via curl from a
+// dev/datacenter environment succeeds and returns the real post
+// content, including the caption, unchanged. This runs the fetch
+// server-side instead, from Google Cloud's own network - matching the
+// network profile that has been confirmed to work - rather than from
+// the device directly. Uses the same, already-verified extraction
+// pattern as the app's own recipeExtractionService.js.
+export const instagramEmbed = onRequest(
+  { region: 'us-central1', cors: true },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const { url } = req.body || {};
+    if (!url || typeof url !== 'string') {
+      res.status(400).json({ error: 'Missing "url" in request body' });
+      return;
+    }
+
+    try {
+      const parsed = new URL(url);
+      let path = parsed.pathname;
+      if (!path.endsWith('/')) path += '/';
+      const embedUrl = `${parsed.origin}${path}embed/captioned/`;
+
+      const response = await fetch(embedUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
+      });
+
+      if (!response.ok) {
+        res.status(502).json({ error: `Instagram embed page returned HTTP ${response.status}` });
+        return;
+      }
+
+      const html = await response.text();
+
+      const captionMatch = html.match(/"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"((?:[^"\\]|\\.)*)"/);
+      if (!captionMatch) {
+        const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+        const hasPartialMarker = html.includes('edge_media_to_caption');
+        const hasLoginMarker = /log ?in|Log In|challenge|rate.?limit|Sorry, this page/i.test(html);
+        res.status(404).json({
+          error: `No caption pattern found (server-side fetch): HTTP ${response.status}, ${html.length} chars, title="${titleMatch?.[1] || 'none'}", contains "edge_media_to_caption" substring: ${hasPartialMarker}, login/error markers present: ${hasLoginMarker}`
+        });
+        return;
+      }
+
+      let caption;
+      try {
+        caption = JSON.parse(`"${captionMatch[1]}"`);
+      } catch (e) {
+        res.status(500).json({ error: `Caption pattern matched but failed to JSON-decode: ${e?.message}` });
+        return;
+      }
+      if (!caption) {
+        res.status(404).json({ error: 'Caption pattern matched but decoded to empty string' });
+        return;
+      }
+
+      const usernameMatch = html.match(/"owner":\{"id":"[^"]*","username":"((?:[^"\\]|\\.)*)"/);
+      const thumbnailMatch = html.match(/"thumbnail_src":"((?:[^"\\]|\\.)*)"/);
+      let username = null;
+      let thumbnail = null;
+      try {
+        if (usernameMatch) username = JSON.parse(`"${usernameMatch[1]}"`);
+        if (thumbnailMatch) thumbnail = JSON.parse(`"${thumbnailMatch[1]}"`);
+      } catch {
+        // caption is the essential piece here, keep it regardless
+      }
+
+      res.status(200).json({ caption, username, thumbnail });
+    } catch (error) {
+      res.status(500).json({ error: `Server error: ${error?.message}` });
     }
   }
 );

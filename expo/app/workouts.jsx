@@ -1,149 +1,129 @@
 import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import EmptyState from '@/src/components/EmptyState';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, Pressable, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchExercises } from '@/services/exerciseDbService';
-
-/* Ã¢ÂÂÃ¢ÂÂ Static placeholder data Ã¢ÂÂÃ¢ÂÂ */
-
-const FEATURED_WORKOUTS = [
-  { id: '1', title: 'Full Body HIIT', subtitle: '30 min \u2022 Intermediate' },
-  { id: '2', title: 'Upper Body Strength', subtitle: '45 min \u2022 Advanced' },
-  { id: '3', title: 'Core Crusher', subtitle: '20 min \u2022 Beginner' },
-  { id: '4', title: 'Leg Day', subtitle: '40 min \u2022 Intermediate' },
-  { id: '5', title: 'Cardio Blast', subtitle: '25 min \u2022 Beginner' },
-];
-
-const PROGRAMS = [
-  { id: '1', title: '12-Week Shred', subtitle: '12 weeks \u2022 4x/week' },
-  { id: '2', title: 'Beginner Basics', subtitle: '8 weeks \u2022 3x/week' },
-  { id: '3', title: 'Marathon Prep', subtitle: '16 weeks \u2022 5x/week' },
-  { id: '4', title: 'Yoga Flow', subtitle: '6 weeks \u2022 4x/week' },
-  { id: '5', title: 'Strength Builder', subtitle: '10 weeks \u2022 4x/week' },
-];
-
-const YOUTUBE_WORKOUTS = [
-  { id: '1', channel: 'JEFIT', title: '15 Min Full Body No Equipment', duration: '15:32' },
-  { id: '2', channel: 'Blogilates', title: 'Ab Workout for Beginners', duration: '12:45' },
-  { id: '3', channel: 'MadFit', title: 'Intense HIIT Cardio', duration: '22:10' },
-  { id: '4', channel: 'Athlean-X', title: 'Perfect Push-Up Workout', duration: '18:03' },
-  { id: '5', channel: 'Pamela Reif', title: '20 Min Full Body Stretch', duration: '20:00' },
-];
-
-/* Ã¢ÂÂÃ¢ÂÂ Section header Ã¢ÂÂÃ¢ÂÂ */
+import { useExerciseStore } from '@/store/exerciseStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useUserStore } from '@/store/userStore';
 
 function SectionHeader({ title, onViewAll }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Pressable onPress={onViewAll}>
-        <Text style={styles.viewAll}>View All</Text>
-      </Pressable>
+      {onViewAll && (
+        <Pressable onPress={onViewAll}>
+          <Text style={styles.viewAll}>View All</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Cards Ã¢ÂÂÃ¢ÂÂ */
-
-function FeaturedCard({ item }) {
+function StatBox({ value, label }) {
   return (
-    <Pressable
-      style={styles.featuredCard}
-      onPress={() => router.push(`/workout/${item.id}`)}
-    >
-      <View style={styles.featuredImage}>
-        <Ionicons name="barbell-outline" size={32} color="#999" />
-      </View>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+    <View style={styles.statBox}>
+      <Text style={styles.statBoxValue}>{value}</Text>
+      <Text style={styles.statBoxLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function ExerciseCard({ item }) {
+  const subtitle = [item.bodyParts?.[0], item.equipments?.[0]].filter(Boolean).join(' · ');
+  return (
+    <Pressable style={styles.featuredCard} onPress={() => router.push(`/exercise/${item.exerciseId}`)}>
+      {item.gifUrl ? (
+        <Image source={{ uri: item.gifUrl }} style={styles.featuredImage} resizeMode="cover" />
+      ) : (
+        <View style={styles.featuredImage}>
+          <Ionicons name="barbell-outline" size={32} color="#999" />
+        </View>
+      )}
+      <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+      <Text style={styles.cardSubtitle} numberOfLines={1}>{subtitle}</Text>
     </Pressable>
   );
 }
 
-function ProgramCard({ item }) {
+function MyWorkoutCard({ item }) {
+  const subtitle = [item.duration ? `${item.duration} min` : null, item.difficulty]
+    .filter(Boolean).join(' · ');
   return (
-    <Pressable
-      style={styles.programCard}
-      onPress={() => {
-        // TODO: navigate to program detail when route exists
-        router.push(`/workout/${item.id}`);
-      }}
-    >
+    <Pressable style={styles.programCard} onPress={() => router.push(`/workout/${item.id}`)}>
       <View style={styles.programImage}>
-        <Ionicons name="calendar-outline" size={28} color="#999" />
+        <Ionicons name="clipboard-outline" size={28} color="#999" />
       </View>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+      <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+      <Text style={styles.cardSubtitle} numberOfLines={1}>{subtitle}</Text>
     </Pressable>
   );
 }
-
-function YouTubeCard({ item }) {
-  return (
-    <Pressable
-      style={styles.youtubeCard}
-      onPress={() => {
-        // TODO: open YouTube link or in-app player
-      }}
-    >
-      <View style={styles.youtubeThumbnail}>
-        <View style={styles.playButton}>
-          <Ionicons name="play" size={20} color="#FFF" />
-        </View>
-        <View style={styles.durationBadge}>
-          <Text style={styles.durationText}>{item.duration}</Text>
-        </View>
-      </View>
-      <Text style={styles.channelName}>{item.channel}</Text>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-    </Pressable>
-  );
-}
-
-/* Ã¢ÂÂÃ¢ÂÂ Main screen Ã¢ÂÂÃ¢ÂÂ */
 
 export default function WorkoutsScreen() {
-  const [apiExercises, setApiExercises] = useState([]);
-  const [isLoadingExercises, setIsLoadingExercises] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const loadExercises = async () => {
-    try {
-      const result = await fetchExercises({ limit: 10 });
-      const exercises = result?.data || result || [];
-      if (Array.isArray(exercises)) {
-        setApiExercises(exercises.map(e => ({
-          id: e.id || e.exerciseId,
-          title: e.name || 'Exercise',
-          subtitle: (e.bodyPart || '') + (e.equipment ? ' · ' + e.equipment : ''),
-          gifUrl: e.gifUrl || null,
-          bodyPart: e.bodyPart || '',
-          target: e.target || '',
-        })));
-      }
-    } catch (e) {
-      console.warn('ExerciseDB fetch failed:', e?.message);
-    } finally {
-      setIsLoadingExercises(false);
-    }
-  };
+  const { user } = useUserStore();
+  const {
+    exercises, isLoading: isLoadingExercises, loadExercises,
+  } = useExerciseStore();
+  const {
+    workouts, completedWorkouts, loadWorkoutTemplates, getWorkoutStreak,
+    workoutRecommendation, isLoadingRecommendation,
+    loadWorkoutRecommendation, generateNewWorkoutRecommendation,
+  } = useWorkoutStore();
 
   useEffect(() => {
-    loadExercises();
+    if (exercises.length === 0) loadExercises(true);
   }, []);
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadWorkoutTemplates(user.uid);
+      loadWorkoutRecommendation(user.uid);
+    }
+  }, [user?.uid]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadExercises();
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        loadExercises(true),
+        user?.uid ? loadWorkoutTemplates(user.uid) : Promise.resolve(),
+        user?.uid ? loadWorkoutRecommendation(user.uid) : Promise.resolve(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const displayWorkouts = apiExercises.length > 0 ? apiExercises : FEATURED_WORKOUTS;
-return (
+  const handleGetRecommendation = async () => {
+    try {
+      await generateNewWorkoutRecommendation({
+        uid: user?.uid,
+        fitnessLevel: user?.fitnessLevel,
+        goals: user?.goals,
+      });
+    } catch (e) {
+      // Errors are already logged in the store; a real, visible failure
+      // state renders below via isLoadingRecommendation/workoutRecommendation.
+    }
+  };
+
+  const streak = getWorkoutStreak();
+  const thisWeekCount = (completedWorkouts || []).filter((w) => {
+    const d = new Date(w.completedAt || w.timestamp);
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return d >= weekAgo;
+  }).length;
+
+  const featuredExercises = exercises.slice(0, 10);
+  const planDays = workoutRecommendation?.structuredData?.days || [];
+
+  return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         style={styles.scroll}
@@ -153,7 +133,6 @@ return (
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
         }
       >
-        {/* Zown logo */}
         <View style={styles.logoRow}>
           <Image
             source={require('@/assets/branding/zown-logo-512.png')}
@@ -162,214 +141,169 @@ return (
           />
         </View>
 
-        {/* Page title */}
         <Text style={styles.pageTitle}>Workouts</Text>
 
-        {/* Loading and Empty States */}
-        {isLoadingExercises ? (
-          <View style={{ marginBottom: 20 }}>
+        <SectionHeader title="Your Stats" />
+        <View style={styles.statsRow}>
+          <StatBox value={completedWorkouts?.length ?? 0} label="Total Workouts" />
+          <StatBox value={streak.current} label="Day Streak" />
+          <StatBox value={thisWeekCount} label="This Week" />
+        </View>
+
+        <SectionHeader title="Recommended For You" />
+        <View style={styles.recCard}>
+          {isLoadingRecommendation ? (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <ActivityIndicator color="#000" />
+              <Text style={styles.recLoadingText}>Building your plan…</Text>
+            </View>
+          ) : planDays.length > 0 ? (
+            <View>
+              <Text style={styles.recSubtitle}>Based on your recent workouts and goals</Text>
+              {planDays.slice(0, 3).map((day, i) => (
+                <View key={i} style={[styles.recDayRow, i === Math.min(2, planDays.length - 1) && { borderBottomWidth: 0 }]}>
+                  <Text style={styles.recDayLabel}>{day.day}</Text>
+                  <Text style={styles.recDayFocus} numberOfLines={1}>{day.focus}</Text>
+                </View>
+              ))}
+              <Pressable style={styles.recBtn} onPress={handleGetRecommendation}>
+                <Text style={styles.recBtnText}>Refresh Plan</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.recSubtitle}>
+                Get a personalized 7-day plan built from your real workout history and goals.
+              </Text>
+              <Pressable style={styles.recBtn} onPress={handleGetRecommendation}>
+                <Text style={styles.recBtnText}>Get Recommendation</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+
+        <SectionHeader
+          title="Browse Exercises"
+          onViewAll={() => router.push('/exercise')}
+        />
+        {isLoadingExercises && featuredExercises.length === 0 ? (
+          <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
             <LoadingSkeleton width="100%" height={150} borderRadius={12} style={{ marginBottom: 12 }} />
-            <LoadingSkeleton width="100%" height={150} borderRadius={12} />
           </View>
-        ) : displayWorkouts.length === 0 ? (
-          <EmptyState
-            icon="Dumbbell"
-            title="No workouts yet"
-            subtitle="Start your first workout to track your progress"
-            buttonText="Browse Workouts"
-            onPress={() => {}}
-          />
-        ) : null}
-        {/* Carousel 1 - Featured Workouts */}
-        <SectionHeader
-          title="Featured Workouts"
-          onViewAll={() => {
-            // TODO: navigate to filtered workouts list
-            router.push('/workouts');
-          }}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-        >
-          {displayWorkouts.map((item) => (
-            <FeaturedCard key={item.id} item={item} />
-          ))}
-        </ScrollView>
+        ) : featuredExercises.length === 0 ? (
+          <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
+            <EmptyState
+              icon="Dumbbell"
+              title="Couldn't load exercises"
+              subtitle="Pull down to refresh and try again"
+              buttonText="Retry"
+              onPress={() => loadExercises(true)}
+            />
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carousel}
+          >
+            {featuredExercises.map((item) => (
+              <ExerciseCard key={item.exerciseId} item={item} />
+            ))}
+          </ScrollView>
+        )}
 
-        {/* Carousel 2 - Programs */}
-        <SectionHeader
-          title="Programs"
-          onViewAll={() => {
-            // TODO: navigate to programs list
-            router.push('/workouts');
-          }}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-        >
-          {PROGRAMS.map((item) => (
-            <ProgramCard key={item.id} item={item} />
-          ))}
-        </ScrollView>
+        <SectionHeader title="My Workouts" />
+        {workouts.length === 0 ? (
+          <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
+            <EmptyState
+              icon="Dumbbell"
+              title="No workouts yet"
+              subtitle="Get a real workout built for you in seconds"
+              buttonText="Quick Workout"
+              onPress={() => router.push('/workout/quick')}
+            />
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carousel}
+          >
+            {workouts.map((item) => (
+              <MyWorkoutCard key={item.id} item={item} />
+            ))}
+          </ScrollView>
+        )}
 
-        {/* Carousel 3 - YouTube Workouts */}
-        <SectionHeader
-          title="YouTube Workouts"
-          onViewAll={() => {
-            // TODO: navigate to YouTube workouts list
-          }}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-        >
-          {YOUTUBE_WORKOUTS.map((item) => (
-            <YouTubeCard key={item.id} item={item} />
-          ))}
-        </ScrollView>
+        <Pressable style={styles.createBtn} onPress={() => router.push('/workout/quick')}>
+          <Ionicons name="flash" size={20} color="#FFF" />
+          <Text style={styles.createBtnText}>Quick Workout</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  logoRow: {
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  logo: {
-    width: 120,
-    height: 36,
-  },
-  pageTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#000',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
+  logoRow: { alignItems: 'center', marginTop: 8, marginBottom: 12 },
+  logo: { width: 120, height: 36 },
+  pageTitle: { fontSize: 24, fontWeight: '800', color: '#000', marginBottom: 20, paddingHorizontal: 20 },
 
-  /* Section header */
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000',
-  },
-  viewAll: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '600',
-  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
+  viewAll: { fontSize: 13, color: '#666', fontWeight: '600' },
 
-  /* Carousel */
-  carousel: {
-    paddingLeft: 20,
-    paddingRight: 6,
-    marginBottom: 24,
+  statsRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 12, marginBottom: 24 },
+  statBox: {
+    flex: 1, backgroundColor: '#F5F5F5', borderRadius: 14, paddingVertical: 14, alignItems: 'center',
   },
+  statBoxValue: { fontSize: 17, fontWeight: '800', color: '#000' },
+  statBoxLabel: { fontSize: 11, color: '#999', marginTop: 2, textAlign: 'center' },
 
-  /* Featured cards */
-  featuredCard: {
-    width: 200,
-    marginRight: 14,
+  recCard: {
+    marginHorizontal: 20, marginBottom: 24, backgroundColor: '#F5F5F5',
+    borderRadius: 16, padding: 16,
   },
+  recSubtitle: { fontSize: 13, color: '#666', lineHeight: 18, marginBottom: 14 },
+  recLoadingText: { fontSize: 13, color: '#999', marginTop: 8 },
+  recDayRow: {
+    flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: '#E5E5E5',
+  },
+  recDayLabel: { fontSize: 13, fontWeight: '700', color: '#000', width: 90 },
+  recDayFocus: { fontSize: 13, color: '#666', flex: 1, textAlign: 'right' },
+  recBtn: {
+    marginTop: 14, backgroundColor: '#000', borderRadius: 10, paddingVertical: 12, alignItems: 'center',
+  },
+  recBtnText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+
+  carousel: { paddingLeft: 20, paddingRight: 6, marginBottom: 24 },
+
+  featuredCard: { width: 200, marginRight: 14 },
   featuredImage: {
-    height: 120,
-    borderRadius: 14,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 120, borderRadius: 14, backgroundColor: '#F0F0F0',
+    justifyContent: 'center', alignItems: 'center',
   },
 
-  /* Program cards */
-  programCard: {
-    width: 160,
-    marginRight: 14,
-  },
+  programCard: { width: 160, marginRight: 14 },
   programImage: {
-    height: 100,
-    borderRadius: 14,
-    backgroundColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: 100, borderRadius: 14, backgroundColor: '#E8E8E8',
+    justifyContent: 'center', alignItems: 'center',
   },
 
-  /* YouTube cards */
-  youtubeCard: {
-    width: 220,
-    marginRight: 14,
-  },
-  youtubeThumbnail: {
-    height: 130,
-    borderRadius: 14,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  durationBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  durationText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: '#000', marginTop: 8 },
+  cardSubtitle: { fontSize: 12, color: '#999', marginTop: 2 },
 
-  /* Shared card text */
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 8,
+  createBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#000', borderRadius: 14, paddingVertical: 14,
+    marginHorizontal: 20, marginTop: 4,
   },
-  cardSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  channelName: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 6,
-  },
+  createBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
 });

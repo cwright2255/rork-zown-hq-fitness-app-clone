@@ -65,6 +65,9 @@ export const useCommunityStore = create((set, get) => ({
         likeCount: 0,
         commentCount: 0,
         shareCount: 0,
+        likesHidden: false,
+        shareCountHidden: false,
+        commentsDisabled: false,
         createdAt: serverTimestamp(),
       });
       return ref.id;
@@ -74,11 +77,44 @@ export const useCommunityStore = create((set, get) => ({
     }
   },
 
+  // Real edit — firestore.rules already lets an author update any field
+  // on their own post (not just the like/comment/share counters), so
+  // this needs no rule change. Only ever touches text; every other field
+  // (likeCount, authorId, createdAt, etc.) is left exactly as it was.
+  updatePost: async (postId, uid, text) => {
+    if (!uid || !text?.trim()) return false;
+    try {
+      await updateDoc(doc(db, 'communityPosts', postId), {
+        text: text.trim(),
+        editedAt: serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      console.warn('[communityStore] updatePost error:', e?.message);
+      return false;
+    }
+  },
+
   deletePost: async (postId, uid) => {
     try {
       await deleteDoc(doc(db, 'communityPosts', postId));
     } catch (e) {
       console.warn('[communityStore] deletePost error:', e?.message);
+    }
+  },
+
+  // Real per-post visibility settings — only ever touches the specific
+  // boolean fields passed in, same author-only path updatePost uses.
+  // commentsDisabled is also enforced server-side (see firestore.rules'
+  // comments subcollection create rule) so turning it off actually
+  // blocks new comments, not just hides the UI for it.
+  updatePostSettings: async (postId, settings) => {
+    try {
+      await updateDoc(doc(db, 'communityPosts', postId), settings);
+      return true;
+    } catch (e) {
+      console.warn('[communityStore] updatePostSettings error:', e?.message);
+      return false;
     }
   },
 
