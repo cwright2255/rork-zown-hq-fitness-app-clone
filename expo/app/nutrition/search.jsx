@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Star } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { searchFoods } from '@/services/calorieApiService';
+import { searchFoods, gradeToStars } from '@/services/calorieApiService';
+
+// Real, new 1-5 star display - same component/logic as app/nutrition.jsx,
+// duplicated locally rather than shared since these are two small,
+// screen-specific presentational components, not shared business logic.
+function StarRating({ stars, size = 12 }) {
+  if (!stars) return null;
+  return (
+    <View style={{ flexDirection: 'row', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star key={i} size={size} color={i <= stars ? '#F59E0B' : '#DDDDDD'} fill={i <= stars ? '#F59E0B' : 'transparent'} />
+      ))}
+    </View>
+  );
+}
 
 export default function SearchFoodScreen() {
   const { mealId, scannedFood } = useLocalSearchParams();
@@ -90,8 +105,11 @@ export default function SearchFoodScreen() {
                       <Text style={styles.foodName}>{item.name}</Text>
                       <Text style={styles.foodServing}>{item.servingSize}</Text>
                     </View>
-                    <View style={styles.calBadge}>
-                      <Text style={styles.calBadgeText}>{item.calories} kcal</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <StarRating stars={item.nutritionalScore?.score ? gradeToStars(item.nutritionalScore.score) : null} />
+                      <View style={styles.calBadge}>
+                        <Text style={styles.calBadgeText}>{item.calories} kcal</Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 )}
@@ -115,8 +133,11 @@ export default function SearchFoodScreen() {
                 <Text style={styles.foodName}>{item.name}</Text>
                 <Text style={styles.foodServing}>{item.servingSize || '100g'}</Text>
               </View>
-              <View style={styles.calBadge}>
-                <Text style={styles.calBadgeText}>{item.calories} kcal</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <StarRating stars={item.nutritionalScore?.score ? gradeToStars(item.nutritionalScore.score) : null} />
+                <View style={styles.calBadge}>
+                  <Text style={styles.calBadgeText}>{item.calories} kcal</Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}

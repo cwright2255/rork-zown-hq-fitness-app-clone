@@ -45,7 +45,7 @@ const MENU_GROUPS = [
     label: 'Health & Nutrition',
     items: [
       { icon: 'heart-outline', label: 'Health Dashboard', route: '/health' },
-      { icon: 'nutrition-outline', label: 'Meal Log', route: '/nutrition/log' },
+      { icon: 'nutrition-outline', label: 'Meal Log', route: '/nutrition' },
       { icon: 'bookmark-outline', label: 'Recipes Saved', route: '/recipes' },
     ],
   },

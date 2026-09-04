@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const HOME_TABS = [
   { key: 'workouts', label: 'Workouts', icon: 'barbell-outline', activeIcon: 'barbell', route: '/workouts' },
-  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
+  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
   { key: 'shop', label: 'Shop', icon: 'cart-outline', activeIcon: 'cart', route: '/shop' },
   { key: 'profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/profile' },
@@ -23,7 +23,7 @@ const WORKOUT_TABS = [
 
 const HEALTH_TABS = [
   { key: 'health', label: 'Health', icon: 'heart-outline', activeIcon: 'heart', route: '/health' },
-  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition/log' },
+  { key: 'nutrition', label: 'Nutrition', icon: 'nutrition-outline', activeIcon: 'nutrition', route: '/nutrition' },
   { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/hq' },
   { key: 'recipes', label: 'Recipes', icon: 'restaurant-outline', activeIcon: 'restaurant', route: '/recipes' },
   { key: 'calendar', label: 'Calendar', icon: 'calendar-outline', activeIcon: 'calendar', route: '/calendar' },

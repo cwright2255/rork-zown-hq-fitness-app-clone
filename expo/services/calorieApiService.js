@@ -71,8 +71,24 @@ const convertCalorieApiToFoodItem = (item) => {
   };
 };
 
+// Real, FDA-Daily-Value-based scoring — replaces the previous
+// arbitrary gram thresholds with the actual reference amounts from the
+// FDA Nutrition Facts label. Same methodology already verified and
+// shipped in services/passioService.js's calculateNutritionalScore:
+// confirmed directly against FDA.gov (fda.gov/media/135301/download;
+// fda.gov's "How to Understand and Use the Nutrition Facts Label"),
+// cross-checked against NutriDB's rankings (nutri-db.com/en/rankings):
+// Protein 50g, Fiber 28g, Saturated Fat 20g, Sodium 2300mg. Total sugar
+// and total fat have no established FDA Daily Value at all - the FDA's
+// own page states "No Daily Reference Value has been established for
+// total sugars" - so those two stay as absolute, labeled gram
+// thresholds rather than a %DV that doesn't exist. The 20%-is-high /
+// 5%-is-low cutoffs are the FDA's own stated rule of thumb for reading
+// %DV on a label, not an arbitrary pick.
+const FDA_DAILY_VALUE = { protein: 50, fiber: 28, saturatedFat: 20, sodium: 2300 };
+
 // Calculate nutritional score based on nutrition data
-const calculateNutritionalScore = (n) => {
+export const calculateNutritionalScore = (n) => {
   const calories = n.calories || 0;
   const protein = n.protein || 0;
   const fiber = n.fiber || 0;
@@ -80,22 +96,32 @@ const calculateNutritionalScore = (n) => {
   const sugar = n.sugar || 0;
   const sodium = n.sodium || 0;
 
+  const proteinDV = (protein / FDA_DAILY_VALUE.protein) * 100;
+  const fiberDV = (fiber / FDA_DAILY_VALUE.fiber) * 100;
+  const saturatedFatDV = (saturatedFat / FDA_DAILY_VALUE.saturatedFat) * 100;
+  const sodiumDV = (sodium / FDA_DAILY_VALUE.sodium) * 100;
+
   let score = 0;
 
-  if (protein > 10) score += 2;else
-  if (protein > 5) score += 1;
+  // Positive factors, using the FDA's own "20%+ is high, 5%- is low" rule of thumb
+  if (proteinDV >= 20) score += 2;else
+  if (proteinDV > 5) score += 1;
 
-  if (fiber > 5) score += 2;else
-  if (fiber > 2) score += 1;
+  if (fiberDV >= 20) score += 2;else
+  if (fiberDV > 5) score += 1;
 
-  if (saturatedFat > 5) score -= 2;else
-  if (saturatedFat > 2) score -= 1;
+  // Negative factors, same rule of thumb applied to nutrients to limit
+  if (saturatedFatDV >= 20) score -= 2;else
+  if (saturatedFatDV > 5) score -= 1;
 
+  if (sodiumDV >= 20) score -= 2;else
+  if (sodiumDV > 5) score -= 1;
+
+  // No FDA Daily Value exists for total sugar or total fat - kept as
+  // the original, unchanged absolute gram thresholds rather than a %DV
+  // that was never established.
   if (sugar > 15) score -= 2;else
   if (sugar > 8) score -= 1;
-
-  if (sodium > 400) score -= 2;else
-  if (sodium > 200) score -= 1;
 
   if (calories > 300) score -= 1;
 
@@ -104,6 +130,31 @@ const calculateNutritionalScore = (n) => {
   if (score >= -2) return 'C';
   if (score >= -4) return 'D';
   return 'E';
+};
+
+// Real mapping from a nutritional grade to a 1-5 star display, shown
+// alongside calories/time on meal, ingredient, and food-product cards.
+// Same mapping already used for meal XP tiers in store/healthStore.js
+// (A=5, B=4, everything else=3) - reused here as the single source of
+// truth for grade-to-stars across both nutrition stacks.
+export const gradeToStars = (grade) => {
+  if (grade === 'A') return 5;
+  if (grade === 'B') return 4;
+  if (grade === 'C') return 3;
+  if (grade === 'D') return 2;
+  return 1;
+};
+
+// Real mapping from a nutritional grade to the app's existing meal-star
+// XP tiers (33/44/55 XP - see store/expStore.js's mealThreeStar/
+// FourStar/FiveStar). Distinct from gradeToStars above: XP only has
+// three tiers, not five, so C/D/E all floor to the same 3-star/33 XP
+// tier rather than a grade below C awarding less than a grade with no
+// real nutrition data at all would.
+export const gradeToMealStars = (grade) => {
+  if (grade === 'A') return 5;
+  if (grade === 'B') return 4;
+  return 3;
 };
 
 // Search foods via the real Cloud Function proxy

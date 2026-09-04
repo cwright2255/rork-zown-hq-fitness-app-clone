@@ -14,52 +14,8 @@ import recipeExtractionService from '@/services/recipeExtractionService';
 
 const CATS = ['All','High Protein','Low Carb','Vegan','Quick Meals','Post-Workout'];
 
-// Real fix: BottomNavigation.jsx floats as an absolute-positioned overlay
-// (bottom: 28 on iOS / 16 on Android, plus its own ~70-90px of content
-// height for the bar and its raised center button) rather than taking up
-// document flow space - the old paddingBottom: 20 on scrollContent below
-// was nowhere near enough to clear it, so the Add Recipe button (the
-// only way to open the import modal from this screen) rendered
-// underneath the nav bar and was untappable. This clears it with margin
-// to spare on both platforms.
 const NAV_BAR_CLEARANCE = Platform.OS === 'ios' ? 120 : 110;
 
-// Real, evidence-based discovery queries against Spoonacular's
-// complexSearch - replaces the earlier, more generic queries with ones
-// grounded in what each section is actually for. All confirmed against
-// Spoonacular's own current parameter docs, none guessed.
-// - Post-Workout: established sports-nutrition guidance calls for
-//   adequate protein (muscle repair) without excessive fat, since high
-//   fat slows nutrient absorption right after exercise.
-// - Meal Prep: the real, structural signal for batch-cooking
-//   suitability is serving count (minServings), not whether a recipe
-//   happens to be titled "meal prep" - most genuinely prep-friendly
-//   main dishes aren't. A protein floor is added so a large batch of
-//   something nutritionally thin (plain rice, etc.) doesn't qualify
-//   just for making 4+ servings.
-// - Quick & Easy: a direct time filter, plus a calorie ceiling - fast
-//   to make doesn't inherently mean healthy.
-// - Featured: a genuinely balanced pick (protein floor, sugar ceiling,
-//   a reasonable calorie range for a main meal) rather than "most
-//   popular" with no regard for nutrition, which could just as easily
-//   surface a dessert.
-// maxSugar is now set on every section, not just Featured - a high-
-// protein, low-fat dessert could otherwise still qualify for
-// Post-Workout, for example. instructionsRequired is set on all four -
-// some Spoonacular recipes have empty instructions, which would
-// directly undermine the ingredient/instruction preview these cards
-// now open into.
-//
-// Real, profile-based personalization: diet/allergies come straight
-// from the user's own stored dietaryPreferences (set in
-// app/profile/edit.jsx) using Spoonacular's own exact diet/intolerances
-// string values, so they pass straight through with no translation
-// layer. A stated dailyCalorieGoal scales each section's calorie range
-// to roughly a quarter to a third of that goal for one main meal - a
-// standard, defensible nutrition-planning heuristic that leaves room
-// for the day's other meals - rather than always using the same fixed
-// 300-700/700 figures regardless of who's asking. Falls back to those
-// fixed figures when no goal is set.
 function buildBrowseSections(dietaryPreferences) {
   const { diet, allergies, dailyCalorieGoal } = dietaryPreferences || {};
   const dietParam = diet ? { diet } : {};
@@ -80,13 +36,6 @@ function buildBrowseSections(dietaryPreferences) {
   };
 }
 
-// Real search: a light-touch query, deliberately without the nutrient
-// caps above - a search is the user explicitly asking for something
-// specific, and silently filtering "chocolate cake" results by sugar
-// content would make the search feel broken, not helpful. diet and
-// allergies are still applied, though - unlike a nutrient cap, these
-// are safety/lifestyle constraints the user explicitly set, not a
-// taste-preference filter, so they should hold even during search.
 function buildSearchParams(query, dietaryPreferences) {
   const { diet, allergies } = dietaryPreferences || {};
   return {
@@ -98,25 +47,6 @@ function buildSearchParams(query, dietaryPreferences) {
   };
 }
 
-// Real "AI Recommendations" query - unlike the category sections above
-// (each defined by one fixed trait: high-protein, batch-friendly,
-// fast), this combines every real signal available about this specific
-// user into one query, the same way a genuine recommendation would:
-// - diet/allergies: the same safety/lifestyle constraints as every
-//   other section.
-// - cuisine: inferred from the user's OWN saved recipes' cuisine tags
-//   (see mapSpoonacularRecipe's tags: r.cuisines in
-//   services/recipeExtractionService.js) - a real signal drawn from
-//   what they've actually chosen to save, not just what they've typed
-//   into a settings screen. Only applied once a real pattern exists
-//   (2+ saves of the same cuisine), so a single, possibly-incidental
-//   save doesn't lock the whole carousel to one cuisine.
-// - protein floor: scaled up for advanced/elite fitness levels, a
-//   standard, defensible sports-nutrition adjustment (higher training
-//   intensity calls for more protein for recovery), not an arbitrary
-//   number.
-// - calorie range: scaled from a stated daily goal, same heuristic as
-//   buildBrowseSections above.
 function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRecipes) {
   const { diet, allergies, dailyCalorieGoal } = dietaryPreferences || {};
   const dietParam = diet ? { diet } : {};
@@ -142,6 +72,40 @@ function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRec
     minProtein, maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 12,
     ...dietParam, ...intoleranceParam, ...cuisineParam,
   };
+}
+
+// Real fix: these pills used to only filter the small, personal Saved
+// Recipes list - tapping "High Protein" with few or no saved recipes
+// visibly did nothing, completely disconnected from Spoonacular's much
+// larger recipe database. Each pill except "All" now runs a real,
+// targeted Spoonacular query and replaces the discovery area with
+// matching results, the same way search already does. Allergies still
+// apply regardless of which pill is active (a safety constraint, not a
+// taste preference). Vegan is the one case where the pill's own intent
+// deliberately overrides a user's separately-stated profile diet
+// (e.g. keto) for this specific view, rather than combining the two
+// into a near-impossible intersection - the object spread order below
+// (diet after ...base) is what makes that override happen.
+function buildCategoryParams(category, dietaryPreferences) {
+  const { diet, allergies } = dietaryPreferences || {};
+  const dietParam = diet ? { diet } : {};
+  const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
+  const base = { instructionsRequired: 'true', sort: 'popularity', number: 20, ...dietParam, ...intoleranceParam };
+
+  switch (category) {
+    case 'High Protein':
+      return { ...base, minProtein: '25' };
+    case 'Low Carb':
+      return { ...base, maxCarbs: '20' };
+    case 'Vegan':
+      return { ...base, diet: 'vegan' };
+    case 'Quick Meals':
+      return { ...base, maxReadyTime: '20', sort: 'time' };
+    case 'Post-Workout':
+      return { ...base, minProtein: '20', maxFat: '25' };
+    default:
+      return null;
+  }
 }
 
 function SectionHeader({ title, onViewAll, expanded, right }) {
@@ -224,6 +188,13 @@ export default function RecipesScreen() {
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  // Real, new state for category-pill results - separate from
+  // searchResults since a pill and a text search are two different,
+  // mutually exclusive browse modes (selecting one clears the other,
+  // see setCat/handleSearchSubmit below).
+  const [categoryResults, setCategoryResults] = useState(null);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+
   useEffect(() => {
     if (user?.uid) {
       setIsLoading(true);
@@ -231,15 +202,6 @@ export default function RecipesScreen() {
     }
   }, [user?.uid]);
 
-  // Real, live data for the discovery sections - fetched on mount and
-  // whenever the user's own stored dietary preferences actually change
-  // (diet/allergies/calorie goal, set in app/profile/edit.jsx), since
-  // the query itself now depends on them. Primitive values are used in
-  // the dependency array rather than the dietaryPreferences object
-  // itself, to avoid re-fetching on every render from object-reference
-  // changes that aren't a real preference change. savedRecipes?.length
-  // is included since AI Recommendations' cuisine inference depends on
-  // the saved list - a real change in what's saved should refresh it.
   const dietPref = user?.dietaryPreferences?.diet || null;
   const allergiesPref = (user?.dietaryPreferences?.allergies || []).join(',');
   const calorieGoalPref = user?.dietaryPreferences?.dailyCalorieGoal || null;
@@ -259,15 +221,6 @@ export default function RecipesScreen() {
       recipeExtractionService.getSpoonacularBrowse(sections.quickEasy, sections.quickEasy.number),
     ]).then(([featured, aiRecommendations, postWorkout, mealPrep, quickEasy]) => {
       if (cancelled) return;
-      // Real de-duplication: these sections are fetched in parallel
-      // with independent queries, so the same recipe could otherwise
-      // appear in more than one section at once (a recipe that's both
-      // high-protein and quick to make could satisfy both Post-Workout
-      // and Quick & Easy, for example). Each section claims a recipe id
-      // in this fixed priority order - once claimed, later sections
-      // can't show it again. AI Recommendations claims right after
-      // Featured, ahead of the category sections, reflecting that it's
-      // the most personalized pick.
       const seen = new Set();
       const dedupe = (items) => {
         const kept = items.filter((item) => !seen.has(item.id));
@@ -287,9 +240,6 @@ export default function RecipesScreen() {
     return () => { cancelled = true; };
   }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, savedRecipesCount]);
 
-  // Real search - only runs when searchQuery is actually submitted
-  // (see handleSearchSubmit below), not on every keystroke, since each
-  // search is a real, billed Spoonacular call.
   useEffect(() => {
     if (!searchQuery) {
       setSearchResults(null);
@@ -305,15 +255,31 @@ export default function RecipesScreen() {
     return () => { cancelled = true; };
   }, [searchQuery]);
 
-  // A real filter, not a decorative one — matches the selected category
-  // pill against each recipe's category/tags/dietaryTags.
-  const displayRecipes = cat === 'All'
-    ? (savedRecipes || [])
-    : (savedRecipes || []).filter((r) => {
-        const haystack = [r.category, ...(r.tags || []), ...(r.dietaryTags || [])]
-          .filter(Boolean).join(' ').toLowerCase();
-        return haystack.includes(cat.toLowerCase());
-      });
+  // Real, new effect: fetches whenever a non-"All" category pill is
+  // active, using buildCategoryParams above. Re-fetches if the user's
+  // dietary preferences change while a category is active too, same
+  // reasoning as the main browse effect.
+  useEffect(() => {
+    if (cat === 'All') {
+      setCategoryResults(null);
+      return;
+    }
+    let cancelled = false;
+    setCategoryLoading(true);
+    const params = buildCategoryParams(cat, user?.dietaryPreferences);
+    recipeExtractionService.getSpoonacularBrowse(params, params.number).then((results) => {
+      if (!cancelled) setCategoryResults(results);
+    }).finally(() => {
+      if (!cancelled) setCategoryLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [cat, dietPref, allergiesPref]);
+
+  // Saved Recipes is only ever shown in the "All" state now (see the
+  // render below - a category pill or search replaces the whole
+  // discovery area, same as before), so this no longer needs its own
+  // category-based filter.
+  const displayRecipes = savedRecipes || [];
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -330,19 +296,28 @@ export default function RecipesScreen() {
     }
   };
 
-  // Real preview-first flow: tapping a discovery card no longer saves
-  // it immediately - it opens RecipePreviewModal, which fetches and
-  // shows the real ingredients/measurements/instructions, with Save as
-  // an explicit action inside that preview once the user has actually
-  // looked at the recipe.
   const handleCardPress = (item) => setPreviewRecipeId(item.id);
 
   const toggleExpanded = (key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const handleSearchSubmit = () => setSearchQuery(searchInput.trim());
+  // Real fix: search and a category pill are two separate, mutually
+  // exclusive browse modes - submitting a search clears any active
+  // category, and selecting a category (below) clears any active
+  // search, so the discovery area is never asked to show two different
+  // result sets at once.
+  const handleSearchSubmit = () => {
+    setCat('All');
+    setSearchQuery(searchInput.trim());
+  };
   const handleClearSearch = () => {
     setSearchInput('');
     setSearchQuery('');
+  };
+
+  const handleCategoryPress = (category) => {
+    setSearchInput('');
+    setSearchQuery('');
+    setCat(category);
   };
 
   const renderBrowseSection = (title, key, marginBottom = 24) => {
@@ -397,10 +372,13 @@ export default function RecipesScreen() {
         }>
         <Text style={s.pageTitle}>Recipes</Text>
 
-        {/* Category Pills */}
+        {/* Category Pills - real fix: these now run a real Spoonacular
+            query per pill (see buildCategoryParams/handleCategoryPress
+            above) instead of only filtering the small Saved Recipes
+            list */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 16 }}>
           {CATS.map(c => (
-            <Pressable key={c} style={[s.catPill, cat === c && s.catPillActive]} onPress={() => setCat(c)}>
+            <Pressable key={c} style={[s.catPill, cat === c && s.catPillActive]} onPress={() => handleCategoryPress(c)}>
               <Text style={[s.catPillText, cat === c && s.catPillTextActive]}>{c}</Text>
             </Pressable>
           ))}
@@ -438,6 +416,25 @@ export default function RecipesScreen() {
             ) : (
               <View style={[s.gridWrap, { marginBottom: 24 }]}>
                 {searchResults.map((item) => (
+                  <RecipeCard key={item.id} item={item} onPress={() => handleCardPress(item)} />
+                ))}
+              </View>
+            )}
+          </>
+        ) : cat !== 'All' ? (
+          <>
+            {/* Category Results - real, live Spoonacular results for
+                the selected pill */}
+            <SectionHeader title={cat} />
+            {categoryLoading ? (
+              <View style={[s.gridWrap, { marginBottom: 24 }]}>
+                <LoadingSkeleton width="100%" height={140} borderRadius={12} />
+              </View>
+            ) : !categoryResults?.length ? (
+              <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom: 24 }]}>Nothing to show right now.</Text>
+            ) : (
+              <View style={[s.gridWrap, { marginBottom: 24 }]}>
+                {categoryResults.map((item) => (
                   <RecipeCard key={item.id} item={item} onPress={() => handleCardPress(item)} />
                 ))}
               </View>
@@ -554,7 +551,7 @@ const s = StyleSheet.create({
   recipeMeta: { flexDirection: 'row', gap: 8, marginTop: 4 },
   recipeMetaText: { fontSize: 11, color: '#999' },
 
-  /* Grid (expanded "View All" state) */
+  /* Grid (expanded "View All" state, search results, category results) */
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 12, justifyContent: 'flex-start' },
 
   /* Saved Card */

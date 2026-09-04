@@ -5,6 +5,7 @@ import { useExpStore } from './expStore';
 import { useUserStore } from './userStore';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { gradeToMealStars } from '@/services/calorieApiService';
 
 export const useNutritionStore = create(
   persist(
@@ -148,36 +149,45 @@ export const useNutritionStore = create(
           };
         });
 
-        // Add EXP for logging food - optimized with requestAnimationFrame
-        requestAnimationFrame(() => {
-          try {
-            const addExpActivity = useExpStore.getState().addExpActivity;
-
-            // Determine nutritional quality for EXP calculation
-            let foodQuality = 'threeStar';
-            const proteinPerCalorie = food.protein / (food.calories || 1);
-
-            if (proteinPerCalorie > 0.15 && food.calories < 400) {
-              foodQuality = 'fiveStar';
-            } else if (proteinPerCalorie > 0.1 || food.calories < 300) {
-              foodQuality = 'fourStar';
+        // Real XP award for logging food, now synchronous (removed the
+        // requestAnimationFrame deferral - expStore.js's addExp/
+        // addExpActivity are already synchronous themselves, so this
+        // extra layer only risked out-of-order XP awards if a user
+        // logged multiple foods in quick succession) and based on
+        // actual nutrient quality where it's known, not an ad-hoc
+        // protein-per-calorie ratio. If this food carries a real
+        // nutritionalScore (set when it came from a search result -
+        // see services/calorieApiService.js's calculateNutritionalScore,
+        // which grades A-E using real FDA Daily Value percentages),
+        // that grade decides the stars via gradeToMealStars. For foods
+        // with no computed grade (e.g. a manually-adjusted quantity),
+        // falls back to how complete the food's real nutrition data is
+        // - having calories is 3-star, adding any one macro is 4-star,
+        // having all three (protein/carbs/fat) is 5-star.
+        try {
+          const hasCalories = food.calories != null && food.calories > 0;
+          if (hasCalories) {
+            let stars;
+            if (food.nutritionalScore?.score) {
+              stars = gradeToMealStars(food.nutritionalScore.score);
+            } else {
+              const macroCount = [food.protein, food.carbs, food.fat].filter((v) => v != null && v > 0).length;
+              stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
             }
-
-            // Add the meal activity to the EXP system
-            addExpActivity({
+            const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
+            useExpStore.getState().addExpActivity({
               id: Date.now().toString(),
               type: 'meal',
-              subtype: foodQuality,
-              baseExp: foodQuality === 'fiveStar' ? 55 : foodQuality === 'fourStar' ? 44 : 33,
+              baseExp,
               multiplier: 1.0,
               date: new Date().toISOString().split('T')[0],
-              description: `Logged ${food.name}`,
+              description: `Logged ${food.name} (${stars}-star)`,
               completed: true
             }, useUserStore.getState().user?.uid);
-          } catch (error) {
-            console.error('Failed to add EXP for meal:', error);
           }
-        });
+        } catch (error) {
+          console.error('Failed to add EXP for meal:', error);
+        }
       },
 
       removeFoodFromMeal: (mealId, foodId) => {

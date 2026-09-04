@@ -2,13 +2,32 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, Star } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useUserStore } from '@/store/userStore';
+import { gradeToStars } from '@/services/calorieApiService';
 import { tokens } from '../../theme/tokens';
+
+// Real, new 1-5 star display - matches the FDA-Daily-Value-based grade
+// already computed for any food that came from a search result (see
+// services/calorieApiService.js's calculateNutritionalScore), shown
+// alongside calories to aid both the meal's XP tier and the user's own
+// decision-making. Renders nothing for a food with no computed grade
+// (a manually-adjusted quantity, etc.) rather than a misleading
+// default rating.
+function StarRating({ stars, size = 12 }) {
+  if (!stars) return null;
+  return (
+    <View style={{ flexDirection: 'row', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star key={i} size={size} color={i <= stars ? '#FBBF24' : '#3A3A3A'} fill={i <= stars ? '#FBBF24' : 'transparent'} />
+      ))}
+    </View>
+  );
+}
 
 // Same canonical meal slot ids as app/nutrition/log.jsx and
 // app/nutrition/food/[id].jsx -- lowercase singular. Previously this
@@ -83,6 +102,18 @@ export default function NutritionScreen() {
 
   const sumMealCalories = (meal) => (meal?.foods || []).reduce((s, f) => s + (f.calories || 0), 0);
 
+  // Real average across a meal slot's foods - only counts foods that
+  // actually have a computed grade, so a slot with one graded food and
+  // one manually-adjusted one isn't dragged toward an assumed middle
+  // value for the ungraded item.
+  const avgMealStars = (meal) => {
+    const graded = (meal?.foods || [])
+      .map((f) => f.nutritionalScore?.score ? gradeToStars(f.nutritionalScore.score) : null)
+      .filter((v) => v != null);
+    if (!graded.length) return null;
+    return Math.round(graded.reduce((s, v) => s + v, 0) / graded.length);
+  };
+
   const handleAddMealType = (slot) => {
     router.push({ pathname: '/nutrition/search', params: { mealId: slot.id } });
   };
@@ -131,12 +162,16 @@ export default function NutritionScreen() {
         {MEAL_SLOTS.map((slot) => {
           const meal = getMealForSlot(slot.id);
           const cals = sumMealCalories(meal);
+          const mealStars = avgMealStars(meal);
           return (
             <View key={slot.id} style={styles.mealCard}>
               <View style={styles.mealHeader}>
                 <Text style={styles.mealName}>{slot.name}</Text>
-                <View style={styles.calBadge}>
-                  <Text style={styles.calBadgeText}>{cals} kcal</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <StarRating stars={mealStars} size={11} />
+                  <View style={styles.calBadge}>
+                    <Text style={styles.calBadgeText}>{cals} kcal</Text>
+                  </View>
                 </View>
               </View>
               {meal?.foods?.length ? (
@@ -147,7 +182,10 @@ export default function NutritionScreen() {
                       style={styles.foodRow}
                       onPress={() => router.push(`/nutrition/food/${fo.id}`)}>
                       <Text style={styles.foodName}>{fo.name}</Text>
-                      <Text style={styles.foodCal}>{fo.calories} kcal</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <StarRating stars={fo.nutritionalScore?.score ? gradeToStars(fo.nutritionalScore.score) : null} size={10} />
+                        <Text style={styles.foodCal}>{fo.calories} kcal</Text>
+                      </View>
                     </TouchableOpacity>
                   ))}
                 </View>

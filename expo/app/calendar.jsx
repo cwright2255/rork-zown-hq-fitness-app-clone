@@ -108,7 +108,7 @@ export default function CalendarScreen(){
         {/* Quick log */}
         <Text style={[s.sectionTitle,{marginTop:20}]}>Quick Log</Text>
         <View style={s.quickRow}>
-          {[{icon:'barbell-outline',label:'Log Workout',route:'/workouts'},{icon:'fitness-outline',label:'Log Run',route:'/running/program'},{icon:'nutrition-outline',label:'Log Meal',route:'/nutrition/log'},{icon:'heart-outline',label:'Log Health',route:'/health'}].map(q=>(
+          {[{icon:'barbell-outline',label:'Log Workout',route:'/workouts'},{icon:'fitness-outline',label:'Log Run',route:'/running/program'},{icon:'nutrition-outline',label:'Log Meal',route:'/nutrition'},{icon:'heart-outline',label:'Log Health',route:'/health'}].map(q=>(
             <Pressable key={q.label} style={s.quickItem} onPress={()=>router.push(q.route)}>
               <View style={s.quickCircle}><Ionicons name={q.icon} size={20} color="#000" /></View>
               <Text style={s.quickLabel}>{q.label}</Text>

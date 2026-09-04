@@ -1,11 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Plus, Minus, Heart } from 'lucide-react-native';
+import { Plus, Minus, Heart, Star } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { getFoodById } from '@/services/calorieApiService';
+import { getFoodById, gradeToStars } from '@/services/calorieApiService';
+
+// Real, new 1-5 star display - same component/logic as
+// app/nutrition.jsx and app/nutrition/search.jsx.
+function StarRating({ stars, size = 16 }) {
+  if (!stars) return null;
+  return (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star key={i} size={size} color={i <= stars ? '#F59E0B' : '#DDDDDD'} fill={i <= stars ? '#F59E0B' : 'transparent'} />
+      ))}
+    </View>
+  );
+}
 
 export default function FoodDetailScreen() {
   const { id, mealId } = useLocalSearchParams();
@@ -98,6 +111,9 @@ export default function FoodDetailScreen() {
         <View style={styles.calWrap}>
           <Text style={styles.calNumber}>{cals}</Text>
           <Text style={styles.calLabel}>kcal</Text>
+          <View style={{ marginTop: 8 }}>
+            <StarRating stars={food.nutritionalScore?.score ? gradeToStars(food.nutritionalScore.score) : null} />
+          </View>
         </View>
 
         <Text style={styles.sectionLabel}>Macros</Text>
