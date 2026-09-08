@@ -331,7 +331,9 @@ export default function RecipesScreen() {
             <LoadingSkeleton width="100%" height={140} borderRadius={12} />
           </View>
         ) : items.length === 0 ? (
-          <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom }]}>Nothing to show right now.</Text>
+          <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom }]}>
+            Nothing to show right now.{recipeExtractionService.lastDiagnostic ? ` (${recipeExtractionService.lastDiagnostic})` : ''}
+          </Text>
         ) : expanded[key] ? (
           <View style={[s.gridWrap, { marginBottom }]}>
             {visible.map((item) => (
@@ -492,7 +494,11 @@ export default function RecipesScreen() {
                   </Text>
                 </View>
               </Pressable>
-            ) : null}
+            ) : (
+              <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom: 24 }]}>
+                Nothing to show right now.{recipeExtractionService.lastDiagnostic ? ` (${recipeExtractionService.lastDiagnostic})` : ''}
+              </Text>
+            )}
 
             {/* AI Recommendations */}
             {renderBrowseSection('AI Recommendations', 'aiRecommendations')}

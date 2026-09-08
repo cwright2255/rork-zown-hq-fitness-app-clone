@@ -148,6 +148,18 @@ export const useExpStore = create(
       hydrationXpTier: 0,
       stepsXpDate: null,
       stepsXpAwardedFor: 0,
+      // Real, new: tracks which specific foods (by name) have already
+      // earned meal XP today. Deliberately not the same "high-water
+      // mark, award only the delta" shape hydration/steps use above -
+      // those are cumulative daily totals where that fits, but meals
+      // are discrete events where logging breakfast, lunch, and dinner
+      // should each earn XP independently. What needed guarding was
+      // specifically the same food being logged repeatedly to farm XP
+      // - this lets every genuinely different food still earn XP
+      // normally, while a repeat of the same food today earns nothing
+      // after the first time.
+      mealXpDate: null,
+      mealXpFoodKeys: [],
 
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
@@ -182,6 +194,8 @@ export const useExpStore = create(
               hydrationXpTier: data.hydrationXpDate === todayStr() ? (data.hydrationXpTier || 0) : get().hydrationXpTier,
               stepsXpDate: data.stepsXpDate || get().stepsXpDate,
               stepsXpAwardedFor: data.stepsXpDate === todayStr() ? (data.stepsXpAwardedFor || 0) : get().stepsXpAwardedFor,
+              mealXpDate: data.mealXpDate || get().mealXpDate,
+              mealXpFoodKeys: data.mealXpDate === todayStr() ? (data.mealXpFoodKeys || []) : get().mealXpFoodKeys,
             });
           }
         } catch (e) {
@@ -202,6 +216,8 @@ export const useExpStore = create(
             hydrationXpTier: s.hydrationXpTier,
             stepsXpDate: s.stepsXpDate,
             stepsXpAwardedFor: s.stepsXpAwardedFor,
+            mealXpDate: s.mealXpDate,
+            mealXpFoodKeys: s.mealXpFoodKeys,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -318,6 +334,36 @@ export const useExpStore = create(
         set({ stepsXpDate: today, stepsXpAwardedFor: Math.max(alreadyAwardedFor, steps) });
       },
 
+      // Real, new: guards against logging the same food repeatedly to
+      // farm XP (previously nutritionStore.js's addFoodToMeal awarded
+      // baseExp unconditionally on every call, with no protection at
+      // all - 50 logs of the same food meant 50x the XP). foodKey is
+      // the food's name, normalized (lowercased, trimmed) so trivial
+      // casing/whitespace differences can't bypass this. Only the
+      // first time a given food is logged each day earns XP - logging
+      // it again today (or logging any other, different food) still
+      // works normally, since the point is stopping repeat-farming of
+      // one food, not capping how many distinct meals can earn XP in a
+      // day. Returns whether XP was actually awarded, so the caller
+      // can show accurate feedback either way.
+      awardMealXp: (foodKey, activity, uid) => {
+        const state = get();
+        const today = todayStr();
+        const alreadyAwarded = state.mealXpDate === today ? (state.mealXpFoodKeys || []) : [];
+
+        if (alreadyAwarded.includes(foodKey)) {
+          return false;
+        }
+        // Passes the same activity object nutritionStore.js already
+        // builds straight through to addExpActivity unchanged - this
+        // only gates whether that existing call happens, it doesn't
+        // change how much XP it awards or the level multiplier/activity
+        // description it already applies.
+        get().addExpActivity(activity, uid);
+        set({ mealXpDate: today, mealXpFoodKeys: [...alreadyAwarded, foodKey] });
+        return true;
+      },
+
       // Real getter, matching the getLevel()/getExpToNextLevel()
       // pattern below - screens should read XP through this, not by
       // destructuring totalExp directly (it doesn't exist at the store's
@@ -373,7 +419,9 @@ export const useExpStore = create(
         hydrationXpDate: state.hydrationXpDate,
         hydrationXpTier: state.hydrationXpTier,
         stepsXpDate: state.stepsXpDate,
-        stepsXpAwardedFor: state.stepsXpAwardedFor
+        stepsXpAwardedFor: state.stepsXpAwardedFor,
+        mealXpDate: state.mealXpDate,
+        mealXpFoodKeys: state.mealXpFoodKeys
       }),
       onRehydrateStorage: () => (state) => {
         // When storage is rehydrated, initialize the EXP system if needed

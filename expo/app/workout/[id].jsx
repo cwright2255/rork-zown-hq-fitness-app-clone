@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useUserStore } from '@/store/userStore';
 
 function formatExerciseDuration(exercise) {
   if (typeof exercise.duration === 'number' && exercise.duration > 0) {
@@ -26,7 +27,7 @@ function formatExerciseDuration(exercise) {
   return '';
 }
 
-/* ââ Exercise row ââ */
+/* ── Exercise row ── */
 
 function ExerciseRow({ exercise }) {
   return (
@@ -49,7 +50,7 @@ function ExerciseRow({ exercise }) {
   );
 }
 
-/* ââ Stat pill ââ */
+/* ── Stat pill ── */
 
 function StatPill({ icon, label }) {
   return (
@@ -60,25 +61,34 @@ function StatPill({ icon, label }) {
   );
 }
 
-/* ââ Main screen ââ */
+/* ── Main screen ── */
 
 export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
-  const { workouts, customWorkouts } = useWorkoutStore();
+  const { workouts, customWorkouts, inProgress, clearWorkoutProgress } = useWorkoutStore();
+  const { user } = useUserStore();
 
   const workout = useMemo(
     () => [...workouts, ...customWorkouts].find((w) => String(w.id) === id) || null,
     [workouts, customWorkouts, id]
   );
 
-  const [exercises, setExercises] = useState(() =>
-    (workout?.exercises || []).map((e) => ({ ...e, completed: false }))
-  );
+  // Real fix: previously always hardcoded completed:false for every
+  // exercise, every time this ran - meaning a workout saved-and-exited
+  // mid-session (app/workout/active.jsx's Save-and-Exit) always showed
+  // as 0/4 moves here, regardless of what was actually saved. Now
+  // checks the store's inProgress[id] (set by saveWorkoutProgress) for
+  // which exercise indices were marked done, and restores those.
+  const [exercises, setExercises] = useState(() => {
+    const savedIndices = new Set(inProgress?.[id]?.completedIndices || []);
+    return (workout?.exercises || []).map((e, i) => ({ ...e, completed: savedIndices.has(i) }));
+  });
   useEffect(() => {
-    setExercises((workout?.exercises || []).map((e) => ({ ...e, completed: false })));
-  }, [workout]);
+    const savedIndices = new Set(inProgress?.[id]?.completedIndices || []);
+    setExercises((workout?.exercises || []).map((e, i) => ({ ...e, completed: savedIndices.has(i) })));
+  }, [workout, id, inProgress]);
 
   const [bookmarked, setBookmarked] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -127,6 +137,11 @@ export default function WorkoutDetailScreen() {
 
   const handleClearProgress = () => {
     setExercises(exercises.map((e) => ({ ...e, completed: false })));
+    // Real fix: previously only cleared local component state, which
+    // reset in memory but left saveWorkoutProgress's persisted data
+    // untouched - so the "cleared" progress would silently reappear
+    // the next time this screen mounted and re-read inProgress.
+    clearWorkoutProgress(id, user?.uid);
     setShowClearConfirm(false);
     setShowMenu(false);
   };
@@ -152,7 +167,7 @@ export default function WorkoutDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ââ Hero section ââ */}
+        {/* ── Hero section ── */}
         <View style={styles.hero}>
           <Ionicons name="barbell-outline" size={60} color="#999" />
 
@@ -215,7 +230,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ââ Progress section ââ */}
+        {/* ── Progress section ── */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Progress</Text>
@@ -230,7 +245,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ââ Description ââ */}
+        {/* ── Description ── */}
         {!!workout?.description && (
           <View style={styles.descriptionSection}>
             <Text style={styles.descriptionText}>{workout.description}</Text>
@@ -247,7 +262,7 @@ export default function WorkoutDetailScreen() {
           </View>
         </View>
 
-        {/* ââ Exercise list ââ */}
+        {/* ── Exercise list ── */}
         {exercises.map((exercise) => (
           <ExerciseRow key={exercise.id} exercise={exercise} />
         ))}
@@ -263,11 +278,6 @@ export default function WorkoutDetailScreen() {
                 </View>
               ))}
             </ScrollView>
-            {/* Was a raw <Image source={{uri: muscleVizUrl}}> pointing at
-                a plain URL with the API key as a query param — the real
-                API requires header auth, so this never actually loaded.
-                See services/muscleVisualizerService.js for the full fix
-                (wrong base path and wrong muscle-name casing too). */}
             <View style={{ marginTop: 10, marginHorizontal: 20 }}>
               <MuscleHeatmapCard mode="target" targetMuscles={targetMuscles} title="Muscles Targeted" />
             </View>
@@ -275,7 +285,7 @@ export default function WorkoutDetailScreen() {
         )}
       </ScrollView>
 
-      {/* ââ Three-dot popup menu ââ */}
+      {/* ── Three-dot popup menu ── */}
       <Modal
         visible={showMenu}
         transparent
@@ -318,7 +328,7 @@ export default function WorkoutDetailScreen() {
         </Pressable>
       </Modal>
 
-      {/* ââ Clear progress confirmation ââ */}
+      {/* ── Clear progress confirmation ── */}
       <Modal
         visible={showClearConfirm}
         transparent
@@ -344,7 +354,7 @@ export default function WorkoutDetailScreen() {
         </View>
       </Modal>
 
-      {/* ââ Floating CTA button ââ */}
+      {/* ── Floating CTA button ── */}
       <Pressable
         style={[styles.ctaButton, { backgroundColor: ctaConfig.bg }]}
         onPress={handleCTA}
@@ -357,7 +367,7 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-/* ââ Styles ââ */
+/* ── Styles ── */
 
 const styles = StyleSheet.create({
   container: {

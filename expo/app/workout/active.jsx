@@ -130,10 +130,26 @@ export default function ActiveWorkoutScreen() {
       reps: ex.reps,
     }));
   });
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [completedSet, setCompletedSet] = useState(new Set());
+  // Real, new: resumes from where the user left off if this workout was
+  // previously saved-and-exited (see handleSaveAndExit's
+  // saveWorkoutProgress call and store/workoutStore.js's inProgress
+  // state) - previously currentIndex/completedSet always started fresh
+  // regardless, so tapping "Continue Workout" from the detail screen
+  // (which correctly showed the saved progress) still dropped the user
+  // back at exercise 1 with an empty progress bar. Read once via
+  // getState() rather than the reactive hook, since this only needs to
+  // run at mount time for these lazy initializers.
+  const savedIndices = useWorkoutStore.getState().inProgress?.[workoutId]?.completedIndices || [];
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (savedIndices.length === 0) return 0;
+    const firstIncomplete = exercises.findIndex((_, i) => !savedIndices.includes(i));
+    return firstIncomplete >= 0 ? firstIncomplete : Math.max(0, exercises.length - 1);
+  });
+  const [completedSet, setCompletedSet] = useState(() =>
+    new Set(savedIndices.map((i) => exercises[i]?.id).filter(Boolean))
+  );
   const [isPlaying, setIsPlaying] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(exercises[0]?.seconds ?? 45);
+  const [timeLeft, setTimeLeft] = useState(() => exercises[currentIndex]?.seconds ?? 45);
   const [exerciseComplete, setExerciseComplete] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -299,9 +315,111 @@ export default function ActiveWorkoutScreen() {
   }, [exerciseComplete, isPlaying]);
 
   /* Ã¢ÂÂÃ¢ÂÂ Exit handlers Ã¢ÂÂÃ¢ÂÂ */
-  const handleSaveAndExit = () => {
+  const handleSaveAndExit = async () => {
     setShowExitConfirm(false);
-    // TODO: persist completion state to store
+
+    // Real fix: previously this saved nothing at all, just navigated
+    // back. Reuses the exact same addCompletedWorkout call/shape the
+    // normal "finish workout" button already uses below (see the
+    // isWorkoutDone block) - triggered here instead with whatever
+    // progress actually exists at the moment of exit. Only saves if at
+    // least one exercise was actually completed - a 0-exercise workout
+    // entry isn't a meaningful history record worth cluttering the log
+    // with, so an immediate exit behaves the same as Discard.
+    if (completedCount > 0) {
+      // Real, new: persists which exercise indices are done, keyed by
+      // this workout template's id, so app/workout/[id].jsx can show
+      // real "X/4 moves" progress and a "Continue Workout" option
+      // instead of always resetting to 0/4 - the addCompletedWorkout
+      // call below logs a history record for stats/XP, which is a
+      // separate concern from this resumable, per-template state.
+      const completedIndices = exercises
+        .map((e, i) => (completedSet.has(e.id) ? i : null))
+        .filter((i) => i !== null);
+      if (selectedWorkout?.id) {
+        await useWorkoutStore.getState().saveWorkoutProgress(selectedWorkout.id, completedIndices, user?.uid);
+      }
+
+      const elapsedSeconds = Math.max(
+        1,
+        Math.round((Date.now() - new Date(workoutStartRef.current).getTime()) / 1000)
+      );
+      const completionRatio = totalExercises > 0 ? completedCount / totalExercises : 1;
+      const caloriesBurned = Math.round(
+        (selectedWorkout?.calories ?? Math.round(elapsedSeconds * 0.15)) * completionRatio
+      );
+      // Real fix, distinct from the existing full-completion path below:
+      // that path never scales xpEarned by completionRatio (only
+      // calories are) - but it never mattered there, since
+      // completionRatio is always 1 by the time that path is reachable
+      // (every exercise must be done to get there). Here,
+      // completionRatio can genuinely be less than 1, so xp is scaled
+      // too - awarding full xp for a partial workout would be
+      // inconsistent with how calories already work here, and
+      // exploitable (exit after one exercise, still earn the full
+      // reward every time).
+      const xpEarned = Math.round((selectedWorkout?.xpReward ?? 100) * completionRatio);
+
+      await addCompletedWorkout({
+        workoutId: selectedWorkout?.id ?? null,
+        name: selectedWorkout?.name || 'Workout',
+        category: selectedWorkout?.category,
+        difficulty: selectedWorkout?.difficulty,
+        exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps })),
+        duration: elapsedSeconds,
+        exercisesCompleted: completedCount,
+        totalExercises,
+        caloriesBurned,
+        xpEarned,
+        completedAt: new Date().toISOString(),
+        startedAt: workoutStartRef.current,
+        // New field, not present on the normal full-completion path -
+        // exercisesCompleted < totalExercises already implies this, but
+        // an explicit flag is clearer for any future UI that lists
+        // workout history and wants to show "partial" vs "completed".
+        partial: true,
+        // Real fix: without this, the store's addCompletedWorkout
+        // forced completed:true on every Firestore write regardless of
+        // what was passed here, so this partial save was
+        // indistinguishable from a genuinely finished workout anywhere
+        // that field is checked. Explicit false, not left to a default.
+        completed: false,
+      }, user?.uid);
+
+      if ((useWorkoutStore.getState().completedWorkouts || []).length <= 1) {
+        unlockBadge?.('badge-1', user?.uid);
+      }
+
+      checkAchievements?.({
+        workoutsCompleted: (useWorkoutStore.getState().completedWorkouts || []).length,
+        streak: user?.streak ?? 0,
+        caloriesBurned,
+        level,
+        xp: totalExp,
+      }, user?.uid);
+
+      addExpActivity?.({
+        id: Date.now().toString(),
+        type: 'workout',
+        baseExp: xpEarned,
+        multiplier: 1.0,
+        date: new Date().toISOString().split('T')[0],
+        description: `Saved ${completedCount}/${totalExercises} exercises of ${selectedWorkout?.name || 'workout'}`,
+        completed: true,
+      }, user?.uid);
+
+      if (user?.uid) {
+        const freshExp = useExpStore.getState();
+        useLeaderboardStore.getState()._syncLeaderboardEntry(user.uid, {
+          name: user?.name,
+          avatar: user?.profileImage,
+          xp: freshExp.expSystem.totalExp,
+          level: freshExp.expSystem.level,
+          streak: user?.streak,
+        });
+      }
+    }
+
     if (router.canGoBack()) {
       router.back();
     } else {

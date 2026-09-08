@@ -175,7 +175,17 @@ export const useNutritionStore = create(
               stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
             }
             const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
-            useExpStore.getState().addExpActivity({
+            // Real fix: previously called addExpActivity directly here,
+            // unconditionally, on every single call - meaning logging
+            // the same food repeatedly (e.g. 50 times) awarded 50x the
+            // XP with no protection at all. Now routed through
+            // expStore.js's awardMealXp, which only lets a given food
+            // (by normalized name) earn XP once per day - a repeat of
+            // the same food today, or the exact same call structure as
+            // before for any other, different food, which still earns
+            // XP normally.
+            const foodKey = (food.name || '').trim().toLowerCase();
+            useExpStore.getState().awardMealXp(foodKey, {
               id: Date.now().toString(),
               type: 'meal',
               baseExp,

@@ -33,6 +33,23 @@ export default function FoodDetailScreen() {
     if (!foodId) return;
     (async () => {
       try {
+        // Real fix: an already-logged food's id is a composite
+        // {realId}-{timestamp} string (see handleAdd below), not a
+        // real Calorie API id - calling getFoodById with this
+        // composite string fails, since Calorie API's real detail
+        // endpoint requires a plain integer. An already-logged item
+        // already has everything needed (its saved, actually-eaten
+        // quantity's calories/macros, not the generic 100g values a
+        // fresh API fetch would return) sitting directly in the
+        // store, so this checks there first and only calls the API
+        // for a genuinely new, not-yet-logged search result (whose
+        // id is a plain, real Calorie API integer).
+        const allMeals = useNutritionStore.getState().meals || [];
+        const alreadyLogged = allMeals.flatMap((m) => m.foods || []).find((f) => f.id === foodId);
+        if (alreadyLogged) {
+          setFood(alreadyLogged);
+          return;
+        }
         const f = await getFoodById(foodId);
         setFood(f);
       } catch (e) {
@@ -212,9 +229,10 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: '#000000' },
   pillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDDDDD' },
   pillText: { fontSize: 13, fontWeight: '600' },
-  // Real fix: 24 sits under the persistent bottom tab bar (see
-  // app/nutrition.jsx's own "Log Food" button, which already correctly
-  // uses 84 for the same reason) - this button was rendering, just
-  // invisible behind the nav bar.
-  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 84 },
+  // Real fix: was 84, same as nutrition.jsx's original bug - confirmed
+  // directly from a real screenshot that the bottom nav bar IS visible
+  // on this screen (my earlier comment here assuming it wasn't was
+  // wrong), so this needs the same proven 100 value app/wearables.jsx
+  // and the fixed app/nutrition.jsx both already use.
+  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
 });

@@ -21,12 +21,18 @@ let lastCacheTime = 0;
 // Pulls a nutrient's amount out of the real nutrients[] array by name
 // (case-insensitive substring match) - used for sodium/saturated fat,
 // which aren't part of the guaranteed top-level _100g field set.
+// Real fix: previously returned 0 both when a nutrient was genuinely
+// absent (0) and when it simply wasn't in the API's data at all
+// (unknown) - those are different things a scoring function needs to
+// treat differently, so this now returns undefined for "not found",
+// letting the caller (and calculateNutritionalScore below) tell the
+// two apart instead of silently treating "no data" as "verified safe."
 function findNutrientAmount(nutrients, nameSubstring) {
-  if (!Array.isArray(nutrients)) return 0;
+  if (!Array.isArray(nutrients)) return undefined;
   const match = nutrients.find((n) =>
     (n.nutrient_name || '').toLowerCase().includes(nameSubstring)
   );
-  return match?.amount ?? 0;
+  return match?.amount;
 }
 
 // Real response shape confirmed directly from
@@ -50,7 +56,7 @@ const convertCalorieApiToFoodItem = (item) => {
     fat: Math.round((item.fat_100g || 0) * 10) / 10,
     fiber: Math.round((item.fiber_100g || 0) * 10) / 10,
     sugar: Math.round((item.sugar_100g || 0) * 10) / 10,
-    sodium: Math.round(sodium * 10) / 10,
+    sodium: Math.round((sodium || 0) * 10) / 10,
     imageUrl: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
     nutritionalScore: {
       score: calculateNutritionalScore({
@@ -63,10 +69,10 @@ const convertCalorieApiToFoodItem = (item) => {
       })
     },
     nutritionalDetails: {
-      saturatedFat: Math.round(saturatedFat * 10) / 10,
+      saturatedFat: Math.round((saturatedFat || 0) * 10) / 10,
       sugar: Math.round((item.sugar_100g || 0) * 10) / 10,
       fiber: Math.round((item.fiber_100g || 0) * 10) / 10,
-      sodium: Math.round(sodium * 10) / 10
+      sodium: Math.round((sodium || 0) * 10) / 10
     }
   };
 };
@@ -92,8 +98,18 @@ export const calculateNutritionalScore = (n) => {
   const calories = n.calories || 0;
   const protein = n.protein || 0;
   const fiber = n.fiber || 0;
-  const saturatedFat = n.saturatedFat || 0;
   const sugar = n.sugar || 0;
+  // Real fix: n.saturatedFat/n.sodium being missing (undefined - the
+  // source genuinely had no data) is now tracked separately from a
+  // stated 0 (the source explicitly reported none). Previously both
+  // collapsed to the same "0, no penalty" outcome via `|| 0`, meaning
+  // a food the API had literally no sodium/saturated-fat data for
+  // scored identically to one confirmed to have none of either - the
+  // two are not the same claim, and only the second should be able to
+  // earn a clean grade on those fronts.
+  const saturatedFatKnown = n.saturatedFat != null;
+  const sodiumKnown = n.sodium != null;
+  const saturatedFat = n.saturatedFat || 0;
   const sodium = n.sodium || 0;
 
   const proteinDV = (protein / FDA_DAILY_VALUE.protein) * 100;
@@ -110,12 +126,20 @@ export const calculateNutritionalScore = (n) => {
   if (fiberDV >= 20) score += 2;else
   if (fiberDV > 5) score += 1;
 
-  // Negative factors, same rule of thumb applied to nutrients to limit
-  if (saturatedFatDV >= 20) score -= 2;else
-  if (saturatedFatDV > 5) score -= 1;
+  // Negative factors - only applied when the source actually reported
+  // a real value for it. A genuinely missing value contributes no
+  // penalty here (that would be guessing it's bad with no evidence),
+  // but also earns no pass - see the grade cap below for how a food
+  // missing both is kept from scoring as if it were verified clean.
+  if (saturatedFatKnown) {
+    if (saturatedFatDV >= 20) score -= 2;else
+    if (saturatedFatDV > 5) score -= 1;
+  }
 
-  if (sodiumDV >= 20) score -= 2;else
-  if (sodiumDV > 5) score -= 1;
+  if (sodiumKnown) {
+    if (sodiumDV >= 20) score -= 2;else
+    if (sodiumDV > 5) score -= 1;
+  }
 
   // No FDA Daily Value exists for total sugar or total fat - kept as
   // the original, unchanged absolute gram thresholds rather than a %DV
@@ -125,11 +149,22 @@ export const calculateNutritionalScore = (n) => {
 
   if (calories > 300) score -= 1;
 
-  if (score >= 2) return 'A';
-  if (score >= 0) return 'B';
-  if (score >= -2) return 'C';
-  if (score >= -4) return 'D';
-  return 'E';
+  let grade;
+  if (score >= 2) grade = 'A';else
+  if (score >= 0) grade = 'B';else
+  if (score >= -2) grade = 'C';else
+  if (score >= -4) grade = 'D';else
+  grade = 'E';
+
+  // Real cap: A/B is a real claim that saturated fat and sodium were
+  // both checked and found low - that claim can't be made with zero
+  // data on either one, no matter how well protein/fiber alone
+  // scored, so a food missing both never grades above C.
+  if (!saturatedFatKnown && !sodiumKnown && (grade === 'A' || grade === 'B')) {
+    grade = 'C';
+  }
+
+  return grade;
 };
 
 // Real mapping from a nutritional grade to a 1-5 star display, shown

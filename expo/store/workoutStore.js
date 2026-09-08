@@ -17,6 +17,16 @@ export const useWorkoutStore = create(
       customWorkouts: [],
       completedWorkouts: [],
       favoriteWorkoutIds: [],
+      // Real, new state: keyed by workout template id, tracks which
+      // exercise indices are marked complete for a workout that was
+      // saved-and-exited mid-session but not finished. Separate from
+      // completedWorkouts (a history log of past sessions) - this is
+      // resumable, per-template state so app/workout/[id].jsx's own
+      // "X/4 moves"/"Continue Workout" display (which previously
+      // always reset to 0/4 on every screen mount, never connected to
+      // any store at all) can correctly reflect what was actually
+      // saved.
+      inProgress: {},
       runningPrograms: [],
       activeProgram: null,
       currentSession: null,
@@ -136,9 +146,49 @@ export const useWorkoutStore = create(
         }
       },
 
-      deleteWorkout: (id) => set((state) => ({
-        workouts: state.workouts.filter((workout) => workout.id !== id)
-      })),
+      // Real, new: persists which exercise indices are done for a
+      // workout template that was saved-and-exited mid-session, so
+      // app/workout/[id].jsx can show real progress instead of always
+      // resetting to 0/4. completedIndices is a plain array of
+      // exercise indices (not ids) - both active.jsx and [id].jsx
+      // derive their own exercises array from the same underlying
+      // workout.exercises in the same order, so index is the one thing
+      // guaranteed to line up between the two screens regardless of
+      // whether individual exercises carry a stable id in the raw
+      // template data.
+      saveWorkoutProgress: async (workoutId, completedIndices, uid) => {
+        if (!workoutId) return;
+        set((state) => ({
+          inProgress: { ...state.inProgress, [workoutId]: { completedIndices, savedAt: new Date().toISOString() } }
+        }));
+        if (!uid) return;
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'workoutProgress'), {
+            inProgress: get().inProgress,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.error('[workoutStore] saveWorkoutProgress Firestore write failed:', e?.message);
+        }
+      },
+
+      clearWorkoutProgress: async (workoutId, uid) => {
+        if (!workoutId) return;
+        set((state) => {
+          const next = { ...state.inProgress };
+          delete next[workoutId];
+          return { inProgress: next };
+        });
+        if (!uid) return;
+        try {
+          await setDoc(doc(db, 'users', uid, 'data', 'workoutProgress'), {
+            inProgress: get().inProgress,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        } catch (e) {
+          console.error('[workoutStore] clearWorkoutProgress Firestore write failed:', e?.message);
+        }
+      },
 
       toggleFavorite: (workoutId) => set((state) => ({
         favoriteWorkoutIds: state.favoriteWorkoutIds.includes(workoutId) ?
@@ -165,7 +215,15 @@ export const useWorkoutStore = create(
           const ref = await addDoc(collection(db, 'workouts'), {
             ...workout,
             userId: uid,
-            completed: true,
+            // Real fix: was hardcoded to true unconditionally, which is
+            // what let app/workout/active.jsx's Save-and-Exit path
+            // write a genuinely partial workout to Firestore marked
+            // completed:true - now respects an explicit completed
+            // value from the caller (Save-and-Exit passes false),
+            // defaulting to true only when the caller doesn't specify
+            // one, which preserves the normal full-completion path's
+            // existing behavior unchanged (it never passes this field).
+            completed: workout.completed ?? true,
             date: serverTimestamp(),
           });
           const saved = { ...localRecord, id: ref.id };
@@ -459,6 +517,7 @@ export const useWorkoutStore = create(
         customWorkouts: state.customWorkouts.slice(0, 5),
         completedWorkouts: state.completedWorkouts.slice(-20), // Keep last 20 completed workouts
         favoriteWorkoutIds: state.favoriteWorkoutIds.slice(0, 10),
+        inProgress: state.inProgress,
         runningPrograms: state.runningPrograms.slice(0, 5),
         activeProgram: state.activeProgram,
         runHistory: state.runHistory.slice(-50), // Keep last 50 runs

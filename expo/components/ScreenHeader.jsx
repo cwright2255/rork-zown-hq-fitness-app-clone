@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
+import { tokens } from '../../theme/tokens';
 
 // Real safe-area top inset via useSafeAreaInsets, not a fixed guess and
 // not left to whatever the parent screen happens to wrap this in -
@@ -11,12 +12,18 @@ import { ChevronLeft } from 'lucide-react-native';
 // SafeAreaView) got a header sitting under the status bar/notch. This
 // makes the header safe regardless of how the parent screen wraps it.
 //
-// Also: solid and transparent modes need different contrast.
-// Transparent is used over a camera preview (see
+// Also: solid, transparent, and dark modes each need different
+// contrast. Transparent is used over a camera preview (see
 // app/nutrition/barcode-scan.jsx) and needs light icons/text to stay
 // legible against varied real camera imagery; solid is used on a white
-// background and needs dark icons/text. The previous version used one
-// fixed color for both, which is correct for at most one of the two.
+// background and needs dark icons/text; dark is for the app's dark-navy
+// screens (confirmed directly: 19 screens - app/nutrition.jsx,
+// app/exp-dashboard.jsx, app/leaderboard.jsx, app/wellbeing.jsx, and 15
+// others - all use tokens.colors.dark_navy for their own background but
+// called this component with no matching header mode, so every one of
+// them got a hardcoded white header bar sitting on top of a dark body).
+// The previous version only had solid/transparent, which is correct
+// for at most two of these three real cases.
 export default function ScreenHeader({
   title,
   subtitle,
@@ -24,11 +31,12 @@ export default function ScreenHeader({
   onBack,
   rightAction,
   transparent = false,
+  dark = false,
   style,
 }) {
   const insets = useSafeAreaInsets();
-  const fg = transparent ? '#FFFFFF' : '#000000';
-  const subFg = transparent ? 'rgba(255,255,255,0.75)' : '#666666';
+  const fg = transparent || dark ? '#FFFFFF' : '#000000';
+  const subFg = transparent ? 'rgba(255,255,255,0.75)' : dark ? tokens.colors.dark_navy.text_muted : '#666666';
 
   const handleBack = () => {
     if (onBack) return onBack();
@@ -41,7 +49,7 @@ export default function ScreenHeader({
       style={[
         styles.container,
         { paddingTop: insets.top + 8 },
-        transparent ? styles.transparent : styles.solid,
+        transparent ? styles.transparent : dark ? styles.dark : styles.solid,
         style,
       ]}>
       <View style={styles.left}>
@@ -75,6 +83,9 @@ const styles = StyleSheet.create({
   },
   transparent: {
     backgroundColor: 'transparent',
+  },
+  dark: {
+    backgroundColor: tokens.colors.dark_navy.bg_primary,
   },
   left: {
     width: 44,

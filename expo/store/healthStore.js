@@ -47,7 +47,14 @@ export const useHealthStore = create(
               weight:       d.weight       || [],
               measurements: d.measurements || {},
               goals:        d.goals        || [],
-              hydration:    d.hydration    || { glasses: 0, target: 8, date: todayStr() },
+              // Real fix: previously loaded d.hydration as-is with no
+              // date check at all, unlike addGlass below (which already
+              // resets to 0 when s.hydration.date isn't today) - so
+              // yesterday's glass count kept displaying on load until
+              // the user happened to tap Add Glass again, which was the
+              // only code path that ever checked the date. Same check,
+              // applied here too.
+              hydration:    (d.hydration && d.hydration.date === todayStr()) ? d.hydration : { glasses: 0, target: 8, date: todayStr() },
               meals:        d.meals        || [],
               bodyScan:     d.bodyScan     || null,
               sleep:        d.sleep        || { hours: 0, quality: null, date: todayStr() },
