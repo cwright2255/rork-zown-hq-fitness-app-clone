@@ -28,6 +28,14 @@ const ROOK_CLIENT_UUID = defineSecret('ROOK_CLIENT_UUID');
 const ROOK_CLIENT_SECRET = defineSecret('ROOK_CLIENT_SECRET');
 const ROOK_API_BASE = 'https://api.rook-connect.review'; // sandbox host - see comment above for why
 
+// Real, new: for the Spoonacular (recipeExtractionService.js) and
+// RapidAPI (exerciseDbService.js, muscleVisualizerService.js) proxies
+// below - these were previously read directly from
+// process.env.EXPO_PUBLIC_* client-side, same class of exposure the
+// Calorie API/ROOK secrets above already correctly avoid.
+const SPOONACULAR_API_KEY = defineSecret('SPOONACULAR_API_KEY');
+const RAPIDAPI_KEY = defineSecret('RAPIDAPI_KEY');
+
 function rookBasicAuthHeader() {
   const basic = Buffer.from(`${ROOK_CLIENT_UUID.value()}:${ROOK_CLIENT_SECRET.value()}`).toString('base64');
   return { Authorization: `Basic ${basic}` };
@@ -1047,5 +1055,205 @@ export const instagramEmbed = onRequest(
     } catch (error) {
       res.status(500).json({ error: `Server error: ${error?.message}` });
     }
+  }
+);
+
+/* ── Spoonacular recipe proxies ──
+ * Previously called directly from services/recipeExtractionService.js
+ * with process.env.EXPO_PUBLIC_SPOONACULAR_API_KEY read client-side.
+ * Same three endpoints, same URL construction, moved server-side so
+ * the real key only ever lives here. */
+
+export const extractSpoonacularRecipe = onCall(
+  { secrets: [SPOONACULAR_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { url } = req.data;
+    if (!url) {
+      throw new HttpsError('invalid-argument', 'url required');
+    }
+
+    const extractUrl = `https://api.spoonacular.com/recipes/extract?url=${encodeURIComponent(url)}&includeNutrition=true&apiKey=${SPOONACULAR_API_KEY.value()}`;
+    const res = await fetch(extractUrl);
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      console.error('[extractSpoonacularRecipe] request failed', { status: res.status, message: data?.message });
+      throw new HttpsError('internal', `Spoonacular extract failed: ${res.status}${data?.message ? ` - ${data.message}` : ''}`);
+    }
+
+    return data;
+  }
+);
+
+export const browseSpoonacularRecipes = onCall(
+  { secrets: [SPOONACULAR_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { params, number } = req.data;
+
+    const query = new URLSearchParams({
+      ...(params || {}),
+      number: String(number || 12),
+      addRecipeInformation: 'true',
+      addRecipeNutrition: 'true',
+      apiKey: SPOONACULAR_API_KEY.value(),
+    });
+    const res = await fetch(`https://api.spoonacular.com/recipes/complexSearch?${query}`);
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !Array.isArray(data?.results)) {
+      console.error('[browseSpoonacularRecipes] request failed', { status: res.status, message: data?.message });
+      throw new HttpsError('internal', `Spoonacular browse failed: ${res.status}${data?.message ? ` - ${data.message}` : ''}`);
+    }
+
+    return data;
+  }
+);
+
+export const getSpoonacularRecipeById = onCall(
+  { secrets: [SPOONACULAR_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { id } = req.data;
+    if (!id) {
+      throw new HttpsError('invalid-argument', 'id required');
+    }
+
+    const res = await fetch(`https://api.spoonacular.com/recipes/${id}/information?includeNutrition=true&apiKey=${SPOONACULAR_API_KEY.value()}`);
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.title) {
+      console.error('[getSpoonacularRecipeById] request failed', { status: res.status, message: data?.message });
+      throw new HttpsError('internal', `Spoonacular getById failed: ${res.status}${data?.message ? ` - ${data.message}` : ''}`);
+    }
+
+    return data;
+  }
+);
+
+/* ── ExerciseDB (AscendAPI/RapidAPI) proxy ──
+ * Previously services/exerciseDbService.js's runAscendSearch, called
+ * with process.env.EXPO_PUBLIC_RAPIDAPI_KEY read client-side. Only
+ * this one endpoint is proxied - fetchAscendExercises and
+ * fetchAscendBodyParts in that same file are dead code (never called
+ * from anywhere reachable) and were removed rather than proxied, since
+ * building a proxy for functionality nobody can trigger would be
+ * wasted effort. searchAscendExercise's own two-step retry logic (try
+ * the exact name, then a simplified name if that comes back empty)
+ * stays client-side unchanged - this proxies only the single,
+ * underlying search call each of those two attempts makes. */
+
+export const searchAscendExercise = onCall(
+  { secrets: [RAPIDAPI_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { query } = req.data;
+    if (!query) {
+      throw new HttpsError('invalid-argument', 'query required');
+    }
+
+    const ASCEND_BASE = 'https://edb-with-videos-and-images-by-ascendapi.p.rapidapi.com/api/v1';
+    const ASCEND_HOST = 'edb-with-videos-and-images-by-ascendapi.p.rapidapi.com';
+    const url = `${ASCEND_BASE}/exercises/search?search=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: {
+        'x-rapidapi-key': RAPIDAPI_KEY.value(),
+        'x-rapidapi-host': ASCEND_HOST,
+      },
+    });
+
+    if (!res.ok) {
+      console.warn('[searchAscendExercise] request failed', { status: res.status, query });
+      return null;
+    }
+    const json = await res.json().catch(() => null);
+    const results = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
+    return results[0] || null;
+  }
+);
+
+/* ── Muscle Visualizer (RapidAPI) proxies ──
+ * Previously services/muscleVisualizerService.js's fetchAsDataUri,
+ * called with process.env.EXPO_PUBLIC_RAPIDAPI_KEY read client-side.
+ * That client-side version used FileReader.readAsDataURL to build a
+ * base64 data URI from the fetched blob - FileReader doesn't exist in
+ * this server environment, so the equivalent here is Buffer-based:
+ * fetch the image, read it as an ArrayBuffer, and base64-encode that
+ * directly. Same three URL-building shapes as the three exported
+ * client functions, one Cloud Function each to match, sharing this one
+ * internal (non-exported) fetch+encode helper since only the URL
+ * differs between them. */
+
+async function fetchMuscleVizAsBase64(url, label) {
+  const MUSCLE_VIZ_HOST = 'muscle-visualizer-api.p.rapidapi.com';
+  const res = await fetch(url, {
+    headers: {
+      'X-RapidAPI-Key': RAPIDAPI_KEY.value(),
+      'X-RapidAPI-Host': MUSCLE_VIZ_HOST,
+    },
+  });
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    console.error(`[${label}] request failed`, { status: res.status, body: bodyText });
+    throw new HttpsError('internal', `Muscle Visualizer ${label} failed: ${res.status} - ${bodyText}`);
+  }
+  const contentType = res.headers.get('content-type') || 'image/png';
+  const arrayBuffer = await res.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString('base64');
+  return { base64, contentType };
+}
+
+// normalizeMuscleNames (lowercase, trimmed) stays client-side - it's a
+// pure, local function with no key involved, no reason to round-trip
+// it through a network call.
+const MUSCLE_VIZ_BASE = 'https://muscle-visualizer-api.p.rapidapi.com/v1';
+
+export const getMuscleVisualizeImage = onCall(
+  { secrets: [RAPIDAPI_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { muscles, color, gender, size } = req.data;
+    if (!Array.isArray(muscles) || !muscles.length) {
+      throw new HttpsError('invalid-argument', 'muscles required');
+    }
+
+    const musclesParam = encodeURIComponent(muscles.join(','));
+    const colorParam = encodeURIComponent(color || '#E74C3C');
+    const url = `${MUSCLE_VIZ_BASE}/visualize/muscles?muscles=${musclesParam}&color=${colorParam}&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
+    return fetchMuscleVizAsBase64(url, 'getMuscleVisualizeImage');
+  }
+);
+
+export const getWorkoutVisualizeImage = onCall(
+  { secrets: [RAPIDAPI_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { targetMuscles, secondaryMuscles, gender, size } = req.data;
+    if (!Array.isArray(targetMuscles) || !targetMuscles.length) {
+      throw new HttpsError('invalid-argument', 'targetMuscles required');
+    }
+
+    let url = `${MUSCLE_VIZ_BASE}/visualize/workout?targetMuscles=${encodeURIComponent(targetMuscles.join(','))}&targetMusclesColor=%23E74C3C&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
+    if (Array.isArray(secondaryMuscles) && secondaryMuscles.length) {
+      url += `&secondaryMuscles=${encodeURIComponent(secondaryMuscles.join(','))}&secondaryMusclesColor=%23F39C12`;
+    }
+    return fetchMuscleVizAsBase64(url, 'getWorkoutVisualizeImage');
+  }
+);
+
+export const getHeatmapVisualizeImage = onCall(
+  { secrets: [RAPIDAPI_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { muscleColors, gender, size } = req.data;
+    if (!Array.isArray(muscleColors) || !muscleColors.length) {
+      throw new HttpsError('invalid-argument', 'muscleColors required');
+    }
+
+    const muscles = muscleColors.map((m) => m.muscle);
+    const colors = muscleColors.map((m) => encodeURIComponent(m.color));
+    const url = `${MUSCLE_VIZ_BASE}/visualize/heatmap?muscles=${encodeURIComponent(muscles.join(','))}&colors=${colors.join(',')}&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
+    return fetchMuscleVizAsBase64(url, 'getHeatmapVisualizeImage');
   }
 );

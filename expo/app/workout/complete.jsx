@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Share,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -185,6 +186,31 @@ export default function WorkoutCompleteScreen() {
     }
   };
 
+  // Real, new: the header's share icon, distinct from the "Share to
+  // Community" button below (an in-app post via createPost) - this
+  // uses React Native's built-in OS share sheet instead, matching the
+  // existing external-share pattern already established in
+  // app/social.jsx/app/community.jsx/app/profile.jsx (Share.share, no
+  // new dependency). Same type-aware message shape as
+  // handleShareToCommunity above, kept as its own separate function
+  // rather than refactored into a shared helper, so this fix doesn't
+  // touch that already-working code. Includes "on Zown" since this
+  // goes to an external app/contact who wouldn't otherwise have that
+  // context, matching how social.jsx's own external share already
+  // names the app.
+  const handleShareExternally = async () => {
+    const text = isHikeCompletion
+      ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike on Zown — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
+      : isRunCompletion
+        ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km run on Zown in ${realDuration}. 💪`
+        : `Just completed a workout on Zown — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
+    try {
+      await Share.share({ message: text });
+    } catch (e) {
+      console.warn('[complete] external share failed:', e?.message);
+    }
+  };
+
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Summary');
 
@@ -207,9 +233,7 @@ export default function WorkoutCompleteScreen() {
           <Text style={styles.headerTitle}>Workout Complete</Text>
           <Pressable
             style={styles.headerBtn}
-            onPress={() => {
-              // TODO: share workout results
-            }}
+            onPress={handleShareExternally}
           >
             <Ionicons name="share-outline" size={22} color="#000" />
           </Pressable>

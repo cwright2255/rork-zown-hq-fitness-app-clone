@@ -20,7 +20,7 @@ import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { loadAllHealth, loadAppleHealthActivity, steps, sleep, hydration } = useHealthStore();
+  const { loadAllHealth, loadAppleHealthActivity, steps, sleep, hydration, rookRecovery, loadRookRecovery } = useHealthStore();
   const { user } = useUserStore();
   const { scans, loadScans } = useBodyCompositionStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
@@ -32,9 +32,17 @@ export default function HealthScreen() {
 
   const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
 
+  // Real fix: previously read sleep?.hours - store/healthStore.js's
+  // standalone sleep field, confirmed dead (logSleep, its only setter,
+  // is never called from anywhere reachable). Real sleep data already
+  // exists via rookRecovery (populated by loadRookRecovery below, the
+  // same store field app/hq.jsx's own Heart card already reads
+  // correctly) - this just wasn't wired to it. '\u2014' for genuinely
+  // no data yet, matching that same card's convention, rather than a
+  // fixed "0.0h" that looked like a real, if low, reading.
   const METRICS_LIVE = [
     { icon: 'walk-outline', label: 'Steps', value: `${steps ?? 0}`, current: steps ?? 0, target: 10000 },
-    { icon: 'moon-outline', label: 'Sleep', value: `${(sleep?.hours ?? 0).toFixed(1)}h`, current: sleep?.hours ?? 0, target: 8 },
+    { icon: 'moon-outline', label: 'Sleep', value: rookRecovery?.sleepHours != null ? `${rookRecovery.sleepHours.toFixed(1)}h` : '\u2014', current: rookRecovery?.sleepHours ?? 0, target: 8 },
     { icon: 'water-outline', label: 'Hydration', value: `${hydration?.glasses ?? 0}/${hydration?.target ?? 8}`, current: hydration?.glasses ?? 0, target: hydration?.target ?? 8 },
   ];
 
@@ -42,6 +50,7 @@ export default function HealthScreen() {
     if (user?.uid) {
       loadAllHealth(user.uid);
       loadAppleHealthActivity();
+      loadRookRecovery();
       loadScans(user.uid);
       loadWorkouts(user.uid);
       loadRuns(user.uid);

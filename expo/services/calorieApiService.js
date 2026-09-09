@@ -79,11 +79,10 @@ const convertCalorieApiToFoodItem = (item) => {
 
 // Real, FDA-Daily-Value-based scoring — replaces the previous
 // arbitrary gram thresholds with the actual reference amounts from the
-// FDA Nutrition Facts label. Same methodology already verified and
-// shipped in services/passioService.js's calculateNutritionalScore:
-// confirmed directly against FDA.gov (fda.gov/media/135301/download;
-// fda.gov's "How to Understand and Use the Nutrition Facts Label"),
-// cross-checked against NutriDB's rankings (nutri-db.com/en/rankings):
+// FDA Nutrition Facts label. Confirmed directly against FDA.gov
+// (fda.gov/media/135301/download; fda.gov's "How to Understand and Use
+// the Nutrition Facts Label"), cross-checked against NutriDB's
+// rankings (nutri-db.com/en/rankings):
 // Protein 50g, Fiber 28g, Saturated Fat 20g, Sodium 2300mg. Total sugar
 // and total fat have no established FDA Daily Value at all - the FDA's
 // own page states "No Daily Reference Value has been established for

@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useExpStore } from './expStore';
-import { gradeToMealStars } from '@/services/passioService';
+import { gradeToMealStars } from '@/services/calorieApiService';
 import { rookService } from '@/services/rookService';
 import { appleHealthService } from '@/services/appleHealthService';
 
@@ -13,7 +13,18 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 export const useHealthStore = create(
   persist(
     (set, get) => ({
-      weight: [],
+      // Real fix: weight[]/logWeight/getLatestWeight (previously here)
+      // confirmed never called from anywhere reachable - the app's real
+      // weight tracking is store/weightLogStore.js (used by
+      // app/progress.jsx's own weight history/chart and its "log
+      // weight" action), with store/bodyCompositionStore.js's weightKg
+      // serving a separate, genuinely different purpose (one input used
+      // to derive lean mass from the latest body scan, not a competing
+      // weight-history data point). This dead trio, tracking the same
+      // metric under a third, unreachable path, was the real source of
+      // "which number is real" risk - not the two genuinely different,
+      // reachable systems above, which the Firestore rules' own
+      // comments already correctly treat as intentional.
       measurements: {},
       goals: [],
       hydration: { glasses: 0, target: 8, date: todayStr() },
@@ -44,7 +55,6 @@ export const useHealthStore = create(
           if (snap.exists()) {
             const d = snap.data();
             set({
-              weight:       d.weight       || [],
               measurements: d.measurements || {},
               goals:        d.goals        || [],
               // Real fix: previously loaded d.hydration as-is with no
@@ -134,7 +144,6 @@ export const useHealthStore = create(
         const s = get();
         try {
           await setDoc(doc(db, 'users', uid, 'data', 'health'), {
-            weight: s.weight,
             measurements: s.measurements,
             goals: s.goals,
             hydration: s.hydration,
@@ -147,13 +156,6 @@ export const useHealthStore = create(
         } catch (e) {
           console.warn('[healthStore] _persist error:', e?.message);
         }
-      },
-
-      /* ── Weight ── */
-      logWeight: (value, unit, uid) => {
-        const entry = { value, unit: unit || 'lbs', date: new Date().toISOString() };
-        set((s) => ({ weight: [...s.weight, entry] }));
-        get()._persist(uid);
       },
 
       /* ── Measurements ── */
@@ -204,7 +206,7 @@ export const useHealthStore = create(
         // Real XP award, now based on actual nutrient quality where
         // it's known. If this entry carries a real nutritionalScore
         // (set when it came from a food search result - see
-        // services/passioService.js's calculateNutritionalScore, which
+        // services/calorieApiService.js's calculateNutritionalScore, which
         // grades A-E using real FDA Daily Value percentages, not
         // arbitrary cutoffs), that grade decides the stars via
         // gradeToMealStars. For entries with no computed grade (manual
@@ -279,16 +281,11 @@ export const useHealthStore = create(
           fat:     todayMeals.reduce((s, m) => s + (m.fat || 0), 0),
         };
       },
-      getLatestWeight: () => {
-        const w = get().weight;
-        return w.length > 0 ? w[w.length - 1] : null;
-      },
     }),
     {
       name: 'health-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({
-        weight: s.weight,
         measurements: s.measurements,
         goals: s.goals,
         hydration: s.hydration,

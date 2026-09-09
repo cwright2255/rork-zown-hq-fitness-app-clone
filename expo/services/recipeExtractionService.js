@@ -68,21 +68,23 @@ class RecipeExtractionService {
   // base 1, a cost this integration does not take on. For a plain
   // recipe website, or a Pinterest pin that links out to one, this
   // isn't needed at all.
+  // Real fix: previously read process.env.EXPO_PUBLIC_SPOONACULAR_API_KEY
+  // and called Spoonacular directly - anyone could extract that key from
+  // a built app and use it under this account's billing. Now proxied
+  // through functions/src/index.js's extractSpoonacularRecipe (same
+  // pattern already used by services/calorieApiService.js for the
+  // Calorie API), so the real key only ever lives server-side. The
+  // "missing title or ingredients" validation stays here since the
+  // Cloud Function only checks res.ok, not whether the returned data is
+  // actually usable - that's this app's own concern, not Spoonacular's.
   async getSpoonacularExtraction(url) {
-    const apiKey = process.env.EXPO_PUBLIC_SPOONACULAR_API_KEY;
-    if (!apiKey) {
-      this.lastDiagnostic = 'Spoonacular: no API key configured (EXPO_PUBLIC_SPOONACULAR_API_KEY)';
-      return null;
-    }
     try {
-      const extractUrl = `https://api.spoonacular.com/recipes/extract?url=${encodeURIComponent(url)}&includeNutrition=true&apiKey=${apiKey}`;
-      const response = await fetch(extractUrl);
-      const data = await response.json().catch(() => null);
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('../src/config/firebase');
+      const fn = httpsCallable(functions, 'extractSpoonacularRecipe');
+      const result = await fn({ url });
+      const data = result.data;
 
-      if (!response.ok) {
-        this.lastDiagnostic = `Spoonacular: HTTP ${response.status}${data?.message ? ` - ${data.message}` : ''}`;
-        return null;
-      }
       if (!data?.title || !data?.extendedIngredients?.length) {
         this.lastDiagnostic = 'Spoonacular: response OK but missing a title or ingredients for this URL';
         return null;
@@ -345,26 +347,20 @@ class RecipeExtractionService {
   // saved, so that detail is only fetched via getSpoonacularById below,
   // at the point a user actually taps to save one, rather than
   // spending points on every recipe shown whether it's saved or not.
+  // Real fix: same exposure as getSpoonacularExtraction above - proxied
+  // through browseSpoonacularRecipes instead of reading the key
+  // client-side. The Cloud Function rebuilds the same query string
+  // server-side from params/number, so this just passes those through
+  // unchanged. Response mapping stays exactly the same, since that's
+  // this app's own post-processing, not part of the raw API call.
   async getSpoonacularBrowse(params, number = 12) {
-    const apiKey = process.env.EXPO_PUBLIC_SPOONACULAR_API_KEY;
-    if (!apiKey) {
-      this.lastDiagnostic = 'Spoonacular: no API key configured (EXPO_PUBLIC_SPOONACULAR_API_KEY)';
-      return [];
-    }
     try {
-      const query = new URLSearchParams({
-        ...params,
-        number: String(number),
-        addRecipeInformation: 'true',
-        addRecipeNutrition: 'true',
-        apiKey,
-      });
-      const response = await fetch(`https://api.spoonacular.com/recipes/complexSearch?${query}`);
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !Array.isArray(data?.results)) {
-        this.lastDiagnostic = `Spoonacular browse: HTTP ${response.status}${data?.message ? ` - ${data.message}` : ''}`;
-        return [];
-      }
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('../src/config/firebase');
+      const fn = httpsCallable(functions, 'browseSpoonacularRecipes');
+      const result = await fn({ params, number });
+      const data = result.data;
+
       return data.results.map((r) => {
         const calories = r.nutrition?.nutrients?.find((n) => n.name === 'Calories')?.amount;
         return {
@@ -388,20 +384,19 @@ class RecipeExtractionService {
   // a usable recipe. Reuses mapSpoonacularRecipe since "Get Recipe
   // Information" (this endpoint) returns the same shape as
   // getSpoonacularExtraction's "Extract Recipe from Website" does.
+  // Real fix: same exposure as the two methods above - proxied through
+  // getSpoonacularRecipeById instead of reading the key client-side. No
+  // separate "missing title" check needed here (unlike
+  // getSpoonacularExtraction above) since that Cloud Function already
+  // validates data.title as part of its own throw condition - any
+  // failure surfaces through the catch block below.
   async getSpoonacularById(id) {
-    const apiKey = process.env.EXPO_PUBLIC_SPOONACULAR_API_KEY;
-    if (!apiKey) {
-      this.lastDiagnostic = 'Spoonacular: no API key configured (EXPO_PUBLIC_SPOONACULAR_API_KEY)';
-      return null;
-    }
     try {
-      const response = await fetch(`https://api.spoonacular.com/recipes/${id}/information?includeNutrition=true&apiKey=${apiKey}`);
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.title) {
-        this.lastDiagnostic = `Spoonacular: HTTP ${response.status}${data?.message ? ` - ${data.message}` : ''}`;
-        return null;
-      }
-      return this.mapSpoonacularRecipe(data);
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('../src/config/firebase');
+      const fn = httpsCallable(functions, 'getSpoonacularRecipeById');
+      const result = await fn({ id });
+      return this.mapSpoonacularRecipe(result.data);
     } catch (error) {
       this.lastDiagnostic = `Spoonacular getById call failed: ${error?.message}`;
       return null;

@@ -482,7 +482,7 @@ export default function ProgressTrackerScreen() {
           
           <View style={styles.xpBreakdownItem}>
             <Text style={styles.xpBreakdownLabel}>Achievements Unlocked</Text>
-            <Text style={styles.xpBreakdownValue}>+{getUnlockedAchievements().length * 50} XP</Text>
+            <Text style={styles.xpBreakdownValue}>+{getUnlockedAchievements().reduce((sum, a) => sum + (a.xpReward || 0), 0)} XP</Text>
           </View>
           
           <View style={styles.xpBreakdownItem}>

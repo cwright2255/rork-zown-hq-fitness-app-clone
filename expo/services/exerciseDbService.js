@@ -31,31 +31,16 @@ export async function fetchMuscles() {
   return json.data || [];
 }
 
-const ASCEND_BASE = 'https://edb-with-videos-and-images-by-ascendapi.p.rapidapi.com/api/v1';
-const ASCEND_HOST = 'edb-with-videos-and-images-by-ascendapi.p.rapidapi.com';
-
-function getAscendHeaders() {
-  return {
-    'x-rapidapi-key': process.env.EXPO_PUBLIC_RAPIDAPI_KEY || '',
-    'x-rapidapi-host': ASCEND_HOST,
-  };
-}
-
-export async function fetchAscendExercises({ limit = 20, cursor = null, bodyPart = '', name = '' } = {}) {
-  let url = `${ASCEND_BASE}/exercises?limit=${limit}`;
-  if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
-  if (bodyPart) url += `&bodyPart=${encodeURIComponent(bodyPart)}`;
-  if (name) url += `&name=${encodeURIComponent(name)}`;
-  const res = await fetch(url, { headers: getAscendHeaders() });
-  if (!res.ok) throw new Error(`AscendAPI fetch failed: ${res.status}`);
-  return res.json();
-}
-
-export async function fetchAscendBodyParts() {
-  const res = await fetch(`${ASCEND_BASE}/bodyparts`, { headers: getAscendHeaders() });
-  if (!res.ok) throw new Error(`AscendAPI fetch failed: ${res.status}`);
-  return res.json();
-}
+// Real fix: previously this file built AscendAPI URLs directly and read
+// process.env.EXPO_PUBLIC_RAPIDAPI_KEY client-side via getAscendHeaders,
+// used by three functions - fetchAscendExercises and
+// fetchAscendBodyparts (confirmed, before removing them, never called
+// from anywhere reachable) and runAscendSearch below (genuinely
+// reachable, via searchAscendExercise, called from
+// app/workout/active.jsx). The two dead ones are removed rather than
+// proxied, since building a Cloud Function for functionality nobody can
+// trigger would be wasted effort. The one reachable path is proxied
+// through functions/src/index.js's searchAscendExercise below.
 
 // Real, confirmed endpoint from AscendAPI's own quickstart docs:
 // GET /api/v1/exercises/search?search=<query>. Deliberately not folded
@@ -81,15 +66,16 @@ function simplifyExerciseName(name) {
 }
 
 async function runAscendSearch(query) {
-  const url = `${ASCEND_BASE}/exercises/search?search=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { headers: getAscendHeaders() });
-  if (!res.ok) {
-    console.warn('[exerciseDbService] searchAscendExercise request failed:', res.status, query);
+  try {
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../src/config/firebase');
+    const fn = httpsCallable(functions, 'searchAscendExercise');
+    const result = await fn({ query });
+    return result.data;
+  } catch (error) {
+    console.warn('[exerciseDbService] searchAscendExercise request failed:', error?.message, query);
     return null;
   }
-  const json = await res.json();
-  const results = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
-  return results[0] || null;
 }
 
 // Two-step lookup: exact generated name first, then (only if that comes
@@ -99,11 +85,6 @@ async function runAscendSearch(query) {
 // exercise, never more.
 export async function searchAscendExercise(name) {
   if (!name) return null;
-  const apiKey = process.env.EXPO_PUBLIC_RAPIDAPI_KEY;
-  if (!apiKey) {
-    console.warn('[exerciseDbService] searchAscendExercise: EXPO_PUBLIC_RAPIDAPI_KEY not set, skipping');
-    return null;
-  }
 
   const record = await runAscendSearch(name);
   if (record) return record;

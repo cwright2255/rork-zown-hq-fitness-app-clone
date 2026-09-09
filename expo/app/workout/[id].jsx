@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   Image,
+  Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -144,6 +145,23 @@ export default function WorkoutDetailScreen() {
     clearWorkoutProgress(id, user?.uid);
     setShowClearConfirm(false);
     setShowMenu(false);
+  };
+
+  // Real, new: uses React Native's built-in OS share sheet, matching
+  // the established external-share pattern already used in
+  // app/social.jsx/app/community.jsx/app/profile.jsx (Share.share, no
+  // new dependency) and app/workout/complete.jsx's own header share
+  // button. Describes the workout template itself (name, exercise
+  // count, duration) rather than completed results, since this screen
+  // is a preview/overview reached before starting a workout - nothing
+  // has actually been done yet at this point.
+  const handleShare = async () => {
+    const text = `Check out this workout on Zown: ${workout?.name || 'Workout'} — ${totalExercises} exercise${totalExercises === 1 ? '' : 's'}, ${workout?.duration ?? 0} min.`;
+    try {
+      await Share.share({ message: text });
+    } catch (e) {
+      console.warn('[workout/[id]] share failed:', e?.message);
+    }
   };
 
   const handleBack = () => {
@@ -311,7 +329,7 @@ export default function WorkoutDetailScreen() {
               style={styles.menuOption}
               onPress={() => {
                 setShowMenu(false);
-                // TODO: share workout
+                handleShare();
               }}
             >
               <Ionicons name="share-outline" size={20} color="#000" style={{ marginRight: 12 }} />

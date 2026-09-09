@@ -161,6 +161,17 @@ export const useExpStore = create(
       mealXpDate: null,
       mealXpFoodKeys: [],
 
+      // Real, new: tracks XP earned specifically today, separate from
+      // expSystem.totalExp's lifetime cumulative value. Accumulated
+      // inside addExp itself (below) rather than duplicated at each of
+      // its individual callers (addExpActivity, awardHydrationXp,
+      // awardStepsXp, awardMealXp all route through it eventually), so
+      // this captures every XP source in one place. Resets when the
+      // date changes, same top-up-protected shape as the other
+      // per-day XP fields above.
+      dailyXp: 0,
+      dailyXpDate: null,
+
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
       },
@@ -196,6 +207,8 @@ export const useExpStore = create(
               stepsXpAwardedFor: data.stepsXpDate === todayStr() ? (data.stepsXpAwardedFor || 0) : get().stepsXpAwardedFor,
               mealXpDate: data.mealXpDate || get().mealXpDate,
               mealXpFoodKeys: data.mealXpDate === todayStr() ? (data.mealXpFoodKeys || []) : get().mealXpFoodKeys,
+              dailyXpDate: data.dailyXpDate || get().dailyXpDate,
+              dailyXp: data.dailyXpDate === todayStr() ? (data.dailyXp || 0) : get().dailyXp,
             });
           }
         } catch (e) {
@@ -218,6 +231,8 @@ export const useExpStore = create(
             stepsXpAwardedFor: s.stepsXpAwardedFor,
             mealXpDate: s.mealXpDate,
             mealXpFoodKeys: s.mealXpFoodKeys,
+            dailyXpDate: s.dailyXpDate,
+            dailyXp: s.dailyXp,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -237,13 +252,19 @@ export const useExpStore = create(
         const newLevel = calculateLevelFromExp(newTotalExp);
         const expToNextLevel = xpRequiredForLevel(newLevel + 1) - newTotalExp;
 
+        const today = todayStr();
+        const state = get();
+        const currentDailyXp = state.dailyXpDate === today ? state.dailyXp : 0;
+
         set({
           expSystem: {
             ...expSystem,
             totalExp: newTotalExp,
             level: newLevel,
             expToNextLevel
-          }
+          },
+          dailyXp: currentDailyXp + amount,
+          dailyXpDate: today,
         });
 
         if (uid) get().saveXP(uid);
@@ -374,6 +395,15 @@ export const useExpStore = create(
         return (expSystem || defaultExpSystem).totalExp;
       },
 
+      // Real, new: date-aware like the load logic above - returns 0
+      // rather than a stale, leftover value if dailyXpDate isn't today
+      // (nothing awarded yet today, so the raw dailyXp field could still
+      // hold yesterday's number until the next award resets it).
+      getDailyExp: () => {
+        const state = get();
+        return state.dailyXpDate === todayStr() ? state.dailyXp : 0;
+      },
+
       getExpBreakdown: () => {
         const { expSystem } = get();
         const safeExpSystem = expSystem || defaultExpSystem;
@@ -421,7 +451,9 @@ export const useExpStore = create(
         stepsXpDate: state.stepsXpDate,
         stepsXpAwardedFor: state.stepsXpAwardedFor,
         mealXpDate: state.mealXpDate,
-        mealXpFoodKeys: state.mealXpFoodKeys
+        mealXpFoodKeys: state.mealXpFoodKeys,
+        dailyXpDate: state.dailyXpDate,
+        dailyXp: state.dailyXp
       }),
       onRehydrateStorage: () => (state) => {
         // When storage is rehydrated, initialize the EXP system if needed

@@ -157,7 +157,7 @@ export default function HQScreen() {
 
   const router = useRouter();
   const { user, updateUser, saveProfile } = useUserStore();
-  const { getTotalExp } = useExpStore();
+  const { getDailyExp } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
   const { hydration, sleep, steps: storeSteps, stepsHistory, meals, addGlass, flightsClimbed } = useHealthStore();
   const { rookRecovery, loadRookRecovery, loadAppleHealthActivity } = useHealthStore();
@@ -227,10 +227,21 @@ export default function HQScreen() {
     () => computeStepsMetrics(stepsHistory, stepsGoal),
     [stepsHistory, stepsGoal]
   );
-  const sleepVal = sleep?.hours || 7.5;
+  // Real fix: previously sleep?.hours || 7.5 - since the dead sleep
+  // field (store/healthStore.js's standalone one, confirmed unreachable
+  // elsewhere) is always exactly 0, this always fell through to a
+  // hardcoded 7.5, never reflecting anything real. Now reads
+  // rookRecovery.sleepHours, the same real, already-working data source
+  // the Recovery panel below already correctly displays.
+  const sleepVal = rookRecovery?.sleepHours ?? null;
   const hydrationVal = hydration?.glasses || 0;
   const hydrationTarget = hydration?.target || 8;
-  const xpVal = getTotalExp ? getTotalExp() : 0;
+  // Real fix: previously getTotalExp() - lifetime cumulative XP, not
+  // daily. Now reads the new getDailyExp() getter (store/expStore.js),
+  // which tracks XP earned specifically today. Math.round guards
+  // against fractional XP (e.g. steps-XP's per-step rate can produce
+  // non-whole amounts) reaching the display as a decimal.
+  const xpVal = getDailyExp ? Math.round(getDailyExp()) : 0;
 
   const toggleExpand = (cardName) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -438,32 +449,25 @@ export default function HQScreen() {
           {isWidgetEnabled('sleep') && renderExpandableCard(
             'Sleep',
             'moon-outline',
-            sleepVal.toLocaleString(),
+            sleepVal != null ? sleepVal.toLocaleString() : '\u2014',
             'Hours',
             false,
             (
               <View>
-                <View style={{ gap: 8, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>Sleep Breakdown</Text>
-                  <Text style={styles.detailStatText}>Sleep Quality Score: <Text style={{fontWeight: '700', color: '#9C27B0'}}>88% (Excellent)</Text></Text>
-                </View>
-
-                {/* Horizontal Sleep Phase bar */}
-                <View style={{ marginVertical: 8 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#666', marginBottom: 4 }}>Sleep Phases</Text>
-                  <View style={{ height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' }}>
-                    <View style={{ width: '25%', backgroundColor: '#3F51B5' }} />
-                    <View style={{ width: '50%', backgroundColor: '#2196F3' }} />
-                    <View style={{ width: '15%', backgroundColor: '#00BCD4' }} />
-                    <View style={{ width: '10%', backgroundColor: '#FFEB3B' }} />
+                {rookRecovery?.sleepHours != null ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Last Night</Text>
+                    <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                    <Text style={{ fontSize: 9, color: '#3F51B5' }}>Deep (25%)</Text>
-                    <Text style={{ fontSize: 9, color: '#2196F3' }}>Light (50%)</Text>
-                    <Text style={{ fontSize: 9, color: '#00BCD4' }}>REM (15%)</Text>
-                    <Text style={{ fontSize: 9, color: '#FFEB3B' }}>Awake (10%)</Text>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No wearable data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect a device to see real sleep data here.
+                    </Text>
                   </View>
-                </View>
+                )}
 
                 <TouchableOpacity
                   style={styles.panelBtn}
@@ -477,7 +481,7 @@ export default function HQScreen() {
 
           {/* 5. Total XP Card */}
           {isWidgetEnabled('totalXp') && renderExpandableCard(
-            'Total XP',
+            'Total Daily XP',
             'star-outline',
             xpVal.toLocaleString(),
             'points',

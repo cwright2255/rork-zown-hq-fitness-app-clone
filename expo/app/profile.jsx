@@ -155,15 +155,19 @@ export default function ProfileScreen() {
   const xpLevel = getLevel ? getLevel() : 1;
   const currentLevelThreshold = getExpForLevel ? getExpForLevel(xpLevel) : 0;
   const nextLevelThreshold = getExpForLevel ? getExpForLevel(xpLevel + 1) : currentLevelThreshold + 1000;
-  const xpCurrent = Math.max(0, (totalExp || 0) - currentLevelThreshold);
+  const xpCurrent = Math.round(Math.max(0, (totalExp || 0) - currentLevelThreshold));
   const xpNeededForLevel = Math.max(1, nextLevelThreshold - currentLevelThreshold);
   const xpPercent = Math.min(100, Math.max(0, (xpCurrent / xpNeededForLevel) * 100));
-  const xpRemaining = getExpToNextLevel ? getExpToNextLevel() : Math.max(0, nextLevelThreshold - (totalExp || 0));
+  // Real fix: fractional XP (e.g. steps-XP's per-step rate) could
+  // otherwise surface as a decimal here and in Total XP below -
+  // Math.round applied at display time only, doesn't change totalExp
+  // or level-progression math itself.
+  const xpRemaining = Math.round(getExpToNextLevel ? getExpToNextLevel() : Math.max(0, nextLevelThreshold - (totalExp || 0)));
 
   const STATS_LIVE = [
     { label: 'Workouts', value: completedWorkouts?.length || 0 },
     { label: 'Streak', value: user?.streak || 0 },
-    { label: 'Total XP', value: totalExp || 0 },
+    { label: 'Total XP', value: Math.round(totalExp || 0) },
   ];
 
   // Real fix: these were referenced throughout this screen (profile
