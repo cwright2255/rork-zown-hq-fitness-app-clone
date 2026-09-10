@@ -393,7 +393,7 @@ export default function HQScreen() {
           {isWidgetEnabled('heart') && renderExpandableCard(
             'Heart',
             'heart-outline',
-            rookRecovery?.restingHeartRate != null ? String(rookRecovery.restingHeartRate) : '\u2014',
+            rookRecovery?.restingHeartRate != null ? String(Math.round(rookRecovery.restingHeartRate)) : '\u2014',
             'bpm',
             false,
             (
@@ -402,10 +402,10 @@ export default function HQScreen() {
                   <View style={{ gap: 6, marginBottom: 12 }}>
                     <Text style={styles.insightTitle}>Today's Recovery</Text>
                     {rookRecovery.restingHeartRate != null && (
-                      <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>{rookRecovery.restingHeartRate} bpm</Text></Text>
+                      <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.restingHeartRate)} bpm</Text></Text>
                     )}
                     {rookRecovery.hrv != null && (
-                      <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{rookRecovery.hrv} ms</Text></Text>
+                      <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.hrv)} ms</Text></Text>
                     )}
                     {rookRecovery.sleepHours != null && (
                       <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
@@ -562,44 +562,31 @@ export default function HQScreen() {
           {isWidgetEnabled('restingHrv') && renderExpandableCard(
             'Resting HRV',
             'pulse-outline',
-            '58',
+            rookRecovery?.hrv != null ? String(Math.round(rookRecovery.hrv)) : '\u2014',
             'ms',
             false,
             (
               <View>
-                <View style={{ gap: 6, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>HRV Breakdown</Text>
-                  <Text style={styles.detailStatText}>Weekly Average: <Text style={{fontWeight: '700'}}>56 ms</Text></Text>
-                  <Text style={styles.detailStatText}>Recovery Status: <Text style={{fontWeight: '700', color: '#4CAF50'}}>Optimal (Green)</Text></Text>
-                </View>
-
-                <View style={{ marginTop: 8 }}>
-                  <Text style={styles.chartTitle}>7-Day HRV Trend</Text>
-                  <LineChart
-                    data={{
-                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                      datasets: [{ data: [52, 55, 58, 54, 57, 61, 58] }],
-                    }}
-                    width={chartWidth}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(103, 58, 183, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                    }}
-                    bezier
-                    style={styles.chartStyle}
-                  />
-                </View>
+                {rookRecovery?.hrv != null ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Today's Recovery</Text>
+                    <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.hrv)} ms</Text></Text>
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No wearable data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect a device to see real HRV data here.
+                    </Text>
+                  </View>
+                )}
 
                 <TouchableOpacity
                   style={styles.panelBtn}
-                  onPress={() => router.push('/analytics')}
+                  onPress={() => router.push('/health')}
                 >
-                  <Text style={styles.panelBtnText}>View HRV Trends</Text>
+                  <Text style={styles.panelBtnText}>View Health</Text>
                 </TouchableOpacity>
               </View>
             )

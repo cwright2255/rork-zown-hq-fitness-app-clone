@@ -114,8 +114,8 @@ function StarRating({ stars, size = 12 }) {
   );
 }
 
-// Same canonical meal slot ids as app/nutrition/log.jsx and
-// app/nutrition/food/[id].jsx -- lowercase singular. Previously this
+// Same canonical meal slot ids as app/nutrition/food/[id].jsx --
+// lowercase singular. Previously this
 // screen used capitalized/plural display labels ('Breakfast', 'Snacks')
 // as if they were the real match key, which never actually matched a
 // meal's real id, and its own "Add Food" button dropped which slot was

@@ -613,7 +613,15 @@ const styles = StyleSheet.create({
     aspectRatio: 3 / 4,
     borderRadius: tokens.radius.md,
     overflow: 'hidden',
-    backgroundColor: tokens.colors.dark_navy.text_primary
+    // Real fix: previously reached into theme/tokens.js's dark_navy
+    // token group directly (text_primary), the one stray reference in
+    // this file to that separate, still-broken system - everything
+    // else here already correctly uses this file's own Colors import
+    // (constants/colors.js, already fixed to a white/black theme by
+    // an earlier session per its own comments). The old value
+    // happened to already resolve to white by coincidence, so this is
+    // a consistency fix, not a visible change.
+    backgroundColor: Colors.card
   },
   camera: {
     width: '100%',

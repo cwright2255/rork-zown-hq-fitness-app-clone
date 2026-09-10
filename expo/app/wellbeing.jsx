@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -69,30 +69,48 @@ export default function WellbeingScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as app/support.jsx and
+// app/nutrition.jsx - backgroundColor: tokens.colors.dark_navy.text_primary
+// (a "text" token, resolves to white) used as both container and card
+// backgrounds, color: tokens.colors.dark_navy.text_muted (a gray-blue
+// meant for a dark background, #7A869E) for secondary text, and
+// backgroundColor: tokens.colors.dark_navy.bg_primary (#0B1220, a real,
+// intentionally dark color) for the mood/stress "active" highlight -
+// that one wasn't misused, it correctly used a background token as a
+// background, but it's still the wrong color family for a light
+// screen. Now black #000000, matching how hq.jsx's own primary
+// selected-state buttons (e.g. "Add Glass") already use black. Cards
+// use hq.jsx's own shadow instead of the previous border.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 20, marginBottom: 12,
   },
-  cardTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '600', marginBottom: tokens.spacing.md },
+  cardTitle: { color: '#000000', fontSize: 16, fontWeight: '600', marginBottom: tokens.spacing.md },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   moodBtn: {
     width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
   },
-  moodBtnActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
+  moodBtnActive: { backgroundColor: '#000000' },
   moodEmoji: { fontSize: 24 },
-  link: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 8 },
+  link: { color: '#666666', fontSize: 13, marginTop: 8 },
   label: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
+    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm,
   },
-  bigNum: { fontSize: 36, fontWeight: '800', color: tokens.colors.dark_navy.text_primary, letterSpacing: -0.5 },
-  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, marginTop: 2 },
+  bigNum: { fontSize: 36, fontWeight: '800', color: '#000000', letterSpacing: -0.5 },
+  sub: { color: '#666666', fontSize: 14, marginTop: 2 },
   pillRow: { flexDirection: 'row', gap: tokens.spacing.sm },
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  pillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  pillInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
+  pillActive: { backgroundColor: '#000000' },
+  pillInactive: { backgroundColor: '#FFFFFF', ...cardShadow },
   pillText: { fontSize: 13, fontWeight: '600' },
 });

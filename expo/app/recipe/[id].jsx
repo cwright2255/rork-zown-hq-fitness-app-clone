@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -137,38 +137,46 @@ export default function RecipeDetailScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.dark_navy.text_muted },
+  empty: { color: '#999999' },
   image: { width: '100%', height: 260 },
-  imagePh: { backgroundColor: tokens.colors.dark_navy.text_primary },
-  title: { fontSize: 28, fontWeight: '700', color: tokens.colors.dark_navy.text_primary, letterSpacing: -0.5 },
-  meta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 6 },
+  imagePh: { backgroundColor: '#F5F5F5' },
+  title: { fontSize: 28, fontWeight: '700', color: '#000000', letterSpacing: -0.5 },
+  meta: { color: '#999999', fontSize: 13, marginTop: 6 },
   macroRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: tokens.spacing.sm },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
   chipText: { fontSize: 12, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm, marginTop: 20,
+    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm, marginTop: 20,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md,
   },
   ingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.dark_navy.bg_primary, marginRight: 10 },
-  ingText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, flex: 1 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#000000', marginRight: 10 },
+  ingText: { color: '#000000', fontSize: 14, flex: 1 },
   stepCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 14, marginBottom: tokens.spacing.sm,
     alignItems: 'flex-start', gap: tokens.spacing.md,
   },
   stepNum: {
-    color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '700',
+    color: '#000000', fontSize: 18, fontWeight: '700',
     width: 28, textAlign: 'center',
   },
-  stepText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, flex: 1, lineHeight: 20 },
+  stepText: { color: '#000000', fontSize: 14, flex: 1, lineHeight: 20 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

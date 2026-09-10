@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Platform } from 'react-native';
 import { Trophy } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
@@ -45,14 +45,14 @@ export default function LeaderboardScreen() {
     uri ? (
       <Image
         source={{ uri }}
-        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.colors.dark_navy.bg_card }}
+        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#F5F5F5' }}
       />
     ) : (
       <View style={{
-        width: size, height: size, borderRadius: size / 2, backgroundColor: tokens.colors.dark_navy.bg_card,
+        width: size, height: size, borderRadius: size / 2, backgroundColor: '#F5F5F5',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: size * 0.35 }}>
+        <Text style={{ color: '#000000', fontWeight: '700', fontSize: size * 0.35 }}>
           {'?'}
         </Text>
       </View>
@@ -78,9 +78,9 @@ export default function LeaderboardScreen() {
         </View>
 
         {isLoading && sorted.length === 0 ? (
-          <ActivityIndicator size="large" color={tokens.colors.dark_navy.bg_primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#000000" style={{ marginTop: 40 }} />
         ) : sorted.length === 0 ? (
-          <Text style={{ color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginTop: 40 }}>
+          <Text style={{ color: '#999999', textAlign: 'center', marginTop: 40 }}>
             No rankings yet — complete a workout to be the first on the board.
           </Text>
         ) : (
@@ -91,7 +91,7 @@ export default function LeaderboardScreen() {
             <Avatar uri={second?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{second?.name}</Text>
             <Text style={styles.podiumPts}>{second?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 80, backgroundColor: tokens.colors.dark_navy.bg_card }]}>
+            <View style={[styles.podiumBar, { height: 80, backgroundColor: '#F5F5F5' }]}>
               <Text style={styles.podiumPlace}>2</Text>
             </View>
           </View>
@@ -100,15 +100,15 @@ export default function LeaderboardScreen() {
             <Avatar uri={first?.avatar} size={72} />
             <Text style={styles.podiumName} numberOfLines={1}>{first?.name}</Text>
             <Text style={styles.podiumPts}>{first?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 110, backgroundColor: tokens.colors.dark_navy.bg_primary }]}>
-              <Text style={[styles.podiumPlace, { color: tokens.colors.dark_navy.text_primary }]}>1</Text>
+            <View style={[styles.podiumBar, { height: 110, backgroundColor: '#000000' }]}>
+              <Text style={[styles.podiumPlace, { color: '#FFFFFF' }]}>1</Text>
             </View>
           </View>
           <View style={styles.podiumSpot}>
             <Avatar uri={third?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{third?.name}</Text>
             <Text style={styles.podiumPts}>{third?.pts}</Text>
-            <View style={[styles.podiumBar, { height: 60, backgroundColor: tokens.colors.dark_navy.bg_card }]}>
+            <View style={[styles.podiumBar, { height: 60, backgroundColor: '#F5F5F5' }]}>
               <Text style={styles.podiumPlace}>3</Text>
             </View>
           </View>
@@ -119,7 +119,7 @@ export default function LeaderboardScreen() {
           <View key={u.id} style={[styles.row, u.isMe && styles.rowMe]}>
             <Text style={styles.rank}>{idx + 4}</Text>
             <Avatar uri={u.avatar} />
-            <Text style={[styles.name, u.isMe && { color: tokens.colors.dark_navy.text_primary, fontWeight: '700' }]}>
+            <Text style={[styles.name, u.isMe && { color: '#000000', fontWeight: '700' }]}>
               {u.name}
             </Text>
             <Text style={styles.pts}>{u.pts}</Text>
@@ -132,43 +132,59 @@ export default function LeaderboardScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass. Two genuine contrast cases here, not direct swaps:
+// podiumPlace's default color (used by 2nd/3rd place) sat on bg_card,
+// now light gray #F5F5F5 - was white, now black to stay legible; 1st
+// place's bar (bg_primary) is now black, so its already-overridden
+// white stays as an explicit override rather than the new black
+// default. filterTextActive sits on filterPillActive's background
+// (bg_primary, now black) - kept white rather than following the
+// usual "text_primary becomes black" swap, since black text on the
+// now-black active pill would be invisible.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   filters: { flexDirection: 'row', gap: tokens.spacing.sm, marginBottom: 20 },
   filterPill: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, borderRadius: 999,
   },
-  filterPillActive: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderColor: tokens.colors.dark_navy.bg_primary },
-  filterText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '600' },
-  filterTextActive: { color: tokens.colors.dark_navy.text_primary },
+  filterPillActive: { backgroundColor: '#000000' },
+  filterText: { color: '#999999', fontSize: 13, fontWeight: '600' },
+  filterTextActive: { color: '#FFFFFF' },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'center', gap: tokens.spacing.md, marginBottom: tokens.spacing.lg,
   },
   podiumSpot: { alignItems: 'center', flex: 1 },
   podiumName: {
-    color: tokens.colors.dark_navy.text_primary, fontSize: 12, fontWeight: '600', marginTop: 6,
+    color: '#000000', fontSize: 12, fontWeight: '600', marginTop: 6,
     maxWidth: 80,
   },
-  podiumPts: { color: tokens.colors.dark_navy.text_muted, fontSize: 11, marginTop: 2 },
+  podiumPts: { color: '#999999', fontSize: 11, marginTop: 2 },
   podiumBar: {
     width: '100%', marginTop: 8,
     alignItems: 'center', justifyContent: 'center',
     borderTopLeftRadius: 12, borderTopRightRadius: 12,
   },
-  podiumPlace: { color: tokens.colors.dark_navy.text_primary, fontSize: 20, fontWeight: '700' },
+  podiumPlace: { color: '#000000', fontSize: 20, fontWeight: '700' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 12,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 12, marginBottom: tokens.spacing.sm,
   },
-  rowMe: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
-  rank: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '700', width: 24 },
-  name: { color: tokens.colors.dark_navy.text_muted, fontSize: 14, fontWeight: '500', flex: 1 },
-  pts: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '700' },
+  rowMe: { borderColor: '#000000', borderWidth: 2 },
+  rank: { color: '#999999', fontSize: 14, fontWeight: '700', width: 24 },
+  name: { color: '#666666', fontSize: 14, fontWeight: '500', flex: 1 },
+  pts: { color: '#000000', fontSize: 14, fontWeight: '700' },
 });

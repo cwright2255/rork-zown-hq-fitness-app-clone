@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { TrendingUp } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -70,7 +70,7 @@ export default function ExpDashboardScreen() {
           activities.map((a, i) => (
             <View key={a.id || i} style={styles.activityRow}>
               <View style={styles.activityIcon}>
-                <TrendingUp size={16} color={tokens.colors.dark_navy.bg_primary} />
+                <TrendingUp size={16} color="#000000" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.activityName}>{a.description || a.name || 'Activity'}</Text>
@@ -86,48 +86,60 @@ export default function ExpDashboardScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass. Progress fill (bg_primary) now black, matching the
+// same "black for active/highlight" convention used throughout this
+// pass. Note: the known 0/0 XP display bug (toNext.current/needed) is
+// untouched - a separate, already-flagged functional issue, out of
+// scope for this visual-only pass.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   levelCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
-  levelLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
-  levelNumber: { color: tokens.colors.dark_navy.text_primary, fontSize: 72, fontWeight: '700', letterSpacing: -1 },
+  levelLabel: { color: '#999999', fontSize: 12, fontWeight: '600', letterSpacing: 0.8 },
+  levelNumber: { color: '#000000', fontSize: 72, fontWeight: '700', letterSpacing: -1 },
   progressTrack: {
-    width: '100%', height: 6, backgroundColor: tokens.colors.dark_navy.bg_card,
+    width: '100%', height: 6, backgroundColor: '#F5F5F5',
     borderRadius: 3, marginTop: 12, overflow: 'hidden',
   },
-  progressFill: { height: 6, backgroundColor: tokens.colors.dark_navy.bg_primary, borderRadius: 3 },
-  progressText: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 8 },
+  progressFill: { height: 6, backgroundColor: '#000000', borderRadius: 3 },
+  progressText: { color: '#999999', fontSize: 12, marginTop: 8 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, alignItems: 'center',
   },
-  statValue: { color: tokens.colors.dark_navy.text_primary, fontSize: 24, fontWeight: '700' },
-  statLabel: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 4 },
+  statValue: { color: '#000000', fontSize: 24, fontWeight: '700' },
+  statLabel: { color: '#999999', fontSize: 12, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginTop: tokens.spacing.lg, marginBottom: 12,
+    textTransform: 'uppercase', color: '#999999', marginTop: tokens.spacing.lg, marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
-  empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
+  empty: { color: '#666666', fontSize: 14 },
   activityRow: {
     flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 14, marginBottom: tokens.spacing.sm,
   },
   activityIcon: {
     width: 32, height: 32, borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center',
   },
-  activityName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '500' },
-  activityDate: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
+  activityName: { color: '#000000', fontSize: 14, fontWeight: '500' },
+  activityDate: { color: '#999999', fontSize: 12, marginTop: 2 },
   activityXp: { color: '#22C55E', fontSize: 14, fontWeight: '700' },
 });

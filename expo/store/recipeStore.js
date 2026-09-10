@@ -83,7 +83,10 @@ export const useRecipeStore = create((set, get) => ({
       let saved = newRecipe;
       if (uid) {
         try {
-          const ref = await addDoc(collection(db, 'users', uid, 'recipes'), newRecipe);
+          const sanitized = Object.fromEntries(
+            Object.entries(newRecipe).map(([k, v]) => [k, v === undefined ? null : v])
+          );
+          const ref = await addDoc(collection(db, 'users', uid, 'recipes'), sanitized);
           saved = { ...newRecipe, id: ref.id };
         } catch (e) {
           console.warn('[recipeStore] Firestore save failed, kept locally only:', e?.message);

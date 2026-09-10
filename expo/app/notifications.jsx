@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Bell, Trophy, Droplets, Users } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
@@ -26,7 +26,7 @@ export default function NotificationsScreen() {
       <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Bell size={40} color="#2A2A2A" />
+            <Bell size={40} color="#CCCCCC" />
             <Text style={styles.empty}>No notifications yet</Text>
           </View>
         ) : (
@@ -38,7 +38,7 @@ export default function NotificationsScreen() {
                 onPress={() => handleMark(n.id)}
                 style={[styles.row, n.unread && styles.rowUnread]}>
                 <View style={styles.icon}>
-                  <Icon size={18} color={tokens.colors.dark_navy.bg_primary} />
+                  <Icon size={18} color="#000000" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>{n.title}</Text>
@@ -55,29 +55,44 @@ export default function NotificationsScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass. rowUnread's left-border and dot's background both
+// correctly used a background token as a background/border (not the
+// misused-token bug itself), but still the wrong color family - now
+// black, same "black for active/highlight state" convention already
+// used in app/wellbeing.jsx and app/champion-pass.jsx. time used
+// text_secondary specifically (a lighter gray-blue than text_muted,
+// #B8C0D4) - kept as the lightest of the three text shades here (#999)
+// to preserve that same relative emphasis.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: tokens.spacing.md,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 14, marginBottom: tokens.spacing.sm,
   },
-  rowUnread: { borderLeftWidth: 3, borderLeftColor: tokens.colors.dark_navy.bg_primary },
+  rowUnread: { borderLeftWidth: 3, borderLeftColor: '#000000' },
   icon: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
-  body: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
-  time: { color: tokens.colors.dark_navy.text_secondary, fontSize: 11, marginTop: 4 },
+  title: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  body: { color: '#666666', fontSize: 13, lineHeight: 18, marginTop: 2 },
+  time: { color: '#999999', fontSize: 11, marginTop: 4 },
   dot: {
     width: 8, height: 8, borderRadius: tokens.radius.xs,
-    backgroundColor: tokens.colors.dark_navy.bg_primary, marginTop: 6,
+    backgroundColor: '#000000', marginTop: 6,
   },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 40, alignItems: 'center', gap: 10,
   },
-  empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
+  empty: { color: '#666666', fontSize: 14 },
 });

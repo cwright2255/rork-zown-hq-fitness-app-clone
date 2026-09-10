@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Award } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -39,7 +39,7 @@ export default function ChampionPassScreen() {
       <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
         <View style={styles.heroCard}>
           <View style={styles.heroIcon}>
-            <Award size={32} color={tokens.colors.dark_navy.bg_primary} />
+            <Award size={32} color="#000000" />
           </View>
           <Text style={styles.heroTitle}>
             {isPremium ? 'Premium Champion' : 'Champion Pass'}
@@ -90,46 +90,66 @@ export default function ChampionPassScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass - text_primary (white) used as backgrounds throughout,
+// text_muted (a dark-context gray-blue) for secondary text. Cards use
+// hq.jsx's own shadow instead of the previous borders. tierCardActive's
+// border stays a border (a reasonable way to mark the current tier),
+// just changed from the dark-navy bg_primary color to black, same
+// "black for active/selected state" convention already used in
+// app/wellbeing.jsx. currentPill's background wasn't actually routed
+// through dark_navy (rgba(255,255,255,0.1), a semi-transparent white
+// overlay) but is included here since it was designed to be visible
+// against a dark background and would be nearly invisible on this new
+// light one - changed to a light green tint matching the same
+// "positive/current indicator" convention already used elsewhere
+// (app/nutrition.jsx's calorie badge).
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   heroCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center', marginBottom: 20,
   },
   heroIcon: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  heroTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
-  heroSub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4, textAlign: 'center' },
+  heroTitle: { color: '#000000', fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
+  heroSub: { color: '#666666', fontSize: 13, marginTop: 4, textAlign: 'center' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 12,
   },
   tierCard: {
     flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
-  tierCardActive: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
+  tierCardActive: { borderColor: '#000000', borderWidth: 2 },
   tierBadge: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center',
   },
-  tierBadgeText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '700' },
-  tierName: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '600' },
-  tierDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
+  tierBadgeText: { color: '#000000', fontSize: 14, fontWeight: '700' },
+  tierName: { color: '#000000', fontSize: 15, fontWeight: '600' },
+  tierDesc: { color: '#666666', fontSize: 12, marginTop: 2 },
   currentPill: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  currentText: { color: tokens.colors.dark_navy.text_primary, fontSize: 11, fontWeight: '600' },
+  currentText: { color: '#22C55E', fontSize: 11, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
-  empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
+  empty: { color: '#666666', fontSize: 14 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
 import { ChevronDown, ChevronUp, Mail, MessageCircle } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -32,7 +32,7 @@ export default function SupportScreen() {
               onPress={() => setOpen(isOpen ? null : i)}>
               <View style={styles.faqRow}>
                 <Text style={styles.faqQ}>{f.q}</Text>
-                {isOpen ? <ChevronUp size={18} color={tokens.colors.dark_navy.text_muted} /> : <ChevronDown size={18} color={tokens.colors.dark_navy.text_muted} />}
+                {isOpen ? <ChevronUp size={18} color="#999999" /> : <ChevronDown size={18} color="#999999" />}
               </View>
               {isOpen ? <Text style={styles.faqA}>{f.a}</Text> : null}
             </TouchableOpacity>
@@ -56,19 +56,37 @@ export default function SupportScreen() {
   );
 }
 
+// Real fix: previously backgroundColor: tokens.colors.dark_navy.text_primary
+// (a "text" token used as a background - resolves to white, so this
+// wasn't visibly broken the way some other screens were, but it's the
+// same underlying bug) and color: tokens.colors.dark_navy.text_muted/
+// text_primary throughout (light grays and white meant for a dark
+// background, applied to what's actually meant to be a light screen).
+// Plain hex used directly here instead of routing through the
+// dark_navy token group at all, matching the same fix already applied
+// to constants/theme.js and app/nutrition.jsx - white #FFFFFF
+// background, cards with app/hq.jsx's own exact shadow (not the
+// previous border), black text. tokens.spacing/tokens.radius are
+// untouched - not part of this color-token bug, out of scope for it.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 12,
   },
   faqCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: tokens.spacing.sm,
   },
   faqRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  faqQ: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
-  faqA: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, lineHeight: 19, marginTop: 10 },
+  faqQ: { color: '#000000', fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
+  faqA: { color: '#666666', fontSize: 13, lineHeight: 19, marginTop: 10 },
 });

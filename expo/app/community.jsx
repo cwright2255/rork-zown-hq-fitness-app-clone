@@ -176,7 +176,7 @@ export default function CommunityScreen() {
           <>
             <PrimaryButton title="Share an update" onPress={() => setComposerOpen(true)} style={{ marginBottom: tokens.spacing.md }} />
             {posts.length === 0 && !isLoading && (
-              <Text style={{ color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginTop: 20 }}>
+              <Text style={{ color: '#999999', textAlign: 'center', marginTop: 20 }}>
                 No posts yet — be the first to share something.
               </Text>
             )}
@@ -202,24 +202,24 @@ export default function CommunityScreen() {
                     <Text style={styles.postTime}>{timeAgo(post.createdAt)} ago</Text>
                   </View>
                   {post.authorId !== user?.uid && (
-                    <MessageCircle size={16} color={tokens.colors.dark_navy.text_muted} />
+                    <MessageCircle size={16} color="#999999" />
                   )}
                 </TouchableOpacity>
                 <Text style={styles.postText}>{post.text}</Text>
                 <View style={styles.postActions}>
                   <TouchableOpacity style={styles.action} onPress={() => handleLike(post.id)}>
                     <Heart
-                      size={18} color={likedByMe[post.id] ? '#EF4444' : tokens.colors.dark_navy.text_muted}
+                      size={18} color={likedByMe[post.id] ? '#EF4444' : '#999999'}
                       fill={likedByMe[post.id] ? '#EF4444' : 'none'}
                     />
                     <Text style={styles.actionText}>{post.likeCount || 0}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.action} onPress={() => openComments(post)}>
-                    <MessageCircle size={18} color={tokens.colors.dark_navy.text_muted} />
+                    <MessageCircle size={18} color="#999999" />
                     <Text style={styles.actionText}>{post.commentCount || 0}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.action} onPress={() => handleShare(post)}>
-                    <Share2 size={18} color={tokens.colors.dark_navy.text_muted} />
+                    <Share2 size={18} color="#999999" />
                     <Text style={styles.actionText}>{post.shareCount || 0}</Text>
                   </TouchableOpacity>
                 </View>
@@ -257,14 +257,14 @@ export default function CommunityScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Share an update</Text>
               <TouchableOpacity onPress={() => setComposerOpen(false)}>
-                <X size={22} color={tokens.colors.dark_navy.bg_primary} />
+                <X size={22} color="#000000" />
               </TouchableOpacity>
             </View>
             <TextInput
               value={postText}
               onChangeText={setPostText}
               placeholder="What's on your mind?"
-              placeholderTextColor={tokens.colors.dark_navy.text_muted}
+              placeholderTextColor="#999999"
               style={styles.composerInput}
               multiline
               autoFocus
@@ -280,26 +280,26 @@ export default function CommunityScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Comments</Text>
               <TouchableOpacity onPress={closeComments}>
-                <X size={22} color={tokens.colors.dark_navy.bg_primary} />
+                <X size={22} color="#000000" />
               </TouchableOpacity>
             </View>
 
             {loadingComments ? (
-              <ActivityIndicator size="large" color={tokens.colors.dark_navy.bg_primary} style={{ marginVertical: 30 }} />
+              <ActivityIndicator size="large" color="#000000" style={{ marginVertical: 30 }} />
             ) : (
               <FlatList
                 data={comments}
                 keyExtractor={(c) => c.id}
                 style={{ maxHeight: 320 }}
                 ListEmptyComponent={
-                  <Text style={{ color: tokens.colors.dark_navy.text_muted, textAlign: 'center', marginVertical: 20 }}>
+                  <Text style={{ color: '#999999', textAlign: 'center', marginVertical: 20 }}>
                     No comments yet — be the first.
                   </Text>
                 }
                 renderItem={({ item }) => (
                   <View style={styles.commentRow}>
                     <View style={styles.commentAvatar}>
-                      <Text style={{ color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: 11 }}>
+                      <Text style={{ color: '#000000', fontWeight: '700', fontSize: 11 }}>
                         {initials(item.authorName)}
                       </Text>
                     </View>
@@ -317,7 +317,7 @@ export default function CommunityScreen() {
                 value={commentText}
                 onChangeText={setCommentText}
                 placeholder="Add a comment..."
-                placeholderTextColor={tokens.colors.dark_navy.text_muted}
+                placeholderTextColor="#999999"
                 style={styles.commentInput}
               />
               <TouchableOpacity
@@ -325,7 +325,7 @@ export default function CommunityScreen() {
                 disabled={!commentText.trim() || sendingComment}
                 style={styles.commentSendBtn}
               >
-                <Send size={16} color={tokens.colors.dark_navy.text_primary} />
+                <Send size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -337,37 +337,55 @@ export default function CommunityScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass, applied across every JSX inline color prop and style
+// here (icons, placeholders, modal chrome, the styles block below).
+// Two spots needed a genuine contrast decision rather than a direct
+// swap: the comment avatar's initials text (now black, since its
+// background is now light gray #F5F5F5 instead of a dark bg_card) and
+// the comment-send button's icon (now white, since its background is
+// now black instead of the dark-navy bg_primary it was designed
+// against). postActions' borderTopColor wasn't routed through
+// dark_navy (a plain #2A2A2A), but was still a dark-background-designed
+// separator - changed to #F0F0F0, matching the same subtle-divider
+// convention already used in app/nutrition.jsx's food rows.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   tabs: { flexDirection: 'row', paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, gap: tokens.spacing.sm },
   tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary },
-  tabInactive: { backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border },
+  tabActive: { backgroundColor: '#000000' },
+  tabInactive: { backgroundColor: '#FFFFFF', ...cardShadow },
   tabText: { fontSize: 13, fontWeight: '600' },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 12,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center' },
   avatar: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: tokens.colors.dark_navy.text_primary, fontWeight: '700', fontSize: 13 },
-  postName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
-  postTime: { color: tokens.colors.dark_navy.text_secondary, fontSize: 12 },
-  postText: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, lineHeight: 20, marginTop: 10 },
+  avatarText: { color: '#000000', fontWeight: '700', fontSize: 13 },
+  postName: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  postTime: { color: '#999999', fontSize: 12 },
+  postText: { color: '#000000', fontSize: 14, lineHeight: 20, marginTop: 10 },
   postActions: {
     flexDirection: 'row', gap: 20,
     marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: '#2A2A2A',
+    borderTopWidth: 1, borderTopColor: '#F0F0F0',
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
+  actionText: { color: '#999999', fontSize: 13 },
   challengeRow: { flexDirection: 'row', alignItems: 'center' },
-  challengeName: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '600' },
-  challengeMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
+  challengeName: { color: '#000000', fontSize: 16, fontWeight: '600' },
+  challengeMeta: { color: '#999999', fontSize: 13, marginTop: 2 },
   daysBadge: {
     backgroundColor: 'rgba(34,197,94,0.15)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
@@ -375,33 +393,33 @@ const styles = StyleSheet.create({
   daysText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: tokens.spacing.md, gap: tokens.spacing.md,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  modalTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '700' },
+  modalTitle: { color: '#000000', fontSize: 16, fontWeight: '700' },
   composerInput: {
-    minHeight: 100, borderWidth: 1, borderColor: tokens.colors.dark_navy.border, borderRadius: tokens.radius.lg,
-    padding: tokens.spacing.md, color: tokens.colors.dark_navy.text_primary, fontSize: 14, textAlignVertical: 'top',
+    minHeight: 100, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.md, color: '#000000', fontSize: 14, textAlignVertical: 'top',
   },
   commentRow: { flexDirection: 'row', paddingVertical: 8 },
   commentAvatar: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: tokens.colors.dark_navy.bg_card,
+    width: 28, height: 28, borderRadius: 14, backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center',
   },
-  commentAuthor: { color: tokens.colors.dark_navy.text_primary, fontSize: 13, fontWeight: '600' },
-  commentText: { color: tokens.colors.dark_navy.text_primary, fontSize: 13, marginTop: 2 },
+  commentAuthor: { color: '#000000', fontSize: 13, fontWeight: '600' },
+  commentText: { color: '#000000', fontSize: 13, marginTop: 2 },
   commentInputRow: {
     flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.sm,
     marginTop: tokens.spacing.sm, paddingTop: tokens.spacing.sm,
-    borderTopWidth: 1, borderTopColor: tokens.colors.dark_navy.border,
+    borderTopWidth: 1, borderTopColor: '#F0F0F0',
   },
   commentInput: {
-    flex: 1, borderWidth: 1, borderColor: tokens.colors.dark_navy.border, borderRadius: 999,
-    paddingHorizontal: tokens.spacing.md, paddingVertical: 10, color: tokens.colors.dark_navy.text_primary, fontSize: 14,
+    flex: 1, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 999,
+    paddingHorizontal: tokens.spacing.md, paddingVertical: 10, color: '#000000', fontSize: 14,
   },
   commentSendBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: tokens.colors.dark_navy.bg_primary,
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#000000',
     alignItems: 'center', justifyContent: 'center',
   },
 });

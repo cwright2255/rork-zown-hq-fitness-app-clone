@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Music } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -67,7 +67,7 @@ export default function SpotifyIntegrationScreen() {
       <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <View style={styles.hero}>
           <View style={styles.iconWrap}>
-            <Music size={40} color={tokens.colors.dark_navy.bg_primary} />
+            <Music size={40} color="#000000" />
           </View>
           <Text style={styles.title}>
             {isConnected ? 'Connected to Spotify' : 'Connect Spotify'}
@@ -126,30 +126,40 @@ export default function SpotifyIntegrationScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass. iconWrap's Spotify-brand green (#1DB954) is
+// untouched - a deliberate brand color, not a theme-dependent one, so
+// out of scope here.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   hero: { alignItems: 'center', paddingVertical: 24 },
   iconWrap: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: '#1DB954',
     alignItems: 'center', justifyContent: 'center', marginBottom: tokens.spacing.md,
   },
-  title: { color: tokens.colors.dark_navy.text_primary, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
-  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 6, textAlign: 'center' },
+  title: { color: '#000000', fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
+  sub: { color: '#999999', fontSize: 13, marginTop: 6, textAlign: 'center' },
   embedWrap: { marginBottom: 20 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12, marginTop: 12,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 12, marginTop: 12,
   },
   plRow: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.md, padding: 14, marginBottom: tokens.spacing.sm,
   },
-  plName: { color: tokens.colors.dark_navy.text_primary, fontSize: 14, fontWeight: '600' },
-  plMeta: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
+  plName: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  plMeta: { color: '#999999', fontSize: 12, marginTop: 2 },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
-  muted: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
+  muted: { color: '#999999', fontSize: 13 },
 });

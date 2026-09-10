@@ -43,7 +43,7 @@ export default function SpotifyTestScreen() {
       <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
         <View style={styles.statusCard}>
           <View style={styles.iconWrap}>
-            <TestTube size={24} color={tokens.colors.dark_navy.bg_primary} />
+            <TestTube size={24} color="#000000" />
           </View>
           <Text style={styles.title}>Connection Status</Text>
           <Text style={styles.sub}>
@@ -75,27 +75,35 @@ export default function SpotifyTestScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   statusCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 20, alignItems: 'center', marginBottom: 20,
   },
   iconWrap: {
     width: 48, height: 48, borderRadius: tokens.radius.xl,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
-  title: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '700' },
-  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
+  title: { color: '#000000', fontSize: 18, fontWeight: '700' },
+  sub: { color: '#999999', fontSize: 13, marginTop: 4 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: 12, marginTop: 12,
+    textTransform: 'uppercase', color: '#999999', marginBottom: 12, marginTop: 12,
   },
   logCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 14, minHeight: 120, gap: 4,
   },
-  muted: { color: tokens.colors.dark_navy.text_muted, fontSize: 13 },
-  logLine: { color: tokens.colors.dark_navy.text_primary, fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  muted: { color: '#999999', fontSize: 13 },
+  logLine: { color: '#000000', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
 });

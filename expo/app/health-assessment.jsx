@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -88,25 +88,39 @@ export default function HealthAssessmentScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass. option's background wasn't routed through dark_navy
+// (a plain #0F0F0F, near-black) but is included here for the same
+// reason as similar cases in other files this pass - designed for a
+// dark background, would be jarring on this new light one. Now white
+// with hq.jsx's own shadow, same as every other card in this pass.
+// optionActive's border, same "black for active/selected state"
+// convention used throughout.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
-  progressTrack: { height: 2, backgroundColor: tokens.colors.dark_navy.text_primary },
-  progressFill: { height: 2, backgroundColor: tokens.colors.dark_navy.bg_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  progressTrack: { height: 2, backgroundColor: '#F5F5F5' },
+  progressFill: { height: 2, backgroundColor: '#000000' },
   stepLabel: {
-    color: tokens.colors.dark_navy.text_muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
+    color: '#999999', fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', marginBottom: 12,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: 20,
   },
-  question: { color: tokens.colors.dark_navy.text_primary, fontSize: 18, fontWeight: '600', lineHeight: 24 },
+  question: { color: '#000000', fontSize: 18, fontWeight: '600', lineHeight: 24 },
   option: {
-    backgroundColor: '#0F0F0F', borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.md, padding: tokens.spacing.md,
   },
-  optionActive: { borderColor: tokens.colors.dark_navy.bg_primary, borderWidth: 2 },
-  optionText: { color: tokens.colors.dark_navy.text_muted, fontSize: 15, fontWeight: '500' },
-  optionTextActive: { color: tokens.colors.dark_navy.text_primary, fontWeight: '600' },
+  optionActive: { borderColor: '#000000', borderWidth: 2 },
+  optionText: { color: '#666666', fontSize: 15, fontWeight: '500' },
+  optionTextActive: { color: '#000000', fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
 });
