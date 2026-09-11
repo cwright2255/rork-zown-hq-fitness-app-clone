@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import ProductCard from '@/components/ProductCard';
@@ -40,7 +40,7 @@ export default function CollectionScreen() {
     return (
       <View style={styles.container}>
         <ScreenHeader showBack />
-        <View style={styles.center}><ActivityIndicator color={tokens.colors.dark_navy.bg_primary} /></View>
+        <View style={styles.center}><ActivityIndicator color="#000000" /></View>
       </View>
     );
   }
@@ -95,16 +95,24 @@ export default function CollectionScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
+  empty: { color: '#999999', textAlign: 'center', marginTop: 40 },
   banner: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, overflow: 'hidden',
     marginHorizontal: 16, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },
-  bannerTitle: { color: tokens.colors.dark_navy.text_primary, fontSize: 20, fontWeight: '700' },
-  bannerDesc: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 4 },
+  bannerTitle: { color: '#000000', fontSize: 20, fontWeight: '700' },
+  bannerDesc: { color: '#666666', fontSize: 13, marginTop: 4 },
 });

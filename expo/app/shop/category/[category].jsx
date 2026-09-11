@@ -33,7 +33,7 @@ export default function CategoryScreen() {
       <ScreenHeader title={title} showBack />
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.dark_navy.bg_primary} />
+          <ActivityIndicator color="#000000" />
         </View>
       ) : (
         <FlatList
@@ -57,8 +57,10 @@ export default function CategoryScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass.
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: tokens.colors.dark_navy.text_secondary, textAlign: 'center', marginTop: 40 },
+  empty: { color: '#999999', textAlign: 'center', marginTop: 40 },
 });

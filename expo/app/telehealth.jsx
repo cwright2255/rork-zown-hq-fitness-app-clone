@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { Video, Calendar, Star } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -55,7 +55,7 @@ export default function TelehealthScreen() {
               <View key={d.id} style={styles.card}>
                 <View style={styles.cardRow}>
                   <View style={styles.avatar}>
-                    <Video size={20} color={tokens.colors.dark_navy.bg_primary} />
+                    <Video size={20} color="#000000" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.name}>{d.name}</Text>
@@ -87,7 +87,7 @@ export default function TelehealthScreen() {
             appointments.map(a => (
               <View key={a.id} style={styles.card}>
                 <View style={styles.cardRow}>
-                  <Calendar size={18} color={tokens.colors.dark_navy.bg_primary} />
+                  <Calendar size={18} color="#000000" />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.name}>{a.doctorName || 'Appointment'}</Text>
                     <Text style={styles.specialty}>
@@ -104,33 +104,44 @@ export default function TelehealthScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass. tabTextActive sits on tabActive's background
+// (bg_primary, now black) - kept white rather than following the
+// usual "text_primary becomes black" swap, same reasoning as
+// app/leaderboard.jsx's filterTextActive.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   tabRow: { flexDirection: 'row', gap: tokens.spacing.sm, marginBottom: tokens.spacing.md },
   tab: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, borderRadius: 999,
   },
-  tabActive: { backgroundColor: tokens.colors.dark_navy.bg_primary, borderColor: tokens.colors.dark_navy.bg_primary },
-  tabText: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, fontWeight: '600' },
-  tabTextActive: { color: tokens.colors.dark_navy.text_primary },
+  tabActive: { backgroundColor: '#000000' },
+  tabText: { color: '#999999', fontSize: 13, fontWeight: '600' },
+  tabTextActive: { color: '#FFFFFF' },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center', justifyContent: 'center',
   },
-  name: { color: tokens.colors.dark_navy.text_primary, fontSize: 15, fontWeight: '600' },
-  specialty: { color: tokens.colors.dark_navy.text_muted, fontSize: 12, marginTop: 2 },
+  name: { color: '#000000', fontSize: 15, fontWeight: '600' },
+  specialty: { color: '#999999', fontSize: 12, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   ratingText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
   emptyCard: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.lg, alignItems: 'center',
   },
-  empty: { color: tokens.colors.dark_navy.text_muted, fontSize: 14 },
+  empty: { color: '#999999', fontSize: 14 },
 });

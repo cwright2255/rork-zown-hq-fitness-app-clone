@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -74,30 +74,38 @@ export default function WearablesScreen() {
   );
 }
 
+// Real fix: same dark_navy misused-token bug as the other files already
+// fixed this pass.
+const cardShadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  android: { elevation: 3 },
+  default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.colors.dark_navy.text_primary },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: tokens.colors.dark_navy.text_muted, marginBottom: tokens.spacing.sm,
+    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm,
   },
   card: {
-    backgroundColor: tokens.colors.dark_navy.text_primary, borderWidth: 1, borderColor: tokens.colors.dark_navy.border,
+    backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  name: { color: tokens.colors.dark_navy.text_primary, fontSize: 16, fontWeight: '600' },
-  sub: { color: tokens.colors.dark_navy.text_muted, fontSize: 13, marginTop: 2 },
+  name: { color: '#000000', fontSize: 16, fontWeight: '600' },
+  sub: { color: '#999999', fontSize: 13, marginTop: 2 },
   badge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
   badgeConnected: { backgroundColor: 'rgba(34,197,94,0.15)' },
-  badgeDisconnected: { backgroundColor: tokens.colors.dark_navy.bg_card },
+  badgeDisconnected: { backgroundColor: '#F5F5F5' },
   badgeText: { fontSize: 12, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: tokens.spacing.md, marginTop: 10 },
   syncBtn: {
-    backgroundColor: tokens.colors.dark_navy.bg_card,
+    backgroundColor: '#F5F5F5',
     paddingVertical: tokens.spacing.sm, paddingHorizontal: tokens.spacing.md, borderRadius: 999,
   },
-  syncText: { color: tokens.colors.dark_navy.text_primary, fontSize: 13, fontWeight: '600' },
+  syncText: { color: '#000000', fontSize: 13, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
 });
