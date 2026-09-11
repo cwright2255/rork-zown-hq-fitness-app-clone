@@ -351,15 +351,20 @@ export default function NutritionScreen() {
 // cardShadow: the exact shadow values from app/hq.jsx's own
 // cardContainer style, confirmed directly, reused here rather than
 // approximated so every card actually matches hq.jsx's real depth.
+// Real fix: android elevation was 3 here (and across every other
+// screen fixed this pass) - hq.jsx's own actual value, checked again
+// directly, is 2. The other files in this pass share this same
+// discrepancy; flagged, not fixed here, since this fix is scoped to
+// nutrition.jsx as asked.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { flex: 1, paddingHorizontal: 20 },
+  scroll: { flex: 1, paddingHorizontal: 22 },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -389,8 +394,7 @@ const styles = StyleSheet.create({
   macroVal: { fontSize: 16, fontWeight: '700', color: '#000' },
   macroLabel: { fontSize: 12, color: '#999', marginTop: 2 },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999', marginBottom: 10, marginTop: 4,
+    fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 14, marginTop: 4,
   },
   hydrationCard: {
     backgroundColor: '#FFFFFF', ...cardShadow,

@@ -500,7 +500,15 @@ const styles = StyleSheet.create({
   },
   stepContainer: {
     flex: 1,
-    padding: tokens.spacing.md
+    // Real fix: this is the main step-content container padding,
+    // analogous to every other screen's fixed container padding this
+    // pass - matches hq.jsx's real H_PAD (22) instead of
+    // tokens.spacing.md (16). The other three padding: tokens.spacing.md
+    // instances in this file (progressContainer, scanInfoContainer,
+    // permissionContainer) are specific per-state section paddings,
+    // not the same screen-container concept - left untouched rather
+    // than guessed at, given this file's size.
+    padding: 22
   },
   stepTitle: {
     fontSize: 20,

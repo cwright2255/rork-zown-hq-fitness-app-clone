@@ -38,7 +38,7 @@ export default function ExpDashboardScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="XP" />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 180 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 180 }}>
         <View style={styles.levelCard}>
           <Text style={styles.levelLabel}>LEVEL</Text>
           <Text style={styles.levelNumber}>{level}</Text>
@@ -94,7 +94,7 @@ export default function ExpDashboardScreen() {
 // scope for this visual-only pass.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
@@ -121,8 +121,7 @@ const styles = StyleSheet.create({
   statValue: { color: '#000000', fontSize: 24, fontWeight: '700' },
   statLabel: { color: '#999999', fontSize: 12, marginTop: 4 },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginTop: tokens.spacing.lg, marginBottom: 12,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginTop: tokens.spacing.lg, marginBottom: 14,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF', ...cardShadow,

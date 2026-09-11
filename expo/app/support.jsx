@@ -21,7 +21,7 @@ export default function SupportScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Support" showBack />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
         <Text style={styles.sectionLabel}>Frequently Asked</Text>
         {FAQS.map((f, i) => {
           const isOpen = open === i;
@@ -70,15 +70,14 @@ export default function SupportScreen() {
 // untouched - not part of this color-token bug, out of scope for it.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: 12,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14,
   },
   faqCard: {
     backgroundColor: '#FFFFFF', ...cardShadow,

@@ -40,7 +40,7 @@ export default function SpotifyTestScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Spotify Test" showBack />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
         <View style={styles.statusCard}>
           <View style={styles.iconWrap}>
             <TestTube size={24} color="#000000" />
@@ -79,7 +79,7 @@ export default function SpotifyTestScreen() {
 // fixed this pass.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
@@ -97,8 +97,7 @@ const styles = StyleSheet.create({
   title: { color: '#000000', fontSize: 18, fontWeight: '700' },
   sub: { color: '#999999', fontSize: 13, marginTop: 4 },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: 12, marginTop: 12,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14, marginTop: 12,
   },
   logCard: {
     backgroundColor: '#FFFFFF', ...cardShadow,

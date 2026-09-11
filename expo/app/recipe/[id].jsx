@@ -85,7 +85,7 @@ export default function RecipeDetailScreen() {
         ) : (
           <View style={[styles.image, styles.imagePh]} />
         )}
-        <View style={{ padding: tokens.spacing.md }}>
+        <View style={{ padding: 22 }}>
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.meta}>
             {recipe.prepTime} min ÃÂÃÂ· Serves {recipe.servings}
@@ -141,7 +141,7 @@ export default function RecipeDetailScreen() {
 // fixed this pass.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
@@ -157,8 +157,7 @@ const styles = StyleSheet.create({
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
   chipText: { fontSize: 12, fontWeight: '600' },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm, marginTop: 20,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14, marginTop: 20,
   },
   card: {
     backgroundColor: '#FFFFFF', ...cardShadow,

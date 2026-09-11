@@ -54,7 +54,7 @@ export default function HealthAssessmentScreen() {
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 140 }}>
         <Text style={styles.stepLabel}>Question {step + 1} of {total}</Text>
 
         <View style={styles.card}>
@@ -98,7 +98,7 @@ export default function HealthAssessmentScreen() {
 // convention used throughout.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 

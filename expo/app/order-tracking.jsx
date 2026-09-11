@@ -42,7 +42,7 @@ export default function OrderTrackingScreen() {
         })}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
         {selected ? (
           <>
             <View style={styles.orderCard}>
@@ -105,7 +105,7 @@ export default function OrderTrackingScreen() {
 // instead, distinct from the black used for the "done" state.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
@@ -132,8 +132,7 @@ const styles = StyleSheet.create({
   },
   statusText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm, marginTop: 20,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14, marginTop: 20,
   },
   timelineCard: {
     backgroundColor: '#FFFFFF', ...cardShadow,

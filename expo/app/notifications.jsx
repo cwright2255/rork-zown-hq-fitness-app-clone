@@ -23,7 +23,7 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Notifications" showBack />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <Bell size={40} color="#CCCCCC" />
@@ -66,7 +66,7 @@ export default function NotificationsScreen() {
 // to preserve that same relative emphasis.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 

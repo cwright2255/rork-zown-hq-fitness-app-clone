@@ -27,7 +27,7 @@ export default function MoodTrackingScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Mood" showBack />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 140 }}>
         <Text style={styles.sectionLabel}>How are you feeling?</Text>
         <View style={styles.card}>
           <View style={styles.moodRow}>
@@ -82,15 +82,14 @@ export default function MoodTrackingScreen() {
 // same reason.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm, marginTop: 12,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14, marginTop: 12,
   },
   card: {
     backgroundColor: '#FFFFFF', ...cardShadow,

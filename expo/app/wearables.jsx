@@ -31,7 +31,7 @@ export default function WearablesScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Wearables" />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 180 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 180 }}>
         <Text style={styles.sectionLabel}>My Devices</Text>
         {devices.map(d => (
           <View key={d.id} style={styles.card}>
@@ -78,15 +78,14 @@ export default function WearablesScreen() {
 // fixed this pass.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: tokens.spacing.sm,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14,
   },
   card: {
     backgroundColor: '#FFFFFF', ...cardShadow,

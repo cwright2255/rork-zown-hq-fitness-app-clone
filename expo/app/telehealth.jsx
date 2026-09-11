@@ -28,7 +28,7 @@ export default function TelehealthScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Telehealth" showBack />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
         <View style={styles.tabRow}>
           {['providers', 'appointments'].map(t => {
             const active = tab === t;
@@ -111,7 +111,7 @@ export default function TelehealthScreen() {
 // app/leaderboard.jsx's filterTextActive.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 

@@ -63,7 +63,7 @@ export default function CollectionScreen() {
         data={products}
         keyExtractor={(i) => i.id}
         numColumns={2}
-        columnWrapperStyle={{ gap: tokens.spacing.md, paddingHorizontal: tokens.spacing.md }}
+        columnWrapperStyle={{ gap: tokens.spacing.md, paddingHorizontal: 22 }}
         contentContainerStyle={{ paddingBottom: 100, gap: tokens.spacing.md }}
         ListHeaderComponent={
           collection.imageUrl || collection.image ? (
@@ -99,7 +99,7 @@ export default function CollectionScreen() {
 // fixed this pass.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   banner: {
     backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, overflow: 'hidden',
-    marginHorizontal: 16, marginVertical: 12,
+    marginHorizontal: 22, marginVertical: 12,
   },
   bannerImg: { width: '100%', height: 160 },
   bannerTitle: { color: '#000000', fontSize: 20, fontWeight: '700' },

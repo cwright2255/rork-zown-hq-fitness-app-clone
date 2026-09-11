@@ -18,7 +18,7 @@ export default function WellbeingScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Wellbeing" />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 100 }}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>How are you feeling?</Text>
           <View style={styles.moodRow}>
@@ -83,7 +83,7 @@ export default function WellbeingScreen() {
 // use hq.jsx's own shadow instead of the previous border.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 

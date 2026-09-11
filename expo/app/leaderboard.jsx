@@ -62,7 +62,7 @@ export default function LeaderboardScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Leaderboard" showBack />
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
         <View style={styles.filters}>
           {FILTERS.map(f => {
             const active = filter === f;
@@ -144,7 +144,7 @@ export default function LeaderboardScreen() {
 // now-black active pill would be invisible.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
@@ -175,8 +175,7 @@ const styles = StyleSheet.create({
   },
   podiumPlace: { color: '#000000', fontSize: 20, fontWeight: '700' },
   sectionLabel: {
-    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', color: '#999999', marginBottom: 12,
+    fontSize: 20, fontWeight: '700', color: '#000000', marginBottom: 14,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md,

@@ -171,7 +171,7 @@ export default function CommunityScreen() {
         })}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: tokens.spacing.md, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 100 }}>
         {tab === 'feed' ? (
           <>
             <PrimaryButton title="Share an update" onPress={() => setComposerOpen(true)} style={{ marginBottom: tokens.spacing.md }} />
@@ -351,7 +351,7 @@ export default function CommunityScreen() {
 // convention already used in app/nutrition.jsx's food rows.
 const cardShadow = Platform.select({
   ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  android: { elevation: 3 },
+  android: { elevation: 2 },
   default: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
 });
 
