@@ -29,10 +29,18 @@ function buildBrowseSections(dietaryPreferences) {
     : { maxCalories: '700' };
 
   return {
+    // Real fix: postWorkout/mealPrep/quickEasy previously requested 12
+    // items each, but the collapsed view only ever shows 6
+    // (items.slice(0, 6) below) - half of what Spoonacular returned was
+    // unused unless a section was expanded. Now requests match what's
+    // actually shown, which is faster on the common, initial-load path.
+    // Expanding a section still switches its layout from a horizontal
+    // scroll to a grid, just without revealing additional items beyond
+    // these 6.
     featured: { minProtein: '15', maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 1, ...dietParam, ...intoleranceParam },
-    postWorkout: { minProtein: '20', maxFat: '25', maxSugar: '20', instructionsRequired: 'true', sort: 'popularity', number: 12, ...dietParam, ...intoleranceParam },
-    mealPrep: { minServings: '4', minProtein: '15', maxSugar: '20', type: 'main course', instructionsRequired: 'true', sort: 'popularity', number: 12, ...dietParam, ...intoleranceParam },
-    quickEasy: { maxReadyTime: '20', ...quickCalorieCeiling, maxSugar: '20', instructionsRequired: 'true', sort: 'time', number: 12, ...dietParam, ...intoleranceParam },
+    postWorkout: { minProtein: '20', maxFat: '25', maxSugar: '20', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
+    mealPrep: { minServings: '4', minProtein: '15', maxSugar: '20', type: 'main course', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
+    quickEasy: { maxReadyTime: '20', ...quickCalorieCeiling, maxSugar: '20', instructionsRequired: 'true', sort: 'time', number: 6, ...dietParam, ...intoleranceParam },
   };
 }
 
@@ -69,7 +77,9 @@ function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRec
     : { minCalories: '300', maxCalories: '700' };
 
   return {
-    minProtein, maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 12,
+    // Real fix: same reasoning as buildBrowseSections above - this was
+    // requesting 12 but the collapsed view only shows 6.
+    minProtein, maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 6,
     ...dietParam, ...intoleranceParam, ...cuisineParam,
   };
 }
@@ -180,7 +190,12 @@ export default function RecipesScreen() {
   const { user } = useUserStore();
 
   const [browse, setBrowse] = useState({ featured: [], aiRecommendations: [], postWorkout: [], mealPrep: [], quickEasy: [] });
-  const [browseLoading, setBrowseLoading] = useState(true);
+  // Real fix: was a single shared boolean, meaning every section showed
+  // its loading skeleton until all five Spoonacular calls finished
+  // together (via Promise.all) - now per-section, so each one can show
+  // its own content the moment its own fetch resolves, instead of the
+  // whole screen waiting on the slowest of the five.
+  const [browseLoading, setBrowseLoading] = useState({ featured: true, aiRecommendations: true, postWorkout: true, mealPrep: true, quickEasy: true });
   const [expanded, setExpanded] = useState({ aiRecommendations: false, postWorkout: false, mealPrep: false, quickEasy: false });
   const [previewRecipeId, setPreviewRecipeId] = useState(null);
   const [searchInput, setSearchInput] = useState('');
@@ -208,34 +223,58 @@ export default function RecipesScreen() {
   const fitnessLevelPref = user?.fitnessLevel || null;
   const savedRecipesCount = savedRecipes?.length || 0;
 
+  // Real fix: featured/postWorkout/mealPrep/quickEasy don't depend on the
+  // user's saved recipes at all - only aiRecommendations does (see the
+  // separate effect below). Previously all five were combined into one
+  // effect keyed on savedRecipesCount too, so saving or removing any
+  // recipe re-fetched all five categories from Spoonacular, not just the
+  // one that actually needed the new count. Each of these four now runs
+  // as its own independent fetch (not Promise.all) so each section can
+  // show its own content the moment its own call resolves, rather than
+  // every section waiting on the slowest of all five.
   useEffect(() => {
     let cancelled = false;
-    setBrowseLoading(true);
     const sections = buildBrowseSections(user?.dietaryPreferences);
+
+    const fetchSection = (key, params) => {
+      setBrowseLoading((prev) => ({ ...prev, [key]: true }));
+      recipeExtractionService.getSpoonacularBrowse(params, params.number).then((items) => {
+        if (cancelled) return;
+        setBrowse((prev) => {
+          const seen = new Set(Object.values(prev).flat().map((item) => item.id));
+          const deduped = items.filter((item) => !seen.has(item.id));
+          return { ...prev, [key]: deduped };
+        });
+      }).finally(() => {
+        if (!cancelled) setBrowseLoading((prev) => ({ ...prev, [key]: false }));
+      });
+    };
+
+    fetchSection('featured', sections.featured);
+    fetchSection('postWorkout', sections.postWorkout);
+    fetchSection('mealPrep', sections.mealPrep);
+    fetchSection('quickEasy', sections.quickEasy);
+
+    return () => { cancelled = true; };
+  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref]);
+
+  // Real, new: separated from the effect above specifically because this
+  // is the one category that genuinely needs savedRecipesCount (see
+  // buildAiRecommendationsParams) - keeping it isolated means saving or
+  // removing a recipe only re-fetches this one section, not all five.
+  useEffect(() => {
+    let cancelled = false;
     const aiParams = buildAiRecommendationsParams(user?.dietaryPreferences, user?.fitnessLevel, savedRecipes);
-    Promise.all([
-      recipeExtractionService.getSpoonacularBrowse(sections.featured, sections.featured.number),
-      recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number),
-      recipeExtractionService.getSpoonacularBrowse(sections.postWorkout, sections.postWorkout.number),
-      recipeExtractionService.getSpoonacularBrowse(sections.mealPrep, sections.mealPrep.number),
-      recipeExtractionService.getSpoonacularBrowse(sections.quickEasy, sections.quickEasy.number),
-    ]).then(([featured, aiRecommendations, postWorkout, mealPrep, quickEasy]) => {
+    setBrowseLoading((prev) => ({ ...prev, aiRecommendations: true }));
+    recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number).then((items) => {
       if (cancelled) return;
-      const seen = new Set();
-      const dedupe = (items) => {
-        const kept = items.filter((item) => !seen.has(item.id));
-        kept.forEach((item) => seen.add(item.id));
-        return kept;
-      };
-      setBrowse({
-        featured: dedupe(featured),
-        aiRecommendations: dedupe(aiRecommendations),
-        postWorkout: dedupe(postWorkout),
-        mealPrep: dedupe(mealPrep),
-        quickEasy: dedupe(quickEasy),
+      setBrowse((prev) => {
+        const seen = new Set(Object.values(prev).flat().map((item) => item.id));
+        const deduped = items.filter((item) => !seen.has(item.id));
+        return { ...prev, aiRecommendations: deduped };
       });
     }).finally(() => {
-      if (!cancelled) setBrowseLoading(false);
+      if (!cancelled) setBrowseLoading((prev) => ({ ...prev, aiRecommendations: false }));
     });
     return () => { cancelled = true; };
   }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, savedRecipesCount]);
@@ -326,7 +365,7 @@ export default function RecipesScreen() {
     return (
       <>
         <SectionHeader title={title} onViewAll={() => toggleExpanded(key)} expanded={expanded[key]} />
-        {browseLoading ? (
+        {browseLoading[key] ? (
           <View style={{ paddingHorizontal: 20, marginBottom }}>
             <LoadingSkeleton width="100%" height={140} borderRadius={12} />
           </View>
@@ -474,7 +513,7 @@ export default function RecipesScreen() {
 
             {/* Featured Recipe */}
             <SectionHeader title="Featured" />
-            {browseLoading ? (
+            {browseLoading.featured ? (
               <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
                 <LoadingSkeleton width="100%" height={200} borderRadius={16} />
               </View>
