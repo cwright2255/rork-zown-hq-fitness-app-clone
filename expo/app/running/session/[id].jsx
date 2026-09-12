@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: '#999', fontSize: 14 },
-  scrollContent: { padding: 20, paddingBottom: 140 },
+  scrollContent: { padding: 20, paddingBottom: 180 },
   weekTitle: { color: '#000', fontSize: 20, fontWeight: '700' },
   sessionMeta: { color: '#999', fontSize: 13, marginTop: 4, marginBottom: 16 },
   card: {
@@ -127,5 +127,12 @@ const styles = StyleSheet.create({
   intervalText: { flex: 1, color: '#000', fontSize: 14, fontWeight: '600' },
   intervalDuration: { color: '#999', fontSize: 13 },
   distanceGoal: { color: '#000', fontSize: 24, fontWeight: '700' },
-  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
+  // Real fix: this screen's path (/running/session/[id], two segments)
+  // doesn't match app/_layout.jsx's nav-bar exclusion regex for
+  // /running/ (which only excludes single-segment paths), so the bottom
+  // nav bar genuinely, correctly stays visible here - but this button
+  // was positioned at bottom: 24, well behind it. Now bottom: 100,
+  // matching the same "nav bar visible, floating button needs to clear
+  // it" situation already handled correctly in app/wearables.jsx.
+  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
 });

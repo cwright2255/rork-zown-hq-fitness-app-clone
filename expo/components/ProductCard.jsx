@@ -12,7 +12,11 @@ const ProductCard = ({ product, onPress, onAddToCart, compact = false }) => {
       activeOpacity={0.85}
       style={[styles.card, compact && styles.compact]}>
       <View style={styles.imageWrap}>
-        <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, styles.imagePlaceholder]} />
+        )}
         <TouchableOpacity style={styles.heart} hitSlop={8} onPress={(e) => e.stopPropagation?.()}>
           <Heart size={18} color={tokens.colors.dark_navy.text_secondary} />
         </TouchableOpacity>
@@ -35,6 +39,7 @@ const styles = StyleSheet.create({
   compact: { width: 160 },
   imageWrap: { position: 'relative' },
   image: { width: '100%', height: 160, backgroundColor: tokens.colors.dark_navy.text_primary },
+  imagePlaceholder: { backgroundColor: '#E5E5E5' },
   heart: {
     position: 'absolute', top: 10, right: 10,
     backgroundColor: 'rgba(0,0,0,0.5)',
