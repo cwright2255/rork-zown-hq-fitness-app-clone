@@ -43,12 +43,20 @@ const ChampionPassTier = ({
         <View style={styles.rewardsPreview}>
           {tier.rewards.slice(0, 2).map((reward, index) =>
           <View key={reward.id} style={styles.rewardPreview}>
-              <Image
-              source={{ uri: reward.imageUrl }}
-              style={[
-              styles.rewardImage,
-              reward.isClaimed && styles.claimedRewardImage]
-              } />
+              {reward.imageUrl ? (
+                <Image
+                source={{ uri: reward.imageUrl }}
+                style={[
+                styles.rewardImage,
+                reward.isClaimed && styles.claimedRewardImage]
+                } />
+              ) : (
+                <View style={[
+                styles.rewardImage,
+                styles.rewardImagePlaceholder,
+                reward.isClaimed && styles.claimedRewardImage]
+                } />
+              )}
             
               {reward.isClaimed &&
             <View style={styles.claimedOverlay}>
@@ -163,6 +171,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: Colors.background
   },
+  // Real fix: reward.imageUrl was passed directly to Image with no
+  // check at all - any reward missing an image would trigger React
+  // Native's "No suitable image URL loader found for (null)" error.
+  // Same confirmed bug pattern as ProductCard.jsx and profile/progress.jsx,
+  // found via a full, systematic audit of every image usage in the app.
+  rewardImagePlaceholder: { backgroundColor: '#E5E5E5' },
   claimedRewardImage: {
     opacity: 0.5
   },

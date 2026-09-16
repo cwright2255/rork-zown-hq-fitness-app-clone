@@ -269,11 +269,13 @@ export default function ProgressTrackerScreen() {
           
           {tiers[selectedTier]?.rewards.map((reward) =>
       <View key={reward.id} style={styles.rewardItem}>
-              <Image
-          source={{ uri: reward.imageUrl }}
-          style={styles.rewardImage} />
-        
-              
+              {reward.imageUrl ? (
+                <Image
+                  source={{ uri: reward.imageUrl }}
+                  style={styles.rewardImage} />
+              ) : (
+                <View style={[styles.rewardImage, styles.rewardImagePlaceholder]} />
+              )}
               <View style={styles.rewardInfo}>
                 <Text style={styles.rewardName}>{reward.name}</Text>
                 <Text style={styles.rewardDescription}>{reward.description}</Text>
@@ -352,10 +354,13 @@ export default function ProgressTrackerScreen() {
                 }
               }}>
               
-                      <Image
-                source={{ uri: reward.imageUrl }}
-                style={styles.availableRewardImage} />
-              
+                      {reward.imageUrl ? (
+                        <Image
+                          source={{ uri: reward.imageUrl }}
+                          style={styles.availableRewardImage} />
+                      ) : (
+                        <View style={[styles.availableRewardImage, styles.rewardImagePlaceholder]} />
+                      )}
                       <Text style={styles.availableRewardName} numberOfLines={1}>
                         {reward.name}
                       </Text>
@@ -1007,6 +1012,15 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.xl,
     marginRight: 12
   },
+  // Real fix: reward.imageUrl was passed directly to Image with no
+  // check at all - any reward missing an image would trigger React
+  // Native's "No suitable image URL loader found for (null)" error.
+  // Same confirmed bug pattern as components/ProductCard.jsx, fixed
+  // last turn - this file's own reward images (both here and in the
+  // available-rewards list below) were two more genuine instances,
+  // found via a full, systematic audit of every image usage in the
+  // app rather than patching this one report in isolation.
+  rewardImagePlaceholder: { backgroundColor: '#E5E5E5' },
   rewardInfo: {
     flex: 1
   },
