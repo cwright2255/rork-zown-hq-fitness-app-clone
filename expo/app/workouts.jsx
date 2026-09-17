@@ -66,7 +66,6 @@ function MyWorkoutCard({ item }) {
 
 export default function WorkoutsScreen() {
   const [refreshing, setRefreshing] = useState(false);
-  const [programExpanded, setProgramExpanded] = useState(false);
   const { user } = useUserStore();
   const {
     exercises, isLoading: isLoadingExercises, loadExercises,
@@ -125,7 +124,6 @@ export default function WorkoutsScreen() {
   const featuredExercises = exercises.slice(0, 10);
   const planDays = workoutRecommendation?.structuredData?.days || [];
   const featuredProgram = getFeaturedProgram();
-  const previewWeek = featuredProgram.weeks[0];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -192,12 +190,14 @@ export default function WorkoutsScreen() {
             the midpoint of the requested 8-10 week range) - every
             device computes the same program for the same day with no
             server or stored state needed, and it keeps advancing on its
-            own. Shows a real Week 1 preview when expanded; a full,
-            dedicated program detail screen with week-by-week navigation
-            (matching the Running tab's own program screens) is a
-            natural next step beyond this first version. */}
+            own. Real fix: previously an expand-in-place "Preview Week
+            1" toggle; now navigates to the real program overview screen
+            (app/workout/program/[id].jsx) with its own Program -> Week
+            -> Day -> Start Session flow, matching how the Running tab's
+            own programs already work and how My Workouts cards already
+            navigate rather than expand in place. */}
         <SectionHeader title="Training Program" />
-        <View style={styles.programFeaturedCard}>
+        <Pressable style={styles.programFeaturedCard} onPress={() => router.push(`/workout/program/${featuredProgram.id}`)}>
           <View style={styles.programFeaturedHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.programFeaturedTitle}>{featuredProgram.title}</Text>
@@ -208,25 +208,11 @@ export default function WorkoutsScreen() {
             </View>
           </View>
           <Text style={styles.programFeaturedDesc}>{featuredProgram.description}</Text>
-          <Pressable style={styles.programToggleRow} onPress={() => setProgramExpanded((v) => !v)}>
-            <Text style={styles.programToggleText}>
-              {programExpanded ? 'Hide Week 1 Preview' : 'Preview Week 1'}
-            </Text>
-            <Ionicons name={programExpanded ? 'chevron-up' : 'chevron-down'} size={16} color="#666" />
-          </Pressable>
-          {programExpanded && (
-            <View style={styles.programWeekPreview}>
-              {previewWeek.days.map((d, i) => (
-                <View key={i} style={[styles.programDayRow, i === previewWeek.days.length - 1 && { borderBottomWidth: 0 }]}>
-                  <Text style={styles.programDayLabel}>{d.day}</Text>
-                  <Text style={styles.programDayExercises} numberOfLines={2}>
-                    {d.exercises.map((e) => e.name).join(', ')}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
+          <View style={styles.programToggleRow}>
+            <Text style={styles.programToggleText}>View Program</Text>
+            <Ionicons name="chevron-forward" size={16} color="#666" />
+          </View>
+        </Pressable>
 
         <SectionHeader
           title="Browse Exercises"
@@ -346,12 +332,6 @@ const styles = StyleSheet.create({
     marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E5E5E5',
   },
   programToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
-  programWeekPreview: { marginTop: 12 },
-  programDayRow: {
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E5E5',
-  },
-  programDayLabel: { fontSize: 13, fontWeight: '700', color: '#000', marginBottom: 3 },
-  programDayExercises: { fontSize: 12, color: '#666', lineHeight: 17 },
 
   carousel: { paddingLeft: 20, paddingRight: 6, marginBottom: 24 },
 

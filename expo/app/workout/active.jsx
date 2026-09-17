@@ -22,6 +22,7 @@ import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { searchAscendExercise, extractVideoUrl } from '@/services/exerciseDbService';
+import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -104,6 +105,19 @@ export default function ActiveWorkoutScreen() {
   const params = useLocalSearchParams();
   const workoutId = typeof params.id === 'string' ? params.id : '';
 
+  // Real, new: this screen now also launches a specific day within a
+  // workout program (from app/workout/program/session/[id].jsx's Start
+  // Session button), not just a saved workout template. Mirrors how
+  // app/running/active.jsx already accepts programId/week/session
+  // params for running programs, rather than going through a generic
+  // template lookup.
+  const programId = typeof params.programId === 'string' ? params.programId : '';
+  const programWeekParam = typeof params.week === 'string' ? parseInt(params.week, 10) : null;
+  const programDayIndexParam = typeof params.dayIndex === 'string' ? parseInt(params.dayIndex, 10) : null;
+  const isProgramSession = !!programId && programWeekParam != null && programDayIndexParam != null;
+  const program = isProgramSession ? getProgram(programId) : null;
+  const programDay = isProgramSession ? getProgramWeek(programId, programWeekParam)?.days[programDayIndexParam] : null;
+
   const { workouts, customWorkouts, addCompletedWorkout, logSet } = useWorkoutStore();
   const { addExpActivity, expSystem } = useExpStore();
   const totalExp = expSystem.totalExp;
@@ -116,12 +130,12 @@ export default function ActiveWorkoutScreen() {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
   const selectedWorkout = useMemo(
-    () => [...workouts, ...customWorkouts].find((w) => String(w.id) === workoutId) || null,
-    [workouts, customWorkouts, workoutId]
+    () => isProgramSession ? null : [...workouts, ...customWorkouts].find((w) => String(w.id) === workoutId) || null,
+    [workouts, customWorkouts, workoutId, isProgramSession]
   );
 
   const [exercises] = useState(() => {
-    const source = selectedWorkout?.exercises || [];
+    const source = isProgramSession ? (programDay?.exercises || []) : (selectedWorkout?.exercises || []);
     return source.map((ex, i) => ({
       id: ex.id ?? `ex-${i}`,
       name: ex.name,
@@ -131,6 +145,14 @@ export default function ActiveWorkoutScreen() {
       reps: ex.reps,
     }));
   });
+
+  // Real, new: so a completed program-day session records a real name
+  // ("Full Body Foundations - Day A") instead of falling back to the
+  // generic "Workout" - selectedWorkout is null in program-session mode,
+  // which previously would have meant exactly that generic fallback.
+  const workoutDisplayName = isProgramSession
+    ? `${program?.title || 'Program'} - ${programDay?.day || 'Day'}`
+    : selectedWorkout?.name || 'Workout';
   // Real, new: resumes from where the user left off if this workout was
   // previously saved-and-exited (see handleSaveAndExit's
   // saveWorkoutProgress call and store/workoutStore.js's inProgress
@@ -407,7 +429,7 @@ export default function ActiveWorkoutScreen() {
 
       await addCompletedWorkout({
         workoutId: selectedWorkout?.id ?? null,
-        name: selectedWorkout?.name || 'Workout',
+        name: workoutDisplayName,
         category: selectedWorkout?.category,
         difficulty: selectedWorkout?.difficulty,
         exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps })),
@@ -727,7 +749,7 @@ export default function ActiveWorkoutScreen() {
 
               await addCompletedWorkout({
                 workoutId: selectedWorkout?.id ?? null,
-                name: selectedWorkout?.name || 'Workout',
+                name: workoutDisplayName,
                 category: selectedWorkout?.category,
                 difficulty: selectedWorkout?.difficulty,
                 exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps })),
