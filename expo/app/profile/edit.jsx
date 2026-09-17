@@ -31,6 +31,23 @@ const NUTRITION_PREFERENCES = [
   { id: 'gluten_free', label: 'Gluten-Free' },
 ];
 
+// Real, new: surfaced on the workout side (exercise warnings, and a
+// future input to AI-generated plans) so exercises that commonly
+// stress a reported area can be flagged. Multi-select, no cap - unlike
+// Goals above, there's no natural reason to limit how many injury
+// areas someone reports, and leaving all unselected already means "no
+// injuries" without needing an explicit "None" option.
+const INJURIES = [
+  { id: 'knee', label: 'Knee' },
+  { id: 'shoulder', label: 'Shoulder' },
+  { id: 'lower_back', label: 'Lower Back' },
+  { id: 'hip', label: 'Hip' },
+  { id: 'ankle', label: 'Ankle' },
+  { id: 'wrist', label: 'Wrist' },
+  { id: 'elbow', label: 'Elbow' },
+  { id: 'neck', label: 'Neck' },
+];
+
 export default function EditProfileScreen() {
   const { user, updateUser, saveProfile } = useUserStore();
 
@@ -65,6 +82,7 @@ export default function EditProfileScreen() {
   // not a separate copy.
   const [selectedGoals, setSelectedGoals] = useState(user?.fitnessMetrics?.targetGoals || []);
   const [nutritionPreference, setNutritionPreference] = useState(user?.fitnessMetrics?.nutritionPreference || 'no_preference');
+  const [selectedInjuries, setSelectedInjuries] = useState(user?.fitnessMetrics?.injuries || []);
   const [isSaving, setIsSaving] = useState(false);
 
   const LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'];
@@ -74,6 +92,14 @@ export default function EditProfileScreen() {
       setSelectedGoals(selectedGoals.filter((g) => g !== id));
     } else if (selectedGoals.length < 3) {
       setSelectedGoals([...selectedGoals, id]);
+    }
+  };
+
+  const toggleInjury = (id) => {
+    if (selectedInjuries.includes(id)) {
+      setSelectedInjuries(selectedInjuries.filter((i) => i !== id));
+    } else {
+      setSelectedInjuries([...selectedInjuries, id]);
     }
   };
 
@@ -114,6 +140,7 @@ export default function EditProfileScreen() {
           height: height ? Math.round(parseFloat(height) * 2.54) : null,
           targetGoals: selectedGoals,
           nutritionPreference: nutritionPreference,
+          injuries: selectedInjuries,
         },
       });
       // Real fix: this screen previously only updated local state and
@@ -217,6 +244,21 @@ export default function EditProfileScreen() {
               return (
                 <Pressable key={p.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => setNutritionPreference(p.id)}>
                   <Text style={[s.levelText, active && s.levelTextActive]}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <Text style={s.sectionLabel}>Injuries</Text>
+        <View style={s.field}>
+          <Text style={s.helperTextTight}>Used to flag exercises that may not be a good fit</Text>
+          <View style={s.levelRow}>
+            {INJURIES.map((i) => {
+              const active = selectedInjuries.includes(i.id);
+              return (
+                <Pressable key={i.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => toggleInjury(i.id)}>
+                  <Text style={[s.levelText, active && s.levelTextActive]}>{i.label}</Text>
                 </Pressable>
               );
             })}
