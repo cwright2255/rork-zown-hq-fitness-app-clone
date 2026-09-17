@@ -58,6 +58,29 @@ export async function fetchMuscles() {
 // genuinely named with these words as part of the real exercise.
 const NAME_QUALIFIERS = ['bodyweight', 'assisted', 'weighted', 'banded', 'machine', 'cable', 'barbell', 'dumbbell', 'kettlebell', 'resistance'];
 
+// Real, new: which exercises get a weight input at all when logging a
+// set (see app/workout/active.jsx's "Log Your Sets"). Includes the
+// AI planner's own explicit "bodyweight" qualifier above, plus a
+// conservative list of movements that are reliably bodyweight-only by
+// default in this app's own program data and typical gym use - not
+// movements that could reasonably go either way (e.g. "lunge", which
+// can be bodyweight or dumbbell-loaded and isn't included here), since
+// wrongly hiding a weight field an exercise actually needs is worse
+// than wrongly showing one it doesn't.
+const BODYWEIGHT_KEYWORDS = [
+  'bodyweight', 'push-up', 'pushup', 'pull-up', 'pullup', 'chin-up', 'chinup',
+  'plank', 'dead bug', 'sit-up', 'situp', 'crunch', 'burpee',
+  'mountain climber', 'jumping jack', 'air squat', 'jump squat', 'pistol squat',
+  'glute bridge', 'superman', 'bird dog', 'hollow body', 'hanging leg raise',
+  'tricep dip', 'dip', 'box jump',
+];
+
+export function isBodyweightExercise(name) {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return BODYWEIGHT_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 function simplifyExerciseName(name) {
   const words = name.trim().split(/\s+/);
   if (words.length <= 1) return null;

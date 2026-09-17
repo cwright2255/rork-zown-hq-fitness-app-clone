@@ -23,6 +23,7 @@ import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { searchAscendExercise, extractVideoUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
+import { isBodyweightExercise } from '@/services/exerciseDbService';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -359,16 +360,17 @@ export default function ActiveWorkoutScreen() {
   const handleLogSet = async (exercise, setIndex, rpe) => {
     const inputKey = `${exercise.id}-${setIndex}`;
     const input = setInputs[inputKey];
-    const weight = parseFloat(input?.weight);
+    const isBodyweight = isBodyweightExercise(exercise.name);
+    const weight = isBodyweight ? 0 : parseFloat(input?.weight);
     const reps = parseInt(input?.reps, 10);
-    if (!weight || weight <= 0 || !reps || reps <= 0) return;
+    if ((!isBodyweight && (!weight || weight <= 0)) || !reps || reps <= 0) return;
 
     setLoggingSetKey(inputKey);
     try {
       await logSet(exercise.name, weight, reps, rpe, workoutId, user?.uid);
       setLoggedSetsByExercise((prev) => ({
         ...prev,
-        [exercise.id]: [...(prev[exercise.id] || []), { weight, reps, rpe }],
+        [exercise.id]: [...(prev[exercise.id] || []), { weight, reps, rpe, isBodyweight }],
       }));
     } finally {
       setLoggingSetKey(null);
@@ -609,7 +611,9 @@ export default function ActiveWorkoutScreen() {
         {currentExercise?.sets && currentExercise?.reps && (
           <View style={styles.setLogSection}>
             <Text style={styles.setLogTitle}>Log Your Sets</Text>
-            {Array.from({ length: currentExercise.sets }).map((_, setIndex) => {
+            {(() => {
+              const isBodyweight = isBodyweightExercise(currentExercise.name);
+              return Array.from({ length: currentExercise.sets }).map((_, setIndex) => {
               const logged = loggedSetsByExercise[currentExercise.id]?.[setIndex];
               const inputKey = `${currentExercise.id}-${setIndex}`;
               const input = setInputs[inputKey] || {};
@@ -620,7 +624,9 @@ export default function ActiveWorkoutScreen() {
                   <View key={setIndex} style={styles.setRowDone}>
                     <Ionicons name="checkmark-circle" size={18} color="#4CD964" />
                     <Text style={styles.setRowDoneText}>
-                      Set {setIndex + 1}: {logged.weight} lb x {logged.reps} reps
+                      {logged.isBodyweight
+                        ? `Set ${setIndex + 1}: ${logged.reps} reps`
+                        : `Set ${setIndex + 1}: ${logged.weight} lb x ${logged.reps} reps`}
                     </Text>
                   </View>
                 );
@@ -629,15 +635,19 @@ export default function ActiveWorkoutScreen() {
               return (
                 <View key={setIndex} style={styles.setRow}>
                   <Text style={styles.setRowLabel}>Set {setIndex + 1}</Text>
-                  <TextInput
-                    style={styles.setInput}
-                    placeholder="lb"
-                    placeholderTextColor="#666"
-                    keyboardType="numeric"
-                    value={input.weight || ''}
-                    onChangeText={(v) => updateSetInput(currentExercise.id, setIndex, 'weight', v)}
-                  />
-                  <Text style={styles.setInputX}>x</Text>
+                  {!isBodyweight && (
+                    <>
+                      <TextInput
+                        style={styles.setInput}
+                        placeholder="lb"
+                        placeholderTextColor="#666"
+                        keyboardType="numeric"
+                        value={input.weight || ''}
+                        onChangeText={(v) => updateSetInput(currentExercise.id, setIndex, 'weight', v)}
+                      />
+                      <Text style={styles.setInputX}>x</Text>
+                    </>
+                  )}
                   <TextInput
                     style={styles.setInput}
                     placeholder={String(currentExercise.reps)}
@@ -663,7 +673,8 @@ export default function ActiveWorkoutScreen() {
                   )}
                 </View>
               );
-            })}
+              });
+            })()}
           </View>
         )}
         {/* Ã¢ÂÂÃ¢ÂÂ Exercise progress bar Ã¢ÂÂÃ¢ÂÂ */}
