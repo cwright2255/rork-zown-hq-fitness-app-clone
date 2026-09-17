@@ -9,6 +9,7 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Video } from 'expo-av';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -103,7 +104,7 @@ export default function ActiveWorkoutScreen() {
   const params = useLocalSearchParams();
   const workoutId = typeof params.id === 'string' ? params.id : '';
 
-  const { workouts, customWorkouts, addCompletedWorkout } = useWorkoutStore();
+  const { workouts, customWorkouts, addCompletedWorkout, logSet } = useWorkoutStore();
   const { addExpActivity, expSystem } = useExpStore();
   const totalExp = expSystem.totalExp;
   const level = expSystem.level;
@@ -154,6 +155,18 @@ export default function ActiveWorkoutScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
+  // Real, new: real per-set weight/reps logging, feeding
+  // services/progressiveOverloadService.js real data instead of just
+  // the workout template's planned targets. Keyed by exercise id (not
+  // just "the current exercise") so logged sets and in-progress typing
+  // survive navigating back to an earlier exercise via
+  // jumpToExercise/previous. loggedSetsByExercise holds sets already
+  // logged+persisted this session; setInputs holds the still-being-typed
+  // weight/reps for a not-yet-logged set, keyed by `${exerciseId}-${setIndex}`.
+  const [loggedSetsByExercise, setLoggedSetsByExercise] = useState({});
+  const [setInputs, setSetInputs] = useState({});
+  const [loggingSetKey, setLoggingSetKey] = useState(null);
+
   const timerRef = useRef(null);
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
@@ -194,6 +207,13 @@ export default function ActiveWorkoutScreen() {
 
   const currentVideoUrl = currentExercise ? videoUrls[currentExercise.id] : null;
   const isCurrentVideoLoading = currentExercise ? videoLoadingId === currentExercise.id : false;
+
+  // Small helper so the two TextInputs in each unlogged set row don't
+  // each need their own inline setSetInputs callback.
+  const updateSetInput = (exerciseId, setIndex, field, value) => {
+    const key = `${exerciseId}-${setIndex}`;
+    setSetInputs((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+  };
 
   /* Real form-check matching: form-check.jsx only has pose-detection
      rules built for squat/pushup/bicepCurl (see its EXERCISES const),
@@ -308,6 +328,31 @@ export default function ActiveWorkoutScreen() {
   const upcomingExercises = exercises.slice(currentIndex + 1);
 
   /* Ã¢ÂÂÃ¢ÂÂ Center button icon Ã¢ÂÂÃ¢ÂÂ */
+  // Real, new: logs one set's real weight/reps/rpe, both to local state
+  // (so the UI switches that row from input to completed) and to
+  // Firestore via workoutStore's logSet, which is the actual data
+  // services/progressiveOverloadService.js runs on. rpe comes from
+  // whichever of the three Easy/Moderate/Hard buttons was tapped -
+  // tapping one submits the set, there's no separate save step.
+  const handleLogSet = async (exercise, setIndex, rpe) => {
+    const inputKey = `${exercise.id}-${setIndex}`;
+    const input = setInputs[inputKey];
+    const weight = parseFloat(input?.weight);
+    const reps = parseInt(input?.reps, 10);
+    if (!weight || weight <= 0 || !reps || reps <= 0) return;
+
+    setLoggingSetKey(inputKey);
+    try {
+      await logSet(exercise.name, weight, reps, rpe, workoutId, user?.uid);
+      setLoggedSetsByExercise((prev) => ({
+        ...prev,
+        [exercise.id]: [...(prev[exercise.id] || []), { weight, reps, rpe }],
+      }));
+    } finally {
+      setLoggingSetKey(null);
+    }
+  };
+
   const centerIcon = useMemo(() => {
     if (exerciseComplete) return 'play-forward';
     if (isPlaying) return 'pause';
@@ -534,6 +579,71 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
 
+
+        {/* Real, new: real weight/reps/rpe logging, strength exercises
+            only - same sets && reps check estimateExerciseSeconds
+            already uses to distinguish these from duration-based
+            exercises. Feeds services/progressiveOverloadService.js. */}
+        {currentExercise?.sets && currentExercise?.reps && (
+          <View style={styles.setLogSection}>
+            <Text style={styles.setLogTitle}>Log Your Sets</Text>
+            {Array.from({ length: currentExercise.sets }).map((_, setIndex) => {
+              const logged = loggedSetsByExercise[currentExercise.id]?.[setIndex];
+              const inputKey = `${currentExercise.id}-${setIndex}`;
+              const input = setInputs[inputKey] || {};
+              const isLogging = loggingSetKey === inputKey;
+
+              if (logged) {
+                return (
+                  <View key={setIndex} style={styles.setRowDone}>
+                    <Ionicons name="checkmark-circle" size={18} color="#4CD964" />
+                    <Text style={styles.setRowDoneText}>
+                      Set {setIndex + 1}: {logged.weight} lb x {logged.reps} reps
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <View key={setIndex} style={styles.setRow}>
+                  <Text style={styles.setRowLabel}>Set {setIndex + 1}</Text>
+                  <TextInput
+                    style={styles.setInput}
+                    placeholder="lb"
+                    placeholderTextColor="#666"
+                    keyboardType="numeric"
+                    value={input.weight || ''}
+                    onChangeText={(v) => updateSetInput(currentExercise.id, setIndex, 'weight', v)}
+                  />
+                  <Text style={styles.setInputX}>x</Text>
+                  <TextInput
+                    style={styles.setInput}
+                    placeholder={String(currentExercise.reps)}
+                    placeholderTextColor="#666"
+                    keyboardType="numeric"
+                    value={input.reps || ''}
+                    onChangeText={(v) => updateSetInput(currentExercise.id, setIndex, 'reps', v)}
+                  />
+                  {isLogging ? (
+                    <ActivityIndicator size="small" color="#000" style={{ marginLeft: 8 }} />
+                  ) : (
+                    <View style={styles.rpeButtons}>
+                      <Pressable style={[styles.rpeBtn, styles.rpeBtnEasy]} onPress={() => handleLogSet(currentExercise, setIndex, 'easy')}>
+                        <Text style={styles.rpeBtnText}>Easy</Text>
+                      </Pressable>
+                      <Pressable style={[styles.rpeBtn, styles.rpeBtnModerate]} onPress={() => handleLogSet(currentExercise, setIndex, 'moderate')}>
+                        <Text style={styles.rpeBtnText}>OK</Text>
+                      </Pressable>
+                      <Pressable style={[styles.rpeBtn, styles.rpeBtnHard]} onPress={() => handleLogSet(currentExercise, setIndex, 'hard')}>
+                        <Text style={styles.rpeBtnText}>Hard</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
         {/* Ã¢ÂÂÃ¢ÂÂ Exercise progress bar Ã¢ÂÂÃ¢ÂÂ */}
         <View style={styles.progressSection}>
           <View style={styles.progressRow}>
@@ -990,6 +1100,74 @@ const styles = StyleSheet.create({
   progressCount: {
     fontSize: 14,
     fontWeight: '700',
+    color: '#000',
+  },
+
+  /* Real, new: set logging */
+  setLogSection: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  setLogTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 10,
+  },
+  setRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  setRowLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000',
+    width: 48,
+  },
+  setInput: {
+    width: 56,
+    height: 36,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    fontSize: 14,
+    color: '#000',
+  },
+  setInputX: {
+    fontSize: 14,
+    color: '#666',
+  },
+  rpeButtons: {
+    flexDirection: 'row',
+    gap: 6,
+    marginLeft: 4,
+  },
+  rpeBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  rpeBtnEasy: { backgroundColor: '#34C759' },
+  rpeBtnModerate: { backgroundColor: '#8E8E93' },
+  rpeBtnHard: { backgroundColor: '#FF3B30' },
+  rpeBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  setRowDone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  setRowDoneText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#000',
   },
   progressBarBg: {

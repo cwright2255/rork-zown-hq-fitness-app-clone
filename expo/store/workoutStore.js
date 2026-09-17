@@ -508,6 +508,36 @@ export const useWorkoutStore = create(
         });
       },
 
+      // Real, new: persists one actually-logged set (real weight and
+      // reps performed, not the workout template's planned target) to
+      // its own loggedSets collection, keyed by exercise name so
+      // services/progressiveOverloadService.js can later query a
+      // single exercise's full history across every workout it's
+      // appeared in, regardless of which workout template. rpe is one
+      // of 'easy' | 'moderate' | 'hard', matching what that service
+      // expects.
+      logSet: async (exerciseName, weight, reps, rpe, workoutId, uid) => {
+        if (!uid) {
+          console.warn('[workoutStore] logSet: no uid, not persisted');
+          return null;
+        }
+        try {
+          const ref = await addDoc(collection(db, 'loggedSets'), {
+            userId: uid,
+            exerciseName,
+            weight,
+            reps,
+            rpe,
+            workoutId: workoutId ?? null,
+            date: serverTimestamp(),
+          });
+          return ref.id;
+        } catch (e) {
+          console.error('[workoutStore] logSet Firestore write failed:', e?.message);
+          return null;
+        }
+      },
+
     }),
     {
       name: 'workout-storage',
