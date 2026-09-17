@@ -538,6 +538,41 @@ export const useWorkoutStore = create(
         }
       },
 
+      // Real, new: fetches one exercise's logged-set history so
+      // services/progressiveOverloadService.js's getNextPrescription
+      // can run on real data. Deliberately only equality where clauses,
+      // no orderBy - a compound where+orderBy query would need a
+      // Firestore composite index that may not exist yet and can't be
+      // created from here; groupSetsBySession (in that same service)
+      // already sorts by date internally regardless of the order these
+      // come back in, so this doesn't need one. limit(200) is a safety
+      // cap, not a real constraint - years of regular training on a
+      // single exercise before hitting it.
+      getExerciseHistory: async (exerciseName, uid) => {
+        if (!uid) return [];
+        try {
+          const q = query(
+            collection(db, 'loggedSets'),
+            where('userId', '==', uid),
+            where('exerciseName', '==', exerciseName),
+            limit(200)
+          );
+          const snap = await getDocs(q);
+          return snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              weight: data.weight,
+              reps: data.reps,
+              rpe: data.rpe,
+              date: data.date?.toDate?.() ?? new Date(),
+            };
+          });
+        } catch (e) {
+          console.error('[workoutStore] getExerciseHistory Firestore read failed:', e?.message);
+          return [];
+        }
+      },
+
     }),
     {
       name: 'workout-storage',

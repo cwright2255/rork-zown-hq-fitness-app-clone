@@ -285,3 +285,27 @@ class WearableService {
 }
 
 export const wearableService = new WearableService();
+
+// Real, new: extracted from the exact readiness logic already proven
+// in services/aiService.js's generateNutritionAdvice, so the workout
+// progressive-overload engine can use the same "high/medium/low
+// readiness from today's wearable recovery data" concept instead of a
+// separate, potentially-inconsistent one. Pure function - given a mood
+// object, no fetching - kept separate from getCurrentReadiness below so
+// it's directly testable on its own.
+export function calculateReadinessFromMood(mood) {
+  if (!mood) return 'medium';
+  const high = mood.mood >= 4 && mood.energy >= 4 && mood.stress <= 2 && mood.sleep >= 4;
+  const low = mood.mood <= 2 || mood.energy <= 2 || mood.sleep <= 2 || mood.stress >= 4;
+  return high ? 'high' : low ? 'low' : 'medium';
+}
+
+export async function getCurrentReadiness() {
+  try {
+    const mood = await wearableService.getMoodDataFromWearables();
+    return calculateReadinessFromMood(mood);
+  } catch (e) {
+    console.warn('[wearableService] getCurrentReadiness failed:', e?.message);
+    return 'medium';
+  }
+}

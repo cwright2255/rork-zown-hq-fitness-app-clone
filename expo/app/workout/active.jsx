@@ -24,6 +24,8 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { searchAscendExercise, extractVideoUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
+import { getNextPrescription } from '@/services/progressiveOverloadService';
+import { getCurrentReadiness } from '@/services/wearableService';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -119,7 +121,7 @@ export default function ActiveWorkoutScreen() {
   const program = isProgramSession ? getProgram(programId) : null;
   const programDay = isProgramSession ? getProgramWeek(programId, programWeekParam)?.days[programDayIndexParam] : null;
 
-  const { workouts, customWorkouts, addCompletedWorkout, logSet } = useWorkoutStore();
+  const { workouts, customWorkouts, addCompletedWorkout, logSet, getExerciseHistory } = useWorkoutStore();
   const { addExpActivity, expSystem } = useExpStore();
   const totalExp = expSystem.totalExp;
   const level = expSystem.level;
@@ -190,6 +192,16 @@ export default function ActiveWorkoutScreen() {
   const [setInputs, setSetInputs] = useState({});
   const [loggingSetKey, setLoggingSetKey] = useState(null);
 
+  // Real, new: the actual "adaptive" piece - once real logged history
+  // exists for an exercise, fetches it plus today's real wearable
+  // readiness and runs it through
+  // services/progressiveOverloadService.js's getNextPrescription, so
+  // "your target today" reflects both past performance and how
+  // recovered the user actually is right now, not just a fixed
+  // rep/set target. Keyed by exercise id so switching exercises and
+  // back doesn't lose what was already fetched.
+  const [prescriptions, setPrescriptions] = useState({});
+
   const timerRef = useRef(null);
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
@@ -237,6 +249,35 @@ export default function ActiveWorkoutScreen() {
     const key = `${exerciseId}-${setIndex}`;
     setSetInputs((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
   };
+
+  // Real, new: fetches this exercise's real logged history plus
+  // today's real wearable readiness, then computes the actual next
+  // prescription - the piece that makes progressive overload adaptive
+  // rather than just logged. Only for strength exercises (same
+  // sets/reps check as "Log Your Sets" itself), and only once per
+  // exercise per this workout session: the prescription is derived
+  // from the last PAST session's history, which doesn't change as the
+  // user logs sets for THIS session, so there's nothing to re-fetch
+  // for until their next visit to this exercise on a different day.
+  useEffect(() => {
+    if (!currentExercise?.sets || !currentExercise?.reps || !user?.uid) return;
+    if (prescriptions[currentExercise.id] !== undefined) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [history, readiness] = await Promise.all([
+          getExerciseHistory(currentExercise.name, user.uid),
+          getCurrentReadiness(),
+        ]);
+        if (cancelled) return;
+        const prescription = getNextPrescription(history, { readiness });
+        setPrescriptions((prev) => ({ ...prev, [currentExercise.id]: prescription }));
+      } catch (e) {
+        console.warn('[ActiveWorkout] prescription fetch failed:', e?.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentExercise?.id, user?.uid]);
 
   /* Real form-check matching: form-check.jsx only has pose-detection
      rules built for squat/pushup/bicepCurl (see its EXERCISES const),
@@ -611,6 +652,16 @@ export default function ActiveWorkoutScreen() {
         {currentExercise?.sets && currentExercise?.reps && (
           <View style={styles.setLogSection}>
             <Text style={styles.setLogTitle}>Log Your Sets</Text>
+            {prescriptions[currentExercise.id] && (
+              <View style={styles.prescriptionCard}>
+                <Text style={styles.prescriptionTarget}>
+                  {isBodyweightExercise(currentExercise.name)
+                    ? `Today's target: ${prescriptions[currentExercise.id].targetReps} reps`
+                    : `Today's target: ${prescriptions[currentExercise.id].weight} lb x ${prescriptions[currentExercise.id].targetReps} reps`}
+                </Text>
+                <Text style={styles.prescriptionReason}>{prescriptions[currentExercise.id].reason}</Text>
+              </View>
+            )}
             {(() => {
               const isBodyweight = isBodyweightExercise(currentExercise.name);
               return Array.from({ length: currentExercise.sets }).map((_, setIndex) => {
@@ -1147,6 +1198,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     marginBottom: 10,
+  },
+  prescriptionCard: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#000',
+    padding: 12,
+    marginBottom: 12,
+  },
+  prescriptionTarget: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+  },
+  prescriptionReason: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   setRow: {
     flexDirection: 'row',

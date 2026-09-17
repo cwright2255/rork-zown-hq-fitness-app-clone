@@ -48,9 +48,13 @@ const DEFAULT_WEIGHT_INCREMENT = 5; // conservative, generic default; not exerci
 // sessions), returns the next session's prescribed weight and reps, or
 // null if there's no history yet to base one on - the very first
 // logged session for a given exercise has nothing to progress from.
+// options.readiness ('high' | 'medium' | 'low', from
+// wearableService.getCurrentReadiness) is optional - when omitted,
+// behaves exactly as before.
 export function getNextPrescription(loggedSets, options = {}) {
   const repRange = options.repRange || DEFAULT_REP_RANGE;
   const weightIncrement = options.weightIncrement ?? DEFAULT_WEIGHT_INCREMENT;
+  const readiness = options.readiness;
 
   if (!loggedSets || loggedSets.length === 0) return null;
 
@@ -69,6 +73,25 @@ export function getNextPrescription(loggedSets, options = {}) {
   const estimatedOneRepMax = estimateOneRepMax(lastWeight, Math.round(
     repsThisSession.reduce((sum, r) => sum + r, 0) / repsThisSession.length
   ));
+
+  // Real, new: low readiness (today's actual wearable recovery data,
+  // not last session's rating) holds the prescription steady, same
+  // treatment as a hard rating - checked first, ahead of anyRatedHard,
+  // since a fresh recovery signal for today is at least as good a
+  // reason to hold back as how a past session felt. High/medium
+  // readiness don't independently push progression faster; only a low
+  // reading intervenes, since automatically prescribing more just
+  // because readiness looks good risks encouraging overtraining
+  // without the user's own in-the-moment feedback (the Easy rating)
+  // actually calling for it.
+  if (readiness === 'low') {
+    return {
+      weight: lastWeight,
+      targetReps: Math.max(repRange.min, minRepsAchieved),
+      estimatedOneRepMax,
+      reason: "Today's recovery data suggests low readiness - holding steady rather than pushing for more.",
+    };
+  }
 
   // Hard caps advancement regardless of what the rep range logic would
   // otherwise do - repeat the exact same prescription so the user
