@@ -155,6 +155,38 @@ export const getProgressSummary = onCall(
   }
 );
 
+// Real fix: this is the actual, missing backend for the /text/llm/
+// endpoint services/aiService.js's postLLM (client-side) and
+// app/nutrition/scan.jsx both call directly via fetch() - that route
+// was never a real Cloud Function, unlike every other AI feature here,
+// which all correctly use onCall. Named postLLM to directly correspond
+// with its client-side caller, same convention as
+// searchAscendExercise's own client/server pair. Messages pass straight
+// through to OpenAI, which already natively accepts both plain text and
+// vision (image) content in this same array - no special handling
+// needed here for scan.jsx's meal-photo use case once its own payload
+// format is corrected to match (a separate, later step; this function
+// itself is already vision-capable as-is).
+export const postLLM = onCall(
+  { secrets: [OPENAI_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { messages } = req.data;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      throw new HttpsError('invalid-argument', 'messages must be a non-empty array');
+    }
+
+    const openai = getOpenAI();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages
+    });
+
+    const content = completion.choices[0]?.message?.content ?? '';
+    return { completion: content };
+  }
+);
+
 export const generateBodyCompositionInsight = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {

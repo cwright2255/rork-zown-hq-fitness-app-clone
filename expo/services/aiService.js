@@ -4,9 +4,6 @@ import { useUserStore } from '@/store/userStore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
-const LLM_URL = `${API_BASE_URL}/text/llm/`;
-
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {
     const id = setTimeout(() => {
@@ -23,23 +20,19 @@ const withTimeout = async (p, ms, signal) => {
   });
 };
 
+// Real fix: this previously fetched `${API_BASE_URL}/text/llm/` directly,
+// a route that was never actually a real Cloud Function - unlike every
+// other AI feature in this app, which all correctly use httpsCallable.
+// Now calls the real postLLM Cloud Function (functions/src/index.js),
+// added alongside this fix specifically to be its real backend. Retry/
+// timeout/validation behavior is otherwise unchanged.
 const postLLM = async (messages, timeoutMs = 30000, retries = 1) => {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const controller = new AbortController();
-      const req = fetch(LLM_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages }),
-        signal: controller.signal
-      });
-      const res = await withTimeout(req, timeoutMs, controller.signal);
-      if (!res.ok) {
-        const bodyPreview = await res.text().then((t) => t.slice(0, 200)).catch(() => '');
-        throw new Error(`LLM endpoint returned ${res.status} ${res.statusText}: ${bodyPreview}`);
-      }
-      const data = await res.json();
+      const fn = httpsCallable(functions, 'postLLM');
+      const result = await withTimeout(fn({ messages }), timeoutMs);
+      const data = result?.data;
       if (!data || typeof data.completion !== 'string') throw new Error('Invalid LLM response');
       return data;
     } catch (e) {
