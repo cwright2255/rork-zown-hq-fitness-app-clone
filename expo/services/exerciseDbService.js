@@ -123,14 +123,25 @@ export async function searchAscendExercise(name) {
   return null;
 }
 
-// The video field name on this specific endpoint isn't confirmed from
-// documentation, sibling AscendAPI products in the same family use
-// videoUrl, videoUrls, or gifUrls depending on tier. Checks every
-// plausible shape and logs the real keys when none match, so a wrong
-// guess here is a one-line fix once a real response has been seen
-// rather than another silent null.
-export function extractVideoUrl(exerciseRecord) {
+// Real fix, and renamed for accuracy: despite this product being named
+// "EDB with Videos and Images," AscendAPI's own official quickstart
+// documentation (docs.ascendapi.com/quickstart/overview) shows the real,
+// actual search response only ever includes imageUrl - a static image,
+// confirmed directly against the live example response for this exact
+// endpoint. The old checks (videoUrl/video/videoUrls/media.type)
+// never matched anything this API actually returns, so this silently
+// returned null for every exercise regardless of whether the search
+// itself succeeded - which is why nothing ever rendered. Renamed from
+// extractVideoUrl since it was never really extracting a video, and
+// app/workout/active.jsx now renders this in an <Image>, matching how
+// app/workouts.jsx's "Browse Exercises" already handles the free
+// tier's own equivalent gifUrl field. The old field checks stay as a
+// fallback in case a different tier or a future response shape ever
+// does include one.
+export function extractExerciseMediaUrl(exerciseRecord) {
   if (!exerciseRecord) return null;
+  if (typeof exerciseRecord.imageUrl === 'string') return exerciseRecord.imageUrl;
+  if (typeof exerciseRecord.gifUrl === 'string') return exerciseRecord.gifUrl;
   if (typeof exerciseRecord.videoUrl === 'string') return exerciseRecord.videoUrl;
   if (typeof exerciseRecord.video === 'string') return exerciseRecord.video;
   if (exerciseRecord.videoUrls && typeof exerciseRecord.videoUrls === 'object') {
@@ -140,7 +151,7 @@ export function extractVideoUrl(exerciseRecord) {
   if (exerciseRecord.media?.type === 'video' && typeof exerciseRecord.media?.url === 'string') {
     return exerciseRecord.media.url;
   }
-  console.warn('[exerciseDbService] no known video field on exercise record, keys were:', Object.keys(exerciseRecord));
+  console.warn('[exerciseDbService] no known media field on exercise record, keys were:', Object.keys(exerciseRecord));
   return null;
 }
 

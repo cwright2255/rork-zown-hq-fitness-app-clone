@@ -10,8 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   TextInput,
+  Image,
 } from 'react-native';
-import { Video } from 'expo-av';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
@@ -21,7 +21,7 @@ import { useAchievementStore } from '@/store/achievementStore';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
-import { searchAscendExercise, extractVideoUrl } from '@/services/exerciseDbService';
+import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
 import { getNextPrescription } from '@/services/progressiveOverloadService';
@@ -31,12 +31,51 @@ import { getCurrentReadiness } from '@/services/wearableService';
 // moves are sets x reps, performed at the user's own pace) — this estimates a
 // reasonable on-screen timer duration from whatever the workout actually
 // specifies, instead of a fixed placeholder list.
+// Real fix: reps isn't always a single number - data/workoutPrograms.js's
+// progressive-overload phases store it as a range string like "8-10" (see
+// PROGRESSION_PHASES there), and exercise.sets * exercise.reps * 3 on a
+// string like that produces NaN, which formatTime below then displays
+// as the literal text "NaN:NaN". parseNumericReps handles both a plain
+// number and a "X-Y" range (averaged) so this works for every reps shape
+// currently used anywhere reachable from this screen.
+function parseNumericReps(reps) {
+  if (typeof reps === 'number') return reps;
+  if (typeof reps === 'string') {
+    const nums = reps.match(/\d+/g);
+    if (nums && nums.length > 0) {
+      const parsed = nums.map(Number);
+      return parsed.reduce((sum, n) => sum + n, 0) / parsed.length;
+    }
+  }
+  return null;
+}
+
+// Real, new: for "Log Your Sets"'s reps placeholder specifically - a
+// single, real starting number ("8"), not the range string itself
+// ("8-10") and not parseNumericReps' averaged estimate (which would
+// give a slightly-off "9" here). The lower bound, not the upper, since
+// this is only ever shown before any real prescription exists for this
+// exercise (see where it's used below) - a conservative starting point
+// to climb from, consistent with how
+// services/progressiveOverloadService.js's own double progression
+// always starts at the bottom of a rep range and works up, not the
+// reverse.
+function parseRepsLowerBound(reps) {
+  if (typeof reps === 'number') return reps;
+  if (typeof reps === 'string') {
+    const match = reps.match(/\d+/);
+    if (match) return Number(match[0]);
+  }
+  return null;
+}
+
 function estimateExerciseSeconds(exercise) {
   if (typeof exercise?.duration === 'number' && exercise.duration > 0) {
     return exercise.duration;
   }
-  if (exercise?.sets && exercise?.reps) {
-    return Math.max(20, Math.round(exercise.sets * exercise.reps * 3));
+  const numericReps = parseNumericReps(exercise?.reps);
+  if (exercise?.sets && numericReps) {
+    return Math.max(20, Math.round(exercise.sets * numericReps * 3));
   }
   return 45;
 }
@@ -226,7 +265,7 @@ export default function ActiveWorkoutScreen() {
       let url = null;
       try {
         const record = await searchAscendExercise(ex.name);
-        url = extractVideoUrl(record);
+        url = extractExerciseMediaUrl(record);
       } catch (e) {
         console.warn('[ActiveWorkout] exercise video lookup failed:', ex.name, e?.message);
       }
@@ -604,14 +643,11 @@ export default function ActiveWorkoutScreen() {
         {/* Video / demo area */}
         <View style={styles.videoArea}>
           {currentVideoUrl ? (
-            <Video
+            <Image
               source={{ uri: currentVideoUrl }}
               style={StyleSheet.absoluteFillObject}
               resizeMode="cover"
-              isLooping
-              isMuted
-              shouldPlay={isPlaying}
-              onError={(e) => console.warn('[ActiveWorkout] video playback error:', e)}
+              onError={(e) => console.warn('[ActiveWorkout] exercise image failed to load:', e?.nativeEvent)}
             />
           ) : (
             <Ionicons name="body-outline" size={80} color="#666" />
@@ -664,6 +700,17 @@ export default function ActiveWorkoutScreen() {
             )}
             {(() => {
               const isBodyweight = isBodyweightExercise(currentExercise.name);
+              // Real, new: prefers the real, adaptive prescription
+              // (services/progressiveOverloadService.js's actual output
+              // for this specific exercise, computed from real logged
+              // history) over the workout's own static range - this is
+              // "the AI deciding, movement per movement" once real
+              // history exists. Only falls back to a single, specific
+              // number parsed from the workout's own range when there's
+              // no prescription yet (a genuine first-ever session for
+              // this exercise, where there's nothing to adapt from).
+              const displayedReps = prescriptions[currentExercise.id]?.targetReps
+                ?? parseRepsLowerBound(currentExercise.reps);
               return Array.from({ length: currentExercise.sets }).map((_, setIndex) => {
               const logged = loggedSetsByExercise[currentExercise.id]?.[setIndex];
               const inputKey = `${currentExercise.id}-${setIndex}`;
@@ -701,7 +748,7 @@ export default function ActiveWorkoutScreen() {
                   )}
                   <TextInput
                     style={styles.setInput}
-                    placeholder={String(currentExercise.reps)}
+                    placeholder={displayedReps != null ? String(displayedReps) : ''}
                     placeholderTextColor="#666"
                     keyboardType="numeric"
                     value={input.reps || ''}
@@ -914,14 +961,10 @@ export default function ActiveWorkoutScreen() {
             <Ionicons name="close" size={28} color="#FFF" />
           </Pressable>
           {currentVideoUrl && (
-            <Video
+            <Image
               source={{ uri: currentVideoUrl }}
               style={styles.fullscreenVideo}
               resizeMode="contain"
-              isLooping
-              isMuted
-              shouldPlay={showFullscreenVideo}
-              useNativeControls
             />
           )}
         </View>
