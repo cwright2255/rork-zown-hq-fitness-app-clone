@@ -3,6 +3,7 @@
 # dependencies
 node_modules/
 package-lock.json
+!functions/package-lock.json
 functions/lib/
 functions/node_modules/
 
