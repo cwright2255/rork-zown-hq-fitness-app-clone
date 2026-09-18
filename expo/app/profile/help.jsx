@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoid
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { lightColors as colors, spacing, radius } from '../../../theme/tokens';
+import { Spacing as spacing, Radius as radius } from '../../src/constants/tokens';
 import { chatAI } from '../../services/aiService';
 
 // Enable layout animation on Android
@@ -382,6 +382,20 @@ export default function HelpSupportScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
+          {/* Entry point to the dedicated, ongoing AI Coach - this tab's
+              own history is local-only and resets on navigation; the
+              coach screen persists it and knows real user context. */}
+          <Pressable style={s.coachBanner} onPress={() => router.push('/coach')}>
+            <View style={s.coachBannerIcon}>
+              <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+            </View>
+            <View style={s.coachBannerTextWrap}>
+              <Text style={s.coachBannerTitle}>Talk to your AI Coach</Text>
+              <Text style={s.coachBannerSubtitle}>An ongoing conversation that remembers your goals and history</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#999999" />
+          </Pressable>
+
           {/* Chat view */}
           <ScrollView
             ref={scrollViewRef}
@@ -624,6 +638,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#555555',
     lineHeight: 18,
+  },
+  coachBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+  },
+  coachBannerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  coachBannerTextWrap: {
+    flex: 1,
+  },
+  coachBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  coachBannerSubtitle: {
+    fontSize: 12,
+    color: '#CCCCCC',
+    marginTop: 2,
   },
   chatScroll: {
     paddingHorizontal: spacing.md,

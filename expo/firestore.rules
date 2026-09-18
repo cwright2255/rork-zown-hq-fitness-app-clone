@@ -95,6 +95,28 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
+    // Real, confirmed fix: loggedSets had no rule at all anywhere in this
+    // file - the same silent-denial failure mode already documented
+    // above for users/{userId}/data/{docId}. Every write from
+    // store/workoutStore.js's logSet, and every read from
+    // getExerciseHistory (which services/progressiveOverloadService.js's
+    // adaptive prescriptions directly depend on), was very likely being
+    // silently denied. Same proven pattern as workouts directly above.
+    match /loggedSets/{setId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Real, new: for services/coachService.js's persistent coach chat
+    // history (app/coach.jsx) - no update/delete, since a coaching
+    // conversation is an append-only log, matching how nothing else here
+    // needs to edit a past chat message once sent.
+    match /coachMessages/{messageId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if false;
+    }
+
     match /goals/{goalId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
