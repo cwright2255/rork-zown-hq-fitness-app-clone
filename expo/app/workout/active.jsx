@@ -441,8 +441,20 @@ export default function ActiveWorkoutScreen() {
     const inputKey = `${exercise.id}-${setIndex}`;
     const input = setInputs[inputKey];
     const isBodyweight = isBodyweightExercise(exercise.name);
-    const weight = isBodyweight ? 0 : parseFloat(input?.weight);
-    const reps = parseInt(input?.reps, 10);
+    // Real, new: falls back to the real prescription
+    // (services/progressiveOverloadService.js's actual output for this
+    // exercise) when the user never touched the input - which is now
+    // the common case, since the fields visually start pre-filled with
+    // this exact value (see the render logic above). ?? specifically
+    // (not ||) so a field the user deliberately cleared (an empty
+    // string, still a real value) isn't silently overwritten by the
+    // prescription - only a genuinely untouched field (undefined) falls
+    // back.
+    const prescription = prescriptions[exercise.id];
+    const weightSource = input?.weight ?? (prescription ? String(prescription.weight) : undefined);
+    const repsSource = input?.reps ?? (prescription ? String(prescription.targetReps) : undefined);
+    const weight = isBodyweight ? 0 : parseFloat(weightSource);
+    const reps = parseInt(repsSource, 10);
     if ((!isBodyweight && (!weight || weight <= 0)) || !reps || reps <= 0) return;
 
     setLoggingSetKey(inputKey);
@@ -700,17 +712,24 @@ export default function ActiveWorkoutScreen() {
             )}
             {(() => {
               const isBodyweight = isBodyweightExercise(currentExercise.name);
-              // Real, new: prefers the real, adaptive prescription
-              // (services/progressiveOverloadService.js's actual output
-              // for this specific exercise, computed from real logged
-              // history) over the workout's own static range - this is
-              // "the AI deciding, movement per movement" once real
-              // history exists. Only falls back to a single, specific
-              // number parsed from the workout's own range when there's
-              // no prescription yet (a genuine first-ever session for
-              // this exercise, where there's nothing to adapt from).
-              const displayedReps = prescriptions[currentExercise.id]?.targetReps
-                ?? parseRepsLowerBound(currentExercise.reps);
+              // Real, new: the actual live pre-fill, not just a
+              // placeholder hint. Once a real, adaptive prescription
+              // exists (services/progressiveOverloadService.js's
+              // actual output for this exercise - the same one shown
+              // in the banner above), both fields start already filled
+              // with it, since the app has already told the user this
+              // exact number with confidence; retyping it would just be
+              // friction. Still fully editable - if what was actually
+              // done differs, typing over it works normally. Only when
+              // there's no prescription yet (first-ever session, no
+              // history to adapt from, no banner shown either) does
+              // this fall back to the original placeholder-only
+              // behavior - a hint, not a value, since there's nothing
+              // real to prefill from for weight and only a generic
+              // range for reps.
+              const prescription = prescriptions[currentExercise.id];
+              const fallbackReps = parseRepsLowerBound(currentExercise.reps);
+              const placeholderReps = prescription?.targetReps ?? fallbackReps;
               return Array.from({ length: currentExercise.sets }).map((_, setIndex) => {
               const logged = loggedSetsByExercise[currentExercise.id]?.[setIndex];
               const inputKey = `${currentExercise.id}-${setIndex}`;
@@ -740,7 +759,7 @@ export default function ActiveWorkoutScreen() {
                         placeholder="lb"
                         placeholderTextColor="#666"
                         keyboardType="numeric"
-                        value={input.weight || ''}
+                        value={input.weight ?? (prescription ? String(prescription.weight) : '')}
                         onChangeText={(v) => updateSetInput(currentExercise.id, setIndex, 'weight', v)}
                       />
                       <Text style={styles.setInputX}>x</Text>
@@ -748,10 +767,10 @@ export default function ActiveWorkoutScreen() {
                   )}
                   <TextInput
                     style={styles.setInput}
-                    placeholder={displayedReps != null ? String(displayedReps) : ''}
+                    placeholder={placeholderReps != null ? String(placeholderReps) : ''}
                     placeholderTextColor="#666"
                     keyboardType="numeric"
-                    value={input.reps || ''}
+                    value={input.reps ?? (prescription ? String(prescription.targetReps) : '')}
                     onChangeText={(v) => updateSetInput(currentExercise.id, setIndex, 'reps', v)}
                   />
                   {isLogging ? (
