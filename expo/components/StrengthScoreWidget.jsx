@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, LayoutAnimation } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { getBestOneRepMaxes, computeStrengthScore } from '@/services/strengthStandardsService';
 
-const TIER_COLORS = {
-  Untrained: '#999999',
-  Beginner: '#8B5CF6',
-  Novice: '#3B82F6',
-  Intermediate: '#10B981',
-  Advanced: '#F59E0B',
-  Elite: '#EF4444',
-};
+// Real fix: rebuilt to match the exact, established card structure every
+// other widget on this screen uses (same size/shape as Calories, Heart,
+// etc., collapsed to one headline value + tap-to-expand) - the original
+// version was a full-width, differently-structured card, visually
+// inconsistent with the rest of the grid. Duplicates the small set of
+// exact style values from app/hq.jsx's own styles (cardContainer,
+// statCard, insightPanel, etc.) since those are local to that file and
+// not shared/exported; kept numerically identical to match precisely.
+const { width } = Dimensions.get('window');
+const CARD_GAP = 12;
+const H_PAD = 22;
+const CARD_W = (width - H_PAD * 2 - CARD_GAP) / 2;
 
-// Real, new: general, estimated population-standard comparison for
-// bench/squat/deadlift, built from the user's own real logged 1RMs
-// (services/strengthStandardsService.js) and their own real, stored
-// bodyweight and gender - not a guess. Labeled "general, estimated"
-// directly in the UI since these standards genuinely vary by source,
-// not a precise, universally-agreed figure.
 export default function StrengthScoreWidget() {
   const { user } = useUserStore();
   const [isLoading, setIsLoading] = useState(true);
   const [score, setScore] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,88 +48,98 @@ export default function StrengthScoreWidget() {
     return () => { cancelled = true; };
   }, [user?.uid]);
 
-  if (isLoading) {
-    return (
-      <View style={s.card}>
-        <ActivityIndicator size="small" color="#000000" />
-      </View>
-    );
-  }
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded((v) => !v);
+  };
 
-  if (!score || !score.overallTier) {
-    return (
-      <View style={s.card}>
-        <View style={s.header}>
-          <Ionicons name="trophy-outline" size={18} color="#000000" />
-          <Text style={s.title}>Strength Score</Text>
-        </View>
-        <Text style={s.emptyText}>
-          Log a set on Bench Press, Squat, or Deadlift to see how you compare to general strength standards.
-        </Text>
-      </View>
-    );
-  }
-
-  const tierColor = TIER_COLORS[score.overallTier] || '#999999';
-  const lifts = Object.entries(score.perLift);
+  const headline = isLoading ? '\u2014' : (score?.overallTier || '\u2014');
+  const lifts = score ? Object.entries(score.perLift) : [];
 
   return (
-    <View style={s.card}>
-      <View style={s.header}>
-        <Ionicons name="trophy-outline" size={18} color="#000000" />
-        <Text style={s.title}>Strength Score</Text>
-      </View>
-
-      <View style={s.overallRow}>
-        <View style={[s.tierBadge, { backgroundColor: tierColor }]}>
-          <Text style={s.tierBadgeText}>{score.overallTier}</Text>
-        </View>
-        <Text style={s.overallSubtext}>Your overall level, based on your weakest logged lift</Text>
-      </View>
-
-      {lifts.map(([liftName, data]) => (
-        <View key={liftName} style={s.liftRow}>
-          <Text style={s.liftName}>{liftName}</Text>
-          <View style={s.liftBarTrack}>
-            <View
-              style={[
-                s.liftBarFill,
-                { width: `${Math.min(100, Math.max(4, data.progressToNext * 100))}%`, backgroundColor: TIER_COLORS[data.tier] || '#999999' },
-              ]}
-            />
+    <View style={[s.cardContainer, isExpanded && s.expandedCardContainer, isExpanded && { overflow: 'visible' }]}>
+      <TouchableOpacity activeOpacity={0.8} onPress={toggleExpand} style={s.statCard}>
+        <View style={{ flex: 1, justifyContent: 'space-between' }}>
+          <View style={s.statCardHeader}>
+            <Text style={s.statLabel}>Strength Score</Text>
+            <Ionicons name="trophy-outline" size={20} color="#000" />
           </View>
-          <Text style={s.liftTier}>{data.tier}</Text>
+          <Text style={s.statValue}>{headline}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={s.statUnit}>Tier</Text>
+            <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="#999" />
+          </View>
         </View>
-      ))}
+      </TouchableOpacity>
 
-      <Text style={s.disclaimer}>General, estimated standards - not a precise measurement.</Text>
+      {isExpanded && (
+        <View style={s.insightPanel}>
+          {lifts.length === 0 ? (
+            <Text style={s.detailStatText}>
+              Log a set on Bench Press, Squat, or Deadlift to see how you compare to general strength standards.
+            </Text>
+          ) : (
+            <View style={{ gap: 6, marginBottom: 4 }}>
+              <Text style={s.insightTitle}>By Lift</Text>
+              {lifts.map(([liftName, data]) => (
+                <Text key={liftName} style={s.detailStatText}>
+                  {liftName}: <Text style={{ fontWeight: '700' }}>{data.tier}</Text>
+                </Text>
+              ))}
+              <Text style={{ fontSize: 10, color: '#AAAAAA', marginTop: 4 }}>
+                General, estimated standards - not a precise measurement.
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  card: {
+  cardContainer: {
+    width: CARD_W,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    overflow: 'visible',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 2 },
+    }),
   },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
-  title: { fontSize: 16, fontWeight: '700', color: '#000000' },
-  emptyText: { fontSize: 13, color: '#666666', lineHeight: 18 },
-  overallRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 10 },
-  tierBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  tierBadgeText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  overallSubtext: { flex: 1, fontSize: 12, color: '#666666' },
-  liftRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 },
-  liftName: { width: 90, fontSize: 12, fontWeight: '600', color: '#000000' },
-  liftBarTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: '#F0F0F0', overflow: 'hidden' },
-  liftBarFill: { height: '100%', borderRadius: 3 },
-  liftTier: { width: 80, fontSize: 11, color: '#666666', textAlign: 'right' },
-  disclaimer: { fontSize: 10, color: '#AAAAAA', marginTop: 4 },
+  expandedCardContainer: {
+    width: width - H_PAD * 2,
+    overflow: 'visible',
+  },
+  statCard: {
+    padding: 16,
+    minHeight: 130,
+    justifyContent: 'space-between',
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statLabel: { fontSize: 14, fontWeight: '600', color: '#333' },
+  statValue: { fontSize: 28, fontWeight: '800', color: '#000' },
+  statUnit: { fontSize: 12, color: '#999', marginTop: 2 },
+  insightPanel: {
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    padding: 16,
+    paddingBottom: 20,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    overflow: 'visible',
+  },
+  insightTitle: { fontSize: 14, fontWeight: '800', color: '#000000', marginBottom: 6 },
+  detailStatText: { fontSize: 12, color: '#444' },
 });

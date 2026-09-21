@@ -27,11 +27,14 @@ export const WIDGET_REGISTRY = [
   { id: 'runningLog', label: 'Running Log', icon: 'walk-outline', kind: 'runningLog' },
   { id: 'recommendedWorkouts', label: 'Recommended Workouts', icon: 'clipboard-outline', kind: 'carousel' },
   { id: 'inviteFriends', label: 'Invite Your Friends', icon: 'person-add-outline', kind: 'banner' },
-  // Real, new: a full-width section (not 'card') - a strength score with
-  // real context (lift, estimated 1RM, tier) needs more room than the
-  // small grid cards, same reasoning as workoutHistory/runningLog above.
-  { id: 'strengthScore', label: 'Strength Score', icon: 'trophy-outline', kind: 'strengthScore' },
-  { id: 'fasting', label: 'Fasting Timer', icon: 'timer-outline', kind: 'fasting' },
+  // Real fix: now genuinely 'card' kind, matching their rebuilt structure
+  // (same size/shape as the other 8 grid widgets, collapsed to one
+  // headline value). Originally 'strengthScore'/'fasting' as distinct
+  // kinds when these were full-width sections - visually inconsistent
+  // with the rest of the grid, per direct feedback after seeing the
+  // real, deployed result.
+  { id: 'strengthScore', label: 'Strength Score', icon: 'trophy-outline', kind: 'card' },
+  { id: 'fasting', label: 'Fasting Timer', icon: 'timer-outline', kind: 'card' },
 ];
 
 // Default layout for a user who has never customized their home screen -

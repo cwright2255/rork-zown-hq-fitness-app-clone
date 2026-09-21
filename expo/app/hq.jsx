@@ -719,7 +719,7 @@ export default function HQScreen() {
           <React.Fragment key={id}>{widgetRenderers[id]?.()}</React.Fragment>
         ))}
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
       <Modal visible={showWidgetMenu} animationType="fade" transparent onRequestClose={() => setShowWidgetMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowWidgetMenu(false)}>
