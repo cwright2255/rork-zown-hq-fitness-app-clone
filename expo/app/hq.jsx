@@ -718,8 +718,6 @@ export default function HQScreen() {
         {sectionWidgetIds.map((id) => (
           <React.Fragment key={id}>{widgetRenderers[id]?.()}</React.Fragment>
         ))}
-
-        <View style={{ height: 40 }} />
       </ScrollView>
       <Modal visible={showWidgetMenu} animationType="fade" transparent onRequestClose={() => setShowWidgetMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowWidgetMenu(false)}>
@@ -777,7 +775,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: H_PAD,
     paddingTop: 16,
-    paddingBottom: 200,
+    paddingBottom: 90,
   },
 
   /* header */
