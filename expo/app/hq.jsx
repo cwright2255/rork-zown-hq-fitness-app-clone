@@ -46,7 +46,10 @@ import { computeStepsMetrics } from '@/lib/stepsMetrics';
 import SwipeableStepsContent from '@/components/SwipeableStepsContent';
 import PromptModal from '@/components/PromptModal';
 import { useRunningStore } from '@/store/runningStore';
-import { tokens } from '../../theme/tokens';
+import { getFullOrderedLayout, getWidgetDefinition } from '@/lib/homeWidgets';
+import StrengthScoreWidget from '@/components/StrengthScoreWidget';
+import FastingWidget from '@/components/FastingWidget';
+import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -306,6 +309,338 @@ export default function HQScreen() {
     );
   };
 
+  // Real, new: makes the existing, always-present homeWidgetsStore
+  // (layout/toggleWidget/reorderWidget) actually control what's on
+  // screen - previously every widget below was hardcoded, individually,
+  // in this fixed source order, so isWidgetEnabled correctly hid a
+  // disabled widget but reorderWidget's stored order was never
+  // reflected here at all. Each entry's own JSX/logic is completely
+  // unchanged from before - only wrapped as a named function so it can
+  // be looked up by id and rendered in real, stored order.
+  const widgetRenderers = {
+    calories: () => (
+      renderExpandableCard(
+            'Calories',
+            'flame-outline',
+            caloriesVal.toLocaleString(),
+            'Kcal',
+            false,
+            (
+              <SwipeableCaloriesContent
+                metrics={calorieMetrics}
+                onSetGoal={() => setShowCalorieGoalModal(true)}
+              />
+            )
+          )
+    ),
+    heart: () => (
+      renderExpandableCard(
+            'Heart',
+            'heart-outline',
+            rookRecovery?.restingHeartRate != null ? String(Math.round(rookRecovery.restingHeartRate)) : '\u2014',
+            'bpm',
+            false,
+            (
+              <View>
+                {rookRecovery ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Today's Recovery</Text>
+                    {rookRecovery.restingHeartRate != null && (
+                      <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.restingHeartRate)} bpm</Text></Text>
+                    )}
+                    {rookRecovery.hrv != null && (
+                      <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.hrv)} ms</Text></Text>
+                    )}
+                    {rookRecovery.sleepHours != null && (
+                      <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
+                    )}
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No wearable data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect a device to see real resting heart rate and HRV here.
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/rook-connect')}
+                >
+                  <Text style={styles.panelBtnText}>{rookRecovery ? 'Manage Devices' : 'Connect Device'}</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )
+    ),
+    steps: () => (
+      renderExpandableCard(
+            'Steps',
+            'footsteps-outline',
+            stepsVal.toLocaleString(),
+            'Steps',
+            false,
+            (
+              <SwipeableStepsContent
+                metrics={stepsMetrics}
+                onSetGoal={() => {}}
+              />
+            )
+          )
+    ),
+    sleep: () => (
+      renderExpandableCard(
+            'Sleep',
+            'moon-outline',
+            sleepVal != null ? sleepVal.toLocaleString() : '\u2014',
+            'Hours',
+            false,
+            (
+              <View>
+                {rookRecovery?.sleepHours != null ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Last Night</Text>
+                    <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No wearable data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect a device to see real sleep data here.
+                    </Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )
+    ),
+    totalXp: () => (
+      renderExpandableCard(
+            'Total Daily XP',
+            'star-outline',
+            xpVal.toLocaleString(),
+            'points',
+            false,
+            (
+              <View>
+                <View style={{ gap: 6, marginBottom: 12 }}>
+                  <Text style={styles.insightTitle}>XP Overview</Text>
+                  <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level 12</Text></Text>
+                  <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>840 XP remaining</Text></Text>
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.chartTitle}>7-Day XP Earnings</Text>
+                  <BarChart
+                    data={{
+                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                      datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
+                    }}
+                    width={chartWidth}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#FFFFFF',
+                      backgroundGradientFrom: '#FFFFFF',
+                      backgroundGradientTo: '#FFFFFF',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => "rgba(255, 193, 7, " + opacity + ")",
+                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
+                    }}
+                    style={styles.chartStyle}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/battlepass')}
+                >
+                  <Text style={styles.panelBtnText}>View Battle Pass</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )
+    ),
+    storiesClimbed: () => (
+      renderExpandableCard(
+            'Stories Climbed',
+            'trending-up-outline',
+            flightsClimbed != null ? String(flightsClimbed) : '\u2014',
+            'floors',
+            false,
+            (
+              <View>
+                {flightsClimbed != null ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Today's Climbing</Text>
+                    <Text style={styles.detailStatText}>Floors Climbed: <Text style={{fontWeight: '700'}}>{flightsClimbed}</Text></Text>
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: Apple Health</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect Apple Health to see real floors climbed here.
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/rook-connect')}
+                >
+                  <Text style={styles.panelBtnText}>{flightsClimbed != null ? 'Manage Devices' : 'Connect Apple Health'}</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )
+    ),
+    restingHrv: () => (
+      renderExpandableCard(
+            'Resting HRV',
+            'pulse-outline',
+            rookRecovery?.hrv != null ? String(Math.round(rookRecovery.hrv)) : '\u2014',
+            'ms',
+            false,
+            (
+              <View>
+                {rookRecovery?.hrv != null ? (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>Today's Recovery</Text>
+                    <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.hrv)} ms</Text></Text>
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <Text style={styles.insightTitle}>No wearable data yet</Text>
+                    <Text style={styles.detailStatText}>
+                      Connect a device to see real HRV data here.
+                    </Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.panelBtn}
+                  onPress={() => router.push('/health')}
+                >
+                  <Text style={styles.panelBtnText}>View Health</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )
+    ),
+    hydration: () => (
+      renderExpandableCard(
+            'Hydration',
+            'water-outline',
+            hydrationVal + " / " + hydrationTarget,
+            'glasses',
+            true,
+            (
+              <View>
+                <View style={styles.expandedRow}>
+                  <ProgressRing
+                    size={90}
+                    progress={Math.min(hydrationVal / hydrationTarget, 1)}
+                    color="#00BCD4"
+                    label={hydrationVal.toString()}
+                    subLabel="Glasses"
+                  />
+                  <View style={{ flex: 1, marginLeft: 20, gap: 10 }}>
+                    <Text style={styles.insightTitle}>Log Intake</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => {
+                          addGlass();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        }}
+                      >
+                        <Plus size={14} color="#FFF" />
+                        <Text style={styles.quickAddBtnText}>+250ml</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => {
+                          addGlass();
+                          addGlass();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        }}
+                      >
+                        <Plus size={14} color="#FFF" />
+                        <Text style={styles.quickAddBtnText}>+500ml</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.panelBtn, { marginTop: 14 }]}
+                  onPress={() => router.push('/nutrition')}
+                >
+                  <Text style={styles.panelBtnText}>View Nutrition</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )
+    ),
+    recommendedWorkouts: () => (
+      (
+        <View style={styles.carouselCard}>
+          <Text style={styles.carouselTitle}>Recommended Workouts</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselScroll}
+          >
+            {WORKOUTS.map((w) => (
+              <WorkoutItem
+                key={w.id}
+                item={w}
+                onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+        )
+    ),
+    inviteFriends: () => (
+      (
+        <TouchableOpacity
+          style={styles.banner}
+          activeOpacity={0.8}
+          onPress={() => router.push('/community')}
+        >
+          <View style={styles.bannerIcon}>
+            <Ionicons name="trophy-outline" size={22} color="#000" />
+          </View>
+          <View style={styles.bannerText}>
+            <Text style={styles.bannerTitle}>Invite your friends</Text>
+            <Text style={styles.bannerSub}>Invite your friends to get a free exercise right away</Text>
+          </View>
+        </TouchableOpacity>
+        )
+    ),
+    strengthScore: () => isWidgetEnabled('strengthScore') && <StrengthScoreWidget />,
+    fasting: () => isWidgetEnabled('fasting') && <FastingWidget />,
+  };
+
+  const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {
+    const fullLayout = getFullOrderedLayout(widgetLayout);
+    const allIds = fullLayout.filter((w) => w.enabled).map((w) => w.id);
+    return {
+      gridWidgetIds: allIds.filter((id) => getWidgetDefinition(id)?.kind === 'card'),
+      sectionWidgetIds: allIds.filter((id) => getWidgetDefinition(id)?.kind !== 'card'),
+    };
+  }, [widgetLayout]);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -375,315 +710,14 @@ export default function HQScreen() {
 
         {/* Expandable Grid */}
         <View style={styles.grid}>
-          {/* 1. Calories Card */}
-          {isWidgetEnabled('calories') && renderExpandableCard(
-            'Calories',
-            'flame-outline',
-            caloriesVal.toLocaleString(),
-            'Kcal',
-            false,
-            (
-              <SwipeableCaloriesContent
-                metrics={calorieMetrics}
-                onSetGoal={() => setShowCalorieGoalModal(true)}
-              />
-            )
-          )}
-          {/* 2. Heart Card */}
-          {isWidgetEnabled('heart') && renderExpandableCard(
-            'Heart',
-            'heart-outline',
-            rookRecovery?.restingHeartRate != null ? String(Math.round(rookRecovery.restingHeartRate)) : '\u2014',
-            'bpm',
-            false,
-            (
-              <View>
-                {rookRecovery ? (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>Today's Recovery</Text>
-                    {rookRecovery.restingHeartRate != null && (
-                      <Text style={styles.detailStatText}>Resting Heart Rate: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.restingHeartRate)} bpm</Text></Text>
-                    )}
-                    {rookRecovery.hrv != null && (
-                      <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.hrv)} ms</Text></Text>
-                    )}
-                    {rookRecovery.sleepHours != null && (
-                      <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
-                    )}
-                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
-                  </View>
-                ) : (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>No wearable data yet</Text>
-                    <Text style={styles.detailStatText}>
-                      Connect a device to see real resting heart rate and HRV here.
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/rook-connect')}
-                >
-                  <Text style={styles.panelBtnText}>{rookRecovery ? 'Manage Devices' : 'Connect Device'}</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-
-          {/* 3. Steps Card */}
-          {isWidgetEnabled('steps') && renderExpandableCard(
-            'Steps',
-            'footsteps-outline',
-            stepsVal.toLocaleString(),
-            'Steps',
-            false,
-            (
-              <SwipeableStepsContent
-                metrics={stepsMetrics}
-                onSetGoal={() => {}}
-              />
-            )
-          )}
-
-          {/* 4. Sleep Card */}
-          {isWidgetEnabled('sleep') && renderExpandableCard(
-            'Sleep',
-            'moon-outline',
-            sleepVal != null ? sleepVal.toLocaleString() : '\u2014',
-            'Hours',
-            false,
-            (
-              <View>
-                {rookRecovery?.sleepHours != null ? (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>Last Night</Text>
-                    <Text style={styles.detailStatText}>Sleep: <Text style={{fontWeight: '700'}}>{rookRecovery.sleepHours}h</Text></Text>
-                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
-                  </View>
-                ) : (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>No wearable data yet</Text>
-                    <Text style={styles.detailStatText}>
-                      Connect a device to see real sleep data here.
-                    </Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/health')}
-                >
-                  <Text style={styles.panelBtnText}>View Health</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-
-          {/* 5. Total XP Card */}
-          {isWidgetEnabled('totalXp') && renderExpandableCard(
-            'Total Daily XP',
-            'star-outline',
-            xpVal.toLocaleString(),
-            'points',
-            false,
-            (
-              <View>
-                <View style={{ gap: 6, marginBottom: 12 }}>
-                  <Text style={styles.insightTitle}>XP Overview</Text>
-                  <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level 12</Text></Text>
-                  <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>840 XP remaining</Text></Text>
-                </View>
-
-                <View style={{ marginTop: 8 }}>
-                  <Text style={styles.chartTitle}>7-Day XP Earnings</Text>
-                  <BarChart
-                    data={{
-                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                      datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
-                    }}
-                    width={chartWidth}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#FFFFFF',
-                      backgroundGradientFrom: '#FFFFFF',
-                      backgroundGradientTo: '#FFFFFF',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => "rgba(255, 193, 7, " + opacity + ")",
-                      labelColor: (opacity = 1) => "rgba(0, 0, 0, " + opacity + ")",
-                    }}
-                    style={styles.chartStyle}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/battlepass')}
-                >
-                  <Text style={styles.panelBtnText}>View Battle Pass</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-
-          {/* 6. Stories Climbed Card */}
-          {/* 6. Stories Climbed Card */}
-          {isWidgetEnabled('storiesClimbed') && renderExpandableCard(
-            'Stories Climbed',
-            'trending-up-outline',
-            flightsClimbed != null ? String(flightsClimbed) : '\u2014',
-            'floors',
-            false,
-            (
-              <View>
-                {flightsClimbed != null ? (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>Today's Climbing</Text>
-                    <Text style={styles.detailStatText}>Floors Climbed: <Text style={{fontWeight: '700'}}>{flightsClimbed}</Text></Text>
-                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: Apple Health</Text>
-                  </View>
-                ) : (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>No data yet</Text>
-                    <Text style={styles.detailStatText}>
-                      Connect Apple Health to see real floors climbed here.
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/rook-connect')}
-                >
-                  <Text style={styles.panelBtnText}>{flightsClimbed != null ? 'Manage Devices' : 'Connect Apple Health'}</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-          {/* 7. Resting HRV Card */}
-          {isWidgetEnabled('restingHrv') && renderExpandableCard(
-            'Resting HRV',
-            'pulse-outline',
-            rookRecovery?.hrv != null ? String(Math.round(rookRecovery.hrv)) : '\u2014',
-            'ms',
-            false,
-            (
-              <View>
-                {rookRecovery?.hrv != null ? (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>Today's Recovery</Text>
-                    <Text style={styles.detailStatText}>HRV: <Text style={{fontWeight: '700'}}>{Math.round(rookRecovery.hrv)} ms</Text></Text>
-                    <Text style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Source: {rookRecovery.source}</Text>
-                  </View>
-                ) : (
-                  <View style={{ gap: 6, marginBottom: 12 }}>
-                    <Text style={styles.insightTitle}>No wearable data yet</Text>
-                    <Text style={styles.detailStatText}>
-                      Connect a device to see real HRV data here.
-                    </Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.panelBtn}
-                  onPress={() => router.push('/health')}
-                >
-                  <Text style={styles.panelBtnText}>View Health</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
-
-          {/* 8. Hydration Card */}
-          {isWidgetEnabled('hydration') && renderExpandableCard(
-            'Hydration',
-            'water-outline',
-            hydrationVal + " / " + hydrationTarget,
-            'glasses',
-            true,
-            (
-              <View>
-                <View style={styles.expandedRow}>
-                  <ProgressRing
-                    size={90}
-                    progress={Math.min(hydrationVal / hydrationTarget, 1)}
-                    color="#00BCD4"
-                    label={hydrationVal.toString()}
-                    subLabel="Glasses"
-                  />
-                  <View style={{ flex: 1, marginLeft: 20, gap: 10 }}>
-                    <Text style={styles.insightTitle}>Log Intake</Text>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <TouchableOpacity
-                        style={styles.quickAddBtn}
-                        onPress={() => {
-                          addGlass();
-                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        }}
-                      >
-                        <Plus size={14} color="#FFF" />
-                        <Text style={styles.quickAddBtnText}>+250ml</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.quickAddBtn}
-                        onPress={() => {
-                          addGlass();
-                          addGlass();
-                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        }}
-                      >
-                        <Plus size={14} color="#FFF" />
-                        <Text style={styles.quickAddBtnText}>+500ml</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.panelBtn, { marginTop: 14 }]}
-                  onPress={() => router.push('/nutrition')}
-                >
-                  <Text style={styles.panelBtnText}>View Nutrition</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
+          {gridWidgetIds.map((id) => (
+            <React.Fragment key={id}>{widgetRenderers[id]?.()}</React.Fragment>
+          ))}
         </View>
 
-        {/* Recommended Workouts carousel */}
-        {isWidgetEnabled('recommendedWorkouts') && (
-        <View style={styles.carouselCard}>
-          <Text style={styles.carouselTitle}>Recommended Workouts</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselScroll}
-          >
-            {WORKOUTS.map((w) => (
-              <WorkoutItem
-                key={w.id}
-                item={w}
-                onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
-              />
-            ))}
-          </ScrollView>
-        </View>
-        )}
-
-        {/* Invite banner */}
-        {isWidgetEnabled('inviteFriends') && (
-        <TouchableOpacity
-          style={styles.banner}
-          activeOpacity={0.8}
-          onPress={() => router.push('/community')}
-        >
-          <View style={styles.bannerIcon}>
-            <Ionicons name="trophy-outline" size={22} color="#000" />
-          </View>
-          <View style={styles.bannerText}>
-            <Text style={styles.bannerTitle}>Invite your friends</Text>
-            <Text style={styles.bannerSub}>Invite your friends to get a free exercise right away</Text>
-          </View>
-        </TouchableOpacity>
-        )}
+        {sectionWidgetIds.map((id) => (
+          <React.Fragment key={id}>{widgetRenderers[id]?.()}</React.Fragment>
+        ))}
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -703,6 +737,11 @@ export default function HQScreen() {
           </View>
         </Pressable>
       </Modal>
+      <WidgetEditorModal
+        visible={isEditing}
+        onClose={() => useHomeWidgetsStore.getState().setEditing(false)}
+        uid={user?.uid}
+      />
       <PromptModal
         visible={showCalorieGoalModal}
         title="Daily Calorie Goal"

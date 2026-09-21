@@ -27,6 +27,11 @@ export const WIDGET_REGISTRY = [
   { id: 'runningLog', label: 'Running Log', icon: 'walk-outline', kind: 'runningLog' },
   { id: 'recommendedWorkouts', label: 'Recommended Workouts', icon: 'clipboard-outline', kind: 'carousel' },
   { id: 'inviteFriends', label: 'Invite Your Friends', icon: 'person-add-outline', kind: 'banner' },
+  // Real, new: a full-width section (not 'card') - a strength score with
+  // real context (lift, estimated 1RM, tier) needs more room than the
+  // small grid cards, same reasoning as workoutHistory/runningLog above.
+  { id: 'strengthScore', label: 'Strength Score', icon: 'trophy-outline', kind: 'strengthScore' },
+  { id: 'fasting', label: 'Fasting Timer', icon: 'timer-outline', kind: 'fasting' },
 ];
 
 // Default layout for a user who has never customized their home screen -
@@ -39,4 +44,19 @@ export function getDefaultWidgetLayout() {
 
 export function getWidgetDefinition(id) {
   return WIDGET_REGISTRY.find((w) => w.id === id) || null;
+}
+
+// Real, new: the full, ordered layout - the user's actually-stored
+// layout, plus any registry widget not yet in it (added to the registry
+// after this user last saved a custom order) appended at the end, same
+// "everything on by default" intent as getDefaultWidgetLayout. Shared
+// by app/hq.jsx (to render in the right order) and
+// components/WidgetEditorModal.jsx (to list every widget, including
+// ones a user has never explicitly seen yet).
+export function getFullOrderedLayout(layout) {
+  const knownIds = new Set(layout.map((w) => w.id));
+  const extras = WIDGET_REGISTRY
+    .filter((w) => !knownIds.has(w.id))
+    .map((w) => ({ id: w.id, enabled: true }));
+  return [...layout, ...extras];
 }
