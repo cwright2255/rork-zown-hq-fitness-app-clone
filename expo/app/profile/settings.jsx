@@ -14,7 +14,7 @@ import { spotifyService } from '@/services/spotifyService';
 import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { tokens } from '../../../theme/tokens';
+import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
@@ -519,8 +519,11 @@ export default function SettingsScreen() {
                   [
                     { text: 'Cancel', style: 'cancel' },
                     {
-                      text: 'Proceed',
-                      onPress: () => promptAsync(),
+                      text: 'Copy & Continue',
+                      onPress: async () => {
+                        await Clipboard.setStringAsync(redirectUri);
+                        promptAsync();
+                      },
                     }
                   ]
                 );
