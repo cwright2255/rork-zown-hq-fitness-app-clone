@@ -31,6 +31,7 @@ export const useSpotifyStore = create(
       workoutPlaylists: [],
       runningPlaylists: [],
       currentTrack: null,
+      isPlaying: false,
       playbackState: null,
       musicPreferences: defaultMusicPreferences,
       isLoading: false,
@@ -238,8 +239,8 @@ export const useSpotifyStore = create(
         if (!get().isConnected) return;
 
         try {
-          const currentTrack = await spotifyService.getCurrentlyPlaying();
-          set({ currentTrack });
+          const playback = await spotifyService.getCurrentlyPlaying();
+          set({ currentTrack: playback?.item || null, isPlaying: !!playback?.is_playing });
         } catch (error) {
           console.error('Failed to update current track:', error);
         }

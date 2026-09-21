@@ -809,7 +809,7 @@ It does NOT provide access to:
 
     try {
       const response = await this.fetchWebApi('me/player/currently-playing');
-      return response?.item || null;
+      return response || null;
     } catch (error) {
       console.error('Failed to get currently playing track:', error);
       return null;

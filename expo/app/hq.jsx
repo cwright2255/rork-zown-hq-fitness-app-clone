@@ -49,6 +49,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { getFullOrderedLayout, getWidgetDefinition } from '@/lib/homeWidgets';
 import StrengthScoreWidget from '@/components/StrengthScoreWidget';
 import FastingWidget from '@/components/FastingWidget';
+import MusicWidget from '@/components/MusicWidget';
 import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
@@ -630,6 +631,7 @@ export default function HQScreen() {
     ),
     strengthScore: () => isWidgetEnabled('strengthScore') && <StrengthScoreWidget />,
     fasting: () => isWidgetEnabled('fasting') && <FastingWidget />,
+    music: () => isWidgetEnabled('music') && <MusicWidget />,
   };
 
   const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {

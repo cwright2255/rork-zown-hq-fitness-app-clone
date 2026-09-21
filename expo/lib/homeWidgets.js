@@ -35,6 +35,7 @@ export const WIDGET_REGISTRY = [
   // real, deployed result.
   { id: 'strengthScore', label: 'Strength Score', icon: 'trophy-outline', kind: 'card' },
   { id: 'fasting', label: 'Fasting Timer', icon: 'timer-outline', kind: 'card' },
+  { id: 'music', label: 'Music', icon: 'musical-notes-outline', kind: 'card' },
 ];
 
 // Default layout for a user who has never customized their home screen -
