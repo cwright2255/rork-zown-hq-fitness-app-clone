@@ -328,7 +328,16 @@ class SpotifyService {
       }
     }
 
-    return await res.json();
+    // Real fix: this unconditionally called res.json() on every successful
+    // response, but Spotify genuinely, commonly returns 204 No Content with
+    // a truly empty body for several endpoints this same, shared helper is
+    // used for - GET currently-playing when nothing is playing, and the
+    // play/pause/next/previous controls on success. Parsing an empty body
+    // as JSON throws "Unexpected end of input". Reading as text first and
+    // only parsing when genuinely non-empty fixes this for every caller of
+    // this shared method, not just the one that happened to surface it.
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
   }
 
   // Handle PKCE authorization code callback
