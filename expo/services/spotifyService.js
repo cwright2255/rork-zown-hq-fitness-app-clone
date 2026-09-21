@@ -310,8 +310,15 @@ class SpotifyService {
           await this.clearToken();
           throw new Error('Spotify token expired or invalid');
         case 403:
-          // Forbidden - bad OAuth request
-          throw new Error('Bad OAuth request. Please re-authenticate.');
+          // Real fix: confirmed against Spotify's own docs
+          // (developer.spotify.com/documentation/web-api/concepts/quota-modes)
+          // - a 403 here specifically means this Spotify account isn't yet
+          // added to this app's Development Mode allowlist. The previous
+          // message ("re-authenticate") was misleading: retrying login
+          // doesn't fix this, since the account can genuinely log in but
+          // still gets blocked on the very next real API call, exactly
+          // matching what's documented.
+          throw new Error('This Spotify account needs to be added to the app\'s allowed users list in the Spotify Developer Dashboard before it can connect (the app is in Development Mode).');
         case 429:
           // Rate limited
           const retryAfter = res.headers.get('Retry-After');
