@@ -84,7 +84,10 @@ export default function MusicWidget() {
           ) : !currentTrack ? (
             <View>
               <Text style={s.insightTitle}>Nothing Playing</Text>
-              <Text style={s.detailStatText}>Start playback in Spotify and it will show up here.</Text>
+              <Text style={s.detailStatText}>Search for a song to start playing it right here.</Text>
+              <TouchableOpacity style={s.panelBtn} onPress={() => router.push('/music-search')}>
+                <Text style={s.panelBtnText}>Search Music</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View>
@@ -102,6 +105,9 @@ export default function MusicWidget() {
                 </View>
               </View>
               <View style={s.controlsRow}>
+                <TouchableOpacity style={s.controlBtn} onPress={() => router.push('/music-search')}>
+                  <Ionicons name="search" size={18} color="#000" />
+                </TouchableOpacity>
                 <TouchableOpacity style={s.controlBtn} onPress={previousTrack}>
                   <Ionicons name="play-skip-back" size={18} color="#000" />
                 </TouchableOpacity>
