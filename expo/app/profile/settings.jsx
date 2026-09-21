@@ -91,7 +91,15 @@ export default function SettingsScreen() {
   const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
   const uid = user?.uid;
 
-  const redirectUri = AuthSession.makeRedirectUri();
+  // Real fix: makeRedirectUri() with no arguments doesn't reliably
+  // resolve to this app's own scheme - confirmed directly against
+  // Expo's own docs, which show a zero-argument call resolving to an
+  // EAS-Update-specific URL (exp://u.expo.dev/...) instead, which is
+  // why Spotify was rejecting this with "redirect_uri: Not matching
+  // configuration" even though zownhq://spotify-callback is already,
+  // correctly registered in the Spotify Developer Dashboard. Explicitly
+  // passing scheme/path makes this actually match what's registered.
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: 'zownhq', path: 'spotify-callback' });
 
   // Log redirect URI on load
   useEffect(() => {
