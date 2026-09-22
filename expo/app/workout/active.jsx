@@ -1074,6 +1074,9 @@ export default function ActiveWorkoutScreen() {
                   {currentTrack?.artists?.[0]?.name || 'Unknown Artist'}
                 </Text>
                 <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:32}}>
+                  <Pressable onPress={() => router.push('/music-search')}>
+                    <Ionicons name="search" size={22} color="#FFF" />
+                  </Pressable>
                   <Pressable onPress={previousTrack}><Ionicons name="play-skip-back" size={28} color="#FFF" /></Pressable>
                   <Pressable onPress={() => {
                     const action = playbackState?.is_playing ? pauseTrack() : playTrack();

@@ -337,7 +337,13 @@ class SpotifyService {
     // only parsing when genuinely non-empty fixes this for every caller of
     // this shared method, not just the one that happened to surface it.
     const text = await res.text();
-    return text ? JSON.parse(text) : null;
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error('Spotify API returned a non-JSON response:', text.slice(0, 200));
+      throw new Error('Spotify returned an unexpected response. Please try again.');
+    }
   }
 
   // Handle PKCE authorization code callback
@@ -627,7 +633,14 @@ It does NOT provide access to:
       return true;
     } catch (error) {
       console.error('Failed to refresh Spotify token:', error);
-      await this.clearToken();
+      // Real fix: found while tracing the overnight "failed to get access
+      // token" error - this previously called clearToken() on ANY failure
+      // here, including a purely transient network or proxy error, which
+      // permanently destroyed a refresh token that might still genuinely
+      // be valid. That defeats the whole point of a refresh token: one
+      // momentary hiccup during an automatic background refresh shouldn't
+      // force a full re-login. Leaving the stored token intact lets the
+      // next attempt still succeed if the token itself is still good.
       return false;
     }
   }
