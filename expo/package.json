@@ -4,6 +4,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@hono/trpc-server": "^0.4.0",
     "@kingstinct/react-native-healthkit": "^14.0.2",
+    "@lomray/react-native-apple-music": "^1.4.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "5.0.1",
     "@rork-ai/toolkit-sdk": "0.2.51",
@@ -77,7 +78,8 @@
     "@testing-library/react-native": "^12.5.0",
     "babel-plugin-module-resolver": "^5.0.0",
     "jest": "^29.7.0",
-    "jest-expo": "~54.0.0"
+    "jest-expo": "~54.0.0",
+    "patch-package": "^8.0.1"
   },
   "main": "expo-router/entry",
   "name": "expo-app",

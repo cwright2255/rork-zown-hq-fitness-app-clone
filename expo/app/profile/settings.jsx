@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
 import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
@@ -89,6 +90,7 @@ export default function SettingsScreen() {
 
   const { user, logout } = useUserStore();
   const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
+  const { isConnected: appleMusicConnected, connectAppleMusic, disconnectAppleMusic } = useAppleMusicStore();
   const uid = user?.uid;
 
   // Real fix: makeRedirectUri() with no arguments doesn't reliably
@@ -520,6 +522,34 @@ export default function SettingsScreen() {
                   { text: 'Cancel', style: 'cancel' },
                   { text: 'Disconnect', style: 'destructive', onPress: () => disconnectSpotify() }
                 ]);
+              } else if (appleMusicConnected) {
+                Alert.alert(
+                  'Switch Music Player',
+                  'You\'re currently connected to Apple Music. Connecting Spotify will disconnect it - only one player can be connected at a time. Continue?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Continue',
+                      onPress: async () => {
+                        await disconnectAppleMusic();
+                        Alert.alert(
+                          'Spotify Redirect URI',
+                          "To connect your Spotify, please register this redirect URI in Spotify Developer Dashboard:\n\n" + redirectUri + "\n\nWould you like to copy and proceed?",
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Copy & Continue',
+                              onPress: async () => {
+                                await Clipboard.setStringAsync(redirectUri);
+                                promptAsync();
+                              },
+                            }
+                          ]
+                        );
+                      },
+                    }
+                  ]
+                );
               } else {
                 Alert.alert(
                   'Spotify Redirect URI',
@@ -538,6 +568,49 @@ export default function SettingsScreen() {
               }
             }}
           />
+          {Platform.OS === 'ios' && (
+            <SettingRow
+              icon="musical-note-outline"
+              label="Apple Music"
+              right={
+                <View style={s.statusBadge}>
+                  <View style={[s.statusDot, { backgroundColor: appleMusicConnected ? '#22C55E' : '#9E9E9E' }]} />
+                  <Text style={s.statusText}>{appleMusicConnected ? 'Connected' : 'Not Connected'}</Text>
+                </View>
+              }
+              onPress={async () => {
+                if (appleMusicConnected) {
+                  Alert.alert('Apple Music Connected', 'You are connected to Apple Music. Would you like to disconnect?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Disconnect', style: 'destructive', onPress: () => disconnectAppleMusic() }
+                  ]);
+                } else if (spotifyConnected) {
+                  Alert.alert(
+                    'Switch Music Player',
+                    'You\'re currently connected to Spotify. Connecting Apple Music will disconnect it - only one player can be connected at a time. Continue?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Continue',
+                        onPress: async () => {
+                          await disconnectSpotify();
+                          const success = await connectAppleMusic();
+                          if (!success) {
+                            Alert.alert('Connection Failed', 'Could not connect to Apple Music. Please make sure you have an active Apple Music subscription and try again.');
+                          }
+                        },
+                      }
+                    ]
+                  );
+                } else {
+                  const success = await connectAppleMusic();
+                  if (!success) {
+                    Alert.alert('Connection Failed', 'Could not connect to Apple Music. Please make sure you have an active Apple Music subscription and try again.');
+                  }
+                }
+              }}
+            />
+          )}
           <SettingRow
             icon="watch-outline"
             label="Wearable Devices"

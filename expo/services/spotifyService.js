@@ -265,12 +265,15 @@ class SpotifyService {
   async fetchWebApi(endpoint, method = 'GET', body) {
     if (!this.token || this.tokenExpiresAt && Date.now() > this.tokenExpiresAt) {
       console.log('SpotifyService: Token missing or expired, refreshing before API call...');
-      if (this.isClientCredentialsFlow || !this.refreshToken) {
+      if (this.isClientCredentialsFlow) {
         const refreshed = await this.initializeClientCredentials();
         if (!refreshed) {
           throw new Error('Failed to get Spotify access token. Please try refreshing.');
         }
-      } else if (this.refreshToken) {
+      } else if (!this.refreshToken) {
+        await this.clearToken();
+        throw new Error('Your Spotify connection has expired. Please reconnect in Settings.');
+      } else {
         const refreshed = await this.refreshAccessToken();
         if (!refreshed) {
           throw new Error('Failed to refresh Spotify user token');
@@ -841,6 +844,9 @@ It does NOT provide access to:
       return response || null;
     } catch (error) {
       console.error('Failed to get currently playing track:', error);
+      if (error?.message?.includes('connection has expired')) {
+        throw error;
+      }
       return null;
     }
   }

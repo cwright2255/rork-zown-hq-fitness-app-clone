@@ -243,6 +243,9 @@ export const useSpotifyStore = create(
           set({ currentTrack: playback?.item || null, isPlaying: !!playback?.is_playing });
         } catch (error) {
           console.error('Failed to update current track:', error);
+          if (error?.message?.includes('connection has expired')) {
+            set({ isConnected: false, currentTrack: null, isPlaying: false });
+          }
         }
       },
 

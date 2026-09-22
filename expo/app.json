@@ -19,11 +19,13 @@
         "NSPhotoLibraryUsageDescription": "ZOWN HQ needs photo library access to upload body scan photos and profile avatars.",
         "NSHealthShareUsageDescription": "ZOWN HQ needs access to sync workouts, steps, heart rate, and sleep data with Apple Health.",
         "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health.",
+        "NSAppleMusicUsageDescription": "ZOWN HQ needs access to Apple Music to play your music during workouts.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.background-delivery": true
+        "com.apple.developer.healthkit.background-delivery": true,
+        "com.apple.developer.musickit": true
       },
       "appleTeamId": "GLFKG8342N"
     },
@@ -78,6 +80,9 @@
         {
           "android": {
             "compileSdkExtension": 19
+          },
+          "ios": {
+            "deploymentTarget": "16.0"
           }
         }
       ],
