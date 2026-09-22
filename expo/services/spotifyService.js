@@ -840,7 +840,16 @@ It does NOT provide access to:
     }
 
     try {
-      const response = await this.fetchWebApi('me/player/currently-playing');
+      // Real fix: confirmed directly against Spotify's own docs and
+      // community forum - /me/player/currently-playing returns 204 (empty)
+      // whenever paused, even with a device still genuinely active, which
+      // is why a paused track was disappearing entirely instead of showing
+      // paused with a resume option. /me/player (the separate "playback
+      // state" endpoint) only returns 204 when there's truly no active
+      // device at all, and otherwise keeps returning the full track with
+      // is_playing: false - same response shape, so no parsing changes
+      // needed here, just the endpoint itself.
+      const response = await this.fetchWebApi('me/player');
       return response || null;
     } catch (error) {
       console.error('Failed to get currently playing track:', error);
