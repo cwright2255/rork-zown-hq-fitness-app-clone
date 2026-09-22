@@ -321,7 +321,13 @@ class SpotifyService {
           // doesn't fix this, since the account can genuinely log in but
           // still gets blocked on the very next real API call, exactly
           // matching what's documented.
-          throw new Error('This Spotify account needs to be added to the app\'s allowed users list in the Spotify Developer Dashboard before it can connect (the app is in Development Mode).');
+          //
+          // Real fix: this used to always show only the interpretation
+          // above, with no way to tell whether a given 403 genuinely
+          // matched it or had some other, different real cause - appending
+          // Spotify's own actual error detail (when present) makes that
+          // visible instead of hidden.
+          throw new Error('This Spotify account needs to be added to the app\'s allowed users list in the Spotify Developer Dashboard before it can connect (the app is in Development Mode).' + (errorData?.error?.message ? ` [Spotify says: ${errorData.error.message}]` : ''));
         case 429:
           // Rate limited
           const retryAfter = res.headers.get('Retry-After');
