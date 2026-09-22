@@ -44,8 +44,8 @@ class AppleMusicService {
   }
 
   async authenticate() {
-    const { Auth } = await this._getNativeModule();
     try {
+      const { Auth } = await this._getNativeModule();
       const status = await Auth.authorize();
       const authorized = status === 'authorized';
       this.isAuthorized = authorized;
@@ -58,16 +58,16 @@ class AppleMusicService {
   }
 
   async checkSubscription() {
-    const { Auth, isMusicSubscriptionError } = await this._getNativeModule();
     try {
+      const { Auth, isMusicSubscriptionError } = await this._getNativeModule();
       const subscription = await Auth.checkSubscription();
       return {
         canPlayCatalogContent: !!subscription.canPlayCatalogContent,
         canBecomeSubscriber: !!subscription.canBecomeSubscriber,
       };
     } catch (error) {
-      const mod = await this._getNativeModule();
-      if (mod.isMusicSubscriptionError && mod.isMusicSubscriptionError(error)) {
+      const mod = await this._getNativeModule().catch(() => null);
+      if (mod?.isMusicSubscriptionError && mod.isMusicSubscriptionError(error)) {
         console.warn('Apple Music subscription check failed:', error.code);
       } else {
         console.error('Apple Music subscription check failed:', error?.message ?? error);
@@ -90,8 +90,8 @@ class AppleMusicService {
   }
 
   async play(songId) {
-    const { Player, MusicKit } = await this._getNativeModule();
     try {
+      const { Player, MusicKit } = await this._getNativeModule();
       if (songId) {
         await MusicKit.setPlaybackQueue(songId, 'song');
       }
@@ -103,8 +103,8 @@ class AppleMusicService {
   }
 
   async pause() {
-    const { Player } = await this._getNativeModule();
     try {
+      const { Player } = await this._getNativeModule();
       await Player.pause();
     } catch (error) {
       console.error('Failed to pause Apple Music track:', error);
@@ -113,8 +113,8 @@ class AppleMusicService {
   }
 
   async next() {
-    const { Player } = await this._getNativeModule();
     try {
+      const { Player } = await this._getNativeModule();
       await Player.skipToNextEntry();
     } catch (error) {
       console.error('Failed to skip to next Apple Music track:', error);
@@ -123,8 +123,8 @@ class AppleMusicService {
   }
 
   async previous() {
-    const { Player } = await this._getNativeModule();
     try {
+      const { Player } = await this._getNativeModule();
       await Player.skipToPreviousEntry();
     } catch (error) {
       console.error('Failed to skip to previous Apple Music track:', error);
