@@ -30,7 +30,32 @@ class AppleMusicService {
     }
     // Lazy import: this native module must never be evaluated on Android,
     // even at import time, since it doesn't exist there.
-    return require('@lomray/react-native-apple-music');
+    //
+    // Real fix: this previously used require(), which resolved to
+    // undefined at runtime (confirmed directly: "Cannot read property
+    // 'Auth' of undefined" means the require() call itself returned
+    // undefined, not that Auth was missing from a real module object).
+    // Directly inspecting the published package confirms it's pure ESM
+    // ("type": "module", named `export` statements throughout, no
+    // CommonJS build at all) - require() is the wrong tool for that.
+    // Switched to dynamic import(), the standard, spec-guaranteed way to
+    // load an ES module at runtime, which React Native/Metro has
+    // supported since RN 0.72. Also defensively checks for a
+    // .default-nested shape, since exactly which shape Metro's own
+    // CJS/ESM interop produces for this specific package can't be
+    // verified without a real device build.
+    const mod = await import('@lomray/react-native-apple-music');
+    const resolved = mod?.Auth ? mod : mod?.default;
+    if (!resolved?.Auth) {
+      console.error('Apple Music native module resolved unexpectedly:', {
+        hasMod: !!mod,
+        modKeys: mod ? Object.keys(mod) : null,
+        hasDefault: !!mod?.default,
+        defaultKeys: mod?.default ? Object.keys(mod.default) : null,
+      });
+      throw new Error('Apple Music native module did not load correctly.');
+    }
+    return resolved;
   }
 
   async loadStoredAuthState() {
