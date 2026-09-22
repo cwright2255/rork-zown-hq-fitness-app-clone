@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -1074,7 +1075,18 @@ export default function ActiveWorkoutScreen() {
                 </Text>
                 <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:32}}>
                   <Pressable onPress={previousTrack}><Ionicons name="play-skip-back" size={28} color="#FFF" /></Pressable>
-                  <Pressable onPress={() => playbackState?.is_playing ? pauseTrack() : playTrack()} style={{width:60,height:60,borderRadius:30,backgroundColor:'#1DB954',justifyContent:'center',alignItems:'center'}}>
+                  <Pressable onPress={() => {
+                    const action = playbackState?.is_playing ? pauseTrack() : playTrack();
+                    action.catch((e) => {
+                      const noDevice = e?.message?.includes('No active device');
+                      Alert.alert(
+                        'Playback Failed',
+                        noDevice
+                          ? 'Open Spotify once on this phone (or another device) so it can receive playback, then try again.'
+                          : (e?.message || 'Could not update playback.')
+                      );
+                    });
+                  }} style={{width:60,height:60,borderRadius:30,backgroundColor:'#1DB954',justifyContent:'center',alignItems:'center'}}>
                     <Ionicons name={playbackState?.is_playing ? 'pause' : 'play'} size={28} color="#FFF" />
                   </Pressable>
                   <Pressable onPress={nextTrack}><Ionicons name="play-skip-forward" size={28} color="#FFF" /></Pressable>

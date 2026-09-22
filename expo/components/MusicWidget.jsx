@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform, LayoutAnimation } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform, LayoutAnimation, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -113,7 +113,18 @@ export default function MusicWidget() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.controlBtn, s.controlBtnPrimary]}
-                  onPress={() => (isPlaying ? pauseTrack() : playTrack())}
+                  onPress={() => {
+                    const action = isPlaying ? pauseTrack() : playTrack();
+                    action.catch((e) => {
+                      const noDevice = e?.message?.includes('No active device');
+                      Alert.alert(
+                        'Playback Failed',
+                        noDevice
+                          ? 'Open Spotify once on this phone (or another device) so it can receive playback, then try again.'
+                          : (e?.message || 'Could not update playback.')
+                      );
+                    });
+                  }}
                 >
                   <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#FFF" />
                 </TouchableOpacity>

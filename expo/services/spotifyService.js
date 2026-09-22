@@ -849,6 +849,13 @@ It does NOT provide access to:
       await this.fetchWebApi('me/player/play', 'PUT', body);
     } catch (error) {
       console.error('Failed to play track:', error);
+      // Real fix: found while directly tracing the full pause/play cycle -
+      // this previously swallowed its own error, so it never reached the
+      // store's playTrack(), which made re-throwing there ineffective; the
+      // error never got that far in the first place. Re-throwing here, at
+      // the actual source, is what makes that fix - and every caller's
+      // error handling above it - genuinely work.
+      throw error;
     }
   }
 
@@ -867,6 +874,7 @@ It does NOT provide access to:
       await this.fetchWebApi('me/player/pause', 'PUT');
     } catch (error) {
       console.error('Failed to pause track:', error);
+      throw error;
     }
   }
 

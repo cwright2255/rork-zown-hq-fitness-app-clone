@@ -263,6 +263,11 @@ export const useSpotifyStore = create(
           }, 1000);
         } catch (error) {
           console.error('Failed to play track:', error);
+          // Real fix: re-throw so callers (the widget's own play button,
+          // and the new music-search screen) can tell a play attempt
+          // genuinely failed, rather than this always silently resolving
+          // as if it succeeded even when Spotify rejected the request.
+          throw error;
         }
       },
 
@@ -272,6 +277,7 @@ export const useSpotifyStore = create(
           get().updateCurrentTrack();
         } catch (error) {
           console.error('Failed to pause track:', error);
+          throw error;
         }
       },
 

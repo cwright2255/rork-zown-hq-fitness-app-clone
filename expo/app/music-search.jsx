@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, FlatList, Pressable, Image, ActivityIndicator, Platform,
+  View, Text, StyleSheet, TextInput, FlatList, Pressable, Image, ActivityIndicator, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,7 +50,13 @@ export default function MusicSearchScreen() {
       await playTrack(track.uri);
       router.back();
     } catch (e) {
-      console.warn('[MusicSearch] failed to start track:', e?.message);
+      const noDevice = e?.message?.includes('No active device');
+      Alert.alert(
+        'Playback Failed',
+        noDevice
+          ? 'Open Spotify once on this phone (or another device) so it can receive playback, then try again.'
+          : (e?.message || 'Could not start this track.')
+      );
     } finally {
       setStartingUri(null);
     }
