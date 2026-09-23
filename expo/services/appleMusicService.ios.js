@@ -1,14 +1,30 @@
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Auth, MusicKit, Player, isMusicSubscriptionError } from '@lomray/react-native-apple-music';
 
 // Real, new: Apple Music integration, built on the @lomray/react-native-apple-music
-// native module (Apple's own MusicKit framework). Every method is guarded to
-// iOS only - MusicKit is a native, iOS-specific framework with no Android
-// equivalent, so calling any of this on Android would fail. Unlike
-// spotifyService.js, Apple's own MusicKit doesn't have a user-profile
-// endpoint at all - it's built around playback/catalog access, not personal
-// account data - so "connected" here means authorization succeeded, not
-// that a profile was fetched.
+// native module (Apple's own MusicKit framework). This file only ever gets
+// bundled into the iOS build - Metro's own platform-specific file
+// resolution (the .ios.js suffix) means Android never even sees this
+// import exist, which is what keeps this native-only code from being
+// evaluated there at all.
+//
+// Real fix: this used to be a single, cross-platform file that loaded the
+// package lazily (require(), then dynamic import()) specifically to avoid
+// evaluating it on Android. Both approaches genuinely failed at runtime on
+// iOS too, though - confirmed directly, twice, by diagnostic logging: the
+// resolved module only ever had a lone, empty "default" key, never the
+// real Auth/Player/MusicKit exports. Metro's own build-time transform
+// pipeline is what reliably handles ESM packages like this one - it's just
+// Metro's *runtime* require()/import() that couldn't resolve it. A static,
+// top-level import is exactly what that pipeline is built for, and
+// splitting into platform-specific files is what lets this be static
+// safely, without risking the exact native-module-on-Android crash the
+// lazy loading was originally protecting against.
+//
+// Unlike spotifyService.js, Apple's own MusicKit doesn't have a
+// user-profile endpoint at all - it's built around playback/catalog
+// access, not personal account data - so "connected" here means
+// authorization succeeded, not that a profile was fetched.
 //
 // Also unlike Spotify's single play(uri) call, MusicKit splits "load a
 // specific song" and "start playback" into two separate calls
@@ -21,45 +37,10 @@ class AppleMusicService {
   }
 
   isSupported() {
-    return Platform.OS === 'ios';
-  }
-
-  async _getNativeModule() {
-    if (!this.isSupported()) {
-      throw new Error('Apple Music is only available on iOS.');
-    }
-    // Lazy import: this native module must never be evaluated on Android,
-    // even at import time, since it doesn't exist there.
-    //
-    // Real fix: this previously used require(), which resolved to
-    // undefined at runtime (confirmed directly: "Cannot read property
-    // 'Auth' of undefined" means the require() call itself returned
-    // undefined, not that Auth was missing from a real module object).
-    // Directly inspecting the published package confirms it's pure ESM
-    // ("type": "module", named `export` statements throughout, no
-    // CommonJS build at all) - require() is the wrong tool for that.
-    // Switched to dynamic import(), the standard, spec-guaranteed way to
-    // load an ES module at runtime, which React Native/Metro has
-    // supported since RN 0.72. Also defensively checks for a
-    // .default-nested shape, since exactly which shape Metro's own
-    // CJS/ESM interop produces for this specific package can't be
-    // verified without a real device build.
-    const mod = await import('@lomray/react-native-apple-music');
-    const resolved = mod?.Auth ? mod : mod?.default;
-    if (!resolved?.Auth) {
-      console.error('Apple Music native module resolved unexpectedly:', {
-        hasMod: !!mod,
-        modKeys: mod ? Object.keys(mod) : null,
-        hasDefault: !!mod?.default,
-        defaultKeys: mod?.default ? Object.keys(mod.default) : null,
-      });
-      throw new Error('Apple Music native module did not load correctly.');
-    }
-    return resolved;
+    return true;
   }
 
   async loadStoredAuthState() {
-    if (!this.isSupported()) return;
     try {
       const stored = await AsyncStorage.getItem('apple_music_authorized');
       this.isAuthorized = stored === 'true';
@@ -70,7 +51,6 @@ class AppleMusicService {
 
   async authenticate() {
     try {
-      const { Auth } = await this._getNativeModule();
       const status = await Auth.authorize();
       const authorized = status === 'authorized';
       this.isAuthorized = authorized;
@@ -84,15 +64,13 @@ class AppleMusicService {
 
   async checkSubscription() {
     try {
-      const { Auth, isMusicSubscriptionError } = await this._getNativeModule();
       const subscription = await Auth.checkSubscription();
       return {
         canPlayCatalogContent: !!subscription.canPlayCatalogContent,
         canBecomeSubscriber: !!subscription.canBecomeSubscriber,
       };
     } catch (error) {
-      const mod = await this._getNativeModule().catch(() => null);
-      if (mod?.isMusicSubscriptionError && mod.isMusicSubscriptionError(error)) {
+      if (isMusicSubscriptionError && isMusicSubscriptionError(error)) {
         console.warn('Apple Music subscription check failed:', error.code);
       } else {
         console.error('Apple Music subscription check failed:', error?.message ?? error);
@@ -102,7 +80,6 @@ class AppleMusicService {
   }
 
   async isAuthenticated() {
-    if (!this.isSupported()) return false;
     if (!this.isAuthorized) {
       await this.loadStoredAuthState();
     }
@@ -116,7 +93,6 @@ class AppleMusicService {
 
   async play(songId) {
     try {
-      const { Player, MusicKit } = await this._getNativeModule();
       if (songId) {
         await MusicKit.setPlaybackQueue(songId, 'song');
       }
@@ -129,7 +105,6 @@ class AppleMusicService {
 
   async pause() {
     try {
-      const { Player } = await this._getNativeModule();
       await Player.pause();
     } catch (error) {
       console.error('Failed to pause Apple Music track:', error);
@@ -139,7 +114,6 @@ class AppleMusicService {
 
   async next() {
     try {
-      const { Player } = await this._getNativeModule();
       await Player.skipToNextEntry();
     } catch (error) {
       console.error('Failed to skip to next Apple Music track:', error);
@@ -149,7 +123,6 @@ class AppleMusicService {
 
   async previous() {
     try {
-      const { Player } = await this._getNativeModule();
       await Player.skipToPreviousEntry();
     } catch (error) {
       console.error('Failed to skip to previous Apple Music track:', error);
@@ -158,9 +131,7 @@ class AppleMusicService {
   }
 
   async searchTracks(query, limit = 20) {
-    if (!this.isSupported()) return [];
     try {
-      const { MusicKit } = await this._getNativeModule();
       const results = await MusicKit.catalogSearch(query, ['songs']);
       const songs = results?.songs?.data || results?.songs || [];
       return songs.slice(0, limit);
@@ -171,9 +142,7 @@ class AppleMusicService {
   }
 
   async getCurrentlyPlaying() {
-    if (!this.isSupported()) return null;
     try {
-      const { Player } = await this._getNativeModule();
       const state = await Player.getCurrentState();
       return state || null;
     } catch (error) {
