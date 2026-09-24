@@ -5,26 +5,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useSpotifyStore } from '@/store/spotifyStore';
-import { spotifyService } from '@/services/spotifyService';
+import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 
 const SEARCH_DEBOUNCE_MS = 400;
 
 // Real, new: lets the user actually search for and choose a specific
 // song from within the app, rather than only being able to control
-// whatever's already playing from elsewhere. Built directly on
-// spotifyService.js's already-working searchTracks - the gap wasn't in
-// the backend, it was that nothing in the app's UI ever let a user
-// reach it. Selecting a result calls the same, already-built
-// store/spotifyStore.js's playTrack(uri) the widget's own play button
-// uses, so control immediately afterward - including from the widget
-// itself, on HQ - continues to work exactly as it already does today.
+// whatever's already playing from elsewhere.
+//
+// Real fix: this previously called spotifyService.searchTracks and
+// useSpotifyStore().playTrack directly, meaning search only ever worked
+// against Spotify - never Apple Music, even once that was connected. Now
+// uses the shared useActiveMusicPlayer() hook, whose own searchTracks()
+// and playTrack() already delegate to whichever service is genuinely
+// connected and return one normalized result shape either way.
 export default function MusicSearchScreen() {
-  const { isConnected, playTrack } = useSpotifyStore();
+  const { isConnected, searchTracks, playTrack } = useActiveMusicPlayer();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [startingUri, setStartingUri] = useState(null);
+  const [startingId, setStartingId] = useState(null);
   const debounceRef = useRef(null);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function MusicSearchScreen() {
     }
     setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
-      const tracks = await spotifyService.searchTracks(trimmed);
+      const tracks = await searchTracks(trimmed);
       setResults(tracks);
       setIsSearching(false);
     }, SEARCH_DEBOUNCE_MS);
@@ -45,9 +45,9 @@ export default function MusicSearchScreen() {
   }, [query]);
 
   const handleSelectTrack = async (track) => {
-    setStartingUri(track.uri);
+    setStartingId(track.id);
     try {
-      await playTrack(track.uri);
+      await playTrack(track.id);
       router.back();
     } catch (e) {
       const noDevice = e?.message?.includes('No active device');
@@ -58,7 +58,7 @@ export default function MusicSearchScreen() {
           : (e?.message || 'Could not start this track.')
       );
     } finally {
-      setStartingUri(null);
+      setStartingId(null);
     }
   };
 
@@ -74,7 +74,7 @@ export default function MusicSearchScreen() {
         </View>
         <View style={s.emptyState}>
           <Ionicons name="musical-notes-outline" size={40} color="#CCCCCC" />
-          <Text style={s.emptyStateText}>Connect Spotify in Settings first to search and play music.</Text>
+          <Text style={s.emptyStateText}>Connect Spotify or Apple Music in Settings first to search and play music.</Text>
         </View>
       </SafeAreaView>
     );
@@ -115,21 +115,19 @@ export default function MusicSearchScreen() {
           ) : null
         }
         renderItem={({ item }) => {
-          const artistNames = item.artists?.map((a) => a.name).join(', ');
-          const artUrl = item.album?.images?.[item.album.images.length - 1]?.url;
-          const isStarting = startingUri === item.uri;
+          const isStarting = startingId === item.id;
           return (
-            <Pressable style={s.row} onPress={() => handleSelectTrack(item)} disabled={!!startingUri}>
-              {artUrl ? (
-                <Image source={{ uri: artUrl }} style={s.artThumb} />
+            <Pressable style={s.row} onPress={() => handleSelectTrack(item)} disabled={!!startingId}>
+              {item.artworkUrl ? (
+                <Image source={{ uri: item.artworkUrl }} style={s.artThumb} />
               ) : (
                 <View style={[s.artThumb, s.artThumbPlaceholder]}>
                   <Ionicons name="musical-note" size={16} color="#999" />
                 </View>
               )}
               <View style={s.rowText}>
-                <Text style={s.trackName} numberOfLines={1}>{item.name}</Text>
-                <Text style={s.artistName} numberOfLines={1}>{artistNames}</Text>
+                <Text style={s.trackName} numberOfLines={1}>{item.trackName}</Text>
+                <Text style={s.artistName} numberOfLines={1}>{item.artistName}</Text>
               </View>
               {isStarting ? (
                 <ActivityIndicator size="small" color="#000000" />

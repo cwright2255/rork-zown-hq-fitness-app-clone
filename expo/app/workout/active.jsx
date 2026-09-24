@@ -22,6 +22,7 @@ import { useAchievementStore } from '@/store/achievementStore';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
+import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
@@ -169,7 +170,8 @@ export default function ActiveWorkoutScreen() {
   const { checkAchievements } = useAchievementStore();
   const { user } = useUserStore();
   const workoutStartRef = useRef(new Date().toISOString());
-  const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, previousTrack, playbackState, connectSpotifyImplicit } = useSpotifyStore();
+  const { isConnected: spotifyConnected, connectSpotifyImplicit } = useSpotifyStore();
+  const { isConnected: musicConnected, trackName, artistName, isPlaying: isMusicPlaying, playTrack, pauseTrack, nextTrack, previousTrack } = useActiveMusicPlayer();
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
   const selectedWorkout = useMemo(
@@ -1065,13 +1067,13 @@ export default function ActiveWorkoutScreen() {
         <Pressable style={{flex:1,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'flex-end'}} onPress={() => setShowMusicPlayer(false)}>
           <Pressable style={{backgroundColor:'#1A1A1A',borderTopLeftRadius:24,borderTopRightRadius:24,padding:24,paddingBottom:40}} onPress={() => {}}>
             <View style={{width:40,height:4,borderRadius:2,backgroundColor:'#444',alignSelf:'center',marginBottom:20}} />
-            {spotifyConnected ? (
+            {musicConnected ? (
               <>
                 <Text style={{fontSize:18,fontWeight:'800',color:'#FFF',textAlign:'center',marginBottom:4}}>
-                  {currentTrack?.name || 'No Track Playing'}
+                  {trackName || 'No Track Playing'}
                 </Text>
                 <Text style={{fontSize:13,color:'#999',textAlign:'center',marginBottom:24}}>
-                  {currentTrack?.artists?.[0]?.name || 'Unknown Artist'}
+                  {artistName || 'Unknown Artist'}
                 </Text>
                 <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:32}}>
                   <Pressable onPress={() => router.push('/music-search')}>
@@ -1079,7 +1081,7 @@ export default function ActiveWorkoutScreen() {
                   </Pressable>
                   <Pressable onPress={previousTrack}><Ionicons name="play-skip-back" size={28} color="#FFF" /></Pressable>
                   <Pressable onPress={() => {
-                    const action = playbackState?.is_playing ? pauseTrack() : playTrack();
+                    const action = isMusicPlaying ? pauseTrack() : playTrack();
                     action.catch((e) => {
                       const noDevice = e?.message?.includes('No active device');
                       Alert.alert(
@@ -1090,7 +1092,7 @@ export default function ActiveWorkoutScreen() {
                       );
                     });
                   }} style={{width:60,height:60,borderRadius:30,backgroundColor:'#1DB954',justifyContent:'center',alignItems:'center'}}>
-                    <Ionicons name={playbackState?.is_playing ? 'pause' : 'play'} size={28} color="#FFF" />
+                    <Ionicons name={isMusicPlaying ? 'pause' : 'play'} size={28} color="#FFF" />
                   </Pressable>
                   <Pressable onPress={nextTrack}><Ionicons name="play-skip-forward" size={28} color="#FFF" /></Pressable>
                 </View>

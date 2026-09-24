@@ -2,24 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform, LayoutAnimation, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useSpotifyStore } from '@/store/spotifyStore';
+import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 
 // Real, new: matches the exact, established card structure every other
 // widget on this screen uses (same size/shape as Calories, Heart, etc.,
-// collapsed to one headline value + tap-to-expand). Built directly on
-// the existing, already fully-built store/spotifyStore.js (isConnected,
-// currentTrack, playTrack/pauseTrack/nextTrack/previousTrack) rather
-// than duplicating that logic - this widget is a new, independent
-// display for it, not a rebuild of the existing SpotifyMusicPlayer.jsx.
+// collapsed to one headline value + tap-to-expand).
 //
-// Real fix, alongside this: store/spotifyStore.js's updateCurrentTrack
-// previously only ever stored the track item itself
-// (services/spotifyService.js's getCurrentlyPlaying returned just
-// response?.item), silently discarding the sibling is_playing field
-// Spotify's own API also returns - meaning there was previously no way
-// to know whether playback was actually playing or paused, which this
-// widget's play/pause button genuinely needs. Fixed both files so
-// isPlaying is real, live state now.
+// Real fix: this previously read directly from useSpotifyStore(), which
+// meant it stayed hard-wired to Spotify specifically even once Apple Music
+// support existed - connecting Apple Music (and Spotify correctly
+// auto-disconnecting, per the "only one player at a time" rule) left this
+// widget still only ever checking Spotify's own state, showing "not
+// connected" regardless of Apple Music genuinely being the active service.
+// Now reads from the shared useActiveMusicPlayer() hook, which determines
+// which service is actually connected and normalizes both track shapes
+// into one consistent one this widget can read the same way either way.
 const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
 const H_PAD = 22;
@@ -33,7 +30,7 @@ function truncate(str, max) {
 }
 
 export default function MusicWidget() {
-  const { isConnected, currentTrack, isPlaying, updateCurrentTrack, playTrack, pauseTrack, nextTrack, previousTrack } = useSpotifyStore();
+  const { isConnected, serviceLabel, trackName, artistName, artworkUrl, isPlaying, updateCurrentTrack, playTrack, pauseTrack, nextTrack, previousTrack } = useActiveMusicPlayer();
   const [isExpanded, setIsExpanded] = useState(false);
   const intervalRef = useRef(null);
 
@@ -49,11 +46,8 @@ export default function MusicWidget() {
     setIsExpanded((v) => !v);
   };
 
-  const artistNames = currentTrack?.artists?.map((a) => a.name).join(', ');
-  const albumArtUrl = currentTrack?.album?.images?.[0]?.url;
-
-  const headline = currentTrack ? truncate(currentTrack.name, 14) : '\u2014';
-  const unit = currentTrack ? truncate(artistNames, 16) : 'Spotify';
+  const headline = trackName ? truncate(trackName, 14) : '\u2014';
+  const unit = trackName ? truncate(artistName, 16) : (serviceLabel || 'Music');
 
   return (
     <View style={[s.cardContainer, isExpanded && s.expandedCardContainer, isExpanded && { overflow: 'visible' }]}>
@@ -76,12 +70,12 @@ export default function MusicWidget() {
           {!isConnected ? (
             <View>
               <Text style={s.insightTitle}>Not Connected</Text>
-              <Text style={s.detailStatText}>Connect Spotify to see what's playing and control it from here.</Text>
+              <Text style={s.detailStatText}>Connect Spotify or Apple Music to see what's playing and control it from here.</Text>
               <TouchableOpacity style={s.panelBtn} onPress={() => router.push('/profile/settings')}>
-                <Text style={s.panelBtnText}>Connect Spotify</Text>
+                <Text style={s.panelBtnText}>Connect a Player</Text>
               </TouchableOpacity>
             </View>
-          ) : !currentTrack ? (
+          ) : !trackName ? (
             <View>
               <Text style={s.insightTitle}>Nothing Playing</Text>
               <Text style={s.detailStatText}>Search for a song to start playing it right here.</Text>
@@ -92,16 +86,16 @@ export default function MusicWidget() {
           ) : (
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-                {albumArtUrl ? (
-                  <Image source={{ uri: albumArtUrl }} style={s.albumArt} />
+                {artworkUrl ? (
+                  <Image source={{ uri: artworkUrl }} style={s.albumArt} />
                 ) : (
                   <View style={[s.albumArt, s.albumArtPlaceholder]}>
                     <Ionicons name="musical-note" size={20} color="#999" />
                   </View>
                 )}
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={s.insightTitle} numberOfLines={1}>{currentTrack.name}</Text>
-                  <Text style={s.detailStatText} numberOfLines={1}>{artistNames}</Text>
+                  <Text style={s.insightTitle} numberOfLines={1}>{trackName}</Text>
+                  <Text style={s.detailStatText} numberOfLines={1}>{artistName}</Text>
                 </View>
               </View>
               <View style={s.controlsRow}>

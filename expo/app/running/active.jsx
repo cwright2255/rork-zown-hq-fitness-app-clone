@@ -19,7 +19,6 @@ import { useRunningStore } from '@/store/runningStore';
 import { useVirtualChallengeStore } from '@/store/virtualChallengeStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
-import { useSpotifyStore } from '@/store/spotifyStore';
 import { radarService } from '@/services/radarService';
 import { getSessionIntervals, getProgramWeek } from '@/data/runningPrograms';
 
@@ -75,7 +74,6 @@ export default function ActiveRunScreen() {
   const { startRun, endRun, updateActiveRun, completeProgramSession } = useRunningStore();
   const { addExpActivity } = useExpStore();
   const { user } = useUserStore();
-  const { isConnected: spotifyConnected, currentTrack, playTrack, pauseTrack, nextTrack, playbackState } = useSpotifyStore();
   const runStartRef = useRef(new Date().toISOString());
   const [locationName, setLocationName] = useState('');
 

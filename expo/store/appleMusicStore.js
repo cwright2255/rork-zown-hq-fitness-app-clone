@@ -63,15 +63,12 @@ export const useAppleMusicStore = create(
         if (!get().isConnected) return;
         try {
           const state = await appleMusicService.getCurrentlyPlaying();
-          // Real note: the library's own docs don't fully spell out
-          // getCurrentState()'s exact field names (unlike its hooks,
-          // which clearly return { song } and { isPlaying }) - checking
-          // the most likely possibilities defensively here rather than
-          // committing to one guessed shape. Worth confirming directly
-          // against a real device once this is built and running.
-          const track = state?.song || state?.currentEntry || state?.nowPlayingItem || null;
-          const playing = state?.isPlaying ?? (state?.playbackStatus === 'playing');
-          set({ currentTrack: track, isPlaying: !!playing });
+          // Real fix: confirmed directly against the published package's
+          // own type definitions (types/playback-state.d.ts, types/song.d.ts)
+          // rather than guessing - IPlaybackState.currentSong is the real
+          // field, an ISong with title/artistName/artworkUrl/id, a
+          // completely different shape from Spotify's own track object.
+          set({ currentTrack: state?.currentSong || null, isPlaying: state?.playbackStatus === 'playing' });
         } catch (error) {
           console.error('Failed to update current Apple Music track:', error);
         }
