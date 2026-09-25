@@ -102,6 +102,35 @@ export default function SettingsScreen() {
   // removes the guesswork around timing.
   const [updateCheckState, setUpdateCheckState] = useState('idle');
 
+  // Real fix: the actual bug behind "Check for Updates" saying Up to
+  // date while the app keeps running old code. expo-updates always
+  // silently checks-and-downloads in the background on every cold
+  // launch (confirmed directly against Expo's own docs), independent of
+  // this button - by the time someone opens Settings and taps Check for
+  // Updates a few seconds later, that background download can already
+  // be finished. checkForUpdateAsync() then correctly reports nothing
+  // NEW left on the server (isAvailable: false), so this handler used
+  // to stop right there - but "nothing new to fetch" isn't the same as
+  // "the running bundle is current": the already-downloaded update was
+  // still sitting there, unapplied, since only reloadAsync() actually
+  // applies one and nothing had called it.
+  //
+  // isUpdatePending, from expo-updates' own useUpdates() hook, reads
+  // directly from its native state machine rather than this component's
+  // own fetch calls - confirmed directly against Expo's own changelog -
+  // so it goes true for a background-downloaded update too, not just
+  // one this handler fetched itself. Reacting to it here (rather than
+  // calling reloadAsync() only after this handler's own fetch) is what
+  // actually closes the gap, including the case where it's already true
+  // the moment this screen mounts.
+  const { isUpdatePending } = Updates.useUpdates();
+
+  useEffect(() => {
+    if (isUpdatePending) {
+      Updates.reloadAsync();
+    }
+  }, [isUpdatePending]);
+
   const handleCheckForUpdate = async () => {
     if (!Updates.isEnabled) {
       Alert.alert('Updates', 'OTA updates are not enabled in this build (likely running in development mode).');
@@ -116,8 +145,11 @@ export default function SettingsScreen() {
         return;
       }
       setUpdateCheckState('downloading');
+      // reloadAsync() is intentionally not called here anymore - the
+      // isUpdatePending effect above is now the single place that
+      // applies a downloaded update, so this manual fetch and the
+      // automatic background one both go through the same, correct path.
       await Updates.fetchUpdateAsync();
-      await Updates.reloadAsync();
     } catch (error) {
       setUpdateCheckState('error');
       Alert.alert('Update Check Failed', error?.message || String(error));
