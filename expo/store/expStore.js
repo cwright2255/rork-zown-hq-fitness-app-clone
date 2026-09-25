@@ -172,6 +172,18 @@ export const useExpStore = create(
       dailyXp: 0,
       dailyXpDate: null,
 
+      // Real, new: per-day XP totals ({date: amount}), accumulated
+      // alongside dailyXp in addExp below but never reset - this is
+      // what powers the Total XP widget's real "7-Day XP Earnings"
+      // chart (lib/xpMetrics.js), previously hardcoded fake data.
+      // Mirrors store/healthStore.js's stepsHistory shape. Local-only
+      // (AsyncStorage via this store's own persist middleware below) -
+      // deliberately not synced to Firestore like dailyXp/dailyXpDate
+      // are, to keep this fix scoped; worth revisiting if XP history
+      // ever needs to be consistent across multiple devices for the
+      // same account.
+      xpHistory: {},
+
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
       },
@@ -255,6 +267,10 @@ export const useExpStore = create(
         const today = todayStr();
         const state = get();
         const currentDailyXp = state.dailyXpDate === today ? state.dailyXp : 0;
+        const updatedXpHistory = {
+          ...state.xpHistory,
+          [today]: (state.xpHistory?.[today] || 0) + amount,
+        };
 
         set({
           expSystem: {
@@ -265,6 +281,7 @@ export const useExpStore = create(
           },
           dailyXp: currentDailyXp + amount,
           dailyXpDate: today,
+          xpHistory: updatedXpHistory,
         });
 
         if (uid) get().saveXP(uid);
@@ -453,7 +470,8 @@ export const useExpStore = create(
         mealXpDate: state.mealXpDate,
         mealXpFoodKeys: state.mealXpFoodKeys,
         dailyXpDate: state.dailyXpDate,
-        dailyXp: state.dailyXp
+        dailyXp: state.dailyXp,
+        xpHistory: state.xpHistory
       }),
       onRehydrateStorage: () => (state) => {
         // When storage is rehydrated, initialize the EXP system if needed

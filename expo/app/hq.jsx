@@ -43,6 +43,7 @@ import { useHomeWidgetsStore } from '@/store/homeWidgetsStore';
 import { computeCalorieMetrics, estimateCaloriesFromSteps } from '@/lib/calorieMetrics';
 import SwipeableCaloriesContent from '@/components/SwipeableCaloriesContent';
 import { computeStepsMetrics } from '@/lib/stepsMetrics';
+import { computeXpMetrics } from '@/lib/xpMetrics';
 import SwipeableStepsContent from '@/components/SwipeableStepsContent';
 import PromptModal from '@/components/PromptModal';
 import { useRunningStore } from '@/store/runningStore';
@@ -161,7 +162,7 @@ export default function HQScreen() {
 
   const router = useRouter();
   const { user, updateUser, saveProfile } = useUserStore();
-  const { getDailyExp } = useExpStore();
+  const { getDailyExp, getLevel, getExpToNextLevel, xpHistory } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
   const { hydration, sleep, steps: storeSteps, stepsHistory, meals, addGlass, flightsClimbed } = useHealthStore();
   const { rookRecovery, loadRookRecovery, loadAppleHealthActivity } = useHealthStore();
@@ -246,6 +247,15 @@ export default function HQScreen() {
   // against fractional XP (e.g. steps-XP's per-step rate can produce
   // non-whole amounts) reaching the display as a decimal.
   const xpVal = getDailyExp ? Math.round(getDailyExp()) : 0;
+  // Real fix: Current Level / Next Level / 7-Day XP Earnings in the
+  // expanded Total XP card were previously hardcoded ("Level 12", "840
+  // XP remaining", and an identical Mon-Sun chart every time) - now
+  // reads the store's real level/expToNextLevel and the real per-day
+  // history (lib/xpMetrics.js), same computed-metrics pattern already
+  // used for calorieMetrics/stepsMetrics above.
+  const levelVal = getLevel ? getLevel() : 1;
+  const expToNextLevelVal = getExpToNextLevel ? Math.max(0, Math.round(getExpToNextLevel())) : 0;
+  const xpMetrics = useMemo(() => computeXpMetrics(xpHistory), [xpHistory]);
 
   const toggleExpand = (cardName) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -435,16 +445,16 @@ export default function HQScreen() {
               <View>
                 <View style={{ gap: 6, marginBottom: 12 }}>
                   <Text style={styles.insightTitle}>XP Overview</Text>
-                  <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level 12</Text></Text>
-                  <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>840 XP remaining</Text></Text>
+                  <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level {levelVal}</Text></Text>
+                  <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>{expToNextLevelVal.toLocaleString()} XP remaining</Text></Text>
                 </View>
 
                 <View style={{ marginTop: 8 }}>
                   <Text style={styles.chartTitle}>7-Day XP Earnings</Text>
                   <BarChart
                     data={{
-                      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                      datasets: [{ data: [150, 300, 100, 450, 200, 150, 100] }],
+                      labels: xpMetrics.last7.map((d) => d.day),
+                      datasets: [{ data: xpMetrics.last7.map((d) => d.xp) }],
                     }}
                     width={chartWidth}
                     height={180}
