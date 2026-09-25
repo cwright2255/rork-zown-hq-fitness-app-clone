@@ -21,7 +21,6 @@ import { useBadgeStore } from '@/store/badgeStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
-import { useSpotifyStore } from '@/store/spotifyStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
@@ -170,7 +169,6 @@ export default function ActiveWorkoutScreen() {
   const { checkAchievements } = useAchievementStore();
   const { user } = useUserStore();
   const workoutStartRef = useRef(new Date().toISOString());
-  const { isConnected: spotifyConnected, connectSpotifyImplicit } = useSpotifyStore();
   const { isConnected: musicConnected, trackName, artistName, isPlaying: isMusicPlaying, playTrack, pauseTrack, nextTrack, previousTrack } = useActiveMusicPlayer();
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
@@ -1100,9 +1098,9 @@ export default function ActiveWorkoutScreen() {
             ) : (
               <View style={{alignItems:'center'}}>
                 <Ionicons name="musical-notes" size={40} color="#1DB954" style={{marginBottom:16}} />
-                <Text style={{fontSize:16,fontWeight:'700',color:'#FFF',marginBottom:8}}>Connect Spotify</Text>
-                <Text style={{fontSize:13,color:'#999',marginBottom:20,textAlign:'center'}}>Link your Spotify account to control music during workouts</Text>
-                <Pressable onPress={() => connectSpotifyImplicit()} style={{backgroundColor:'#1DB954',paddingHorizontal:32,paddingVertical:14,borderRadius:24}}>
+                <Text style={{fontSize:16,fontWeight:'700',color:'#FFF',marginBottom:8}}>Connect Music</Text>
+                <Text style={{fontSize:13,color:'#999',marginBottom:20,textAlign:'center'}}>Connect Spotify or Apple Music to control your music during workouts</Text>
+                <Pressable onPress={() => { setShowMusicPlayer(false); router.push('/profile/settings'); }} style={{backgroundColor:'#1DB954',paddingHorizontal:32,paddingVertical:14,borderRadius:24}}>
                   <Text style={{fontSize:15,fontWeight:'700',color:'#FFF'}}>Connect</Text>
                 </Pressable>
               </View>
