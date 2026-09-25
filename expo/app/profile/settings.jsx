@@ -17,6 +17,7 @@ import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 const { width } = Dimensions.get('window');
@@ -92,6 +93,37 @@ export default function SettingsScreen() {
   const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
   const { isConnected: appleMusicConnected, connectAppleMusic, disconnectAppleMusic } = useAppleMusicStore();
   const uid = user?.uid;
+
+  // Real, new: explicit, visible check for OTA updates rather than relying
+  // on the implicit default behavior (check + download in the background
+  // on launch, apply on the *next* restart). That implicit path has no
+  // visible confirmation the download genuinely completed before the app
+  // gets closed again - this makes the whole process observable and
+  // removes the guesswork around timing.
+  const [updateCheckState, setUpdateCheckState] = useState('idle');
+
+  const handleCheckForUpdate = async () => {
+    if (!Updates.isEnabled) {
+      Alert.alert('Updates', 'OTA updates are not enabled in this build (likely running in development mode).');
+      return;
+    }
+    setUpdateCheckState('checking');
+    try {
+      const result = await Updates.checkForUpdateAsync();
+      if (!result.isAvailable) {
+        setUpdateCheckState('no_update');
+        setTimeout(() => setUpdateCheckState('idle'), 3000);
+        return;
+      }
+      setUpdateCheckState('downloading');
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+    } catch (error) {
+      setUpdateCheckState('error');
+      Alert.alert('Update Check Failed', error?.message || String(error));
+      setTimeout(() => setUpdateCheckState('idle'), 3000);
+    }
+  };
 
   // Real fix: makeRedirectUri() with no arguments doesn't reliably
   // resolve to this app's own scheme - confirmed directly against
@@ -652,6 +684,27 @@ export default function SettingsScreen() {
             icon="information-circle-outline"
             label="App Version"
             right={<Text style={s.infoText}>ZOWN HQ v1.0.0</Text>}
+          />
+          <SettingRow
+            icon="cloud-download-outline"
+            label="Current Update"
+            subLabel={
+              Updates.isEmbeddedLaunch
+                ? 'Built-in bundle (no OTA update applied yet)'
+                : `${Updates.updateId?.slice(0, 8) || 'unknown'} · ${Updates.createdAt ? Updates.createdAt.toLocaleString() : 'unknown time'}`
+            }
+          />
+          <SettingRow
+            icon="refresh-outline"
+            label="Check for Updates"
+            onPress={updateCheckState === 'idle' ? handleCheckForUpdate : undefined}
+            right={
+              updateCheckState === 'checking' ? <Text style={s.infoText}>Checking...</Text> :
+              updateCheckState === 'downloading' ? <Text style={s.infoText}>Downloading...</Text> :
+              updateCheckState === 'no_update' ? <Text style={s.infoText}>Up to date</Text> :
+              updateCheckState === 'error' ? <Text style={[s.infoText, { color: '#FF3B30' }]}>Failed</Text> :
+              undefined
+            }
           />
           <SettingRow
             icon="document-text-outline"
