@@ -20,7 +20,7 @@ const SEARCH_DEBOUNCE_MS = 400;
 // and playTrack() already delegate to whichever service is genuinely
 // connected and return one normalized result shape either way.
 export default function MusicSearchScreen() {
-  const { isConnected, searchTracks, playTrack } = useActiveMusicPlayer();
+  const { isConnected, canSearchCatalog, searchTracks, playTrack } = useActiveMusicPlayer();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -75,6 +75,29 @@ export default function MusicSearchScreen() {
         <View style={s.emptyState}>
           <Ionicons name="musical-notes-outline" size={40} color="#CCCCCC" />
           <Text style={s.emptyStateText}>Connect Spotify or Apple Music in Settings first to search and play music.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Real, new: isConnected only means auth succeeded - it does NOT mean this
+  // Apple ID can actually search/play catalog content (that needs an active
+  // Apple Music subscription, checked separately via canPlayCatalogContent).
+  // Without this, a subscription problem and a genuine zero-result search
+  // looked identical: an empty list with no explanation either way.
+  if (!canSearchCatalog) {
+    return (
+      <SafeAreaView style={s.safe} edges={['top']}>
+        <View style={s.header}>
+          <Pressable onPress={() => router.back()} style={s.backButton}>
+            <Ionicons name="chevron-back" size={24} color="#000000" />
+          </Pressable>
+          <Text style={s.headerTitle}>Search Music</Text>
+          <View style={s.placeholder} />
+        </View>
+        <View style={s.emptyState}>
+          <Ionicons name="alert-circle-outline" size={40} color="#CCCCCC" />
+          <Text style={s.emptyStateText}>This Apple ID doesn't have an active Apple Music subscription, so catalog search isn't available.</Text>
         </View>
       </SafeAreaView>
     );
