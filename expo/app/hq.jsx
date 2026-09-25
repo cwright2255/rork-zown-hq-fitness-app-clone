@@ -447,6 +447,19 @@ export default function HQScreen() {
                   <Text style={styles.insightTitle}>XP Overview</Text>
                   <Text style={styles.detailStatText}>Current Level: <Text style={{fontWeight: '700'}}>Level {levelVal}</Text></Text>
                   <Text style={styles.detailStatText}>Next Level: <Text style={{fontWeight: '700'}}>{expToNextLevelVal.toLocaleString()} XP remaining</Text></Text>
+                  {xpMetrics.weekOverWeek.hasComparison ? (
+                    <Text style={styles.detailStatText}>
+                      This {xpMetrics.weekOverWeek.dayLabel}: <Text style={{fontWeight: '700'}}>{xpMetrics.weekOverWeek.todayXp.toLocaleString()} XP</Text>
+                      {' '}
+                      <Text style={{fontWeight: '700', color: xpMetrics.weekOverWeek.changePct >= 0 ? '#22C55E' : '#F97316'}}>
+                        ({xpMetrics.weekOverWeek.changePct >= 0 ? '+' : ''}{xpMetrics.weekOverWeek.changePct}% vs last {xpMetrics.weekOverWeek.dayLabel}'s {xpMetrics.weekOverWeek.lastWeekXp.toLocaleString()})
+                      </Text>
+                    </Text>
+                  ) : (
+                    <Text style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                      Check back next {xpMetrics.weekOverWeek.dayLabel} to see how this day compares to last week.
+                    </Text>
+                  )}
                 </View>
 
                 <View style={{ marginTop: 8 }}>
