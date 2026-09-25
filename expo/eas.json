@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 3.0.0"
+    "version": ">= 3.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -72,7 +73,8 @@
         "EXPO_PUBLIC_ROOK_ENVIRONMENT": "production",
         "EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY": "prj_live_pk_f3848d39336604159fc0147abd4569d9787b46c5",
         "EXPO_PUBLIC_GOOGLE_PLACES_API_KEY": "AIzaSyC7z_sr3nM--enMpg8_X6la1d3ZuxfX6_k"
-      }
+      },
+      "autoIncrement": true
     },
     "development-device": {
       "developmentClient": true,
