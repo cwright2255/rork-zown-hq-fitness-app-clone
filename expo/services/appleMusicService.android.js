@@ -24,6 +24,8 @@ class AppleMusicService {
 
   async play() {}
 
+  async playCollection() {}
+
   async pause() {}
 
   async next() {}
@@ -34,8 +36,20 @@ class AppleMusicService {
     return [];
   }
 
+  async searchAlbums() {
+    return [];
+  }
+
+  async searchArtistTracks() {
+    return [];
+  }
+
   async getCurrentlyPlaying() {
     return null;
+  }
+
+  subscribeToPlaybackState() {
+    return { remove() {} };
   }
 }
 

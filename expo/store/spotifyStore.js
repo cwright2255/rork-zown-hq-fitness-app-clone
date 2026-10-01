@@ -3,6 +3,27 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spotifyService } from '@/services/spotifyService';
 
+// Real, new: queue auto-advance watcher. Lives at module scope (not in
+// persisted store state) because it's a live setInterval handle, not data -
+// it needs to survive regardless of which screen is mounted (music can
+// keep playing while the user is deep in a workout screen with no music
+// widget on screen at all), so it's started once on connect/init rather
+// than tied to any one component's lifecycle. Spotify's Web API has no
+// native "track ended" event (it's REST remote control, not a push-based
+// SDK - confirmed by this file's own existing architecture, every call
+// here is a plain fetch), so polling is the only option; gated inside
+// _checkQueueAdvance so it's a cheap no-op whenever there's no queue to
+// watch, rather than hitting the network every tick regardless.
+let queueWatcherInterval = null;
+const QUEUE_WATCH_INTERVAL_MS = 5000;
+// Within this many ms of the track's own duration, a reported "not
+// playing" is treated as "this track ended" rather than "user paused" -
+// the one signal Spotify's REST state actually gives us to tell the two
+// apart (confirmed: /me/player returns progress_ms and item.duration_ms,
+// but no distinct "ended" vs "paused" status the way Apple MusicKit's
+// native playbackStatus does).
+const TRACK_END_THRESHOLD_MS = 3000;
+
 
 
 
@@ -33,6 +54,16 @@ export const useSpotifyStore = create(
       currentTrack: null,
       isPlaying: false,
       playbackState: null,
+      progressMs: null,
+      durationMs: null,
+      // Real, new: client-managed "up next" queue - deliberately NOT
+      // persisted (see partialize below). Spotify's own /me/player/queue
+      // only ADDS to its live device-side queue and can't be read back or
+      // reordered, so this app-level list is what "play next" / "add to
+      // queue" and the auto-advance watcher both actually read from; it's
+      // a queue of normalized {uri, trackName, artistName, artworkUrl}
+      // entries, the same shape searchTracks() already returns.
+      queue: [],
       musicPreferences: defaultMusicPreferences,
       isLoading: false,
       isLoadingPlaylists: false,
@@ -61,6 +92,7 @@ export const useSpotifyStore = create(
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
+            get().startQueueWatcher();
 
             return true;
           }
@@ -109,6 +141,7 @@ export const useSpotifyStore = create(
                   get().loadUserData();
                   get().loadWorkoutPlaylists();
                   get().loadRunningPlaylists();
+                  get().startQueueWatcher();
                   return true;
                 }
                 set({ isLoading: false });
@@ -149,6 +182,7 @@ export const useSpotifyStore = create(
             get().loadUserData();
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
+            get().startQueueWatcher();
 
             return true;
           }
@@ -180,6 +214,7 @@ export const useSpotifyStore = create(
       },
 
       disconnectSpotify: async () => {
+        get().stopQueueWatcher();
         await spotifyService.clearToken();
         set({
           isConnected: false,
@@ -189,7 +224,8 @@ export const useSpotifyStore = create(
           workoutPlaylists: [],
           runningPlaylists: [],
           currentTrack: null,
-          playbackState: null
+          playbackState: null,
+          queue: []
         });
       },
 
@@ -240,7 +276,15 @@ export const useSpotifyStore = create(
 
         try {
           const playback = await spotifyService.getCurrentlyPlaying();
-          set({ currentTrack: playback?.item || null, isPlaying: !!playback?.is_playing });
+          set({
+            currentTrack: playback?.item || null,
+            isPlaying: !!playback?.is_playing,
+            // Real, new: captured for the queue watcher below - Spotify's
+            // /me/player response carries both on every call already, this
+            // just keeps them in state instead of discarding them.
+            progressMs: typeof playback?.progress_ms === 'number' ? playback.progress_ms : null,
+            durationMs: typeof playback?.item?.duration_ms === 'number' ? playback.item.duration_ms : null,
+          });
         } catch (error) {
           console.error('Failed to update current track:', error);
           if (error?.message?.includes('connection has expired')) {
@@ -303,6 +347,129 @@ export const useSpotifyStore = create(
           }, 1000);
         } catch (error) {
           console.error('Failed to skip to previous track:', error);
+        }
+      },
+
+      // Real, new: queue management. "uri" is the shared key across every
+      // queue entry (matches what playTrack already takes), everything
+      // else is display-only, same normalized shape useActiveMusicPlayer
+      // already returns from searchTracks.
+      addToQueue: (track) => {
+        set({ queue: [...get().queue, track] });
+      },
+
+      playNext: (track) => {
+        set({ queue: [track, ...get().queue] });
+      },
+
+      clearQueue: () => {
+        set({ queue: [] });
+      },
+
+      // Real, new: shifts the first entry off the queue and plays it -
+      // the one piece of logic both the auto-advance watcher and a manual
+      // "skip forward" with something queued both need, kept in one place
+      // so they can't drift apart.
+      playNextFromQueue: async () => {
+        const [next, ...rest] = get().queue;
+        if (!next) return false;
+        // Real fix: found on review, before this ever shipped - the watcher
+        // polls every 5s and this is genuinely async (playTrack awaits a
+        // network call before state reflects the new track), so a tick
+        // landing in that gap would still see the JUST-FINISHED track's old
+        // progressMs sitting within TRACK_END_THRESHOLD_MS of its duration
+        // and fire a second advance, skipping two songs for one ended
+        // track. Clearing both synchronously, before the await, means any
+        // tick that lands in that gap sees durationMs as null and bails at
+        // _checkQueueAdvance's own type check instead of double-firing.
+        set({ queue: rest, progressMs: null, durationMs: null });
+        await get().playTrack(next.uri);
+        return true;
+      },
+
+      // Real, new: play a whole album (or any context) instead of one
+      // track - also clears the queue, since starting a new album is a
+      // deliberate "start fresh" action, not a continuation of whatever
+      // was queued before.
+      playAlbum: async (contextUri) => {
+        try {
+          set({ queue: [] });
+          await spotifyService.playContext(contextUri);
+          setTimeout(() => {
+            get().updateCurrentTrack();
+          }, 1000);
+        } catch (error) {
+          console.error('Failed to play album:', error);
+          throw error;
+        }
+      },
+
+      // Real, new: "station" substitute - see searchArtistTracks's own
+      // comment in spotifyService.js for why this is a search-based Artist
+      // Mix rather than a real recommendation engine (Spotify's own
+      // recommendations/related-artists endpoints are both dead for this
+      // app's access tier). Pulls the artist's tracks, shuffles them into
+      // the queue, and starts the first one.
+      startArtistMix: async (artistName) => {
+        try {
+          const tracks = await spotifyService.searchArtistTracks(artistName);
+          if (!tracks.length) return false;
+
+          const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+          const [first, ...rest] = shuffled;
+          const toQueueEntry = (t) => ({
+            uri: t.uri,
+            trackName: t.name,
+            artistName: t.artists?.map((a) => a.name).join(', ') || '',
+            artworkUrl: t.album?.images?.[t.album.images.length - 1]?.url || null,
+          });
+
+          set({ queue: rest.map(toQueueEntry) });
+          await get().playTrack(first.uri);
+          return true;
+        } catch (error) {
+          console.error('Failed to start artist mix:', error);
+          return false;
+        }
+      },
+
+      // Real, new: polls while connected (cheap no-op unless there is
+      // something queued - see the module-level comment on
+      // queueWatcherInterval for why this lives here instead of a
+      // component). Spotify reports "not playing" identically whether the
+      // user paused or the track genuinely ran out, so this only treats it
+      // as "ended" when the last known position was within
+      // TRACK_END_THRESHOLD_MS of the track's own duration - a real pause
+      // happens mid-track and won't match that.
+      startQueueWatcher: () => {
+        if (queueWatcherInterval) return;
+        queueWatcherInterval = setInterval(() => {
+          get()._checkQueueAdvance();
+        }, QUEUE_WATCH_INTERVAL_MS);
+      },
+
+      stopQueueWatcher: () => {
+        if (queueWatcherInterval) {
+          clearInterval(queueWatcherInterval);
+          queueWatcherInterval = null;
+        }
+      },
+
+      _checkQueueAdvance: async () => {
+        const state = get();
+        if (!state.isConnected || state.queue.length === 0) return;
+
+        await state.updateCurrentTrack();
+        const fresh = get();
+        const { isPlaying, progressMs, durationMs, queue } = fresh;
+        if (isPlaying || queue.length === 0) return;
+        if (typeof progressMs !== 'number' || typeof durationMs !== 'number') return;
+        if (durationMs - progressMs > TRACK_END_THRESHOLD_MS) return;
+
+        try {
+          await fresh.playNextFromQueue();
+        } catch (error) {
+          console.error('Failed to auto-advance queue:', error);
         }
       },
 
@@ -371,6 +538,7 @@ export const useSpotifyStore = create(
             get().loadRunningPlaylists();
             if (!isClientCreds && hasValidUserProfile) {
               get().loadUserData();
+              get().startQueueWatcher();
             }
           } else {
             console.log('Spotify: Not authenticated, trying client credentials...');

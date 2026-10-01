@@ -781,6 +781,36 @@ It does NOT provide access to:
     }
   }
 
+  // Real, new: album search, same pattern as searchTracks above, for the
+  // "search albums and play them" request.
+  async searchAlbums(query, limit = 20) {
+    try {
+      const response = await this.fetchWebApi(`search?q=${encodeURIComponent(query)}&type=album&limit=${limit}`);
+      return response.albums?.items || [];
+    } catch (error) {
+      console.error('Failed to search albums:', error);
+      return [];
+    }
+  }
+
+  // Real, new: tracks by a specific artist, used to build an "Artist Mix"
+  // queue. Not a real substitute for Spotify's own recommendation engine -
+  // confirmed directly that /v1/recommendations and
+  // /v1/artists/{id}/related-artists both now return 404 for any app that
+  // wasn't already in extended quota mode before Nov 27, 2024 (this app
+  // isn't), so there is no working "similar songs" endpoint left to call.
+  // Searching the artist's own catalog by name is the closest honest
+  // substitute buildable with what's actually still available.
+  async searchArtistTracks(artistName, limit = 30) {
+    try {
+      const response = await this.fetchWebApi(`search?q=${encodeURIComponent(`artist:"${artistName}"`)}&type=track&limit=${limit}`);
+      return (response.tracks?.items || []).filter((t) => t !== null);
+    } catch (error) {
+      console.error('Failed to search artist tracks:', error);
+      return [];
+    }
+  }
+
   // Get current user profile (requires user authentication)
   async getCurrentUser() {
     if (this.isClientCredentialsFlow) {
@@ -889,6 +919,33 @@ It does NOT provide access to:
       // error never got that far in the first place. Re-throwing here, at
       // the actual source, is what makes that fix - and every caller's
       // error handling above it - genuinely work.
+      throw error;
+    }
+  }
+
+  // Real, new: plays a whole Spotify context (album/playlist/artist URI)
+  // instead of one track. Confirmed directly against Spotify's own
+  // /me/player/play docs - the endpoint accepts EITHER "uris" (an explicit
+  // track list, which is what play() above sends) OR "context_uri", and
+  // once given a context, Spotify's own Connect device auto-advances
+  // through every track in it with no further calls from this app. This
+  // is what makes "play this album" also solve continuous playback for
+  // free, the same way a multi-item "uris" queue does.
+  async playContext(contextUri) {
+    if (Platform.OS === 'web') {
+      console.log('Playback control not available on web');
+      return;
+    }
+
+    if (this.isClientCredentialsFlow) {
+      console.warn('Playback control requires user authentication. Please authenticate first.');
+      return;
+    }
+
+    try {
+      await this.fetchWebApi('me/player/play', 'PUT', { context_uri: contextUri });
+    } catch (error) {
+      console.error('Failed to play context:', error);
       throw error;
     }
   }

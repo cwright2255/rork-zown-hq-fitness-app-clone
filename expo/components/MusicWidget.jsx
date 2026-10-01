@@ -30,7 +30,7 @@ function truncate(str, max) {
 }
 
 export default function MusicWidget() {
-  const { isConnected, serviceLabel, trackName, artistName, artworkUrl, isPlaying, updateCurrentTrack, playTrack, pauseTrack, nextTrack, previousTrack } = useActiveMusicPlayer();
+  const { isConnected, serviceLabel, trackName, artistName, artworkUrl, isPlaying, updateCurrentTrack, playTrack, pauseTrack, nextTrack, previousTrack, queue } = useActiveMusicPlayer();
   const [isExpanded, setIsExpanded] = useState(false);
   const intervalRef = useRef(null);
 
@@ -126,6 +126,11 @@ export default function MusicWidget() {
                   <Ionicons name="play-skip-forward" size={18} color="#000" />
                 </TouchableOpacity>
               </View>
+              {queue.length > 0 && (
+                <Text style={s.queueText} numberOfLines={1}>
+                  Up next: {queue[0].trackName} {queue.length > 1 ? `(+${queue.length - 1} more)` : ''}
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -190,6 +195,7 @@ const s = StyleSheet.create({
   albumArt: { width: 48, height: 48, borderRadius: 8 },
   albumArtPlaceholder: { backgroundColor: '#F0F0F0', alignItems: 'center', justifyContent: 'center' },
   controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20 },
+  queueText: { fontSize: 11, color: '#999', textAlign: 'center', marginTop: 10 },
   controlBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   controlBtnPrimary: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#000000' },
 });
