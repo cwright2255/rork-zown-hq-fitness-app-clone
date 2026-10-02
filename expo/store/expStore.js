@@ -113,11 +113,30 @@ const baseExpValues = {
   stepsXpPerStep: 0.10
 };
 
-// Calculate multiplier based on level
+// Real fix: baseIncrease/baseDecline were 0.43/0.07 (43%/7%), compounding
+// to x1.36 PER LEVEL - confirmed directly by computing it out: a single
+// ~200 XP workout award becomes ~37,000 XP by level 18 alone (x186), and
+// keeps exploding from there (x345 by level 20). That's the exact
+// mechanism behind "35,071 XP from one workout" - not a double-award,
+// one addExpActivity call multiplied by an exponentially runaway level
+// multiplier.
+//
+// The values are a 10x decimal-place slip, not a deliberate design
+// choice. 0.043/0.007 (4.3%/0.7%, net x1.036/level) is what they were
+// almost certainly meant to be: it lines up with this file's own
+// already-tuned leveling curve (GROWTH_RATE = 1.03 above), which was
+// deliberately chosen for a realistic ~971 XP/day pace - a multiplier
+// that itself grows 36%/level fights that same goal instead of serving
+// it. At x1.036/level, a late-game level 100 award is a reasonable x33,
+// not an astronomical x345-at-level-20-and-still-climbing.
+//
+// MAX_MULTIPLIER is a hard ceiling on top of that fix - defense in
+// depth, so a single award can never again reach an absurd value
+// regardless of level or any future rebalance of the rate itself.
+const MAX_MULTIPLIER = 5;
 const calculateMultiplier = (level) => {
-  // 43% increase per level, 7% decline per level
-  const baseIncrease = 0.43;
-  const baseDecline = 0.07;
+  const baseIncrease = 0.043;
+  const baseDecline = 0.007;
 
   // Start with a multiplier of 1 for level 1
   let multiplier = 1.0;
@@ -127,7 +146,7 @@ const calculateMultiplier = (level) => {
     multiplier *= 1 + baseIncrease - baseDecline;
   }
 
-  return multiplier;
+  return Math.min(multiplier, MAX_MULTIPLIER);
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
