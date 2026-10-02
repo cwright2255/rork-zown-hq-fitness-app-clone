@@ -101,25 +101,71 @@ async function runAscendSearch(query) {
   }
 }
 
+// Real, new: AscendAPI's fuzzy search (see runAscendSearch/searchAscendExercise
+// below) can return a result that doesn't actually resemble the query -
+// fuzzy matching there is edit-distance-based, not aware of exercise
+// semantics, so "Bicep Curl" and "Weighted Sit-up" can score close enough
+// under a loose threshold. This is the second, independent check: does
+// the result's name actually share real words with what was searched.
+// Deliberately requires BOTH significant words to match for a short
+// (<=2 word) query, not just one - "Leg Curl" sharing only "Leg" with
+// "Leg Press" is exactly the kind of wrong-but-plausible-looking match a
+// single-word check would let through.
+const STOPWORDS = new Set(['the', 'a', 'an', 'with', 'and', 'or', 'for', 'of']);
+
+function significantWords(name) {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
+    // Strip a trailing plural 's' so "Squats"/"Squat", "Curls"/"Curl",
+    // "Push-ups"/"Push-up" compare equal - applied identically to both
+    // sides being compared, so it's a consistent normalization rather
+    // than a real stemmer, and tested against both plural and
+    // qualifier-word cases before shipping (see searchAscendExercise's
+    // retry below for the latter - stripping a leading qualifier like
+    // "Bodyweight" is a separate, already-existing step).
+    .map((w) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w));
+}
+
+function isPlausibleMatch(queryName, resultName) {
+  const queryWords = significantWords(queryName);
+  if (queryWords.length === 0) return true;
+  const resultWords = new Set(significantWords(resultName));
+  const overlap = queryWords.filter((w) => resultWords.has(w)).length;
+  const required = queryWords.length <= 2 ? queryWords.length : 2;
+  return overlap >= required;
+}
+
 // Two-step lookup: exact generated name first, then (only if that comes
-// back empty) a simplified name with the leading qualifier word
-// stripped. Every branch logs, so a null result always leaves a reason
-// in the console instead of failing silently, at most 2 requests per
-// exercise, never more.
+// back empty, OR comes back looking unrelated per isPlausibleMatch above)
+// a simplified name with the leading qualifier word stripped. Every
+// branch logs, so a null result always leaves a reason in the console
+// instead of failing silently, at most 2 requests per exercise, never
+// more.
 export async function searchAscendExercise(name) {
   if (!name) return null;
 
   const record = await runAscendSearch(name);
-  if (record) return record;
-  console.warn('[exerciseDbService] no AscendAPI match for exact name:', name);
+  if (record && isPlausibleMatch(name, record.name)) return record;
+  if (record) {
+    console.warn('[exerciseDbService] AscendAPI top match looked unrelated, discarding:', name, '->', record.name);
+  } else {
+    console.warn('[exerciseDbService] no AscendAPI match for exact name:', name);
+  }
 
   const simplified = simplifyExerciseName(name);
   if (!simplified) return null;
 
   console.warn('[exerciseDbService] retrying with simplified name:', simplified);
   const retryRecord = await runAscendSearch(simplified);
-  if (retryRecord) return retryRecord;
-  console.warn('[exerciseDbService] no AscendAPI match for simplified name either:', simplified);
+  if (retryRecord && isPlausibleMatch(simplified, retryRecord.name)) return retryRecord;
+  if (retryRecord) {
+    console.warn('[exerciseDbService] AscendAPI simplified-name match also looked unrelated, discarding:', simplified, '->', retryRecord.name);
+  } else {
+    console.warn('[exerciseDbService] no AscendAPI match for simplified name either:', simplified);
+  }
   return null;
 }
 
@@ -138,8 +184,31 @@ export async function searchAscendExercise(name) {
 // tier's own equivalent gifUrl field. The old field checks stay as a
 // fallback in case a different tier or a future response shape ever
 // does include one.
+//
+// Real, new: searchAscendExercise (functions/src/index.js) now follows
+// up its search with a fetch of the matched exercise's full record,
+// which - per AscendAPI's GetExerciseById docs - carries real animated
+// GIFs under gifUrls, and a higher-res static image under imageUrls, both
+// keyed by resolution (360p/480p/720p/1080p). Checked first, since an
+// actual moving demonstration is the whole point of this screen and is
+// worth preferring over every static fallback below it, including the
+// plain imageUrl from a search-only result.
+const PREFERRED_RESOLUTIONS = ['480p', '360p', '720p', '1080p'];
+function pickBestResolution(urlsByResolution) {
+  if (!urlsByResolution || typeof urlsByResolution !== 'object') return null;
+  for (const res of PREFERRED_RESOLUTIONS) {
+    if (typeof urlsByResolution[res] === 'string') return urlsByResolution[res];
+  }
+  const any = Object.values(urlsByResolution).find((v) => typeof v === 'string');
+  return any || null;
+}
+
 export function extractExerciseMediaUrl(exerciseRecord) {
   if (!exerciseRecord) return null;
+  const gif = pickBestResolution(exerciseRecord.gifUrls);
+  if (gif) return gif;
+  const fullImage = pickBestResolution(exerciseRecord.imageUrls);
+  if (fullImage) return fullImage;
   if (typeof exerciseRecord.imageUrl === 'string') return exerciseRecord.imageUrl;
   if (typeof exerciseRecord.gifUrl === 'string') return exerciseRecord.gifUrl;
   if (typeof exerciseRecord.videoUrl === 'string') return exerciseRecord.videoUrl;

@@ -1228,6 +1228,20 @@ export const getSpoonacularRecipeById = onCall(
  * stays client-side unchanged - this proxies only the single,
  * underlying search call each of those two attempts makes. */
 
+// Real fix: threshold was never set, so this used AscendAPI's own default
+// of 0.4 (0 = exact match, 1 = very loose match, per their docs at
+// docs.ascendapi.com) - loose enough that a two-word exercise name like
+// "Bicep Curl" could come back with a completely unrelated top result
+// (confirmed from a real report: "Bicep Curl" returned a weighted sit-up,
+// "Lat Pulldown" returned an unrelated row variant). 0.2 is a meaningfully
+// tighter match without being so strict that small wording differences
+// between the AI workout planner's phrasing and this database's own names
+// return nothing. Paired with a second, independent layer of defense in
+// services/exerciseDbService.js's isPlausibleMatch, which checks the
+// returned name actually shares real words with the query before
+// accepting it - a tighter threshold alone doesn't guarantee that, since
+// AscendAPI's fuzzy matching is edit-distance-based, not aware of exercise
+// semantics.
 export const searchAscendExercise = onCall(
   { secrets: [RAPIDAPI_KEY], region: 'us-central1' },
   async (req) => {
@@ -1239,13 +1253,13 @@ export const searchAscendExercise = onCall(
 
     const ASCEND_BASE = 'https://edb-with-videos-and-images-by-ascendapi.p.rapidapi.com/api/v1';
     const ASCEND_HOST = 'edb-with-videos-and-images-by-ascendapi.p.rapidapi.com';
-    const url = `${ASCEND_BASE}/exercises/search?search=${encodeURIComponent(query)}`;
-    const res = await fetch(url, {
-      headers: {
-        'x-rapidapi-key': RAPIDAPI_KEY.value(),
-        'x-rapidapi-host': ASCEND_HOST,
-      },
-    });
+    const headers = {
+      'x-rapidapi-key': RAPIDAPI_KEY.value(),
+      'x-rapidapi-host': ASCEND_HOST,
+    };
+
+    const url = `${ASCEND_BASE}/exercises/search?search=${encodeURIComponent(query)}&threshold=0.2`;
+    const res = await fetch(url, { headers });
 
     if (!res.ok) {
       console.warn('[searchAscendExercise] request failed', { status: res.status, query });
@@ -1253,7 +1267,33 @@ export const searchAscendExercise = onCall(
     }
     const json = await res.json().catch(() => null);
     const results = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
-    return results[0] || null;
+    const top = results[0] || null;
+    if (!top) return null;
+
+    // Real, new: the search result above only ever carries a static
+    // imageUrl (confirmed against AscendAPI's own docs - see
+    // extractExerciseMediaUrl in services/exerciseDbService.js). Fetching
+    // this same exercise's full record by id returns real animated
+    // gifUrls instead. Done here, server-side, as a second fetch on the
+    // same already-proven host/key rather than a new Cloud Function the
+    // client would have to call separately - app/workout/active.jsx still
+    // only waits on one round trip either way. Falls back to the
+    // search-only record (still has a usable static imageUrl) if this
+    // second fetch fails for any reason - never worse than before.
+    if (top.exerciseId) {
+      try {
+        const detailRes = await fetch(`${ASCEND_BASE}/exercises/${encodeURIComponent(top.exerciseId)}`, { headers });
+        if (detailRes.ok) {
+          const detailJson = await detailRes.json().catch(() => null);
+          if (detailJson?.data) return detailJson.data;
+        } else {
+          console.warn('[searchAscendExercise] exercise detail request failed', { status: detailRes.status, exerciseId: top.exerciseId });
+        }
+      } catch (error) {
+        console.warn('[searchAscendExercise] exercise detail request threw', { exerciseId: top.exerciseId, message: error?.message });
+      }
+    }
+    return top;
   }
 );
 
