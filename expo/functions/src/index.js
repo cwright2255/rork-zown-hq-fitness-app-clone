@@ -1143,6 +1143,58 @@ export const browseSpoonacularRecipes = onCall(
   }
 );
 
+// Real, new: batches several browseSpoonacularRecipes-shaped queries into
+// one callable invocation. The main Recipes screen (app/recipes.jsx) opens
+// to four sections (Featured/Post-Workout/Meal Prep/Quick & Easy) that all
+// share the same trigger and always fetch together - previously that meant
+// four separate httpsCallable round trips, each one independently able to
+// cold-start this function from zero (no minInstances is set on any
+// function in this file). One batched call means at most one cold start
+// instead of up to four firing at once; the four Spoonacular queries
+// themselves still run concurrently, just server-side via Promise.all
+// below, where a second (or third, or fourth) section doesn't pay a fresh
+// cold start just to join the first. A single section's Spoonacular call
+// failing returns an empty result for that key instead of rejecting the
+// whole batch, matching how each section already fails independently today
+// (one bad query shouldn't blank out the other three). Deliberately
+// separate from browseSpoonacularRecipes above rather than a replacement -
+// search and the category pills on the same screen only ever need one
+// section at a time, so there's nothing for them to batch.
+export const browseSpoonacularRecipesBatch = onCall(
+  { secrets: [SPOONACULAR_API_KEY], region: 'us-central1' },
+  async (req) => {
+    requireAuth(req.auth);
+    const { sections } = req.data;
+    if (!Array.isArray(sections) || sections.length === 0) {
+      throw new HttpsError('invalid-argument', 'sections required');
+    }
+
+    const results = await Promise.all(sections.map(async (section) => {
+      const query = new URLSearchParams({
+        ...(section?.params || {}),
+        number: String(section?.number || 12),
+        addRecipeInformation: 'true',
+        addRecipeNutrition: 'true',
+        apiKey: SPOONACULAR_API_KEY.value(),
+      });
+      try {
+        const res = await fetch(`https://api.spoonacular.com/recipes/complexSearch?${query}`);
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !Array.isArray(data?.results)) {
+          console.error('[browseSpoonacularRecipesBatch] section failed', { key: section?.key, status: res.status, message: data?.message });
+          return { key: section?.key, results: [] };
+        }
+        return { key: section?.key, results: data.results };
+      } catch (error) {
+        console.error('[browseSpoonacularRecipesBatch] section threw', { key: section?.key, message: error?.message });
+        return { key: section?.key, results: [] };
+      }
+    }));
+
+    return { sections: results };
+  }
+);
+
 export const getSpoonacularRecipeById = onCall(
   { secrets: [SPOONACULAR_API_KEY], region: 'us-central1' },
   async (req) => {

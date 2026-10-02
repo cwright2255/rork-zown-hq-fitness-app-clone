@@ -118,6 +118,39 @@ function buildCategoryParams(category, dietaryPreferences) {
   }
 }
 
+// Real fix: why this tab feels slow. Featured/AI Recommendations/
+// Post-Workout/Meal Prep each call Cloud Functions' browseSpoonacularRecipes
+// (services/recipeExtractionService.js -> functions/src/index.js), which
+// proxies to Spoonacular. That function has no minInstances set anywhere in
+// functions/src/index.js (confirmed - nothing in the whole file sets
+// minInstances, concurrency, or calls setGlobalOptions), so it scales to
+// zero when idle and cold-starts again on the next call; the same file also
+// imports the full firebase-admin SDK and the openai package at module
+// scope, so every function in that bundle pays that load cost on a cold
+// start, whether it touches them or not. Four or five of those cold starts
+// firing at once (one per section, intentionally not awaited in sequence -
+// see the two effects below) is the real shape of the blank-then-
+// all-at-once pattern - a slow network fan-out, not a slow render. Only Cj
+// can trade that specific cost away (minInstances keeps a container warm
+// 24/7, which costs money even when nobody opens this tab, so it's his
+// call to make, not mine to flip silently).
+//
+// What IS a pure code fix, with no cost or infra decision attached: this
+// screen was re-running all five Spoonacular calls from scratch on EVERY
+// visit to this tab, even one 10 seconds after the last, because the
+// results only ever lived in this component's own useState - wiped the
+// instant the tab unmounts. Moving the cache to module scope means it
+// survives navigating away and back, so only the first visit in a session
+// (or the first one in BROWSE_CACHE_TTL_MS, or after a dietary/fitness
+// change actually alters the query) pays the full cold-start cost; every
+// other visit renders from cache immediately, with no loading skeleton at
+// all.
+const BROWSE_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const browseCache = new Map(); // browseCacheKey(...) -> { items, timestamp }
+function browseCacheKey(sectionKey, params) {
+  return `${sectionKey}:${JSON.stringify(params)}`;
+}
+
 function SectionHeader({ title, onViewAll, expanded, right }) {
   return (
     <View style={s.sectionHeader}>
@@ -235,25 +268,51 @@ export default function RecipesScreen() {
   useEffect(() => {
     let cancelled = false;
     const sections = buildBrowseSections(user?.dietaryPreferences);
+    const sectionKeys = ['featured', 'postWorkout', 'mealPrep', 'quickEasy'];
 
-    const fetchSection = (key, params) => {
-      setBrowseLoading((prev) => ({ ...prev, [key]: true }));
-      recipeExtractionService.getSpoonacularBrowse(params, params.number).then((items) => {
-        if (cancelled) return;
-        setBrowse((prev) => {
-          const seen = new Set(Object.values(prev).flat().map((item) => item.id));
-          const deduped = items.filter((item) => !seen.has(item.id));
-          return { ...prev, [key]: deduped };
-        });
-      }).finally(() => {
-        if (!cancelled) setBrowseLoading((prev) => ({ ...prev, [key]: false }));
+    const applySectionItems = (key, items) => {
+      setBrowse((prev) => {
+        const seen = new Set(Object.values(prev).flat().map((item) => item.id));
+        const deduped = items.filter((item) => !seen.has(item.id));
+        return { ...prev, [key]: deduped };
       });
     };
 
-    fetchSection('featured', sections.featured);
-    fetchSection('postWorkout', sections.postWorkout);
-    fetchSection('mealPrep', sections.mealPrep);
-    fetchSection('quickEasy', sections.quickEasy);
+    // All four share this exact trigger (diet/allergies/calorie goal/
+    // fitness level), so in practice they're always cached together or
+    // stale together - one check covers all four, cache hit skips the
+    // network entirely for every section.
+    const allCached = sectionKeys.every((key) => {
+      const cached = browseCache.get(browseCacheKey(key, sections[key]));
+      return cached && Date.now() - cached.timestamp < BROWSE_CACHE_TTL_MS;
+    });
+
+    if (allCached) {
+      sectionKeys.forEach((key) => {
+        applySectionItems(key, browseCache.get(browseCacheKey(key, sections[key])).items);
+        setBrowseLoading((prev) => ({ ...prev, [key]: false }));
+      });
+      return () => { cancelled = true; };
+    }
+
+    // Real fix: one batched call (browseSpoonacularRecipesBatch) instead of
+    // four separate ones - see the big comment above browseCacheKey for
+    // why that matters (at most one cold start instead of up to four at
+    // once). The four Spoonacular queries still run concurrently, just
+    // server-side now.
+    sectionKeys.forEach((key) => setBrowseLoading((prev) => ({ ...prev, [key]: true })));
+    recipeExtractionService.getSpoonacularBrowseBatch(
+      sectionKeys.map((key) => ({ key, params: sections[key], number: sections[key].number }))
+    ).then((byKey) => {
+      if (cancelled) return;
+      sectionKeys.forEach((key) => {
+        const items = byKey[key] || [];
+        browseCache.set(browseCacheKey(key, sections[key]), { items, timestamp: Date.now() });
+        applySectionItems(key, items);
+      });
+    }).finally(() => {
+      if (!cancelled) sectionKeys.forEach((key) => setBrowseLoading((prev) => ({ ...prev, [key]: false })));
+    });
 
     return () => { cancelled = true; };
   }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref]);
@@ -265,14 +324,28 @@ export default function RecipesScreen() {
   useEffect(() => {
     let cancelled = false;
     const aiParams = buildAiRecommendationsParams(user?.dietaryPreferences, user?.fitnessLevel, savedRecipes);
-    setBrowseLoading((prev) => ({ ...prev, aiRecommendations: true }));
-    recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number).then((items) => {
-      if (cancelled) return;
+
+    const applyItems = (items) => {
       setBrowse((prev) => {
         const seen = new Set(Object.values(prev).flat().map((item) => item.id));
         const deduped = items.filter((item) => !seen.has(item.id));
         return { ...prev, aiRecommendations: deduped };
       });
+    };
+
+    const cacheKey = browseCacheKey('aiRecommendations', aiParams);
+    const cached = browseCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < BROWSE_CACHE_TTL_MS) {
+      applyItems(cached.items);
+      setBrowseLoading((prev) => ({ ...prev, aiRecommendations: false }));
+      return () => { cancelled = true; };
+    }
+
+    setBrowseLoading((prev) => ({ ...prev, aiRecommendations: true }));
+    recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number).then((items) => {
+      if (cancelled) return;
+      browseCache.set(cacheKey, { items, timestamp: Date.now() });
+      applyItems(items);
     }).finally(() => {
       if (!cancelled) setBrowseLoading((prev) => ({ ...prev, aiRecommendations: false }));
     });

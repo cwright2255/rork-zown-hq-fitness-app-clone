@@ -377,6 +377,40 @@ class RecipeExtractionService {
     }
   }
 
+  // Real, new: companion to getSpoonacularBrowse above, but for
+  // browseSpoonacularRecipesBatch - takes [{ key, params, number }, ...]
+  // and returns { [key]: mappedItems }, one Cloud Function round trip
+  // (and at most one cold start) instead of one per section. Same mapping
+  // logic as getSpoonacularBrowse, just applied per-section to the
+  // batched response instead of to a single result list.
+  async getSpoonacularBrowseBatch(sections) {
+    try {
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('../src/config/firebase');
+      const fn = httpsCallable(functions, 'browseSpoonacularRecipesBatch');
+      const result = await fn({ sections });
+      const data = result.data;
+
+      const byKey = {};
+      (data?.sections || []).forEach((section) => {
+        byKey[section.key] = (section.results || []).map((r) => {
+          const calories = r.nutrition?.nutrients?.find((n) => n.name === 'Calories')?.amount;
+          return {
+            id: String(r.id),
+            name: r.title,
+            imageUrl: r.image || '',
+            cal: calories ? `${Math.round(calories)} cal` : '',
+            time: r.readyInMinutes ? `${r.readyInMinutes} min` : '',
+          };
+        });
+      });
+      return byKey;
+    } catch (error) {
+      this.lastDiagnostic = `Spoonacular batch browse call failed: ${error?.message}`;
+      return {};
+    }
+  }
+
   // Fetches full detail for one Spoonacular recipe by its numeric id -
   // used when a user taps to save a recipe surfaced by
   // getSpoonacularBrowse above, since that lightweight preview doesn't
