@@ -94,7 +94,8 @@
     "production": {
       "ios": {
         "appleTeamId": "GLFKG8342N",
-        "appleId": "Cj123024@yahoo.com"
+        "appleId": "Cj123024@yahoo.com",
+        "ascAppId": "6815233553"
       }
     }
   }
