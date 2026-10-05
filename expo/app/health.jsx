@@ -12,6 +12,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
 import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
 import { calculateMuscleFatigue } from '@/lib/muscleFatigue';
+import { getLiftInsight, PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
 import { rookService } from '@/services/rookService';
 import { generateTrainingLoadInsight } from '@/services/aiService';
 import TrainingLoadCard from '@/components/TrainingLoadCard';
@@ -23,12 +24,13 @@ export default function HealthScreen() {
   const { loadAllHealth, loadAppleHealthActivity, steps, sleep, hydration, rookRecovery, loadRookRecovery } = useHealthStore();
   const { user } = useUserStore();
   const { scans, loadScans } = useBodyCompositionStore();
-  const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  const { completedWorkouts, loadWorkouts, getExerciseHistory } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
   const { completedHikes, loadCompletedHikes } = useHikingStore();
   const [trainingLoad, setTrainingLoad] = useState(null);
   const [trainingLoadInsight, setTrainingLoadInsight] = useState(null);
   const [muscleFatigue, setMuscleFatigue] = useState({});
+  const [liftInsights, setLiftInsights] = useState([]);
 
   const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
 
@@ -94,6 +96,38 @@ export default function HealthScreen() {
     return () => { cancelled = true; };
   }, [completedWorkouts, runs, completedHikes, sleep?.hours, sleep?.quality]);
 
+  // Real, new: cross-domain lift insights - real plateau detection
+  // (lib/crossDomainInsights.js) for each of the three primary lifts,
+  // cross-checked against real running/hiking load. Runs once real runs/
+  // hikes history is loaded; re-fetches each lift's own logged-set
+  // history directly (same query shape getBestOneRepMaxes already uses)
+  // rather than depending on completedWorkouts' own exercise list, since
+  // the plateau math needs the full per-session history, not just a
+  // single best. Silently empty (never a fabricated "all good" message)
+  // when nothing real is detected for any of the three.
+  useEffect(() => {
+    if (!user?.uid) return;
+    let cancelled = false;
+    (async () => {
+      const liftNames = Object.keys(PRIMARY_LIFT_MUSCLES);
+      const histories = await Promise.all(
+        liftNames.map((name) => getExerciseHistory(name, user.uid))
+      );
+      if (cancelled) return;
+      const insights = liftNames
+        .map((name, i) => getLiftInsight({
+          exerciseName: name,
+          muscleGroups: PRIMARY_LIFT_MUSCLES[name],
+          loggedSets: histories[i],
+          runs,
+          completedHikes,
+        }))
+        .filter(Boolean);
+      setLiftInsights(insights);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.uid, runs, completedHikes]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     setIsLoading(true);
@@ -153,6 +187,20 @@ return (
             onRetryScan={() => user?.uid && loadScans(user.uid)}
           />
         </View>
+
+        {liftInsights.length > 0 && (
+          <View style={s.insightCard}>
+            <View style={s.insightBadge}>
+              <Ionicons name="git-compare-outline" size={14} color="#000" />
+              <Text style={s.insightBadgeText}>Cross-Training Insight</Text>
+            </View>
+            {liftInsights.map((insight) => (
+              <Text key={insight.exerciseName} style={[s.insightText, { marginBottom: 6 }]}>
+                {insight.message}
+              </Text>
+            ))}
+          </View>
+        )}
 
         <TouchableOpacity
           style={{

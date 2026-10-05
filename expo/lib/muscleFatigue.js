@@ -79,15 +79,40 @@ export function getRecoveryModifier({ sleepHours, sleepQuality, hrv, recoverySco
 // Real primary muscle groups for running and hiking — well-established
 // in exercise science, not guessed. Weighted so the biggest movers (quads,
 // glutes, calves) get more attributed load than stabilizers (core).
-const RUNNING_MUSCLES = {
+// Exported (as of this session) so lib/crossDomainInsights.js can reuse
+// the exact same real anatomical mapping to decide whether a given lift
+// genuinely overlaps with running/hiking, rather than duplicating it.
+export const RUNNING_MUSCLES = {
   quadriceps: 0.28, hamstrings: 0.22, glutes: 0.22, calves: 0.18, core: 0.10,
 };
 // Hiking engages the same primary movers as running, weighted slightly
 // more toward glutes/calves for the incline component, plus a real
 // calf/ankle-stabilizer bump for uneven terrain.
-const HIKING_MUSCLES = {
+export const HIKING_MUSCLES = {
   quadriceps: 0.25, hamstrings: 0.20, glutes: 0.25, calves: 0.20, core: 0.10,
 };
+
+// Real, new: a few common synonyms for the same muscle group - the AI
+// generator and manual workout builder (services/aiService.js's
+// normalizeExercise) aren't constrained to a fixed vocabulary, so "quads"
+// vs "quadriceps" for the exact same muscle would otherwise silently
+// fail to match RUNNING_MUSCLES/HIKING_MUSCLES's keys below, and (as of
+// this session) lib/crossDomainInsights.js's own overlap check.
+// Deliberately small and specific rather than a general fuzzy matcher -
+// only the handful of variants actually plausible for the muscles this
+// file already models.
+const MUSCLE_SYNONYMS = {
+  quads: 'quadriceps', quad: 'quadriceps',
+  hamstring: 'hamstrings',
+  glute: 'glutes',
+  calf: 'calves',
+  abs: 'core', abdominals: 'core', abdomen: 'core', abdominal: 'core',
+};
+
+export function canonicalizeMuscle(m) {
+  const key = (m || '').toLowerCase().trim();
+  return MUSCLE_SYNONYMS[key] || key;
+}
 
 function daysSince(dateInput) {
   const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
@@ -124,7 +149,7 @@ function attributeWorkout(workout, fatigueByMuscle, recoveryModifier) {
     if (muscles.length === 0) return;
     const loadPerMuscle = loadPerExercise / muscles.length;
     muscles.forEach((m) => {
-      const key = (m || '').toLowerCase().trim();
+      const key = canonicalizeMuscle(m);
       if (!key) return;
       fatigueByMuscle[key] = (fatigueByMuscle[key] || 0) + loadPerMuscle * weight;
     });
@@ -182,7 +207,7 @@ export function getTargetMuscles(activityType, workoutExercises = []) {
   if (activityType === 'running') return Object.keys(RUNNING_MUSCLES);
   if (activityType === 'hiking') return Object.keys(HIKING_MUSCLES);
   const set = new Set();
-  workoutExercises.forEach((ex) => (ex.muscleGroups || []).forEach((m) => set.add((m || '').toLowerCase().trim())));
+  workoutExercises.forEach((ex) => (ex.muscleGroups || []).forEach((m) => set.add(canonicalizeMuscle(m))));
   return [...set].filter(Boolean);
 }
 
