@@ -25,7 +25,7 @@ import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
-import { getNextPrescription } from '@/services/progressiveOverloadService';
+import { getNextPrescription, estimateOneRepMax } from '@/services/progressiveOverloadService';
 import { getCurrentReadiness } from '@/services/wearableService';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
@@ -242,6 +242,20 @@ export default function ActiveWorkoutScreen() {
   // back doesn't lose what was already fetched.
   const [prescriptions, setPrescriptions] = useState({});
 
+  // Real, new: PR celebration. priorBests holds each exercise's real
+  // best from BEFORE this session - best estimated 1RM
+  // (services/progressiveOverloadService.js's estimateOneRepMax) for
+  // weighted exercises, best rep count for bodyweight ones (weight is
+  // always 0 there, so estimateOneRepMax correctly returns null and
+  // reps is the only real signal). Computed once per exercise, in the
+  // same fetch the prescription effect below already makes, then
+  // updated in place by handleLogSet whenever a set actually beats it -
+  // keyed by exercise id for the same reason prescriptions is.
+  // prCelebration holds the one most recently detected PR to display;
+  // null means no celebration is showing right now.
+  const [priorBests, setPriorBests] = useState({});
+  const [prCelebration, setPrCelebration] = useState(null);
+
   const timerRef = useRef(null);
   const currentExercise = exercises[currentIndex];
   const totalExercises = exercises.length;
@@ -312,6 +326,20 @@ export default function ActiveWorkoutScreen() {
         if (cancelled) return;
         const prescription = getNextPrescription(history, { readiness });
         setPrescriptions((prev) => ({ ...prev, [currentExercise.id]: prescription }));
+
+        // Real, new: same history, for PR detection rather than
+        // prescribing the next target. null (not 0) when nothing
+        // qualifies yet, so the first time ever logging a brand-new
+        // exercise has no baseline to "beat" and correctly never
+        // celebrates.
+        let bestOneRepMax = null;
+        let bestReps = null;
+        history.forEach((s) => {
+          const oneRm = estimateOneRepMax(s.weight, s.reps);
+          if (oneRm && (bestOneRepMax === null || oneRm > bestOneRepMax)) bestOneRepMax = oneRm;
+          if (typeof s.reps === 'number' && (bestReps === null || s.reps > bestReps)) bestReps = s.reps;
+        });
+        setPriorBests((prev) => ({ ...prev, [currentExercise.id]: { bestOneRepMax, bestReps } }));
       } catch (e) {
         console.warn('[ActiveWorkout] prescription fetch failed:', e?.message);
       }
@@ -465,6 +493,38 @@ export default function ActiveWorkoutScreen() {
         ...prev,
         [exercise.id]: [...(prev[exercise.id] || []), { weight, reps, rpe, isBodyweight }],
       }));
+
+      // Real, new: PR celebration - compares this just-logged set
+      // against priorBests (this exercise's real best from before this
+      // session). Updates priorBests in place the moment a PR fires, so
+      // a later set today that repeats (but doesn't beat) this same
+      // weight/reps doesn't re-celebrate, while a further improvement
+      // later in the same session correctly celebrates again. Skipped
+      // entirely when priorBests has no entry yet for this exercise -
+      // either it hasn't loaded yet, or (same result either way) there's
+      // no real baseline to say was beaten.
+      const prior = priorBests[exercise.id];
+      if (prior) {
+        if (isBodyweight) {
+          if (prior.bestReps != null && reps > prior.bestReps) {
+            setPriorBests((prev) => ({ ...prev, [exercise.id]: { ...prev[exercise.id], bestReps: reps } }));
+            setPrCelebration({ exerciseName: exercise.name, type: 'reps', reps, previousReps: prior.bestReps });
+          }
+        } else {
+          const oneRm = estimateOneRepMax(weight, reps);
+          if (oneRm && prior.bestOneRepMax != null && oneRm > prior.bestOneRepMax) {
+            setPriorBests((prev) => ({ ...prev, [exercise.id]: { ...prev[exercise.id], bestOneRepMax: oneRm } }));
+            setPrCelebration({
+              exerciseName: exercise.name,
+              type: 'oneRepMax',
+              weight,
+              reps,
+              oneRepMax: oneRm,
+              previousOneRepMax: prior.bestOneRepMax,
+            });
+          }
+        }
+      }
     } finally {
       setLoggingSetKey(null);
     }
@@ -1059,6 +1119,49 @@ export default function ActiveWorkoutScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Real, new: PR celebration - fires from handleLogSet whenever a
+          logged set beats priorBests for the current exercise. Same
+          backdrop/card shell as the exit-confirm modal above for visual
+          consistency; trophy + gold (#FFD700) matches the "Personal
+          Records" language already established on the analytics screen. */}
+      <Modal
+        visible={!!prCelebration}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPrCelebration(null)}
+      >
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.prCard}>
+            <View style={styles.prTrophyCircle}>
+              <Ionicons name="trophy" size={40} color="#FFD700" />
+            </View>
+            <Text style={styles.prTitle}>New Personal Record!</Text>
+            <Text style={styles.prExerciseName}>{prCelebration?.exerciseName}</Text>
+            {prCelebration?.type === 'reps' ? (
+              <>
+                <Text style={styles.prStat}>{prCelebration.reps} reps</Text>
+                <Text style={styles.prSubtext}>
+                  Beats your previous best of {prCelebration.previousReps} reps.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.prStat}>
+                  {prCelebration?.weight} lb × {prCelebration?.reps} reps
+                </Text>
+                <Text style={styles.prSubtext}>
+                  Estimated 1-rep max: ~{Math.round(prCelebration?.oneRepMax || 0)} lb, up from ~
+                  {Math.round(prCelebration?.previousOneRepMax || 0)} lb.
+                </Text>
+              </>
+            )}
+            <Pressable style={styles.prDismissBtn} onPress={() => setPrCelebration(null)}>
+              <Text style={styles.prDismissBtnText}>Keep Going</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     
       {/* Spotify Mini Player */}
       <Modal visible={showMusicPlayer} transparent animationType="slide" onRequestClose={() => setShowMusicPlayer(false)}>
@@ -1583,5 +1686,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FF3B30',
+  },
+
+  /* PR celebration - same card shell as confirmCard (white, 16px
+     radius, 24px padding, 80% width) with its own content styling. */
+  prCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 6 },
+    }),
+  },
+  prTrophyCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  prTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#000',
+    textAlign: 'center',
+  },
+  prExerciseName: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 4,
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  prStat: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#000',
+    textAlign: 'center',
+  },
+  prSubtext: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  prDismissBtn: {
+    backgroundColor: '#000',
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  prDismissBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
