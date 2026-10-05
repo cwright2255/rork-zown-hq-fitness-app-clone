@@ -39,6 +39,7 @@ const MENU_GROUPS = [
       { icon: 'fitness-outline', label: 'Running Log', route: '/profile/running-log' },
       { icon: 'trophy-outline', label: 'Personal Records', route: '/analytics' },
       { icon: 'body-outline', label: 'Body Scan', route: '/body-scan/capture' },
+      { icon: 'chatbubbles-outline', label: 'AI Coach', route: '/coach' },
     ],
   },
   {
