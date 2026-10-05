@@ -30,7 +30,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 
 // The exact enum ROOK's /authorizer endpoint accepts.
-export const ROOK_DATA_SOURCES = ['Whoop', 'Oura', 'Garmin', 'Fitbit', 'Withings', 'Polar', 'Dexcom'];
+export const ROOK_DATA_SOURCES = ['Whoop', 'Oura', 'Garmin', 'Fitbit', 'Withings', 'Polar', 'Dexcom', 'Strava'];
 
 class RookService {
   /**

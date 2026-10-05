@@ -271,7 +271,7 @@ return (
         <View style={s.syncCard}>
           <Text style={s.syncTitle}>Connect Your Device</Text>
           <Text style={s.syncSubtitle}>
-            Sync real heart rate, HRV, and sleep data from Garmin, Fitbit, WHOOP, Oura, Polar, Withings, or Dexcom.
+            Sync real heart rate, HRV, and sleep data from Garmin, Fitbit, WHOOP, Oura, Polar, Withings, Dexcom, or Strava.
           </Text>
           <Pressable style={s.syncBtn} onPress={() => router.push('/rook-connect')}>
             <Text style={s.syncBtnText}>Manage Devices</Text>

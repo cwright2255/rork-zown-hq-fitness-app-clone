@@ -408,7 +408,7 @@ export const getRookAuthorizerUrl = onCall(
   async (req) => {
     const uid = requireAuth(req.auth);
     const { dataSource } = req.data;
-    const validSources = ['Garmin', 'Oura', 'Polar', 'Fitbit', 'Withings', 'Whoop', 'Dexcom'];
+    const validSources = ['Garmin', 'Oura', 'Polar', 'Fitbit', 'Withings', 'Whoop', 'Dexcom', 'Strava'];
     if (!validSources.includes(dataSource)) {
       throw new HttpsError('invalid-argument', `dataSource must be one of ${validSources.join(', ')}`);
     }

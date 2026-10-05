@@ -32,7 +32,7 @@ import { appleHealthService } from '@/services/appleHealthService';
 
 // Exact, case-sensitive list the backend validates against
 // (functions/src/index.js's getRookAuthorizerUrl).
-const PROVIDERS = ['Garmin', 'Oura', 'Polar', 'Fitbit', 'Withings', 'Whoop', 'Dexcom'];
+const PROVIDERS = ['Garmin', 'Oura', 'Polar', 'Fitbit', 'Withings', 'Whoop', 'Dexcom', 'Strava'];
 
 function normalizeSource(item) {
   return {
