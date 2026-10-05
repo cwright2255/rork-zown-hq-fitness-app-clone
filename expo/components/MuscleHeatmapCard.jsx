@@ -3,20 +3,20 @@
 // Real anatomical muscle visualization in two modes, toggleable:
 //   - "Target": which muscles a specific activity works (a fixed
 //     highlight, one color) — used on activity preview screens, before
-//     you've done it. When a real body scan is available, this renders
-//     as real 3D markers on the user's own mesh (components/
-//     MuscleMeshHighlight.jsx, lib/muscleAnchors.js) instead of the 2D
-//     diagram service. Falls back to the 2D service when no scan is
-//     provided, so callers that don't have scan data (or a user who
-//     hasn't scanned yet) still get a working visualization.
+//     you've done it.
 //   - "Fatigue": real per-muscle recent load, decayed on the real DOMS
 //     recovery timeline (see lib/muscleFatigue.js) — a heatmap, colored
-//     by actual recent activity, not a static highlight. Still uses the
-//     2D service — 3D fatigue-intensity coloring is a real, separate
-//     follow-up, not built in this pass.
-// Both 2D-mode paths render through services/muscleVisualizerService.js,
-// fixed this session after finding it had never actually worked (wrong
-// base path, wrong auth method, wrong muscle-name casing — see the audit).
+//     by actual recent activity, not a static highlight.
+// Both modes render as real 3D coloring on the user's own body-scan mesh
+// (components/MuscleMeshHighlight.jsx, lib/muscleAnchors.js's
+// computeVertexColors) when a scan is available - fatigue mode feeds it
+// fatigueByMuscle's own real intensities instead of target mode's
+// targetMuscles/muscleIntensities, through the same code path. Both fall
+// back to the 2D diagram service (services/muscleVisualizerService.js,
+// fixed this session after finding it had never actually worked - wrong
+// base path, wrong auth method, wrong muscle-name casing, see the audit)
+// when no scan is provided, so callers without scan data still get a
+// working visualization.
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, Pressable } from 'react-native';
@@ -51,7 +51,18 @@ export default function MuscleHeatmapCard({
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  const use3D = !!scan && activeMode === 'target';
+  // Real fix: previously hardcoded to target mode only, so fatigue mode
+  // always fell through to the 2D diagram service even when a real scan
+  // existed - the exact gap this file's own header comment used to flag
+  // as a separate follow-up, not built in that pass. Fatigue intensities
+  // (lib/muscleFatigue.js's calculateMuscleFatigue, already 0-100
+  // normalized) feed the identical computeVertexColors path target mode
+  // already uses - just with fatigueByMuscle's own muscle names and
+  // intensities instead of targetMuscles/muscleIntensities.
+  const use3D = !!scan && (activeMode === 'target' || activeMode === 'fatigue');
+  const fatigueMuscleNames = Object.keys(fatigueByMuscle).filter((m) => fatigueByMuscle[m] > 0);
+  const mesh3DMuscleNames = activeMode === 'fatigue' ? fatigueMuscleNames : targetMuscles;
+  const mesh3DIntensities = activeMode === 'fatigue' ? fatigueByMuscle : muscleIntensities;
 
   useEffect(() => {
     if (use3D) {
@@ -116,10 +127,12 @@ export default function MuscleHeatmapCard({
       {use3D ? (
         !hasDataForMode ? (
           <View style={styles.imageWrap}>
-            <Text style={styles.emptyText}>No muscle data for this activity yet.</Text>
+            <Text style={styles.emptyText}>
+              {activeMode === 'fatigue' ? 'Not enough recent activity to show fatigue yet.' : 'No muscle data for this activity yet.'}
+            </Text>
           </View>
         ) : (
-          <MuscleMeshHighlight scan={scan} muscleNames={targetMuscles} muscleIntensities={muscleIntensities} height={280} onRetry={onRetryScan} />
+          <MuscleMeshHighlight scan={scan} muscleNames={mesh3DMuscleNames} muscleIntensities={mesh3DIntensities} height={280} onRetry={onRetryScan} />
         )
       ) : (
         <View style={styles.imageWrap}>
@@ -137,7 +150,7 @@ export default function MuscleHeatmapCard({
         </View>
       )}
 
-      {activeMode === 'fatigue' && hasDataForMode && (
+      {activeMode === 'fatigue' && hasDataForMode && !use3D && (
         <View style={styles.legendRow}>
           <LegendDot color="#3B82F6" label="Fresh" />
           <LegendDot color="#22C55E" label="Light" />

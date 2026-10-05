@@ -186,6 +186,17 @@ export default function ActiveWorkoutScreen() {
       icon: 'body-outline',
       sets: ex.sets,
       reps: ex.reps,
+      // Real fix: previously dropped here, which meant
+      // lib/muscleFatigue.js's attributeWorkout always saw an empty
+      // muscleGroups array for every completed strength workout -
+      // fatigue was only ever getting signal from runs/hikes, never
+      // from lifting. Populated by the AI generator and manual workout
+      // builder alike (same field app/workout/[id].jsx already reads
+      // successfully pre-workout); static program days
+      // (data/workoutPrograms.js) don't carry it yet, so program-based
+      // sessions still won't contribute muscle-specific fatigue - a
+      // real, separate data gap, not something this fix papers over.
+      muscleGroups: ex.muscleGroups || [],
     }));
   });
 
@@ -587,7 +598,7 @@ export default function ActiveWorkoutScreen() {
         name: workoutDisplayName,
         category: selectedWorkout?.category,
         difficulty: selectedWorkout?.difficulty,
-        exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps })),
+        exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, muscleGroups: e.muscleGroups || [] })),
         duration: elapsedSeconds,
         exercisesCompleted: completedCount,
         totalExercises,
@@ -941,7 +952,7 @@ export default function ActiveWorkoutScreen() {
                 name: workoutDisplayName,
                 category: selectedWorkout?.category,
                 difficulty: selectedWorkout?.difficulty,
-                exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps })),
+                exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, muscleGroups: e.muscleGroups || [] })),
                 duration: elapsedSeconds,
                 exercisesCompleted: completedCount,
                 totalExercises,

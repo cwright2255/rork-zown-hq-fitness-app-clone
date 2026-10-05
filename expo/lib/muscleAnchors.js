@@ -50,6 +50,39 @@ export const MUSCLE_ANCHORS = {
   core: [
     { heightFraction: 0.63, sideFraction: 0, depthFraction: 0.6, lengthFraction: 0.19, widthFraction: 0.18 },
   ],
+  // Real, new: upper-body regions, same standard-body-proportion approach
+  // as the five above (waist ~0.62, shoulder line ~0.83 of total height,
+  // in typical standing-figure proportions - core's own existing 0.63
+  // anchor already lines up with that waist estimate). Named to match
+  // the plain-English vocabulary services/aiService.js's normalizeExercise
+  // passes through unconstrained from the AI generator (no fixed enum on
+  // that field) - "chest"/"back"/"shoulders"/"biceps"/"triceps" are the
+  // most likely real strings an exercise's muscleGroups array will
+  // actually contain, same reasoning as the original five using
+  // "glutes"/"core" over more clinical terms. Coordinates are estimates
+  // at the same honest-approximation level as the original five, not a
+  // measured fit to any real scan - worth a visual nudge against an
+  // actual rendered mesh if any region looks visibly off.
+  chest: [
+    { heightFraction: 0.78, sideFraction: -0.19, depthFraction: 0.55, lengthFraction: 0.14, widthFraction: 0.16 },
+    { heightFraction: 0.78, sideFraction: 0.19, depthFraction: 0.55, lengthFraction: 0.14, widthFraction: 0.16 },
+  ],
+  back: [
+    { heightFraction: 0.72, sideFraction: -0.22, depthFraction: -0.55, lengthFraction: 0.22, widthFraction: 0.20 },
+    { heightFraction: 0.72, sideFraction: 0.22, depthFraction: -0.55, lengthFraction: 0.22, widthFraction: 0.20 },
+  ],
+  shoulders: [
+    { heightFraction: 0.85, sideFraction: -0.32, depthFraction: 0.4, lengthFraction: 0.12, widthFraction: 0.12 },
+    { heightFraction: 0.85, sideFraction: 0.32, depthFraction: 0.4, lengthFraction: 0.12, widthFraction: 0.12 },
+  ],
+  biceps: [
+    { heightFraction: 0.72, sideFraction: -0.38, depthFraction: 0.5, lengthFraction: 0.14, widthFraction: 0.09 },
+    { heightFraction: 0.72, sideFraction: 0.38, depthFraction: 0.5, lengthFraction: 0.14, widthFraction: 0.09 },
+  ],
+  triceps: [
+    { heightFraction: 0.72, sideFraction: -0.38, depthFraction: -0.5, lengthFraction: 0.14, widthFraction: 0.09 },
+    { heightFraction: 0.72, sideFraction: 0.38, depthFraction: -0.5, lengthFraction: 0.14, widthFraction: 0.09 },
+  ],
 };
 
 function detectAxes(size) {

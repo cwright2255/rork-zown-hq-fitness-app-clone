@@ -145,7 +145,13 @@ return (
         <TrainingLoadCard trainingLoad={trainingLoad} aiInsight={trainingLoadInsight} />
 
         <View style={{ marginHorizontal: 20, marginBottom: 18 }}>
-          <MuscleHeatmapCard mode="fatigue" fatigueByMuscle={muscleFatigue} title="Muscle Fatigue" />
+          <MuscleHeatmapCard
+            mode="fatigue"
+            fatigueByMuscle={muscleFatigue}
+            title="Muscle Fatigue"
+            scan={latestScan}
+            onRetryScan={() => user?.uid && loadScans(user.uid)}
+          />
         </View>
 
         <TouchableOpacity

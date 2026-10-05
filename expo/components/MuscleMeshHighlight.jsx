@@ -112,8 +112,15 @@ export default function MuscleMeshHighlight({ scan, muscleNames, muscleIntensiti
         )}
       </View>
       {loadState === 'ready' && hasIntensityData && (
+        // Real fix: was missing the blue "fresh" tier entirely -
+        // computeVertexColors/intensityToHex (lib/muscleAnchors.js)
+        // always use this same 4-tier scale for any real intensity data
+        // (target-mode running/hiking weights, or fatigue), so a
+        // genuinely low-intensity muscle rendered blue with no legend
+        // entry explaining it.
         <View style={styles.legendRow}>
-          <LegendDot color="#22C55E" label="Low" />
+          <LegendDot color="#3B82F6" label="Fresh" />
+          <LegendDot color="#22C55E" label="Light" />
           <LegendDot color="#F59E0B" label="Moderate" />
           <LegendDot color="#DC2626" label="High" />
         </View>
