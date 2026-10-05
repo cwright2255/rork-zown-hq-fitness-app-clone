@@ -8,8 +8,16 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing as spacing, Radius as radius } from '@/src/constants/tokens';
 import { chatAI } from '@/services/aiService';
-import { buildCoachSystemPrompt, getCoachHistory, saveCoachMessage } from '@/services/coachService';
+import {
+  buildCoachSystemPrompt, getCoachHistory, saveCoachMessage,
+  summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext,
+} from '@/services/coachService';
 import { useUserStore } from '@/store/userStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
+import { PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
+import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -26,10 +34,14 @@ const WELCOME_MESSAGE = {
 // not a generic chatbot persona.
 export default function CoachScreen() {
   const { user } = useUserStore();
+  const { completedWorkouts, loadWorkouts, getExerciseHistory } = useWorkoutStore();
+  const { runs, loadRuns } = useRunningStore();
+  const { completedHikes, loadCompletedHikes } = useHikingStore();
   const [chatHistory, setChatHistory] = useState([WELCOME_MESSAGE]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
+  const [dataContext, setDataContext] = useState(null);
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +64,50 @@ export default function CoachScreen() {
     })();
     return () => { cancelled = true; };
   }, [user?.uid]);
+
+  // Real, new: this is what actually lets the coach cite real numbers
+  // instead of only ever giving generic encouragement - a compact,
+  // honest summary of the user's actual logged lifts/runs/hikes, built
+  // fresh into every message below (services/coachService.js). Loads
+  // the three stores' own data directly (same loader calls app/health.jsx
+  // already makes) since there's no shared cache between screens, then
+  // fetches each primary lift's real set-by-set history the same way
+  // lib/crossDomainInsights.js's plateau detection already does.
+  useEffect(() => {
+    if (!user?.uid) return;
+    let cancelled = false;
+    (async () => {
+      await Promise.all([loadWorkouts(user.uid), loadRuns(user.uid), loadCompletedHikes(user.uid)]);
+      if (cancelled) return;
+
+      const liftNames = Object.keys(PRIMARY_LIFT_MUSCLES);
+      const histories = await Promise.all(
+        liftNames.map((name) => getExerciseHistory(name, user.uid))
+      );
+      if (cancelled) return;
+
+      const historiesByLift = {};
+      liftNames.forEach((name, i) => { historiesByLift[name] = histories[i]; });
+
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const monthlyWorkoutCount = completedWorkouts.filter((w) => {
+        const d = w.date?.toDate ? w.date.toDate() : new Date(w.date);
+        return !Number.isNaN(d.getTime()) && d.getTime() >= thirtyDaysAgo;
+      }).length;
+
+      const trainingLoad = calculateTrainingLoad(
+        aggregateDailyLoad({ completedWorkouts, runs, completedHikes })
+      );
+
+      setDataContext({
+        liftPRs: summarizeLiftPRs(historiesByLift),
+        cardioVolume: summarizeCardioVolume({ runs, completedHikes, days: 7 }),
+        monthlyWorkoutCount,
+        trainingLoad,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [user?.uid, runs, completedHikes, completedWorkouts]);
 
   const handleSend = async (textToSend) => {
     const text = textToSend || chatMessage;
@@ -76,7 +132,15 @@ export default function CoachScreen() {
 
     try {
       const systemMsg = buildCoachSystemPrompt(user);
+      // Real, new: rebuilt fresh on every send, same as systemMsg itself -
+      // reflects whatever's actually been loaded so far rather than a
+      // stale snapshot from when the screen first mounted. Omitted
+      // entirely (not sent as an empty/placeholder message) until the
+      // real fetch above finishes, so the model is never told "here is
+      // the user's data" with nothing actually in it yet.
+      const dataMsg = dataContext ? buildUserDataContext(dataContext) : null;
       const messagesPayload = [systemMsg]
+        .concat(dataMsg ? [dataMsg] : [])
         .concat(chatHistory.filter((m) => m.id !== 'welcome'))
         .concat(userMsg)
         .map((m) => ({ role: m.role, content: m.content }));
