@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
+import { sendTestReport, forceTestCrash, isCrashReportingAvailable } from '@/lib/crashReporting';
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 const { width } = Dimensions.get('window');
@@ -716,6 +717,22 @@ export default function SettingsScreen() {
             icon="information-circle-outline"
             label="App Version"
             right={<Text style={s.infoText}>ZOWN HQ v1.0.0</Text>}
+          />
+          <SettingRow
+            icon="bug-outline"
+            label="Test Crash Reporting"
+            subLabel="Sends a test report so we can confirm error tracking works"
+            onPress={() => {
+              if (!isCrashReportingAvailable()) {
+                Alert.alert('Not available', 'Crash reporting is not part of this build yet.');
+                return;
+              }
+              Alert.alert('Test Crash Reporting', 'Send a test error report, or force a test crash (the app will close).', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Send test report', onPress: () => { sendTestReport(); Alert.alert('Sent', 'Test report sent. It can take a few minutes to show up.'); } },
+                { text: 'Force test crash', style: 'destructive', onPress: () => forceTestCrash() },
+              ]);
+            }}
           />
           <SettingRow
             icon="cloud-download-outline"

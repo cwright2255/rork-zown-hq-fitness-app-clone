@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zownhq.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "ZOWN HQ needs camera access to capture body scan photos for AI body composition analysis.",
         "NSPhotoLibraryUsageDescription": "ZOWN HQ needs photo library access to upload body scan photos and profile avatars.",
@@ -71,6 +72,8 @@
       "expo-image-picker",
       "expo-location",
       "expo-apple-authentication",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
       "./plugins/withPoseModel.js",
       "./plugins/withPoseDetectorErrorPatch.js",
       "./plugins/withPoseDetectionThreadingPatch.js",
@@ -81,7 +84,8 @@
             "compileSdkExtension": 19
           },
           "ios": {
-            "deploymentTarget": "16.0"
+            "deploymentTarget": "16.0",
+            "useFrameworks": "dynamic"
           }
         }
       ],
@@ -92,7 +96,9 @@
           "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health.",
           "background": false
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
     ],
     "extra": {
       "eas": {

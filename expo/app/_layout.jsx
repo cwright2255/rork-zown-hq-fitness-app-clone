@@ -22,6 +22,7 @@ const Head = ({ children }) => null;
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
+import { initCrashReporting, setCrashUser, logBreadcrumb } from '@/lib/crashReporting';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
@@ -221,6 +222,13 @@ function RootLayoutInner() {
   const [splashVisible, setSplashVisible] = useState(true);
   const pathname = usePathname();
   const { isOnboarded } = useUserStore();
+
+  // Crash reporting: start it, tag reports with the signed-in user's uid,
+  // and leave a trail of screens so a crash report shows where it happened.
+  const crashUid = useUserStore((s) => s.user?.uid);
+  useEffect(() => { initCrashReporting(); }, []);
+  useEffect(() => { if (crashUid) setCrashUser(crashUid); }, [crashUid]);
+  useEffect(() => { logBreadcrumb(`screen: ${pathname}`); }, [pathname]);
   const { cart } = useShopStore();
   const { connectSpotify, connectSpotifyImplicit } = useSpotifyStore();
 
