@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
   KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -41,7 +41,9 @@ export default function CoachScreen() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
-  const [dataContext, setDataContext] = useState(null);
+  // null until the one-time load below finishes, so the model is never told
+  // "here is the user's data" before there is any.
+  const [liftPRs, setLiftPRs] = useState(null);
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
@@ -73,41 +75,61 @@ export default function CoachScreen() {
   // already makes) since there's no shared cache between screens, then
   // fetches each primary lift's real set-by-set history the same way
   // lib/crossDomainInsights.js's plateau detection already does.
+  // One-time load per user. Deliberately depends ONLY on user?.uid: the
+  // store loaders below replace runs/completedHikes/completedWorkouts with
+  // brand-new arrays when they finish, so an effect that both called them
+  // AND listed that data as a dependency re-triggered itself forever (a
+  // continuous reload loop that froze and crashed the screen). The derived
+  // numbers are computed in the useMemo below instead, which re-runs on
+  // data changes without re-fetching anything.
   useEffect(() => {
     if (!user?.uid) return;
     let cancelled = false;
     (async () => {
-      await Promise.all([loadWorkouts(user.uid), loadRuns(user.uid), loadCompletedHikes(user.uid)]);
-      if (cancelled) return;
+      try {
+        await Promise.all([loadWorkouts(user.uid), loadRuns(user.uid), loadCompletedHikes(user.uid)]);
+        if (cancelled) return;
 
-      const liftNames = Object.keys(PRIMARY_LIFT_MUSCLES);
-      const histories = await Promise.all(
-        liftNames.map((name) => getExerciseHistory(name, user.uid))
-      );
-      if (cancelled) return;
+        const liftNames = Object.keys(PRIMARY_LIFT_MUSCLES);
+        const histories = await Promise.all(
+          liftNames.map((name) => getExerciseHistory(name, user.uid))
+        );
+        if (cancelled) return;
 
-      const historiesByLift = {};
-      liftNames.forEach((name, i) => { historiesByLift[name] = histories[i]; });
+        const historiesByLift = {};
+        liftNames.forEach((name, i) => { historiesByLift[name] = histories[i]; });
+        setLiftPRs(summarizeLiftPRs(historiesByLift));
+      } catch (e) {
+        console.warn('[Coach] failed to load training data context:', e?.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.uid]);
 
+  const dataContext = useMemo(() => {
+    if (liftPRs === null) return null;
+    try {
+      const workouts = completedWorkouts || [];
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const monthlyWorkoutCount = completedWorkouts.filter((w) => {
+      const monthlyWorkoutCount = workouts.filter((w) => {
         const d = w.date?.toDate ? w.date.toDate() : new Date(w.date);
         return !Number.isNaN(d.getTime()) && d.getTime() >= thirtyDaysAgo;
       }).length;
-
-      const trainingLoad = calculateTrainingLoad(
-        aggregateDailyLoad({ completedWorkouts, runs, completedHikes })
-      );
-
-      setDataContext({
-        liftPRs: summarizeLiftPRs(historiesByLift),
-        cardioVolume: summarizeCardioVolume({ runs, completedHikes, days: 7 }),
+      return {
+        liftPRs,
+        cardioVolume: summarizeCardioVolume({ runs: runs || [], completedHikes: completedHikes || [], days: 7 }),
         monthlyWorkoutCount,
-        trainingLoad,
-      });
-    })();
-    return () => { cancelled = true; };
-  }, [user?.uid, runs, completedHikes, completedWorkouts]);
+        trainingLoad: calculateTrainingLoad(
+          aggregateDailyLoad({ completedWorkouts: workouts, runs: runs || [], completedHikes: completedHikes || [] })
+        ),
+      };
+    } catch (e) {
+      // A problem summarizing the data must never take down the chat; the
+      // coach just answers without the data context.
+      console.warn('[Coach] failed to build data context:', e?.message);
+      return null;
+    }
+  }, [liftPRs, runs, completedHikes, completedWorkouts]);
 
   const handleSend = async (textToSend) => {
     const text = textToSend || chatMessage;
