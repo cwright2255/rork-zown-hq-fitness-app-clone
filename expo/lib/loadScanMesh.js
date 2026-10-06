@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildBodyMesh } from '@/lib/bodyMeshBuilder';
 import { buildSkinnedBodyMesh } from '@/lib/applySkeletonToMesh';
+import { buildCacheKey, meshCache } from '@/lib/meshCache';
 
 const MANNEQUIN_GRAY = '#9CA3AF';
 const ANNY_SERVICE_URL = 'https://anny-mesh-service-431690627943.us-central1.run.app/generate-mesh';
@@ -21,38 +22,63 @@ const getReferenceRigUri = REFERENCE_RIG_BUNDLED
   ? () => Promise.resolve(null)
   : () => Promise.resolve(null);
 
+async function parseGlb(arrayBuffer) {
+  return new Promise((resolve, reject) => {
+    new GLTFLoader().parse(arrayBuffer, '', resolve, reject);
+  });
+}
+
 async function loadHighQualityMesh(scan) {
   if (!scan.heightCm || !scan.gender) {
     throw new Error('Missing height or gender - required for high-quality mesh generation.');
   }
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), ANNY_REQUEST_TIMEOUT_MS);
-  let response;
-  try {
-    response = await fetch(ANNY_SERVICE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        height_cm: scan.heightCm,
-        weight_kg: scan.weightKg ?? undefined,
-        gender: scan.gender,
-        body_fat_percent: scan.bodyFatPercent ?? undefined,
-        waist_cm: scan.measurements?.waistCircumferenceCm ?? undefined,
-        hip_cm: scan.measurements?.hipCircumferenceCm ?? undefined,
-      }),
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
+  const requestBody = {
+    height_cm: scan.heightCm,
+    weight_kg: scan.weightKg ?? undefined,
+    gender: scan.gender,
+    body_fat_percent: scan.bodyFatPercent ?? undefined,
+    waist_cm: scan.measurements?.waistCircumferenceCm ?? undefined,
+    hip_cm: scan.measurements?.hipCircumferenceCm ?? undefined,
+  };
+
+  // Offline-first: a mesh already generated for these exact body
+  // parameters is stored on the device and used with no network at all.
+  const cacheKey = buildCacheKey(requestBody);
+  let gltf = null;
+  const cachedBuffer = await meshCache.read(cacheKey);
+  if (cachedBuffer) {
+    try {
+      gltf = await parseGlb(cachedBuffer);
+    } catch (cacheParseError) {
+      console.warn('[loadScanMesh] cached mesh unreadable, discarding:', cacheParseError?.message);
+      await meshCache.remove(cacheKey);
+    }
   }
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error('Anny service returned ' + response.status + ': ' + detail.slice(0, 200));
+
+  if (!gltf) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ANNY_REQUEST_TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch(ANNY_SERVICE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error('Anny service returned ' + response.status + ': ' + detail.slice(0, 200));
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    gltf = await parseGlb(arrayBuffer);
+    // Only cache a response that actually parsed; not awaited so a slow
+    // disk write never delays showing the mesh.
+    meshCache.write(cacheKey, arrayBuffer);
   }
-  const arrayBuffer = await response.arrayBuffer();
-  const gltf = await new Promise((resolve, reject) => {
-    new GLTFLoader().parse(arrayBuffer, '', resolve, reject);
-  });
   let mesh = null;
   gltf.scene.traverse((child) => {
     if (child.isMesh && !mesh) mesh = child;
