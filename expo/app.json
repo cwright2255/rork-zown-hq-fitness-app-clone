@@ -78,6 +78,7 @@
       "./plugins/withPoseDetectorErrorPatch.js",
       "./plugins/withPoseDetectionThreadingPatch.js",
       "./plugins/withMediaPipeFrameworkHeaderPatch.js",
+      "./plugins/withAllowNonModularIncludes.js",
       [
         "expo-build-properties",
         {
