@@ -72,7 +72,7 @@
       "expo-image-picker",
       "expo-location",
       "expo-apple-authentication",
-      "@react-native-firebase/app",
+      ["@react-native-firebase/app", { "ios": { "disableSPM": true } }],
       "@react-native-firebase/crashlytics",
       "./plugins/withPoseModel.js",
       "./plugins/withPoseDetectorErrorPatch.js",
@@ -85,7 +85,8 @@
           },
           "ios": {
             "deploymentTarget": "16.0",
-            "useFrameworks": "dynamic"
+            "useFrameworks": "static",
+            "forceStaticLinking": ["RNFBApp", "RNFBCrashlytics"]
           }
         }
       ],
@@ -96,9 +97,7 @@
           "NSHealthUpdateUsageDescription": "ZOWN HQ needs access to save completed workouts and health metrics to Apple Health.",
           "background": false
         }
-      ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics"
+      ]
     ],
     "extra": {
       "eas": {
