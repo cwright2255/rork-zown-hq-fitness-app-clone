@@ -17,7 +17,7 @@ import { useAudience } from '@/store/useAudience';
 import { filterByAudience, emptyAudienceMessage } from '@/lib/audience';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
-import { canPost, normalizeMedia, mediaSummary } from '@/lib/postMedia';
+import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
@@ -107,9 +107,8 @@ export default function SocialScreen() {
       setMediaItems([]);
       setComposerOpen(false);
     } catch (e) {
-      Alert.alert('Error', mediaItems.length > 0
-        ? "Couldn't upload your post. Check your connection and try again."
-        : "Couldn't post right now. Try again.");
+      console.warn('[post] failed:', e?.code, e?.message);
+      Alert.alert('Error', postErrorMessage(e, mediaItems.length > 0));
     } finally {
       setPosting(false);
     }

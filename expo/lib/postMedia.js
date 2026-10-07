@@ -210,3 +210,48 @@ export function uploadLabel(items, progress) {
   if (list.length === 0) return 'Posting…';
   return `Uploading ${progressPercent(progress)}%`;
 }
+
+// ---- Upload errors (services/postMediaService.js and the post screens) ----
+
+// Firebase errors carry a code like "storage/unauthorized" or "permission-denied".
+export function errorCode(e) {
+  const code = e && (e.code || (e.customData && e.customData.code));
+  return code ? String(code) : '';
+}
+
+// Errors that retrying a different way cannot fix (the same rules or sign-in apply).
+const NO_RETRY_CODES = [
+  'storage/unauthorized', 'storage/unauthenticated', 'storage/quota-exceeded',
+  'storage/canceled', 'storage/bucket-not-found', 'storage/project-not-found',
+];
+
+export function shouldRetryUpload(e) {
+  return !NO_RETRY_CODES.includes(errorCode(e));
+}
+
+// One short line for the error alert: "storage/unknown: what Firebase said (server: ...)".
+export function errorDetails(e, max = 260) {
+  if (!e) return '';
+  const code = errorCode(e);
+  const server = e.customData && e.customData.serverResponse ? ` (server: ${String(e.customData.serverResponse).replace(/\s+/g, ' ')})` : '';
+  const text = `${code ? `${code}: ` : ''}${e.message || String(e)}${server}`;
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+// The alert text when creating a post fails: what happened in plain words, then the details.
+export function postErrorMessage(e, hasMedia) {
+  const code = errorCode(e);
+  let hint = 'Check your connection and try again.';
+  if (code === 'storage/unauthorized' || code === 'permission-denied') {
+    hint = "Zown HQ isn't allowed to save this yet. That's a settings problem, not your connection.";
+  } else if (code === 'storage/unauthenticated' || code === 'unauthenticated') {
+    hint = 'Please sign out, sign back in, and try again.';
+  } else if (code === 'storage/quota-exceeded') {
+    hint = 'Storage is full right now.';
+  } else if (code === 'storage/canceled') {
+    hint = 'The upload was canceled.';
+  }
+  const head = hasMedia ? "Couldn't upload your post." : "Couldn't post right now.";
+  const details = errorDetails(e);
+  return details ? `${head} ${hint}\n\n${details}` : `${head} ${hint}`;
+}

@@ -11,7 +11,7 @@ import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
-import { canPost, normalizeMedia, mediaSummary } from '@/lib/postMedia';
+import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
 
 // No real challenge-tracking backend exists yet (participant tracking,
 // join state, progress toward a goal) — that's a separate, larger feature
@@ -78,9 +78,8 @@ export default function CommunityScreen() {
       setMediaItems([]);
       setComposerOpen(false);
     } catch (e) {
-      Alert.alert('Error', mediaItems.length > 0
-        ? "Couldn't upload your post. Check your connection and try again."
-        : "Couldn't post right now. Try again.");
+      console.warn('[post] failed:', e?.code, e?.message);
+      Alert.alert('Error', postErrorMessage(e, mediaItems.length > 0));
     } finally {
       setPosting(false);
     }

@@ -9,9 +9,10 @@
 
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from '../src/config/firebase';
+import { storage, auth } from '../src/config/firebase';
 import {
   MAX_PHOTOS, MAX_VIDEO_SECONDS, buildStoragePath, contentTypeFor, toMediaDescriptor,
+  errorCode, errorDetails, shouldRetryUpload,
 } from '../lib/postMedia';
 
 /** Opens the photo library for photos and videos. Returns the raw picker assets ([] if cancelled). */
@@ -47,6 +48,95 @@ export async function capturePhoto() {
   return { denied: false, assets: result.assets || [] };
 }
 
+function codedError(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
+/** Reads a picked file into a Blob. Tries fetch first, then XMLHttpRequest; refuses empty files. */
+async function uriToBlob(uri) {
+  try {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    if (blob && blob.size > 0) return blob;
+  } catch (e) {
+    // fall through to the XMLHttpRequest route below
+  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => {
+      const blob = xhr.response;
+      if (blob && blob.size > 0) resolve(blob);
+      else reject(codedError('storage/unreadable-file', 'The selected file is empty or could not be read.'));
+    };
+    xhr.onerror = () => reject(codedError('storage/unreadable-file', 'The selected file could not be read.'));
+    xhr.responseType = 'blob';
+    xhr.open('GET', uri, true);
+    xhr.send(null);
+  });
+}
+
+/** Upload with the Firebase SDK. onFraction gets 0 to 1 for this one file. */
+function uploadWithSdk(fileRef, blob, contentType, onFraction) {
+  const task = uploadBytesResumable(fileRef, blob, {
+    contentType,
+    cacheControl: 'public,max-age=31536000',
+  });
+  return new Promise((resolve, reject) => {
+    task.on(
+      'state_changed',
+      (snap) => { if (snap.totalBytes > 0) onFraction(snap.bytesTransferred / snap.totalBytes); },
+      reject,
+      resolve
+    );
+  });
+}
+
+/**
+ * Second way to upload, used only if the SDK upload fails for a reason a retry
+ * could fix: one plain HTTPS request to the Firebase Storage endpoint with the
+ * user's sign-in token. The same security rules apply. Resolves with the
+ * object's metadata (which includes its download token).
+ */
+async function uploadWithRest(fileRef, blob, contentType, onFraction) {
+  const current = auth && auth.currentUser;
+  if (!current) throw codedError('storage/unauthenticated', 'Not signed in.');
+  const token = await current.getIdToken();
+  const url = `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(fileRef.bucket)}/o?name=${encodeURIComponent(fileRef.fullPath)}`;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Authorization', `Firebase ${token}`);
+    xhr.setRequestHeader('Content-Type', contentType);
+    if (xhr.upload) {
+      xhr.upload.onprogress = (e) => { if (e && e.lengthComputable && e.total > 0) onFraction(e.loaded / e.total); };
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        let meta = {};
+        try { meta = JSON.parse(xhr.responseText); } catch (e) { meta = {}; }
+        resolve(meta);
+        return;
+      }
+      const code = xhr.status === 401 ? 'storage/unauthenticated' : xhr.status === 403 ? 'storage/unauthorized' : `storage/http-${xhr.status}`;
+      reject(codedError(code, `HTTP ${xhr.status} ${String(xhr.responseText || '').replace(/\s+/g, ' ').slice(0, 160)}`.trim()));
+    };
+    xhr.onerror = () => reject(codedError('storage/network', 'Network request failed.'));
+    xhr.send(blob);
+  });
+}
+
+async function downloadUrlFor(fileRef, restMeta) {
+  try {
+    return await getDownloadURL(fileRef);
+  } catch (e) {
+    const tokens = restMeta && restMeta.downloadTokens ? String(restMeta.downloadTokens).split(',')[0] : '';
+    if (!tokens) throw e;
+    return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(fileRef.bucket)}/o/${encodeURIComponent(fileRef.fullPath)}?alt=media&token=${tokens}`;
+  }
+}
+
 /**
  * Uploads picked items one after another and returns the media descriptors to
  * save on the post. onProgress gets a number from 0 to 1 across all files.
@@ -60,25 +150,25 @@ export async function uploadPostMedia({ uid, postId, items, onProgress }) {
       const item = items[i];
       const path = buildStoragePath(uid, postId, i, item);
       const fileRef = ref(storage, path);
-      const response = await fetch(item.uri);
-      const blob = await response.blob();
-      const task = uploadBytesResumable(fileRef, blob, {
-        contentType: contentTypeFor(item),
-        cacheControl: 'public,max-age=31536000',
-      });
-      await new Promise((resolve, reject) => {
-        task.on(
-          'state_changed',
-          (snap) => {
-            if (onProgress && snap.totalBytes > 0) onProgress((i + snap.bytesTransferred / snap.totalBytes) / items.length);
-          },
-          reject,
-          resolve
-        );
-      });
+      const contentType = contentTypeFor(item);
+      const blob = await uriToBlob(item.uri);
+      const report = (fraction) => { if (onProgress) onProgress((i + Math.min(1, Math.max(0, fraction))) / items.length); };
+
+      let restMeta = null;
+      try {
+        await uploadWithSdk(fileRef, blob, contentType, report);
+      } catch (sdkError) {
+        if (!shouldRetryUpload(sdkError)) throw sdkError;
+        console.warn('[postMedia] SDK upload failed, trying direct upload:', errorCode(sdkError), sdkError && sdkError.message);
+        try {
+          restMeta = await uploadWithRest(fileRef, blob, contentType, report);
+        } catch (restError) {
+          throw codedError(errorCode(sdkError) || errorCode(restError), `${errorDetails(sdkError, 140)} | retry: ${errorDetails(restError, 140)}`);
+        }
+      }
       if (blob && typeof blob.close === 'function') blob.close();
       uploaded.push(fileRef);
-      const url = await getDownloadURL(fileRef);
+      const url = await downloadUrlFor(fileRef, restMeta);
       media.push(toMediaDescriptor(item, url, path));
     }
     if (onProgress) onProgress(1);

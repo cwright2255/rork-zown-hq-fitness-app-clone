@@ -3,6 +3,7 @@ import {
   assetKind, assetToItem, addPicked, removeAt, canPost, remainingPhotos, pickerHint,
   formatDuration, buildStoragePath, contentTypeFor, extensionFor, toMediaDescriptor,
   normalizeMedia, clampAspect, gridRows, mediaSummary, initialsFor, progressPercent, uploadLabel,
+  errorCode, shouldRetryUpload, errorDetails, postErrorMessage,
 } from '../lib/postMedia';
 
 const photo = (n, extra = {}) => ({ uri: `file:///tmp/p${n}.jpg`, type: 'image', width: 1200, height: 900, fileSize: 2_000_000, ...extra });
@@ -219,5 +220,42 @@ describe('Create Post screen helpers', () => {
     expect(uploadLabel(undefined, 0.5)).toBe('Posting…');
     expect(uploadLabel([{ uri: 'x' }], 0.426)).toBe('Uploading 43%');
     expect(uploadLabel([{ uri: 'x' }], 0)).toBe('Uploading 0%');
+  });
+});
+
+describe('upload errors', () => {
+  const fbError = (code, message, serverResponse) => Object.assign(new Error(message), { code, customData: serverResponse ? { serverResponse } : undefined });
+
+  it('errorCode reads Firebase codes', () => {
+    expect(errorCode(fbError('storage/unknown', 'x'))).toBe('storage/unknown');
+    expect(errorCode(new Error('plain'))).toBe('');
+    expect(errorCode(null)).toBe('');
+    expect(errorCode({ customData: { code: 'storage/retry-limit-exceeded' } })).toBe('storage/retry-limit-exceeded');
+  });
+
+  it('shouldRetryUpload skips errors a second try cannot fix', () => {
+    expect(shouldRetryUpload(fbError('storage/unauthorized', 'x'))).toBe(false);
+    expect(shouldRetryUpload(fbError('storage/unauthenticated', 'x'))).toBe(false);
+    expect(shouldRetryUpload(fbError('storage/canceled', 'x'))).toBe(false);
+    expect(shouldRetryUpload(fbError('storage/unknown', 'x'))).toBe(true);
+    expect(shouldRetryUpload(new Error('Network request failed'))).toBe(true);
+  });
+
+  it('errorDetails is one short line with the code and the server reply', () => {
+    expect(errorDetails(fbError('storage/unknown', 'Firebase Storage: unknown', '{\n "error": "x" }'))).toBe('storage/unknown: Firebase Storage: unknown (server: { "error": "x" })');
+    expect(errorDetails(new Error('boom'))).toBe('boom');
+    expect(errorDetails(null)).toBe('');
+    expect(errorDetails(new Error('x'.repeat(500)), 50)).toHaveLength(50);
+  });
+
+  it('postErrorMessage explains the likely cause and keeps the details', () => {
+    const denied = postErrorMessage(fbError('storage/unauthorized', 'denied'), true);
+    expect(denied).toMatch(/Couldn't upload your post/);
+    expect(denied).toMatch(/settings problem/);
+    expect(denied).toMatch(/storage\/unauthorized: denied/);
+    expect(postErrorMessage(fbError('permission-denied', 'Missing permissions'), false)).toMatch(/Couldn't post right now.*settings problem/);
+    expect(postErrorMessage(fbError('storage/unauthenticated', 'x'), true)).toMatch(/sign back in/);
+    expect(postErrorMessage(new Error('Network request failed'), true)).toMatch(/Check your connection/);
+    expect(postErrorMessage(undefined, false)).toBe("Couldn't post right now. Check your connection and try again.");
   });
 });
