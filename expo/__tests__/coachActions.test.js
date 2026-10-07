@@ -231,5 +231,9 @@ describe('buildActionInstructions', () => {
     expect(text).toContain('09:00');
     expect(text).toContain('<zown_action>');
     expect(text).toMatch(/only after they say yes/);
+    // Plans to improve a lift must include supporting work, not just that lift.
+    expect(text).toMatch(/never fill it with only that lift/);
+    expect(text).toContain('triceps');
+    expect(text).toContain('upper back');
   });
 });
