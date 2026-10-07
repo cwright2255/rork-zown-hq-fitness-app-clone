@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { groupSetsBySession, estimateOneRepMax } from './progressiveOverloadService';
 import { getDietProfile, describeDietForAI } from '../lib/dietProfile';
+import { buildActionInstructions } from '../lib/coachActions';
 
 // Real, new: readable labels for the raw ids app/profile/edit.jsx's
 // GOALS/INJURIES constants store on the user, so the system prompt below
@@ -39,7 +40,7 @@ const INJURY_LABELS = {
 // given message. Every field degrades gracefully when unset - a brand
 // new profile with nothing filled in still produces a clean, sensible
 // prompt, not an awkward "Goals: ." fragment.
-export function buildCoachSystemPrompt(user) {
+export function buildCoachSystemPrompt(user, now = new Date()) {
   const name = user?.name?.trim() || 'there';
   const goals = (user?.fitnessMetrics?.targetGoals || []).map((id) => GOAL_LABELS[id] || id);
   const injuries = (user?.fitnessMetrics?.injuries || []).map((id) => INJURY_LABELS[id] || id);
@@ -55,6 +56,9 @@ export function buildCoachSystemPrompt(user) {
       : null,
     ...dietLines,
     'Be encouraging, specific, and concise. Reference their real goals and injuries naturally when relevant, not every message.',
+    // Lets the coach propose workouts, calendar events and nutrition plans
+    // that the user approves with Yes / No in the chat (lib/coachActions.js).
+    buildActionInstructions(now),
   ].filter(Boolean);
 
   return { role: 'system', content: lines.join(' ') };

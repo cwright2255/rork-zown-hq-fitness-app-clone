@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing as spacing, Radius as radius } from '@/src/constants/tokens';
 import { chatAI } from '@/services/aiService';
+import {
+  extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply,
+} from '@/lib/coachActions';
+import { executeCoachActions } from '@/services/coachActionService';
 import {
   buildCoachSystemPrompt, getCoachHistory, saveCoachMessage,
   summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext,
@@ -45,6 +49,29 @@ export default function CoachScreen() {
   // "here is the user's data" before there is any.
   const [liftPRs, setLiftPRs] = useState(null);
   const scrollViewRef = useRef(null);
+  const insets = useSafeAreaInsets();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  // Always-current copy of the chat for the async handlers below, so a
+  // reply that finishes later never works from an out-of-date list.
+  const chatRef = useRef(chatHistory);
+  chatRef.current = chatHistory;
+
+  // The input bar sits above the home indicator when the keyboard is down
+  // (it used to sit right on the screen edge), and snug against the
+  // keyboard when it is up.
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => {
+      setKeyboardOpen(true);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,9 +158,70 @@ export default function CoachScreen() {
     }
   }, [liftPRs, runs, completedHikes, completedWorkouts]);
 
+  // ---- Chat helpers -------------------------------------------------------
+
+  const scrollToEndSoon = () => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+
+  const appendMessage = (role, content, extra = {}) => {
+    const msg = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, role, content, ...extra };
+    setChatHistory((prev) => [...prev, msg]);
+    if (user?.uid) {
+      saveCoachMessage(user.uid, role, content).catch((e) =>
+        console.warn('[Coach] failed to save message:', e?.message)
+      );
+    }
+    scrollToEndSoon();
+    return msg;
+  };
+
+  const updateAction = (messageId, patch) => {
+    setChatHistory((prev) =>
+      prev.map((m) => (m.id === messageId && m.action ? { ...m, action: { ...m.action, ...patch } } : m))
+    );
+  };
+
+  // The newest proposal still waiting for a Yes / No.
+  const findPending = () => [...chatRef.current].reverse().find((m) => m.action?.status === 'pending') || null;
+
+  // The coach only ever PROPOSES. Nothing is created until the user taps
+  // Yes (or types a plain "yes"), and the result is reported back in chat.
+  const confirmAction = async (messageId) => {
+    const msg = chatRef.current.find((m) => m.id === messageId);
+    if (!msg || msg.action?.status !== 'pending') return;
+    updateAction(messageId, { status: 'running' });
+    try {
+      const result = await executeCoachActions(msg.action.actions, user);
+      const allFailed = result.failures.length >= msg.action.actions.length;
+      updateAction(messageId, allFailed ? { status: 'pending' } : { status: 'done', links: result.links });
+      appendMessage('assistant', result.message);
+    } catch (e) {
+      console.warn('[Coach] action failed:', e?.message);
+      updateAction(messageId, { status: 'pending' });
+      appendMessage('assistant', "Sorry, I couldn't save that. Nothing was changed - please try again.");
+    }
+  };
+
+  const declineAction = (messageId) => {
+    const msg = chatRef.current.find((m) => m.id === messageId);
+    if (!msg || msg.action?.status !== 'pending') return;
+    updateAction(messageId, { status: 'declined' });
+    appendMessage('assistant', "No problem - I haven't added anything. Tell me what you'd like changed and I'll adjust it.");
+  };
+
   const handleSend = async (textToSend) => {
     const text = textToSend || chatMessage;
     if (!text.trim() || isAiThinking) return;
+
+    // A short typed "yes" / "no" answers the open proposal, same as the buttons.
+    const pending = findPending();
+    const verdict = pending ? classifyReply(text) : null;
+    if (pending && verdict) {
+      setChatMessage('');
+      appendMessage('user', text.trim().slice(0, 500));
+      if (verdict === 'yes') await confirmAction(pending.id);
+      else declineAction(pending.id);
+      return;
+    }
 
     const userMsg = {
       id: Date.now().toString(),
@@ -141,10 +229,18 @@ export default function CoachScreen() {
       content: text.trim().slice(0, 500),
     };
 
-    setChatHistory((prev) => [...prev, userMsg]);
+    // Snapshot of the conversation BEFORE this message, for the model.
+    const historyForModel = chatRef.current.filter((m) => m.id !== 'welcome');
+
+    // Anything else typed means the old proposal is being changed or
+    // dropped; its buttons go away so a stale one can't be tapped later.
+    setChatHistory((prev) => [
+      ...prev.map((m) => (m.action?.status === 'pending' ? { ...m, action: { ...m.action, status: 'superseded' } } : m)),
+      userMsg,
+    ]);
     setChatMessage('');
     setIsAiThinking(true);
-    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+    scrollToEndSoon();
 
     if (user?.uid) {
       saveCoachMessage(user.uid, 'user', userMsg.content).catch((e) =>
@@ -163,16 +259,37 @@ export default function CoachScreen() {
       const dataMsg = dataContext ? buildUserDataContext(dataContext) : null;
       const messagesPayload = [systemMsg]
         .concat(dataMsg ? [dataMsg] : [])
-        .concat(chatHistory.filter((m) => m.id !== 'welcome'))
+        .concat(historyForModel)
         .concat(userMsg)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const response = await chatAI(messagesPayload);
+      // Longer timeout than a plain chat reply: a full plan with its
+      // action block is a much bigger answer.
+      const response = await chatAI(messagesPayload, 45000);
+
+      // Pull the machine-readable block out so raw JSON is never shown,
+      // validate it, and attach it as a Yes / No proposal.
+      const { text: replyText, actions: rawActions } = extractCoachAction(response);
+      let proposal = null;
+      if (rawActions) {
+        const { actions } = normalizeActions(rawActions, { user });
+        const lines = describeActions(actions);
+        if (actions.length > 0 && lines.length > 0) proposal = { status: 'pending', actions, lines, links: [] };
+      }
+
+      let content = replyText;
+      if (proposal) {
+        if (!content) content = "Here's what I put together.";
+        if (!endsWithQuestion(content)) content = `${content}\n\n${buildQuestion(proposal.actions)}`;
+      } else if (!content) {
+        content = "I couldn't put that together cleanly. Tell me the days and times you'd like and I'll try again.";
+      }
 
       const assistantMsg = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content,
+        ...(proposal ? { action: proposal } : {}),
       };
       setChatHistory((prev) => [...prev, assistantMsg]);
 
@@ -193,7 +310,7 @@ export default function CoachScreen() {
       ]);
     } finally {
       setIsAiThinking(false);
-      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+      scrollToEndSoon();
     }
   };
 
@@ -215,12 +332,14 @@ export default function CoachScreen() {
         <KeyboardAvoidingView
           style={s.tabContent}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          keyboardVerticalOffset={0}
         >
           <ScrollView
             ref={scrollViewRef}
             contentContainerStyle={s.chatScroll}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           >
             {chatHistory.map((msg) => (
               <View
@@ -232,10 +351,51 @@ export default function CoachScreen() {
                     <Text style={s.avatarText}>Z</Text>
                   </View>
                 )}
-                <View style={[s.chatBubble, msg.role === 'user' ? s.chatBubbleUser : s.chatBubbleAssistant]}>
+                <View
+                  style={[
+                    s.chatBubble,
+                    msg.role === 'user' ? s.chatBubbleUser : s.chatBubbleAssistant,
+                    msg.action && s.chatBubbleWide,
+                  ]}
+                >
                   <Text style={[s.chatText, msg.role === 'user' ? s.chatTextUser : s.chatTextAssistant]}>
                     {msg.content}
                   </Text>
+
+                  {msg.action && (
+                    <View style={s.actionCard}>
+                      {msg.action.lines.map((line, i) => (
+                        <Text key={i} style={s.actionLine}>{`• ${line}`}</Text>
+                      ))}
+
+                      {msg.action.status === 'pending' && (
+                        <View style={s.actionButtons}>
+                          <Pressable style={s.yesButton} onPress={() => confirmAction(msg.id)}>
+                            <Text style={s.yesButtonText}>Yes, do it</Text>
+                          </Pressable>
+                          <Pressable style={s.noButton} onPress={() => declineAction(msg.id)}>
+                            <Text style={s.noButtonText}>No thanks</Text>
+                          </Pressable>
+                        </View>
+                      )}
+
+                      {msg.action.status === 'running' && (
+                        <View style={s.actionStatusRow}>
+                          <ActivityIndicator size="small" color="#000000" />
+                          <Text style={s.actionStatusText}>Adding it now...</Text>
+                        </View>
+                      )}
+
+                      {msg.action.status === 'done' && (msg.action.links || []).map((link) => (
+                        <Pressable key={link.route} onPress={() => router.push(link.route)} style={s.actionLinkRow}>
+                          <Text style={s.actionLink}>{`${link.label} ›`}</Text>
+                        </Pressable>
+                      ))}
+
+                      {msg.action.status === 'declined' && <Text style={s.actionStatusText}>Not added</Text>}
+                      {msg.action.status === 'superseded' && <Text style={s.actionStatusText}>Replaced by a newer message</Text>}
+                    </View>
+                  )}
                 </View>
               </View>
             ))}
@@ -252,7 +412,7 @@ export default function CoachScreen() {
             )}
           </ScrollView>
 
-          <View style={s.inputContainer}>
+          <View style={[s.inputContainer, { paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm) }]}>
             <TextInput
               style={s.input}
               placeholder="Ask your coach anything..."
@@ -351,4 +511,36 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   sendCircleDisabled: { backgroundColor: '#CCCCCC' },
+  chatBubbleWide: { maxWidth: '88%' },
+  actionCard: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  actionLine: { fontSize: 13, lineHeight: 18, color: '#000000', marginBottom: 4 },
+  actionButtons: { flexDirection: 'row', marginTop: spacing.sm },
+  yesButton: {
+    flex: 1,
+    backgroundColor: '#000000',
+    borderRadius: radius.xl,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  yesButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  noButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  noButtonText: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  actionStatusRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
+  actionStatusText: { fontSize: 12, color: '#666666', marginLeft: spacing.xs, marginTop: 2 },
+  actionLinkRow: { marginTop: spacing.xs, paddingVertical: 4 },
+  actionLink: { fontSize: 14, fontWeight: '700', color: '#000000' },
 });

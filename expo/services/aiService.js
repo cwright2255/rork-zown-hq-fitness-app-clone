@@ -119,8 +119,8 @@ const getUserDietaryContext = () => {
   }
 };
 
-export const chatAI = async (messages) => {
-  const data = await postLLM(messages, 30000, 1);
+export const chatAI = async (messages, timeoutMs = 30000) => {
+  const data = await postLLM(messages, timeoutMs, 1);
   return data.completion;
 };
 

@@ -139,6 +139,51 @@ class NotificationService {
     });
   }
 
+  // One reminder for a calendar event the user put on their schedule (for
+  // example through the AI coach). Returns the notification id so the event
+  // can cancel it later, or null when nothing was scheduled (web, a time
+  // that has already passed, or notification permission not granted).
+  async scheduleEventReminder(title, kind, date) {
+    if (Platform.OS === 'web') {
+      return null;
+    }
+    if (!(date instanceof Date) || Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      return null;
+    }
+    const headings = { workout: 'Workout time', run: 'Run time' };
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        return null;
+      }
+      return await Notifications.scheduleNotificationAsync({
+        content: {
+          title: headings[kind] || 'Reminder',
+          body: title,
+          data: { type: 'schedule-event' }
+        },
+        trigger: {
+          type: 'date',
+          date
+        }
+      });
+    } catch (e) {
+      console.warn('[notificationService] scheduleEventReminder failed:', e?.message);
+      return null;
+    }
+  }
+
+  async cancelReminder(notificationId) {
+    if (Platform.OS === 'web' || !notificationId) {
+      return;
+    }
+    try {
+      await Notifications.cancelScheduledNotificationAsync(notificationId);
+    } catch (e) {
+      console.warn('[notificationService] cancelReminder failed:', e?.message);
+    }
+  }
+
   async cancelAllNotifications() {
     if (Platform.OS === 'web') {
       return;

@@ -2,36 +2,28 @@ import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import EmptyState from '@/src/components/EmptyState';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView,
-  RefreshControl, Pressable, Image, Platform } from 'react-native';
+  RefreshControl, Pressable, Image, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useScheduleStore } from '@/store/scheduleStore';
+import { notificationService } from '@/services/notificationService';
+import {
+  eventsForDay, daysWithEvents, upcomingEvents, formatTime, formatShortDate, KIND_LABELS,
+} from '@/lib/scheduleUtils';
 
 const DAYS = ['S','M','T','W','T','F','S'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-const ACTIVITIES = {
-  3:[{title:'Morning Run',time:'6:30 AM',type:'Running'},{title:'HIIT Workout',time:'12:00 PM',type:'Workout'},{title:'Meal: Chicken Salad',time:'1:00 PM',type:'Nutrition'}],
-  1:[{title:'Strength Training',time:'7:00 AM',type:'Workout'}],
-  5:[{title:'5K Tempo Run',time:'6:00 AM',type:'Running'}],
-  8:[{title:'Yoga Flow',time:'8:00 AM',type:'Workout'}],
-};
-const ACTIVITY_DAYS = new Set(Object.keys(ACTIVITIES).map(Number));
-
-const UPCOMING = [
-  {date:'Jun 4',title:'Morning Run',time:'6:30 AM'},
-  {date:'Jun 5',title:'5K Tempo Run',time:'6:00 AM'},
-  {date:'Jun 8',title:'Yoga Flow',time:'8:00 AM'},
-];
 
 function getDaysInMonth(y,m){return new Date(y,m+1,0).getDate();}
 function getFirstDayOfMonth(y,m){return new Date(y,m,1).getDay();}
 
 export default function CalendarScreen(){
-  const [year,setYear]=useState(2026);
-  const [month,setMonth]=useState(5); // June
-  const [selectedDay,setSelectedDay]=useState(3);
+  const [year,setYear]=useState(() => new Date().getFullYear());
+  const [month,setMonth]=useState(() => new Date().getMonth());
+  const [selectedDay,setSelectedDay]=useState(() => new Date().getDate());
+  const events = useScheduleStore((st) => st.events);
+  const removeEvent = useScheduleStore((st) => st.removeEvent);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -41,7 +33,8 @@ export default function CalendarScreen(){
 
   const daysInMonth=getDaysInMonth(year,month);
   const firstDay=getFirstDayOfMonth(year,month);
-  const today=3;
+  const nowDate = new Date();
+  const today = nowDate.getFullYear()===year && nowDate.getMonth()===month ? nowDate.getDate() : -1;
 
   const weeks=useMemo(()=>{
     const cells=[];
@@ -56,7 +49,23 @@ export default function CalendarScreen(){
   const prevMonth=()=>{if(month===0){setMonth(11);setYear(year-1);}else setMonth(month-1);setSelectedDay(1);};
   const nextMonth=()=>{if(month===11){setMonth(0);setYear(year+1);}else setMonth(month+1);setSelectedDay(1);};
 
-  const dayActivities=ACTIVITIES[selectedDay]||[];
+  const dayActivities = useMemo(() => eventsForDay(events, year, month, selectedDay), [events, year, month, selectedDay]);
+  const activityDays = useMemo(() => daysWithEvents(events, year, month), [events, year, month]);
+  const upcoming = useMemo(() => upcomingEvents(events, new Date(), 5), [events]);
+
+  const confirmRemove = (event) => {
+    Alert.alert('Remove from calendar?', event.title, [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          notificationService.cancelReminder(event.notificationId);
+          removeEvent(event.id);
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -81,7 +90,7 @@ export default function CalendarScreen(){
             <View key={ri} style={s.weekRow}>
               {row.map((d,ci)=>(
                 <Pressable key={ci} style={[s.dayCell,d===selectedDay&&s.dayCellSelected,d===today&&d!==selectedDay&&s.dayCellToday]} onPress={()=>d&&setSelectedDay(d)}>
-                  {d?<><Text style={[s.dayText,d===selectedDay&&s.dayTextSelected]}>{d}</Text>{ACTIVITY_DAYS.has(d)&&<View style={[s.activityDot,d===selectedDay&&{backgroundColor:'#FFF'}]} />}</>:null}
+                  {d?<><Text style={[s.dayText,d===selectedDay&&s.dayTextSelected]}>{d}</Text>{activityDays.has(d)&&<View style={[s.activityDot,d===selectedDay&&{backgroundColor:'#FFF'}]} />}</>:null}
                 </Pressable>
               ))}
             </View>
@@ -90,20 +99,23 @@ export default function CalendarScreen(){
 
         {/* Selected day details */}
         <Text style={s.sectionTitle}>{MONTHS[month]} {selectedDay}, {year}</Text>
-        {dayActivities.length>0?dayActivities.map((a,i)=>(
-          <View key={i} style={s.actRow}>
-            <View style={s.actIcon}><Ionicons name={a.type==='Running'?'fitness-outline':a.type==='Workout'?'barbell-outline':'nutrition-outline'} size={16} color="#000" /></View>
-            <View style={s.actInfo}><Text style={s.actTitle}>{a.title}</Text><Text style={s.actTime}>{a.time}</Text></View>
-            <View style={[s.actBadge,a.type==='Running'&&{backgroundColor:'#333'}]}><Text style={s.actBadgeText}>{a.type}</Text></View>
-          </View>
-        )):<Text style={s.noAct}>No activities logged</Text>}
+        {dayActivities.length>0?dayActivities.map((a)=>(
+          <Pressable key={a.id} style={s.actRow} onPress={()=>a.workoutId && router.push(`/workout/${a.workoutId}`)}>
+            <View style={s.actIcon}><Ionicons name={a.kind==='run'?'fitness-outline':a.kind==='workout'?'barbell-outline':a.kind==='nutrition'?'nutrition-outline':'calendar-outline'} size={16} color="#000" /></View>
+            <View style={s.actInfo}><Text style={s.actTitle}>{a.title}</Text><Text style={s.actTime}>{formatTime(a.start)}{a.notes?` · ${a.notes}`:''}</Text></View>
+            <View style={[s.actBadge,a.kind==='run'&&{backgroundColor:'#333'}]}><Text style={s.actBadgeText}>{KIND_LABELS[a.kind]||'Event'}</Text></View>
+            <Pressable onPress={()=>confirmRemove(a)} hitSlop={10} style={{marginLeft:10}}><Ionicons name="close-circle-outline" size={20} color="#999" /></Pressable>
+          </Pressable>
+        )):<Text style={s.noAct}>Nothing scheduled</Text>}
         <Pressable style={s.addActBtn}><Ionicons name="add" size={18} color="#999" /><Text style={s.addActText}>Add Activity</Text></Pressable>
 
         {/* Upcoming */}
         <Text style={[s.sectionTitle,{marginTop:20}]}>Upcoming</Text>
-        {UPCOMING.map((u,i)=>(
-          <View key={i} style={s.upRow}><Text style={s.upDate}>{u.date}</Text><Text style={s.upTitle}>{u.title}</Text><Text style={s.upTime}>{u.time}</Text></View>
-        ))}
+        {upcoming.length>0?upcoming.map((u)=>(
+          <View key={u.id} style={s.upRow}><Text style={s.upDate}>{formatShortDate(u.start)}</Text><Text style={s.upTitle}>{u.title}</Text><Text style={s.upTime}>{formatTime(u.start)}</Text></View>
+        )):(
+          <Pressable onPress={()=>router.push('/coach')}><Text style={s.noAct}>Nothing coming up. Ask your AI Coach to plan your week.</Text></Pressable>
+        )}
 
         {/* Quick log */}
         <Text style={[s.sectionTitle,{marginTop:20}]}>Quick Log</Text>
