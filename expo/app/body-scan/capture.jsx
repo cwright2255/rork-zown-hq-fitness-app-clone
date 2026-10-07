@@ -27,6 +27,7 @@ import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { createRotationTracker } from '@/lib/rotationTracker';
+import { getGoalLabels } from '@/lib/userProfileData';
 import {
   loadVoiceGuidancePreference, setVoiceGuidanceEnabled, speakPrompt, stopSpeaking,
 } from '@/services/voiceGuidanceService';
@@ -491,7 +492,7 @@ export default function BodyScanCaptureScreen() {
         weightKg: getWeightKg(),
         age: parsedAge,
         gender,
-        goal: (user?.goals && user.goals[0]) || 'general fitness',
+        goal: getGoalLabels(user)[0] || 'general fitness',
       });
       // Sync latest real measurements back to the profile, so the next
       // scan (and anywhere else that reads user.heightCm/weightKg/age/

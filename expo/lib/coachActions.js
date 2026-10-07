@@ -27,6 +27,7 @@ export const LIMITS = {
   exercisesPerWorkout: 12,
   events: 30,
   meals: 28,
+  goals: 5,
 };
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -60,6 +61,8 @@ export function buildActionInstructions(now = new Date()) {
     '{"type":"workout_plan","workouts":[{"name":string,"description":string,"exercises":[{"name":string,"sets":number,"reps":number or a range string like "8-12","restSeconds":number}]}]} - one workout per training day, at most 7 workouts and 12 exercises each.',
     '{"type":"schedule","events":[{"title":string,"kind":"workout"|"run"|"nutrition"|"other","date":"YYYY-MM-DD","time":"HH:mm" in 24-hour time,"notes":string,"workout":the name of a workout from the same block, optional}]} - at most 30 events; write every repeat out as its own event.',
     '{"type":"nutrition_plan","dailyGoals":{"calories":number,"protein":number,"carbs":number,"fat":number},"meals":[{"date":"YYYY-MM-DD","time":"HH:mm","mealType":"breakfast"|"lunch"|"dinner"|"snack","name":string,"description":string}]} - macros in grams, at most 28 meals, and dailyGoals and meals are each optional.',
+    '{"type":"goal","goals":[{"title":string,"target":number,"unit":string,"current":number,"deadline":"YYYY-MM-DD"}]} - a measurable goal for the Progress tab (for example {"title":"Bench press 225 lb","target":225,"unit":"lb","current":185}); at most 5 goals, and current and deadline are optional.',
+    'Use everything you know about this user when you build anything: their goals, injuries, weight and target weight, how many days a week and how long they like to train, their food rules, and what is already on their calendar. Set calorie and protein targets from their weight and goal, avoid exercises that stress a listed injury, and do not double-book calendar times. If they ask for a plan without saying what it is for, build it around their stated goals.',
     'To save a workout and also put it on the calendar, send a workout_plan and a schedule action together in the same block.',
     'When the plan is meant to improve a specific lift or skill (for example "improve my bench press"), never fill it with only that lift. Build a complete program: the main lift once or twice a week (a heavy day and a lighter or variation day), plus supporting work for the muscles and weak points that drive it. For bench press that means overhead press or incline dumbbell press, triceps work (close-grip bench, dips, extensions), upper back and rear delts (rows, face pulls, pull-ups) for stability, and core. Spread the work across training days, keep each workout to 5-8 exercises, say in each workout description how to progress (for example add weight once every set reaches the top of the rep range), and respect the injuries listed above. Use the same approach for squat, deadlift, running and any other goal.',
     'Every meal in a nutrition plan must follow the diet, allergy and avoid-food rules above, with no exceptions.',
@@ -362,6 +365,22 @@ function normalizeNutritionPlan(raw, now, user) {
  *   dropped  items discarded (malformed, or dated in the past)
  *   blocked  meals left out because of the user's allergies / avoid list
  */
+function normalizeGoal(raw, now) {
+  if (!raw || typeof raw !== 'object') return null;
+  const title = typeof raw.title === 'string' ? raw.title.trim().slice(0, 80) : '';
+  const target = Number(raw.target);
+  if (!title || !Number.isFinite(target) || target <= 0) return null;
+  const currentRaw = Number(raw.current);
+  const current = Number.isFinite(currentRaw) && currentRaw >= 0 ? currentRaw : 0;
+  const unit = typeof raw.unit === 'string' ? raw.unit.trim().slice(0, 20) : '';
+  let deadline = null;
+  if (typeof raw.deadline === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.deadline.trim())) {
+    const d = parseLocalDateTime(raw.deadline.trim(), '23:59');
+    if (d && d.getTime() > now.getTime()) deadline = raw.deadline.trim();
+  }
+  return { title, target, unit, current, deadline };
+}
+
 export function normalizeActions(rawActions, { now = new Date(), user = null } = {}) {
   const actions = [];
   const blocked = [];
@@ -389,6 +408,17 @@ export function normalizeActions(rawActions, { now = new Date(), user = null } =
         else dropped += 1;
       });
       if (events.length > 0) actions.push({ type: 'schedule', events });
+      return;
+    }
+
+    if (raw.type === 'goal') {
+      const goals = [];
+      (Array.isArray(raw.goals) ? raw.goals : []).slice(0, LIMITS.goals).forEach((g) => {
+        const goal = normalizeGoal(g, now);
+        if (goal) goals.push(goal);
+        else dropped += 1;
+      });
+      if (goals.length > 0) actions.push({ type: 'goal', goals });
       return;
     }
 
@@ -428,6 +458,9 @@ export function describeActions(actions) {
       const shown = a.events.slice(0, 3).map((e) => `${e.title}, ${formatEventWhen(e.start)}`).join('; ');
       const more = a.events.length > 3 ? `; +${a.events.length - 3} more` : '';
       lines.push(`Add ${plural(a.events.length, 'event')} to your calendar: ${shown}${more}`);
+    } else if (a.type === 'goal') {
+      const names = a.goals.map((g) => `${g.title}${g.deadline ? ` (by ${g.deadline})` : ''}`).join('; ');
+      lines.push(`Add ${plural(a.goals.length, 'goal')} to Progress: ${names}`);
     } else if (a.type === 'nutrition_plan') {
       const g = a.dailyGoals || {};
       const parts = [];
@@ -452,6 +485,7 @@ export function buildQuestion(actions) {
   if (types.has('workout_plan')) return 'Want me to save this to your workouts?';
   if (types.has('schedule')) return 'Want me to add this to your calendar?';
   if (types.has('nutrition_plan')) return 'Want me to set up this nutrition plan?';
+  if (types.has('goal')) return 'Want me to add this goal to your Progress tab?';
   return 'Want me to go ahead and create this?';
 }
 

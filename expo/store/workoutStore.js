@@ -419,7 +419,7 @@ export const useWorkoutStore = create(
           set({ isLoadingRecommendation: false });
         }
       },
-      generateNewWorkoutRecommendation: async ({ uid, fitnessLevel, goals }) => {
+      generateNewWorkoutRecommendation: async ({ uid, fitnessLevel, goals, profile }) => {
         set({ isLoadingRecommendation: true });
         try {
           const { httpsCallable } = await import('firebase/functions');
@@ -428,7 +428,7 @@ export const useWorkoutStore = create(
             name: w.name, category: w.category, completedAt: w.completedAt,
           }));
           const fn = httpsCallable(functions, 'generateWorkoutPlan');
-          const result = await fn({ fitnessLevel: fitnessLevel || 'beginner', goals: goals || [], history });
+          const result = await fn({ fitnessLevel: fitnessLevel || 'beginner', goals: goals || [], history, profile: profile || {} });
           if (uid) await get().loadWorkoutRecommendation(uid);
           return result.data;
         } catch (e) {

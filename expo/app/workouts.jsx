@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExerciseStore } from '@/store/exerciseStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
+import { getGoalLabels, profileForWorkouts } from '@/lib/userProfileData';
+import { getProfileFromStores } from '@/services/coachSnapshotService';
 import { getFeaturedProgram } from '@/data/workoutPrograms';
 
 function SectionHeader({ title, onViewAll }) {
@@ -105,7 +107,8 @@ export default function WorkoutsScreen() {
       await generateNewWorkoutRecommendation({
         uid: user?.uid,
         fitnessLevel: user?.fitnessLevel,
-        goals: user?.goals,
+        goals: getGoalLabels(user),
+        profile: profileForWorkouts(getProfileFromStores(user)),
       });
     } catch (e) {
       // Errors are already logged in the store; a real, visible failure

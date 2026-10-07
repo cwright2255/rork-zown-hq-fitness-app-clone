@@ -9,11 +9,13 @@
 //                     reminder notification for each future event
 //   nutrition_plan -> store/nutritionStore.js daily targets, and each meal
 //                     as a Calendar event
+//   goal           -> store/goalsStore.js (shows on the Progress tab)
 // Each action runs on its own, so one failing does not undo or block the
 // others, and the result reports exactly what did and did not happen.
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNutritionStore } from '../store/nutritionStore';
 import { useScheduleStore } from '../store/scheduleStore';
+import { useGoalsStore } from '../store/goalsStore';
 import { notificationService } from './notificationService';
 import { buildEventRecords } from '../lib/scheduleUtils';
 
@@ -89,6 +91,14 @@ export async function executeCoachActions(actions, user) {
         remindersBlocked = remindersBlocked || result.remindersBlocked;
         done.push(`added ${plural(result.count, 'event')} to your calendar`);
         links.push({ label: 'Open Calendar', route: '/calendar' });
+      } else if (action.type === 'goal') {
+        let saved = 0;
+        for (const goal of action.goals) {
+          await useGoalsStore.getState().addGoal({ uid: user?.uid, ...goal });
+          saved += 1;
+        }
+        done.push(`added ${plural(saved, 'goal')} to your Progress tab`);
+        links.push({ label: 'Open Progress', route: '/progress' });
       } else if (action.type === 'nutrition_plan') {
         if (action.dailyGoals && Object.keys(action.dailyGoals).length > 0) {
           useNutritionStore.getState().updateDailyGoals(action.dailyGoals);

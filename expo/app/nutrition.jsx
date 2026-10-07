@@ -10,6 +10,9 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useUserStore } from '@/store/userStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { getGoalLabels, profileForNutrition } from '@/lib/userProfileData';
+import { getProfileFromStores, loadSnapshotSources } from '@/services/coachSnapshotService';
 import { gradeToStars } from '@/services/calorieApiService';
 
 // Real fix: this screen previously used tokens.colors.dark_navy - a
@@ -157,6 +160,36 @@ export default function NutritionScreen() {
       setSyncUid(user.uid);
       loadNutritionData(user.uid);
     }
+  }, [user?.uid]);
+
+  // Daily targets are calculated from the person's real body data (latest
+  // weight log or scan, height, age, goals, diet) instead of staying on the
+  // 2000/150/200/65 default. Runs at most once per visit, only when the
+  // targets are older than 14 days (or were never set) and the profile has
+  // enough to calculate from. Targets the AI coach set count as fresh.
+  const autoTargetsTried = React.useRef(false);
+  useEffect(() => {
+    if (!user?.uid || autoTargetsTried.current) return;
+    autoTargetsTried.current = true;
+    (async () => {
+      try {
+        const nutrition = useNutritionStore.getState();
+        if (!nutrition.shouldRefreshDailyGoals()) return;
+        await loadSnapshotSources(user.uid);
+        const profile = getProfileFromStores(user);
+        if (!profile.weightKg || !profile.heightCm || !profile.age) return;
+        const recentWorkouts = (useWorkoutStore.getState().completedWorkouts || []).slice(0, 15).map((w) => ({
+          name: w.name, category: w.category, completedAt: w.completedAt,
+        }));
+        await nutrition.refreshDailyGoals({
+          recentWorkouts,
+          goals: getGoalLabels(user),
+          profile: profileForNutrition(profile),
+        });
+      } catch (e) {
+        console.warn('[Nutrition] automatic targets skipped:', e?.message);
+      }
+    })();
   }, [user?.uid]);
 
   const onRefresh = async () => {

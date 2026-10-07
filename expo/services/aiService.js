@@ -2,6 +2,7 @@ import { useExpStore } from '@/store/expStore';
 import { wearableService } from '@/services/wearableService';
 import { useUserStore } from '@/store/userStore';
 import { listDietRestrictions } from '@/lib/dietProfile';
+import { getGoalLabels, INJURY_LABELS } from '@/lib/userProfileData';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
 
@@ -104,7 +105,11 @@ const calculateXpReward = (difficulty, duration) => {
 const getUserDietaryContext = () => {
   try {
     const user = typeof useUserStore !== 'undefined' ? useUserStore.getState().user : null;
-    const goals = Array.isArray(user?.goals) && user?.goals.length ? user?.goals : [];
+    // Goals live on user.fitnessMetrics.targetGoals (onboarding / Edit Profile);
+    // user.goals was never filled in, so this used to always be empty.
+    const goals = getGoalLabels(user);
+    const injuries = (Array.isArray(user?.fitnessMetrics?.injuries) ? user.fitnessMetrics.injuries : [])
+      .map((id) => INJURY_LABELS[id] || String(id).replace(/_/g, ' '));
     const pref = user?.preferences?.dietaryPreference;
     // Real fix: this used to read user.preferences.dietaryPreference, a
     // field nothing sets, so these prompts never knew the user's diet.
@@ -112,10 +117,10 @@ const getUserDietaryContext = () => {
     if (typeof pref === 'string' && pref.trim().length > 0) {
       restrictions.push(pref.trim());
     }
-    return { goals, restrictions };
+    return { goals, restrictions, injuries };
   } catch (e) {
     console.warn('[AI] user dietary context unavailable', e);
-    return { goals: [], restrictions: [] };
+    return { goals: [], restrictions: [], injuries: [] };
   }
 };
 
@@ -151,7 +156,7 @@ export const generateWorkoutPlan = async (request) => {
     const usr = {
       role: 'user',
       content:
-      `Create a workout plan. Level: ${request.fitnessLevel}. Goals: ${combinedGoals.join(', ')}. Duration: ${request.duration} minutes. Equipment: ${request.equipment.length > 0 ? request.equipment.join(', ') : 'none'}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${userCtx.restrictions.length > 0 ? `DietaryRestrictions:${userCtx.restrictions.join(', ')}.` : ''} Include 4-8 exercises and ensure realistic rest times and reps. ${recoveryNote}`
+      `Create a workout plan. Level: ${request.fitnessLevel}. Goals: ${combinedGoals.join(', ')}. Duration: ${request.duration} minutes. Equipment: ${request.equipment.length > 0 ? request.equipment.join(', ') : 'none'}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${userCtx.restrictions.length > 0 ? `DietaryRestrictions:${userCtx.restrictions.join(', ')}.` : ''} ${userCtx.injuries.length > 0 ? `Injuries/areas to protect (avoid or modify exercises that stress them): ${userCtx.injuries.join(', ')}.` : ''} Include 4-8 exercises and ensure realistic rest times and reps. ${recoveryNote}`
     };
 
     const data = await postLLM([sys, usr], 35000, 1);

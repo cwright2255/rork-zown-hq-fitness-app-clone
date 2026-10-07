@@ -24,6 +24,8 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { toQuickWorkoutGoals, profileForWorkouts } from '@/lib/userProfileData';
+import { getProfileFromStores } from '@/services/coachSnapshotService';
 
 const GOALS = ['weight_loss', 'build_muscle', 'increase_strength', 'improve_endurance', 'improve_flexibility', 'general_fitness'];
 const GOAL_LABELS = {
@@ -59,7 +61,7 @@ function calculateXpReward(difficulty, durationMinutes) {
 export default function QuickWorkoutScreen() {
   const router = useRouter();
   const { user } = useUserStore();
-  const [goals, setGoals] = useState(user?.goals || []);
+  const [goals, setGoals] = useState(toQuickWorkoutGoals(user));
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
 
@@ -76,6 +78,7 @@ export default function QuickWorkoutScreen() {
         uid: user.uid,
         fitnessLevel: user.fitnessLevel || 'intermediate',
         goals,
+        profile: profileForWorkouts(getProfileFromStores(user)),
       });
 
       // Real fix: functions/src/index.js's generateWorkoutPlan returns

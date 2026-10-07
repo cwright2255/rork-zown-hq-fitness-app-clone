@@ -71,14 +71,27 @@ export const generateWorkoutPlan = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
-    const { fitnessLevel, goals, history } = req.data;
+    const { fitnessLevel, goals, history, profile } = req.data;
 
+    // Real profile details (older app versions send none, so every line is optional).
+    const p = profile && typeof profile === 'object' ? profile : {};
+    const profileLines = [];
+    if (Array.isArray(p.injuries) && p.injuries.length) {
+      profileLines.push(`Injuries / areas to protect: ${p.injuries.slice(0, 8).join(', ')} - avoid or modify any exercise that loads them`);
+    }
+    if (p.daysPerWeek) profileLines.push(`Wants to train ${p.daysPerWeek} days a week - make the other days rest or light recovery`);
+    if (p.sessionLength) profileLines.push(`Preferred session length: ${p.sessionLength} - keep each day to that`);
+    if (p.timeOfDay) profileLines.push(`Prefers to train in the ${String(p.timeOfDay).toLowerCase()}`);
+    if (p.weightKg) profileLines.push(`Body weight: ${p.weightKg} kg${p.targetWeightKg ? `, target ${p.targetWeightKg} kg` : ''}`);
+    if (p.age) profileLines.push(`Age: ${p.age}`);
+    if (p.gender) profileLines.push(`Gender: ${p.gender}`);
+    if (p.activityLevel) profileLines.push(`Daily activity level: ${p.activityLevel}`);
+    if (p.bodyFatPercent) profileLines.push(`Latest scan body fat: ${p.bodyFatPercent}%`);
+    const profileText = profileLines.length ? ` About the user: ${profileLines.join('. ')}.` : '';
 
-
-
-    const prompt = `Create a personalized 7-day workout plan for a ${fitnessLevel} user with goals: ${goals.join(
+    const prompt = `Create a personalized 7-day workout plan for a ${fitnessLevel} user with goals: ${(Array.isArray(goals) ? goals : []).join(
       ', '
-    )}. Recent workout history: ${JSON.stringify(history ?? [])}. Return strict JSON with shape { "days": [{ "day": string, "focus": string, "exercises": [{ "name": string, "sets": number, "reps": number, "restSeconds": number }] }] }.`;
+    ) || 'general fitness'}.${profileText} Recent workout history: ${JSON.stringify(history ?? [])}. Return strict JSON with shape { "days": [{ "day": string, "focus": string, "exercises": [{ "name": string, "sets": number, "reps": number, "restSeconds": number }] }] }.`;
 
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({

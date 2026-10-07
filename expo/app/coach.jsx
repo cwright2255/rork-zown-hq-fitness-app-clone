@@ -12,6 +12,7 @@ import {
   extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply,
 } from '@/lib/coachActions';
 import { executeCoachActions } from '@/services/coachActionService';
+import { loadSnapshotSources, buildSnapshotFromStores } from '@/services/coachSnapshotService';
 import {
   buildCoachSystemPrompt, getCoachHistory, saveCoachMessage,
   summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext,
@@ -114,7 +115,7 @@ export default function CoachScreen() {
     let cancelled = false;
     (async () => {
       try {
-        await Promise.all([loadWorkouts(user.uid), loadRuns(user.uid), loadCompletedHikes(user.uid)]);
+        await Promise.all([loadWorkouts(user.uid), loadRuns(user.uid), loadCompletedHikes(user.uid), loadSnapshotSources(user.uid)]);
         if (cancelled) return;
 
         const liftNames = Object.keys(PRIMARY_LIFT_MUSCLES);
@@ -257,7 +258,11 @@ export default function CoachScreen() {
       // real fetch above finishes, so the model is never told "here is
       // the user's data" with nothing actually in it yet.
       const dataMsg = dataContext ? buildUserDataContext(dataContext) : null;
+      // Profile, weight trend, goals, nutrition and calendar, read fresh.
+      let snapshotMsg = null;
+      try { snapshotMsg = buildSnapshotFromStores(user); } catch (e) { console.warn('[Coach] snapshot skipped:', e?.message); }
       const messagesPayload = [systemMsg]
+        .concat(snapshotMsg ? [snapshotMsg] : [])
         .concat(dataMsg ? [dataMsg] : [])
         .concat(historyForModel)
         .concat(userMsg)
