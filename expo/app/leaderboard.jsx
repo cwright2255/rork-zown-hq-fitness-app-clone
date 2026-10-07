@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Platform } from 'react-native';
 import { Trophy } from 'lucide-react-native';
+import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
+import AudienceFilter from '@/components/AudienceFilter';
+import PersonSheet from '@/components/PersonSheet';
 import { tokens } from '../../theme/tokens';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
-
-const FILTERS = ['Global', 'Friends', 'This Week'];
+import { useSocialGraphStore } from '@/store/socialGraphStore';
+import { useAudience } from '@/store/useAudience';
+import { emptyAudienceMessage } from '@/lib/audience';
 
 export default function LeaderboardScreen() {
-  const [filter, setFilter] = useState('Global');
-  const { entries, isLoading, subscribeTop, unsubscribe, computeMyRank } = useLeaderboardStore();
+  const [sheetPerson, setSheetPerson] = useState(null);
+  const {
+    entries, audienceEntries, isLoading, isLoadingAudience, subscribeTop, unsubscribe, computeMyRank, loadForUids,
+  } = useLeaderboardStore();
   const { user } = useUserStore();
+  const { audience, setAudience, uids, uidKey } = useAudience('leaderboard', user?.uid);
+  const following = useSocialGraphStore((s) => s.following);
 
   useEffect(() => {
     // Live subscription, not a one-time fetch — this is a genuinely shared,
@@ -25,21 +33,29 @@ export default function LeaderboardScreen() {
     if (user?.uid) computeMyRank(user.uid);
   }, [entries, user?.uid]);
 
-  const handleFilter = (f) => {
-    if (f !== 'Global') {
-      // No friends/follow system and no time-windowed XP tracking exist
-      // anywhere in this app yet — rather than fake these filters doing
-      // something, they're honestly marked not-yet-available.
-      Alert.alert(f, `${f} leaderboard is coming soon.`);
-      return;
-    }
-    setFilter(f);
-  };
+  // Following / Close Friends: fetch exactly those people (plus you) so
+  // someone ranked below the global top 50 still shows up.
+  useEffect(() => {
+    if (uids !== null) loadForUids(uids, user?.uid);
+  }, [audience, uidKey, user?.uid]);
 
-  const sorted = entries.map((e) => ({
+  const list = audience === 'everyone' ? entries : audienceEntries;
+  const loadingList = audience === 'everyone' ? isLoading : isLoadingAudience;
+
+  const sorted = list.map((e) => ({
     id: e.id, name: e.name, pts: e.xp, avatar: e.avatar, isMe: e.id === user?.uid,
+    isClose: following.some((f) => f.uid === e.id && f.close),
   }));
-  const [first, second, third, ...rest] = sorted;
+  // The podium needs three people; with fewer (common when filtering to
+  // friends) everyone is shown as a plain ranked row instead.
+  const showPodium = sorted.length >= 3;
+  const [first, second, third] = showPodium ? sorted : [];
+  const rest = showPodium ? sorted.slice(3) : sorted;
+  const restStart = showPodium ? 4 : 1;
+
+  const openPerson = (u) => {
+    if (u && !u.isMe) setSheetPerson({ uid: u.id, name: u.name, avatar: u.avatar });
+  };
 
   const Avatar = ({ uri, size = 40 }) => (
     uri ? (
@@ -63,39 +79,33 @@ export default function LeaderboardScreen() {
     <View style={styles.container}>
       <ScreenHeader title="Leaderboard" showBack />
       <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }}>
-        <View style={styles.filters}>
-          {FILTERS.map(f => {
-            const active = filter === f;
-            return (
-              <TouchableOpacity
-                key={f}
-                onPress={() => handleFilter(f)}
-                style={[styles.filterPill, active && styles.filterPillActive]}>
-                <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <AudienceFilter value={audience} onChange={setAudience} style={{ marginBottom: 8 }} />
+        <TouchableOpacity onPress={() => router.push('/friends')} style={styles.manageLink}>
+          <Text style={styles.manageLinkText}>Manage friends and close friends</Text>
+        </TouchableOpacity>
 
-        {isLoading && sorted.length === 0 ? (
+        {loadingList && sorted.length === 0 ? (
           <ActivityIndicator size="large" color="#000000" style={{ marginTop: 40 }} />
         ) : sorted.length === 0 ? (
           <Text style={{ color: '#999999', textAlign: 'center', marginTop: 40 }}>
-            No rankings yet — complete a workout to be the first on the board.
+            {audience === 'everyone'
+              ? 'No rankings yet — complete a workout to be the first on the board.'
+              : emptyAudienceMessage('leaderboard', audience)}
           </Text>
         ) : (
           <>
 
+        {showPodium && (
         <View style={styles.podium}>
-          <View style={styles.podiumSpot}>
+          <TouchableOpacity style={styles.podiumSpot} activeOpacity={0.7} onPress={() => openPerson(second)}>
             <Avatar uri={second?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{second?.name}</Text>
             <Text style={styles.podiumPts}>{second?.pts}</Text>
             <View style={[styles.podiumBar, { height: 80, backgroundColor: '#F5F5F5' }]}>
               <Text style={styles.podiumPlace}>2</Text>
             </View>
-          </View>
-          <View style={styles.podiumSpot}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.podiumSpot} activeOpacity={0.7} onPress={() => openPerson(first)}>
             <Trophy size={20} color="#F59E0B" style={{ marginBottom: 4 }} />
             <Avatar uri={first?.avatar} size={72} />
             <Text style={styles.podiumName} numberOfLines={1}>{first?.name}</Text>
@@ -103,31 +113,37 @@ export default function LeaderboardScreen() {
             <View style={[styles.podiumBar, { height: 110, backgroundColor: '#000000' }]}>
               <Text style={[styles.podiumPlace, { color: '#FFFFFF' }]}>1</Text>
             </View>
-          </View>
-          <View style={styles.podiumSpot}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.podiumSpot} activeOpacity={0.7} onPress={() => openPerson(third)}>
             <Avatar uri={third?.avatar} size={56} />
             <Text style={styles.podiumName} numberOfLines={1}>{third?.name}</Text>
             <Text style={styles.podiumPts}>{third?.pts}</Text>
             <View style={[styles.podiumBar, { height: 60, backgroundColor: '#F5F5F5' }]}>
               <Text style={styles.podiumPlace}>3</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
+        )}
 
         <Text style={styles.sectionLabel}>Rankings</Text>
         {rest.map((u, idx) => (
-          <View key={u.id} style={[styles.row, u.isMe && styles.rowMe]}>
-            <Text style={styles.rank}>{idx + 4}</Text>
+          <TouchableOpacity
+            key={u.id}
+            activeOpacity={u.isMe ? 1 : 0.7}
+            onPress={() => openPerson(u)}
+            style={[styles.row, u.isMe && styles.rowMe]}>
+            <Text style={styles.rank}>{idx + restStart}</Text>
             <Avatar uri={u.avatar} />
             <Text style={[styles.name, u.isMe && { color: '#000000', fontWeight: '700' }]}>
-              {u.name}
+              {u.name}{u.isClose ? '  ★' : ''}
             </Text>
             <Text style={styles.pts}>{u.pts}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
           </>
         )}
       </ScrollView>
+      <PersonSheet person={sheetPerson} onClose={() => setSheetPerson(null)} />
     </View>
   );
 }
@@ -150,14 +166,8 @@ const cardShadow = Platform.select({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  filters: { flexDirection: 'row', gap: tokens.spacing.sm, marginBottom: 20 },
-  filterPill: {
-    backgroundColor: '#FFFFFF', ...cardShadow,
-    paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, borderRadius: 999,
-  },
-  filterPillActive: { backgroundColor: '#000000' },
-  filterText: { color: '#999999', fontSize: 13, fontWeight: '600' },
-  filterTextActive: { color: '#FFFFFF' },
+  manageLink: { marginBottom: 20 },
+  manageLinkText: { color: '#666666', fontSize: 12, fontWeight: '600', textDecorationLine: 'underline' },
   podium: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'center', gap: tokens.spacing.md, marginBottom: tokens.spacing.lg,

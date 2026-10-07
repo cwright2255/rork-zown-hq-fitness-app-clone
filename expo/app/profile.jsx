@@ -53,7 +53,7 @@ const MENU_GROUPS = [
   {
     label: 'Social',
     items: [
-      { icon: 'people-outline', label: 'Friends', route: '/social' },
+      { icon: 'people-outline', label: 'Friends', route: '/friends' },
       { icon: 'podium-outline', label: 'Leaderboard', route: '/social' }, // Will handle specific tab parameter or general
       { icon: 'share-social-outline', label: 'Share Profile' },
     ],

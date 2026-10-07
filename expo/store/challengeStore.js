@@ -16,7 +16,10 @@
 
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import {
+  collection, query, orderBy, limit, getDocs, doc, setDoc, deleteDoc, where, documentId,
+} from 'firebase/firestore';
+import { chunk, rankEntries, challengeEntryId } from '../lib/audience';
 
 export const CADENCES = ['daily', 'weekly', 'monthly', 'seasonal'];
 
@@ -61,6 +64,9 @@ export const useChallengeStore = create((set, get) => ({
   isLoading: false,
   isGenerating: false,
   error: null,
+  // Who else is doing each challenge: { [challengeId]: [{ id, uid, name, current, target, percent, completed, rank }] }
+  participants: {},
+  participantsLoading: {},
 
   loadChallenges: async (uid) => {
     set({ isLoading: true, error: null });
@@ -139,8 +145,70 @@ export const useChallengeStore = create((set, get) => ({
     }
   },
 
+  // Everyone joins and tracks a challenge privately, so other people's
+  // progress only exists where each person publishes it to the public
+  // challengeEntries collection (one small document per person per challenge,
+  // see firestore.rules). The filter picks whose entries to read:
+  //   everyone  - the 100 most recent entries for that challenge
+  //   following / close - exactly those people's entries, looked up by id
+  loadParticipants: async (challengeId, uids, myUid) => {
+    if (!challengeId) return [];
+    set((s) => ({ participantsLoading: { ...s.participantsLoading, [challengeId]: true } }));
+    try {
+      let docs = [];
+      if (uids === null) {
+        const snap = await getDocs(
+          query(collection(db, 'challengeEntries'), where('challengeId', '==', challengeId), limit(100))
+        );
+        docs = snap.docs;
+      } else {
+        const ids = Array.from(new Set([...(uids || []), ...(myUid ? [myUid] : [])])).map((u) => challengeEntryId(challengeId, u));
+        const groups = await Promise.all(
+          chunk(ids, 10).map((group) =>
+            getDocs(query(collection(db, 'challengeEntries'), where(documentId(), 'in', group)))
+          )
+        );
+        docs = groups.flatMap((snap) => snap.docs);
+      }
+      const list = rankEntries(
+        docs.map((d) => ({ id: d.id, ...d.data() })),
+        'current'
+      );
+      set((s) => ({ participants: { ...s.participants, [challengeId]: list } }));
+      return list;
+    } catch (e) {
+      console.warn('[challengeStore] loadParticipants error:', e?.message);
+      return [];
+    } finally {
+      set((s) => ({ participantsLoading: { ...s.participantsLoading, [challengeId]: false } }));
+    }
+  },
+
+  // Publishes YOUR progress (computed from your own workouts) so people who
+  // follow you, or everyone, can see it on the challenge board.
+  publishMyProgress: async ({ challenge, progress, user }) => {
+    if (!challenge?.id || !progress || !user?.uid) return;
+    try {
+      await setDoc(doc(db, 'challengeEntries', challengeEntryId(challenge.id, user.uid)), {
+        challengeId: challenge.id,
+        uid: user.uid,
+        name: user.name || 'Zown User',
+        avatar: typeof user.profileImage === 'string' && user.profileImage.startsWith('http') ? user.profileImage : null,
+        current: progress.current,
+        target: progress.target,
+        percent: progress.percent,
+        completed: !!progress.completed,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('[challengeStore] publishMyProgress error:', e?.message);
+    }
+  },
+
   leaveChallenge: async (challengeId, uid) => {
     if (!uid) return;
+    // Take your progress off the public board too.
+    deleteDoc(doc(db, 'challengeEntries', challengeEntryId(challengeId, uid))).catch(() => {});
     set((s) => {
       const next = new Set(s.joinedChallengeIds);
       next.delete(challengeId);

@@ -21,11 +21,17 @@
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';
 import {
-  collection, doc, setDoc, query, orderBy, limit, getDocs, onSnapshot,
+  collection, doc, setDoc, query, orderBy, limit, getDocs, onSnapshot, where, documentId,
 } from 'firebase/firestore';
+import { chunk, rankEntries } from '../lib/audience';
 
 export const useLeaderboardStore = create((set, get) => ({
   entries: [],
+  // Leaderboard entries for just the people in the Following / Close Friends
+  // filter (plus you). Fetched by id, so a friend ranked below the global
+  // top 50 still shows up.
+  audienceEntries: [],
+  isLoadingAudience: false,
   myRank: null,
   isLoading: false,
   error: null,
@@ -67,6 +73,35 @@ export const useLeaderboardStore = create((set, get) => ({
     );
     set({ _unsubscribe: unsubscribe });
     return unsubscribe;
+  },
+
+  // One-time fetch of specific people's entries (ids are Firestore `in`
+  // queries, 10 at a time). Always includes `myUid` so you can see where you stand.
+  loadForUids: async (uids, myUid) => {
+    const ids = Array.from(new Set([...(uids || []), ...(myUid ? [myUid] : [])]));
+    if (ids.length === 0) {
+      set({ audienceEntries: [] });
+      return [];
+    }
+    set({ isLoadingAudience: true });
+    try {
+      const groups = await Promise.all(
+        chunk(ids, 10).map((group) =>
+          getDocs(query(collection(db, 'leaderboard'), where(documentId(), 'in', group)))
+        )
+      );
+      const entries = rankEntries(
+        groups.flatMap((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        'xp'
+      );
+      set({ audienceEntries: entries });
+      return entries;
+    } catch (e) {
+      console.warn('[leaderboardStore] loadForUids error:', e?.message);
+      return [];
+    } finally {
+      set({ isLoadingAudience: false });
+    }
   },
 
   unsubscribe: () => {

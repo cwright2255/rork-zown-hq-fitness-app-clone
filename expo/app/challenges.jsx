@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +6,9 @@ import LoadingSkeleton from '../src/components/LoadingSkeleton';
 import { useChallengeStore } from '@/store/challengeStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
+import AudienceFilter from '@/components/AudienceFilter';
+import { useAudience } from '@/store/useAudience';
+import { emptyAudienceMessage } from '@/lib/audience';
 
 const DIFFICULTY_COLOR = {
   beginner: '#22C55E',
@@ -34,7 +37,7 @@ function timeLeftLabel(endDate) {
   return `${days} days left`;
 }
 
-function ChallengeCard({ challenge, joined, progress, onJoin, onLeave }) {
+function ChallengeCard({ challenge, joined, progress, board, myUid, audience, onJoin, onLeave }) {
   return (
     <View style={styles.card}>
       <View style={styles.cardTopRow}>
@@ -71,6 +74,27 @@ function ChallengeCard({ challenge, joined, progress, onJoin, onLeave }) {
         </View>
       )}
 
+      {joined && board && (
+        <View style={styles.boardSection}>
+          <Text style={styles.boardTitle}>Who else is doing this</Text>
+          {board.loading && board.entries.length === 0 ? (
+            <ActivityIndicator size="small" color="#000" style={{ alignSelf: 'flex-start', marginVertical: 6 }} />
+          ) : board.entries.length === 0 ? (
+            <Text style={styles.boardEmpty}>{emptyAudienceMessage('challenges', audience)}</Text>
+          ) : (
+            board.entries.slice(0, 5).map((e, i) => (
+              <View key={e.id} style={styles.boardRow}>
+                <Text style={styles.boardRank}>{i + 1}</Text>
+                <Text style={[styles.boardName, e.uid === myUid && { fontWeight: '800', color: '#000' }]} numberOfLines={1}>
+                  {e.uid === myUid ? 'You' : e.name}
+                </Text>
+                <Text style={styles.boardScore}>{e.current}/{e.target}{e.completed ? ' ✓' : ''}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      )}
+
       {!!challenge.basedOn && (
         <Text style={styles.basedOnText}>Based on: {challenge.basedOn}</Text>
       )}
@@ -87,7 +111,7 @@ function ChallengeCard({ challenge, joined, progress, onJoin, onLeave }) {
   );
 }
 
-function ChallengeSection({ cadence, challenge, joined, progress, isFilling, onJoin, onLeave }) {
+function ChallengeSection({ cadence, challenge, joined, progress, board, myUid, audience, isFilling, onJoin, onLeave }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionHeader}>{sectionTitle(cadence, challenge)}</Text>
@@ -96,6 +120,9 @@ function ChallengeSection({ cadence, challenge, joined, progress, isFilling, onJ
           challenge={challenge}
           joined={joined}
           progress={progress}
+          board={board}
+          myUid={myUid}
+          audience={audience}
           onJoin={onJoin}
           onLeave={onLeave}
         />
@@ -116,8 +143,11 @@ export default function ChallengesScreen() {
   const {
     challenges, joinedChallengeIds, isLoading, isGenerating, error,
     loadChallenges, getCurrentByCadence, generateNewChallenges, joinChallenge, leaveChallenge, getProgress,
+    participants, participantsLoading, loadParticipants, publishMyProgress,
   } = useChallengeStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  const { audience, setAudience, uids, uidKey } = useAudience('challenges', user?.uid);
+  const lastPublished = useRef({});
 
   useEffect(() => {
     (async () => {
@@ -140,6 +170,28 @@ export default function ChallengesScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, challenges]);
+
+  // Publish your own progress for the challenges you have joined (so people
+  // who follow you can see it), then load the board for the picked audience.
+  const joinedKey = Array.from(joinedChallengeIds).sort().join(',');
+  useEffect(() => {
+    if (!user?.uid) return;
+    const current = getCurrentByCadence();
+    const joinedNow = Object.values(current).filter((c) => c && joinedChallengeIds.has(c.id));
+    if (joinedNow.length === 0) return;
+    (async () => {
+      for (const challenge of joinedNow) {
+        const progress = getProgress(challenge, completedWorkouts);
+        const stamp = `${progress?.current}/${progress?.target}`;
+        if (progress && lastPublished.current[challenge.id] !== stamp) {
+          lastPublished.current[challenge.id] = stamp;
+          await publishMyProgress({ challenge, progress, user });
+        }
+        await loadParticipants(challenge.id, uids, user.uid);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, joinedKey, challenges, completedWorkouts, audience, uidKey]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -169,6 +221,9 @@ export default function ChallengesScreen() {
           )}
         </View>
 
+        <AudienceFilter value={audience} onChange={setAudience} style={{ marginBottom: 6 }} />
+        <Text style={styles.audienceHint}>Choose who shows up on the boards under challenges you have joined.</Text>
+
         {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         {showingInitialLoad ? (
@@ -190,9 +245,12 @@ export default function ChallengesScreen() {
                 challenge={challenge}
                 joined={joined}
                 progress={progress}
+                board={joined && challenge ? { entries: participants[challenge.id] || [], loading: !!participantsLoading[challenge.id] } : null}
+                myUid={user?.uid}
+                audience={audience}
                 isFilling={!challenge && isGenerating}
                 onJoin={(id) => joinChallenge(id, user?.uid)}
-                onLeave={(id) => leaveChallenge(id, user?.uid)}
+                onLeave={(id) => { delete lastPublished.current[id]; leaveChallenge(id, user?.uid); }}
               />
             );
           })
@@ -240,6 +298,14 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '600',
   },
+  audienceHint: { fontSize: 12, color: '#999', marginBottom: 18 },
+  boardSection: { marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5E5' },
+  boardTitle: { fontSize: 12, fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  boardEmpty: { fontSize: 12, color: '#999' },
+  boardRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, gap: 10 },
+  boardRank: { width: 18, fontSize: 13, fontWeight: '700', color: '#999' },
+  boardName: { flex: 1, fontSize: 14, color: '#444', fontWeight: '500' },
+  boardScore: { fontSize: 13, fontWeight: '700', color: '#000' },
   errorText: {
     color: '#DC2626',
     fontSize: 13,

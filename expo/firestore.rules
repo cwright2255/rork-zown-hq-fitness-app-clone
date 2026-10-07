@@ -88,6 +88,11 @@ service cloud.firestore {
         allow read, create, delete: if request.auth != null && request.auth.uid == userId;
         allow update: if false;
       }
+
+      // Who you follow, and which of them are Close Friends. Private to you.
+      match /following/{otherUid} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     match /workouts/{workoutId} {
@@ -221,6 +226,17 @@ service cloud.firestore {
     match /challenges/{challengeId} {
       allow read: if request.auth != null;
       allow write: if false;
+    }
+
+    // Public progress board for challenges. Anyone signed in can read; each
+    // person can only create, change or remove their OWN entry (the document
+    // id must be `<challengeId>_<uid>`).
+    match /challengeEntries/{entryId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null &&
+        request.resource.data.uid == request.auth.uid &&
+        entryId == request.resource.data.challengeId + '_' + request.auth.uid;
+      allow delete: if request.auth != null && entryId.matches('.*_' + request.auth.uid);
     }
 
     match /duels/{duelId} {

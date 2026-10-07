@@ -10,6 +10,11 @@ import { useDuelStore, DUEL_PRESETS } from '@/store/duelStore';
 import { useGroupStore } from '@/store/groupStore';
 import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
+import AudienceFilter from '@/components/AudienceFilter';
+import PersonSheet from '@/components/PersonSheet';
+import { useSocialGraphStore } from '@/store/socialGraphStore';
+import { useAudience } from '@/store/useAudience';
+import { filterByAudience, emptyAudienceMessage } from '@/lib/audience';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
@@ -192,11 +197,24 @@ export default function SocialScreen() {
 
   /* -- Leaderboard: real, live entries. Also the real "people" source for
      search, since there's no user-search feature anywhere in this app. -- */
-  const { entries, subscribeTop, unsubscribe: unsubscribeLeaderboard } = useLeaderboardStore();
+  const {
+    entries, audienceEntries, isLoadingAudience, loadForUids, subscribeTop, unsubscribe: unsubscribeLeaderboard,
+  } = useLeaderboardStore();
   useEffect(() => {
     subscribeTop(50);
     return () => unsubscribeLeaderboard();
   }, []);
+
+  // Everyone / Following / Close Friends for the Leaderboard and Duels tabs
+  // (remembered separately for each), and the sheet for following / starring a person.
+  const lbAudience = useAudience('leaderboard', user?.uid);
+  const duelAudience = useAudience('duels', user?.uid);
+  const following = useSocialGraphStore((st) => st.following);
+  const [sheetPerson, setSheetPerson] = useState(null);
+
+  useEffect(() => {
+    if (lbAudience.uids !== null) loadForUids(lbAudience.uids, user?.uid);
+  }, [lbAudience.audience, lbAudience.uidKey, user?.uid]);
 
   const query = searchQuery.trim().toLowerCase();
   const matchingPeople = query
@@ -229,10 +247,14 @@ export default function SocialScreen() {
     }
   };
 
-  const pendingForMe = duels.filter((d) => d.status === 'pending' && d.proposedBy !== user?.uid);
-  const pendingSent = duels.filter((d) => d.status === 'pending' && d.proposedBy === user?.uid);
-  const activeDuels = duels.filter((d) => d.status === 'active');
-  const endedDuels = duels.filter((d) => {
+  // Duels tab filter: keep duels whose opponent is in the picked audience.
+  const visibleDuels = filterByAudience(duels, duelAudience.audience, duelAudience.follows, {
+    getUid: (d) => (d.participantIds || []).find((id) => id !== user?.uid),
+  });
+  const pendingForMe = visibleDuels.filter((d) => d.status === 'pending' && d.proposedBy !== user?.uid);
+  const pendingSent = visibleDuels.filter((d) => d.status === 'pending' && d.proposedBy === user?.uid);
+  const activeDuels = visibleDuels.filter((d) => d.status === 'active');
+  const endedDuels = visibleDuels.filter((d) => {
     if (d.status === 'completed') return true;
     if (d.status === 'active' && d.mode === 'most_by_deadline' && d.endDate && new Date(d.endDate) < new Date()) return true;
     return false;
@@ -278,6 +300,9 @@ export default function SocialScreen() {
               <Pressable key={p.id} style={s.peopleRow} onPress={() => messageFromSearch(p)}>
                 <View style={s.peopleAvatar}><Text style={s.peopleAvatarText}>{initials(p.name)}</Text></View>
                 <Text style={s.peopleName}>{p.name}</Text>
+                <Pressable hitSlop={8} onPress={() => setSheetPerson({ uid: p.id, name: p.name, avatar: p.avatar })} style={{ marginRight: 12 }}>
+                  <Ionicons name={following.some((f) => f.uid === p.id) ? 'person' : 'person-add-outline'} size={17} color="#999" />
+                </Pressable>
                 <Ionicons name="chatbubble-outline" size={16} color="#999" />
               </Pressable>
             ))}
@@ -327,25 +352,42 @@ export default function SocialScreen() {
     </View>
   );
 
+  const leaderList = lbAudience.audience === 'everyone' ? entries : audienceEntries;
+
   const renderLeaderboard = () => (
     <View>
-      {entries.length === 0 ? (
-        <Text style={s.emptyText}>No one on the leaderboard yet.</Text>
+      <View style={s.audienceWrap}>
+        <AudienceFilter value={lbAudience.audience} onChange={lbAudience.setAudience} />
+        <Pressable onPress={() => router.push('/friends')}>
+          <Text style={s.manageFriendsLink}>Manage friends and close friends</Text>
+        </Pressable>
+      </View>
+      {leaderList.length === 0 ? (
+        <Text style={s.emptyText}>
+          {lbAudience.audience !== 'everyone' && isLoadingAudience
+            ? 'Loading...'
+            : emptyAudienceMessage('leaderboard', lbAudience.audience)}
+        </Text>
       ) : (
-        entries.map((entry, i) => {
+        leaderList.map((entry, i) => {
           const isMe = entry.id === user?.uid;
+          const isClose = following.some((f) => f.uid === entry.id && f.close);
           return (
-            <View key={entry.id} style={[s.leaderRow, isMe && s.leaderRowMe]}>
+            <Pressable
+              key={entry.id}
+              style={[s.leaderRow, isMe && s.leaderRowMe]}
+              onPress={() => { if (!isMe) setSheetPerson({ uid: entry.id, name: entry.name, avatar: entry.avatar }); }}
+            >
               <Text style={[s.leaderRank, i < 3 && { color: MEDAL_COLORS[i] }]}>{i + 1}</Text>
               <View style={s.leaderAvatar}><Text style={s.leaderAvatarText}>{initials(entry.name)}</Text></View>
-              <Text style={s.leaderName}>{isMe ? 'You' : entry.name}</Text>
+              <Text style={s.leaderName}>{isMe ? 'You' : entry.name}{isClose ? '  ★' : ''}</Text>
               <Text style={s.leaderXp}>{(entry.xp || 0).toLocaleString()} XP</Text>
               {!isMe && (
                 <Pressable style={s.duelIconBtn} onPress={() => setDuelTarget({ uid: entry.id, name: entry.name })}>
                   <Ionicons name="flash-outline" size={16} color="#000" />
                 </Pressable>
               )}
-            </View>
+            </Pressable>
           );
         })
       )}
@@ -390,10 +432,36 @@ export default function SocialScreen() {
     );
   };
 
+  // People in the picked audience you can start a duel with right from this tab.
+  const duelCandidates = duelAudience.uids === null
+    ? []
+    : duelAudience.follows.filter((f) => duelAudience.uids.includes(f.uid));
+
   const renderDuels = () => (
     <View>
+      <View style={s.audienceWrap}>
+        <AudienceFilter value={duelAudience.audience} onChange={duelAudience.setAudience} />
+      </View>
+      {duelCandidates.length > 0 && (
+        <>
+          <Text style={s.duelSectionTitle}>Challenge {duelAudience.audience === 'close' ? 'a close friend' : 'someone you follow'}</Text>
+          {duelCandidates.map((f) => (
+            <View key={f.uid} style={s.leaderRow}>
+              <View style={s.leaderAvatar}><Text style={s.leaderAvatarText}>{initials(f.name)}</Text></View>
+              <Text style={s.leaderName}>{f.name}{f.close ? '  ★' : ''}</Text>
+              <Pressable style={s.duelIconBtn} onPress={() => setDuelTarget({ uid: f.uid, name: f.name })}>
+                <Ionicons name="flash-outline" size={16} color="#000" />
+              </Pressable>
+            </View>
+          ))}
+        </>
+      )}
       {pendingForMe.length === 0 && pendingSent.length === 0 && activeDuels.length === 0 && endedDuels.length === 0 && (
-        <Text style={s.emptyText}>No duels yet — challenge someone from the Leaderboard tab.</Text>
+        <Text style={s.emptyText}>
+          {duelAudience.audience === 'everyone'
+            ? 'No duels yet — challenge someone from the Leaderboard tab.'
+            : emptyAudienceMessage('duels', duelAudience.audience)}
+        </Text>
       )}
       {pendingForMe.length > 0 && (
         <>
@@ -627,6 +695,12 @@ export default function SocialScreen() {
         </View>
       </Modal>
 
+      <PersonSheet
+        person={sheetPerson}
+        onClose={() => setSheetPerson(null)}
+        onDuel={(p) => setDuelTarget({ uid: p.uid, name: p.name })}
+      />
+
       {/* Duel proposal */}
       <Modal visible={!!duelTarget} animationType="slide" transparent onRequestClose={() => setDuelTarget(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalWrap}>
@@ -665,6 +739,8 @@ const s = StyleSheet.create({
   iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' },
 
   emptyText: { fontSize: 13, color: '#999', textAlign: 'center', paddingVertical: 24, paddingHorizontal: 20 },
+  audienceWrap: { paddingHorizontal: 20, marginBottom: 8 },
+  manageFriendsLink: { fontSize: 12, color: '#666', fontWeight: '600', textDecorationLine: 'underline', marginTop: 10 },
 
   /* Tabs */
   tab: { backgroundColor: '#F0F0F0', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
