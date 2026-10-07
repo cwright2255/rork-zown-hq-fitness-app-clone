@@ -304,7 +304,13 @@ export const useSpotifyStore = create(
 
       playTrack: async (uri) => {
         try {
-          await spotifyService.play(uri);
+          // Finishes a request that had to open the Spotify app first: refresh
+          // the now-playing info once playback actually starts.
+          spotifyService.onPendingPlaybackStarted = () => {
+            setTimeout(() => get().updateCurrentTrack(), 1000);
+          };
+          const outcome = await spotifyService.play(uri);
+          if (outcome === 'waking') return;
           setTimeout(() => {
             get().updateCurrentTrack();
           }, 1000);
@@ -394,7 +400,11 @@ export const useSpotifyStore = create(
       playAlbum: async (contextUri) => {
         try {
           set({ queue: [] });
-          await spotifyService.playContext(contextUri);
+          spotifyService.onPendingPlaybackStarted = () => {
+            setTimeout(() => get().updateCurrentTrack(), 1000);
+          };
+          const outcome = await spotifyService.playContext(contextUri);
+          if (outcome === 'waking') return;
           setTimeout(() => {
             get().updateCurrentTrack();
           }, 1000);

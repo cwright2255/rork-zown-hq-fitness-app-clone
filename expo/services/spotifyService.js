@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Platform, Linking, AppState } from 'react-native';
+import { pickDevice, isNoDeviceError } from '../lib/spotifyDevices';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 
@@ -313,6 +314,12 @@ class SpotifyService {
           await this.clearToken();
           throw new Error('Spotify token expired or invalid');
         case 403:
+          // Real fix: a play request from a free Spotify account is rejected
+          // with 403 reason PREMIUM_REQUIRED - that is not the Development
+          // Mode allowlist problem described below, so say what it is.
+          if (errorData?.error?.reason === 'PREMIUM_REQUIRED') {
+            throw new Error('Spotify Premium is required to play music from Zown.');
+          }
           // Real fix: confirmed against Spotify's own docs
           // (developer.spotify.com/documentation/web-api/concepts/quota-modes)
           // - a 403 here specifically means this Spotify account isn't yet
@@ -332,8 +339,15 @@ class SpotifyService {
           // Rate limited
           const retryAfter = res.headers.get('Retry-After');
           throw new Error(`Rate limited. Retry after ${retryAfter} seconds.`);
-        default:
-          throw new Error(`Spotify API error: ${res.status} - ${errorData.error?.message || 'Unknown error'}`);
+        default: {
+          // Status and reason are kept on the error so callers can tell a
+          // 404 NO_ACTIVE_DEVICE (recoverable, see startPlayback) from a
+          // real failure without parsing the message text.
+          const apiError = new Error(`Spotify API error: ${res.status} - ${errorData.error?.message || 'Unknown error'}`);
+          apiError.status = res.status;
+          apiError.reason = errorData.error?.reason;
+          throw apiError;
+        }
       }
     }
 
@@ -896,6 +910,135 @@ It does NOT provide access to:
     }
   }
 
+  // ---- Starting playback without the Spotify app already playing ----
+  //
+  // Spotify has no embeddable player for iOS apps (Apple Music has
+  // MusicKit, Spotify has nothing equivalent), so Zown remote-controls the
+  // Spotify app through the Web API. That needs a Spotify "device", and
+  // used to fail with "No active device" unless the user had already
+  // played something in Spotify. startPlayback below removes that step:
+  //   1. play on the active device if there is one (the normal case);
+  //   2. otherwise find any Spotify device on the account (the phone's
+  //      Spotify app, even if idle) and start playback there;
+  //   3. otherwise open the Spotify app so it registers as a device,
+  //      remember what was asked for, and finish the request as soon as
+  //      Zown is opened again (resumePendingPlayback, wired to AppState).
+  // Step 3 is a hard platform limit: while Spotify is in front, iOS
+  // suspends Zown, so the user has to switch back to Zown themselves.
+  pendingPlayback = null;
+  onPendingPlaybackStarted = null;
+  _appStateSubscription = null;
+  _resumingPlayback = false;
+
+  async getDevices() {
+    const data = await this.fetchWebApi('me/player/devices');
+    return Array.isArray(data?.devices) ? data.devices : [];
+  }
+
+  async getLastDeviceId() {
+    try {
+      return await AsyncStorage.getItem('spotify_last_device_id');
+    } catch {
+      return null;
+    }
+  }
+
+  async playOnDevice(device, body) {
+    const deviceParam = encodeURIComponent(device.id);
+    if (body) {
+      try {
+        await this.fetchWebApi(`me/player/play?device_id=${deviceParam}`, 'PUT', body);
+      } catch (error) {
+        if (!isNoDeviceError(error)) throw error;
+        // An idle device sometimes only accepts a play command after
+        // playback has been transferred to it first.
+        await this.fetchWebApi('me/player', 'PUT', { device_ids: [device.id], play: false });
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        await this.fetchWebApi(`me/player/play?device_id=${deviceParam}`, 'PUT', body);
+      }
+    } else {
+      // Plain resume with no active device: move playback to the device.
+      await this.fetchWebApi('me/player', 'PUT', { device_ids: [device.id], play: true });
+    }
+    try {
+      await AsyncStorage.setItem('spotify_last_device_id', device.id);
+    } catch {
+      // best effort only
+    }
+  }
+
+  async wakeSpotifyApp() {
+    if (!this._appStateSubscription) {
+      this._appStateSubscription = AppState.addEventListener('change', (nextState) => {
+        if (nextState === 'active') {
+          this.resumePendingPlayback().catch((error) => {
+            console.warn('Spotify: could not finish pending playback:', error?.message);
+          });
+        }
+      });
+    }
+    try {
+      await Linking.openURL('spotify:');
+    } catch {
+      this.pendingPlayback = null;
+      throw new Error("Couldn't open Spotify. Make sure the Spotify app is installed on this phone, then try again.");
+    }
+  }
+
+  // Returns 'played' when music started, or 'waking' when Spotify had to
+  // be opened first and playback will finish when the user returns to Zown.
+  async startPlayback(body) {
+    this.pendingPlayback = null;
+    try {
+      await this.fetchWebApi('me/player/play', 'PUT', body);
+      return 'played';
+    } catch (error) {
+      if (!isNoDeviceError(error)) throw error;
+    }
+
+    const device = pickDevice(await this.getDevices(), await this.getLastDeviceId());
+    if (device) {
+      try {
+        await this.playOnDevice(device, body);
+        return 'played';
+      } catch (error) {
+        if (!isNoDeviceError(error)) throw error;
+      }
+    }
+
+    this.pendingPlayback = { body, requestedAt: Date.now() };
+    await this.wakeSpotifyApp();
+    return 'waking';
+  }
+
+  // Called when Zown comes back to the foreground. Finishes a play request
+  // that was waiting for the Spotify app to start up.
+  async resumePendingPlayback() {
+    if (!this.pendingPlayback || this._resumingPlayback) return false;
+    if (Date.now() - this.pendingPlayback.requestedAt > 3 * 60 * 1000) {
+      this.pendingPlayback = null;
+      return false;
+    }
+    this._resumingPlayback = true;
+    try {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const pending = this.pendingPlayback;
+        if (!pending) return false;
+        const device = pickDevice(await this.getDevices(), await this.getLastDeviceId());
+        if (device) {
+          this.pendingPlayback = null;
+          await this.playOnDevice(device, pending.body);
+          if (this.onPendingPlaybackStarted) this.onPendingPlaybackStarted();
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+      return false;
+    } finally {
+      this._resumingPlayback = false;
+    }
+  }
+
   // Control playback (requires Spotify Premium and user authentication)
   async play(uri) {
     if (Platform.OS === 'web') {
@@ -910,7 +1053,7 @@ It does NOT provide access to:
 
     try {
       const body = uri ? { uris: [uri] } : undefined;
-      await this.fetchWebApi('me/player/play', 'PUT', body);
+      return await this.startPlayback(body);
     } catch (error) {
       console.error('Failed to play track:', error);
       // Real fix: found while directly tracing the full pause/play cycle -
@@ -943,7 +1086,7 @@ It does NOT provide access to:
     }
 
     try {
-      await this.fetchWebApi('me/player/play', 'PUT', { context_uri: contextUri });
+      return await this.startPlayback({ context_uri: contextUri });
     } catch (error) {
       console.error('Failed to play context:', error);
       throw error;
