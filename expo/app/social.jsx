@@ -15,6 +15,9 @@ import PersonSheet from '@/components/PersonSheet';
 import { useSocialGraphStore } from '@/store/socialGraphStore';
 import { useAudience } from '@/store/useAudience';
 import { filterByAudience, emptyAudienceMessage } from '@/lib/audience';
+import PostMedia from '@/components/PostMedia';
+import MediaPickerStrip from '@/components/MediaPickerStrip';
+import { canPost, normalizeMedia, mediaSummary } from '@/lib/postMedia';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
@@ -63,6 +66,8 @@ export default function SocialScreen() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [mediaItems, setMediaItems] = useState([]); // photos or a video picked for the new post
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [commentsPost, setCommentsPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -90,17 +95,28 @@ export default function SocialScreen() {
   }, [posts.map((p) => p.id).join(','), user?.uid]);
 
   const handlePost = async () => {
-    if (!postText.trim() || !user?.uid) return;
+    if (!canPost(postText, mediaItems) || !user?.uid) return;
     setPosting(true);
+    setUploadProgress(0);
     try {
-      await createPost({ uid: user.uid, authorName: user.name, authorAvatar: user.profileImage, text: postText, type: 'general' });
+      await createPost({
+        uid: user.uid, authorName: user.name, authorAvatar: user.profileImage, text: postText, type: 'general',
+        mediaItems, onProgress: setUploadProgress,
+      });
       setPostText('');
+      setMediaItems([]);
       setComposerOpen(false);
     } catch (e) {
-      Alert.alert('Error', "Couldn't post right now. Try again.");
+      Alert.alert('Error', mediaItems.length > 0
+        ? "Couldn't upload your post. Check your connection and try again."
+        : "Couldn't post right now. Try again.");
     } finally {
       setPosting(false);
     }
+  };
+
+  const closeComposer = () => {
+    if (!posting) setComposerOpen(false);
   };
 
   const handleLike = async (postId) => {
@@ -140,7 +156,11 @@ export default function SocialScreen() {
 
   const handleShare = async (post) => {
     try {
-      const result = await Share.share({ message: `${post.authorName} on Zown: "${post.text}"` });
+      const summary = mediaSummary(normalizeMedia(post));
+      const message = post.text
+        ? `${post.authorName} on Zown: "${post.text}"`
+        : `${post.authorName} shared ${summary || 'a post'} on Zown`;
+      const result = await Share.share({ message });
       if (result.action === Share.sharedAction) {
         useCommunityStore.getState().recordShare(post.id, user?.uid);
       }
@@ -331,7 +351,8 @@ export default function SocialScreen() {
                 </Pressable>
               )}
             </View>
-            <Text style={s.feedText}>{post.text}</Text>
+            {!!post.text && <Text style={s.feedText}>{post.text}</Text>}
+            <PostMedia media={normalizeMedia(post)} />
             <View style={s.feedActionsRow}>
               <Pressable style={s.feedActionBtn} onPress={() => handleLike(post.id)}>
                 <Ionicons name={likedByMe[post.id] ? 'heart' : 'heart-outline'} size={18} color={likedByMe[post.id] ? '#FF3B30' : '#666'} />
@@ -550,19 +571,26 @@ export default function SocialScreen() {
       </ScrollView>
 
       {/* Composer */}
-      <Modal visible={composerOpen} animationType="slide" transparent onRequestClose={() => setComposerOpen(false)}>
+      <Modal visible={composerOpen} animationType="slide" transparent onRequestClose={closeComposer}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalWrap}>
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Share an update</Text>
-              <Pressable onPress={() => setComposerOpen(false)}><Ionicons name="close" size={22} color="#000" /></Pressable>
+              <Pressable onPress={closeComposer} disabled={posting}><Ionicons name="close" size={22} color="#000" /></Pressable>
             </View>
             <TextInput
               value={postText} onChangeText={setPostText} placeholder="What's on your mind?"
-              placeholderTextColor="#999" style={s.composerInput} multiline autoFocus
+              placeholderTextColor="#999" style={s.composerInput} multiline autoFocus editable={!posting}
             />
-            <Pressable style={[s.composeBtn, (!postText.trim() || posting) && { opacity: 0.5 }]} onPress={handlePost} disabled={!postText.trim() || posting}>
-              <Text style={s.composeBtnText}>{posting ? 'Posting…' : 'Post'}</Text>
+            <MediaPickerStrip items={mediaItems} onChange={setMediaItems} disabled={posting} />
+            <Pressable
+              style={[s.composeBtn, { marginTop: 16 }, (!canPost(postText, mediaItems) || posting) && { opacity: 0.5 }]}
+              onPress={handlePost}
+              disabled={!canPost(postText, mediaItems) || posting}
+            >
+              <Text style={s.composeBtnText}>
+                {posting ? (mediaItems.length > 0 ? `Uploading ${Math.round(uploadProgress * 100)}%` : 'Posting…') : 'Post'}
+              </Text>
             </Pressable>
           </View>
         </KeyboardAvoidingView>

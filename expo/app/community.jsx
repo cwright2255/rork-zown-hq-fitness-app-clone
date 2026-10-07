@@ -9,6 +9,9 @@ import { tokens } from '../../theme/tokens';
 import { useCommunityStore } from '@/store/communityStore';
 import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
+import PostMedia from '@/components/PostMedia';
+import MediaPickerStrip from '@/components/MediaPickerStrip';
+import { canPost, normalizeMedia, mediaSummary } from '@/lib/postMedia';
 
 // No real challenge-tracking backend exists yet (participant tracking,
 // join state, progress toward a goal) — that's a separate, larger feature
@@ -36,6 +39,8 @@ export default function CommunityScreen() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [mediaItems, setMediaItems] = useState([]); // photos or a video picked for the new post
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [likedByMe, setLikedByMe] = useState({});
 
   const { posts, isLoading, subscribeFeed, unsubscribeFeed, createPost, toggleLike, hasLiked, loadComments, addComment } = useCommunityStore();
@@ -56,8 +61,9 @@ export default function CommunityScreen() {
   }, [posts.map((p) => p.id).join(','), user?.uid]);
 
   const handlePost = async () => {
-    if (!postText.trim() || !user?.uid) return;
+    if (!canPost(postText, mediaItems) || !user?.uid) return;
     setPosting(true);
+    setUploadProgress(0);
     try {
       await createPost({
         uid: user.uid,
@@ -65,14 +71,23 @@ export default function CommunityScreen() {
         authorAvatar: user.profileImage,
         text: postText,
         type: 'general',
+        mediaItems,
+        onProgress: setUploadProgress,
       });
       setPostText('');
+      setMediaItems([]);
       setComposerOpen(false);
     } catch (e) {
-      Alert.alert('Error', "Couldn't post right now. Try again.");
+      Alert.alert('Error', mediaItems.length > 0
+        ? "Couldn't upload your post. Check your connection and try again."
+        : "Couldn't post right now. Try again.");
     } finally {
       setPosting(false);
     }
+  };
+
+  const closeComposer = () => {
+    if (!posting) setComposerOpen(false);
   };
 
   const handleLike = async (postId) => {
@@ -138,8 +153,11 @@ export default function CommunityScreen() {
   // share sheet actually completes, not just on tapping the button.
   const handleShare = async (post) => {
     try {
+      const summary = mediaSummary(normalizeMedia(post));
       const result = await Share.share({
-        message: `${post.authorName} on Zown: "${post.text}"`,
+        message: post.text
+          ? `${post.authorName} on Zown: "${post.text}"`
+          : `${post.authorName} shared ${summary || 'a post'} on Zown`,
       });
       if (result.action === Share.sharedAction) {
         useCommunityStore.getState().recordShare(post.id, user?.uid);
@@ -205,7 +223,8 @@ export default function CommunityScreen() {
                     <MessageCircle size={16} color="#999999" />
                   )}
                 </TouchableOpacity>
-                <Text style={styles.postText}>{post.text}</Text>
+                {!!post.text && <Text style={styles.postText}>{post.text}</Text>}
+                <PostMedia media={normalizeMedia(post)} />
                 <View style={styles.postActions}>
                   <TouchableOpacity style={styles.action} onPress={() => handleLike(post.id)}>
                     <Heart
@@ -251,12 +270,12 @@ export default function CommunityScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={composerOpen} animationType="slide" transparent onRequestClose={() => setComposerOpen(false)}>
+      <Modal visible={composerOpen} animationType="slide" transparent onRequestClose={closeComposer}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalWrap}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Share an update</Text>
-              <TouchableOpacity onPress={() => setComposerOpen(false)}>
+              <TouchableOpacity onPress={closeComposer} disabled={posting}>
                 <X size={22} color="#000000" />
               </TouchableOpacity>
             </View>
@@ -268,8 +287,15 @@ export default function CommunityScreen() {
               style={styles.composerInput}
               multiline
               autoFocus
+              editable={!posting}
             />
-            <PrimaryButton title="Post" onPress={handlePost} loading={posting} disabled={!postText.trim()} />
+            <MediaPickerStrip items={mediaItems} onChange={setMediaItems} disabled={posting} />
+            <PrimaryButton
+              title={posting ? (mediaItems.length > 0 ? `Uploading ${Math.round(uploadProgress * 100)}%` : 'Posting…') : 'Post'}
+              onPress={handlePost}
+              disabled={posting || !canPost(postText, mediaItems)}
+              style={{ marginTop: 16 }}
+            />
           </View>
         </KeyboardAvoidingView>
       </Modal>

@@ -12,5 +12,19 @@ service firebase.storage {
     match /users/{userId}/media/{fileName} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Photos and videos on feed posts (see services/postMediaService.js).
+    // The feed is public to signed-in users, so any signed-in user can read.
+    // Only the owner can add or remove files, and every file must be a photo
+    // under 15 MB or a video under 100 MB. Keep these sizes in sync with
+    // MAX_PHOTO_BYTES and MAX_VIDEO_BYTES in lib/postMedia.js.
+    match /posts/{userId}/{postId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && ((request.resource.contentType.matches('image/.*') && request.resource.size < 15 * 1024 * 1024)
+          || (request.resource.contentType.matches('video/.*') && request.resource.size < 100 * 1024 * 1024));
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

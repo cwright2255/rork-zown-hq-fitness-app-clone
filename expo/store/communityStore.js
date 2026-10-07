@@ -22,6 +22,7 @@ import {
   collection, doc, addDoc, deleteDoc, setDoc, getDoc, getDocs,
   query, orderBy, limit, onSnapshot, serverTimestamp, increment, updateDoc,
 } from 'firebase/firestore';
+import { uploadPostMedia, deletePostMedia } from '../services/postMediaService';
 
 export const useCommunityStore = create((set, get) => ({
   posts: [],
@@ -52,25 +53,44 @@ export const useCommunityStore = create((set, get) => ({
     set({ _unsubscribe: null });
   },
 
-  createPost: async ({ uid, authorName, authorAvatar, text, imageUrl, type }) => {
-    if (!uid || !text?.trim()) return null;
+  // A post needs some text or at least one photo or video. Photos and videos
+  // (`mediaItems`, picked with components/MediaPickerStrip) are uploaded to
+  // Firebase Storage first; the post is only saved once every upload worked,
+  // so a failed upload never leaves a half-finished post. The post id is made
+  // up front so the files can live under posts/{uid}/{postId}/.
+  // `imageUrl` still holds the first photo so older screens keep working.
+  createPost: async ({ uid, authorName, authorAvatar, text, imageUrl, type, mediaItems, onProgress }) => {
+    const clean = (text || '').trim();
+    const items = Array.isArray(mediaItems) ? mediaItems : [];
+    if (!uid || (!clean && items.length === 0)) return null;
     try {
-      const ref = await addDoc(collection(db, 'communityPosts'), {
-        authorId: uid,
-        authorName: authorName || 'Zown User',
-        authorAvatar: authorAvatar || null,
-        text: text.trim(),
-        imageUrl: imageUrl || null,
-        type: type || 'general',
-        likeCount: 0,
-        commentCount: 0,
-        shareCount: 0,
-        likesHidden: false,
-        shareCountHidden: false,
-        commentsDisabled: false,
-        createdAt: serverTimestamp(),
-      });
-      return ref.id;
+      const postRef = doc(collection(db, 'communityPosts'));
+      const media = items.length > 0
+        ? await uploadPostMedia({ uid, postId: postRef.id, items, onProgress })
+        : [];
+      const firstImage = media.find((m) => m.type === 'image');
+      try {
+        await setDoc(postRef, {
+          authorId: uid,
+          authorName: authorName || 'Zown User',
+          authorAvatar: authorAvatar || null,
+          text: clean,
+          imageUrl: firstImage ? firstImage.url : (imageUrl || null),
+          media,
+          type: type || 'general',
+          likeCount: 0,
+          commentCount: 0,
+          shareCount: 0,
+          likesHidden: false,
+          shareCountHidden: false,
+          commentsDisabled: false,
+          createdAt: serverTimestamp(),
+        });
+      } catch (e) {
+        await deletePostMedia(media);
+        throw e;
+      }
+      return postRef.id;
     } catch (e) {
       console.warn('[communityStore] createPost error:', e?.message);
       throw e;
@@ -95,9 +115,21 @@ export const useCommunityStore = create((set, get) => ({
     }
   },
 
+  // Also removes the post's photos and video from Storage (best effort; only
+  // the author can delete those files, so an admin removing someone else's
+  // post removes the post itself and leaves the files).
   deletePost: async (postId, uid) => {
     try {
-      await deleteDoc(doc(db, 'communityPosts', postId));
+      const postRef = doc(db, 'communityPosts', postId);
+      let media = [];
+      try {
+        const snap = await getDoc(postRef);
+        media = snap.exists() ? (snap.data().media || []) : [];
+      } catch (e) {
+        media = [];
+      }
+      await deleteDoc(postRef);
+      await deletePostMedia(media);
     } catch (e) {
       console.warn('[communityStore] deletePost error:', e?.message);
     }
