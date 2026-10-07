@@ -14,7 +14,7 @@ import {
   View, Text, TextInput, Modal, Pressable, ScrollView, Image, Alert, Keyboard,
   KeyboardAvoidingView, Platform, ActivityIndicator, StyleSheet, useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { pickFromLibrary, capturePhoto } from '../services/postMediaService';
 import {
@@ -78,11 +78,16 @@ export default function PostComposer({
     }
   };
 
+  // A Modal sits outside the normal safe-area layout, so SafeAreaView reports no top
+  // inset inside it and the header slid under the clock. Use the screen's real insets
+  // from the app's SafeAreaProvider instead (iOS only: an Android Modal already starts
+  // below the status bar).
+  const topPad = IOS ? Math.max(insets.top, 20) : 0;
   const bottomPad = IOS && !keyboardUp ? Math.max(insets.bottom, 10) : 10;
 
   return (
     <Modal visible={!!visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <View style={[styles.root, { paddingTop: topPad }]}>
         <KeyboardAvoidingView style={styles.flex} behavior={IOS ? 'padding' : undefined}>
           {/* Header */}
           <View style={styles.header}>
@@ -190,7 +195,7 @@ export default function PostComposer({
             <Text style={styles.hint} numberOfLines={2}>{pickerHint(list)}</Text>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
