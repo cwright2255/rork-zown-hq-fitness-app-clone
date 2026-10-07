@@ -10,7 +10,7 @@ import { useCommunityStore } from '@/store/communityStore';
 import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
 import PostMedia from '@/components/PostMedia';
-import MediaPickerStrip from '@/components/MediaPickerStrip';
+import PostComposer from '@/components/PostComposer';
 import { canPost, normalizeMedia, mediaSummary } from '@/lib/postMedia';
 
 // No real challenge-tracking backend exists yet (participant tracking,
@@ -270,35 +270,18 @@ export default function CommunityScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={composerOpen} animationType="slide" transparent onRequestClose={closeComposer}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalWrap}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Share an update</Text>
-              <TouchableOpacity onPress={closeComposer} disabled={posting}>
-                <X size={22} color="#000000" />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              value={postText}
-              onChangeText={setPostText}
-              placeholder="What's on your mind?"
-              placeholderTextColor="#999999"
-              style={styles.composerInput}
-              multiline
-              autoFocus
-              editable={!posting}
-            />
-            <MediaPickerStrip items={mediaItems} onChange={setMediaItems} disabled={posting} />
-            <PrimaryButton
-              title={posting ? (mediaItems.length > 0 ? `Uploading ${Math.round(uploadProgress * 100)}%` : 'Posting…') : 'Post'}
-              onPress={handlePost}
-              disabled={posting || !canPost(postText, mediaItems)}
-              style={{ marginTop: 16 }}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <PostComposer
+        visible={composerOpen}
+        onClose={closeComposer}
+        authorName={user?.name}
+        text={postText}
+        onChangeText={setPostText}
+        items={mediaItems}
+        onChangeItems={setMediaItems}
+        posting={posting}
+        progress={uploadProgress}
+        onSubmit={handlePost}
+      />
 
       <Modal visible={!!commentsPost} animationType="slide" transparent onRequestClose={closeComments}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalWrap}>

@@ -2,7 +2,7 @@ import {
   MAX_PHOTOS, MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_VIDEO_BYTES,
   assetKind, assetToItem, addPicked, removeAt, canPost, remainingPhotos, pickerHint,
   formatDuration, buildStoragePath, contentTypeFor, extensionFor, toMediaDescriptor,
-  normalizeMedia, clampAspect, gridRows, mediaSummary,
+  normalizeMedia, clampAspect, gridRows, mediaSummary, initialsFor, progressPercent, uploadLabel,
 } from '../lib/postMedia';
 
 const photo = (n, extra = {}) => ({ uri: `file:///tmp/p${n}.jpg`, type: 'image', width: 1200, height: 900, fileSize: 2_000_000, ...extra });
@@ -192,5 +192,32 @@ describe('normalizeMedia', () => {
     expect(normalizeMedia({ imageUrl: 'file:///x.jpg' })).toEqual([]);
     expect(normalizeMedia(null)).toEqual([]);
     expect(normalizeMedia({})).toEqual([]);
+  });
+});
+
+describe('Create Post screen helpers', () => {
+  it('initialsFor', () => {
+    expect(initialsFor('Carlton Wright')).toBe('CW');
+    expect(initialsFor('  carlton   v   wright ')).toBe('CV');
+    expect(initialsFor('Madonna')).toBe('M');
+    expect(initialsFor('')).toBe('?');
+    expect(initialsFor(null)).toBe('?');
+  });
+
+  it('progressPercent keeps the value between 0 and 100', () => {
+    expect(progressPercent(0)).toBe(0);
+    expect(progressPercent(0.426)).toBe(43);
+    expect(progressPercent(1)).toBe(100);
+    expect(progressPercent(1.7)).toBe(100);
+    expect(progressPercent(-0.2)).toBe(0);
+    expect(progressPercent(undefined)).toBe(0);
+    expect(progressPercent(NaN)).toBe(0);
+  });
+
+  it('uploadLabel says Posting for text only and a percent when media is uploading', () => {
+    expect(uploadLabel([], 0.5)).toBe('Posting…');
+    expect(uploadLabel(undefined, 0.5)).toBe('Posting…');
+    expect(uploadLabel([{ uri: 'x' }], 0.426)).toBe('Uploading 43%');
+    expect(uploadLabel([{ uri: 'x' }], 0)).toBe('Uploading 0%');
   });
 });

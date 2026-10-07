@@ -16,7 +16,7 @@ import { useSocialGraphStore } from '@/store/socialGraphStore';
 import { useAudience } from '@/store/useAudience';
 import { filterByAudience, emptyAudienceMessage } from '@/lib/audience';
 import PostMedia from '@/components/PostMedia';
-import MediaPickerStrip from '@/components/MediaPickerStrip';
+import PostComposer from '@/components/PostComposer';
 import { canPost, normalizeMedia, mediaSummary } from '@/lib/postMedia';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -571,30 +571,18 @@ export default function SocialScreen() {
       </ScrollView>
 
       {/* Composer */}
-      <Modal visible={composerOpen} animationType="slide" transparent onRequestClose={closeComposer}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalWrap}>
-          <View style={s.modalCard}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Share an update</Text>
-              <Pressable onPress={closeComposer} disabled={posting}><Ionicons name="close" size={22} color="#000" /></Pressable>
-            </View>
-            <TextInput
-              value={postText} onChangeText={setPostText} placeholder="What's on your mind?"
-              placeholderTextColor="#999" style={s.composerInput} multiline autoFocus editable={!posting}
-            />
-            <MediaPickerStrip items={mediaItems} onChange={setMediaItems} disabled={posting} />
-            <Pressable
-              style={[s.composeBtn, { marginTop: 16 }, (!canPost(postText, mediaItems) || posting) && { opacity: 0.5 }]}
-              onPress={handlePost}
-              disabled={!canPost(postText, mediaItems) || posting}
-            >
-              <Text style={s.composeBtnText}>
-                {posting ? (mediaItems.length > 0 ? `Uploading ${Math.round(uploadProgress * 100)}%` : 'Posting…') : 'Post'}
-              </Text>
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <PostComposer
+        visible={composerOpen}
+        onClose={closeComposer}
+        authorName={displayName}
+        text={postText}
+        onChangeText={setPostText}
+        items={mediaItems}
+        onChangeItems={setMediaItems}
+        posting={posting}
+        progress={uploadProgress}
+        onSubmit={handlePost}
+      />
 
       {/* Comments */}
       <Modal visible={!!commentsPost} animationType="slide" transparent onRequestClose={closeComments}>

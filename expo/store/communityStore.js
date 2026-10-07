@@ -54,7 +54,7 @@ export const useCommunityStore = create((set, get) => ({
   },
 
   // A post needs some text or at least one photo or video. Photos and videos
-  // (`mediaItems`, picked with components/MediaPickerStrip) are uploaded to
+  // (`mediaItems`, picked in components/PostComposer) are uploaded to
   // Firebase Storage first; the post is only saved once every upload worked,
   // so a failed upload never leaves a half-finished post. The post id is made
   // up front so the files can live under posts/{uid}/{postId}/.

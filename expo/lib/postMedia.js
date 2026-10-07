@@ -188,3 +188,25 @@ export function mediaSummary(media) {
   if (list[0].type === 'video') return 'a video';
   return list.length === 1 ? 'a photo' : `${list.length} photos`;
 }
+
+// ---- Create Post screen helpers (components/PostComposer.jsx) ----
+
+// "CW" for "Carlton Wright"; "?" when there is no name.
+export function initialsFor(name) {
+  const letters = String(name || '').trim().split(/\s+/).filter(Boolean).map((w) => w[0]).join('');
+  return (letters || '?').slice(0, 2).toUpperCase();
+}
+
+// Upload progress (0 to 1) as a whole percent, kept between 0 and 100.
+export function progressPercent(progress) {
+  const p = Number(progress);
+  if (!Number.isFinite(p)) return 0;
+  return Math.min(100, Math.max(0, Math.round(p * 100)));
+}
+
+// The status line under the header while a post is being sent.
+export function uploadLabel(items, progress) {
+  const list = Array.isArray(items) ? items : [];
+  if (list.length === 0) return 'Posting…';
+  return `Uploading ${progressPercent(progress)}%`;
+}
