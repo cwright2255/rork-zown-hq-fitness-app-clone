@@ -11,15 +11,66 @@ import { useUserStore } from '@/store/userStore';
 import RecipeImportModal from '@/components/RecipeImportModal';
 import RecipePreviewModal from '@/components/RecipePreviewModal';
 import recipeExtractionService from '@/services/recipeExtractionService';
+import { getDietProfile, buildDietFilters } from '@/lib/dietProfile';
 
 const CATS = ['All','High Protein','Low Carb','Vegan','Quick Meals','Post-Workout'];
 
 const NAV_BAR_CLEARANCE = Platform.OS === 'ios' ? 120 : 110;
 
+// Real fix: every discovery section asks Spoonacular for the same
+// "most popular" list with the same filters, so the answer never changed
+// and the same recipes showed up every day. This steps the result window
+// forward once per local calendar day (offset = day slot * page size), so
+// a section shows a fresh page of results each day, stays identical for
+// the whole day (so the 30-minute cache still works), and cycles back
+// after DAILY_ROTATION_SLOTS days. If a narrow diet/allergy filter has
+// fewer results than the offset reaches, the fetch below falls back to
+// offset 0 rather than showing an empty section.
+const DAILY_ROTATION_SLOTS = 15;
+function dailyOffset(pageSize) {
+  const now = new Date();
+  const dayNumber = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
+  return String((dayNumber % DAILY_ROTATION_SLOTS) * pageSize);
+}
+
+// Real fix: this screen used to read user.dietaryPreferences, a field
+// nothing in the app ever sets (onboarding and Edit Profile save the diet
+// choice as user.fitnessMetrics.nutritionPreference, goals as
+// fitnessMetrics.targetGoals, and the calorie target as
+// user.dailyCalorieGoal), so diet, calorie and goal filters were silently
+// never applied. This maps the real fields onto the shape the builders
+// below expect. The app's diet ids don't match Spoonacular's values
+// (keto -> ketogenic, pescatarian -> pescetarian, gluten_free ->
+// "gluten free"); intermittent fasting is a timing strategy, not a
+// recipe filter, so it (and "no preference") applies no diet filter.
+// Diets, food allergies and foods-to-avoid are all defined in
+// lib/dietProfile.js (one source shared with onboarding, Edit Profile and
+// the AI coach). Allergies become Spoonacular intolerances, avoided foods
+// become excluded ingredients, and diets Spoonacular has no label for
+// (Mediterranean, carnivore, low carb, high protein) become a cuisine or
+// per-meal macro limits.
+function resolveDietaryPreferences(user) {
+  const profile = getDietProfile(user);
+  const filters = buildDietFilters(profile);
+  return {
+    dietId: profile.dietId,
+    diet: filters.diet,
+    allergies: filters.intolerances,
+    excludeIngredients: filters.excludeIngredients,
+    dietExtras: filters.extras,
+    dailyCalorieGoal: user?.dailyCalorieGoal || null,
+    goals: user?.fitnessMetrics?.targetGoals || user?.goals || [],
+    signature: [profile.dietId, filters.intolerances.join(','), filters.excludeIngredients || ''].join('|'),
+  };
+}
+
 function buildBrowseSections(dietaryPreferences) {
-  const { diet, allergies, dailyCalorieGoal } = dietaryPreferences || {};
-  const dietParam = diet ? { diet } : {};
+  const { diet, allergies, dailyCalorieGoal, excludeIngredients, dietExtras } = dietaryPreferences || {};
+  const dietParam = { ...(diet ? { diet } : {}), ...(dietExtras || {}), ...(excludeIngredients ? { excludeIngredients } : {}) };
   const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
+  // Low-carb style diets (keto, low carb, carnivore) must not get the
+  // post-workout carb minimum below, it would contradict the diet.
+  const lowCarbDiet = diet === 'ketogenic' || dietExtras?.maxCarbs != null;
 
   const mealCalorieRange = dailyCalorieGoal
     ? { minCalories: String(Math.round(dailyCalorieGoal * 0.25)), maxCalories: String(Math.round(dailyCalorieGoal * 0.35)) }
@@ -37,27 +88,29 @@ function buildBrowseSections(dietaryPreferences) {
     // Expanding a section still switches its layout from a horizontal
     // scroll to a grid, just without revealing additional items beyond
     // these 6.
-    featured: { minProtein: '15', maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 1, ...dietParam, ...intoleranceParam },
-    postWorkout: { minProtein: '20', maxFat: '25', maxSugar: '20', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
-    mealPrep: { minServings: '4', minProtein: '15', maxSugar: '20', type: 'main course', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
-    quickEasy: { maxReadyTime: '20', ...quickCalorieCeiling, maxSugar: '20', instructionsRequired: 'true', sort: 'time', number: 6, ...dietParam, ...intoleranceParam },
+    featured: { offset: dailyOffset(1), minProtein: '15', maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 1, ...dietParam, ...intoleranceParam },
+    postWorkout: { offset: dailyOffset(6), minProtein: '20', ...(lowCarbDiet ? {} : { minCarbs: '30' }), maxSugar: '20', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
+    mealPrep: { offset: dailyOffset(6), minServings: '4', minProtein: '15', maxSugar: '20', type: 'main course', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
+    quickEasy: { offset: dailyOffset(6), maxReadyTime: '20', ...quickCalorieCeiling, maxSugar: '20', instructionsRequired: 'true', sort: 'time', number: 6, ...dietParam, ...intoleranceParam },
   };
 }
 
 function buildSearchParams(query, dietaryPreferences) {
-  const { diet, allergies } = dietaryPreferences || {};
+  const { diet, allergies, excludeIngredients } = dietaryPreferences || {};
   return {
     query,
     instructionsRequired: 'true',
     number: 20,
     ...(diet ? { diet } : {}),
     ...(allergies?.length ? { intolerances: allergies.join(',') } : {}),
+    ...(excludeIngredients ? { excludeIngredients } : {}),
   };
 }
 
 function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRecipes) {
-  const { diet, allergies, dailyCalorieGoal } = dietaryPreferences || {};
-  const dietParam = diet ? { diet } : {};
+  const { diet, allergies, dailyCalorieGoal, goals, excludeIngredients, dietExtras } = dietaryPreferences || {};
+  const goalList = goals || [];
+  const dietParam = { ...(diet ? { diet } : {}), ...(dietExtras || {}), ...(excludeIngredients ? { excludeIngredients } : {}) };
   const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
 
   const cuisineCounts = {};
@@ -70,7 +123,19 @@ function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRec
   const cuisineParam = topCuisineEntry && topCuisineEntry[1] >= 2 ? { cuisine: topCuisineEntry[0] } : {};
 
   const ADVANCED_LEVELS = ['advanced', 'elite'];
-  const minProtein = ADVANCED_LEVELS.includes(fitnessLevel) ? '25' : '18';
+  // Protein per meal follows the goal: muscle gain and fat loss in a
+  // deficit both benefit most from higher protein per meal (roughly
+  // 25-40g), endurance goals lean on carbs to refuel glycogen.
+  let minProtein = ADVANCED_LEVELS.includes(fitnessLevel) ? '25' : '18';
+  if (goalList.includes('build_muscle')) minProtein = '30';
+  else if (goalList.includes('lose_weight')) minProtein = '25';
+  const lowCarbDiet = diet === 'ketogenic' || dietExtras?.maxCarbs != null;
+  const enduranceCarbs = goalList.includes('improve_endurance') && !lowCarbDiet ? { minCarbs: '45' } : {};
+  // Losing weight: keep each suggested meal to at most ~30% of the daily
+  // calorie goal instead of ~35%, so a day of them fits a deficit.
+  const weightLossCeiling = goalList.includes('lose_weight') && dailyCalorieGoal
+    ? { maxCalories: String(Math.round(dailyCalorieGoal * 0.3)) }
+    : {};
 
   const mealCalorieRange = dailyCalorieGoal
     ? { minCalories: String(Math.round(dailyCalorieGoal * 0.25)), maxCalories: String(Math.round(dailyCalorieGoal * 0.35)) }
@@ -79,8 +144,8 @@ function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRec
   return {
     // Real fix: same reasoning as buildBrowseSections above - this was
     // requesting 12 but the collapsed view only shows 6.
-    minProtein, maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 6,
-    ...dietParam, ...intoleranceParam, ...cuisineParam,
+    offset: dailyOffset(6), minProtein, maxSugar: '15', ...mealCalorieRange, ...weightLossCeiling, instructionsRequired: 'true', sort: 'popularity', number: 6,
+    ...dietParam, ...intoleranceParam, ...cuisineParam, ...enduranceCarbs,
   };
 }
 
@@ -97,10 +162,12 @@ function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRec
 // into a near-impossible intersection - the object spread order below
 // (diet after ...base) is what makes that override happen.
 function buildCategoryParams(category, dietaryPreferences) {
-  const { diet, allergies } = dietaryPreferences || {};
+  const { diet, allergies, excludeIngredients } = dietaryPreferences || {};
   const dietParam = diet ? { diet } : {};
   const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
-  const base = { instructionsRequired: 'true', sort: 'popularity', number: 20, ...dietParam, ...intoleranceParam };
+  const excludeParam = excludeIngredients ? { excludeIngredients } : {};
+  const lowCarbDiet = diet === 'ketogenic' || dietaryPreferences?.dietExtras?.maxCarbs != null;
+  const base = { instructionsRequired: 'true', sort: 'popularity', number: 20, ...dietParam, ...intoleranceParam, ...excludeParam };
 
   switch (category) {
     case 'High Protein':
@@ -112,7 +179,7 @@ function buildCategoryParams(category, dietaryPreferences) {
     case 'Quick Meals':
       return { ...base, maxReadyTime: '20', sort: 'time' };
     case 'Post-Workout':
-      return { ...base, minProtein: '20', maxFat: '25' };
+      return { ...base, minProtein: '20', ...(lowCarbDiet ? {} : { minCarbs: '30' }) };
     default:
       return null;
   }
@@ -250,9 +317,12 @@ export default function RecipesScreen() {
     }
   }, [user?.uid]);
 
-  const dietPref = user?.dietaryPreferences?.diet || null;
-  const allergiesPref = (user?.dietaryPreferences?.allergies || []).join(',');
-  const calorieGoalPref = user?.dietaryPreferences?.dailyCalorieGoal || null;
+  const dietaryPrefs = resolveDietaryPreferences(user);
+  const dietPref = dietaryPrefs.diet || null;
+  const allergiesPref = dietaryPrefs.allergies.join(',');
+  const calorieGoalPref = dietaryPrefs.dailyCalorieGoal || null;
+  const goalsPref = dietaryPrefs.goals.join(',');
+  const prefsSignature = dietaryPrefs.signature;
   const fitnessLevelPref = user?.fitnessLevel || null;
   const savedRecipesCount = savedRecipes?.length || 0;
 
@@ -267,7 +337,7 @@ export default function RecipesScreen() {
   // every section waiting on the slowest of all five.
   useEffect(() => {
     let cancelled = false;
-    const sections = buildBrowseSections(user?.dietaryPreferences);
+    const sections = buildBrowseSections(dietaryPrefs);
     const sectionKeys = ['featured', 'postWorkout', 'mealPrep', 'quickEasy'];
 
     const applySectionItems = (key, items) => {
@@ -303,7 +373,14 @@ export default function RecipesScreen() {
     sectionKeys.forEach((key) => setBrowseLoading((prev) => ({ ...prev, [key]: true })));
     recipeExtractionService.getSpoonacularBrowseBatch(
       sectionKeys.map((key) => ({ key, params: sections[key], number: sections[key].number }))
-    ).then((byKey) => {
+    ).then(async (byKey) => {
+      const emptyKeys = sectionKeys.filter((key) => !(byKey[key] || []).length && sections[key].offset && sections[key].offset !== '0');
+      if (emptyKeys.length) {
+        const retry = await recipeExtractionService.getSpoonacularBrowseBatch(
+          emptyKeys.map((key) => ({ key, params: { ...sections[key], offset: '0' }, number: sections[key].number }))
+        );
+        emptyKeys.forEach((key) => { byKey[key] = retry[key] || []; });
+      }
       if (cancelled) return;
       sectionKeys.forEach((key) => {
         const items = byKey[key] || [];
@@ -315,7 +392,7 @@ export default function RecipesScreen() {
     });
 
     return () => { cancelled = true; };
-  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref]);
+  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, prefsSignature]);
 
   // Real, new: separated from the effect above specifically because this
   // is the one category that genuinely needs savedRecipesCount (see
@@ -323,7 +400,7 @@ export default function RecipesScreen() {
   // removing a recipe only re-fetches this one section, not all five.
   useEffect(() => {
     let cancelled = false;
-    const aiParams = buildAiRecommendationsParams(user?.dietaryPreferences, user?.fitnessLevel, savedRecipes);
+    const aiParams = buildAiRecommendationsParams(dietaryPrefs, user?.fitnessLevel, savedRecipes);
 
     const applyItems = (items) => {
       setBrowse((prev) => {
@@ -342,7 +419,11 @@ export default function RecipesScreen() {
     }
 
     setBrowseLoading((prev) => ({ ...prev, aiRecommendations: true }));
-    recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number).then((items) => {
+    recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number).then(async (firstItems) => {
+      let items = firstItems;
+      if (!items.length && aiParams.offset && aiParams.offset !== '0') {
+        items = await recipeExtractionService.getSpoonacularBrowse({ ...aiParams, offset: '0' }, aiParams.number);
+      }
       if (cancelled) return;
       browseCache.set(cacheKey, { items, timestamp: Date.now() });
       applyItems(items);
@@ -350,7 +431,7 @@ export default function RecipesScreen() {
       if (!cancelled) setBrowseLoading((prev) => ({ ...prev, aiRecommendations: false }));
     });
     return () => { cancelled = true; };
-  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, savedRecipesCount]);
+  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, goalsPref, prefsSignature, savedRecipesCount]);
 
   useEffect(() => {
     if (!searchQuery) {
@@ -359,13 +440,13 @@ export default function RecipesScreen() {
     }
     let cancelled = false;
     setSearchLoading(true);
-    recipeExtractionService.getSpoonacularBrowse(buildSearchParams(searchQuery, user?.dietaryPreferences), 20).then((results) => {
+    recipeExtractionService.getSpoonacularBrowse(buildSearchParams(searchQuery, dietaryPrefs), 20).then((results) => {
       if (!cancelled) setSearchResults(results);
     }).finally(() => {
       if (!cancelled) setSearchLoading(false);
     });
     return () => { cancelled = true; };
-  }, [searchQuery]);
+  }, [searchQuery, prefsSignature]);
 
   // Real, new effect: fetches whenever a non-"All" category pill is
   // active, using buildCategoryParams above. Re-fetches if the user's
@@ -378,14 +459,14 @@ export default function RecipesScreen() {
     }
     let cancelled = false;
     setCategoryLoading(true);
-    const params = buildCategoryParams(cat, user?.dietaryPreferences);
+    const params = buildCategoryParams(cat, dietaryPrefs);
     recipeExtractionService.getSpoonacularBrowse(params, params.number).then((results) => {
       if (!cancelled) setCategoryResults(results);
     }).finally(() => {
       if (!cancelled) setCategoryLoading(false);
     });
     return () => { cancelled = true; };
-  }, [cat, dietPref, allergiesPref]);
+  }, [cat, dietPref, allergiesPref, prefsSignature]);
 
   // Saved Recipes is only ever shown in the "All" state now (see the
   // render below - a category pill or search replaces the whole

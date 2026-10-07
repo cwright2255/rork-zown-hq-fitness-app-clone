@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
+import { DIET_OPTIONS, ALLERGY_OPTIONS, AVOID_OPTIONS } from '@/lib/dietProfile';
 
 // Same options as app/onboarding.jsx's GOALS/NUTRITION_PREFERENCES -
 // onboarding is a one-time flow with no way back in once completed, so
@@ -20,16 +21,8 @@ const GOALS = [
   { id: 'reduce_stress', label: 'Reduce Stress' },
 ];
 
-const NUTRITION_PREFERENCES = [
-  { id: 'no_preference', label: 'No Preference' },
-  { id: 'vegetarian', label: 'Vegetarian' },
-  { id: 'vegan', label: 'Vegan' },
-  { id: 'pescatarian', label: 'Pescatarian' },
-  { id: 'paleo', label: 'Paleo' },
-  { id: 'keto', label: 'Keto' },
-  { id: 'intermittent_fasting', label: 'Intermittent Fasting' },
-  { id: 'gluten_free', label: 'Gluten-Free' },
-];
+// Shared with onboarding, Recipes and the AI coach (lib/dietProfile.js).
+const NUTRITION_PREFERENCES = DIET_OPTIONS;
 
 // Real, new: surfaced on the workout side (exercise warnings, and a
 // future input to AI-generated plans) so exercises that commonly
@@ -82,6 +75,10 @@ export default function EditProfileScreen() {
   // not a separate copy.
   const [selectedGoals, setSelectedGoals] = useState(user?.fitnessMetrics?.targetGoals || []);
   const [nutritionPreference, setNutritionPreference] = useState(user?.fitnessMetrics?.nutritionPreference || 'no_preference');
+  const [foodAllergies, setFoodAllergies] = useState(user?.fitnessMetrics?.foodAllergies || []);
+  const [avoidFoods, setAvoidFoods] = useState(user?.fitnessMetrics?.avoidFoods || []);
+  const toggleInList = (setter, id) =>
+    setter((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const [selectedInjuries, setSelectedInjuries] = useState(user?.fitnessMetrics?.injuries || []);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -140,6 +137,8 @@ export default function EditProfileScreen() {
           height: height ? Math.round(parseFloat(height) * 2.54) : null,
           targetGoals: selectedGoals,
           nutritionPreference: nutritionPreference,
+          foodAllergies,
+          avoidFoods,
           injuries: selectedInjuries,
         },
       });
@@ -244,6 +243,35 @@ export default function EditProfileScreen() {
               return (
                 <Pressable key={p.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => setNutritionPreference(p.id)}>
                   <Text style={[s.levelText, active && s.levelTextActive]}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <Text style={s.sectionLabel}>Food Allergies & Intolerances</Text>
+        <View style={s.field}>
+          <Text style={s.helperTextTight}>Used to filter recipe suggestions and guide the AI coach. Always check ingredient labels yourself.</Text>
+          <View style={s.levelRow}>
+            {ALLERGY_OPTIONS.map((a) => {
+              const active = foodAllergies.includes(a.id);
+              return (
+                <Pressable key={a.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => toggleInList(setFoodAllergies, a.id)}>
+                  <Text style={[s.levelText, active && s.levelTextActive]}>{a.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <Text style={s.sectionLabel}>Foods You Avoid</Text>
+        <View style={s.field}>
+          <View style={s.levelRow}>
+            {AVOID_OPTIONS.map((f) => {
+              const active = avoidFoods.includes(f.id);
+              return (
+                <Pressable key={f.id} style={[s.levelPill, active && s.levelPillActive]} onPress={() => toggleInList(setAvoidFoods, f.id)}>
+                  <Text style={[s.levelText, active && s.levelTextActive]}>{f.label}</Text>
                 </Pressable>
               );
             })}

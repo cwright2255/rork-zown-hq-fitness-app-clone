@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { DIET_OPTIONS, ALLERGY_OPTIONS, AVOID_OPTIONS } from '@/lib/dietProfile';
 import {
   View,
   Text,
@@ -35,16 +36,8 @@ const ACTIVITY_LEVELS = [
   { id: 'extremely_active', label: 'Extremely Active', desc: 'Very hard exercise, physical job or athlete' }
 ];
 
-const NUTRITION_PREFERENCES = [
-  { id: 'no_preference', label: 'No Preference' },
-  { id: 'vegetarian', label: 'Vegetarian' },
-  { id: 'vegan', label: 'Vegan' },
-  { id: 'pescatarian', label: 'Pescatarian' },
-  { id: 'paleo', label: 'Paleo' },
-  { id: 'keto', label: 'Keto' },
-  { id: 'intermittent_fasting', label: 'Intermittent Fasting' },
-  { id: 'gluten_free', label: 'Gluten-Free' }
-];
+// Shared with Edit Profile, Recipes and the AI coach (lib/dietProfile.js).
+const NUTRITION_PREFERENCES = DIET_OPTIONS;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -67,6 +60,10 @@ export default function OnboardingScreen() {
   const [activityLevel, setActivityLevel] = useState('moderately_active');
   const [selectedGoals, setSelectedGoals] = useState([]);
   const [nutritionPreference, setNutritionPreference] = useState('no_preference');
+  const [foodAllergies, setFoodAllergies] = useState([]);
+  const [avoidFoods, setAvoidFoods] = useState([]);
+  const toggleInList = (setter, id) =>
+    setter((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   
   // Workout preferences
   const [daysPerWeek, setDaysPerWeek] = useState('3');
@@ -157,7 +154,9 @@ export default function OnboardingScreen() {
           weight: calculatedWeight,
           activityLevel: activityLevel,
           targetGoals: selectedGoals,
-          nutritionPreference: nutritionPreference
+          nutritionPreference: nutritionPreference,
+          foodAllergies,
+          avoidFoods
         },
         preferences: {
           units: isMetric ? 'metric' : 'imperial',
@@ -422,6 +421,41 @@ export default function OnboardingScreen() {
                       <Text style={[styles.pillText, isSel && styles.pillTextActive]}>
                         {pref.label}
                       </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.nutritionPrefLabel}>Food Allergies & Intolerances</Text>
+              <Text style={[styles.nutritionPrefLabel, { fontSize: 12, fontWeight: '400', marginTop: 0 }]}>
+                Used to filter recipe suggestions. Always check ingredient labels yourself.
+              </Text>
+              <View style={styles.pillsRow}>
+                {ALLERGY_OPTIONS.map((a) => {
+                  const isSel = foodAllergies.includes(a.id);
+                  return (
+                    <TouchableOpacity
+                      key={a.id}
+                      style={[styles.pillBtn, isSel && styles.pillBtnActive]}
+                      onPress={() => toggleInList(setFoodAllergies, a.id)}
+                    >
+                      <Text style={[styles.pillText, isSel && styles.pillTextActive]}>{a.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.nutritionPrefLabel}>Foods You Avoid</Text>
+              <View style={styles.pillsRow}>
+                {AVOID_OPTIONS.map((f) => {
+                  const isSel = avoidFoods.includes(f.id);
+                  return (
+                    <TouchableOpacity
+                      key={f.id}
+                      style={[styles.pillBtn, isSel && styles.pillBtnActive]}
+                      onPress={() => toggleInList(setAvoidFoods, f.id)}
+                    >
+                      <Text style={[styles.pillText, isSel && styles.pillTextActive]}>{f.label}</Text>
                     </TouchableOpacity>
                   );
                 })}

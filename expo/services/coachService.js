@@ -3,6 +3,7 @@ import {
   collection, addDoc, query, where, getDocs, serverTimestamp,
 } from 'firebase/firestore';
 import { groupSetsBySession, estimateOneRepMax } from './progressiveOverloadService';
+import { getDietProfile, describeDietForAI } from '../lib/dietProfile';
 
 // Real, new: readable labels for the raw ids app/profile/edit.jsx's
 // GOALS/INJURIES constants store on the user, so the system prompt below
@@ -43,7 +44,7 @@ export function buildCoachSystemPrompt(user) {
   const goals = (user?.fitnessMetrics?.targetGoals || []).map((id) => GOAL_LABELS[id] || id);
   const injuries = (user?.fitnessMetrics?.injuries || []).map((id) => INJURY_LABELS[id] || id);
   const level = user?.fitnessLevel || 'unspecified';
-  const nutritionPref = user?.fitnessMetrics?.nutritionPreference;
+  const dietLines = describeDietForAI(getDietProfile(user));
 
   const lines = [
     `You are ZOWN's AI fitness coach, in an ongoing coaching conversation with ${name}.`,
@@ -52,9 +53,7 @@ export function buildCoachSystemPrompt(user) {
     injuries.length
       ? `Reported injuries/areas to be careful with: ${injuries.join(', ')}. Take these seriously when suggesting exercises.`
       : null,
-    nutritionPref && nutritionPref !== 'no_preference'
-      ? `Nutrition preference: ${nutritionPref.replace(/_/g, ' ')}.`
-      : null,
+    ...dietLines,
     'Be encouraging, specific, and concise. Reference their real goals and injuries naturally when relevant, not every message.',
   ].filter(Boolean);
 

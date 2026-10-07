@@ -1,6 +1,7 @@
 import { useExpStore } from '@/store/expStore';
 import { wearableService } from '@/services/wearableService';
 import { useUserStore } from '@/store/userStore';
+import { listDietRestrictions } from '@/lib/dietProfile';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
 
@@ -105,7 +106,9 @@ const getUserDietaryContext = () => {
     const user = typeof useUserStore !== 'undefined' ? useUserStore.getState().user : null;
     const goals = Array.isArray(user?.goals) && user?.goals.length ? user?.goals : [];
     const pref = user?.preferences?.dietaryPreference;
-    const restrictions = [];
+    // Real fix: this used to read user.preferences.dietaryPreference, a
+    // field nothing sets, so these prompts never knew the user's diet.
+    const restrictions = listDietRestrictions(user);
     if (typeof pref === 'string' && pref.trim().length > 0) {
       restrictions.push(pref.trim());
     }
