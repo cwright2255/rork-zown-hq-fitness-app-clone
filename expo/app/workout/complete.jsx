@@ -114,7 +114,14 @@ export default function WorkoutCompleteScreen() {
   }, [user?.uid]);
 
   const lastWorkout = completedWorkouts.length > 0 ? completedWorkouts[completedWorkouts.length - 1] : null;
-  const lastRun = runs.length > 0 ? runs[runs.length - 1] : null;
+  // runs is newest first (runs[0] is the latest; the old code read the LAST
+  // entry, which is the oldest run). The run screen passes the id of the run
+  // it just saved; if that run was too short to save, no run is shown rather
+  // than an older one.
+  const savedRunId = typeof params.runId === 'string' ? params.runId : null;
+  const lastRun = savedRunId
+    ? (runs.find((r) => r && String(r.id) === savedRunId) || null)
+    : (runs.length > 0 ? runs[0] : null);
   const displayName = user?.displayName || user?.name || 'You';
 
   // Running redirects here too (app/running/active.jsx), but this screen

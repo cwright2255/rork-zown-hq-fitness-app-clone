@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
+import { paceLabel, runPaceSecPerKm } from '@/lib/runStats';
 import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
@@ -41,19 +42,13 @@ export default function RunningLogScreen() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
-  const formatPace = (paceMinPerKm) => {
-    if (!paceMinPerKm) return '--';
-    const min = Math.floor(paceMinPerKm);
-    const sec = Math.round((paceMinPerKm - min) * 60);
-    return `${min}'${String(sec).padStart(2, '0')}"/km`;
-  };
-
   const rawStats = getStats ? getStats() : { totalRuns: 0, totalDistance: 0, totalDuration: 0, avgPace: 0 };
   const stats = {
     totalRuns: rawStats.totalRuns,
     totalDistance: `${rawStats.totalDistance.toFixed(1)} km`,
     totalTime: formatDuration(rawStats.totalDuration),
-    avgPace: formatPace(rawStats.avgPace),
+    // Pace is stored as seconds per km, so it goes through the shared formatter.
+    avgPace: paceLabel(rawStats.avgPace),
   };
 
   const onRefresh = async () => {
@@ -149,19 +144,12 @@ return (
               return m + ':' + (s < 10 ? '0' : '') + s;
             };
 
-            const formatPace = (p) => {
-              if (!p) return '0:00';
-              const min = Math.floor(p);
-              const sec = Math.round((p - min) * 60);
-              return min + ':' + (sec < 10 ? '0' : '') + sec;
-            };
-
             return (
               <View key={run.id || Math.random().toString()} style={styles.runCard}>
                 <View style={styles.runHeader}>
                   <View>
                     <Text style={styles.runTitle}>{run.route || 'Free Run'}</Text>
-                    <Text style={styles.runDate}>{dateStr} Ã¢ÂÂ¢ {timeStr}</Text>
+                    <Text style={styles.runDate}>{timeStr ? `${dateStr} \u2022 ${timeStr}` : dateStr}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#999" />
                 </View>
@@ -176,7 +164,7 @@ return (
                     <Text style={styles.runStatLbl}>Time</Text>
                   </View>
                   <View style={styles.runStat}>
-                    <Text style={styles.runStatVal}>{formatPace(run.pace || 0)} /km</Text>
+                    <Text style={styles.runStatVal}>{paceLabel(runPaceSecPerKm(run))}</Text>
                     <Text style={styles.runStatLbl}>Pace</Text>
                   </View>
                 </View>

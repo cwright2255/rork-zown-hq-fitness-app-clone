@@ -71,10 +71,11 @@ export default function ActiveRunScreen() {
   const weekNumber = params.week ? parseInt(params.week, 10) : null;
   const sessionIndex = params.sessionIndex ? parseInt(params.sessionIndex, 10) : 0;
 
-  const { startRun, endRun, updateActiveRun, completeProgramSession } = useRunningStore();
+  const { startRun, endRun, completeProgramSession } = useRunningStore();
   const { addExpActivity } = useExpStore();
   const { user } = useUserStore();
   const runStartRef = useRef(new Date().toISOString());
+  const endedRef = useRef(false);
   const [locationName, setLocationName] = useState('');
 
   // Program (interval) mode — real Couch to 5K / interval structure from
@@ -134,6 +135,7 @@ export default function ActiveRunScreen() {
         );
       } else {
         // Permission granted, start tracking immediately
+        runStartRef.current = new Date().toISOString();
         setIsRunning(true);
       }
     })();
@@ -251,47 +253,50 @@ export default function ActiveRunScreen() {
   }, []);
 
   const handleEndRun = useCallback(() => {
+    // A double tap on End, or the program timer firing as you tap, must not
+    // save the same run twice.
+    if (endedRef.current) return;
+    endedRef.current = true;
     setIsRunning(false);
     setShowPauseOptions(false);
     setShowMenu(false);
+    let savedRunId = 'none';
     try {
-      // This was the core bug in this screen: distance/elapsed/calories/
-      // coordinates were all tracked in local component state only.
-      // updateActiveRun() — the function that writes those values into the
-      // store's activeRun — was never called anywhere, so endRun() was
-      // spreading the store's still-zeroed startRun() defaults into the
-      // saved record. The on-screen numbers during the run were correct;
-      // none of them were ever actually being saved. Fixed by writing the
-      // real tracked values in before ending.
-      const rawPaceSecPerKm = distance > 0.01 ? elapsed / distance : 0;
-      updateActiveRun({
+      // The tracked numbers live in this screen's state, so they are handed
+      // straight to endRun. (Before, they were written to the store's
+      // activeRun, but nothing ever started an activeRun, so every finished
+      // run was dropped.) endRun returns null for a run under 10 seconds,
+      // and then nothing is saved or credited.
+      const completed = endRun(user?.uid, {
+        startTime: runStartRef.current,
         distance,
         duration: elapsed,
-        pace: rawPaceSecPerKm,
         calories: Math.round(calories),
         coords: coordinates,
       });
-      const completed = endRun(user?.uid);
-      useVirtualChallengeStore.getState().creditDistance(distance, user?.uid);
-      if (isProgramRun && programWeek) {
-        completeProgramSession(programId, programWeek.sessionsPerWeek, user?.uid);
+      if (completed) {
+        savedRunId = completed.id;
+        useVirtualChallengeStore.getState().creditDistance(distance, user?.uid);
+        if (isProgramRun && programWeek) {
+          completeProgramSession(programId, programWeek.sessionsPerWeek, user?.uid);
+        }
+        addExpActivity?.({
+          id: Date.now().toString(),
+          type: 'running',
+          baseExp: Math.round(distance * 30),
+          multiplier: 1.0,
+          date: new Date().toISOString().split('T')[0],
+          description: isProgramRun
+            ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
+            : `Completed a ${distance.toFixed(2)}km run`,
+          completed: true,
+        }, user?.uid);
       }
-      addExpActivity?.({
-        id: Date.now().toString(),
-        type: 'running',
-        baseExp: Math.round(distance * 30),
-        multiplier: 1.0,
-        date: new Date().toISOString().split('T')[0],
-        description: isProgramRun
-          ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
-          : `Completed a ${distance.toFixed(2)}km run`,
-        completed: true,
-      }, user?.uid);
     } catch (e) {
       console.warn('Failed to save run:', e?.message);
     }
-    router.replace('/workout/complete?type=run');
-  }, [router, distance, elapsed, calories, coordinates, updateActiveRun, endRun, addExpActivity, user, isProgramRun, programWeek, programId, weekNumber, sessionIndex, completeProgramSession]);
+    router.replace(`/workout/complete?type=run&runId=${savedRunId}`);
+  }, [router, distance, elapsed, calories, coordinates, endRun, addExpActivity, user, isProgramRun, programWeek, programId, weekNumber, sessionIndex, completeProgramSession]);
 
   const pace = formatPace(distance, elapsed);
   const goalPercent = Math.min(100, Math.round((distance / 5) * 100));
