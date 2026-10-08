@@ -14,6 +14,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useRunningStore } from '@/store/runningStore';
+import { activityOf, xpFor } from '@/lib/runStats';
 import { useCommunityStore } from '@/store/communityStore';
 
 function StatCard({ icon, number, label }) {
@@ -141,7 +142,7 @@ export default function WorkoutCompleteScreen() {
   const realCalories = isRunCompletion ? (lastRun?.calories || 0) : (lastWorkout?.caloriesBurned || 0);
   const realXP = isHikeCompletion
     ? (parseInt(params.xpEarned, 10) || 0)
-    : isRunCompletion ? Math.round((lastRun?.distance || 0) * 30) : (lastWorkout?.xpEarned || 0);
+    : isRunCompletion ? xpFor(activityOf(lastRun), lastRun?.distance || 0) : (lastWorkout?.xpEarned || 0);
   const realExercises = `${lastWorkout?.exercisesCompleted ?? 0}/${lastWorkout?.totalExercises ?? 0}`;
 
   const summaryStats = isHikeCompletion
@@ -176,7 +177,7 @@ export default function WorkoutCompleteScreen() {
       const text = isHikeCompletion
         ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
         : isRunCompletion
-          ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km run in ${realDuration}. 💪`
+          ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km ${activityOf(lastRun)} in ${realDuration}. 💪`
           : `Just completed a workout — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
       await createPost({
         uid: user.uid,
@@ -209,7 +210,7 @@ export default function WorkoutCompleteScreen() {
     const text = isHikeCompletion
       ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike on Zown — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
       : isRunCompletion
-        ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km run on Zown in ${realDuration}. 💪`
+        ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km ${activityOf(lastRun)} on Zown in ${realDuration}. 💪`
         : `Just completed a workout on Zown — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
     try {
       await Share.share({ message: text });
@@ -338,6 +339,18 @@ export default function WorkoutCompleteScreen() {
             ))}
           </ScrollView>
         </View>
+
+        {/* The route, pace and splits of the run that was just saved */}
+        {isRunCompletion && lastRun && lastRun.id !== undefined && (
+          <Pressable
+            style={styles.shareButton}
+            onPress={() => router.push(`/running/run/${lastRun.id}`)}
+            testID="view-run-details"
+          >
+            <Ionicons name="map-outline" size={18} color="#000" />
+            <Text style={styles.shareButtonText}>View route & splits</Text>
+          </Pressable>
+        )}
 
         {/* Share to Community — real post, via store/communityStore.js */}
         <Pressable

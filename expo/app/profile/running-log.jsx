@@ -8,7 +8,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
-import { paceLabel, runPaceSecPerKm } from '@/lib/runStats';
+import { paceLabel, runPaceSecPerKm, routePoints, activityOf } from '@/lib/runStats';
+import { runTitle } from '@/lib/runDetail';
 import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
@@ -85,7 +86,7 @@ return (
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
               <Text style={styles.statVal}>{stats.totalRuns}</Text>
-              <Text style={styles.statLbl}>Runs</Text>
+              <Text style={styles.statLbl}>{(runs || []).some((r) => activityOf(r) === 'walk') ? 'Activities' : 'Runs'}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statVal}>{stats.totalDistance}</Text>
@@ -144,11 +145,20 @@ return (
               return m + ':' + (s < 10 ? '0' : '') + s;
             };
 
+            const hasRoute = routePoints(run).length >= 2;
+
             return (
-              <View key={run.id || Math.random().toString()} style={styles.runCard}>
+              <Pressable
+                key={run.id || Math.random().toString()}
+                style={styles.runCard}
+                onPress={() => {
+                  if (run.id !== undefined && run.id !== null) router.push(`/running/run/${run.id}`);
+                }}
+                testID={`run-card-${run.id}`}
+              >
                 <View style={styles.runHeader}>
                   <View>
-                    <Text style={styles.runTitle}>{run.route || 'Free Run'}</Text>
+                    <Text style={styles.runTitle}>{run.route || runTitle(run)}</Text>
                     <Text style={styles.runDate}>{timeStr ? `${dateStr} \u2022 ${timeStr}` : dateStr}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#999" />
@@ -169,12 +179,12 @@ return (
                   </View>
                 </View>
 
-                {/* Map thumbnail placeholder */}
+                {/* Route preview: tap the card for the map, pace and splits */}
                 <View style={styles.mapPlaceholder}>
                   <Ionicons name="map-outline" size={24} color="#666" style={{ marginRight: 8 }} />
-                  <Text style={styles.mapText}>GPS Route Captured</Text>
+                  <Text style={styles.mapText}>{hasRoute ? 'View route & splits' : 'View details'}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })
         )}

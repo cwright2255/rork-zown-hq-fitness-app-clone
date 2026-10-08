@@ -70,7 +70,16 @@
       "expo-font",
       "expo-camera",
       "expo-image-picker",
-      "expo-location",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ZOWN HQ uses your location to track and map your runs and walks.",
+          "locationAlwaysAndWhenInUsePermission": "ZOWN HQ uses your location to keep recording your run while the screen is locked or the app is in the background.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
       "expo-apple-authentication",
       ["@react-native-firebase/app", { "ios": { "disableSPM": true } }],
       "@react-native-firebase/crashlytics",

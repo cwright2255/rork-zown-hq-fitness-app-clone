@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useRunningStore } from '@/store/runningStore';
 import { getProgram, getProgramWeek, getSessionIntervals } from '@/data/runningPrograms';
+import { isSessionDone } from '@/lib/programProgress';
 
 function formatMinSec(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
@@ -37,7 +38,6 @@ export default function WeekDetailScreen() {
   const program = getProgram(programId);
   const week = weekNumber != null ? getProgramWeek(programId, weekNumber) : null;
   const progress = programProgress[programId];
-  const completedIndexes = (progress?.currentWeek === weekNumber && progress?.completedSessionIndexes) || [];
 
   if (!program || !week) {
     return (
@@ -62,7 +62,7 @@ export default function WeekDetailScreen() {
           const runSeconds = intervals
             ? intervals.filter((iv) => iv.type === 'run').reduce((s, iv) => s + iv.seconds, 0)
             : 0;
-          const isDone = completedIndexes.includes(sessionIndex);
+          const isDone = isSessionDone(progress, weekNumber, sessionIndex);
 
           return (
             <Pressable

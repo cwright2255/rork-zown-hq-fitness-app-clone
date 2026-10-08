@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import {
   View,
@@ -21,6 +21,12 @@ import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import { radarService } from '@/services/radarService';
 import { getSessionIntervals, getProgramWeek } from '@/data/runningPrograms';
+import { useRunTrackerStore } from '@/store/runTrackerStore';
+import { startTracking, stopTracking } from '@/services/runTracking';
+import {
+  trackedMs, gpsStatus, intervalAt, elevationGain, sessionCounts, plannedSeconds, PROGRAM_CREDIT_FRACTION,
+} from '@/lib/runTracker';
+import { ACTIVITIES, caloriesFor, xpFor } from '@/lib/runStats';
 
 /* Ã¢ÂÂÃ¢ÂÂ Helpers Ã¢ÂÂÃ¢ÂÂ */
 
@@ -37,18 +43,6 @@ function formatPace(distKm, secs) {
   const pm = Math.floor(paceSecsPerKm / 60);
   const ps = Math.floor(paceSecsPerKm % 60);
   return pm + "'" + String(ps).padStart(2, '0') + '"';
-}
-
-function haversineKm(a, b) {
-  const R = 6371;
-  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
-  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
-  const lat1 = (a.latitude * Math.PI) / 180;
-  const lat2 = (b.latitude * Math.PI) / 180;
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
-  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 /* Ã¢ÂÂÃ¢ÂÂ Menu option Ã¢ÂÂÃ¢ÂÂ */
@@ -70,27 +64,30 @@ export default function ActiveRunScreen() {
   const programId = typeof params.programId === 'string' ? params.programId : null;
   const weekNumber = params.week ? parseInt(params.week, 10) : null;
   const sessionIndex = params.sessionIndex ? parseInt(params.sessionIndex, 10) : 0;
+  // 'walk' when started from "Free walk"; program sessions and free runs are runs.
+  const activity = !programId && params.activity === 'walk' ? 'walk' : 'run';
+  const activityLabel = ACTIVITIES[activity].label;
 
-  const { startRun, endRun, completeProgramSession } = useRunningStore();
+  const { endRun, completeProgramSession } = useRunningStore();
   const { addExpActivity } = useExpStore();
   const { user } = useUserStore();
-  const runStartRef = useRef(new Date().toISOString());
   const endedRef = useRef(false);
   const [locationName, setLocationName] = useState('');
 
-  // Program (interval) mode — real Couch to 5K / interval structure from
+  // Program (interval) mode -- real Couch to 5K / interval structure from
   // data/runningPrograms.js, driven the same way body-scan capture drives
   // its voice-guided rotation steps: a countdown per phase, a spoken cue
   // on each transition, toggled by the same audioEnabled switch this
-  // screen already had (previously wired to nothing — the toggle existed
+  // screen already had (previously wired to nothing -- the toggle existed
   // in the UI but there were no voice cues anywhere for it to control).
-  const programIntervals = programId && weekNumber
-    ? getSessionIntervals(programId, weekNumber, sessionIndex)
-    : null;
+  // The countdown now follows the run's moving time (the tracker), so it
+  // stays right when the screen is off and stops while the run is paused.
+  const programIntervals = useMemo(
+    () => (programId && weekNumber ? getSessionIntervals(programId, weekNumber, sessionIndex) : null),
+    [programId, weekNumber, sessionIndex],
+  );
   const programWeek = programId && weekNumber ? getProgramWeek(programId, weekNumber) : null;
   const isProgramRun = !!programIntervals;
-  const [intervalIndex, setIntervalIndex] = useState(0);
-  const [intervalSecondsLeft, setIntervalSecondsLeft] = useState(programIntervals?.[0]?.seconds ?? 0);
 
   // Reverse geocode current position for display
   const updateLocationName = useCallback(async (lat, lng) => {
@@ -105,151 +102,87 @@ export default function ActiveRunScreen() {
     }
   }, []);
 
-
-  /* Ã¢ÂÂÃ¢ÂÂ Core state Ã¢ÂÂÃ¢ÂÂ */
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [distance, setDistance] = useState(0);
-  const [calories, setCalories] = useState(0);
+  /* -- The run being recorded --
+     Everything measured (distance, moving time, splits, climb, route) lives in
+     the tracker store, fed by GPS from services/runTracking.js. That keeps
+     recording when the phone is locked and the app is in the background. */
+  const tracker = useRunTrackerStore((s) => s.tracker);
+  const [now, setNow] = useState(() => Date.now());
   const [audioEnabled, setAudioEnabled] = useState(params.audioCues !== 'false');
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
-
-  /* Ã¢ÂÂÃ¢ÂÂ GPS state Ã¢ÂÂÃ¢ÂÂ */
-  const [coordinates, setCoordinates] = useState([]);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
 
-  const timerRef = useRef(null);
-  const locationSubRef = useRef(null);
+  const isRunning = tracker.status === 'running';
+  const elapsed = Math.floor(trackedMs(tracker, now) / 1000);
+  const distance = tracker.distanceM / 1000;
+  const calories = caloriesFor(activity, distance);
+  const coordinates = tracker.route;
+  const currentLocation = tracker.current;
+  const gps = gpsStatus(tracker, now);
+  const climb = Math.round(elevationGain(tracker));
 
-  /* Ã¢ÂÂÃ¢ÂÂ Request location permission on mount Ã¢ÂÂÃ¢ÂÂ */
+  /* -- Request location permission on mount, then start recording -- */
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled) return;
       setLocationPermission(status);
       if (status !== 'granted') {
         Alert.alert(
           'Permission Needed',
           'Location permission is required for GPS tracking. You can enable it in Settings.',
         );
-      } else {
-        // Permission granted, start tracking immediately
-        runStartRef.current = new Date().toISOString();
-        setIsRunning(true);
+        return;
+      }
+      // Auto-pause is off for program sessions, whose timed intervals shouldn't
+      // stop for a red light; the menu can turn it on.
+      // Only a run of the same kind that was left paused is picked up again.
+      const kind = isProgramRun ? `${programId}:${weekNumber}:${sessionIndex}` : activity;
+      const mode = useRunTrackerStore.getState().begin({ autoPause: !isProgramRun, kind });
+      if (mode === 'resumed' && useRunTrackerStore.getState().tracker.status === 'paused') {
+        setShowPauseOptions(true);
+      }
+      try {
+        await startTracking();
+      } catch (err) {
+        console.warn('Location tracking error:', err);
       }
     })();
     return () => {
-      // Clean up location subscription on unmount
-      if (locationSubRef.current) {
-        locationSubRef.current.remove();
-        locationSubRef.current = null;
-      }
+      cancelled = true;
+      // Leaving this screen without ending the run pauses it, so nothing keeps
+      // counting unseen; the run is picked up again the next time it opens.
+      if (!endedRef.current) useRunTrackerStore.getState().pause(Date.now());
     };
   }, []);
 
-  /* Ã¢ÂÂÃ¢ÂÂ GPS tracking Ã¢ÂÂÃ¢ÂÂ */
+  /* -- Redraw the clock every second -- */
   useEffect(() => {
-    if (isRunning && locationPermission === 'granted') {
-      startLocationTracking();
-    } else {
-      stopLocationTracking();
-    }
-    return () => stopLocationTracking();
-  }, [isRunning, locationPermission]);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
-  const startLocationTracking = async () => {
-    if (locationSubRef.current) return; // already tracking
-    try {
-      locationSubRef.current = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 2000,
-          distanceInterval: 3,
-        },
-        (loc) => {
-          const { latitude, longitude } = loc.coords;
-          const newCoord = { latitude, longitude };
-
-          setCurrentLocation(newCoord);
-          setCoordinates((prev) => {
-            const updated = [...prev, newCoord];
-            // Calculate distance from last point
-            if (prev.length > 0) {
-              const lastCoord = prev[prev.length - 1];
-              const segmentKm = haversineKm(lastCoord, newCoord);
-              // Filter out GPS noise: ignore jumps > 100m in 2 seconds
-              if (segmentKm < 0.1) {
-                setDistance((d) => d + segmentKm);
-                setCalories((c) => c + segmentKm * 70);
-              }
-            }
-            return updated;
-          });
-        },
-      );
-    } catch (err) {
-      console.warn('Location tracking error:', err);
-    }
-  };
-
-  const stopLocationTracking = () => {
-    if (locationSubRef.current) {
-      locationSubRef.current.remove();
-      locationSubRef.current = null;
-    }
-  };
-
-  /* Ã¢ÂÂÃ¢ÂÂ Elapsed time timer Ã¢ÂÂÃ¢ÂÂ */
-  useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setElapsed((e) => e + 1);
-        if (isProgramRun) {
-          setIntervalSecondsLeft((s) => Math.max(0, s - 1));
-        }
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning, isProgramRun]);
-
-  // Handles advancing to the next interval and speaking its cue. Kept as
-  // its own effect (rather than inline in the setInterval callback above)
-  // specifically so it always sees the current intervalIndex/programIntervals
-  // -- a long-lived setInterval callback closes over whatever those values
-  // were when the interval was created, which would go stale the moment
-  // intervalIndex changes.
-  useEffect(() => {
-    if (!isProgramRun || !isRunning) return;
-    if (intervalSecondsLeft > 0) return;
-
-    const nextIndex = intervalIndex + 1;
-    if (nextIndex >= programIntervals.length) {
-      // Program session complete -- end the run the same way a manual end
-      // does, crediting the real session to the program's progress.
-      handleEndRun();
-      return;
-    }
-    const next = programIntervals[nextIndex];
-    setIntervalIndex(nextIndex);
-    setIntervalSecondsLeft(next.seconds);
-    if (audioEnabled) {
-      Speech.stop();
-      Speech.speak(next.cue === 'Run' ? "Run now" : "Walk now -- recover your breath", { rate: 1.0 });
-    }
-  }, [intervalSecondsLeft, isProgramRun, isRunning, handleEndRun]);
-
-  /* Ã¢ÂÂÃ¢ÂÂ Controls Ã¢ÂÂÃ¢ÂÂ */
+  /* -- Controls -- */
   const handlePause = useCallback(() => {
-    setIsRunning(false);
+    useRunTrackerStore.getState().pause(Date.now());
     setShowPauseOptions(true);
   }, []);
 
   const handleResume = useCallback(() => {
+    useRunTrackerStore.getState().resume(Date.now());
     setShowPauseOptions(false);
-    setIsRunning(true);
+    setConfirmEnd(false);
+    // GPS is switched off after a very long pause; make sure it is on again.
+    startTracking().catch((err) => console.warn('Location tracking error:', err));
+  }, []);
+
+  const handleToggleAutoPause = useCallback(() => {
+    const store = useRunTrackerStore.getState();
+    store.setAutoPause(!store.tracker.autoPause, Date.now());
+    setShowMenu(false);
   }, []);
 
   const handleEndRun = useCallback(() => {
@@ -257,38 +190,46 @@ export default function ActiveRunScreen() {
     // save the same run twice.
     if (endedRef.current) return;
     endedRef.current = true;
-    setIsRunning(false);
     setShowPauseOptions(false);
+    setConfirmEnd(false);
     setShowMenu(false);
+    stopTracking();
     let savedRunId = 'none';
+    let countsForProgram = false;
     try {
-      // The tracked numbers live in this screen's state, so they are handed
-      // straight to endRun. (Before, they were written to the store's
-      // activeRun, but nothing ever started an activeRun, so every finished
-      // run was dropped.) endRun returns null for a run under 10 seconds,
-      // and then nothing is saved or credited.
+      // The numbers come from the tracker, which has been counting moving time
+      // only. endRun returns null for a run under 10 seconds, and then nothing
+      // is saved or credited.
+      const summary = useRunTrackerStore.getState().finish(Date.now());
       const completed = endRun(user?.uid, {
-        startTime: runStartRef.current,
-        distance,
-        duration: elapsed,
-        calories: Math.round(calories),
-        coords: coordinates,
+        startTime: summary.startTime,
+        distance: summary.distance,
+        duration: summary.duration,
+        calories: caloriesFor(activity, summary.distance),
+        activity,
+        coords: summary.coords,
+        splits: summary.splits,
+        elevGain: summary.elevGain,
+        elevLoss: summary.elevLoss,
       });
       if (completed) {
         savedRunId = completed.id;
-        useVirtualChallengeStore.getState().creditDistance(distance, user?.uid);
-        if (isProgramRun && programWeek) {
+        useVirtualChallengeStore.getState().creditDistance(summary.distance, user?.uid);
+        // A session ended well short of its plan is saved as a run, but is not
+        // ticked off in the program.
+        countsForProgram = !!(isProgramRun && programWeek && sessionCounts(programIntervals, summary.duration));
+        if (countsForProgram) {
           completeProgramSession(programId, programWeek.sessionsPerWeek, user?.uid);
         }
         addExpActivity?.({
           id: Date.now().toString(),
           type: 'running',
-          baseExp: Math.round(distance * 30),
+          baseExp: xpFor(activity, summary.distance),
           multiplier: 1.0,
           date: new Date().toISOString().split('T')[0],
-          description: isProgramRun
+          description: countsForProgram
             ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
-            : `Completed a ${distance.toFixed(2)}km run`,
+            : `Completed a ${summary.distance.toFixed(2)}km ${activity}`,
           completed: true,
         }, user?.uid);
       }
@@ -296,7 +237,57 @@ export default function ActiveRunScreen() {
       console.warn('Failed to save run:', e?.message);
     }
     router.replace(`/workout/complete?type=run&runId=${savedRunId}`);
-  }, [router, distance, elapsed, calories, coordinates, endRun, addExpActivity, user, isProgramRun, programWeek, programId, weekNumber, sessionIndex, completeProgramSession]);
+  }, [router, endRun, addExpActivity, user, isProgramRun, programWeek, programIntervals, programId, weekNumber, sessionIndex, completeProgramSession, activity]);
+
+  // End Run from the menu or the pause panel. Ending a program session before
+  // it has counted would quietly lose the credit, so stop the clock and ask.
+  const plannedSecs = plannedSeconds(programIntervals);
+  const sessionPercent = plannedSecs > 0 ? Math.min(100, Math.round((elapsed / plannedSecs) * 100)) : 0;
+  const handleEndPress = useCallback(() => {
+    setShowMenu(false);
+    const store = useRunTrackerStore.getState();
+    const doneSeconds = Math.floor(trackedMs(store.tracker, Date.now()) / 1000);
+    if (isProgramRun && !sessionCounts(programIntervals, doneSeconds)) {
+      store.pause(Date.now());
+      setShowPauseOptions(false);
+      setConfirmEnd(true);
+      return;
+    }
+    handleEndRun();
+  }, [isProgramRun, programIntervals, handleEndRun]);
+
+  // Where the program is, from moving time. Speaks a cue when the phase changes
+  // and ends the session when the last phase is done.
+  const intervalInfo = useMemo(() => intervalAt(programIntervals, elapsed), [programIntervals, elapsed]);
+  const intervalIndex = intervalInfo ? intervalInfo.index : 0;
+  const intervalSecondsLeft = intervalInfo ? intervalInfo.secondsLeft : 0;
+  const cuedIndexRef = useRef(0);
+  const intervalDone = !!intervalInfo && intervalInfo.done;
+  useEffect(() => {
+    if (!isProgramRun || tracker.status === 'idle') return;
+    if (intervalDone) {
+      handleEndRun();
+      return;
+    }
+    if (intervalIndex !== cuedIndexRef.current) {
+      cuedIndexRef.current = intervalIndex;
+      if (audioEnabled) {
+        Speech.stop();
+        Speech.speak(programIntervals[intervalIndex].cue === 'Run' ? "Run now" : "Walk now -- recover your breath", { rate: 1.0 });
+      }
+    }
+  }, [intervalIndex, intervalDone, isProgramRun, tracker.status, handleEndRun]);
+
+  // One banner over the map: why the clock is stopped, or a GPS problem.
+  let banner = null;
+  if (tracker.status === 'paused') {
+    banner = { icon: 'pause', text: 'Paused', warn: false };
+  } else if (tracker.status === 'auto') {
+    banner = { icon: 'pause-circle', text: 'Auto-paused. Start moving to resume.', warn: false };
+  } else if (tracker.status === 'running' && gps !== 'good' && gps !== 'fair') {
+    const text = gps === 'lost' ? 'GPS signal lost' : gps === 'weak' ? 'Weak GPS signal' : 'Searching for GPS...';
+    banner = { icon: 'locate', text, warn: true };
+  }
 
   const pace = formatPace(distance, elapsed);
   const goalPercent = Math.min(100, Math.round((distance / 5) * 100));
@@ -315,12 +306,21 @@ export default function ActiveRunScreen() {
           style={styles.mapInner}
         />
 
+        {banner && (
+          <View style={styles.bannerWrap} pointerEvents="none">
+            <View style={[styles.banner, banner.warn ? styles.bannerWarn : styles.bannerPause]} testID="run-banner">
+              <Ionicons name={banner.icon} size={14} color="#FFF" />
+              <Text style={styles.bannerText}>{banner.text}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Header overlay */}
         <View style={styles.header}>
           <Pressable style={styles.headerBtn} onPress={handlePause}>
             <Ionicons name="chevron-back" size={20} color="#FFF" />
           </Pressable>
-          <Pressable style={styles.headerBtn} onPress={() => setShowMenu(true)}>
+          <Pressable style={styles.headerBtn} onPress={() => setShowMenu(true)} testID="run-menu-button">
             <Ionicons name="ellipsis-vertical" size={20} color="#FFF" />
           </Pressable>
         </View>
@@ -345,6 +345,7 @@ export default function ActiveRunScreen() {
           <View style={styles.goalCircle} />
           <Text style={styles.goalText}>Distance Goal</Text>
           <Text style={styles.goalPercent}>{goalPercent}%</Text>
+          {climb > 0 && <Text style={styles.climbText} testID="run-climb">{climb} m climb</Text>}
         </View>
 
         {/* Main stats 2x2 */}
@@ -383,6 +384,7 @@ export default function ActiveRunScreen() {
           <Pressable
             style={styles.mainBtn}
             onPress={isRunning ? handlePause : handleResume}
+            testID="run-main-button"
           >
             <Ionicons name={isRunning ? 'pause' : 'play'} size={32} color="#000" />
           </Pressable>
@@ -395,13 +397,28 @@ export default function ActiveRunScreen() {
         </View>
 
         {/* Pause options */}
-        {showPauseOptions && (
+        {showPauseOptions && !confirmEnd && (
           <View style={styles.pauseOptions}>
             <Pressable style={styles.resumeBtn} onPress={handleResume}>
               <Text style={styles.resumeBtnText}>Resume</Text>
             </Pressable>
-            <Pressable style={styles.endRunBtn} onPress={handleEndRun}>
-              <Text style={styles.endRunBtnText}>End Run</Text>
+            <Pressable style={styles.endRunBtn} onPress={handleEndPress}>
+              <Text style={styles.endRunBtnText}>{`End ${activityLabel}`}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Ending a program session early */}
+        {confirmEnd && (
+          <View style={styles.pauseOptions} testID="run-confirm-end">
+            <Text style={styles.confirmText}>
+              {`You're ${sessionPercent}% through this session. It counts toward your program at ${Math.round(PROGRAM_CREDIT_FRACTION * 100)}%. If you end now your run is still saved, but the session is not ticked off.`}
+            </Text>
+            <Pressable style={styles.resumeBtn} onPress={handleResume} testID="run-keep-going">
+              <Text style={styles.resumeBtnText}>Keep going</Text>
+            </Pressable>
+            <Pressable style={styles.endRunBtn} onPress={handleEndRun} testID="run-end-anyway">
+              <Text style={styles.endRunBtnText}>End anyway</Text>
             </Pressable>
           </View>
         )}
@@ -412,8 +429,13 @@ export default function ActiveRunScreen() {
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
             <MenuOption icon="musical-notes-outline" label="Music" onPress={() => setShowMenu(false)} />
-            <MenuOption icon="pause-circle-outline" label="Pause Run" onPress={() => { setShowMenu(false); handlePause(); }} />
-            <MenuOption icon="exit-outline" label="End Run" danger onPress={handleEndRun} />
+            <MenuOption icon="pause-circle-outline" label={`Pause ${activityLabel}`} onPress={() => { setShowMenu(false); handlePause(); }} />
+            <MenuOption
+              icon={tracker.autoPause ? 'flash' : 'flash-off-outline'}
+              label={tracker.autoPause ? 'Auto-pause: On' : 'Auto-pause: Off'}
+              onPress={handleToggleAutoPause}
+            />
+            <MenuOption icon="exit-outline" label={`End ${activityLabel}`} danger onPress={handleEndPress} />
           </View>
         </Pressable>
       </Modal>
@@ -470,6 +492,19 @@ const styles = StyleSheet.create({
   },
   goalText: { fontSize: 14, color: '#FFF', fontWeight: '500' },
   goalPercent: { fontSize: 14, color: '#4A90D9', fontWeight: '700' },
+  climbText: { marginLeft: 'auto', fontSize: 13, color: '#888', fontWeight: '600' },
+
+  /* Banner over the map */
+  bannerWrap: {
+    position: 'absolute', top: 100, left: 16, right: 16, alignItems: 'center', zIndex: 9,
+  },
+  banner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16,
+  },
+  bannerPause: { backgroundColor: 'rgba(74,144,217,0.92)' },
+  bannerWarn: { backgroundColor: 'rgba(217,119,6,0.92)' },
+  bannerText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   statCell: { width: '50%', marginBottom: 16 },
@@ -502,6 +537,7 @@ const styles = StyleSheet.create({
     height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center',
   },
   endRunBtnText: { fontSize: 16, fontWeight: '700', color: '#FF3B30' },
+  confirmText: { fontSize: 14, lineHeight: 20, color: '#CCC', textAlign: 'center', paddingHorizontal: 8 },
 
   /* Menu */
   menuBackdrop: {

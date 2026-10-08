@@ -111,6 +111,26 @@ export default function RunningScreen() {
         {/* Page title */}
         <Text style={styles.pageTitle}>Running</Text>
 
+        {/* Start without a program: just track it */}
+        <View style={styles.quickStartRow}>
+          <Pressable
+            style={[styles.quickStartBtn, styles.quickStartRun]}
+            onPress={() => router.push('/running/active')}
+            testID="start-free-run"
+          >
+            <Ionicons name="play" size={18} color="#FFF" />
+            <Text style={styles.quickStartRunText}>Free run</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.quickStartBtn, styles.quickStartWalk]}
+            onPress={() => router.push({ pathname: '/running/active', params: { activity: 'walk' } })}
+            testID="start-free-walk"
+          >
+            <Ionicons name="walk-outline" size={20} color="#000" />
+            <Text style={styles.quickStartWalkText}>Free walk</Text>
+          </Pressable>
+        </View>
+
         {/* Real personal records -- computed from actual run history, not
             a fake "Featured Runs" carousel of workouts nobody has done. */}
         <SectionHeader title="Your Stats" />
@@ -195,6 +215,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 20,
   },
+
+  /* Free run / free walk */
+  quickStartRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, marginBottom: 24 },
+  quickStartBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, height: 52, borderRadius: 26,
+  },
+  quickStartRun: { backgroundColor: '#000' },
+  quickStartWalk: { backgroundColor: '#F5F5F5' },
+  quickStartRunText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
+  quickStartWalkText: { fontSize: 15, fontWeight: '700', color: '#000' },
 
   /* Section header */
   sectionHeader: {

@@ -9,14 +9,39 @@
 //   duration  seconds spent moving (paused time is not counted)
 //   pace      seconds per kilometre (5:30 /km is 330)
 //   history   newest run first
+//   splits    seconds for each full kilometre; elevGain/elevLoss whole metres
 
 export const MAX_SAVED_RUNS = 100;
 export const MIN_SAVED_RUN_SECONDS = 10;
 export const MAX_ROUTE_POINTS = 200;
+export const MAX_SPLITS = 200;
 // All runs live in one Firestore document (limit 1 MiB). Stay well under it.
 export const MAX_RUNS_JSON_CHARS = 700000;
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
+// What kind of outing a saved record is. Runs have no field (every older
+// record is a run); walks are saved with activity: 'walk'. Rates are for an
+// average adult; a walk burns and earns less per kilometre than a run.
+export const ACTIVITIES = {
+  run: { label: 'Run', kcalPerKm: 70, xpPerKm: 30 },
+  walk: { label: 'Walk', kcalPerKm: 40, xpPerKm: 18 },
+};
+
+/** 'walk' or 'run' (anything else, including no field, is a run). */
+export function activityOf(run) {
+  return run && run.activity === 'walk' ? 'walk' : 'run';
+}
+
+/** Calories for `km` kilometres of the given activity. */
+export function caloriesFor(activity, km) {
+  return Math.max(0, Math.round(num(km) * ACTIVITIES[activity === 'walk' ? 'walk' : 'run'].kcalPerKm));
+}
+
+/** XP for `km` kilometres of the given activity. */
+export function xpFor(activity, km) {
+  return Math.max(0, Math.round(num(km) * ACTIVITIES[activity === 'walk' ? 'walk' : 'run'].xpPerKm));
+}
 
 /** When a run finished, in ms since 1970 (0 if the run has no usable time). */
 export function runTime(run) {
@@ -116,6 +141,15 @@ export function compactTrack(points, maxPoints = MAX_ROUTE_POINTS) {
   return out;
 }
 
+/** Seconds for each full kilometre, as whole positive numbers (junk removed). */
+export function cleanSplits(splits) {
+  if (!Array.isArray(splits)) return [];
+  return splits
+    .filter((n) => typeof n === 'number' && Number.isFinite(n) && n > 0)
+    .slice(0, MAX_SPLITS)
+    .map((n) => Math.max(1, Math.round(n)));
+}
+
 /** True when a run is long enough to be worth saving (not an accidental tap). */
 export function shouldSaveRun(run) {
   return num(run && run.duration) >= MIN_SAVED_RUN_SECONDS;
@@ -142,6 +176,12 @@ export function buildSavedRun(base, data, { uid, now = Date.now() } = {}) {
     calories: Math.max(0, Math.round(num(merged.calories))),
     track: compactTrack(routePoints(merged)),
   };
+  // Extras from the live tracker: seconds per full km, and metres climbed and descended.
+  const splits = cleanSplits(merged.splits);
+  if (splits.length) run.splits = splits;
+  if (typeof merged.elevGain === 'number' && Number.isFinite(merged.elevGain)) run.elevGain = Math.max(0, Math.round(merged.elevGain));
+  if (typeof merged.elevLoss === 'number' && Number.isFinite(merged.elevLoss)) run.elevLoss = Math.max(0, Math.round(merged.elevLoss));
+  if (merged.activity === 'walk') run.activity = 'walk';
   if (typeof uid === 'string' && uid) run.uid = uid;
   return run;
 }
@@ -161,10 +201,15 @@ export function fitRunsToSize(runs, maxChars = MAX_RUNS_JSON_CHARS) {
   return list;
 }
 
-/** Records computed from real runs. Anything with no qualifying run is null. */
+/**
+ * Records computed from real runs. Anything with no qualifying run is null.
+ * Walks count toward total distance but never set a running record.
+ */
 export function personalRecords(runs) {
-  const list = newestRuns(runs, Infinity);
-  if (list.length === 0) return { longestRun: null, fastestPace: null, best5k: null, totalDistance: 0 };
+  const everything = newestRuns(runs, Infinity);
+  const totalDistance = everything.reduce((s, r) => s + num(r.distance), 0);
+  const list = everything.filter((r) => activityOf(r) !== 'walk');
+  if (list.length === 0) return { longestRun: null, fastestPace: null, best5k: null, totalDistance };
   const longestRun = list.reduce((best, r) => (!best || num(r.distance) > num(best.distance) ? r : best), null);
   // A fastest pace needs at least 1 km, so a 40 metre jog can't set the record.
   const paced = list.filter((r) => num(r.distance) >= 1 && runPaceSecPerKm(r) > 0);
@@ -177,17 +222,21 @@ export function personalRecords(runs) {
   const best5k = fiveK.length
     ? fiveK.reduce((best, r) => (num(r.duration) < num(best.duration) ? r : best))
     : null;
-  const totalDistance = list.reduce((s, r) => s + num(r.distance), 0);
   return { longestRun, fastestPace, best5k, totalDistance };
 }
 
-/** Totals for the log header. avgPace is seconds per km across all moving runs. */
+/**
+ * Totals for the log header. avgPace is seconds per km across moving runs
+ * (walks only when there are no runs at all, so a walk never skews a runner's pace).
+ */
 export function summarizeRuns(runs) {
   const list = Array.isArray(runs) ? runs.filter(Boolean) : [];
   const totalDistance = list.reduce((s, r) => s + num(r.distance), 0);
   const totalDuration = list.reduce((s, r) => s + num(r.duration), 0);
   const totalCalories = list.reduce((s, r) => s + num(r.calories), 0);
-  const moving = list.filter((r) => num(r.distance) >= 0.01 && num(r.duration) > 0);
+  const allMoving = list.filter((r) => num(r.distance) >= 0.01 && num(r.duration) > 0);
+  const movingRuns = allMoving.filter((r) => activityOf(r) !== 'walk');
+  const moving = movingRuns.length > 0 ? movingRuns : allMoving;
   const movingDistance = moving.reduce((s, r) => s + num(r.distance), 0);
   const movingDuration = moving.reduce((s, r) => s + num(r.duration), 0);
   const avgPace = movingDistance > 0 ? movingDuration / movingDistance : 0;

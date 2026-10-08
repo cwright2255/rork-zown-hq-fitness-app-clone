@@ -1,7 +1,7 @@
 import {
   MAX_SAVED_RUNS, MIN_SAVED_RUN_SECONDS, MAX_ROUTE_POINTS,
   runTime, runPaceSecPerKm, formatPace, paceLabel, newestRuns, routePoints, compactTrack,
-  shouldSaveRun, buildSavedRun, fitRunsToSize, personalRecords, summarizeRuns,
+  shouldSaveRun, buildSavedRun, fitRunsToSize, personalRecords, summarizeRuns, cleanSplits, MAX_SPLITS,
 } from '../lib/runStats';
 
 const run = (n, extra = {}) => ({
@@ -166,6 +166,47 @@ describe('buildSavedRun', () => {
 
   it('keeps a treadmill or interval session that has time but no distance', () => {
     expect(shouldSaveRun(buildSavedRun(null, { distance: 0, duration: 1200 }, { now }))).toBe(true);
+  });
+});
+
+describe('splits and elevation on a saved run', () => {
+  const now = Date.UTC(2026, 5, 1, 12, 0, 0);
+
+  it('keeps the kilometre splits and the climb from the tracker', () => {
+    const r = buildSavedRun(null, { distance: 3.2, duration: 1000, splits: [320.4, 318, 330.6], elevGain: 41.6, elevLoss: 38.2 }, { now });
+    expect(r.splits).toEqual([320, 318, 331]);
+    expect(r.elevGain).toBe(42);
+    expect(r.elevLoss).toBe(38);
+  });
+
+  it('leaves them out for a run that has none, so old and new runs both look right', () => {
+    const r = buildSavedRun(null, { distance: 1, duration: 600 }, { now });
+    expect('splits' in r).toBe(false);
+    expect('elevGain' in r).toBe(false);
+    expect('elevLoss' in r).toBe(false);
+  });
+
+  it('keeps zero climb when the tracker reports zero', () => {
+    const r = buildSavedRun(null, { distance: 1, duration: 600, splits: [], elevGain: 0, elevLoss: 0 }, { now });
+    expect(r.elevGain).toBe(0);
+    expect('splits' in r).toBe(false);
+  });
+
+  it('drops junk and never saves a negative climb', () => {
+    const r = buildSavedRun(null, { distance: 1, duration: 600, splits: [300, NaN, -5, 0, 'x', null, 310], elevGain: -4, elevLoss: NaN }, { now });
+    expect(r.splits).toEqual([300, 310]);
+    expect(r.elevGain).toBe(0);
+    expect('elevLoss' in r).toBe(false);
+  });
+
+  it('caps the number of splits', () => {
+    expect(cleanSplits(Array.from({ length: 500 }, () => 300))).toHaveLength(MAX_SPLITS);
+    expect(cleanSplits('nope')).toEqual([]);
+  });
+
+  it('has no undefined values (Firestore refuses them)', () => {
+    const r = buildSavedRun(null, { distance: 5, duration: 1500, splits: [300], elevGain: 3, elevLoss: 2, coords: [{ latitude: 1, longitude: 1 }, { latitude: 1.1, longitude: 1.1 }] }, { now, uid: 'u1' });
+    expect(Object.values(r).every((v) => v !== undefined)).toBe(true);
   });
 });
 

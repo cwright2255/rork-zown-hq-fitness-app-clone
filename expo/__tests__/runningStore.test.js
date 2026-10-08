@@ -93,6 +93,16 @@ describe('runningStore run saving', () => {
     expect(useRunningStore.getState().endRun('u1')).toBeNull();
   });
 
+  it('keeps the splits and climb the tracker measured, locally and in Firestore', () => {
+    const run = useRunningStore.getState().endRun('u1', tracked({ splits: [300, 310], elevGain: 12, elevLoss: 9 }));
+    expect(run.splits).toEqual([300, 310]);
+    expect(run.elevGain).toBe(12);
+    expect(run.elevLoss).toBe(9);
+    const body = setDoc.mock.calls[0][1];
+    expect(body.runs[0].splits).toEqual([300, 310]);
+    expect(body.runs[0].elevGain).toBe(12);
+  });
+
   it('keeps the local run when signed out, without writing', () => {
     const run = useRunningStore.getState().endRun(undefined, tracked());
     expect(run).not.toBeNull();
