@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
 import Colors from '@/constants/colors';
 
@@ -16,6 +17,13 @@ if (Platform.OS !== 'web') {
   }
 }
 
+// Route line and map look. The map is forced dark (Apple Maps dark + muted
+// style, no shop/landmark pins) so the green route stands out and the map
+// blends into the dark stats panel under it.
+const ROUTE_COLOR = '#22C55E';
+const ROUTE_GLOW = 'rgba(34, 197, 94, 0.28)';
+const FOLLOW_DELTA = 0.004; // about 450 m across: street level
+
 export default function RunningMap({
   coordinates = [],
   currentLocation,
@@ -28,18 +36,31 @@ export default function RunningMap({
   const [userMarker, setUserMarker] = useState(null);
   const [routePath, setRoutePath] = useState(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [follow, setFollow] = useState(true);
+  const zoomedRef = useRef(false);
 
-  // Auto-center react-native-maps MapView when currentLocation changes
+  // Keep the map on the runner. The first fix zooms in to street level; after
+  // that only the centre moves, so a pinch-zoom is kept (the old code reset
+  // the zoom on every GPS update). Dragging the map stops following until the
+  // re-center button is tapped.
   useEffect(() => {
-    if (Platform.OS !== 'web' && mapRef.current && currentLocation) {
-      mapRef.current.animateToRegion({
+    const nativeMap = mapRef.current;
+    if (Platform.OS === 'web' || !nativeMap || !currentLocation || !follow) return;
+    if (typeof nativeMap.animateCamera !== 'function') return;
+    if (!zoomedRef.current) {
+      zoomedRef.current = true;
+      nativeMap.animateToRegion({
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
+        latitudeDelta: FOLLOW_DELTA,
+        longitudeDelta: FOLLOW_DELTA,
       }, 500);
+      return;
     }
-  }, [currentLocation]);
+    nativeMap.animateCamera({
+      center: { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+    }, { duration: 600 });
+  }, [currentLocation, follow]);
 
   // Web Map (Leaflet) Initializers
   useEffect(() => {
@@ -187,28 +208,65 @@ export default function RunningMap({
         longitudeDelta: 0.01,
       });
 
+      const startPoint = coordinates.length > 0 ? coordinates[0] : null;
+
       return (
-        <MapView
-          ref={mapRef}
-          style={[style, { height: 300, width: '100%' }]}
-          provider={PROVIDER_DEFAULT}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          initialRegion={initialRegion}
-        >
-          {coordinates.length > 1 && (
-            <Polyline
-              coordinates={coordinates}
-              strokeColor="#000000"
-              strokeWidth={4}
-            />
+        <View style={styles.nativeWrap}>
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFillObject}
+            provider={PROVIDER_DEFAULT}
+            mapType="mutedStandard"
+            userInterfaceStyle="dark"
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            showsCompass={false}
+            showsPointsOfInterest={false}
+            showsBuildings={false}
+            pitchEnabled={false}
+            initialRegion={initialRegion}
+            onPanDrag={() => setFollow(false)}
+          >
+            {coordinates.length > 1 && (
+              <Polyline
+                coordinates={coordinates}
+                strokeColor={ROUTE_GLOW}
+                strokeWidth={11}
+                lineCap="round"
+                lineJoin="round"
+                zIndex={1}
+              />
+            )}
+            {coordinates.length > 1 && (
+              <Polyline
+                coordinates={coordinates}
+                strokeColor={ROUTE_COLOR}
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+                zIndex={2}
+              />
+            )}
+            {startPoint && Marker && (
+              <Marker coordinate={startPoint} anchor={{ x: 0.5, y: 0.5 }} zIndex={3}>
+                <View style={styles.startMarker}>
+                  <View style={styles.startMarkerCore} />
+                </View>
+              </Marker>
+            )}
+          </MapView>
+          {!follow && (
+            <Pressable
+              style={styles.recenterBtn}
+              onPress={() => setFollow(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Re-center map on me"
+              testID="recenter-button"
+            >
+              <Ionicons name="locate" size={20} color="#FFF" />
+            </Pressable>
           )}
-          {currentLocation && Marker && (
-            <Marker coordinate={currentLocation}>
-              <View style={styles.currentLocationDot} />
-            </Marker>
-          )}
-        </MapView>
+        </View>
       );
     }
 
@@ -296,6 +354,36 @@ export default function RunningMap({
 }
 
 const styles = StyleSheet.create({
+  nativeWrap: {
+    flex: 1,
+  },
+  startMarker: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startMarkerCore: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: ROUTE_COLOR,
+  },
+  recenterBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 40,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(13, 17, 23, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mapContainer: {
     flex: 1,
     backgroundColor: '#0D1117',
