@@ -64,6 +64,20 @@ describe('helpers', () => {
     expect(ranked.map((e) => e.rank)).toEqual([1, 2, 3, 4]);
     expect(rankEntries([{ id: 'a', current: 3 }, { id: 'b', current: 7 }], 'current')[0].id).toBe('b');
   });
+  it('ranks by a number worked out for each entry when given a function', () => {
+    const entries = [
+      { id: 'a', name: 'Ana', distance: { w1: 4.5 } },
+      { id: 'b', name: 'Ben', distance: { w1: 12 } },
+      { id: 'c', name: 'Cat' },
+    ];
+    const ranked = rankEntries(entries, (e) => e.distance?.w1);
+    expect(ranked.map((e) => e.id)).toEqual(['b', 'a', 'c']);
+    expect(ranked.map((e) => e.rank)).toEqual([1, 2, 3]);
+  });
+  it('breaks ties between function-ranked entries by name', () => {
+    const ranked = rankEntries([{ id: '2', name: 'Bea', v: 5 }, { id: '1', name: 'Alex', v: 5 }], (e) => e.v);
+    expect(ranked.map((e) => e.id)).toEqual(['1', '2']);
+  });
   it('builds the challenge entry id the Firestore rule checks', () => {
     expect(challengeEntryId('week-2026-10-05', 'uid1')).toBe('week-2026-10-05_uid1');
   });

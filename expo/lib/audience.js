@@ -51,11 +51,15 @@ export function chunk(list, size = 10) {
   return out;
 }
 
-/** Highest first by `field`, ties broken by name then id so the order never jumps around. */
+/**
+ * Highest first by `field` (a property name, or a function that gives an entry's
+ * number), ties broken by name then id so the order never jumps around.
+ */
 export function rankEntries(entries, field = 'xp') {
+  const valueOf = typeof field === 'function' ? field : (entry) => entry?.[field];
   return [...(Array.isArray(entries) ? entries : [])]
     .sort((a, b) => {
-      const diff = (Number(b?.[field]) || 0) - (Number(a?.[field]) || 0);
+      const diff = (Number(valueOf(b)) || 0) - (Number(valueOf(a)) || 0);
       if (diff !== 0) return diff;
       const byName = String(a?.name || '').localeCompare(String(b?.name || ''));
       return byName !== 0 ? byName : String(a?.id || '').localeCompare(String(b?.id || ''));

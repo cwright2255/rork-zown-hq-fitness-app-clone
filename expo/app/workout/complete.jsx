@@ -16,6 +16,8 @@ import { useBadgeStore } from '@/store/badgeStore';
 import { useRunningStore } from '@/store/runningStore';
 import { activityOf, xpFor } from '@/lib/runStats';
 import { useCommunityStore } from '@/store/communityStore';
+import { shareRunToFeed, shareErrorText } from '@/services/runShare';
+import { publishMyDistance } from '@/services/distanceBoard';
 
 function StatCard({ icon, number, label }) {
   return (
@@ -106,11 +108,13 @@ export default function WorkoutCompleteScreen() {
   const { createPost } = useCommunityStore();
   const [sharing, setSharing] = useState(false);
   const [shared, setShared] = useState(false);
+  const [shareError, setShareError] = useState('');
 
   useEffect(() => {
     if (user?.uid) {
       loadBadges(user.uid);
-      if (isRunCompletion) loadRuns(user.uid);
+      // Once the saved runs are loaded, put this week's and month's distance on the leaderboard.
+      if (isRunCompletion) Promise.resolve(loadRuns(user.uid)).then(() => publishMyDistance({ user }));
     }
   }, [user?.uid]);
 
@@ -170,25 +174,41 @@ export default function WorkoutCompleteScreen() {
   const exerciseList = lastWorkout?.exercises || [];
   const unlockedCount = badges.filter((b) => b.isUnlocked).length;
 
+  // A run that was already shared (from this screen or the run's own screen) shows as shared.
+  const runShared = isRunCompletion && !!lastRun?.sharedPostId;
+
   const handleShareToCommunity = async () => {
-    if (!user?.uid || shared) return;
+    if (!user?.uid || shared || runShared) return;
     setSharing(true);
+    setShareError('');
+    if (isRunCompletion) {
+      // A run goes up as a run card: distance, time, pace and the route with its ends hidden.
+      const result = await shareRunToFeed({
+        run: lastRun,
+        user: { ...user, displayName },
+        createPost,
+        markShared: useRunningStore.getState().markRunShared,
+      });
+      if (result.ok || result.reason === 'already-shared') setShared(true);
+      else setShareError(shareErrorText(result.reason));
+      setSharing(false);
+      return;
+    }
     try {
       const text = isHikeCompletion
         ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
-        : isRunCompletion
-          ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km ${activityOf(lastRun)} in ${realDuration}. 💪`
-          : `Just completed a workout — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
+        : `Just completed a workout — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
       await createPost({
         uid: user.uid,
         authorName: displayName,
         authorAvatar: user.profileImage,
         text,
-        type: isHikeCompletion ? 'hike' : isRunCompletion ? 'run' : 'workout',
+        type: isHikeCompletion ? 'hike' : 'workout',
       });
       setShared(true);
     } catch (e) {
       console.warn('[complete] share to community failed:', e?.message);
+      setShareError(shareErrorText('error'));
     } finally {
       setSharing(false);
     }
@@ -354,15 +374,21 @@ export default function WorkoutCompleteScreen() {
 
         {/* Share to Community — real post, via store/communityStore.js */}
         <Pressable
-          style={[styles.shareButton, shared && styles.shareButtonShared]}
+          style={[styles.shareButton, (shared || runShared) && styles.shareButtonShared]}
           onPress={handleShareToCommunity}
-          disabled={sharing || shared}
+          disabled={sharing || shared || runShared}
+          testID="share-to-community"
         >
-          <Ionicons name={shared ? 'checkmark-circle' : 'share-social-outline'} size={18} color={shared ? '#22C55E' : '#000'} />
-          <Text style={[styles.shareButtonText, shared && { color: '#22C55E' }]}>
-            {sharing ? 'Sharing…' : shared ? 'Shared to Community' : 'Share to Community'}
+          <Ionicons
+            name={shared || runShared ? 'checkmark-circle' : 'share-social-outline'}
+            size={18}
+            color={shared || runShared ? '#22C55E' : '#000'}
+          />
+          <Text style={[styles.shareButtonText, (shared || runShared) && { color: '#22C55E' }]}>
+            {sharing ? 'Sharing…' : shared || runShared ? 'Shared to Community' : 'Share to Community'}
           </Text>
         </Pressable>
+        {!!shareError && <Text style={styles.shareError} testID="share-error">{shareError}</Text>}
 
         {/* Bottom CTA */}
         <Pressable style={styles.ctaButton} onPress={handleClose}>
@@ -598,6 +624,7 @@ const styles = StyleSheet.create({
   },
   shareButtonShared: { borderColor: '#22C55E' },
   shareButtonText: { fontSize: 14, fontWeight: '700', color: '#000' },
+  shareError: { fontSize: 13, color: '#EF4444', textAlign: 'center', marginTop: 8, paddingHorizontal: 20 },
 
   /* CTA */
   ctaButton: {

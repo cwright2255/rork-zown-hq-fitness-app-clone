@@ -23,6 +23,8 @@ import {
   query, orderBy, limit, onSnapshot, serverTimestamp, increment, updateDoc,
 } from 'firebase/firestore';
 import { uploadPostMedia, deletePostMedia } from '../services/postMediaService';
+import { describeSharedRun } from '../lib/runShare';
+import { useRunningStore } from './runningStore';
 
 export const useCommunityStore = create((set, get) => ({
   posts: [],
@@ -59,10 +61,13 @@ export const useCommunityStore = create((set, get) => ({
   // so a failed upload never leaves a half-finished post. The post id is made
   // up front so the files can live under posts/{uid}/{postId}/.
   // `imageUrl` still holds the first photo so older screens keep working.
-  createPost: async ({ uid, authorName, authorAvatar, text, imageUrl, type, mediaItems, onProgress }) => {
+  // `run` is a shared run card (lib/runShare.js buildRunPost), kept on the post
+  // as it is; a post with a run needs no text or photo of its own.
+  createPost: async ({ uid, authorName, authorAvatar, text, imageUrl, type, mediaItems, run, onProgress }) => {
     const clean = (text || '').trim();
     const items = Array.isArray(mediaItems) ? mediaItems : [];
-    if (!uid || (!clean && items.length === 0)) return null;
+    const sharedRun = run && typeof run === 'object' && describeSharedRun(run) ? run : null;
+    if (!uid || (!clean && items.length === 0 && !sharedRun)) return null;
     try {
       const postRef = doc(collection(db, 'communityPosts'));
       const media = items.length > 0
@@ -78,6 +83,7 @@ export const useCommunityStore = create((set, get) => ({
           imageUrl: firstImage ? firstImage.url : (imageUrl || null),
           media,
           type: type || 'general',
+          ...(sharedRun ? { run: sharedRun } : {}),
           likeCount: 0,
           commentCount: 0,
           shareCount: 0,
@@ -122,14 +128,28 @@ export const useCommunityStore = create((set, get) => ({
     try {
       const postRef = doc(db, 'communityPosts', postId);
       let media = [];
+      let wasRun = false;
       try {
         const snap = await getDoc(postRef);
         media = snap.exists() ? (snap.data().media || []) : [];
+        wasRun = snap.exists() && !!snap.data().run;
       } catch (e) {
         media = [];
       }
       await deleteDoc(postRef);
       await deletePostMedia(media);
+      // A deleted run card frees the run to be shared again. (The saved runs are
+      // loaded first if this phone has not got them yet, or the run would keep
+      // pointing at a post that no longer exists.)
+      if (wasRun && uid) {
+        try {
+          const running = useRunningStore.getState();
+          if (!running.runs?.length && typeof running.loadRuns === 'function') await running.loadRuns(uid);
+          useRunningStore.getState().forgetSharedPost?.(uid, postId);
+        } catch (e) {
+          console.warn('[communityStore] could not free the run for sharing:', e?.message);
+        }
+      }
     } catch (e) {
       console.warn('[communityStore] deletePost error:', e?.message);
     }

@@ -18,9 +18,15 @@ jest.mock('@/components/RunRouteMap', () => {
   };
 });
 jest.mock('@/store/runningStore', () => ({
-  useRunningStore: (select) => select(global.__runningStore),
+  useRunningStore: Object.assign(
+    (select) => select(global.__runningStore),
+    { getState: () => global.__runningStore },
+  ),
 }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__user }) }));
+jest.mock('@/store/communityStore', () => ({
+  useCommunityStore: (select) => select({ createPost: global.__createPost }),
+}));
 
 import RunDetailScreen from '../app/running/run/[id]';
 
@@ -47,7 +53,12 @@ const open = (id, runs, { user = { uid: 'u1' }, loadRuns } = {}) => {
   global.__params = { id };
   global.__user = user;
   global.__router = { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) };
-  global.__runningStore = { runs, loadRuns: loadRuns || jest.fn(async () => undefined) };
+  global.__runningStore = {
+    runs,
+    loadRuns: loadRuns || jest.fn(async () => undefined),
+    markRunShared: jest.fn(() => true),
+  };
+  global.__createPost = jest.fn(async () => 'post-1');
   return render(<RunDetailScreen />);
 };
 
@@ -164,6 +175,76 @@ describe('RunDetailScreen', () => {
     global.__router.canGoBack.mockReturnValue(false);
     fireEvent.press(utils.getByTestId('run-detail-back'));
     expect(global.__router.replace).toHaveBeenCalledWith('/running/program');
+  });
+});
+
+describe('RunDetailScreen sharing to the feed', () => {
+  const press = async (utils) => { await act(async () => { fireEvent.press(utils.getByTestId('run-detail-share')); }); };
+
+  it('has a button to share the run, ready to press', () => {
+    const utils = open('run-1', [run()]);
+    expect(utils.getByText('Share to feed')).toBeTruthy();
+    expect(utils.getByTestId('run-detail-share').props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it('posts the run as a run card and remembers the post', async () => {
+    const utils = open('run-1', [run()]);
+    await press(utils);
+    expect(global.__createPost).toHaveBeenCalledTimes(1);
+    const post = global.__createPost.mock.calls[0][0];
+    expect(post).toMatchObject({ uid: 'u1', type: 'run', text: 'Morning Run: 5.23 km in 26:50 \uD83D\uDCAA' });
+    expect(post.run).toMatchObject({ activity: 'run', distance: 5.23, duration: 1610, calories: 366, elevGain: 42 });
+    expect(global.__runningStore.markRunShared).toHaveBeenCalledWith('u1', 'run-1', 'post-1');
+  });
+
+  it('then shows the run as shared, and does not post it again', async () => {
+    const utils = open('run-1', [run()]);
+    await press(utils);
+    expect(utils.getByText('Shared to feed')).toBeTruthy();
+    await press(utils);
+    expect(global.__createPost).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a run that was shared before as shared, and posts nothing', async () => {
+    const utils = open('run-1', [run({ sharedPostId: 'earlier' })]);
+    expect(utils.getByText('Shared to feed')).toBeTruthy();
+    await press(utils);
+    expect(global.__createPost).not.toHaveBeenCalled();
+  });
+
+  it('says so, and can be tried again, when the post fails', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const utils = open('run-1', [run()]);
+    global.__createPost.mockRejectedValueOnce(new Error('offline'));
+    await press(utils);
+    expect(utils.getByTestId('run-detail-share-error').props.children).toBe('Could not share your run. Try again in a moment.');
+    expect(utils.getByText('Share to feed')).toBeTruthy();
+    await press(utils);
+    expect(utils.queryByTestId('run-detail-share-error')).toBeNull();
+    expect(utils.getByText('Shared to feed')).toBeTruthy();
+    warn.mockRestore();
+  });
+
+  it('asks to sign in when nobody is', async () => {
+    const utils = open('run-1', [run()], { user: null });
+    await press(utils);
+    expect(global.__createPost).not.toHaveBeenCalled();
+    expect(utils.getByTestId('run-detail-share-error').props.children).toBe('Sign in to share your run.');
+  });
+
+  it('says a run too short to share is too short', async () => {
+    const utils = open('run-1', [run({ distance: 0.004, duration: 5, splits: undefined })]);
+    await press(utils);
+    expect(global.__createPost).not.toHaveBeenCalled();
+    expect(utils.getByTestId('run-detail-share-error').props.children).toBe('This run is too short to share.');
+  });
+
+  it('shares the route with its ends hidden', async () => {
+    const track = Array.from({ length: 41 }, (_, i) => [40 + i * 0.001, -74]).flat();
+    const utils = open('run-1', [run({ track })]);
+    await press(utils);
+    const { route } = global.__createPost.mock.calls[0][0].run;
+    expect(route[0]).toBeGreaterThan(40.001);
   });
 });
 

@@ -11,7 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import RunRouteMap from '@/components/RunRouteMap';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
+import { useCommunityStore } from '@/store/communityStore';
 import { describeRun, formatDelta } from '@/lib/runDetail';
+import { shareRunToFeed, shareErrorText } from '@/services/runShare';
 import { formatPace, runPaceSecPerKm } from '@/lib/runStats';
 
 const GREEN = '#22C55E';
@@ -36,7 +38,13 @@ export default function RunDetailScreen() {
   const runs = useRunningStore((s) => s.runs) || [];
   const loadRuns = useRunningStore((s) => s.loadRuns);
   const { user } = useUserStore();
+  const createPost = useCommunityStore((s) => s.createPost);
   const [loading, setLoading] = useState(false);
+  // Sharing this run to the community feed: idle, sending, or done (the run
+  // remembers its post, so "done" also shows after coming back to the screen).
+  const [sharing, setSharing] = useState(false);
+  const [justShared, setJustShared] = useState(false);
+  const [shareError, setShareError] = useState('');
 
   const run = useMemo(() => runs.find((r) => r && String(r.id) === id) || null, [runs, id]);
 
@@ -56,6 +64,21 @@ export default function RunDetailScreen() {
     else router.replace('/running/program');
   };
 
+  const handleShare = async () => {
+    if (!run || sharing || justShared || run.sharedPostId) return;
+    setSharing(true);
+    setShareError('');
+    const result = await shareRunToFeed({
+      run,
+      user,
+      createPost,
+      markShared: useRunningStore.getState().markRunShared,
+    });
+    setSharing(false);
+    if (result.ok || result.reason === 'already-shared') setJustShared(true);
+    else setShareError(shareErrorText(result.reason));
+  };
+
   if (!run || !info) {
     return (
       <View style={styles.container}>
@@ -73,6 +96,7 @@ export default function RunDetailScreen() {
   }
 
   const { splits } = info;
+  const isShared = justShared || !!run.sharedPostId;
   const olderRunNote = info.source
     ? 'Kilometre splits need a GPS route that matches the workout, and this one has none.'
     : run.distance >= 1
@@ -121,6 +145,20 @@ export default function RunDetailScreen() {
               <Text style={styles.elevText}>{`${info.descent} m descent`}</Text>
             </View>
           )}
+
+          <Pressable
+            style={[styles.shareBtn, isShared && styles.shareBtnDone]}
+            onPress={handleShare}
+            disabled={sharing || isShared}
+            accessibilityRole="button"
+            testID="run-detail-share"
+          >
+            <Ionicons name={isShared ? 'checkmark-circle' : 'share-social-outline'} size={18} color={isShared ? GREEN : '#0D1117'} />
+            <Text style={[styles.shareText, isShared && styles.shareTextDone]}>
+              {isShared ? 'Shared to feed' : sharing ? 'Sharing...' : 'Share to feed'}
+            </Text>
+          </Pressable>
+          {!!shareError && <Text style={styles.shareError} testID="run-detail-share-error">{shareError}</Text>}
 
           {splits.rows.length > 0 ? (
             <>
@@ -223,6 +261,15 @@ const styles = StyleSheet.create({
 
   elevRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
   elevText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+
+  shareBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20,
+    backgroundColor: GREEN, borderRadius: 14, paddingVertical: 14,
+  },
+  shareBtnDone: { backgroundColor: 'rgba(34,197,94,0.14)' },
+  shareText: { fontSize: 15, fontWeight: '800', color: '#0D1117' },
+  shareTextDone: { color: GREEN },
+  shareError: { fontSize: 12, color: '#F87171', marginTop: 8, textAlign: 'center' },
 
   sectionTitle: { fontSize: 17, fontWeight: '800', color: '#FFF', marginTop: 28 },
   sectionHint: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2, marginBottom: 10 },

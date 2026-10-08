@@ -12,6 +12,7 @@ import { getConversationId } from '@/store/messagingStore';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
+import RunPostCard from '@/components/RunPostCard';
 
 // No real challenge-tracking backend exists yet (participant tracking,
 // join state, progress toward a goal) — that's a separate, larger feature
@@ -223,6 +224,7 @@ export default function CommunityScreen() {
                   )}
                 </TouchableOpacity>
                 {!!post.text && <Text style={styles.postText}>{post.text}</Text>}
+                {!!post.run && <RunPostCard run={post.run} />}
                 <PostMedia media={normalizeMedia(post)} />
                 <View style={styles.postActions}>
                   <TouchableOpacity style={styles.action} onPress={() => handleLike(post.id)}>

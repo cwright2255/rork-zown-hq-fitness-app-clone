@@ -11,10 +11,16 @@ import { useGroupStore } from '@/store/groupStore';
 import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
 import AudienceFilter from '@/components/AudienceFilter';
+import BoardPicker from '@/components/BoardPicker';
+import RunPostCard from '@/components/RunPostCard';
 import PersonSheet from '@/components/PersonSheet';
 import { useSocialGraphStore } from '@/store/socialGraphStore';
 import { useAudience } from '@/store/useAudience';
 import { filterByAudience, emptyAudienceMessage } from '@/lib/audience';
+import {
+  DEFAULT_BOARD, boardValue, emptyBoardMessage, formatBoardValue, isDistanceBoard,
+} from '@/lib/runLeaderboard';
+import { publishMyDistance } from '@/services/distanceBoard';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
@@ -219,10 +225,20 @@ export default function SocialScreen() {
   const {
     entries, audienceEntries, isLoadingAudience, loadForUids, subscribeTop, unsubscribe: unsubscribeLeaderboard,
   } = useLeaderboardStore();
+  // What the Leaderboard tab is ranked by: XP, or distance this week / this month.
+  // The people search on the Feed tab reads the same list, so it always uses XP.
+  const [board, setBoard] = useState(DEFAULT_BOARD);
+  const activeBoard = activeTab === 'Leaderboard' ? board : DEFAULT_BOARD;
   useEffect(() => {
-    subscribeTop(50);
+    subscribeTop(50, activeBoard);
     return () => unsubscribeLeaderboard();
-  }, []);
+  }, [activeBoard]);
+
+  // Put this person's own weekly and monthly distance on the board (it also
+  // covers runs recorded before the distance boards existed).
+  useEffect(() => {
+    if (user?.uid) publishMyDistance({ user, loadFirst: true });
+  }, [user?.uid]);
 
   // Everyone / Following / Close Friends for the Leaderboard and Duels tabs
   // (remembered separately for each), and the sheet for following / starring a person.
@@ -232,8 +248,8 @@ export default function SocialScreen() {
   const [sheetPerson, setSheetPerson] = useState(null);
 
   useEffect(() => {
-    if (lbAudience.uids !== null) loadForUids(lbAudience.uids, user?.uid);
-  }, [lbAudience.audience, lbAudience.uidKey, user?.uid]);
+    if (lbAudience.uids !== null) loadForUids(lbAudience.uids, user?.uid, board);
+  }, [lbAudience.audience, lbAudience.uidKey, user?.uid, board]);
 
   const query = searchQuery.trim().toLowerCase();
   const matchingPeople = query
@@ -351,6 +367,7 @@ export default function SocialScreen() {
               )}
             </View>
             {!!post.text && <Text style={s.feedText}>{post.text}</Text>}
+            {!!post.run && <RunPostCard run={post.run} />}
             <PostMedia media={normalizeMedia(post)} />
             <View style={s.feedActionsRow}>
               <Pressable style={s.feedActionBtn} onPress={() => handleLike(post.id)}>
@@ -376,6 +393,7 @@ export default function SocialScreen() {
 
   const renderLeaderboard = () => (
     <View>
+      <BoardPicker board={board} onChange={setBoard} style={{ marginBottom: 12 }} />
       <View style={s.audienceWrap}>
         <AudienceFilter value={lbAudience.audience} onChange={lbAudience.setAudience} />
         <Pressable onPress={() => router.push('/friends')}>
@@ -386,7 +404,9 @@ export default function SocialScreen() {
         <Text style={s.emptyText}>
           {lbAudience.audience !== 'everyone' && isLoadingAudience
             ? 'Loading...'
-            : emptyAudienceMessage('leaderboard', lbAudience.audience)}
+            : isDistanceBoard(board)
+              ? emptyBoardMessage(board, lbAudience.audience)
+              : emptyAudienceMessage('leaderboard', lbAudience.audience)}
         </Text>
       ) : (
         leaderList.map((entry, i) => {
@@ -400,8 +420,8 @@ export default function SocialScreen() {
             >
               <Text style={[s.leaderRank, i < 3 && { color: MEDAL_COLORS[i] }]}>{i + 1}</Text>
               <View style={s.leaderAvatar}><Text style={s.leaderAvatarText}>{initials(entry.name)}</Text></View>
-              <Text style={s.leaderName}>{isMe ? 'You' : entry.name}{isClose ? '  ★' : ''}</Text>
-              <Text style={s.leaderXp}>{(entry.xp || 0).toLocaleString()} XP</Text>
+              <Text style={s.leaderName}>{isMe ? 'You' : (entry.name || 'Zown User')}{isClose ? '  ★' : ''}</Text>
+              <Text style={s.leaderXp}>{formatBoardValue(board, boardValue(entry, board))}</Text>
               {!isMe && (
                 <Pressable style={s.duelIconBtn} onPress={() => setDuelTarget({ uid: entry.id, name: entry.name })}>
                   <Ionicons name="flash-outline" size={16} color="#000" />

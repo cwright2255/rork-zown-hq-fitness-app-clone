@@ -35,6 +35,9 @@ jest.mock('@/store/badgeStore', () => ({
 jest.mock('@/store/communityStore', () => ({
   useCommunityStore: () => ({ createPost: global.__createPost }),
 }));
+jest.mock('@/services/distanceBoard', () => ({
+  publishMyDistance: (...args) => global.__publishDistance(...args),
+}));
 
 import RunningLogScreen from '../app/profile/running-log';
 import WorkoutCompleteScreen from '../app/workout/complete';
@@ -55,6 +58,7 @@ const setStore = (runs, extra = {}) => {
     getStats: jest.fn(() => ({ totalRuns: runs.length, totalDistance: runs.reduce((a, r) => a + r.distance, 0), totalDuration: 3000, avgPace: 300 })),
     getPersonalRecords: jest.fn(() => ({ longestRun: null, fastestPace: null, best5k: null, totalDistance: 0 })),
     loadRunningPrograms: jest.fn(),
+    markRunShared: jest.fn(() => true),
     programs: [],
     ...extra,
   };
@@ -63,7 +67,8 @@ const setStore = (runs, extra = {}) => {
 beforeEach(() => {
   router.push.mockClear();
   global.__router = { push: jest.fn(), back: jest.fn(), replace: jest.fn() };
-  global.__createPost = jest.fn(async () => undefined);
+  global.__createPost = jest.fn(async () => 'post-1');
+  global.__publishDistance = jest.fn(async () => true);
 });
 
 describe('Running Log', () => {
@@ -173,18 +178,86 @@ describe('Finished-run screen', () => {
     expect(utils.getByText('+150 XP')).toBeTruthy(); // 30 per km
   });
 
-  it('says "walk" in the post when a walk is shared to the feed', async () => {
+  it('shares a walk to the feed as a walk card', async () => {
     const utils = open([run({ id: 'w', activity: 'walk', distance: 3, duration: 2400 })], { type: 'run', runId: 'w' });
-    await act(async () => { fireEvent.press(utils.getByText('Share to Community')); });
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
     expect(global.__createPost).toHaveBeenCalledTimes(1);
-    expect(global.__createPost.mock.calls[0][0].text).toMatch(/^Just finished a 3\.00km walk in 40 min/);
-    expect(global.__createPost.mock.calls[0][0].type).toBe('run');
+    const post = global.__createPost.mock.calls[0][0];
+    expect(post.type).toBe('run');
+    expect(post.text).toBe('Morning Walk: 3.00 km in 40:00 \uD83D\uDCAA');
+    expect(post.run).toMatchObject({ activity: 'walk', title: 'Morning Walk', distance: 3, duration: 2400 });
   });
 
-  it('says "run" in the post when a run is shared', async () => {
+  it('shares a run to the feed as a run card with its stats', async () => {
     const utils = open([run({ distance: 5 })], { type: 'run', runId: 'run-1' });
-    await act(async () => { fireEvent.press(utils.getByText('Share to Community')); });
-    expect(global.__createPost.mock.calls[0][0].text).toMatch(/^Just finished a 5\.00km run in 25 min/);
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    const post = global.__createPost.mock.calls[0][0];
+    expect(post).toMatchObject({ uid: 'u1', authorName: 'Cj', type: 'run', text: 'Morning Run: 5.00 km in 25:00 \uD83D\uDCAA' });
+    expect(post.run).toMatchObject({ activity: 'run', distance: 5, duration: 1500, pace: 300, calories: 350 });
+  });
+
+  it('hides the ends of the route it shares', async () => {
+    // 41 points about 111 m apart going north: 4.4 km.
+    const track = Array.from({ length: 41 }, (_, i) => [40 + i * 0.001, -74]).flat();
+    const utils = open([run({ track })], { type: 'run', runId: 'run-1' });
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    const { route } = global.__createPost.mock.calls[0][0].run;
+    expect(route.length).toBeGreaterThan(0);
+    expect(route.slice(0, 2)).not.toEqual([40, -74]);
+    expect(route[0]).toBeGreaterThan(40.001);
+    expect(route[route.length - 2]).toBeLessThan(40.039);
+  });
+
+  it('remembers the post on the run and then shows it as shared', async () => {
+    const utils = open([run()], { type: 'run', runId: 'run-1' });
+    expect(utils.getByText('Share to Community')).toBeTruthy();
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    expect(global.__runningStore.markRunShared).toHaveBeenCalledWith('u1', 'run-1', 'post-1');
+    expect(utils.getByText('Shared to Community')).toBeTruthy();
+    expect(utils.queryByTestId('share-error')).toBeNull();
+  });
+
+  it('does not post the same run twice', async () => {
+    const utils = open([run()], { type: 'run', runId: 'run-1' });
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    expect(global.__createPost).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a run that was already shared (from its own screen, say) as shared', async () => {
+    const utils = open([run({ sharedPostId: 'earlier' })], { type: 'run', runId: 'run-1' });
+    expect(utils.getByText('Shared to Community')).toBeTruthy();
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    expect(global.__createPost).not.toHaveBeenCalled();
+  });
+
+  it('says so, and lets the person try again, when the post could not be made', async () => {
+    global.__createPost = jest.fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce('post-2');
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const utils = open([run()], { type: 'run', runId: 'run-1' });
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    expect(utils.getByTestId('share-error').props.children).toBe('Could not share your run. Try again in a moment.');
+    expect(utils.getByText('Share to Community')).toBeTruthy();
+    expect(global.__runningStore.markRunShared).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    expect(utils.queryByTestId('share-error')).toBeNull();
+    expect(utils.getByText('Shared to Community')).toBeTruthy();
+    warn.mockRestore();
+  });
+
+  it('puts this week\'s distance on the leaderboard once the runs are loaded', async () => {
+    open([run()], { type: 'run', runId: 'run-1' });
+    await act(async () => { await Promise.resolve(); });
+    expect(global.__runningStore.loadRuns).toHaveBeenCalledWith('u1');
+    expect(global.__publishDistance).toHaveBeenCalledWith({ user: expect.objectContaining({ uid: 'u1' }) });
+  });
+
+  it('does not touch the distance boards after a workout', async () => {
+    open([run()], { type: 'workout' });
+    await act(async () => { await Promise.resolve(); });
+    expect(global.__publishDistance).not.toHaveBeenCalled();
   });
 });
 

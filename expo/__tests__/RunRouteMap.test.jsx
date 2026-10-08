@@ -16,7 +16,7 @@ jest.mock('react-native-maps', () => {
   return { __esModule: true, default: MapView, MapView, Polyline, Marker, PROVIDER_DEFAULT: null, __calls: mockCalls };
 });
 
-import RunRouteMap from '../components/RunRouteMap';
+import RunRouteMap, { hasNativeMap } from '../components/RunRouteMap';
 
 const Maps = require('react-native-maps');
 
@@ -96,5 +96,22 @@ describe('RunRouteMap (native)', () => {
     expect(coords).toBe(points);
     expect(options.animated).toBe(false);
     expect(options.edgePadding.top).toBeGreaterThan(0);
+  });
+
+  it('says a real map is available', () => {
+    expect(hasNativeMap()).toBe(true);
+  });
+
+  it('draws the flat sketch instead of the map when asked, as the feed does', () => {
+    const utils = render(<RunRouteMap points={line(5)} sketch />);
+    expect(utils.getByTestId('run-route-sketch')).toBeTruthy();
+    expect(utils.queryByTestId('run-route-map')).toBeNull();
+  });
+
+  it('fits the route with the room around it that it is given', () => {
+    const edgePadding = { top: 30, right: 30, bottom: 30, left: 30 };
+    const utils = render(<RunRouteMap points={line(5)} edgePadding={edgePadding} />);
+    mapProps(utils).onMapReady();
+    expect(Maps.__calls.fitToCoordinates.mock.calls[0][1].edgePadding).toEqual(edgePadding);
   });
 });

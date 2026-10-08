@@ -241,3 +241,57 @@ describe('runningStore importRuns', () => {
     expect(setDoc).not.toHaveBeenCalled();
   });
 });
+
+describe('runningStore sharing a run to the feed', () => {
+  beforeEach(() => {
+    useRunningStore.setState({ runs: [saved(2), saved(1)], activeRun: null });
+    setDoc.mockClear();
+  });
+
+  it('remembers which post a run was shared as, and saves it', () => {
+    expect(useRunningStore.getState().markRunShared('u1', '2', 'post-9')).toBe(true);
+    const runs = useRunningStore.getState().runs;
+    expect(runs.find((r) => r.id === '2').sharedPostId).toBe('post-9');
+    expect(runs.find((r) => r.id === '1').sharedPostId).toBeUndefined();
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    expect(setDoc.mock.calls[0][1].runs.find((r) => r.id === '2').sharedPostId).toBe('post-9');
+  });
+
+  it('matches the run whatever type its id was saved with', () => {
+    useRunningStore.setState({ runs: [saved(7, { id: 7 })] });
+    expect(useRunningStore.getState().markRunShared('u1', '7', 'p')).toBe(true);
+    expect(useRunningStore.getState().runs[0].sharedPostId).toBe('p');
+  });
+
+  it('changes nothing for a run it does not have, or a missing post', () => {
+    expect(useRunningStore.getState().markRunShared('u1', 'nope', 'post-9')).toBe(false);
+    expect(useRunningStore.getState().markRunShared('u1', '2', '')).toBe(false);
+    expect(useRunningStore.getState().markRunShared('u1', undefined, 'post-9')).toBe(false);
+    expect(useRunningStore.getState().runs.some((r) => r.sharedPostId)).toBe(false);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('frees the run when its post is deleted', () => {
+    useRunningStore.getState().markRunShared('u1', '2', 'post-9');
+    setDoc.mockClear();
+    expect(useRunningStore.getState().forgetSharedPost('u1', 'post-9')).toBe(true);
+    const run = useRunningStore.getState().runs.find((r) => r.id === '2');
+    expect(run).not.toHaveProperty('sharedPostId');
+    expect(run.distance).toBe(5);
+    expect(setDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the other runs alone when a post is deleted', () => {
+    useRunningStore.getState().markRunShared('u1', '2', 'post-9');
+    useRunningStore.getState().markRunShared('u1', '1', 'post-3');
+    useRunningStore.getState().forgetSharedPost('u1', 'post-9');
+    expect(useRunningStore.getState().runs.find((r) => r.id === '1').sharedPostId).toBe('post-3');
+  });
+
+  it('writes nothing when no run was shared as that post', () => {
+    setDoc.mockClear();
+    expect(useRunningStore.getState().forgetSharedPost('u1', 'post-x')).toBe(false);
+    expect(useRunningStore.getState().forgetSharedPost('u1', '')).toBe(false);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+});

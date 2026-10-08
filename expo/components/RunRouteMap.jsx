@@ -33,7 +33,13 @@ const ROUTE_COLOR = '#22C55E';
 const ROUTE_GLOW = 'rgba(34, 197, 94, 0.28)';
 const EDGE_PADDING = { top: 90, right: 50, bottom: 60, left: 50 };
 
-export default function RunRouteMap({ points = [], style }) {
+/** True when a real map can be drawn here (not on web, and only in a build that has react-native-maps). */
+export const hasNativeMap = () => !!MapView;
+
+// `sketch` draws the flat route drawing even where a real map is available (a
+// feed full of maps would be heavy); `edgePadding` sets the room around the
+// route on a real map (the default leaves space for the run screen's header).
+export default function RunRouteMap({ points = [], style, edgePadding = EDGE_PADDING, sketch = false }) {
   const mapRef = useRef(null);
   const region = useMemo(() => routeRegion(points), [points]);
   const hasRoute = points.length >= 2;
@@ -45,9 +51,9 @@ export default function RunRouteMap({ points = [], style }) {
   const fit = useCallback(() => {
     const map = mapRef.current;
     if (map && typeof map.fitToCoordinates === 'function' && hasRoute) {
-      map.fitToCoordinates(points, { edgePadding: EDGE_PADDING, animated: false });
+      map.fitToCoordinates(points, { edgePadding, animated: false });
     }
-  }, [points, hasRoute]);
+  }, [points, hasRoute, edgePadding]);
 
   if (!hasRoute) {
     return (
@@ -58,7 +64,7 @@ export default function RunRouteMap({ points = [], style }) {
     );
   }
 
-  if (MapView) {
+  if (MapView && !sketch) {
     return (
       <View style={[styles.container, style]} testID="run-route-map">
         <MapView
@@ -96,15 +102,15 @@ export default function RunRouteMap({ points = [], style }) {
   }
 
   // No native map: a flat drawing of the route.
-  const sketch = routeSketch(points, 300, 200, 24);
+  const drawing = routeSketch(points, 300, 200, 24);
   return (
     <View style={[styles.container, styles.center, style]} testID="run-route-sketch">
-      {sketch && (
+      {drawing && (
         <Svg width="100%" height="100%" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
-          <SvgPolyline points={sketch.points} fill="none" stroke={ROUTE_GLOW} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
-          <SvgPolyline points={sketch.points} fill="none" stroke={ROUTE_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-          <Circle cx={sketch.start.x} cy={sketch.start.y} r={6} fill="#FFFFFF" stroke={ROUTE_COLOR} strokeWidth={3} />
-          <Circle cx={sketch.end.x} cy={sketch.end.y} r={6} fill={ROUTE_COLOR} stroke="#FFFFFF" strokeWidth={3} />
+          <SvgPolyline points={drawing.points} fill="none" stroke={ROUTE_GLOW} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
+          <SvgPolyline points={drawing.points} fill="none" stroke={ROUTE_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+          <Circle cx={drawing.start.x} cy={drawing.start.y} r={6} fill="#FFFFFF" stroke={ROUTE_COLOR} strokeWidth={3} />
+          <Circle cx={drawing.end.x} cy={drawing.end.y} r={6} fill={ROUTE_COLOR} stroke="#FFFFFF" strokeWidth={3} />
         </Svg>
       )}
     </View>

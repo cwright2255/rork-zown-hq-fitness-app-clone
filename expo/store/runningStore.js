@@ -184,6 +184,38 @@ export const useRunningStore = create(
         return { added, dropped: incoming.length - added.length };
       },
 
+      // Remembers which feed post a run was shared as, so the same run is not
+      // posted twice. Returns true when the run was found.
+      markRunShared: (uid, runId, postId) => {
+        if (runId === undefined || runId === null || !postId) return false;
+        let found = false;
+        const runs = get().runs.map((r) => {
+          if (!r || String(r.id) !== String(runId)) return r;
+          found = true;
+          return { ...r, sharedPostId: String(postId) };
+        });
+        if (!found) return false;
+        set({ runs });
+        get()._persist(uid);
+        return true;
+      },
+
+      // The post a run was shared as has been deleted: the run can be shared again.
+      forgetSharedPost: (uid, postId) => {
+        if (!postId) return false;
+        let changed = false;
+        const runs = get().runs.map((r) => {
+          if (!r || String(r.sharedPostId || '') !== String(postId)) return r;
+          changed = true;
+          const { sharedPostId, ...rest } = r;
+          return rest;
+        });
+        if (!changed) return false;
+        set({ runs });
+        get()._persist(uid);
+        return true;
+      },
+
       getStats: () => summarizeRuns(get().runs),
     }),
     {
