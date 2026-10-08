@@ -10,6 +10,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
 import { paceLabel, runPaceSecPerKm, routePoints, activityOf } from '@/lib/runStats';
 import { runTitle } from '@/lib/runDetail';
+import { sourceLabel } from '@/lib/runImport';
 import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
@@ -74,7 +75,13 @@ return (
           <Ionicons name="arrow-back" size={24} color="#000" />
         </Pressable>
         <Text style={styles.headerTitle}>Running Log</Text>
-        <View style={styles.headerRightPlaceholder} />
+        {Platform.OS === 'ios' ? (
+          <Pressable style={styles.importBtn} onPress={() => router.push('/running/import')} testID="import-runs-button">
+            <Ionicons name="download-outline" size={22} color="#000" />
+          </Pressable>
+        ) : (
+          <View style={styles.headerRightPlaceholder} />
+        )}
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
@@ -159,7 +166,9 @@ return (
                 <View style={styles.runHeader}>
                   <View>
                     <Text style={styles.runTitle}>{run.route || runTitle(run)}</Text>
-                    <Text style={styles.runDate}>{timeStr ? `${dateStr} \u2022 ${timeStr}` : dateStr}</Text>
+                    <Text style={styles.runDate}>
+                      {[timeStr ? `${dateStr} \u2022 ${timeStr}` : dateStr, sourceLabel(run)].filter(Boolean).join(' \u2022 ')}
+                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#999" />
                 </View>
@@ -207,6 +216,7 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
   headerRightPlaceholder: { width: 32 },
+  importBtn: { padding: 4, width: 32, alignItems: 'center' },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 60 },
 

@@ -121,6 +121,27 @@ describe('RunDetailScreen', () => {
     expect(utils.getByTestId('run-detail-nosplits').props.children).toBe('Splits appear for runs of 1 km or more.');
   });
 
+  it('says where an imported run came from', () => {
+    const utils = open('run-1', [run({ source: 'apple-health' })]);
+    expect(utils.getByTestId('run-detail-source').props.children).toBe('Imported from Apple Health');
+  });
+
+  it('shows no source line on a run recorded in Zown', () => {
+    const utils = open('run-1', [run()]);
+    expect(utils.queryByTestId('run-detail-source')).toBeNull();
+  });
+
+  it('explains why an imported run has no splits, instead of saying it was saved before they existed', () => {
+    const utils = open('run-1', [run({ source: 'apple-health', splits: undefined, track: [] })]);
+    expect(utils.getByTestId('run-detail-nosplits').props.children).toBe('Kilometre splits need a GPS route that matches the workout, and this one has none.');
+  });
+
+  it('shows the splits of an imported run that has them', () => {
+    const utils = open('run-1', [run({ source: 'apple-health' })]);
+    expect(utils.getByTestId('pace-bar-0')).toBeTruthy();
+    expect(utils.queryByTestId('run-detail-nosplits')).toBeNull();
+  });
+
   it('still opens a run with no route', () => {
     const utils = open('run-1', [run({ track: undefined })]);
     expect(utils.getByTestId('run-detail-title')).toBeTruthy();

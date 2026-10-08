@@ -164,6 +164,26 @@ export const useRunningStore = create(
         return completed;
       },
 
+      // Adds runs brought in from another app (Apple Health). Same history
+      // rules as a recorded run: newest 100, no repeats by id (a run already
+      // saved is left as it is). Returns the ones that made it in and how many
+      // fell outside the newest 100.
+      importRuns: (uid, imported) => {
+        const seen = new Set(get().runs.filter(Boolean).map((r) => String(r.id)));
+        const incoming = (Array.isArray(imported) ? imported : []).filter((r) => {
+          if (!r || seen.has(String(r.id))) return false;
+          seen.add(String(r.id));
+          return true;
+        });
+        if (incoming.length === 0) return { added: [], dropped: 0 };
+        const merged = newestRuns([...incoming, ...get().runs]);
+        const kept = new Set(merged.map((r) => String(r.id)));
+        const added = incoming.filter((r) => kept.has(String(r.id)));
+        set({ runs: merged });
+        if (added.length > 0) get()._persist(uid);
+        return { added, dropped: incoming.length - added.length };
+      },
+
       getStats: () => summarizeRuns(get().runs),
     }),
     {

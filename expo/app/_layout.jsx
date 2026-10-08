@@ -379,6 +379,7 @@ function RootLayoutInner() {
         <Stack.Screen name="running/program/[id]" />
         <Stack.Screen name="running/session/[id]" />
         <Stack.Screen name="running/run/[id]" />
+        <Stack.Screen name="running/import" />
         <Stack.Screen name="running/hiking/index" />
         <Stack.Screen name="running/hiking/[id]" />
         <Stack.Screen name="running/hiking/saved" />

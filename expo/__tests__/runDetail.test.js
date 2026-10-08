@@ -264,6 +264,12 @@ describe('describeRun', () => {
     expect(d.splits.rows).toEqual([]);
   });
 
+  it('names where an imported run came from, and nothing for one recorded here', () => {
+    expect(describeRun({ ...run, source: 'apple-health' }).source).toBe('Apple Health');
+    expect(describeRun(run).source).toBe('');
+    expect(describeRun({ ...run, source: 'something-unknown' }).source).toBe('');
+  });
+
   it('reads an older route saved as coordinates', () => {
     const d = describeRun({ id: 'o', distance: 1, duration: 300, coords: [{ latitude: 40, longitude: -74 }, { latitude: 40.001, longitude: -74.001 }] });
     expect(d.hasRoute).toBe(true);

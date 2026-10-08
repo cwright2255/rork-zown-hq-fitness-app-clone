@@ -73,9 +73,11 @@ export default function RunDetailScreen() {
   }
 
   const { splits } = info;
-  const olderRunNote = run.distance >= 1
-    ? 'This run was saved before splits were recorded.'
-    : 'Splits appear for runs of 1 km or more.';
+  const olderRunNote = info.source
+    ? 'Kilometre splits need a GPS route that matches the workout, and this one has none.'
+    : run.distance >= 1
+      ? 'This run was saved before splits were recorded.'
+      : 'Splits appear for runs of 1 km or more.';
 
   return (
     <View style={styles.container}>
@@ -96,6 +98,7 @@ export default function RunDetailScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.title} testID="run-detail-title">{info.title}</Text>
               {info.when ? <Text style={styles.when}>{info.when}</Text> : null}
+              {info.source ? <Text style={styles.sourceTag} testID="run-detail-source">{`Imported from ${info.source}`}</Text> : null}
             </View>
           </View>
 
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: '800', color: '#FFF' },
   when: { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
+  sourceTag: { fontSize: 12, fontWeight: '600', color: GREEN, marginTop: 3 },
 
   bigRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 20 },
   bigValue: { fontSize: 64, fontWeight: '800', color: '#FFF', lineHeight: 68 },

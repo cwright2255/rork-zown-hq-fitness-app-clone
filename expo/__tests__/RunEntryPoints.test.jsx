@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 // The three places that lead to a run: the Running Log, the finished-run screen
@@ -103,6 +104,33 @@ describe('Running Log', () => {
     const second = render(<RunningLogScreen />);
     expect(second.getByText('Activities')).toBeTruthy();
     expect(second.queryByText('Runs')).toBeNull();
+  });
+
+  it('has an import button that opens the Apple Health import screen', () => {
+    setStore([run()]);
+    const utils = render(<RunningLogScreen />);
+    fireEvent.press(utils.getByTestId('import-runs-button'));
+    expect(router.push).toHaveBeenCalledWith('/running/import');
+  });
+
+  it('tags runs that came from Apple Health, and only those', () => {
+    setStore([run({ id: 'hk-1', source: 'apple-health' }), run({ id: 'own' })]);
+    const utils = render(<RunningLogScreen />);
+    expect(utils.getAllByText(/Apple Health/)).toHaveLength(1);
+    expect(utils.getByText('Oct 8, 2026 \u2022 07:00 AM \u2022 Apple Health')).toBeTruthy();
+    expect(utils.getByText('Oct 8, 2026 \u2022 07:00 AM')).toBeTruthy();
+  });
+
+  describe('on Android', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('has no import button, since importing is iPhone only for now', () => {
+      jest.replaceProperty(Platform, 'OS', 'android');
+      setStore([run()]);
+      const utils = render(<RunningLogScreen />);
+      expect(utils.queryByTestId('import-runs-button')).toBeNull();
+      expect(utils.getByTestId('run-card-run-1')).toBeTruthy();
+    });
   });
 });
 

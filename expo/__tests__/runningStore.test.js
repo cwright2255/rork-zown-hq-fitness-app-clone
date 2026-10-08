@@ -161,3 +161,83 @@ describe('runningStore loadRuns', () => {
     expect(setDoc).not.toHaveBeenCalled();
   });
 });
+
+describe('runningStore importRuns', () => {
+  beforeEach(() => {
+    useRunningStore.setState({ runs: [], activeRun: null });
+    setDoc.mockClear();
+    getDoc.mockReset();
+  });
+
+  const fromHealth = (n, extra = {}) => saved(n, { id: `hk-${n}`, source: 'apple-health', ...extra });
+
+  it('adds the imported runs among the saved ones, newest first', () => {
+    useRunningStore.setState({ runs: [saved(5), saved(1)] });
+    const out = useRunningStore.getState().importRuns('u1', [fromHealth(3), fromHealth(2)]);
+    expect(useRunningStore.getState().runs.map((r) => r.id)).toEqual(['5', 'hk-3', 'hk-2', '1']);
+    expect(out.added.map((r) => r.id)).toEqual(['hk-3', 'hk-2']);
+    expect(out.dropped).toBe(0);
+  });
+
+  it('writes the history once, with the imported runs in it', () => {
+    useRunningStore.getState().importRuns('u1', [fromHealth(3), fromHealth(2)]);
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    expect(setDoc.mock.calls[0][1].runs.map((r) => r.id)).toEqual(['hk-3', 'hk-2']);
+    expect(setDoc.mock.calls[0][1].runs[0].source).toBe('apple-health');
+  });
+
+  it('keeps the imported run on the phone when signed out, without writing', () => {
+    useRunningStore.getState().importRuns(undefined, [fromHealth(3)]);
+    expect(useRunningStore.getState().runs).toHaveLength(1);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('does nothing, and writes nothing, when there is nothing to import', () => {
+    useRunningStore.setState({ runs: [saved(1)] });
+    expect(useRunningStore.getState().importRuns('u1', [])).toEqual({ added: [], dropped: 0 });
+    expect(useRunningStore.getState().importRuns('u1', undefined)).toEqual({ added: [], dropped: 0 });
+    expect(useRunningStore.getState().importRuns('u1', [null])).toEqual({ added: [], dropped: 0 });
+    expect(useRunningStore.getState().runs).toHaveLength(1);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('leaves a run that is already saved as it is, and does not report it as added', () => {
+    useRunningStore.setState({ runs: [fromHealth(3, { calories: 111 })] });
+    const out = useRunningStore.getState().importRuns('u1', [fromHealth(3, { calories: 999 })]);
+    expect(out).toEqual({ added: [], dropped: 0 });
+    expect(useRunningStore.getState().runs).toHaveLength(1);
+    expect(useRunningStore.getState().runs[0].calories).toBe(111);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('counts the same run only once when it comes in twice in one go', () => {
+    const out = useRunningStore.getState().importRuns('u1', [fromHealth(3), fromHealth(3)]);
+    expect(out.added).toHaveLength(1);
+    expect(useRunningStore.getState().runs).toHaveLength(1);
+  });
+
+  it('keeps only the newest 100, and says how many did not fit', () => {
+    const history = [];
+    for (let i = 100; i >= 51; i -= 1) history.push(saved(i));
+    useRunningStore.setState({ runs: history });
+    const incoming = [fromHealth(200)];
+    for (let i = 50; i >= 1; i -= 1) incoming.push(fromHealth(i));
+    const out = useRunningStore.getState().importRuns('u1', incoming);
+    const runs = useRunningStore.getState().runs;
+    expect(runs).toHaveLength(100);
+    expect(runs[0].id).toBe('hk-200');
+    expect(runs.some((r) => r.id === 'hk-1')).toBe(false);
+    expect(out.added).toHaveLength(50);
+    expect(out.dropped).toBe(1);
+  });
+
+  it('writes nothing when every imported run was older than the newest 100', () => {
+    const history = [];
+    for (let i = 200; i >= 101; i -= 1) history.push(saved(i));
+    useRunningStore.setState({ runs: history });
+    const out = useRunningStore.getState().importRuns('u1', [fromHealth(1)]);
+    expect(out).toEqual({ added: [], dropped: 1 });
+    expect(useRunningStore.getState().runs).toHaveLength(100);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+});

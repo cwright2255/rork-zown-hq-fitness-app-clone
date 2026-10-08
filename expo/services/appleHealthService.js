@@ -25,12 +25,21 @@
 // see store/healthStore.js's loadRookRecovery(), which now tries this
 // service first.
 import { Platform } from 'react-native';
+import {
+  HK_RUNNING, HK_WALKING, MAX_IMPORT_WORKOUTS, buildImportedRun, fromHealthKitRoutes, fromHealthKitWorkout, importedRunId,
+} from '../lib/runImport';
 
 const RESTING_HR_TYPE = 'HKQuantityTypeIdentifierRestingHeartRate';
 const HRV_TYPE = 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN';
 const STEP_COUNT_TYPE = 'HKQuantityTypeIdentifierStepCount';
 const DISTANCE_TYPE = 'HKQuantityTypeIdentifierDistanceWalkingRunning';
 const FLIGHTS_CLIMBED_TYPE = 'HKQuantityTypeIdentifierFlightsClimbed';
+const WORKOUT_TYPE = 'HKWorkoutTypeIdentifier';
+const WORKOUT_ROUTE_TYPE = 'HKWorkoutRouteTypeIdentifier';
+
+// Loaded when first needed, like the import() calls below, but with require()
+// so the workout methods can also be run under Jest.
+const loadHealthKit = () => require('@kingstinct/react-native-healthkit');
 
 // Real, decade-stable Apple HealthKit sample fields (startDate/quantity) -
 // this library's own docs state it "strives to do as straight a mapping
@@ -75,6 +84,74 @@ class AppleHealthService {
     } catch (e) {
       console.warn('[appleHealthService] requestAuthorization failed:', e?.message);
       return false;
+    }
+  }
+
+  /**
+   * Asks for read access to workouts and their GPS routes. Must be awaited
+   * before readWorkouts(): querying a type that was never requested is the
+   * crash case this library warns about. iOS never says whether the person
+   * allowed it (that is private), so true here means "the request went
+   * through"; an empty result later can mean "not allowed" or "none there".
+   */
+  async requestWorkoutAccess() {
+    if (Platform.OS !== 'ios') return false;
+    try {
+      const { requestAuthorization } = loadHealthKit();
+      await requestAuthorization({ toRead: [WORKOUT_TYPE, WORKOUT_ROUTE_TYPE] });
+      return true;
+    } catch (e) {
+      console.warn('[appleHealthService] requestWorkoutAccess failed:', e?.message);
+      return false;
+    }
+  }
+
+  /**
+   * Reads running and walking workouts since `sinceMs`, newest first, and turns
+   * each into a saved-run record (see lib/runImport.js). Workouts whose id is in
+   * `skipIds` are not fetched again. Resolves to
+   * { ok, runs, found, skipped, ignored } (ok is false with a `reason` when
+   * Health could not be read); never throws.
+   */
+  async readWorkouts({ sinceMs, uid, skipIds, limit = MAX_IMPORT_WORKOUTS, onProgress } = {}) {
+    const result = { ok: true, runs: [], found: 0, skipped: 0, ignored: 0 };
+    if (Platform.OS !== 'ios') return { ...result, ok: false, reason: 'unsupported' };
+    try {
+      const HK = loadHealthKit();
+      const kinds = [HK.WorkoutActivityType?.running ?? HK_RUNNING, HK.WorkoutActivityType?.walking ?? HK_WALKING];
+      const lists = await Promise.all(kinds.map((kind) => HK.queryWorkoutSamples({
+        filter: { workoutActivityType: kind, date: { startDate: new Date(sinceMs) } },
+        limit,
+        ascending: false,
+      })));
+      const workouts = [].concat(...lists)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
+        .slice(0, limit);
+      result.found = workouts.length;
+
+      for (let i = 0; i < workouts.length; i += 1) {
+        const w = workouts[i];
+        if (typeof onProgress === 'function') onProgress({ done: i, total: workouts.length });
+        if (skipIds && skipIds.has(importedRunId('apple-health', w.uuid))) {
+          result.skipped += 1;
+          continue;
+        }
+        let locations = [];
+        try {
+          locations = fromHealthKitRoutes(await w.getWorkoutRoutes());
+        } catch (e) {
+          // No route (treadmill, or route access not allowed): the workout still imports without a map.
+        }
+        const run = buildImportedRun(fromHealthKitWorkout(w, locations), { uid });
+        if (run) result.runs.push(run);
+        else result.ignored += 1;
+      }
+      if (typeof onProgress === 'function') onProgress({ done: workouts.length, total: workouts.length });
+      return result;
+    } catch (e) {
+      console.warn('[appleHealthService] readWorkouts failed:', e?.message);
+      return { ...result, ok: false, reason: 'error', message: e?.message || '' };
     }
   }
 

@@ -8,6 +8,7 @@
 // pace seconds per km, splits seconds for each full kilometre.
 
 import { ACTIVITIES, activityOf, cleanSplits, formatPace, routePoints } from './runStats';
+import { sourceLabel } from './runImport';
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
@@ -190,6 +191,7 @@ export function describeRun(run) {
     title: runTitle(run),
     when: runDateLabel(run),
     activity: activityOf(run),
+    source: sourceLabel(run),
     distanceText: distance.toFixed(2),
     timeText: formatClock(duration),
     calories: Math.max(0, Math.round(num(run && run.calories))),
