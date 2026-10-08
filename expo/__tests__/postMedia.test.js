@@ -233,9 +233,10 @@ describe('upload errors', () => {
     expect(errorCode({ customData: { code: 'storage/retry-limit-exceeded' } })).toBe('storage/retry-limit-exceeded');
   });
 
-  it('shouldRetryUpload skips errors a second try cannot fix', () => {
-    expect(shouldRetryUpload(fbError('storage/unauthorized', 'x'))).toBe(false);
-    expect(shouldRetryUpload(fbError('storage/unauthenticated', 'x'))).toBe(false);
+  it('shouldRetryUpload tries permission errors again over a direct upload, but not quota or cancel', () => {
+    expect(shouldRetryUpload(fbError('storage/unauthorized', 'x'))).toBe(true);
+    expect(shouldRetryUpload(fbError('storage/unauthenticated', 'x'))).toBe(true);
+    expect(shouldRetryUpload(fbError('storage/quota-exceeded', 'x'))).toBe(false);
     expect(shouldRetryUpload(fbError('storage/canceled', 'x'))).toBe(false);
     expect(shouldRetryUpload(fbError('storage/unknown', 'x'))).toBe(true);
     expect(shouldRetryUpload(new Error('Network request failed'))).toBe(true);

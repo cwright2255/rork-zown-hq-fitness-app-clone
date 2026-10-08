@@ -127,6 +127,41 @@ async function uploadWithRest(fileRef, blob, contentType, onFraction) {
   });
 }
 
+/** Asks Storage (with the sign-in token) whether this user may list their own post files. Resolves with the HTTP status as text. */
+function listStatus(bucket, prefix, token) {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o?prefix=${encodeURIComponent(prefix)}&maxResults=1`);
+    xhr.setRequestHeader('Authorization', `Firebase ${token}`);
+    xhr.timeout = 8000;
+    xhr.onload = () => resolve(String(xhr.status));
+    xhr.onerror = () => resolve('network error');
+    xhr.ontimeout = () => resolve('timed out');
+    xhr.send();
+  });
+}
+
+/**
+ * One short line for the error alert, written only when an upload failed with
+ * permission errors both ways: which bucket the app is using, whether the
+ * Firebase sign-in matches the post owner, and whether Storage lets this user
+ * read (200 means the rules and sign-in are fine for reading; 403 means the
+ * rules are not the ones in storage.rules).
+ */
+async function accessReport(fileRef, uid) {
+  const bucket = `bucket ${fileRef.bucket}`;
+  const current = auth && auth.currentUser;
+  if (!current) return `${bucket}; not signed in to Firebase`;
+  const parts = [bucket, current.uid === uid ? 'uid matches' : `uid differs (${String(current.uid).slice(0, 6)} vs ${String(uid).slice(0, 6)})`];
+  try {
+    const token = await current.getIdToken();
+    parts.push(`list ${await listStatus(fileRef.bucket, `posts/${uid}/`, token)}`);
+  } catch (e) {
+    parts.push('list check failed');
+  }
+  return parts.join('; ');
+}
+
 async function downloadUrlFor(fileRef, restMeta) {
   try {
     return await getDownloadURL(fileRef);
@@ -163,7 +198,12 @@ export async function uploadPostMedia({ uid, postId, items, onProgress }) {
         try {
           restMeta = await uploadWithRest(fileRef, blob, contentType, report);
         } catch (restError) {
-          throw codedError(errorCode(sdkError) || errorCode(restError), `${errorDetails(sdkError, 140)} | retry: ${errorDetails(restError, 140)}`);
+          let report = '';
+          try { report = await accessReport(fileRef, uid); } catch (e) { report = ''; }
+          throw codedError(
+            errorCode(sdkError) || errorCode(restError),
+            `sdk ${errorCode(sdkError) || 'failed'}; direct ${errorDetails(restError, 150)}${report ? `; ${report}` : ''}`
+          );
         }
       }
       if (blob && typeof blob.close === 'function') blob.close();

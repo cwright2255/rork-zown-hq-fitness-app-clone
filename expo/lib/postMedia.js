@@ -220,9 +220,10 @@ export function errorCode(e) {
 }
 
 // Errors that retrying a different way cannot fix (the same rules or sign-in apply).
+// Permission errors are retried once over a direct upload (it sends the sign-in
+// token itself), which tells us whether the app or the security rules said no.
 const NO_RETRY_CODES = [
-  'storage/unauthorized', 'storage/unauthenticated', 'storage/quota-exceeded',
-  'storage/canceled', 'storage/bucket-not-found', 'storage/project-not-found',
+  'storage/quota-exceeded', 'storage/canceled', 'storage/bucket-not-found', 'storage/project-not-found',
 ];
 
 export function shouldRetryUpload(e) {
@@ -252,6 +253,6 @@ export function postErrorMessage(e, hasMedia) {
     hint = 'The upload was canceled.';
   }
   const head = hasMedia ? "Couldn't upload your post." : "Couldn't post right now.";
-  const details = errorDetails(e);
+  const details = errorDetails(e, 420);
   return details ? `${head} ${hint}\n\n${details}` : `${head} ${hint}`;
 }
