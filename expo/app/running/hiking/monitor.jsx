@@ -1,30 +1,28 @@
 // app/running/hiking/monitor.jsx
 //
-// Live tracking for an active hike — real GPS position tracking (same
-// expo-location pattern already proven in app/running/active.jsx), with
-// two things built on top of the same position stream:
+// A hike in progress. It is recorded the same way a run is: the GPS goes into
+// the run tracker (store/runTrackerStore.js, lib/runTracker.js), fed by
+// services/runTracking.js, so the hike keeps recording with the phone locked or
+// the app in the background, and the distance, climb and route are the tracker's
+// (smoothed, with jumps and shimmer filtered out) rather than raw readings.
+// When the hike is finished it is saved with the route walked
+// (store/hikingStore.js, lib/hikeLog.js), shown in the hike history, and can be
+// shared to the feed.
+//
+// On top of the same position, this screen also does what it always did:
 //   1. Periodic weather/alert re-checks (every 15 min) tied to the
 //      hiker's actual current position, not just a one-time check at the
 //      trailhead before setting out.
-//   2. Real distance and elevation gain tracked from the same GPS
-//      readings, used on completion to compute a real difficulty rating
-//      (see lib/hikeDifficulty.js — the verified Shenandoah National Park
-//      formula) and award XP/badges scaled to it.
-// This was originally scoped to weather-only, deliberately not duplicating
-// the running feature's distance tracker. Difficulty-based gamification
-// needs real distance and elevation to compute from, though, and this
-// screen is already collecting exactly that from the same position
-// stream it needs for weather checks — reusing it here is not the same
-// thing as building a second, separate fitness tracker; it's the same
-// data serving two purposes it was already being read for.
+//   2. A real difficulty rating on completion (see lib/hikeDifficulty.js — the
+//      verified Shenandoah National Park formula) with XP/badges scaled to it.
 //
-// Polls every 15 minutes, not continuously — real weather conditions
-// don't meaningfully change faster than that, and hammering a free public
-// API on a fast interval would be inconsiderate of a service that costs
+// Polls the weather every 15 minutes, not continuously — real weather
+// conditions don't meaningfully change faster than that, and hammering a free
+// public API on a fast interval would be inconsiderate of a service that costs
 // NWS nothing to offer and everyone something to keep working.
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, AppState } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -33,15 +31,22 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, typography, spacing, radius } from '@/constants/theme';
+import TrailSketchMap from '@/components/TrailSketchMap';
 import { useHikingStore } from '@/store/hikingStore';
+import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useBadgeStore } from '@/store/badgeStore';
+import { useRunTrackerStore } from '@/store/runTrackerStore';
 import { getWeatherSnapshot } from '@/services/weatherService';
+import { startTracking, stopTracking } from '@/services/runTracking';
+import { trackedMs, gpsStatus, elevationGain, finishTracker } from '@/lib/runTracker';
+import { distanceM } from '@/lib/gpsFilter';
+import { MIN_HIKE_KM } from '@/lib/hikeLog';
 import { calculateHikeDifficulty, estimateHikeCalories } from '@/lib/hikeDifficulty';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { fetchRouteForMap } from '@/services/hikingService';
-import { Platform } from 'react-native';
+import { cachedRoute } from '@/lib/offlineTrails';
 
 // Same safe/conditional import pattern already established in
 // app/running/hiking/[id].jsx - react-native-maps needs a native
@@ -61,6 +66,8 @@ if (Platform.OS !== 'web') {
 }
 
 const POLL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+// The map follows the hiker once they are this far (metres) from where it is centred.
+const RECENTRE_M = 40;
 
 const SEVERITY_COLOR = {
   Extreme: '#B91C1C',
@@ -69,16 +76,6 @@ const SEVERITY_COLOR = {
   Minor: '#65A30D',
   Unknown: colors.textSecondary,
 };
-
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 function formatElapsed(seconds) {
   const h = Math.floor(seconds / 3600);
@@ -93,45 +90,73 @@ export default function HikeWeatherMonitorScreen() {
   const mapId = typeof params.mapId === 'string' ? params.mapId : null;
   const pathName = typeof params.pathName === 'string' ? params.pathName : null;
   const { getTrailById, addCompletedHike } = useHikingStore();
+  const { trails: offlineTrails, keepTrail } = useOfflineTrailStore();
   const { scans: bodyScans } = useBodyCompositionStore();
   const { user } = useUserStore();
   const { addExpActivity } = useExpStore();
-  const { badges, unlockBadge } = useBadgeStore();
-  const trail = getTrailById(trailId);
+  const { unlockBadge } = useBadgeStore();
+  // The copy kept on the phone covers a trail that is not in the last search (no
+  // signal, or the app was restarted), so the hike is still saved under its name.
+  const record = offlineTrails[trailId] || null;
+  const trail = getTrailById(trailId) || (record ? record.trail : null);
+  const keptRoute = cachedRoute(record, mapId);
 
+  // The hike being recorded. Everything measured lives in the tracker store.
+  const tracker = useRunTrackerStore((s) => s.tracker);
+  const [now, setNow] = useState(() => Date.now());
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [startPoint, setStartPoint] = useState(null); // first position, before the tracker has one
+  const [mapCenter, setMapCenter] = useState(null);
   const [plannedRoute, setPlannedRoute] = useState(null); // { coordinates, ... } | null - the path the user picked before starting, if any
-  const [walkedPath, setWalkedPath] = useState([]); // real GPS points visited so far this session
   const [snapshot, setSnapshot] = useState(null);
+  const [weatherFailed, setWeatherFailed] = useState(false); // the last weather check could not reach the network
+  const [viewChoice, setViewChoice] = useState(null); // null: automatic, else 'map' or 'trail'
   const [isChecking, setIsChecking] = useState(true);
-  const [elapsed, setElapsed] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [distanceKm, setDistanceKm] = useState(0);
-  const [elevationGainM, setElevationGainM] = useState(0);
+  const [showLeave, setShowLeave] = useState(false);
   const [completing, setCompleting] = useState(false);
 
-  const locationSubRef = useRef(null);
   const pollIntervalRef = useRef(null);
-  const elapsedIntervalRef = useRef(null);
-  const lastTrackedPointRef = useRef(null); // { latitude, longitude, altitude } — for distance/elevation deltas
+  const endedRef = useRef(false);
   // Refs mirroring the state the poll callback needs, specifically so the
   // interval itself can be created exactly ONCE on mount and never torn
-  // down. A first version of this depended on currentLocation directly in
-  // the effect that owns the interval — but currentLocation updates from
-  // GPS roughly every 60 seconds while actually hiking, which cleared and
-  // recreated the interval before it ever reached its real 15-minute
-  // mark. Verified this concretely (simulated 30 minutes of 60-second GPS
-  // updates against a 15-minute interval) before trusting the fix — the
-  // interval never once got an uninterrupted 15 minutes to fire.
+  // down. A first version of this depended on the position directly in the
+  // effect that owns the interval — but the position updates from GPS every
+  // few seconds while actually hiking, which cleared and recreated the
+  // interval before it ever reached its real 15-minute mark. Verified this
+  // concretely (simulated 30 minutes of position updates against a 15-minute
+  // interval) before trusting the fix — the interval never once got an
+  // uninterrupted 15 minutes to fire.
   const currentLocationRef = useRef(null);
   const previousAlertIdsRef = useRef(new Set());
   const audioEnabledRef = useRef(true);
+
+  const currentLocation = tracker.current || startPoint;
+  const elapsed = Math.floor(trackedMs(tracker, now) / 1000);
+  const distanceKm = tracker.distanceM / 1000;
+  const elevationGainM = elevationGain(tracker);
+  const walkedPath = tracker.route;
+  const gps = gpsStatus(tracker, now);
+  const isPaused = tracker.status === 'paused' || tracker.status === 'auto';
+  // The map picture needs a signal. Left on automatic, the screen shows the trail
+  // alone (a plain dark picture) once a check could not reach the network, and
+  // the person can pick either at any time.
+  const view = !MapView ? 'trail' : (viewChoice || (weatherFailed ? 'trail' : 'map'));
+
+  // Whether the last weather check could not reach the network. Only a change is
+  // passed on, so a check that goes the same way as the last does not redraw.
+  const weatherFailedRef = useRef(false);
+  const noteNetwork = useCallback((failed) => {
+    if (weatherFailedRef.current === failed) return;
+    weatherFailedRef.current = failed;
+    setWeatherFailed(failed);
+  }, []);
 
   const runWeatherCheck = useCallback(async (latitude, longitude, isFirstCheck) => {
     setIsChecking(true);
     try {
       const result = await getWeatherSnapshot(latitude, longitude);
+      noteNetwork(false);
       setSnapshot(result);
 
       const newAlertIds = new Set(result.alerts.map((a) => a.id));
@@ -150,87 +175,75 @@ export default function HikeWeatherMonitorScreen() {
       previousAlertIdsRef.current = newAlertIds;
     } catch (e) {
       console.warn('[HikeMonitor] weather check failed:', e?.message);
+      noteNetwork(true);
     } finally {
       setIsChecking(false);
     }
   }, []);
 
-
-  // Real fix, not decoration: this screen previously tracked live GPS
-  // position for weather/distance purposes but never showed a map at
-  // all, and never used the path the user picked on the trail detail
-  // screen (app/running/hiking/[id].jsx's new "Choose a Path" picker) -
-  // that selection reached this screen as a display-only pathName param
-  // with nothing to actually show for it. Independently re-fetches the
-  // real route here (rather than trying to serialize a whole GPX
-  // coordinate array through URL params, which would be fragile for a
-  // large track) using the same real fetchRouteForMap this screen's own
-  // mapId param references.
+  // The path the user picked on the trail screen's "Choose a Path" picker.
+  // The line kept on the phone is used straight away (it works with no signal);
+  // otherwise the real route is fetched here (rather than trying to serialize a
+  // whole GPX coordinate array through URL params, which would be fragile for a
+  // large track) using the same real fetchRouteForMap this screen's own mapId
+  // param references, and kept for next time.
   useEffect(() => {
-    if (!mapId) return;
+    if (!mapId) return undefined;
+    if (keptRoute) {
+      setPlannedRoute(keptRoute);
+      return undefined;
+    }
     let cancelled = false;
     fetchRouteForMap(mapId).then((result) => {
-      if (!cancelled) setPlannedRoute(result);
+      if (cancelled) return;
+      setPlannedRoute(result);
+      if (result && trail) keepTrail({ trail, routes: { [mapId]: result } });
     });
     return () => { cancelled = true; };
-  }, [mapId]);
+  }, [mapId, keptRoute]);
+
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled) return;
       if (status !== 'granted') {
         setIsMonitoring(false);
         return;
       }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      if (!mounted) return;
-      const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-      currentLocationRef.current = loc;
-      lastTrackedPointRef.current = { ...loc, altitude: position.coords.altitude };
-      setCurrentLocation(loc);
-      setWalkedPath([loc]);
-      await runWeatherCheck(loc.latitude, loc.longitude, true);
-
-      locationSubRef.current = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced, distanceInterval: 20, timeInterval: 15000 },
-        (update) => {
-          const updated = { latitude: update.coords.latitude, longitude: update.coords.longitude };
-          currentLocationRef.current = updated;
-          setCurrentLocation(updated);
-          setWalkedPath((prev) => [...prev, updated]);
-
-          // Real distance/elevation tracking for difficulty scoring on
-          // completion — same haversine formula already verified against
-          // real coordinates elsewhere in this feature (lib/parseGpx.js,
-          // services/hikingService.js). Only counts positive elevation
-          // deltas as "gain," matching how lib/parseGpx.js computes it
-          // for a GPX route, so a live-tracked hike and a pre-recorded
-          // route are scored the same way.
-          const last = lastTrackedPointRef.current;
-          if (last) {
-            const segmentKm = haversineKm(last.latitude, last.longitude, updated.latitude, updated.longitude);
-            if (segmentKm > 0.005) { // ignore GPS jitter under ~5m
-              setDistanceKm((d) => d + segmentKm);
-              const altitude = update.coords.altitude;
-              if (last.altitude != null && altitude != null) {
-                const gain = altitude - last.altitude;
-                if (gain > 0) setElevationGainM((g) => g + gain);
-              }
-              lastTrackedPointRef.current = { ...updated, altitude };
-            }
-          }
-        }
-      );
+      // Auto-pause is off for a hike: climbing a steep trail is slower than the
+      // speed auto-pause treats as standing still. The kind includes the trail,
+      // so only a hike on THIS trail that was left paused is picked up again.
+      const mode = useRunTrackerStore.getState().begin({ autoPause: false, kind: `hike:${trailId}` });
+      if (mode === 'resumed' && useRunTrackerStore.getState().tracker.status === 'paused') {
+        setShowLeave(true);
+      }
+      try {
+        await startTracking({ label: 'hike' });
+      } catch (e) {
+        console.warn('[HikeMonitor] tracking error:', e?.message);
+      }
+      // A first position for the weather check and to centre the map before the
+      // tracker has its own reading.
+      try {
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (cancelled) return;
+        const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        if (!currentLocationRef.current) currentLocationRef.current = loc;
+        setStartPoint(loc);
+        await runWeatherCheck(loc.latitude, loc.longitude, true);
+      } catch (e) {
+        console.warn('[HikeMonitor] could not get a first position:', e?.message);
+      }
     })();
 
-    elapsedIntervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    const clock = setInterval(() => setNow(Date.now()), 1000);
 
     // Created exactly once, on mount — reads currentLocationRef at fire
-    // time rather than depending on currentLocation state directly, so
-    // frequent GPS updates during real movement can't keep resetting this
-    // before it ever reaches its real 15-minute mark (see the comment on
-    // currentLocationRef above — this was verified as a real bug, not a
-    // theoretical one, before being fixed this way).
+    // time rather than depending on position state directly, so frequent GPS
+    // updates during real movement can't keep resetting this before it ever
+    // reaches its real 15-minute mark (see the comment on currentLocationRef
+    // above — this was verified as a real bug, not a theoretical one).
     pollIntervalRef.current = setInterval(() => {
       if (currentLocationRef.current) {
         runWeatherCheck(currentLocationRef.current.latitude, currentLocationRef.current.longitude, false);
@@ -238,13 +251,27 @@ export default function HikeWeatherMonitorScreen() {
     }, POLL_INTERVAL_MS);
 
     return () => {
-      mounted = false;
-      locationSubRef.current?.remove?.();
-      if (elapsedIntervalRef.current) clearInterval(elapsedIntervalRef.current);
+      cancelled = true;
+      clearInterval(clock);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       Speech.stop();
+      // Leaving this screen without finishing the hike pauses it, so nothing
+      // keeps counting unseen; it is picked up again when the screen reopens.
+      if (!endedRef.current) useRunTrackerStore.getState().pause(Date.now());
     };
   }, []);
+
+  // The weather check reads the tracker's position when there is one.
+  useEffect(() => {
+    if (tracker.current) currentLocationRef.current = tracker.current;
+  }, [tracker.current]);
+
+  // The map follows the hiker, but not on every reading (that would fight a
+  // hand moving the map): only once they are well away from where it is centred.
+  useEffect(() => {
+    if (!currentLocation) return;
+    if (!mapCenter || distanceM(mapCenter, currentLocation) > RECENTRE_M) setMapCenter(currentLocation);
+  }, [currentLocation && currentLocation.latitude, currentLocation && currentLocation.longitude]);
 
   // Keeps audioEnabledRef in sync so the long-lived poll interval's
   // callback always reads the current toggle state without needing to be
@@ -257,18 +284,58 @@ export default function HikeWeatherMonitorScreen() {
     if (currentLocation) runWeatherCheck(currentLocation.latitude, currentLocation.longitude, false);
   };
 
+  const handlePause = () => {
+    useRunTrackerStore.getState().pause(Date.now());
+  };
+
+  const handleResume = () => {
+    useRunTrackerStore.getState().resume(Date.now());
+    setShowLeave(false);
+    // GPS is switched off after a very long pause; make sure it is on again.
+    startTracking({ label: 'hike' }).catch((e) => console.warn('[HikeMonitor] tracking error:', e?.message));
+  };
+
+  // Throws the recording away and leaves. Used when there is nothing worth
+  // keeping (under MIN_HIKE_KM) or when the person says so.
+  const handleDiscard = () => {
+    endedRef.current = true;
+    Speech.stop();
+    stopTracking();
+    useRunTrackerStore.getState().reset();
+    router.back();
+  };
+
   // A minimum real distance before this counts as a "completed hike" for
   // rewards purposes — otherwise opening this screen and immediately
   // ending it would trivially farm XP and badges for a hike that never
   // actually happened.
-  const hasTrackedRealHike = distanceKm >= 0.3;
+  const hasTrackedRealHike = distanceKm >= MIN_HIKE_KM;
 
-  const handleCompleteHike = async () => {
+  // The back arrow. A hike with real distance on it is paused and the person is
+  // asked what to do, so a stray tap does not lose hours of recording.
+  const handleBack = () => {
+    if (!hasTrackedRealHike) {
+      handleDiscard();
+      return;
+    }
+    useRunTrackerStore.getState().pause(Date.now());
+    setShowLeave(true);
+  };
+
+  const handleCompleteHike = () => {
+    if (endedRef.current) return;
+    endedRef.current = true;
     setCompleting(true);
+    setShowLeave(false);
     Speech.stop();
     try {
-      const difficulty = calculateHikeDifficulty({ distanceKm, elevationGainM });
-      const baseXp = Math.round(distanceKm * 40); // same per-km rate order of magnitude as running's XP, before the difficulty multiplier
+      // The numbers come from the tracker (moving time only). It is cleared
+      // only once the hike is saved, so a failure here loses nothing.
+      const summary = finishTracker(useRunTrackerStore.getState().tracker, Date.now());
+      const km = summary.distance;
+      const seconds = summary.duration;
+      const difficulty = calculateHikeDifficulty({ distanceKm: km, elevationGainM: summary.elevGain });
+      const baseXp = Math.round(km * 40); // same per-km rate order of magnitude as running's XP, before the difficulty multiplier
       const totalXp = Math.round(baseXp * difficulty.xpMultiplier);
       // Real weight from the most recent body scan when available (see
       // §15 — the body-composition feature), rather than always falling
@@ -278,7 +345,7 @@ export default function HikeWeatherMonitorScreen() {
       const latestScan = [...bodyScans].sort((a, b) => new Date(b.createdAtLocal || 0) - new Date(a.createdAtLocal || 0))[0];
       const calories = estimateHikeCalories({
         tier: difficulty.tier,
-        durationSeconds: elapsed,
+        durationSeconds: seconds,
         weightKg: latestScan?.weightKg,
       });
 
@@ -286,14 +353,20 @@ export default function HikeWeatherMonitorScreen() {
         trailId: trail?.id || null,
         trailName: trail?.name || 'Untitled hike',
         pathName: pathName || null,
-        distanceKm: Math.round(distanceKm * 100) / 100,
-        elevationGainM: Math.round(elevationGainM),
-        durationSeconds: elapsed,
+        distanceKm: km,
+        elevationGainM: summary.elevGain,
+        elevationLossM: summary.elevLoss,
+        durationSeconds: seconds,
         difficultyScore: difficulty.score,
         difficultyTier: difficulty.tier,
         calories,
         xpEarned: totalXp,
+        startTime: summary.startTime,
+        coords: summary.coords,
       }, user?.uid);
+
+      stopTracking();
+      useRunTrackerStore.getState().reset();
 
       addExpActivity?.({
         id: Date.now().toString(),
@@ -325,9 +398,10 @@ export default function HikeWeatherMonitorScreen() {
         pathname: '/workout/complete',
         params: {
           type: 'hike',
+          hikeId: record.id,
           distanceKm: String(record.distanceKm),
           elevationGainM: String(record.elevationGainM),
-          durationSeconds: String(elapsed),
+          durationSeconds: String(seconds),
           difficultyTier: difficulty.tier,
           calories: String(calories),
           xpEarned: String(totalXp),
@@ -335,27 +409,34 @@ export default function HikeWeatherMonitorScreen() {
       });
     } catch (e) {
       console.warn('[HikeMonitor] complete hike failed:', e?.message);
+      endedRef.current = false;
       setCompleting(false);
     }
-  };
-
-  const handleStop = () => {
-    Speech.stop();
-    router.back();
   };
 
   const worstAlert = snapshot?.alerts?.[0];
   const current = snapshot?.forecast?.[0];
   const liveDifficulty = calculateHikeDifficulty({ distanceKm, elevationGainM });
 
+  // One line saying why the clock is stopped, or what is wrong with the GPS.
+  let banner = null;
+  if (tracker.status === 'paused') {
+    banner = { icon: 'pause', text: 'Paused', warn: false };
+  } else if (tracker.status === 'auto') {
+    banner = { icon: 'pause-circle', text: 'Auto-paused. Start moving to resume.', warn: false };
+  } else if (tracker.status === 'running' && gps !== 'good' && gps !== 'fair') {
+    const text = gps === 'lost' ? 'GPS signal lost' : gps === 'weak' ? 'Weak GPS signal' : 'Searching for GPS...';
+    banner = { icon: 'locate', text, warn: true };
+  }
+
   if (!isMonitoring) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScreenHeader title="Weather Monitor" showBack variant="light" />
+        <ScreenHeader title="Hike" showBack variant="light" />
         <View style={styles.centerBlock}>
           <Ionicons name="location-outline" size={40} color={colors.textSecondary} />
-          <Text style={styles.centerText}>
-            Location access is needed to monitor real-time weather risk during your hike.
+          <Text style={styles.centerText} testID="hike-no-location">
+            Location access is needed to record your hike and watch the weather along the way.
           </Text>
         </View>
       </SafeAreaView>
@@ -365,10 +446,10 @@ export default function HikeWeatherMonitorScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScreenHeader
-        title={trail?.name || 'Weather Monitor'}
+        title={trail?.name || 'Hike'}
         showBack
         variant="light"
-        onBack={handleStop}
+        onBack={handleBack}
         rightAction={
           <Pressable onPress={() => setAudioEnabled((v) => !v)} hitSlop={8}>
             <Ionicons name={audioEnabled ? 'volume-high' : 'volume-mute'} size={20} color={colors.text} />
@@ -376,45 +457,88 @@ export default function HikeWeatherMonitorScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={{ padding: spacing.base, paddingBottom: 120 }}>
-        {MapView && currentLocation && (
+      <ScrollView contentContainerStyle={{ padding: spacing.base, paddingBottom: 220 }}>
+        {currentLocation && (
           <View style={styles.mapWrap}>
-            <MapView
-              style={styles.map}
-              provider={PROVIDER_DEFAULT}
-              region={{
-                latitude: currentLocation.latitude,
-                longitude: currentLocation.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-            >
-              {plannedRoute?.coordinates && (
-                <Polyline coordinates={plannedRoute.coordinates} strokeColor={colors.textSecondary} strokeWidth={3} lineDashPattern={[6, 4]} />
-              )}
-              {walkedPath.length > 1 && (
-                <Polyline coordinates={walkedPath} strokeColor={colors.green} strokeWidth={4} />
-              )}
-              <Marker coordinate={currentLocation} pinColor="green" />
-            </MapView>
+            {view === 'trail' ? (
+              <TrailSketchMap
+                planned={plannedRoute?.coordinates}
+                walked={walkedPath}
+                current={currentLocation}
+                style={styles.map}
+                testID="hike-trail-view"
+              />
+            ) : (
+              <MapView
+                style={styles.map}
+                provider={PROVIDER_DEFAULT}
+                region={{
+                  latitude: (mapCenter || currentLocation).latitude,
+                  longitude: (mapCenter || currentLocation).longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+              >
+                {plannedRoute?.coordinates && (
+                  <Polyline coordinates={plannedRoute.coordinates} strokeColor={colors.textSecondary} strokeWidth={3} lineDashPattern={[6, 4]} />
+                )}
+                {walkedPath.length > 1 && (
+                  <Polyline coordinates={walkedPath} strokeColor={colors.green} strokeWidth={4} />
+                )}
+                <Marker coordinate={currentLocation} pinColor="green" />
+              </MapView>
+            )}
+            {MapView && (
+              <View style={styles.viewToggle}>
+                {['map', 'trail'].map((mode) => (
+                  <Pressable
+                    key={mode}
+                    testID={`hike-view-${mode}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: view === mode }}
+                    style={[styles.viewPill, view === mode && styles.viewPillActive]}
+                    onPress={() => setViewChoice(mode)}
+                    hitSlop={6}
+                  >
+                    <Text style={[styles.viewPillText, view === mode && styles.viewPillTextActive]}>
+                      {mode === 'map' ? 'Map' : 'Trail'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
+        )}
+        {currentLocation && MapView && view === 'trail' && viewChoice === null && weatherFailed && (
+          <Text style={styles.offlineNote} testID="hike-offline-note">
+            No signal, so the map picture is off. Your trail and your position still show.
+          </Text>
         )}
         <View style={styles.elapsedCard}>
           <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.elapsedText}>Monitoring for {formatElapsed(elapsed)}</Text>
+          <Text style={styles.elapsedText} testID="hike-elapsed">
+            {isPaused ? `Paused at ${formatElapsed(elapsed)}` : `Hiking for ${formatElapsed(elapsed)}`}
+          </Text>
         </View>
+
+        {banner && (
+          <View style={[styles.banner, banner.warn ? styles.bannerWarn : styles.bannerPause]} testID="hike-banner">
+            <Ionicons name={banner.icon} size={14} color="#FFF" />
+            <Text style={styles.bannerText}>{banner.text}</Text>
+          </View>
+        )}
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{distanceKm.toFixed(2)} km</Text>
+            <Text style={styles.statValue} testID="hike-distance">{distanceKm.toFixed(2)} km</Text>
             <Text style={styles.statLabel}>Distance</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{Math.round(elevationGainM)} m</Text>
+            <Text style={styles.statValue} testID="hike-climb">{Math.round(elevationGainM)} m</Text>
             <Text style={styles.statLabel}>Elevation gain</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>{liveDifficulty.tier}</Text>
+            <Text style={styles.statValue} testID="hike-difficulty">{liveDifficulty.tier}</Text>
             <Text style={styles.statLabel}>Difficulty so far</Text>
           </View>
         </View>
@@ -461,17 +585,50 @@ export default function HikeWeatherMonitorScreen() {
         </Pressable>
       </ScrollView>
 
-      <View style={styles.bottomBar}>
-        {hasTrackedRealHike ? (
-          <PrimaryButton
-            title={completing ? 'Saving…' : `Complete Hike (+${Math.round(distanceKm * 40 * liveDifficulty.xpMultiplier)} XP)`}
-            onPress={handleCompleteHike}
-            disabled={completing}
-          />
-        ) : (
-          <PrimaryButton title="End Monitoring" onPress={handleStop} />
-        )}
-      </View>
+      {showLeave ? (
+        <View style={styles.bottomBar} testID="hike-leave-panel">
+          <Text style={styles.leaveText}>
+            {hasTrackedRealHike
+              ? 'Your hike is paused. Nothing is lost if you keep going.'
+              : 'Your hike is paused. It is too short to save yet.'}
+          </Text>
+          <PrimaryButton title="Resume" onPress={handleResume} />
+          {hasTrackedRealHike && (
+            <PrimaryButton
+              title={completing ? 'Saving…' : 'Finish & save'}
+              variant="outline"
+              onPress={handleCompleteHike}
+              disabled={completing}
+              style={{ marginTop: spacing.sm }}
+            />
+          )}
+          <Pressable style={styles.discardBtn} onPress={handleDiscard} testID="hike-discard">
+            <Text style={styles.discardText}>Discard hike</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={[styles.bottomBar, styles.bottomRow]}>
+          <Pressable
+            style={styles.pauseBtn}
+            onPress={isPaused ? handleResume : handlePause}
+            accessibilityRole="button"
+            testID="hike-pause-button"
+          >
+            <Ionicons name={isPaused ? 'play' : 'pause'} size={22} color={colors.text} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            {hasTrackedRealHike ? (
+              <PrimaryButton
+                title={completing ? 'Saving…' : `Complete Hike (+${Math.round(distanceKm * 40 * liveDifficulty.xpMultiplier)} XP)`}
+                onPress={handleCompleteHike}
+                disabled={completing}
+              />
+            ) : (
+              <PrimaryButton title="End Monitoring" onPress={handleDiscard} />
+            )}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -482,8 +639,24 @@ const styles = StyleSheet.create({
   centerText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   mapWrap: { height: 220, borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.md },
   map: { width: '100%', height: '100%' },
+  viewToggle: {
+    position: 'absolute', top: spacing.sm, right: spacing.sm, flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.pill, padding: 2,
+  },
+  viewPill: { paddingVertical: 4, paddingHorizontal: 12, borderRadius: radius.pill },
+  viewPillActive: { backgroundColor: '#FFFFFF' },
+  viewPillText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  viewPillTextActive: { color: '#000000' },
+  offlineNote: { ...typography.caption, color: colors.textSecondary, marginTop: -spacing.sm, marginBottom: spacing.md },
   elapsedCard: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md },
   elapsedText: { ...typography.bodySmall, color: colors.textSecondary },
+  banner: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6,
+    paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, marginBottom: spacing.md,
+  },
+  bannerPause: { backgroundColor: 'rgba(74,144,217,0.92)' },
+  bannerWarn: { backgroundColor: 'rgba(217,119,6,0.92)' },
+  bannerText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   statBox: { flex: 1, backgroundColor: colors.card, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
   statValue: { fontSize: 16, fontWeight: '800', color: colors.text },
@@ -513,4 +686,12 @@ const styles = StyleSheet.create({
   },
   manualCheckText: { ...typography.bodySmall, color: colors.text, fontWeight: '600' },
   bottomBar: { position: 'absolute', left: spacing.base, right: spacing.base, bottom: spacing.lg },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  pauseBtn: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: colors.card,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  leaveText: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.sm },
+  discardBtn: { alignItems: 'center', paddingVertical: spacing.md },
+  discardText: { ...typography.bodySmall, color: '#B91C1C', fontWeight: '700' },
 });

@@ -1,12 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ScanLine } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 
 export default function BarcodeScanScreen() {
+  // The meal the food was being added to (if any), carried through to the log screen.
+  const { mealId } = useLocalSearchParams();
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(true);
   const [isLookingUp, setIsLookingUp] = useState(false);
@@ -28,8 +30,9 @@ export default function BarcodeScanScreen() {
     setIsLookingUp(true);
     setIsScanning(false);
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('@/src/config/firebase');
+      // require, not import(): the same lazy load, and it can be run under Jest.
+      const { httpsCallable } = require('firebase/functions');
+      const { functions } = require('../../src/config/firebase');
       const fn = httpsCallable(functions, 'lookupCalorieApiBarcode');
       const result = await fn({ barcode });
       const data = result.data;
@@ -50,7 +53,8 @@ export default function BarcodeScanScreen() {
         protein: Math.round((n.protein_g || 0) * 10) / 10,
         carbs: Math.round((n.carbohydrates_g || 0) * 10) / 10,
         fat: Math.round((n.fat_g || 0) * 10) / 10,
-        servingSize: data.serving?.label || '100g',
+        // The numbers above are per 100 g, so that is what the serving is called.
+        servingSize: '100g',
         barcode: data.barcode || barcode,
       });
     } catch (e) {
@@ -71,9 +75,11 @@ export default function BarcodeScanScreen() {
 
   const addToMeal = () => {
     if (!scanResult) return;
-    router.push({
-      pathname: '/nutrition/search',
-      params: { scannedFood: JSON.stringify(scanResult) },
+    // Straight to the log screen (servings and meal), not back to search: a
+    // scanned food is not in the food database under any id search could open.
+    router.replace({
+      pathname: '/nutrition/food/scanned',
+      params: { scannedFood: JSON.stringify(scanResult), ...(mealId ? { mealId: String(mealId) } : {}) },
     });
   };
 

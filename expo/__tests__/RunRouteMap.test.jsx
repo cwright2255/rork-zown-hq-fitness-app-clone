@@ -37,6 +37,12 @@ describe('RunRouteMap (native)', () => {
     expect(utils.queryByTestId('run-route-map')).toBeNull();
   });
 
+  it('says what it is told to say when there is no route (a hike says "hike")', () => {
+    const utils = render(<RunRouteMap points={[]} emptyText="No route was recorded for this hike" />);
+    expect(utils.getByText('No route was recorded for this hike')).toBeTruthy();
+    expect(utils.queryByText('No route was recorded for this run')).toBeNull();
+  });
+
   it('one point is not a route', () => {
     const utils = render(<RunRouteMap points={line(1)} />);
     expect(utils.getByTestId('run-route-empty')).toBeTruthy();
@@ -59,11 +65,12 @@ describe('RunRouteMap (native)', () => {
     expect(props.pitchEnabled).toBe(false);
   });
 
-  it('draws the route as a glow under a green line', () => {
+  it('draws the route as a glow under a white line', () => {
     const lines = polylines(render(<RunRouteMap points={line(5)} />));
     expect(lines).toHaveLength(2);
     const [glow, route] = lines.map((l) => l.props);
-    expect(route.strokeColor).toBe('#22C55E');
+    expect(route.strokeColor).toBe('#FFFFFF');
+    expect(glow.strokeColor).toBe('rgba(255, 255, 255, 0.28)');
     expect(glow.strokeWidth > route.strokeWidth).toBe(true);
     expect(glow.zIndex < route.zIndex).toBe(true);
     expect(route.coordinates).toHaveLength(5);
@@ -77,6 +84,24 @@ describe('RunRouteMap (native)', () => {
     expect(all[1].props.coordinate).toEqual(p(4));
     expect(utils.getByTestId('run-route-start')).toBeTruthy();
     expect(utils.getByTestId('run-route-finish')).toBeTruthy();
+  });
+
+  it('draws the start as an open ring and the finish as a solid white dot with a flag', () => {
+    const utils = render(<RunRouteMap points={line(5)} />);
+    const flat = (node) => [].concat(node.props.style).flat().filter(Boolean);
+    const ring = utils.getByTestId('run-route-start').children[0];
+    expect(flat(ring).some((st) => st.borderColor === '#FFFFFF')).toBe(true);
+    expect(flat(ring).some((st) => st.backgroundColor)).toBe(false);
+    const dot = utils.getByTestId('run-route-finish').children[0];
+    expect(flat(dot).some((st) => st.backgroundColor === '#FFFFFF')).toBe(true);
+    expect(utils.UNSAFE_root.findAll((n) => n.props && n.props.name === 'flag').length).toBeGreaterThan(0);
+  });
+
+  it('uses no green on the map or in the flat sketch', () => {
+    const map = render(<RunRouteMap points={line(5)} />);
+    expect(JSON.stringify(map.toJSON())).not.toMatch(/22C55E|34, ?197, ?94/i);
+    const sketch = render(<RunRouteMap points={line(5)} sketch />);
+    expect(JSON.stringify(sketch.toJSON())).not.toMatch(/22C55E|34, ?197, ?94/i);
   });
 
   it('starts on a region that already holds the whole route', () => {

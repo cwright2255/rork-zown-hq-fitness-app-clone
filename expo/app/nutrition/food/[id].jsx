@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Plus, Minus, Heart, Star } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { getFoodById, gradeToStars } from '@/services/calorieApiService';
+import { localDateKey } from '@/lib/localDate';
+import { MEAL_SLOTS, scaleFood, foodKey, slotForHour } from '@/lib/foodLog';
 
 // Real, new 1-5 star display - same component/logic as
 // app/nutrition.jsx and app/nutrition/search.jsx.
@@ -21,44 +23,98 @@ function StarRating({ stars, size = 16 }) {
 }
 
 export default function FoodDetailScreen() {
-  const { id, mealId } = useLocalSearchParams();
+  const { id, mealId, scannedFood } = useLocalSearchParams();
   const foodId = typeof id === 'string' ? id : '';
-  const { favoriteFood, addToFavorites, removeFromFavorites, addFoodToMeal, dailyGoals } = useNutritionStore();
+  const {
+    favoriteFood, addToFavorites, removeFromFavorites, addFoodToMeal, dailyGoals,
+    removeFoodFromMeal, updateFoodInMeal, findLoggedFood, customFoods,
+  } = useNutritionStore();
 
   const [food, setFood] = useState(null);
+  // Set when this screen was opened on something already in the diary: { meal, food }.
+  const [logged, setLogged] = useState(null);
+  const [failed, setFailed] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [selectedMealId, setSelectedMealId] = useState(mealId?.toString() || 'breakfast');
+  const [selectedMealId, setSelectedMealId] = useState(
+    mealId ? mealId.toString() : slotForHour(new Date().getHours())
+  );
 
   useEffect(() => {
-    if (!foodId) return;
+    let cancelled = false;
+    setFailed(false);
+
+    // A food just scanned (barcode or photo) arrives with its numbers in the
+    // route params: there is nothing to look up, and it is not in any database
+    // by an id this screen could fetch.
+    if (scannedFood) {
+      try {
+        const f = JSON.parse(scannedFood);
+        if (!f || !f.name) throw new Error('no food in the scan');
+        setLogged(null);
+        setQuantity(1);
+        setFood({
+          ...f,
+          id: f.id || `scanned-${f.barcode || Date.now()}`,
+          servingSize: f.servingSize || '100g',
+        });
+      } catch (e) {
+        console.error('parse scanned food', e);
+        setFailed(true);
+      }
+      return undefined;
+    }
+
+    if (!foodId) return undefined;
+
+    // An already-logged food's id is its own log id (or, for older entries, a
+    // composite {realId}-{timestamp}), not a real Calorie API id, so it is
+    // looked up in the diary first. Its saved numbers are what was eaten, not
+    // the generic 100g values a fresh API fetch would return.
+    const hit = findLoggedFood ? findLoggedFood(foodId) : null;
+    if (hit) {
+      setLogged(hit);
+      setFood(hit.food);
+      setQuantity(hit.food.quantity > 0 ? hit.food.quantity : 1);
+      return undefined;
+    }
+
+    // One of the person's own foods (My Foods) is not in the food database either.
+    const mine = (customFoods || []).find((f) => f.id === foodId);
+    if (mine) {
+      setLogged(null);
+      setQuantity(1);
+      setFood(mine);
+      return undefined;
+    }
+
+    setLogged(null);
     (async () => {
       try {
-        // Real fix: an already-logged food's id is a composite
-        // {realId}-{timestamp} string (see handleAdd below), not a
-        // real Calorie API id - calling getFoodById with this
-        // composite string fails, since Calorie API's real detail
-        // endpoint requires a plain integer. An already-logged item
-        // already has everything needed (its saved, actually-eaten
-        // quantity's calories/macros, not the generic 100g values a
-        // fresh API fetch would return) sitting directly in the
-        // store, so this checks there first and only calls the API
-        // for a genuinely new, not-yet-logged search result (whose
-        // id is a plain, real Calorie API integer).
-        const allMeals = useNutritionStore.getState().meals || [];
-        const alreadyLogged = allMeals.flatMap((m) => m.foods || []).find((f) => f.id === foodId);
-        if (alreadyLogged) {
-          setFood(alreadyLogged);
-          return;
-        }
         const f = await getFoodById(foodId);
-        setFood(f);
+        if (cancelled) return;
+        if (f) setFood(f); else setFailed(true);
       } catch (e) {
         console.error('load food', e);
+        if (!cancelled) setFailed(true);
       }
     })();
-  }, [foodId]);
+    return () => { cancelled = true; };
+  }, [foodId, scannedFood]);
 
   const isFav = food ? (favoriteFood || []).some(f => f.id === food.id) : false;
+
+  if (failed) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader showBack />
+        <View style={styles.center}>
+          <Text testID="food-load-failed" style={styles.failedText}>
+            Couldn't load this food. Go back and try another.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   if (!food) {
     return (
@@ -69,40 +125,63 @@ export default function FoodDetailScreen() {
     );
   }
 
-  const cals = Math.round((food.calories || 0) * quantity);
-  const p = Math.round((food.protein || 0) * quantity);
-  const c = Math.round((food.carbs || 0) * quantity);
-  const fa = Math.round((food.fat || 0) * quantity);
+  const scaled = scaleFood(food, quantity);
+  const cals = scaled.calories;
+  const p = scaled.protein;
+  const c = scaled.carbs;
+  const fa = scaled.fat;
 
   const dailyP = dailyGoals?.protein || 150;
   const dailyC = dailyGoals?.carbs || 200;
   const dailyF = dailyGoals?.fat || 65;
 
-  const meals = [
-    { id: 'breakfast', name: 'Breakfast' },
-    { id: 'lunch', name: 'Lunch' },
-    { id: 'dinner', name: 'Dinner' },
-    { id: 'snack', name: 'Snack' },
-  ];
+  // Entries saved before one-serving values were kept can be removed but not re-scaled.
+  const canEdit = !logged || !!food.base;
+  const unchanged = !!logged && quantity === (food.quantity > 0 ? food.quantity : 1);
+
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const handleAdd = () => {
     const adjusted = {
       ...food,
       id: `${food.id}-${Date.now()}`,
-      calories: cals,
-      protein: p,
-      carbs: c,
-      fat: fa,
-      servingSize: `${quantity}x ${food.servingSize || '100g'}`,
+      ...scaled,
     };
-    addFoodToMeal(new Date().toISOString().slice(0, 10), selectedMealId, adjusted);
-    (router.canGoBack() ? router.back() : router.replace('/'));
+    addFoodToMeal(localDateKey(), selectedMealId, adjusted);
+    goBack();
+  };
+
+  const handleUpdate = () => {
+    if (!logged) return;
+    const { base, ...numbers } = scaled;
+    updateFoodInMeal(logged.meal.id, foodKey(logged.food), numbers, logged.meal.date);
+    goBack();
+  };
+
+  const removeNow = () => {
+    if (!logged) return;
+    removeFoodFromMeal(logged.meal.id, foodKey(logged.food), logged.meal.date);
+    goBack();
+  };
+
+  const handleRemove = () => {
+    Alert.alert('Remove from log?', `${food.name} will be taken out of your diary.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: removeNow },
+    ]);
   };
 
   const toggleFav = () => {
     if (isFav) removeFromFavorites(food.id);
     else addToFavorites(food);
   };
+
+  // Fiber, sugar and sodium for the serving shown, only for those the food lists.
+  const extras = [
+    { key: 'fiber', label: 'Fiber', unit: 'g' },
+    { key: 'sugar', label: 'Sugar', unit: 'g' },
+    { key: 'sodium', label: 'Sodium', unit: 'mg' },
+  ].filter((n) => scaled[n.key] != null);
 
   const macros = [
     { label: 'Protein', value: p, goal: dailyP, color: '#3B82F6' },
@@ -121,12 +200,13 @@ export default function FoodDetailScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 160 }}>
         <Text style={styles.name}>{food.name}</Text>
-        {food.servingSize ? <Text style={styles.serving}>{food.servingSize}</Text> : null}
+        {food.brand ? <Text style={styles.serving}>{food.brand}</Text> : null}
+        {food.servingSize ? <Text style={styles.serving}>{logged && food.base ? scaled.servingSize : food.servingSize}</Text> : null}
 
         <View style={styles.calWrap}>
-          <Text style={styles.calNumber}>{cals}</Text>
+          <Text testID="food-calories" style={styles.calNumber}>{cals}</Text>
           <Text style={styles.calLabel}>kcal</Text>
           <View style={{ marginTop: 8 }}>
             <StarRating stars={food.nutritionalScore?.score ? gradeToStars(food.nutritionalScore.score) : null} />
@@ -151,41 +231,80 @@ export default function FoodDetailScreen() {
           })}
         </View>
 
-        <Text style={styles.sectionLabel}>Servings</Text>
-        <View style={styles.stepperCard}>
-          <TouchableOpacity
-            style={styles.stepBtn}
-            onPress={() => setQuantity(Math.max(0.5, quantity - 0.5))}>
-            <Minus size={18} color="#000000" />
-          </TouchableOpacity>
-          <Text style={styles.qtyText}>{quantity}x</Text>
-          <TouchableOpacity
-            style={styles.stepBtn}
-            onPress={() => setQuantity(quantity + 0.5)}>
-            <Plus size={18} color="#000000" />
-          </TouchableOpacity>
-        </View>
+        {extras.length ? (
+          <>
+            <Text style={styles.sectionLabel}>More nutrients</Text>
+            <View style={styles.macroCard}>
+              {extras.map((n, i) => (
+                <View
+                  key={n.key}
+                  testID={`food-${n.key}`}
+                  style={[styles.nutrientRow, i === extras.length - 1 && { marginBottom: 0 }]}>
+                  <Text style={styles.macroLabel}>{n.label}</Text>
+                  <Text style={styles.macroValue}>{scaled[n.key]} {n.unit}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
 
-        <Text style={styles.sectionLabel}>Meal</Text>
-        <View style={styles.mealPills}>
-          {meals.map((m) => {
-            const active = selectedMealId === m.id;
-            return (
+        {canEdit ? (
+          <>
+            <Text style={styles.sectionLabel}>Servings</Text>
+            <View style={styles.stepperCard}>
               <TouchableOpacity
-                key={m.id}
-                style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
-                onPress={() => setSelectedMealId(m.id)}>
-                <Text style={[styles.pillText, { color: active ? '#FFFFFF' : '#999' }]}>
-                  {m.name}
-                </Text>
+                testID="food-minus"
+                style={styles.stepBtn}
+                onPress={() => setQuantity(Math.max(0.5, quantity - 0.5))}>
+                <Minus size={18} color="#000000" />
               </TouchableOpacity>
-            );
-          })}
-        </View>
+              <Text testID="food-quantity" style={styles.qtyText}>{quantity}x</Text>
+              <TouchableOpacity
+                testID="food-plus"
+                style={styles.stepBtn}
+                onPress={() => setQuantity(quantity + 0.5)}>
+                <Plus size={18} color="#000000" />
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : null}
+
+        {!logged ? (
+          <>
+            <Text style={styles.sectionLabel}>Meal</Text>
+            <View style={styles.mealPills}>
+              {MEAL_SLOTS.map((m) => {
+                const active = selectedMealId === m.id;
+                return (
+                  <TouchableOpacity
+                    key={m.id}
+                    testID={`food-meal-${m.id}`}
+                    style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
+                    onPress={() => setSelectedMealId(m.id)}>
+                    <Text style={[styles.pillText, { color: active ? '#FFFFFF' : '#999' }]}>
+                      {m.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <PrimaryButton title="Add to Log" onPress={handleAdd} />
+        {logged ? (
+          <>
+            {canEdit ? (
+              <PrimaryButton title="Update Serving" onPress={handleUpdate} disabled={unchanged} />
+            ) : null}
+            <TouchableOpacity testID="food-remove" style={styles.removeBtn} onPress={handleRemove}>
+              <Text style={styles.removeText}>Remove from Log</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <PrimaryButton title="Add to Log" onPress={handleAdd} />
+        )}
       </View>
     </View>
   );
@@ -193,7 +312,8 @@ export default function FoodDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  failedText: { color: '#666666', fontSize: 15, textAlign: 'center' },
   name: { fontSize: 28, fontWeight: '700', color: '#000000', letterSpacing: -0.5 },
   serving: { fontSize: 13, color: '#999999', marginTop: 4 },
   calWrap: { alignItems: 'center', marginVertical: 24 },
@@ -211,6 +331,7 @@ const styles = StyleSheet.create({
   macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   macroLabel: { color: '#000000', fontSize: 14 },
   macroValue: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  nutrientRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   track: { height: 6, backgroundColor: '#E5E5E5', borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   stepperCard: {
@@ -235,4 +356,6 @@ const styles = StyleSheet.create({
   // wrong), so this needs the same proven 100 value app/wearables.jsx
   // and the fixed app/nutrition.jsx both already use.
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
+  removeBtn: { alignItems: 'center', paddingVertical: 12 },
+  removeText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
 });

@@ -14,9 +14,11 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { activityOf, xpFor } from '@/lib/runStats';
 import { useCommunityStore } from '@/store/communityStore';
 import { shareRunToFeed, shareErrorText } from '@/services/runShare';
+import { shareHikeToFeed, hikeShareErrorText } from '@/services/hikeShare';
 import { publishMyDistance } from '@/services/distanceBoard';
 
 function StatCard({ icon, number, label }) {
@@ -102,6 +104,7 @@ export default function WorkoutCompleteScreen() {
 
   const completedWorkouts = useWorkoutStore(s => s.completedWorkouts) || [];
   const runs = useRunningStore(s => s.runs) || [];
+  const hikes = useHikingStore(s => s.completedHikes) || [];
   const { user } = useUserStore();
   const { badges, loadBadges } = useBadgeStore();
   const { loadRuns } = useRunningStore();
@@ -127,6 +130,11 @@ export default function WorkoutCompleteScreen() {
   const lastRun = savedRunId
     ? (runs.find((r) => r && String(r.id) === savedRunId) || null)
     : (runs.length > 0 ? runs[0] : null);
+  // The hike that was just saved (the hike screen passes its id).
+  const savedHikeId = typeof params.hikeId === 'string' ? params.hikeId : null;
+  const lastHike = isHikeCompletion && savedHikeId
+    ? (hikes.find((h) => h && String(h.id) === savedHikeId) || null)
+    : null;
   const displayName = user?.displayName || user?.name || 'You';
 
   // Running redirects here too (app/running/active.jsx), but this screen
@@ -143,7 +151,11 @@ export default function WorkoutCompleteScreen() {
     : isRunCompletion
       ? (lastRun?.duration ? Math.floor(lastRun.duration / 60) + ' min' : '0 min')
       : (lastWorkout?.duration ? Math.floor(lastWorkout.duration / 60) + ' min' : '0 min');
-  const realCalories = isRunCompletion ? (lastRun?.calories || 0) : (lastWorkout?.caloriesBurned || 0);
+  // A hike carries its own calories in the route params; without this the card
+  // would show the calories of whatever gym workout was finished last.
+  const realCalories = isHikeCompletion
+    ? (parseInt(params.calories, 10) || 0)
+    : isRunCompletion ? (lastRun?.calories || 0) : (lastWorkout?.caloriesBurned || 0);
   const realXP = isHikeCompletion
     ? (parseInt(params.xpEarned, 10) || 0)
     : isRunCompletion ? xpFor(activityOf(lastRun), lastRun?.distance || 0) : (lastWorkout?.xpEarned || 0);
@@ -174,13 +186,28 @@ export default function WorkoutCompleteScreen() {
   const exerciseList = lastWorkout?.exercises || [];
   const unlockedCount = badges.filter((b) => b.isUnlocked).length;
 
-  // A run that was already shared (from this screen or the run's own screen) shows as shared.
+  // A run or hike that was already shared (from this screen or its own screen) shows as shared.
   const runShared = isRunCompletion && !!lastRun?.sharedPostId;
+  const hikeShared = !!lastHike?.sharedPostId;
+  const alreadyShared = shared || runShared || hikeShared;
 
   const handleShareToCommunity = async () => {
-    if (!user?.uid || shared || runShared) return;
+    if (!user?.uid || alreadyShared) return;
     setSharing(true);
     setShareError('');
+    if (lastHike) {
+      // A hike goes up as a hike card: distance, time, pace, climb, difficulty and the route with its ends hidden.
+      const result = await shareHikeToFeed({
+        hike: lastHike,
+        user: { ...user, displayName },
+        createPost,
+        markShared: useHikingStore.getState().markHikeShared,
+      });
+      if (result.ok || result.reason === 'already-shared') setShared(true);
+      else setShareError(hikeShareErrorText(result.reason));
+      setSharing(false);
+      return;
+    }
     if (isRunCompletion) {
       // A run goes up as a run card: distance, time, pace and the route with its ends hidden.
       const result = await shareRunToFeed({
@@ -372,20 +399,32 @@ export default function WorkoutCompleteScreen() {
           </Pressable>
         )}
 
+        {/* The route and details of the hike that was just saved */}
+        {isHikeCompletion && lastHike && (
+          <Pressable
+            style={styles.shareButton}
+            onPress={() => router.push(`/running/hiking/log/${lastHike.id}`)}
+            testID="view-hike-details"
+          >
+            <Ionicons name="map-outline" size={18} color="#000" />
+            <Text style={styles.shareButtonText}>View route & details</Text>
+          </Pressable>
+        )}
+
         {/* Share to Community — real post, via store/communityStore.js */}
         <Pressable
-          style={[styles.shareButton, (shared || runShared) && styles.shareButtonShared]}
+          style={[styles.shareButton, alreadyShared && styles.shareButtonShared]}
           onPress={handleShareToCommunity}
-          disabled={sharing || shared || runShared}
+          disabled={sharing || alreadyShared}
           testID="share-to-community"
         >
           <Ionicons
-            name={shared || runShared ? 'checkmark-circle' : 'share-social-outline'}
+            name={alreadyShared ? 'checkmark-circle' : 'share-social-outline'}
             size={18}
-            color={shared || runShared ? '#22C55E' : '#000'}
+            color={alreadyShared ? '#22C55E' : '#000'}
           />
-          <Text style={[styles.shareButtonText, (shared || runShared) && { color: '#22C55E' }]}>
-            {sharing ? 'Sharing…' : shared || runShared ? 'Shared to Community' : 'Share to Community'}
+          <Text style={[styles.shareButtonText, alreadyShared && { color: '#22C55E' }]}>
+            {sharing ? 'Sharing…' : alreadyShared ? 'Shared to Community' : 'Share to Community'}
           </Text>
         </Pressable>
         {!!shareError && <Text style={styles.shareError} testID="share-error">{shareError}</Text>}

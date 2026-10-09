@@ -1,14 +1,17 @@
 // app/running/run/[id].jsx
 //
-// One saved run (or walk) in detail: the route on a map with start and finish
-// markers, the headline numbers, pace for each kilometre as bars, and a splits
-// table. Opened from the Running Log and from the finished-run screen.
+// One saved run (or walk) in detail: the route on a dark map with start and
+// finish markers and the distance over it, then a white card with the headline
+// numbers, pace for each kilometre as a line, and a splits table. Black and
+// white, like the rest of Zown. Opened from the Running Log and from the
+// finished-run screen.
 // Route id is the run's id; everything shown is worked out in lib/runDetail.js.
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, StatusBar, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import RunRouteMap from '@/components/RunRouteMap';
+import PaceLineChart from '@/components/PaceLineChart';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
 import { useCommunityStore } from '@/store/communityStore';
@@ -16,12 +19,17 @@ import { describeRun, formatDelta } from '@/lib/runDetail';
 import { shareRunToFeed, shareErrorText } from '@/services/runShare';
 import { formatPace, runPaceSecPerKm } from '@/lib/runStats';
 
-const GREEN = '#22C55E';
-const BAR_WIDTH = 34;
+const INK = '#000000';
+const MAP_BG = '#0D1117';
+const SHEET_PAD = 20;
+// Room kept clear of the route on the map: the back button above it and the
+// distance and the card below it.
+const MAP_EDGE_PADDING = { top: 110, right: 50, bottom: 200, left: 50 };
 
-function Stat({ value, label, unit, testID }) {
+function Stat({ value, label, unit, icon, testID }) {
   return (
     <View style={styles.stat}>
+      {icon ? <Ionicons name={icon} size={18} color="#8A8A8A" style={styles.statIcon} /> : null}
       <Text style={styles.statValue} testID={testID}>
         {value}
         {unit ? <Text style={styles.statUnit}>{` ${unit}`}</Text> : null}
@@ -34,6 +42,7 @@ function Stat({ value, label, unit, testID }) {
 export default function RunDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const id = typeof params.id === 'string' ? params.id : '';
   const runs = useRunningStore((s) => s.runs) || [];
   const loadRuns = useRunningStore((s) => s.loadRuns);
@@ -102,48 +111,61 @@ export default function RunDetailScreen() {
     : run.distance >= 1
       ? 'This run was saved before splits were recorded.'
       : 'Splits appear for runs of 1 km or more.';
+  const heroHeight = Math.max(380, Math.min(540, Math.round(screenHeight * 0.56)));
+  const chartWidth = Math.max(240, Math.round(screenWidth - SHEET_PAD * 2));
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.hero}>
-          <RunRouteMap points={info.points} style={StyleSheet.absoluteFillObject} />
+        <View style={[styles.hero, { height: heroHeight }]}>
+          <RunRouteMap points={info.points} style={StyleSheet.absoluteFillObject} edgePadding={MAP_EDGE_PADDING} />
           <Pressable style={styles.backBtn} onPress={goBack} testID="run-detail-back">
             <Ionicons name="chevron-back" size={22} color="#FFF" />
           </Pressable>
+          <Text style={styles.heading} testID="run-detail-heading" pointerEvents="none">
+            {info.activity === 'walk' ? 'Walk Completed' : 'Run Completed'}
+          </Text>
+
+          <View style={styles.heroInfo} pointerEvents="none">
+            <Text style={styles.title} testID="run-detail-title">{info.title}</Text>
+            {info.when ? <Text style={styles.when}>{info.when}</Text> : null}
+            {info.source ? <Text style={styles.sourceTag} testID="run-detail-source">{`Imported from ${info.source}`}</Text> : null}
+            <View style={styles.bigRow}>
+              <Text style={styles.bigValue} testID="run-detail-distance">{info.distanceText}</Text>
+              <Text style={styles.bigUnit}>km</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.sheet}>
-          <View style={styles.titleRow}>
-            <View style={styles.titleIcon}>
-              <Ionicons name={info.activity === 'walk' ? 'walk-outline' : 'fitness-outline'} size={20} color={GREEN} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title} testID="run-detail-title">{info.title}</Text>
-              {info.when ? <Text style={styles.when}>{info.when}</Text> : null}
-              {info.source ? <Text style={styles.sourceTag} testID="run-detail-source">{`Imported from ${info.source}`}</Text> : null}
-            </View>
-          </View>
-
-          <View style={styles.bigRow}>
-            <Text style={styles.bigValue} testID="run-detail-distance">{info.distanceText}</Text>
-            <Text style={styles.bigUnit}>km</Text>
-          </View>
-
           <View style={styles.statsRow}>
-            <Stat value={info.timeText} label="Time" testID="run-detail-time" />
-            <Stat value={formatPace(runPaceSecPerKm(run))} unit="/km" label="Avg pace" testID="run-detail-pace" />
-            <Stat value={String(info.calories)} unit="kcal" label="Calories" testID="run-detail-calories" />
+            <Stat value={info.timeText} label="Duration" icon="time-outline" testID="run-detail-time" />
+            <View style={styles.statDivider} />
+            <Stat value={formatPace(runPaceSecPerKm(run))} unit="/km" label="Avg pace" icon="speedometer-outline" testID="run-detail-pace" />
+            <View style={styles.statDivider} />
+            <Stat value={String(info.calories)} unit="kcal" label="Calories" icon="flame-outline" testID="run-detail-calories" />
           </View>
 
           {(info.climb > 0 || info.descent > 0) && (
             <View style={styles.elevRow} testID="run-detail-elevation">
-              <Ionicons name="trending-up" size={16} color={GREEN} />
+              <Ionicons name="trending-up" size={16} color={INK} />
               <Text style={styles.elevText} testID="run-detail-climb">{`${info.climb} m climb`}</Text>
-              <Ionicons name="trending-down" size={16} color="rgba(255,255,255,0.55)" style={{ marginLeft: 18 }} />
+              <Ionicons name="trending-down" size={16} color="#8A8A8A" style={{ marginLeft: 18 }} />
               <Text style={styles.elevText}>{`${info.descent} m descent`}</Text>
             </View>
+          )}
+
+          {splits.rows.length > 0 ? (
+            <>
+              <Text style={styles.sectionTitle}>Pace by km</Text>
+              <Text style={styles.sectionHint}>Higher is faster</Text>
+              <View style={styles.chartWrap}>
+                <PaceLineChart rows={splits.rows} width={chartWidth} height={120} />
+              </View>
+            </>
+          ) : (
+            <Text style={styles.note} testID="run-detail-nosplits">{olderRunNote}</Text>
           )}
 
           <Pressable
@@ -153,37 +175,15 @@ export default function RunDetailScreen() {
             accessibilityRole="button"
             testID="run-detail-share"
           >
-            <Ionicons name={isShared ? 'checkmark-circle' : 'share-social-outline'} size={18} color={isShared ? GREEN : '#0D1117'} />
+            <Ionicons name={isShared ? 'checkmark-circle' : 'share-social-outline'} size={18} color={isShared ? INK : '#FFFFFF'} />
             <Text style={[styles.shareText, isShared && styles.shareTextDone]}>
               {isShared ? 'Shared to feed' : sharing ? 'Sharing...' : 'Share to feed'}
             </Text>
           </Pressable>
           {!!shareError && <Text style={styles.shareError} testID="run-detail-share-error">{shareError}</Text>}
 
-          {splits.rows.length > 0 ? (
+          {splits.rows.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Pace by km</Text>
-              <Text style={styles.sectionHint}>Taller is faster</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chart}>
-                {splits.rows.map((row) => (
-                  <View key={`bar-${row.index}`} style={styles.barCol}>
-                    <Text style={styles.barPace}>{formatPace(row.pace)}</Text>
-                    <View style={styles.barTrack}>
-                      <View
-                        testID={`pace-bar-${row.index}`}
-                        style={[
-                          styles.bar,
-                          { height: `${Math.round(row.bar * 100)}%` },
-                          row.isFastest && styles.barFastest,
-                          row.partial && styles.barPartial,
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.barLabel}>{row.label}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-
               <Text style={styles.sectionTitle}>Splits</Text>
               <View style={styles.tableHead}>
                 <Text style={[styles.th, { width: 56 }]}>KM</Text>
@@ -210,8 +210,6 @@ export default function RunDetailScreen() {
                 </View>
               ))}
             </>
-          ) : (
-            <Text style={styles.note} testID="run-detail-nosplits">{olderRunNote}</Text>
           )}
         </View>
       </ScrollView>
@@ -220,85 +218,78 @@ export default function RunDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D1117' },
-  scrollContent: { paddingBottom: 60 },
+  container: { flex: 1, backgroundColor: MAP_BG },
+  scrollContent: { flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFound: { fontSize: 15, color: 'rgba(255,255,255,0.6)' },
 
-  hero: { height: 330, backgroundColor: '#0D1117' },
+  hero: { backgroundColor: MAP_BG },
   backBtn: {
     position: 'absolute', left: 16, top: Platform.OS === 'ios' ? 54 : 40,
     width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(13,17,23,0.85)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center',
   },
   backBtnPlain: { zIndex: 2 },
+  heading: {
+    position: 'absolute', left: 64, right: 64, top: Platform.OS === 'ios' ? 54 : 40, height: 40,
+    lineHeight: 40, textAlign: 'center', fontSize: 16, fontWeight: '800', color: '#FFFFFF',
+  },
+  heroInfo: { position: 'absolute', left: SHEET_PAD, right: SHEET_PAD, bottom: 44 },
+  title: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
+  when: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  sourceTag: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 3 },
+  bigRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 6 },
+  bigValue: { fontSize: 64, fontWeight: '800', color: '#FFFFFF', lineHeight: 68 },
+  bigUnit: { fontSize: 20, fontWeight: '700', color: 'rgba(255,255,255,0.75)', marginLeft: 8, marginBottom: 10 },
 
   sheet: {
-    marginTop: -26, backgroundColor: '#0D1117', borderTopLeftRadius: 26, borderTopRightRadius: 26,
-    paddingHorizontal: 20, paddingTop: 22,
+    marginTop: -26, flexGrow: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: SHEET_PAD, paddingTop: 24, paddingBottom: 60,
   },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleIcon: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.14)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  title: { fontSize: 20, fontWeight: '800', color: '#FFF' },
-  when: { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
-  sourceTag: { fontSize: 12, fontWeight: '600', color: GREEN, marginTop: 3 },
 
-  bigRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 20 },
-  bigValue: { fontSize: 64, fontWeight: '800', color: '#FFF', lineHeight: 68 },
-  bigUnit: { fontSize: 20, fontWeight: '700', color: GREEN, marginLeft: 8, marginBottom: 10 },
-
-  statsRow: {
-    flexDirection: 'row', marginTop: 18, backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 16, paddingVertical: 16,
-  },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
   stat: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '800', color: '#FFF' },
-  statUnit: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.55)' },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4, textTransform: 'uppercase' },
+  statIcon: { marginBottom: 6 },
+  statValue: { fontSize: 20, fontWeight: '800', color: INK },
+  statUnit: { fontSize: 12, fontWeight: '600', color: '#8A8A8A' },
+  statLabel: { fontSize: 11, color: '#8A8A8A', marginTop: 4, textTransform: 'uppercase' },
+  statDivider: { width: 1, height: 44, backgroundColor: '#E5E5E5' },
 
-  elevRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
-  elevText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  elevRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20, paddingTop: 16,
+    borderTopWidth: 1, borderTopColor: '#EDEDED',
+  },
+  elevText: { fontSize: 14, fontWeight: '600', color: INK },
+
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: INK, marginTop: 28 },
+  sectionHint: { fontSize: 12, color: '#8A8A8A', marginTop: 2, marginBottom: 6 },
+  chartWrap: { marginTop: 4 },
 
   shareBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20,
-    backgroundColor: GREEN, borderRadius: 14, paddingVertical: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 28,
+    backgroundColor: INK, borderRadius: 28, paddingVertical: 16,
   },
-  shareBtnDone: { backgroundColor: 'rgba(34,197,94,0.14)' },
-  shareText: { fontSize: 15, fontWeight: '800', color: '#0D1117' },
-  shareTextDone: { color: GREEN },
-  shareError: { fontSize: 12, color: '#F87171', marginTop: 8, textAlign: 'center' },
-
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#FFF', marginTop: 28 },
-  sectionHint: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2, marginBottom: 10 },
-
-  chart: { paddingVertical: 6, gap: 8, alignItems: 'flex-end' },
-  barCol: { width: BAR_WIDTH, alignItems: 'center' },
-  barPace: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
-  barTrack: { height: 120, width: BAR_WIDTH - 8, justifyContent: 'flex-end' },
-  bar: { width: '100%', backgroundColor: 'rgba(255,255,255,0.28)', borderRadius: 6 },
-  barFastest: { backgroundColor: GREEN },
-  barPartial: { backgroundColor: 'rgba(255,255,255,0.14)' },
-  barLabel: { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 6 },
+  shareBtnDone: { backgroundColor: '#F0F0F0' },
+  shareText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  shareTextDone: { color: INK },
+  shareError: { fontSize: 12, color: '#B91C1C', marginTop: 8, textAlign: 'center' },
 
   tableHead: {
     flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingBottom: 8,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomWidth: 1, borderBottomColor: '#E5E5E5',
   },
-  th: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.45)' },
+  th: { fontSize: 11, fontWeight: '700', color: '#8A8A8A' },
   tableRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 11,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
   },
-  td: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-  tdBold: { fontWeight: '800', color: '#FFF' },
-  rowBarTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 8, overflow: 'hidden' },
-  rowBar: { height: '100%', borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
-  rowBarFastest: { backgroundColor: GREEN },
-  faster: { color: GREEN, fontWeight: '700' },
-  slower: { color: '#F87171', fontWeight: '700' },
+  td: { fontSize: 14, color: '#333333' },
+  tdBold: { fontWeight: '800', color: INK },
+  rowBarTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: '#EEEEEE', marginHorizontal: 8, overflow: 'hidden' },
+  rowBar: { height: '100%', borderRadius: 3, backgroundColor: '#BDBDBD' },
+  rowBarFastest: { backgroundColor: INK },
+  faster: { color: INK, fontWeight: '700' },
+  slower: { color: '#8A8A8A', fontWeight: '700' },
 
-  note: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 28, textAlign: 'center' },
+  note: { fontSize: 13, color: '#8A8A8A', marginTop: 28, textAlign: 'center' },
 });

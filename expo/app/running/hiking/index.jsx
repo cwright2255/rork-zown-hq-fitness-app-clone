@@ -42,9 +42,14 @@ export default function HikingListScreen() {
         showBack
         variant="light"
         rightAction={
-          <Pressable onPress={() => router.push('/running/hiking/saved')} hitSlop={8}>
-            <Ionicons name="bookmark-outline" size={22} color={colors.text} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => router.push('/running/hiking/history')} hitSlop={8} testID="hiking-history-button">
+              <Ionicons name="time-outline" size={22} color={colors.text} />
+            </Pressable>
+            <Pressable onPress={() => router.push('/running/hiking/saved')} hitSlop={8} testID="hiking-saved-button">
+              <Ionicons name="bookmark-outline" size={22} color={colors.text} />
+            </Pressable>
+          </View>
         }
       />
 
@@ -75,6 +80,15 @@ export default function HikingListScreen() {
           </Text>
         )}
           <PrimaryButton title="Try Again" onPress={() => loadNearbyTrails()} style={{ marginTop: spacing.lg }} />
+          {savedTrailIds.length > 0 && (
+            // With no signal the nearby search cannot work, but saved trails are kept on the phone.
+            <PrimaryButton
+              title="Open saved trails"
+              variant="outline"
+              onPress={() => router.push('/running/hiking/saved')}
+              style={{ marginTop: spacing.sm }}
+            />
+          )}
         </View>
       )}
 
@@ -156,6 +170,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   centerBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
   centerText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   list: { padding: spacing.base, gap: spacing.md },
   card: {
     borderRadius: radius.lg, backgroundColor: colors.card, overflow: 'hidden', marginBottom: spacing.md,

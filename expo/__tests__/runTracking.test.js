@@ -54,8 +54,14 @@ describe('services/runTracking', () => {
       expect(options.activityType).toBe(Location.ActivityType.Fitness);
       expect(options.pausesUpdatesAutomatically).toBe(false);
       expect(options.showsBackgroundLocationIndicator).toBe(true);
-      expect(options.foregroundService.notificationBody).toMatch(/run/i);
+      expect(options.foregroundService.notificationBody).toBe('Recording your run');
       expect(Location.watchPositionAsync).not.toHaveBeenCalled();
+    });
+
+    it('says what is being recorded in the notification, a run unless told otherwise', async () => {
+      const { Location, service } = load();
+      await service.startTracking({ label: 'hike' });
+      expect(Location.startLocationUpdatesAsync.mock.calls[0][1].foregroundService.notificationBody).toBe('Recording your hike');
     });
 
     it('does not start a second time when already going', async () => {

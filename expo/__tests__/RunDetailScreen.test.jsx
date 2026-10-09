@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
@@ -95,24 +95,51 @@ describe('RunDetailScreen', () => {
     expect(utils.queryByTestId('run-detail-elevation')).toBeNull();
   });
 
-  it('draws a pace bar and a table row for each kilometre, plus the part-kilometre at the end', () => {
+  it('draws a point on the pace line and a table row for each kilometre, plus the part-kilometre at the end', () => {
     const utils = open('run-1', [run()]);
+    expect(utils.getByTestId('pace-chart')).toBeTruthy();
     for (let i = 0; i < 6; i += 1) {
-      expect(utils.getByTestId(`pace-bar-${i}`)).toBeTruthy();
+      expect(utils.getByTestId(`pace-point-${i}`)).toBeTruthy();
       expect(utils.getByTestId(`split-row-${i}`)).toBeTruthy();
     }
     expect(utils.queryByTestId('split-row-6')).toBeNull();
-    expect(utils.getAllByText('0.23')).toHaveLength(2); // under its bar and in the table
+    expect(utils.getAllByText('0.23')).toHaveLength(2); // under the line and in the table
   });
 
-  it('paints the fastest kilometre green and makes it the tallest bar', () => {
+  it('puts the fastest kilometre highest on the line, as a solid black dot with its pace over it', () => {
     const utils = open('run-1', [run()]);
     const flat = (node) => [].concat(...[].concat(node.props.style).map((s) => (Array.isArray(s) ? s : [s]))).filter(Boolean);
-    const fastest = flat(utils.getByTestId('pace-bar-4'));
-    const slowest = flat(utils.getByTestId('pace-bar-3'));
-    expect(fastest.some((s) => s.backgroundColor === '#22C55E')).toBe(true);
-    expect(slowest.some((s) => s.backgroundColor === '#22C55E')).toBe(false);
-    expect(fastest.find((s) => s.height).height).toBe('100%');
+    const topOf = (id) => flat(utils.getByTestId(`pace-point-${id}`)).find((s) => s.top !== undefined).top;
+    // splits are 300, 310, 305, 320, 295: kilometre 5 (index 4) is fastest, kilometre 4 (index 3) slowest
+    expect(topOf(4)).toBeLessThan(topOf(3));
+    expect(topOf(4)).toBeLessThan(topOf(0));
+    expect(flat(utils.getByTestId('pace-point-4')).some((s) => s.backgroundColor === '#000000')).toBe(true);
+    expect(flat(utils.getByTestId('pace-point-3')).some((s) => s.backgroundColor === '#000000')).toBe(false);
+    expect(utils.getByTestId('pace-chart-best')).toBeTruthy();
+    expect(within(utils.getByTestId('pace-chart-best')).getByText('4:55')).toBeTruthy();
+  });
+
+  it('is black and white: no green anywhere on the screen', () => {
+    const utils = open('run-1', [run()]);
+    expect(JSON.stringify(utils.toJSON())).not.toMatch(/22C55E|34, ?197, ?94/i);
+  });
+
+  it('puts the distance over the map and says the run is completed', () => {
+    const utils = open('run-1', [run()]);
+    expect(utils.getByTestId('run-detail-heading').props.children).toBe('Run Completed');
+    expect(utils.getByTestId('run-detail-distance').props.children).toBe('5.23');
+  });
+
+  it('calls a finished walk a completed walk', () => {
+    const utils = open('run-1', [run({ activity: 'walk' })]);
+    expect(utils.getByTestId('run-detail-heading').props.children).toBe('Walk Completed');
+  });
+
+  it('keeps the route out from under the back button, the distance and the card', () => {
+    open('run-1', [run()]);
+    const pad = global.__routeProps.edgePadding;
+    expect(pad.top).toBeGreaterThanOrEqual(100);
+    expect(pad.bottom).toBeGreaterThanOrEqual(190);
   });
 
   it('shows how far each kilometre was from the average', () => {
@@ -123,7 +150,8 @@ describe('RunDetailScreen', () => {
 
   it('explains a run saved before splits were recorded', () => {
     const utils = open('run-1', [run({ splits: undefined })]);
-    expect(utils.queryByTestId('pace-bar-0')).toBeNull();
+    expect(utils.queryByTestId('pace-chart')).toBeNull();
+    expect(utils.queryByTestId('split-row-0')).toBeNull();
     expect(utils.getByTestId('run-detail-nosplits').props.children).toBe('This run was saved before splits were recorded.');
   });
 
@@ -149,7 +177,7 @@ describe('RunDetailScreen', () => {
 
   it('shows the splits of an imported run that has them', () => {
     const utils = open('run-1', [run({ source: 'apple-health' })]);
-    expect(utils.getByTestId('pace-bar-0')).toBeTruthy();
+    expect(utils.getByTestId('pace-point-0')).toBeTruthy();
     expect(utils.queryByTestId('run-detail-nosplits')).toBeNull();
   });
 

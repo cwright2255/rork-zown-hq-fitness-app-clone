@@ -14,28 +14,38 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useHikingStore } from '@/store/hikingStore';
+import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
 import { getPhotoUrl } from '@/services/hikingService';
 
 export default function SavedTrailsScreen() {
   const router = useRouter();
   const { trails, savedTrailIds, loadSavedTrails, isLoading } = useHikingStore();
+  const { trails: offlineTrails, keepTrail } = useOfflineTrailStore();
   const { user } = useUserStore();
 
   useEffect(() => {
     if (user?.uid) loadSavedTrails(user.uid);
   }, [user?.uid]);
 
-  // Saved trails are only ever shown here if they're also present in the
-  // current `trails` list (populated by the last nearby search) — this
-  // screen doesn't re-fetch each saved trail individually, so a trail
-  // saved on a previous visit that's now outside search range won't
-  // appear until a nearby search including it runs again. Simpler and
-  // avoids one extra API call path; noted rather than silently assumed.
+  // A saved trail is shown from the last search when it is in it, else from the
+  // copy kept on the phone (store/offlineTrailStore.js), so the list still works
+  // with no signal and after the app is restarted.
   const savedTrails = useMemo(
-    () => trails.filter((t) => savedTrailIds.includes(t.id)),
-    [trails, savedTrailIds]
+    () => savedTrailIds
+      .map((id) => trails.find((t) => t.id === id) || (offlineTrails[id] ? offlineTrails[id].trail : null))
+      .filter(Boolean),
+    [trails, savedTrailIds, offlineTrails]
   );
+
+  // Trails saved before they were kept on the phone: keep the ones that are
+  // in view now (the line of a path is kept the first time its page is opened).
+  useEffect(() => {
+    savedTrailIds.forEach((id) => {
+      const trail = trails.find((t) => t.id === id);
+      if (trail && !offlineTrails[id]) keepTrail({ trail, pinned: true });
+    });
+  }, [trails, savedTrailIds]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -70,6 +80,16 @@ export default function SavedTrailsScreen() {
                   <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
                   <Text style={styles.rowSubtitle} numberOfLines={1}>{item.address}</Text>
                 </View>
+                {offlineTrails[item.id] && Object.keys(offlineTrails[item.id].routes || {}).length > 0 && (
+                  <Ionicons
+                    name="cloud-offline-outline"
+                    size={16}
+                    color={colors.textSecondary}
+                    style={{ marginRight: spacing.sm }}
+                    accessibilityLabel="Works without a signal"
+                    testID={`saved-offline-${item.id}`}
+                  />
+                )}
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </Pressable>
             );

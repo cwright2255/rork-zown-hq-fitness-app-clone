@@ -13,7 +13,7 @@
 // error for what was always an optional enhancement over the core
 // directions feature above.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Pressable, Linking, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,9 +21,12 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, typography, spacing, radius } from '@/constants/theme';
+import TrailSketchMap from '@/components/TrailSketchMap';
 import { useHikingStore } from '@/store/hikingStore';
+import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
 import { getPhotoUrl, getTrailMaps, fetchRouteForMap } from '@/services/hikingService';
+import { cachedRoute, downloadTrailForOffline } from '@/lib/offlineTrails';
 import { promptDirections } from '@/lib/openDirections';
 import ElevationProfileChart from '@/components/ElevationProfileChart';
 import TrailWeather from '@/components/TrailWeather';
@@ -48,11 +51,18 @@ if (Platform.OS !== 'web') {
   }
 }
 
+const NO_MAPS = [];
+// A weak signal can leave a request hanging for a long time. After this long the
+// page shows the path kept on the phone instead (and swaps in the fresh one if it
+// still arrives).
+const SAVED_ROUTE_WAIT_MS = 4000;
+
 export default function TrailPreviewScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const trailId = typeof params.id === 'string' ? params.id : '';
   const { getTrailById, savedTrailIds, toggleSaveTrail, userLocation } = useHikingStore();
+  const { trails: offlineTrails, keepTrail, removeTrail } = useOfflineTrailStore();
   const { user } = useUserStore();
   const { scans, loadScans } = useBodyCompositionStore();
 
@@ -68,57 +78,102 @@ export default function TrailPreviewScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - spacing.base * 2;
 
-  const trail = getTrailById(trailId);
+  // The copy kept on the phone (see store/offlineTrailStore.js) covers a trail
+  // that is not in the last search: no signal, or the app was restarted.
+  const record = offlineTrails[trailId] || null;
+  const trail = getTrailById(trailId) || (record ? record.trail : null);
   const saved = savedTrailIds.includes(trailId);
   const photoUrl = trail?.photoUrl || (trail?.photoName ? getPhotoUrl(trail.photoName, 900) : null);
 
-  const [route, setRoute] = useState(null); // { coordinates, distanceKm, elevationGainM } | null
-  const [availableMaps, setAvailableMaps] = useState([]); // [{ id, name }] - real, possibly-multiple named paths for this trail
+  const [fetchedMaps, setFetchedMaps] = useState(null); // [{ id, name }] from the trail service, once it has answered
   const [selectedMapId, setSelectedMapId] = useState(null);
   const [loadingMaps, setLoadingMaps] = useState(false);
-  const [mapsDebugInfo, setMapsDebugInfo] = useState(null);
+  const [fetched, setFetched] = useState(null); // { mapId, route } as the trail service sent it
+  const [waitedFor, setWaitedFor] = useState(null); // the path whose request has finished, or been waited for long enough
 
+  // Real, possibly-multiple named paths for this trail: the service's list when
+  // it has answered, else the list kept on the phone.
+  const availableMaps = fetchedMaps && fetchedMaps.length > 0 ? fetchedMaps : ((record && record.maps) || NO_MAPS);
+
+  // Path data only exists for TrailAPI-sourced results, and needs the native map.
   useEffect(() => {
-    if (!trail) {
-      setMapsDebugInfo(`trail is null (trailId param: "${typeof params.id === 'string' ? params.id : params.id?.[0] ?? '(missing)'}") - getTrailById found nothing in the store.`);
-      return;
-    }
-    if (trail.source !== 'trailapi') {
-      setMapsDebugInfo(`Skipped: trail.source is "${trail.source}", not "trailapi" - path data only exists for TrailAPI-sourced results.`);
-      return;
-    }
-    if (!MapView) {
-      setMapsDebugInfo('Skipped: react-native-maps did not load on this device.');
-      return;
-    }
+    if (!trail || trail.source !== 'trailapi' || !MapView) return undefined;
     const rawId = trail.id.replace(/^trailapi-/, '');
     let cancelled = false;
     setLoadingMaps(true);
-    setMapsDebugInfo(`Fetching maps for TrailAPI id "${rawId}"...`);
     getTrailMaps(rawId).then((maps) => {
       if (cancelled) return;
-      setAvailableMaps(maps || []);
-      if (maps?.[0]?.id) setSelectedMapId(maps[0].id);
+      setFetchedMaps(maps || []);
       setLoadingMaps(false);
-      setMapsDebugInfo(`Got ${maps?.length ?? 0} maps back: ${JSON.stringify(maps).slice(0, 300)}`);
     }).catch((e) => {
       console.warn('[TrailDetail] getTrailMaps failed:', e?.message);
-      if (!cancelled) {
-        setLoadingMaps(false);
-        setMapsDebugInfo(`getTrailMaps threw: ${e?.message}`);
-      }
+      if (!cancelled) setLoadingMaps(false);
     });
     return () => { cancelled = true; };
   }, [trail?.id]);
 
   useEffect(() => {
-    if (!selectedMapId) { setRoute(null); return; }
+    if (selectedMapId !== null || availableMaps.length === 0) return;
+    const first = availableMaps[0];
+    if (first && first.id !== undefined && first.id !== null) setSelectedMapId(first.id);
+  }, [availableMaps, selectedMapId]);
+
+  useEffect(() => {
+    if (!selectedMapId) return undefined;
+    const mapId = selectedMapId;
     let cancelled = false;
-    fetchRouteForMap(selectedMapId).then((result) => {
-      if (!cancelled) setRoute(result);
+    const timer = setTimeout(() => { if (!cancelled) setWaitedFor(mapId); }, SAVED_ROUTE_WAIT_MS);
+    fetchRouteForMap(mapId).then((result) => {
+      if (cancelled) return;
+      setFetched({ mapId, route: result });
+      setWaitedFor(mapId);
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [selectedMapId]);
+
+  // The line on screen: the fresh one, or, once the wait is over, the one kept on
+  // the phone. Only ever the chosen path's own line.
+  const fetchedRoute = fetched && selectedMapId && String(fetched.mapId) === String(selectedMapId) ? fetched.route : null;
+  const waited = !!selectedMapId && waitedFor !== null && String(waitedFor) === String(selectedMapId);
+  const route = fetchedRoute || (waited ? cachedRoute(record, selectedMapId) : null); // { coordinates, distanceKm, elevationGainM } | null
+  const routeFromCache = !fetchedRoute && !!route;
+  const knownRoutes = () => (route && selectedMapId ? { [String(selectedMapId)]: route } : undefined);
+
+  // A saved trail keeps whatever is found for it, so it works with no signal.
+  useEffect(() => {
+    if (!saved || !trail) return;
+    keepTrail({
+      trail,
+      pinned: true,
+      maps: fetchedMaps || NO_MAPS,
+      routes: fetchedRoute && selectedMapId ? { [String(selectedMapId)]: fetchedRoute } : undefined,
+    });
+  }, [saved, trail?.id, fetchedMaps, fetchedRoute]);
+
+  // Set the moment the bookmark is pressed, so a download that is still running
+  // can tell the trail was un-saved meanwhile.
+  const savedRef = useRef(saved);
+  useEffect(() => { savedRef.current = saved; }, [saved]);
+
+  const handleToggleSave = () => {
+    const nowSaved = !saved;
+    savedRef.current = nowSaved;
+    toggleSaveTrail(trail.id, user?.uid);
+    if (!nowSaved) {
+      removeTrail(trail.id);
+      return;
+    }
+    keepTrail({ trail, maps: availableMaps, routes: knownRoutes(), pinned: true });
+    // The other paths of the trail as well, one at a time.
+    downloadTrailForOffline({
+      trail,
+      known: { maps: availableMaps, routes: knownRoutes() },
+      fetchMaps: getTrailMaps,
+      fetchRoute: fetchRouteForMap,
+    }).then((found) => {
+      if (savedRef.current) keepTrail({ trail, ...found, pinned: true });
+    }).catch((e) => console.warn('[TrailDetail] could not keep the trail for offline use:', e?.message));
+  };
 
   if (!trail) {
     return (
@@ -154,7 +209,10 @@ export default function TrailPreviewScreen() {
             <ScreenHeader showBack transparent />
             <Pressable
               style={styles.saveBtn}
-              onPress={() => toggleSaveTrail(trail.id, user?.uid)}
+              onPress={handleToggleSave}
+              testID="trail-save-button"
+              accessibilityRole="button"
+              accessibilityLabel={saved ? 'Remove from saved trails' : 'Save trail'}
             >
               <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={20} color="#FFF" />
             </Pressable>
@@ -163,11 +221,6 @@ export default function TrailPreviewScreen() {
 
         <View style={styles.body}>
           <Text style={styles.title}>{trail.name}</Text>
-          {mapsDebugInfo && (
-            <View style={{ backgroundColor: '#FEF3C7', borderRadius: 8, padding: 10, marginTop: 8 }}>
-              <Text style={{ fontSize: 11, color: '#78350F' }} selectable>{mapsDebugInfo}</Text>
-            </View>
-          )}
           <Text style={styles.address}>{trail.address}</Text>
 
           <View style={styles.metaRow}>
@@ -247,39 +300,48 @@ export default function TrailPreviewScreen() {
             <View style={{ marginTop: spacing.lg }}>
               <Text style={styles.sectionLabel}>Trail Route</Text>
               <View style={styles.routeMapWrap}>
-                <MapView
-                  style={styles.routeMap}
-                  provider={PROVIDER_DEFAULT}
-                  mapType="terrain"
-                  // A tilted camera + terrain-style tiles is what gives this
-                  // a real "2.5D" perspective — the tilt plus the map's own
-                  // topographic relief shading, not a rendered 3D mesh built
-                  // from the GPX elevation data itself (that would need a
-                  // full 3D engine, a much bigger undertaking than a
-                  // camera angle). Must set the FULL camera object here, not
-                  // just pitch — a real, confirmed Android crash
-                  // (NoSuchKeyException: pitch) happens if pitch is set
-                  // without heading/zoom/altitude alongside it.
-                  initialCamera={{
-                    center: {
-                      latitude: route.coordinates[Math.floor(route.coordinates.length / 2)].latitude,
-                      longitude: route.coordinates[Math.floor(route.coordinates.length / 2)].longitude,
-                    },
-                    pitch: 55,
-                    heading: 0,
-                    zoom: 14,
-                    altitude: 800,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                  pitchEnabled={false}
-                  rotateEnabled={false}
-                >
-                  <Polyline coordinates={route.coordinates} strokeColor={colors.green} strokeWidth={4} />
-                  <Marker coordinate={route.coordinates[0]} pinColor="green" />
-                  <Marker coordinate={route.coordinates[route.coordinates.length - 1]} pinColor="red" />
-                </MapView>
+                {routeFromCache || !MapView ? (
+                  <TrailSketchMap planned={route.coordinates} style={styles.routeMap} testID="trail-route-sketch" />
+                ) : (
+                  <MapView
+                    style={styles.routeMap}
+                    provider={PROVIDER_DEFAULT}
+                    mapType="terrain"
+                    // A tilted camera + terrain-style tiles is what gives this
+                    // a real "2.5D" perspective — the tilt plus the map's own
+                    // topographic relief shading, not a rendered 3D mesh built
+                    // from the GPX elevation data itself (that would need a
+                    // full 3D engine, a much bigger undertaking than a
+                    // camera angle). Must set the FULL camera object here, not
+                    // just pitch — a real, confirmed Android crash
+                    // (NoSuchKeyException: pitch) happens if pitch is set
+                    // without heading/zoom/altitude alongside it.
+                    initialCamera={{
+                      center: {
+                        latitude: route.coordinates[Math.floor(route.coordinates.length / 2)].latitude,
+                        longitude: route.coordinates[Math.floor(route.coordinates.length / 2)].longitude,
+                      },
+                      pitch: 55,
+                      heading: 0,
+                      zoom: 14,
+                      altitude: 800,
+                    }}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                    pitchEnabled={false}
+                    rotateEnabled={false}
+                  >
+                    <Polyline coordinates={route.coordinates} strokeColor={colors.green} strokeWidth={4} />
+                    <Marker coordinate={route.coordinates[0]} pinColor="green" />
+                    <Marker coordinate={route.coordinates[route.coordinates.length - 1]} pinColor="red" />
+                  </MapView>
+                )}
               </View>
+              {routeFromCache && (
+                <Text style={styles.savedNote} testID="trail-route-saved-note">
+                  Saved on this phone, so it works without a signal.
+                </Text>
+              )}
               <View style={styles.routeStatsRow}>
                 <Text style={styles.routeStatText}>{route.distanceKm.toFixed(1)} km route</Text>
                 {route.elevationGainM != null && (
@@ -301,6 +363,8 @@ export default function TrailPreviewScreen() {
           title="Start Hike"
           onPress={() => {
             const selectedMap = availableMaps.find((m) => m.id === selectedMapId);
+            // Kept on the phone from here on, so the hike screen has the trail and its line with no signal.
+            keepTrail({ trail, maps: availableMaps, routes: knownRoutes(), pinned: saved });
             router.push({
               pathname: '/running/hiking/monitor',
               params: {
@@ -353,6 +417,7 @@ const styles = StyleSheet.create({
   directionsText: { ...typography.bodySmall, color: colors.text, lineHeight: 20 },
   routeMapWrap: { borderRadius: radius.lg, overflow: 'hidden', height: 220 },
   routeMap: { flex: 1 },
+  savedNote: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
   routeStatsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   routeStatText: { ...typography.caption, color: colors.textSecondary },
   bottomBar: {

@@ -6,6 +6,42 @@ import { useUserStore } from './userStore';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { gradeToMealStars } from '@/services/calorieApiService';
+import { foodBase, foodKey, newLogId, appendToMeals } from '@/lib/foodLog';
+import { buildCustomFood, MAX_CUSTOM_FOODS } from '@/lib/customFood';
+import { copyFoodEntries } from '@/lib/mealCopy';
+import { keepRecentMeals } from '@/lib/nutritionHistory';
+import { localDateKey } from '@/lib/localDate';
+
+// XP for logging a food: once per food name per day (expStore.awardMealXp),
+// graded by the food's nutritional score or, without one, how much of its
+// nutrition is filled in. A quick add has no real food behind it, so it earns
+// nothing.
+function awardFoodXp(food) {
+  try {
+    const hasCalories = food.calories != null && food.calories > 0;
+    if (!hasCalories || food.quickAdd) return;
+    let stars;
+    if (food.nutritionalScore?.score) {
+      stars = gradeToMealStars(food.nutritionalScore.score);
+    } else {
+      const macroCount = [food.protein, food.carbs, food.fat].filter((v) => v != null && v > 0).length;
+      stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
+    }
+    const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
+    const xpKey = (food.name || '').trim().toLowerCase();
+    useExpStore.getState().awardMealXp(xpKey, {
+      id: Date.now().toString(),
+      type: 'meal',
+      baseExp,
+      multiplier: 1.0,
+      date: new Date().toISOString().split('T')[0],
+      description: `Logged ${food.name} (${stars}-star)`,
+      completed: true
+    }, useUserStore.getState().user?.uid);
+  } catch (error) {
+    console.error('Failed to add EXP for meal:', error);
+  }
+}
 
 export const useNutritionStore = create(
   persist(
@@ -32,6 +68,8 @@ export const useNutritionStore = create(
       // addMeal/addFoodToMeal below), starting genuinely empty.
       recentFoods: [],
       favoriteFood: [],
+      // Foods the person made up themselves ("My Foods"), see lib/customFood.js.
+      customFoods: [],
       syncUid: null, // set once via setSyncUid(uid) — drives the auto-sync subscription below
       setSyncUid: (uid) => set({ syncUid: uid }),
 
@@ -50,6 +88,8 @@ export const useNutritionStore = create(
               nutritionSummary: data.nutritionSummary || null,
               recentFoods: data.recentFoods || [],
               favoriteFood: data.favoriteFood || [],
+              // A cloud copy saved before custom foods existed has no list: keep the phone's.
+              customFoods: Array.isArray(data.customFoods) ? data.customFoods : get().customFoods,
             });
           }
         } catch (e) {
@@ -63,7 +103,10 @@ export const useNutritionStore = create(
         if (!uid) return;
         const s = get();
         try {
-          await setDoc(doc(db, 'users', uid, 'data', 'nutrition'), {
+          // Firestore refuses a document with `undefined` anywhere in it, and a
+          // logged food can carry some (no brand, no fiber), so the copy that is
+          // sent has those left out.
+          const payload = JSON.parse(JSON.stringify({
             meals: s.meals,
             waterIntake: s.waterIntake,
             dailyGoals: s.dailyGoals,
@@ -71,6 +114,10 @@ export const useNutritionStore = create(
             nutritionSummary: s.nutritionSummary,
             recentFoods: s.recentFoods,
             favoriteFood: s.favoriteFood,
+            customFoods: s.customFoods,
+          }));
+          await setDoc(doc(db, 'users', uid, 'data', 'nutrition'), {
+            ...payload,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -99,12 +146,22 @@ export const useNutritionStore = create(
       },
 
       addFoodToMeal: (date, mealId, food) => {
+        // Each log gets its own id (the same food can be logged many times), and
+        // keeps the values for ONE serving so the entry can be changed later.
+        const logged = {
+          ...food,
+          logId: newLogId(food),
+          base: foodBase(food),
+          quantity: food.quantity > 0 ? food.quantity : 1
+        };
         set((state) => {
-          // Add to recent foods list
+          // Add to recent foods list (a quick add is not a food worth coming back to)
           const existingFoodIndex = state.recentFoods.findIndex((f) => f.id === food.id);
           let updatedRecentFoods = [...state.recentFoods];
 
-          if (existingFoodIndex >= 0) {
+          if (food.quickAdd) {
+            // leave the recent list as it is
+          } else if (existingFoodIndex >= 0) {
             // Move to the top if already exists
             updatedRecentFoods = [
             state.recentFoods[existingFoodIndex],
@@ -123,7 +180,7 @@ export const useNutritionStore = create(
             const newMeal = {
               id: mealId,
               name: mealId.charAt(0).toUpperCase() + mealId.slice(1), // Capitalize first letter
-              foods: [food],
+              foods: [logged],
               time: new Date().toTimeString().split(' ')[0],
               date: date
             };
@@ -140,7 +197,7 @@ export const useNutritionStore = create(
               if (meal.id === mealId && meal.date === date) {
                 return {
                   ...meal,
-                  foods: [...meal.foods, food]
+                  foods: [...meal.foods, logged]
                 };
               }
               return meal;
@@ -149,69 +206,55 @@ export const useNutritionStore = create(
           };
         });
 
-        // Real XP award for logging food, now synchronous (removed the
-        // requestAnimationFrame deferral - expStore.js's addExp/
-        // addExpActivity are already synchronous themselves, so this
-        // extra layer only risked out-of-order XP awards if a user
-        // logged multiple foods in quick succession) and based on
-        // actual nutrient quality where it's known, not an ad-hoc
-        // protein-per-calorie ratio. If this food carries a real
-        // nutritionalScore (set when it came from a search result -
-        // see services/calorieApiService.js's calculateNutritionalScore,
-        // which grades A-E using real FDA Daily Value percentages),
-        // that grade decides the stars via gradeToMealStars. For foods
-        // with no computed grade (e.g. a manually-adjusted quantity),
-        // falls back to how complete the food's real nutrition data is
-        // - having calories is 3-star, adding any one macro is 4-star,
-        // having all three (protein/carbs/fat) is 5-star.
-        try {
-          const hasCalories = food.calories != null && food.calories > 0;
-          if (hasCalories) {
-            let stars;
-            if (food.nutritionalScore?.score) {
-              stars = gradeToMealStars(food.nutritionalScore.score);
-            } else {
-              const macroCount = [food.protein, food.carbs, food.fat].filter((v) => v != null && v > 0).length;
-              stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
-            }
-            const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
-            // Real fix: previously called addExpActivity directly here,
-            // unconditionally, on every single call - meaning logging
-            // the same food repeatedly (e.g. 50 times) awarded 50x the
-            // XP with no protection at all. Now routed through
-            // expStore.js's awardMealXp, which only lets a given food
-            // (by normalized name) earn XP once per day - a repeat of
-            // the same food today, or the exact same call structure as
-            // before for any other, different food, which still earns
-            // XP normally.
-            const foodKey = (food.name || '').trim().toLowerCase();
-            useExpStore.getState().awardMealXp(foodKey, {
-              id: Date.now().toString(),
-              type: 'meal',
-              baseExp,
-              multiplier: 1.0,
-              date: new Date().toISOString().split('T')[0],
-              description: `Logged ${food.name} (${stars}-star)`,
-              completed: true
-            }, useUserStore.getState().user?.uid);
-          }
-        } catch (error) {
-          console.error('Failed to add EXP for meal:', error);
-        }
+        // Real XP award for logging food (see awardFoodXp above): synchronous, once
+        // per food name per day, graded by the food's real nutrition data.
+        awardFoodXp(food);
       },
 
-      removeFoodFromMeal: (mealId, foodId) => {
-        set((state) => ({
-          meals: state.meals.map((meal) => {
-            if (meal.id === mealId) {
-              return {
-                ...meal,
-                foods: meal.foods.filter((food) => food.id !== foodId)
-              };
-            }
-            return meal;
-          })
-        }));
+      // Removes ONE logged entry. `key` is the entry's log id (or, for entries
+      // saved before log ids existed, its food id) and `date` the day it was
+      // logged on. Meal slots like 'breakfast' repeat on every day, so without
+      // the date a food logged on several days would be wiped from all of them.
+      removeFoodFromMeal: (mealId, key, date) => {
+        set((state) => {
+          let done = false;
+          return {
+            meals: state.meals.map((meal) => {
+              if (done || meal.id !== mealId || (date && meal.date !== date)) return meal;
+              const idx = (meal.foods || []).findIndex((f) => foodKey(f) === key);
+              if (idx < 0) return meal;
+              done = true;
+              return { ...meal, foods: meal.foods.filter((_, i) => i !== idx) };
+            })
+          };
+        });
+      },
+
+      // Changes ONE logged entry (for example its serving count and the numbers that follow from it).
+      updateFoodInMeal: (mealId, key, changes, date) => {
+        set((state) => {
+          let done = false;
+          return {
+            meals: state.meals.map((meal) => {
+              if (done || meal.id !== mealId || (date && meal.date !== date)) return meal;
+              const idx = (meal.foods || []).findIndex((f) => foodKey(f) === key);
+              if (idx < 0) return meal;
+              done = true;
+              return { ...meal, foods: meal.foods.map((f, i) => (i === idx ? { ...f, ...changes } : f)) };
+            })
+          };
+        });
+      },
+
+      // The logged entry (and the meal it sits in) for a log id or old food id, or null.
+      findLoggedFood: (key) => {
+        if (!key) return null;
+        const meals = get().meals || [];
+        for (let i = meals.length - 1; i >= 0; i--) {
+          const food = (meals[i].foods || []).find((f) => foodKey(f) === key);
+          if (food) return { meal: meals[i], food };
+        }
+        return null;
       },
 
       getMealsByDate: (date) => {
@@ -345,13 +388,58 @@ export const useNutritionStore = create(
         set((state) => ({
           favoriteFood: state.favoriteFood.filter((f) => f.id !== foodId)
         }));
+      },
+
+      // ── My Foods (custom foods) ──
+      // Each returns { ok: true, food } or { ok: false, errors } so the form can
+      // show what is wrong. Foods already logged keep their own numbers, so
+      // changing or deleting a custom food never rewrites the diary.
+      addCustomFood: (fields) => {
+        if ((get().customFoods || []).length >= MAX_CUSTOM_FOODS) {
+          return { ok: false, errors: { name: `You have ${MAX_CUSTOM_FOODS} custom foods. Delete one to add another.` } };
+        }
+        const result = buildCustomFood(fields);
+        if (!result.ok) return result;
+        set((state) => ({ customFoods: [result.food, ...(state.customFoods || [])] }));
+        return result;
+      },
+
+      updateCustomFood: (id, fields) => {
+        if (!(get().customFoods || []).some((f) => f.id === id)) {
+          return { ok: false, errors: { name: 'This food no longer exists.' } };
+        }
+        const result = buildCustomFood(fields, { id });
+        if (!result.ok) return result;
+        set((state) => ({
+          customFoods: state.customFoods.map((f) => (f.id === id ? result.food : f))
+        }));
+        return result;
+      },
+
+      removeCustomFood: (id) => {
+        set((state) => ({ customFoods: (state.customFoods || []).filter((f) => f.id !== id) }));
+      },
+
+      // Copies the foods of one meal slot on one day into another slot (on the
+      // same or another day) as new entries, in one update. Returns how many
+      // were copied. XP is only given when copying into today, and only the
+      // usual once per food per day; the recent-foods list is left alone.
+      copyMealFoods: ({ fromDate, fromMealId, toDate, toMealId }) => {
+        const source = get().meals.find((m) => m.date === fromDate && m.id === fromMealId);
+        const entries = copyFoodEntries(source?.foods || []);
+        if (!entries.length) return 0;
+        set((state) => ({
+          meals: appendToMeals(state.meals, toDate, toMealId, entries, new Date().toTimeString().split(' ')[0])
+        }));
+        if (toDate === localDateKey()) entries.forEach(awardFoodXp);
+        return entries.length;
       }
     }),
     {
       name: 'zown-nutrition-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
-        meals: state.meals.slice(-30), // Keep only last 30 meals for performance
+        meals: keepRecentMeals(state.meals), // the last 30 days (at most 250 slots); the cloud copy keeps everything
         waterIntake: Object.fromEntries(
           Object.entries(state.waterIntake).slice(-7) // Keep only last 7 days of water intake
         ),
@@ -359,7 +447,8 @@ export const useNutritionStore = create(
         dailyGoalsUpdatedAt: state.dailyGoalsUpdatedAt,
         nutritionSummary: state.nutritionSummary,
         recentFoods: state.recentFoods.slice(0, 10), // Limit recent foods
-        favoriteFood: state.favoriteFood.slice(0, 20) // Limit favorite foods
+        favoriteFood: state.favoriteFood.slice(0, 20), // Limit favorite foods
+        customFoods: (state.customFoods || []).slice(0, MAX_CUSTOM_FOODS)
       })
     }
   )
@@ -377,6 +466,7 @@ useNutritionStore.subscribe((state) => {
   const snapshot = JSON.stringify({
     meals: state.meals, waterIntake: state.waterIntake, dailyGoals: state.dailyGoals,
     recentFoods: state.recentFoods, favoriteFood: state.favoriteFood,
+    customFoods: state.customFoods,
   });
   if (snapshot === lastSyncedSnapshot) return;
   lastSyncedSnapshot = snapshot;

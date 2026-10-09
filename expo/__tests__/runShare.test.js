@@ -248,6 +248,23 @@ describe('describeSharedRun', () => {
     expect(describeSharedRun(shared({ activity: 'swim' })).activity).toBe('run');
   });
 
+  it('knows a hike, titles it "Hike" when it has no title, and carries its difficulty', () => {
+    const card = describeSharedRun(shared({ activity: 'hike', title: undefined, tier: '  Hard ' }));
+    expect(card.activity).toBe('hike');
+    expect(card.title).toBe('Hike');
+    expect(card.tier).toBe('Hard');
+    expect(describeSharedRun(shared({ activity: 'hike', title: 'Old Rag' })).title).toBe('Old Rag');
+  });
+
+  it('keeps a difficulty for a hike only, trimmed to 20 characters, and never an empty one', () => {
+    expect(describeSharedRun(shared({ activity: 'run', tier: 'Hard' }))).not.toHaveProperty('tier');
+    expect(describeSharedRun(shared({ activity: 'walk', tier: 'Hard' }))).not.toHaveProperty('tier');
+    expect(describeSharedRun(shared({ activity: 'hike' }))).not.toHaveProperty('tier');
+    expect(describeSharedRun(shared({ activity: 'hike', tier: '   ' }))).not.toHaveProperty('tier');
+    expect(describeSharedRun(shared({ activity: 'hike', tier: 7 }))).not.toHaveProperty('tier');
+    expect(describeSharedRun(shared({ activity: 'hike', tier: 'x'.repeat(50) })).tier).toHaveLength(20);
+  });
+
   it('shows hours when it takes that long', () => {
     expect(describeSharedRun(shared({ distance: 21.1, duration: 7500 })).timeText).toBe('2:05:00');
   });

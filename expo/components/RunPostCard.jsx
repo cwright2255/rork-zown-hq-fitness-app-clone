@@ -1,7 +1,7 @@
 // components/RunPostCard.jsx
 //
-// A shared run on the community feed: its title, the route, and the distance,
-// time and pace. The route is drawn as a light sketch by default (a feed with
+// A shared run, walk or hike on the community feed: its title, the route, and the
+// distance, time and pace. The route is drawn as a light sketch by default (a feed with
 // a real map on every card would be heavy) and "View on map" opens the real
 // map for that one card. The first and last 200 m of a shared route are
 // hidden when it is posted (lib/runShare.js), and the card says so.
@@ -11,7 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import RunRouteMap, { hasNativeMap } from './RunRouteMap';
 import { describeSharedRun, SHARE_HIDE_ENDS_M } from '../lib/runShare';
 
-const GREEN = '#22C55E';
+const WHITE = '#FFFFFF';
+const ICONS = { run: 'fitness-outline', walk: 'walk-outline', hike: 'trail-sign-outline' };
 // The route sits in a short, wide frame, so it needs far less room around it than on the run screen.
 const CARD_EDGE_PADDING = { top: 30, right: 30, bottom: 30, left: 30 };
 
@@ -37,7 +38,7 @@ export default function RunPostCard({ run, style }) {
     <View style={[styles.card, style]} testID="run-post-card">
       <View style={styles.header}>
         <View style={styles.icon}>
-          <Ionicons name={info.activity === 'walk' ? 'walk-outline' : 'fitness-outline'} size={16} color={GREEN} />
+          <Ionicons name={ICONS[info.activity] || ICONS.run} size={16} color={WHITE} />
         </View>
         <Text style={styles.title} testID="run-post-title" numberOfLines={1}>{info.title}</Text>
       </View>
@@ -72,10 +73,17 @@ export default function RunPostCard({ run, style }) {
         <Stat value={info.paceText} unit="/km" label="Pace" testID="run-post-pace" />
       </View>
 
-      {info.climb > 0 && (
+      {(info.climb > 0 || !!info.tier) && (
         <View style={styles.climbRow}>
-          <Ionicons name="trending-up" size={14} color={GREEN} />
-          <Text style={styles.climbText} testID="run-post-climb">{`${info.climb} m climb`}</Text>
+          {info.climb > 0 && (
+            <>
+              <Ionicons name="trending-up" size={14} color={WHITE} />
+              <Text style={styles.climbText} testID="run-post-climb">{`${info.climb} m climb`}</Text>
+            </>
+          )}
+          {!!info.tier && (
+            <Text style={styles.tierText} testID="run-post-tier">{info.climb > 0 ? `\u00B7 ${info.tier}` : info.tier}</Text>
+          )}
         </View>
       )}
     </View>
@@ -88,7 +96,7 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   icon: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(34,197,94,0.14)',
+    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
   title: { flex: 1, fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
@@ -96,7 +104,7 @@ const styles = StyleSheet.create({
   mapOpen: { height: 240, borderRadius: 12 },
   mapFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
   privacy: { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
-  toggle: { fontSize: 12, fontWeight: '700', color: GREEN },
+  toggle: { fontSize: 12, fontWeight: '700', color: WHITE },
   stats: {
     flexDirection: 'row', marginTop: 8, backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 12, paddingVertical: 12,
@@ -107,4 +115,5 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 3, textTransform: 'uppercase' },
   climbRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   climbText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
+  tierText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
 });

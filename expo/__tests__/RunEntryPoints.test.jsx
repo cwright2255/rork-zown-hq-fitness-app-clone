@@ -26,6 +26,13 @@ jest.mock('@/store/runningStore', () => ({
   ),
 }));
 jest.mock('@/store/virtualChallengeStore', () => ({ VIRTUAL_CHALLENGES: [] }));
+// The finished-activity screen also reads saved hikes; none are needed here.
+jest.mock('@/store/hikingStore', () => ({
+  useHikingStore: Object.assign(
+    (select) => (typeof select === 'function' ? select({ completedHikes: [] }) : { completedHikes: [] }),
+    { getState: () => ({ completedHikes: [] }) },
+  ),
+}));
 jest.mock('@/store/workoutStore', () => ({
   useWorkoutStore: (select) => select({ completedWorkouts: [] }),
 }));

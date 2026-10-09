@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, SafeAreaView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { X, Camera, RotateCcw, Loader2, CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
@@ -10,6 +10,8 @@ import Button from '@/components/Button';
 import ScreenHeader from '@/components/ScreenHeader';
 
 export default function FoodScanScreen() {
+  // The meal the food was being added to (if any), carried through to the log screen.
+  const { mealId } = useLocalSearchParams();
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -117,13 +119,16 @@ export default function FoodScanScreen() {
   const addToMeal = useCallback(() => {
     if (!analysisResult) return;
 
-    router.push({
-      pathname: '/nutrition/search',
+    // The numbers are per 100 g (that is what the AI is asked for), so that is the serving.
+    // Straight to the log screen (servings and meal), not back to search.
+    router.replace({
+      pathname: '/nutrition/food/scanned',
       params: {
-        scannedFood: JSON.stringify(analysisResult)
+        scannedFood: JSON.stringify({ ...analysisResult, servingSize: '100g' }),
+        ...(mealId ? { mealId: String(mealId) } : {})
       }
     });
-  }, [analysisResult]);
+  }, [analysisResult, mealId]);
 
   const retryAnalysis = useCallback(() => {
     setAnalysisResult(null);
@@ -182,7 +187,7 @@ export default function FoodScanScreen() {
             </Text>
             
             <View style={styles.nutritionInfo}>
-              <Text style={styles.nutritionTitle}>Nutrition (per {analysisResult.servingSize})</Text>
+              <Text style={styles.nutritionTitle}>Nutrition (per 100g)</Text>
               
               <View style={styles.nutritionGrid}>
                 <View style={styles.nutritionItem}>
@@ -272,6 +277,7 @@ export default function FoodScanScreen() {
                 </View> :
 
             <TouchableOpacity
+              testID="scan-capture"
               style={styles.captureButton}
               onPress={takePicture}>
               

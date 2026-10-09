@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
-  RefreshControl, TouchableOpacity, Platform } from 'react-native';
-import { router } from 'expo-router';
-import { ChevronLeft, ChevronRight, Plus, Star, Droplet } from 'lucide-react-native';
+  RefreshControl, TouchableOpacity, Platform, Modal } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ChevronLeft, ChevronRight, Plus, Star, Droplet, Copy, Clock } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -14,6 +14,19 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { getGoalLabels, profileForNutrition } from '@/lib/userProfileData';
 import { getProfileFromStores, loadSnapshotSources } from '@/services/coachSnapshotService';
 import { gradeToStars } from '@/services/calorieApiService';
+import { localDateKey, parseDateKey } from '@/lib/localDate';
+import { MEAL_SLOTS, SLOT_IDS, foodKey } from '@/lib/foodLog';
+import { foodTotals } from '@/lib/nutritionHistory';
+import { listCopySources, dayLabel } from '@/lib/mealCopy';
+
+// Fiber, sugar and sodium under the macros. 28 g of fiber and 2,300 mg of
+// sodium are the FDA Daily Values; there is no daily value for total sugar, so
+// it is shown without a target.
+const EXTRA_NUTRIENTS = [
+  { key: 'fiber', label: 'Fiber', unit: 'g', color: '#22C55E', target: 28 },
+  { key: 'sugar', label: 'Sugar', unit: 'g', color: '#EC4899', target: null },
+  { key: 'sodium', label: 'Sodium', unit: 'mg', color: '#64748B', target: 2300 },
+];
 
 // Real fix: this screen previously used tokens.colors.dark_navy - a
 // dark theme not shared by any other screen reachable from the main
@@ -125,17 +138,17 @@ function StarRating({ stars, size = 12 }) {
 // tapped entirely (took a `type` argument but never used it), so every
 // added food landed with no meal assignment regardless of which button
 // was pressed.
-const MEAL_SLOTS = [
-  { id: 'breakfast', name: 'Breakfast' },
-  { id: 'lunch', name: 'Lunch' },
-  { id: 'dinner', name: 'Dinner' },
-  { id: 'snack', name: 'Snack' },
-];
+// (MEAL_SLOTS now lives in lib/foodLog.js so the recipe screen uses the same four.)
 
 export default function NutritionScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useUserStore();
-  const { meals, dailyGoals, loadNutritionData, setSyncUid, getMealsByDate } = useNutritionStore();
+  const { meals, dailyGoals, loadNutritionData, setSyncUid, getMealsByDate, copyMealFoods } = useNutritionStore();
+  // A day can be opened directly (the intake history does this): ?date=YYYY-MM-DD.
+  const routeParams = useLocalSearchParams() || {};
+  const startDate = parseDateKey(Array.isArray(routeParams.date) ? routeParams.date[0] : routeParams.date);
+  // The meal slot the "Copy Meal" sheet is open for, or null.
+  const [copySlot, setCopySlot] = useState(null);
   // Real restore: this screen's water tracking was removed in an
   // earlier, unrelated commit (fd06ef4, a UI migration batch) well
   // before this session - confirmed directly via git history, not a
@@ -198,7 +211,7 @@ export default function NutritionScreen() {
     setRefreshing(false);
   };
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => startDate || new Date());
 
   const shiftDate = (days) => {
     setSelectedDate((prev) => {
@@ -218,24 +231,48 @@ export default function NutritionScreen() {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
-  const dateStr = selectedDate.toISOString().slice(0, 10);
-  const isViewingToday = dateStr === new Date().toISOString().slice(0, 10);
+  // The person's own calendar day, not the UTC one (which turns over at about
+  // 8 PM in New Jersey and put the evening's food on tomorrow).
+  const dateStr = localDateKey(selectedDate);
+  const isViewingToday = dateStr === localDateKey();
   const mealsForSelectedDate = useMemo(() => getMealsByDate(dateStr), [meals, dateStr]);
 
-  const totals = useMemo(() => {
-    const allFoods = mealsForSelectedDate.flatMap((m) => m.foods || []);
-    return {
-      protein: allFoods.reduce((s, f) => s + (f.protein || 0), 0),
-      carbs: allFoods.reduce((s, f) => s + (f.carbs || 0), 0),
-      fat: allFoods.reduce((s, f) => s + (f.fat || 0), 0),
-    };
-  }, [mealsForSelectedDate]);
+  const totals = useMemo(
+    () => foodTotals(mealsForSelectedDate.flatMap((m) => m.foods || [])),
+    [mealsForSelectedDate]
+  );
+
+  // Meals that can be copied into the slot the sheet is open for.
+  const copySources = useMemo(
+    () => (copySlot ? listCopySources(meals, { targetDate: dateStr, targetMealId: copySlot.id }) : []),
+    [meals, dateStr, copySlot]
+  );
+  const todayKey = localDateKey();
+
+  const copyFrom = (source) => {
+    copyMealFoods({ fromDate: source.date, fromMealId: source.mealId, toDate: dateStr, toMealId: copySlot.id });
+    setCopySlot(null);
+  };
+
+  // Fiber, sugar and sodium only count foods that list them; say so when the
+  // day has foods that do not, so a low total is not read as a real one.
+  const partialNutrients = EXTRA_NUTRIENTS
+    .filter((n) => totals.foodCount > 0 && totals.listed[n.key] > 0 && totals.listed[n.key] < totals.foodCount)
+    .map((n) => `${n.label.toLowerCase()} ${totals.listed[n.key]} of ${totals.foodCount}`);
 
   const dailyCalorieGoal = dailyGoals?.calories || 2000;
   const caloriesConsumed = mealsForSelectedDate.reduce((s, m) => s + (m.foods || []).reduce((fs, f) => fs + (f.calories || 0), 0), 0);
   const caloriesRemaining = Math.max(0, dailyCalorieGoal - caloriesConsumed);
 
   const getMealForSlot = (slotId) => mealsForSelectedDate.find((m) => m.id === slotId) || null;
+
+  // Food saved under something other than the four meal slots (an older version
+  // of recipe logging did this) counts in the totals above, so it has to be
+  // listed somewhere to be seen and removed.
+  const otherFoods = useMemo(
+    () => mealsForSelectedDate.filter((m) => !SLOT_IDS.includes(m.id)).flatMap((m) => m.foods || []),
+    [mealsForSelectedDate]
+  );
 
   const sumMealCalories = (meal) => (meal?.foods || []).reduce((s, f) => s + (f.calories || 0), 0);
 
@@ -257,7 +294,14 @@ export default function NutritionScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Nutrition" />
+      <ScreenHeader
+        title="Nutrition"
+        rightAction={
+          <TouchableOpacity testID="nutrition-history" accessibilityLabel="Intake history" onPress={() => router.push('/nutrition/history')} hitSlop={8}>
+            <Clock size={22} color="#000" />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -299,6 +343,24 @@ export default function NutritionScreen() {
             <Text style={styles.macroLabel}>Fat</Text>
           </View>
         </View>
+
+        <View testID="nutrition-extras" style={styles.macroRow}>
+          {EXTRA_NUTRIENTS.map((n) => {
+            const listed = totals.listed[n.key] > 0;
+            return (
+              <View key={n.key} testID={`extra-${n.key}`} style={[styles.macroChip, { borderLeftColor: n.color }]}>
+                <Text style={styles.macroVal}>{listed ? `${totals[n.key].toLocaleString('en-US')}${n.unit}` : '\u2014'}</Text>
+                <Text style={styles.macroLabel}>{n.label}</Text>
+                {n.target ? <Text style={styles.extraTarget}>of {n.target.toLocaleString('en-US')} {n.unit}</Text> : null}
+              </View>
+            );
+          })}
+        </View>
+        {partialNutrients.length > 0 ? (
+          <Text testID="nutrition-extras-note" style={styles.extrasNote}>
+            Counted from the foods that list them: {partialNutrients.join(', ')}.
+          </Text>
+        ) : null}
 
         {isViewingToday && (
           <>
@@ -346,9 +408,9 @@ export default function NutritionScreen() {
                 <View style={styles.foodList}>
                   {meal.foods.map((fo) => (
                     <TouchableOpacity
-                      key={fo.id}
+                      key={fo.logId || fo.id}
                       style={styles.foodRow}
-                      onPress={() => router.push(`/nutrition/food/${fo.id}`)}>
+                      onPress={() => router.push(`/nutrition/food/${foodKey(fo)}`)}>
                       <Text style={styles.foodName}>{fo.name}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <StarRating stars={fo.nutritionalScore?.score ? gradeToStars(fo.nutritionalScore.score) : null} size={10} />
@@ -358,16 +420,78 @@ export default function NutritionScreen() {
                   ))}
                 </View>
               ) : null}
-              <TouchableOpacity
-                style={styles.addFoodBtn}
-                onPress={() => handleAddMealType(slot)}>
-                <Plus size={16} color="#000" />
-                <Text style={styles.addFoodText}>Add Food</Text>
-              </TouchableOpacity>
+              <View style={styles.mealActions}>
+                <TouchableOpacity
+                  style={styles.addFoodBtn}
+                  onPress={() => handleAddMealType(slot)}>
+                  <Plus size={16} color="#000" />
+                  <Text style={styles.addFoodText}>Add Food</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  testID={`copy-meal-${slot.id}`}
+                  style={styles.addFoodBtn}
+                  onPress={() => setCopySlot(slot)}>
+                  <Copy size={16} color="#000" />
+                  <Text style={styles.addFoodText}>Copy Meal</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           );
         })}
+
+        {otherFoods.length > 0 ? (
+          <View testID="nutrition-other" style={styles.mealCard}>
+            <View style={styles.mealHeader}>
+              <Text style={styles.mealName}>Other</Text>
+              <View style={styles.calBadge}>
+                <Text style={styles.calBadgeText}>{otherFoods.reduce((s, f) => s + (f.calories || 0), 0)} kcal</Text>
+              </View>
+            </View>
+            <View style={styles.foodList}>
+              {otherFoods.map((fo) => (
+                <TouchableOpacity
+                  key={fo.logId || fo.id}
+                  style={styles.foodRow}
+                  onPress={() => router.push(`/nutrition/food/${foodKey(fo)}`)}>
+                  <Text style={styles.foodName}>{fo.name}</Text>
+                  <Text style={styles.foodCal}>{fo.calories} kcal</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
+
+      <Modal visible={!!copySlot} animationType="slide" transparent onRequestClose={() => setCopySlot(null)}>
+        <View style={styles.sheetBackdrop}>
+          <View testID="copy-sheet" style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sheetTitle}>Copy into {copySlot ? copySlot.name : ''}</Text>
+                <Text style={styles.sheetSub}>{formatDate(selectedDate)}</Text>
+              </View>
+              <TouchableOpacity testID="copy-close" onPress={() => setCopySlot(null)} hitSlop={8}>
+                <Text style={styles.sheetClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 420 }}>
+              {copySources.length === 0 ? (
+                <Text testID="copy-empty" style={styles.sheetEmpty}>
+                  Nothing to copy yet. Meals you logged in the last 14 days show up here.
+                </Text>
+              ) : copySources.map((src) => (
+                <TouchableOpacity key={src.key} testID={`copy-source-${src.key}`} style={styles.sourceRow} onPress={() => copyFrom(src)}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sourceTitle}>{dayLabel(src.date, todayKey)} {'\u00B7'} {src.mealName}</Text>
+                    <Text style={styles.sourcePreview} numberOfLines={1}>{src.preview}</Text>
+                  </View>
+                  <Text style={styles.sourceCals}>{src.calories} kcal</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.bottomBar}>
         <PrimaryButton
@@ -458,10 +582,27 @@ const styles = StyleSheet.create({
   },
   foodName: { color: '#000', fontSize: 14, flex: 1 },
   foodCal: { color: '#999', fontSize: 13 },
+  mealActions: { flexDirection: 'row', justifyContent: 'space-around' },
   addFoodBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, marginTop: 12, paddingVertical: 10,
   },
+  extraTarget: { fontSize: 11, color: '#BBBBBB', marginTop: 1 },
+  extrasNote: { fontSize: 12, color: '#999', marginTop: -12, marginBottom: 20 },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  sheetTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
+  sheetSub: { fontSize: 13, color: '#999', marginTop: 2 },
+  sheetClose: { fontSize: 14, fontWeight: '600', color: '#000' },
+  sheetEmpty: { color: '#999', fontSize: 14, paddingVertical: 24, textAlign: 'center' },
+  sourceRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: '#F0F0F0', gap: 12,
+  },
+  sourceTitle: { fontSize: 15, fontWeight: '600', color: '#000' },
+  sourcePreview: { fontSize: 12, color: '#999', marginTop: 2 },
+  sourceCals: { fontSize: 13, color: '#666', fontWeight: '600' },
   addFoodText: { color: '#000', fontSize: 14, fontWeight: '500' },
   // Real fix: was 84, which is why the button sat partly behind the
   // nav bar - app/wearables.jsx has the identical fixed-button-above-

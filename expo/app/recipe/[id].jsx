@@ -1,11 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Alert, Platform, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useRecipeStore } from '@/store/recipeStore';
+import GroceryListButton from '@/components/GroceryListButton';
+import { isRecipeOnList } from '@/lib/groceryList';
 import { useUserStore } from '@/store/userStore';
+import { localDateKey } from '@/lib/localDate';
+import { MEAL_SLOTS, slotForHour } from '@/lib/foodLog';
 import { tokens } from '../../../theme/tokens';
 
 // Turns a real saved-recipe ingredient (an object: {id, name, amount, unit},
@@ -25,8 +29,10 @@ export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams();
   const recipeId = typeof id === 'string' ? id : '';
   const { addFoodToMeal } = useNutritionStore();
-  const { savedRecipes, loadRecipes } = useRecipeStore();
+  const { savedRecipes, loadRecipes, groceryList, addToGroceryList } = useRecipeStore();
   const { user } = useUserStore();
+  // Which meal the recipe is logged to. Starts on the one that fits the time of day.
+  const [slotId, setSlotId] = React.useState(() => slotForHour(new Date().getHours()));
 
   React.useEffect(() => {
     // Covers the case of opening a direct link to a recipe (e.g. from a
@@ -56,30 +62,47 @@ export default function RecipeDetailScreen() {
     );
   }
 
-  const handleLog = () => {
+  const hasNutrition = recipe.hasNutritionEstimate !== false && recipe.calories != null;
+  const onGroceryList = isRecipeOnList(groceryList, recipe.id);
+
+  const logNow = () => {
     const food = {
-      id: `recipe-${recipe.id}-${Date.now()}`,
+      id: `recipe-${recipe.id}`,
       name: recipe.title,
       calories: recipe.calories ?? 0,
       protein: recipe.protein ?? 0,
       carbs: recipe.carbs ?? 0,
       fat: recipe.fat ?? 0,
-      servingSize: `1/${recipe.servings || 4} recipe`,
+      servingSize: '1 serving',
       imageUrl: recipe.image,
     };
-    const today = new Date().toISOString().split('T')[0];
-    const mealId = `meal-${Date.now()}`;
-    addFoodToMeal?.(today, mealId, food);
+    // One of the four meal slots (not a made-up id), so it shows up in the diary.
+    addFoodToMeal?.(localDateKey(), slotId, food);
     Alert.alert('Logged', 'Recipe added to your diary.', [
       { text: 'View', onPress: () => router.push('/nutrition') },
       { text: 'OK', style: 'cancel' },
     ]);
   };
 
+  const handleLog = () => {
+    if (!hasNutrition) {
+      Alert.alert(
+        'No nutrition estimate',
+        'This recipe has no calorie estimate, so it would count as 0 kcal in your diary.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log anyway', onPress: logNow },
+        ]
+      );
+      return;
+    }
+    logNow();
+  };
+
   return (
     <View style={styles.container}>
-      <ScreenHeader showBack />
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScreenHeader showBack rightAction={<GroceryListButton />} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 190 }}>
         {recipe.image ? (
           <Image source={{ uri: recipe.image }} style={styles.image} />
         ) : (
@@ -88,7 +111,7 @@ export default function RecipeDetailScreen() {
         <View style={{ padding: 22 }}>
           <Text style={styles.title}>{recipe.title}</Text>
           <Text style={styles.meta}>
-            {recipe.prepTime} min ÃÂÃÂ· Serves {recipe.servings}
+            {recipe.prepTime} min {'\u00B7'} Serves {recipe.servings}
           </Text>
 
           {recipe.hasNutritionEstimate !== false && recipe.calories != null ? (
@@ -120,6 +143,19 @@ export default function RecipeDetailScreen() {
             ))}
           </View>
 
+          {onGroceryList ? (
+            <View testID="recipe-on-grocery" style={[styles.groceryBtn, styles.groceryBtnDone]}>
+              <Text style={[styles.groceryText, styles.groceryTextDone]}>On your grocery list</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              testID="recipe-add-grocery"
+              style={styles.groceryBtn}
+              onPress={() => addToGroceryList && addToGroceryList(recipe.id)}>
+              <Text style={styles.groceryText}>Add Ingredients to Grocery List</Text>
+            </TouchableOpacity>
+          )}
+
           <Text style={styles.sectionLabel}>Instructions</Text>
           {recipe.instructions.map((step, i) => (
             <View key={i} style={styles.stepCard}>
@@ -131,6 +167,20 @@ export default function RecipeDetailScreen() {
       </ScrollView>
 
       <View style={styles.bottomBar}>
+        <View style={styles.slotRow}>
+          {MEAL_SLOTS.map((slot) => {
+            const active = slotId === slot.id;
+            return (
+              <TouchableOpacity
+                key={slot.id}
+                testID={`recipe-slot-${slot.id}`}
+                style={[styles.slotPill, active && styles.slotPillActive]}
+                onPress={() => setSlotId(slot.id)}>
+                <Text style={[styles.slotText, active && styles.slotTextActive]}>{slot.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         <PrimaryButton title="Log This Meal" onPress={handleLog} />
       </View>
     </View>
@@ -166,6 +216,13 @@ const styles = StyleSheet.create({
   ingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#000000', marginRight: 10 },
   ingText: { color: '#000000', fontSize: 14, flex: 1 },
+  groceryBtn: {
+    marginTop: 14, paddingVertical: 12, borderRadius: 999, alignItems: 'center',
+    borderWidth: 1, borderColor: '#000000', backgroundColor: '#FFFFFF',
+  },
+  groceryBtnDone: { borderColor: '#DDDDDD', backgroundColor: '#F5F5F5' },
+  groceryText: { fontSize: 14, fontWeight: '600', color: '#000000' },
+  groceryTextDone: { color: '#999999' },
   stepCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF', ...cardShadow,
@@ -178,4 +235,12 @@ const styles = StyleSheet.create({
   },
   stepText: { color: '#000000', fontSize: 14, flex: 1, lineHeight: 20 },
   bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 24 },
+  slotRow: { flexDirection: 'row', gap: 8, marginBottom: 10, justifyContent: 'center' },
+  slotPill: {
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999,
+    borderWidth: 1, borderColor: '#DDDDDD', backgroundColor: '#FFFFFF',
+  },
+  slotPillActive: { backgroundColor: '#000000', borderColor: '#000000' },
+  slotText: { fontSize: 13, fontWeight: '600', color: '#999999' },
+  slotTextActive: { color: '#FFFFFF' },
 });

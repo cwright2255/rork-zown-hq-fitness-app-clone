@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
 import Colors from '@/constants/colors';
+import { ROUTE_COLOR, ROUTE_GLOW, ROUTE_WIDTH, ROUTE_GLOW_WIDTH } from '../constants/runMap';
+import { StartMarker } from './RunMapMarkers';
 
 let MapView, Polyline, Marker, PROVIDER_DEFAULT;
 if (Platform.OS !== 'web') {
@@ -17,11 +19,9 @@ if (Platform.OS !== 'web') {
   }
 }
 
-// Route line and map look. The map is forced dark (Apple Maps dark + muted
-// style, no shop/landmark pins) so the green route stands out and the map
-// blends into the dark stats panel under it.
-const ROUTE_COLOR = '#22C55E';
-const ROUTE_GLOW = 'rgba(34, 197, 94, 0.28)';
+// Route line and map look (constants/runMap.js). The map is forced dark (Apple
+// Maps dark + muted style, no shop/landmark pins) so the white route stands out
+// and the map blends into the dark stats panel under it.
 const FOLLOW_DELTA = 0.004; // about 450 m across: street level
 
 export default function RunningMap({
@@ -231,7 +231,7 @@ export default function RunningMap({
               <Polyline
                 coordinates={coordinates}
                 strokeColor={ROUTE_GLOW}
-                strokeWidth={11}
+                strokeWidth={ROUTE_GLOW_WIDTH}
                 lineCap="round"
                 lineJoin="round"
                 zIndex={1}
@@ -241,7 +241,7 @@ export default function RunningMap({
               <Polyline
                 coordinates={coordinates}
                 strokeColor={ROUTE_COLOR}
-                strokeWidth={5}
+                strokeWidth={ROUTE_WIDTH}
                 lineCap="round"
                 lineJoin="round"
                 zIndex={2}
@@ -249,9 +249,7 @@ export default function RunningMap({
             )}
             {startPoint && Marker && (
               <Marker coordinate={startPoint} anchor={{ x: 0.5, y: 0.5 }} zIndex={3}>
-                <View style={styles.startMarker}>
-                  <View style={styles.startMarkerCore} />
-                </View>
+                <StartMarker testID="run-map-start" />
               </Marker>
             )}
           </MapView>
@@ -356,20 +354,6 @@ export default function RunningMap({
 const styles = StyleSheet.create({
   nativeWrap: {
     flex: 1,
-  },
-  startMarker: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  startMarkerCore: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: ROUTE_COLOR,
   },
   recenterBtn: {
     position: 'absolute',

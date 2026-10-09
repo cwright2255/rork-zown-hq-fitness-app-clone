@@ -10,6 +10,8 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Polyline as SvgPolyline, Circle } from 'react-native-svg';
 import { routeRegion, routeSketch } from '../lib/runDetail';
+import { MAP_BG, ROUTE_COLOR, ROUTE_GLOW, ROUTE_WIDTH, ROUTE_GLOW_WIDTH, MARKER_HALO } from '../constants/runMap';
+import { StartMarker, FinishMarker } from './RunMapMarkers';
 
 let MapView = null;
 let Polyline = null;
@@ -28,9 +30,7 @@ if (Platform.OS !== 'web') {
   }
 }
 
-// Same look as the live map (components/RunningMap.jsx).
-const ROUTE_COLOR = '#22C55E';
-const ROUTE_GLOW = 'rgba(34, 197, 94, 0.28)';
+// Same look as the live map (components/RunningMap.jsx): constants/runMap.js.
 const EDGE_PADDING = { top: 90, right: 50, bottom: 60, left: 50 };
 
 /** True when a real map can be drawn here (not on web, and only in a build that has react-native-maps). */
@@ -38,8 +38,11 @@ export const hasNativeMap = () => !!MapView;
 
 // `sketch` draws the flat route drawing even where a real map is available (a
 // feed full of maps would be heavy); `edgePadding` sets the room around the
-// route on a real map (the default leaves space for the run screen's header).
-export default function RunRouteMap({ points = [], style, edgePadding = EDGE_PADDING, sketch = false }) {
+// route on a real map (the default leaves space for the run screen's header),
+// and `emptyText` is what it says when there is no route (hikes say "hike").
+export default function RunRouteMap({
+  points = [], style, edgePadding = EDGE_PADDING, sketch = false, emptyText = 'No route was recorded for this run',
+}) {
   const mapRef = useRef(null);
   const region = useMemo(() => routeRegion(points), [points]);
   const hasRoute = points.length >= 2;
@@ -59,7 +62,7 @@ export default function RunRouteMap({ points = [], style, edgePadding = EDGE_PAD
     return (
       <View style={[styles.container, styles.center, style]} testID="run-route-empty">
         <Ionicons name="map-outline" size={36} color="rgba(255,255,255,0.35)" />
-        <Text style={styles.emptyText}>No route was recorded for this run</Text>
+        <Text style={styles.emptyText}>{emptyText}</Text>
       </View>
     );
   }
@@ -84,16 +87,16 @@ export default function RunRouteMap({ points = [], style, edgePadding = EDGE_PAD
           showsPointsOfInterest={false}
           showsBuildings={false}
         >
-          <Polyline coordinates={points} strokeColor={ROUTE_GLOW} strokeWidth={11} lineCap="round" lineJoin="round" zIndex={1} />
-          <Polyline coordinates={points} strokeColor={ROUTE_COLOR} strokeWidth={5} lineCap="round" lineJoin="round" zIndex={2} />
+          <Polyline coordinates={points} strokeColor={ROUTE_GLOW} strokeWidth={ROUTE_GLOW_WIDTH} lineCap="round" lineJoin="round" zIndex={1} />
+          <Polyline coordinates={points} strokeColor={ROUTE_COLOR} strokeWidth={ROUTE_WIDTH} lineCap="round" lineJoin="round" zIndex={2} />
           {Marker && (
             <Marker coordinate={start} anchor={{ x: 0.5, y: 0.5 }} zIndex={3} tracksViewChanges={false}>
-              <View style={styles.startMarker} testID="run-route-start"><View style={styles.startCore} /></View>
+              <StartMarker testID="run-route-start" />
             </Marker>
           )}
           {Marker && (
             <Marker coordinate={finish} anchor={{ x: 0.5, y: 0.5 }} zIndex={4} tracksViewChanges={false}>
-              <View style={styles.finishMarker} testID="run-route-finish"><Ionicons name="flag" size={12} color="#FFF" /></View>
+              <FinishMarker testID="run-route-finish" />
             </Marker>
           )}
         </MapView>
@@ -109,8 +112,10 @@ export default function RunRouteMap({ points = [], style, edgePadding = EDGE_PAD
         <Svg width="100%" height="100%" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
           <SvgPolyline points={drawing.points} fill="none" stroke={ROUTE_GLOW} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
           <SvgPolyline points={drawing.points} fill="none" stroke={ROUTE_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-          <Circle cx={drawing.start.x} cy={drawing.start.y} r={6} fill="#FFFFFF" stroke={ROUTE_COLOR} strokeWidth={3} />
-          <Circle cx={drawing.end.x} cy={drawing.end.y} r={6} fill={ROUTE_COLOR} stroke="#FFFFFF" strokeWidth={3} />
+          <Circle cx={drawing.start.x} cy={drawing.start.y} r={11} fill={MARKER_HALO} />
+          <Circle cx={drawing.start.x} cy={drawing.start.y} r={6} fill="none" stroke={ROUTE_COLOR} strokeWidth={3} />
+          <Circle cx={drawing.end.x} cy={drawing.end.y} r={12} fill={MARKER_HALO} />
+          <Circle cx={drawing.end.x} cy={drawing.end.y} r={7} fill={ROUTE_COLOR} />
         </Svg>
       )}
     </View>
@@ -118,16 +123,7 @@ export default function RunRouteMap({ points = [], style, edgePadding = EDGE_PAD
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#0D1117', overflow: 'hidden' },
+  container: { backgroundColor: MAP_BG, overflow: 'hidden' },
   center: { alignItems: 'center', justifyContent: 'center' },
   emptyText: { marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,0.55)' },
-  startMarker: {
-    width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  startCore: { width: 9, height: 9, borderRadius: 5, backgroundColor: ROUTE_COLOR },
-  finishMarker: {
-    width: 26, height: 26, borderRadius: 13, backgroundColor: ROUTE_COLOR,
-    borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
-  },
 });

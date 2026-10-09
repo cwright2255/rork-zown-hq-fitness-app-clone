@@ -5,6 +5,8 @@
 // background.
 //
 //   startTracking()  begin delivering readings; call it while the app is open
+//                    (pass { label: 'hike' } to name the outing in the Android
+//                    "recording" notification)
 //   stopTracking()   stop (always call when a run ends)
 //
 // On a build that has expo-task-manager this uses a background location task
@@ -69,8 +71,11 @@ async function isBackgroundTaskRunning() {
   }
 }
 
-/** Begins delivering GPS to the tracker. Resolves 'background' or 'foreground'. */
-export async function startTracking() {
+/**
+ * Begins delivering GPS to the tracker. Resolves 'background' or 'foreground'.
+ * `label` is what the notification says is being recorded ("Recording your hike").
+ */
+export async function startTracking({ label = 'run' } = {}) {
   if (await isBackgroundTaskRunning()) return 'background';
   if (watchSubscription) return 'foreground';
 
@@ -85,7 +90,7 @@ export async function startTracking() {
         showsBackgroundLocationIndicator: true,
         foregroundService: {
           notificationTitle: 'ZOWN HQ',
-          notificationBody: 'Recording your run',
+          notificationBody: `Recording your ${label}`,
           notificationColor: '#22C55E',
         },
       });

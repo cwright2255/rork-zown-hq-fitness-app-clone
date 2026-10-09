@@ -129,10 +129,14 @@ export const useCommunityStore = create((set, get) => ({
       const postRef = doc(db, 'communityPosts', postId);
       let media = [];
       let wasRun = false;
+      let wasHike = false;
       try {
         const snap = await getDoc(postRef);
         media = snap.exists() ? (snap.data().media || []) : [];
-        wasRun = snap.exists() && !!snap.data().run;
+        // A hike card is a run card with type 'hike' (lib/hikeShare.js).
+        const hasCard = snap.exists() && !!snap.data().run;
+        wasHike = hasCard && snap.data().type === 'hike';
+        wasRun = hasCard && !wasHike;
       } catch (e) {
         media = [];
       }
@@ -148,6 +152,19 @@ export const useCommunityStore = create((set, get) => ({
           useRunningStore.getState().forgetSharedPost?.(uid, postId);
         } catch (e) {
           console.warn('[communityStore] could not free the run for sharing:', e?.message);
+        }
+      }
+      // The same for a deleted hike card: the hike can be shared again. (Loaded
+      // lazily: only this path needs the hiking store.)
+      if (wasHike && uid) {
+        try {
+          // eslint-disable-next-line global-require
+          const { useHikingStore } = require('./hikingStore');
+          const hiking = useHikingStore.getState();
+          if (!hiking.completedHikes?.length && typeof hiking.loadCompletedHikes === 'function') await hiking.loadCompletedHikes(uid);
+          useHikingStore.getState().forgetSharedPost?.(uid, postId);
+        } catch (e) {
+          console.warn('[communityStore] could not free the hike for sharing:', e?.message);
         }
       }
     } catch (e) {

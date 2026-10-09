@@ -1,5 +1,7 @@
 const mockForget = jest.fn();
 const mockLoadRuns = jest.fn();
+const mockForgetHike = jest.fn();
+const mockLoadHikes = jest.fn();
 jest.mock('../src/config/firebase', () => ({ db: { name: 'db' } }));
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn((db, ...path) => ({ collection: path.join('/') })),
@@ -27,6 +29,12 @@ jest.mock('../store/runningStore', () => ({
   useRunningStore: { getState: () => ({ runs: global.__runs, loadRuns: mockLoadRuns, forgetSharedPost: mockForget }) },
 }));
 
+jest.mock('../store/hikingStore', () => ({
+  useHikingStore: {
+    getState: () => ({ completedHikes: global.__hikes, loadCompletedHikes: mockLoadHikes, forgetSharedPost: mockForgetHike }),
+  },
+}));
+
 import { setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { deletePostMedia } from '../services/postMediaService';
 import { useCommunityStore } from '../store/communityStore';
@@ -40,8 +48,9 @@ const create = (extra = {}) => useCommunityStore.getState().createPost({ uid: 'u
 let warn;
 beforeEach(() => {
   warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-  [setDoc, getDoc, deleteDoc, deletePostMedia, mockForget, mockLoadRuns].forEach((fn) => fn.mockClear());
+  [setDoc, getDoc, deleteDoc, deletePostMedia, mockForget, mockLoadRuns, mockForgetHike, mockLoadHikes].forEach((fn) => fn.mockClear());
   global.__runs = [{ id: 'run-1', sharedPostId: 'p1' }];
+  global.__hikes = [{ id: 'hike-1', sharedPostId: 'p1' }];
 });
 afterEach(() => warn.mockRestore());
 
@@ -53,6 +62,14 @@ describe('createPost with a run', () => {
     expect(body.run).toEqual(sharedRun());
     expect(body.type).toBe('run');
     expect(body.authorId).toBe('u1');
+  });
+
+  it('saves a hike card the same way, as a hike post', async () => {
+    const hikeCard = sharedRun({ activity: 'hike', title: 'Old Rag', tier: 'Moderate', elevGain: 412 });
+    expect(await create({ text: 'Old Rag: 6.60 km in 2:30:00', type: 'hike', run: hikeCard })).toBe('new-post');
+    const body = setDoc.mock.calls[0][1];
+    expect(body.run).toEqual(hikeCard);
+    expect(body.type).toBe('hike');
   });
 
   it('lets a run be posted with no text and no photo', async () => {
@@ -103,6 +120,40 @@ describe('deletePost', () => {
     await useCommunityStore.getState().deletePost('p2', 'u1');
     expect(deleteDoc).toHaveBeenCalledTimes(1);
     expect(mockForget).not.toHaveBeenCalled();
+  });
+
+  it('frees the hike, not a run, when a hike card is deleted', async () => {
+    getDoc.mockResolvedValueOnce(snapshot({ type: 'hike', run: sharedRun({ activity: 'hike' }), media: [] }));
+    await useCommunityStore.getState().deletePost('p1', 'u1');
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
+    expect(mockForgetHike).toHaveBeenCalledWith('u1', 'p1');
+    expect(mockLoadHikes).not.toHaveBeenCalled();
+    expect(mockForget).not.toHaveBeenCalled();
+    expect(mockLoadRuns).not.toHaveBeenCalled();
+  });
+
+  it('loads the saved hikes first when this phone has none yet', async () => {
+    global.__hikes = [];
+    getDoc.mockResolvedValueOnce(snapshot({ type: 'hike', run: sharedRun({ activity: 'hike' }) }));
+    await useCommunityStore.getState().deletePost('p1', 'u1');
+    expect(mockLoadHikes).toHaveBeenCalledWith('u1');
+    expect(mockForgetHike).toHaveBeenCalledWith('u1', 'p1');
+  });
+
+  it('leaves the hikes alone when a run card or an ordinary post is deleted', async () => {
+    getDoc.mockResolvedValueOnce(snapshot({ run: sharedRun(), media: [] }));
+    await useCommunityStore.getState().deletePost('p1', 'u1');
+    getDoc.mockResolvedValueOnce(snapshot({ text: 'Hello', media: [] }));
+    await useCommunityStore.getState().deletePost('p2', 'u1');
+    expect(mockForgetHike).not.toHaveBeenCalled();
+    expect(mockLoadHikes).not.toHaveBeenCalled();
+  });
+
+  it('still deletes the post if freeing the hike goes wrong', async () => {
+    getDoc.mockResolvedValueOnce(snapshot({ type: 'hike', run: sharedRun({ activity: 'hike' }) }));
+    mockForgetHike.mockImplementationOnce(() => { throw new Error('storage'); });
+    await useCommunityStore.getState().deletePost('p1', 'u1');
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
   });
 
   it('still deletes the post if freeing the run goes wrong', async () => {

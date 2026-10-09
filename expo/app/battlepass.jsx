@@ -10,6 +10,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useAchievementStore } from '@/store/achievementStore';
+import { localDateKey } from '@/lib/localDate';
 
 const TIER_REWARDS = [
   {t:1,icon:'trophy',name:'Profile Badge'},
@@ -151,7 +152,7 @@ export default function BattlePassScreen(){
     const isThisWeek = (d) => d && new Date(d) >= monday;
 
     const todayWorkouts = (completedWorkouts || []).filter(w => isToday(w.completedAt)).length;
-    const todayMealsLogged = (getMealsByDate ? getMealsByDate(todayKey) : []).filter(m => m.foods?.length > 0).length;
+    const todayMealsLogged = (getMealsByDate ? getMealsByDate(localDateKey(now)) : []).filter(m => m.foods?.length > 0).length;
     const weekRunKm = (runs || []).filter(r => isThisWeek(r.startTime)).reduce((s, r) => s + (r.distance || 0), 0);
     const weekWorkouts = (completedWorkouts || []).filter(w => isThisWeek(w.completedAt)).length;
 

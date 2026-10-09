@@ -35,6 +35,8 @@ function findNutrientAmount(nutrients, nameSubstring) {
   return match?.amount;
 }
 
+const tenthOrUndefined = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? undefined : Math.round(Number(v) * 10) / 10);
+
 // Real response shape confirmed directly from
 // https://calorieapi.com/docs/food-search: macros use a _100g suffix
 // (calories_100g, protein_100g, etc.).
@@ -54,9 +56,11 @@ const convertCalorieApiToFoodItem = (item) => {
     protein: Math.round((item.protein_100g || 0) * 10) / 10,
     carbs: Math.round((item.carbs_100g || 0) * 10) / 10,
     fat: Math.round((item.fat_100g || 0) * 10) / 10,
-    fiber: Math.round((item.fiber_100g || 0) * 10) / 10,
-    sugar: Math.round((item.sugar_100g || 0) * 10) / 10,
-    sodium: Math.round((sodium || 0) * 10) / 10,
+    // Left off (undefined) when the API has no figure, so "not listed" is not
+    // shown as a real 0 in the diary's fiber / sugar / sodium totals.
+    fiber: tenthOrUndefined(item.fiber_100g),
+    sugar: tenthOrUndefined(item.sugar_100g),
+    sodium: tenthOrUndefined(sodium),
     imageUrl: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
     nutritionalScore: {
       score: calculateNutritionalScore({
@@ -191,9 +195,13 @@ export const gradeToMealStars = (grade) => {
   return 3;
 };
 
-// Search foods via the real Cloud Function proxy
-export const searchFoods = async (query) => {
-  if (!query.trim()) return [];
+// Search foods via the real Cloud Function proxy. Returns { results, fallback }:
+// `fallback` is true when the search itself could not be reached and the
+// results are only the short built-in list below, so the screen can say so
+// instead of presenting them as real search results. A fallback is not cached,
+// so trying again goes back to the real search.
+export const searchFoodsDetailed = async (query) => {
+  if (!query || !query.trim()) return { results: [], fallback: false };
 
   if (Date.now() - lastCacheTime > CACHE_EXPIRY) {
     searchCache.clear();
@@ -202,19 +210,20 @@ export const searchFoods = async (query) => {
 
   const cacheKey = query.toLowerCase().trim();
   if (searchCache.has(cacheKey)) {
-    return searchCache.get(cacheKey);
+    return { results: searchCache.get(cacheKey), fallback: false };
   }
 
   try {
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('../src/config/firebase');
+    // require, not import(): the same lazy load, and it can be run under Jest.
+    const { httpsCallable } = require('firebase/functions');
+    const { functions } = require('../src/config/firebase');
     const fn = httpsCallable(functions, 'searchCalorieApiFoods');
     const result = await fn({ query });
     const payload = result.data || {};
     const results = (payload.data || []).map(convertCalorieApiToFoodItem);
 
     searchCache.set(cacheKey, results);
-    return results;
+    return { results, fallback: false };
   } catch (error) {
     console.error('Food search failed:', error);
 
@@ -222,10 +231,12 @@ export const searchFoods = async (query) => {
     food.name.toLowerCase().includes(cacheKey)
     );
 
-    searchCache.set(cacheKey, mockResults);
-    return mockResults;
+    return { results: mockResults, fallback: true };
   }
 };
+
+// The results alone, for callers that do not need to know about the fallback.
+export const searchFoods = async (query) => (await searchFoodsDetailed(query)).results;
 
 // Get food by ID via the real Cloud Function proxy
 export const getFoodById = async (id) => {

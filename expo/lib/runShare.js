@@ -111,10 +111,11 @@ export function describeSharedRun(raw) {
   const duration = num(raw.duration);
   if (!(distance > 0) || !(duration > 0)) return null;
 
-  const activity = raw.activity === 'walk' ? 'walk' : 'run';
+  // Hikes share the same card (lib/hikeShare.js); anything else unknown is a run.
+  const activity = raw.activity === 'walk' ? 'walk' : raw.activity === 'hike' ? 'hike' : 'run';
   const title = typeof raw.title === 'string' && raw.title.trim()
     ? raw.title.trim().slice(0, 40)
-    : ACTIVITIES[activity].label;
+    : (activity === 'hike' ? 'Hike' : ACTIVITIES[activity].label);
 
   const flat = Array.isArray(raw.route) ? raw.route.slice(0, SHARE_MAX_POINTS * 2) : [];
   const points = [];
@@ -124,6 +125,7 @@ export function describeSharedRun(raw) {
   }
 
   const pace = num(raw.pace) > 0 ? num(raw.pace) : duration / distance;
+  const tier = activity === 'hike' && typeof raw.tier === 'string' ? raw.tier.trim().slice(0, 20) : '';
   return {
     activity,
     title,
@@ -131,6 +133,7 @@ export function describeSharedRun(raw) {
     timeText: formatClock(duration),
     paceText: formatPace(pace),
     climb: num(raw.elevGain) > 0 ? Math.round(raw.elevGain) : 0,
+    ...(tier ? { tier } : {}),
     points,
     hasRoute: points.length >= 2,
   };

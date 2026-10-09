@@ -275,3 +275,80 @@ describe('describeRun', () => {
     expect(d.hasRoute).toBe(true);
   });
 });
+
+describe('paceChart', () => {
+  const { paceChart, splitSummary } = require('../lib/runDetail');
+  const rowsOf = (splits, distance, duration) => splitSummary({ splits, distance: distance ?? splits.length, duration: duration ?? splits.reduce((a, b) => a + b, 0) }).rows;
+
+  it('gives nothing when there are no kilometres', () => {
+    expect(paceChart([])).toBeNull();
+    expect(paceChart(undefined)).toBeNull();
+  });
+
+  it('puts the fastest kilometre at the top and the slowest at the bottom', () => {
+    const chart = paceChart(rowsOf([300, 310, 305, 320, 295]), 300, 120);
+    const ys = chart.points.map((p) => p.y);
+    expect(chart.points[4].isFastest).toBe(true);
+    expect(chart.points[3].isSlowest).toBe(true);
+    expect(chart.points[4].y).toBe(Math.min(...ys));
+    expect(chart.points[3].y).toBe(Math.max(...ys));
+    expect(chart.points[4].y).toBe(chart.top);
+    expect(chart.points[3].y).toBe(chart.bottom);
+  });
+
+  it('spreads the points evenly from left to right inside the side margins', () => {
+    const { points } = paceChart(rowsOf([300, 310, 305]), 300, 120, { padX: 20 });
+    expect(points.map((p) => p.x)).toEqual([20, 150, 280]);
+  });
+
+  it('puts a single kilometre in the middle, with no line to draw between', () => {
+    const chart = paceChart(rowsOf([300], 1.2, 360), 300, 120);
+    // 1 full km and a 0.2 km rest: two points
+    expect(chart.points).toHaveLength(2);
+    const one = paceChart(rowsOf([300], 1, 300), 300, 120);
+    expect(one.points).toHaveLength(1);
+    expect(one.points[0].x).toBe(150);
+    expect(one.area).toBe('');
+  });
+
+  it('puts every point halfway when the pace never changed', () => {
+    const { points, top, bottom } = paceChart(rowsOf([300, 300, 300]), 300, 120);
+    const mid = Math.round((top + (bottom - top) / 2) * 10) / 10;
+    points.forEach((p) => expect(p.y).toBe(mid));
+  });
+
+  it('draws a smooth line that starts at the first point and never leaves the chart', () => {
+    const chart = paceChart(rowsOf([300, 250, 400, 260, 390, 255]), 300, 120);
+    expect(chart.line.startsWith(`M ${chart.points[0].x} ${chart.points[0].y}`)).toBe(true);
+    const numbers = chart.line.match(/-?\d+(\.\d+)?/g).map(Number);
+    // every y in the path (odd positions) stays between the top and bottom of the chart
+    numbers.filter((_, i) => i % 2 === 1).forEach((y) => {
+      expect(y).toBeGreaterThanOrEqual(chart.top);
+      expect(y).toBeLessThanOrEqual(chart.bottom);
+    });
+    expect((chart.line.match(/C/g) || []).length).toBe(5);
+  });
+
+  it('closes the fill down to the bottom edge', () => {
+    const chart = paceChart(rowsOf([300, 310]), 300, 120);
+    expect(chart.area.startsWith(chart.line)).toBe(true);
+    expect(chart.area.endsWith('Z')).toBe(true);
+    expect(chart.area).toContain(`L ${chart.points[1].x} 120`);
+  });
+
+  it('labels every kilometre on a short run and thins the labels on a long one', () => {
+    const short = paceChart(rowsOf([300, 310, 305, 320]), 300, 120);
+    expect(short.points.every((p) => p.showLabel)).toBe(true);
+    const long = paceChart(rowsOf(Array.from({ length: 21 }, (_, i) => 300 + (i % 5))), 300, 120);
+    const shown = long.points.filter((p) => p.showLabel).length;
+    expect(shown).toBeLessThan(long.points.length / 2);
+    expect(long.points[0].showLabel).toBe(true);
+  });
+
+  it('keeps each row\'s own index and label, including the part-kilometre', () => {
+    const chart = paceChart(rowsOf([300, 310], 2.4, 740), 300, 120);
+    expect(chart.points.map((p) => p.index)).toEqual([0, 1, 2]);
+    expect(chart.points[2].label).toBe('0.40');
+    expect(chart.points[2].partial).toBe(true);
+  });
+});

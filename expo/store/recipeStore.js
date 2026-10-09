@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import recipeExtractionService from '@/services/recipeExtractionService';
+import { buildGroceryItems, mergeGroceryItems } from '@/lib/groceryList';
 import { db } from '../src/config/firebase';
 import { collection, addDoc, getDocs, query, orderBy, limit, doc, deleteDoc } from 'firebase/firestore';
 
@@ -9,9 +9,14 @@ const STORAGE_KEYS = {
   GROCERY_LIST: '@grocery_list'
 };
 
+// A new id for each grocery line, unique even for lines made in the same millisecond.
+let groceryIdSeq = 0;
+const newGroceryId = () => `grocery_${Date.now().toString(36)}_${groceryIdSeq++}`;
+
 export const useRecipeStore = create((set, get) => ({
   savedRecipes: [],
   groceryList: [],
+  groceryLoaded: false,
   isLoading: false,
   error: null,
 
@@ -135,23 +140,14 @@ export const useRecipeStore = create((set, get) => ({
     get().saveData();
   },
 
+  // Adds the ingredients of these recipes to the grocery list. What is already
+  // on the list stays (with its ticks); an ingredient two recipes share becomes
+  // one line, and a recipe that is already counted is not added twice.
   generateGroceryList: (recipeIds) => {
-    const { savedRecipes } = get();
+    const { savedRecipes, groceryList } = get();
     const selectedRecipes = savedRecipes.filter((recipe) => recipeIds.includes(recipe.id));
-
-    const groceryItems = recipeExtractionService.generateGroceryList(selectedRecipes);
-
-    const groceryList = groceryItems.map((item, index) => ({
-      id: `grocery_${index}_${Date.now()}`,
-      ingredient: item.ingredient,
-      amount: item.amount,
-      unit: item.unit,
-      recipes: item.recipes,
-      checked: false,
-      category: categorizeIngredient(item.ingredient)
-    }));
-
-    set({ groceryList });
+    const merged = mergeGroceryItems(groceryList, buildGroceryItems(selectedRecipes), newGroceryId);
+    set({ groceryList: merged });
     get().saveData();
   },
 
@@ -217,6 +213,24 @@ export const useRecipeStore = create((set, get) => ({
     get().saveData();
   },
 
+  // Reads just the grocery list back from the phone (the recipes themselves come
+  // from the cloud), once. Anything added while it was reading is kept.
+  loadGroceryList: async () => {
+    if (get().groceryLoaded) return;
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.GROCERY_LIST);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const stored = Array.isArray(parsed) ? parsed : [];
+      const current = get().groceryList;
+      set({
+        groceryList: current.length ? mergeGroceryItems(stored, current, newGroceryId) : stored,
+        groceryLoaded: true
+      });
+    } catch (error) {
+      console.error('Error loading grocery list:', error);
+    }
+  },
+
   loadData: async () => {
     try {
       set({ isLoading: true });
@@ -249,46 +263,3 @@ export const useRecipeStore = create((set, get) => ({
     }
   }
 }));
-
-// Helper function to categorize ingredients
-function categorizeIngredient(ingredient) {
-  const lowerIngredient = ingredient.toLowerCase();
-
-  if (lowerIngredient.includes('milk') || lowerIngredient.includes('cheese') ||
-  lowerIngredient.includes('yogurt') || lowerIngredient.includes('butter') ||
-  lowerIngredient.includes('cream')) {
-    return 'Dairy';
-  }
-
-  if (lowerIngredient.includes('chicken') || lowerIngredient.includes('beef') ||
-  lowerIngredient.includes('pork') || lowerIngredient.includes('fish') ||
-  lowerIngredient.includes('salmon') || lowerIngredient.includes('turkey')) {
-    return 'Meat & Seafood';
-  }
-
-  if (lowerIngredient.includes('apple') || lowerIngredient.includes('banana') ||
-  lowerIngredient.includes('orange') || lowerIngredient.includes('berry') ||
-  lowerIngredient.includes('lemon') || lowerIngredient.includes('lime')) {
-    return 'Fruits';
-  }
-
-  if (lowerIngredient.includes('lettuce') || lowerIngredient.includes('spinach') ||
-  lowerIngredient.includes('broccoli') || lowerIngredient.includes('carrot') ||
-  lowerIngredient.includes('onion') || lowerIngredient.includes('tomato')) {
-    return 'Vegetables';
-  }
-
-  if (lowerIngredient.includes('bread') || lowerIngredient.includes('rice') ||
-  lowerIngredient.includes('pasta') || lowerIngredient.includes('flour') ||
-  lowerIngredient.includes('oats') || lowerIngredient.includes('quinoa')) {
-    return 'Grains & Bread';
-  }
-
-  if (lowerIngredient.includes('beans') || lowerIngredient.includes('lentils') ||
-  lowerIngredient.includes('chickpeas') || lowerIngredient.includes('nuts') ||
-  lowerIngredient.includes('seeds')) {
-    return 'Pantry';
-  }
-
-  return 'Other';
-}

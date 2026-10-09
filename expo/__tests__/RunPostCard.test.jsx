@@ -38,6 +38,11 @@ describe('RunPostCard', () => {
     expect(utils.getByText('Pace')).toBeTruthy();
   });
 
+  it('is black and white: no green on the card', () => {
+    const utils = render(<RunPostCard run={shared()} />);
+    expect(JSON.stringify(utils.toJSON())).not.toMatch(/22C55E|34, ?197, ?94|rgba\(34,197,94/i);
+  });
+
   it('shows the climb only when there was one', () => {
     expect(render(<RunPostCard run={shared()} />).getByTestId('run-post-climb').props.children).toBe('42 m climb');
     expect(render(<RunPostCard run={shared({ elevGain: 0 })} />).queryByTestId('run-post-climb')).toBeNull();
@@ -83,6 +88,34 @@ describe('RunPostCard', () => {
     const utils = render(<RunPostCard run={shared({ activity: 'walk', title: 'Evening Walk' })} />);
     expect(utils.getByTestId('run-post-title').props.children).toBe('Evening Walk');
     expect(utils.UNSAFE_getAllByType('Ionicons').some((i) => i.props.name === 'walk-outline')).toBe(true);
+  });
+
+  it('shows a hike with the trail-sign icon, its climb and its difficulty', () => {
+    const utils = render(<RunPostCard run={shared({ activity: 'hike', title: 'Old Rag', tier: 'Hard' })} />);
+    expect(utils.getByTestId('run-post-title').props.children).toBe('Old Rag');
+    const icons = utils.UNSAFE_getAllByType('Ionicons').map((i) => i.props.name);
+    expect(icons).toContain('trail-sign-outline');
+    expect(icons).not.toContain('fitness-outline');
+    expect(utils.getByTestId('run-post-climb').props.children).toBe('42 m climb');
+    expect(utils.getByTestId('run-post-tier').props.children).toBe('\u00B7 Hard');
+  });
+
+  it('shows the difficulty alone when a hike had no climb', () => {
+    const utils = render(<RunPostCard run={shared({ activity: 'hike', elevGain: 0, tier: 'Easy' })} />);
+    expect(utils.queryByTestId('run-post-climb')).toBeNull();
+    expect(utils.getByTestId('run-post-tier').props.children).toBe('Easy');
+  });
+
+  it('shows no difficulty on a run, even if the post carries one', () => {
+    const utils = render(<RunPostCard run={shared({ tier: 'Hard' })} />);
+    expect(utils.queryByTestId('run-post-tier')).toBeNull();
+    expect(utils.getByTestId('run-post-climb')).toBeTruthy();
+  });
+
+  it('shows no climb row at all when there is neither a climb nor a difficulty', () => {
+    const utils = render(<RunPostCard run={shared({ activity: 'hike', elevGain: 0 })} />);
+    expect(utils.queryByTestId('run-post-climb')).toBeNull();
+    expect(utils.queryByTestId('run-post-tier')).toBeNull();
   });
 
   it('shows nothing for a run it cannot read', () => {

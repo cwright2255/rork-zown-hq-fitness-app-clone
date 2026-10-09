@@ -124,6 +124,69 @@ export function splitSummary(run) {
   };
 }
 
+const round1 = (v) => Math.round(v * 10) / 10;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/** A smooth curve through the points ("M x y C ..."), never bulging above or below the chart. */
+function smoothPath(pts, top, bottom) {
+  if (pts.length === 0) return '';
+  let d = `M ${round1(pts[0].x)} ${round1(pts[0].y)}`;
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = clamp(p1.y + (p2.y - p0.y) / 6, top, bottom);
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = clamp(p2.y - (p3.y - p1.y) / 6, top, bottom);
+    d += ` C ${round1(c1x)} ${round1(c1y)} ${round1(c2x)} ${round1(c2y)} ${round1(p2.x)} ${round1(p2.y)}`;
+  }
+  return d;
+}
+
+/**
+ * The pace of each kilometre as a line chart: one point per split row (from
+ * splitSummary), spread evenly across `width`, the fastest at the top and the
+ * slowest at the bottom (higher is faster). Returns null with no rows.
+ * { points: [{ index, label, pace, partial, isFastest, isSlowest, x, y, showLabel }],
+ *   line, area, top, bottom, width, height }
+ * `line` is an SVG path through the points and `area` is the same path closed
+ * down to the bottom edge, for a soft fill under it. Long runs show every
+ * second, third ... label so they don't crowd.
+ */
+export function paceChart(rows, width = 300, height = 120, { padX = 16, padTop = 36, padBottom = 14 } = {}) {
+  const list = Array.isArray(rows) ? rows.filter((r) => r && r.pace > 0) : [];
+  if (list.length === 0) return null;
+  const paces = list.map((r) => r.pace);
+  const fast = Math.min(...paces);
+  const slow = Math.max(...paces);
+  const n = list.length;
+  const top = padTop;
+  const bottom = Math.max(padTop, height - padBottom);
+  const innerW = Math.max(0, width - 2 * padX);
+  const every = n <= 8 ? 1 : Math.ceil(n / 6);
+  const points = list.map((r, i) => {
+    const t = slow > fast ? (slow - r.pace) / (slow - fast) : 0.5; // 1 = fastest
+    return {
+      index: r.index,
+      label: r.label,
+      pace: r.pace,
+      partial: !!r.partial,
+      isFastest: !!r.isFastest,
+      isSlowest: !!r.isSlowest,
+      x: round1(n === 1 ? width / 2 : padX + (innerW * i) / (n - 1)),
+      y: round1(top + (1 - t) * (bottom - top)),
+      showLabel: i % every === 0,
+    };
+  });
+  const line = smoothPath(points, top, bottom);
+  const area = n > 1
+    ? `${line} L ${points[n - 1].x} ${height} L ${points[0].x} ${height} Z`
+    : '';
+  return { points, line, area, top, bottom, width, height };
+}
+
 /**
  * A map region that fits the whole route with some room around it, or null
  * when there is no route. Widths are never smaller than about 450 m so a

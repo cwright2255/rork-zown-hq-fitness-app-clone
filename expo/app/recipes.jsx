@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useRecipeStore } from '@/store/recipeStore';
+import GroceryListButton from '@/components/GroceryListButton';
 import { useUserStore } from '@/store/userStore';
 import RecipeImportModal from '@/components/RecipeImportModal';
 import RecipePreviewModal from '@/components/RecipePreviewModal';
@@ -565,7 +566,10 @@ export default function RecipesScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
         }>
-        <Text style={s.pageTitle}>Recipes</Text>
+        <View style={s.pageTitleRow}>
+          <Text style={s.pageTitleText}>Recipes</Text>
+          <GroceryListButton />
+        </View>
 
         {/* Category Pills - real fix: these now run a real Spoonacular
             query per pill (see buildCategoryParams/handleCategoryPress
@@ -725,6 +729,8 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: NAV_BAR_CLEARANCE },
   pageTitle: { fontSize: 24, fontWeight: '800', color: '#000', paddingHorizontal: 20, marginTop: 8, marginBottom: 16 },
+  pageTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 8, marginBottom: 16 },
+  pageTitleText: { fontSize: 24, fontWeight: '800', color: '#000' },
 
   /* Category Pills */
   catPill: { backgroundColor: '#F0F0F0', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },

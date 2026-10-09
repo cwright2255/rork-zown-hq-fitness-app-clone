@@ -5,10 +5,11 @@ import Colors from '@/constants/colors';
 
 import Button from '@/components/Button';
 import { useRecipeStore } from '@/store/recipeStore';
+import { formatGroceryLine, isRecipeOnList } from '@/lib/groceryList';
 
 
 export default function GroceryList({ visible, onClose }) {
-  const { groceryList, savedRecipes, toggleGroceryItem, removeGroceryItem, clearGroceryList, generateGroceryList } = useRecipeStore();
+  const { groceryList, savedRecipes, toggleGroceryItem, removeGroceryItem, clearGroceryList, generateGroceryList, loadGroceryList } = useRecipeStore();
 
 
 
@@ -20,11 +21,9 @@ export default function GroceryList({ visible, onClose }) {
   const [showRecipeSelector, setShowRecipeSelector] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-
-
-      // Load data when component becomes visible
-    }}, [visible]);
+    // Bring the saved list back from the phone the first time it is opened.
+    if (visible && loadGroceryList) loadGroceryList();
+  }, [visible]);
   const groupedGroceries = groceryList.reduce((acc, item) => {
     const category = item.category || 'Other';
     if (!acc[category]) {
@@ -48,14 +47,14 @@ export default function GroceryList({ visible, onClose }) {
 
   const handleGenerateGroceryList = () => {
     if (selectedRecipes.length === 0) {
-      Alert.alert('No Recipes Selected', 'Please select at least one recipe to generate a grocery list.');
+      Alert.alert('No Recipes Selected', 'Please select at least one recipe to add to your grocery list.');
       return;
     }
 
     generateGroceryList(selectedRecipes);
     setShowRecipeSelector(false);
     setSelectedRecipes([]);
-    Alert.alert('Success', 'Grocery list generated successfully!');
+    Alert.alert('Added', 'The ingredients are on your grocery list.');
   };
 
   const handleClearList = () => {
@@ -89,9 +88,9 @@ export default function GroceryList({ visible, onClose }) {
         
         <View style={styles.itemDetails}>
           <Text style={[styles.itemName, item.checked && styles.checkedText]}>
-            {item.amount} {item.unit} {item.ingredient}
+            {formatGroceryLine(item)}
           </Text>
-          {item.recipes.length > 0 &&
+          {(item.recipes || []).length > 0 &&
         <Text style={styles.itemRecipes}>
               For: {item.recipes.join(', ')}
             </Text>
@@ -100,6 +99,7 @@ export default function GroceryList({ visible, onClose }) {
       </View>
       
       <TouchableOpacity
+      testID={`grocery-delete-${item.id}`}
       style={styles.deleteButton}
       onPress={() => removeGroceryItem(item.id)}>
       
@@ -127,7 +127,9 @@ export default function GroceryList({ visible, onClose }) {
     
       <View style={styles.recipeContent}>
         <Text style={styles.recipeName}>{item.name}</Text>
-        <Text style={styles.recipeServings}>{item.servings} servings</Text>
+        <Text style={styles.recipeServings}>
+          {item.servings} servings{isRecipeOnList(groceryList, item.id) ? ' \u00B7 already on your list' : ''}
+        </Text>
       </View>
       <View style={[styles.recipeCheckbox, selectedRecipes.includes(item.id) && styles.selectedCheckbox]}>
         {selectedRecipes.includes(item.id) && <Check size={16} color={Colors.text.inverse} />}
@@ -191,7 +193,12 @@ export default function GroceryList({ visible, onClose }) {
           data={savedRecipes}
           renderItem={renderRecipeSelector}
           keyExtractor={(item) => item.id}
-          style={styles.recipeList} />
+          style={styles.recipeList}
+          ListEmptyComponent={
+            <Text testID="grocery-no-recipes" style={styles.emptyText}>
+              You have no saved recipes yet. Save a recipe first, then add its ingredients here.
+            </Text>
+          } />
         
           <View style={styles.selectorActions}>
             <Button
@@ -204,7 +211,7 @@ export default function GroceryList({ visible, onClose }) {
             style={styles.selectorButton} />
           
             <Button
-            title={`Generate List (${selectedRecipes.length})`}
+            title={`Add to List (${selectedRecipes.length})`}
             onPress={handleGenerateGroceryList}
             disabled={selectedRecipes.length === 0}
             style={styles.selectorButton} />
@@ -218,7 +225,7 @@ export default function GroceryList({ visible, onClose }) {
               <ShoppingCart size={48} color={Colors.text.tertiary} />
               <Text style={styles.emptyTitle}>No items in your grocery list</Text>
               <Text style={styles.emptyText}>
-                Add recipes to generate a grocery list automatically
+                Add a recipe's ingredients to start your list
               </Text>
             </View> :
 

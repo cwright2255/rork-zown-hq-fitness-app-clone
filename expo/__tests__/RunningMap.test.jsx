@@ -47,12 +47,13 @@ describe('RunningMap (native)', () => {
     expect(polylines(utils)).toHaveLength(0);
   });
 
-  it('draws the route as a glow under a green line', () => {
+  it('draws the route as a glow under a white line', () => {
     const utils = render(<RunningMap coordinates={line(5)} currentLocation={p(4)} />);
     const lines = polylines(utils);
     expect(lines).toHaveLength(2);
     const [glow, route] = lines.map((l) => l.props);
-    expect(route.strokeColor).toBe('#22C55E');
+    expect(route.strokeColor).toBe('#FFFFFF');
+    expect(glow.strokeColor).toBe('rgba(255, 255, 255, 0.28)');
     expect(glow.strokeWidth > route.strokeWidth).toBe(true);
     expect(glow.zIndex < route.zIndex).toBe(true);
     expect(route.coordinates).toHaveLength(5);
@@ -63,6 +64,21 @@ describe('RunningMap (native)', () => {
     const all = markers(utils);
     expect(all).toHaveLength(1);
     expect(all[0].props.coordinate).toEqual(p(0));
+  });
+
+  it('marks the start with an open ring, so the position dot can be seen inside it', () => {
+    const utils = render(<RunningMap coordinates={line(5)} currentLocation={p(4)} />);
+    const ring = utils.getByTestId('run-map-start');
+    expect(ring).toBeTruthy();
+    const inner = ring.children[0];
+    const flat = [].concat(inner.props.style).flat().filter(Boolean);
+    expect(flat.some((st) => st.borderColor === '#FFFFFF' && st.borderWidth === 3)).toBe(true);
+    expect(flat.some((st) => st.backgroundColor)).toBe(false);
+  });
+
+  it('uses no green anywhere on the map', () => {
+    const utils = render(<RunningMap coordinates={line(5)} currentLocation={p(4)} />);
+    expect(JSON.stringify(utils.toJSON())).not.toMatch(/22C55E|34, ?197, ?94/i);
   });
 
   it('zooms in on the first fix, then only moves the centre', () => {
