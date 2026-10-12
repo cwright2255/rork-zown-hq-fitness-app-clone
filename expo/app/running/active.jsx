@@ -328,9 +328,9 @@ export default function ActiveRunScreen() {
 
       {isProgramRun && intervalIndex < programIntervals.length && (
         <View style={[styles.intervalBanner, programIntervals[intervalIndex].type === 'run' ? styles.intervalBannerRun : styles.intervalBannerWalk]}>
-          <Text style={styles.intervalBannerLabel}>{programIntervals[intervalIndex].cue.toUpperCase()}</Text>
-          <Text style={styles.intervalBannerTime}>{formatTimer(intervalSecondsLeft)}</Text>
-          <Text style={styles.intervalBannerNext}>
+          <Text style={[styles.intervalBannerLabel, programIntervals[intervalIndex].type === 'run' && styles.onLight]}>{programIntervals[intervalIndex].cue.toUpperCase()}</Text>
+          <Text style={[styles.intervalBannerTime, programIntervals[intervalIndex].type === 'run' && styles.onLight]}>{formatTimer(intervalSecondsLeft)}</Text>
+          <Text style={[styles.intervalBannerNext, programIntervals[intervalIndex].type === 'run' && styles.onLightSoft]}>
             {intervalIndex + 1 < programIntervals.length
               ? `Next: ${programIntervals[intervalIndex + 1].cue}`
               : 'Final interval'}
@@ -351,7 +351,7 @@ export default function ActiveRunScreen() {
         {/* Main stats 2x2 */}
         <View style={styles.statsGrid}>
           <View style={styles.statCell}>
-            <Text style={[styles.statValue, { color: '#4A90D9' }]}>
+            <Text style={styles.statValue}>
               {formatTimer(elapsed)}
             </Text>
             <Text style={styles.statLabel}>Time</Text>
@@ -363,13 +363,13 @@ export default function ActiveRunScreen() {
             <Text style={styles.statLabel}>Kilometers</Text>
           </View>
           <View style={styles.statCell}>
-            <Text style={[styles.statValue, { color: '#FFD700' }]}>
+            <Text style={styles.statValue}>
               {pace}
             </Text>
             <Text style={styles.statLabel}>Pace</Text>
           </View>
           <View style={styles.statCell}>
-            <Text style={[styles.statValue, { color: '#22C55E' }]}>
+            <Text style={styles.statValue}>
               {Math.floor(calories)}
             </Text>
             <Text style={styles.statLabel}>Calories</Text>
@@ -445,12 +445,17 @@ export default function ActiveRunScreen() {
 
 /* Ã¢ÂÂÃ¢ÂÂ Styles Ã¢ÂÂÃ¢ÂÂ */
 
+// Zown's black and white, the same as the run maps, saved runs and the feed
+// (constants/runMap.js): white and grey on the dark panel. Colour is kept only where
+// it means something: amber for a GPS problem and red for ending the run.
 const styles = StyleSheet.create({
   intervalBanner: {
     paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
   },
-  intervalBannerRun: { backgroundColor: '#22C55E' },
-  intervalBannerWalk: { backgroundColor: '#4A90D9' },
+  intervalBannerRun: { backgroundColor: '#FFFFFF' },
+  intervalBannerWalk: { backgroundColor: '#2A2F38' },
+  onLight: { color: '#0D1117' },
+  onLightSoft: { color: 'rgba(13,17,23,0.65)' },
   intervalBannerLabel: { color: '#FFF', fontSize: 13, fontWeight: '800', letterSpacing: 1.5 },
   intervalBannerTime: { color: '#FFF', fontSize: 34, fontWeight: '800', marginTop: 2 },
   intervalBannerNext: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
@@ -488,10 +493,10 @@ const styles = StyleSheet.create({
   },
   goalCircle: {
     width: 24, height: 24, borderRadius: 12,
-    borderWidth: 2.5, borderColor: '#4A90D9',
+    borderWidth: 2.5, borderColor: '#FFFFFF',
   },
   goalText: { fontSize: 14, color: '#FFF', fontWeight: '500' },
-  goalPercent: { fontSize: 14, color: '#4A90D9', fontWeight: '700' },
+  goalPercent: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
   climbText: { marginLeft: 'auto', fontSize: 13, color: '#888', fontWeight: '600' },
 
   /* Banner over the map */
@@ -502,7 +507,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16,
   },
-  bannerPause: { backgroundColor: 'rgba(74,144,217,0.92)' },
+  bannerPause: { backgroundColor: 'rgba(13,17,23,0.88)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
   bannerWarn: { backgroundColor: 'rgba(217,119,6,0.92)' },
   bannerText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
 
@@ -528,10 +533,10 @@ const styles = StyleSheet.create({
   /* Pause options */
   pauseOptions: { gap: 12, paddingBottom: 24 },
   resumeBtn: {
-    backgroundColor: '#4A90D9', height: 48, borderRadius: 24,
+    backgroundColor: '#FFFFFF', height: 48, borderRadius: 24,
     justifyContent: 'center', alignItems: 'center',
   },
-  resumeBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  resumeBtnText: { fontSize: 16, fontWeight: '700', color: '#000' },
   endRunBtn: {
     backgroundColor: 'transparent', borderWidth: 1, borderColor: '#FF3B30',
     height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center',

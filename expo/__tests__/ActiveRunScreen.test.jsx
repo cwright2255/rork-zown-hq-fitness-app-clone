@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
@@ -512,6 +512,134 @@ describe('ActiveRunScreen', () => {
         expect(utils.queryByTestId('run-confirm-end')).toBeNull();
         expect(global.__runningStore.endRun).toHaveBeenCalledTimes(1);
         expect(global.__runningStore.completeProgramSession).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  // Zown's black and white, like the run maps, saved runs and the feed. The screen used to
+  // show the time in blue, pace in yellow, calories in green, and a blue ring and buttons.
+  describe('the black and white look', () => {
+    // The old blue, yellow and green, in any way of writing them.
+    const OLD_COLOURS = [/^#4A90D9$/, /^#FFD700$/, /^#22C55E$/, /^RGBA\(74,144,217\b/, /^RGBA\(255,215,0\b/, /^RGBA\(34,197,94\b/];
+
+    // Every colour drawn on the screen: text, backgrounds, borders and icon colours.
+    const coloursOnScreen = (utils) => {
+      const found = new Set();
+      const visit = (node) => {
+        if (!node || typeof node === 'string') return;
+        const style = StyleSheet.flatten(node.props && node.props.style) || {};
+        const add = (value) => found.add(String(value).toUpperCase().replace(/\s+/g, ''));
+        ['color', 'backgroundColor', 'borderColor'].forEach((key) => { if (style[key]) add(style[key]); });
+        if (node.props && typeof node.props.color === 'string') add(node.props.color);
+        (node.children || []).forEach(visit);
+      };
+      const tree = utils.toJSON();
+      (Array.isArray(tree) ? tree : [tree]).forEach(visit);
+      return found;
+    };
+    const expectNoOldColours = (utils) => {
+      const found = coloursOnScreen(utils);
+      const old = [...found].filter((colour) => OLD_COLOURS.some((pattern) => pattern.test(colour)));
+      expect(old).toEqual([]);
+    };
+    const colourOf = (node) => String(StyleSheet.flatten(node.props.style).color).toUpperCase();
+    const fillOf = (node) => String(StyleSheet.flatten(node.props.style).backgroundColor).toUpperCase();
+    // The View that holds a piece of text: wrappers in between are skipped.
+    const viewAround = (node) => {
+      let up = node.parent;
+      while (up && up.type !== 'View') up = up.parent;
+      return up;
+    };
+
+    it('shows time, pace and calories in white', async () => {
+      const utils = await mount();
+      act(() => { store().ingest(Array.from({ length: 120 }, (_, i) => fix(i + 1, (i + 1) * 3))); });
+      await tick(120);
+      expect(colourOf(utils.getByText('0:02:00'))).toBe('#FFF');
+      expect(colourOf(utils.getByText(/^5'(3[5-9]|4\d)"$/))).toBe('#FFF');
+      expect(colourOf(utils.getByText('0.35'))).toBe('#FFF');
+      expect(colourOf(utils.getByText('Distance Goal'))).toBe('#FFF');
+      expect(colourOf(utils.getByText(/^\d+%$/))).toBe('#FFFFFF');
+      expectNoOldColours(utils);
+    });
+
+    it('draws a running run in white and grey only', async () => {
+      const utils = await mount();
+      act(() => { store().ingest(Array.from({ length: 30 }, (_, i) => fix(i + 1, (i + 1) * 3))); });
+      await tick(30);
+      expectNoOldColours(utils);
+    });
+
+    it('draws the paused panel and its banner in white and grey, with a white Resume button', async () => {
+      const utils = await mount();
+      await tick(30);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      expect(utils.getByText('Paused')).toBeTruthy();
+      const resume = utils.getByText('Resume');
+      expect(colourOf(resume)).toBe('#000');
+      expect(fillOf(viewAround(resume))).toBe('#FFFFFF');
+      expectNoOldColours(utils);
+    });
+
+    it('draws the auto-pause banner in white and grey', async () => {
+      const utils = await mount();
+      act(() => {
+        store().ingest(Array.from({ length: 40 }, (_, i) => fix(i + 1, (i + 1) * 3)));
+        store().ingest(Array.from({ length: 30 }, (_, i) => fix(41 + i, 120, { speed: 0 })));
+      });
+      await tick(70);
+      expect(utils.getByText(/Auto-paused/)).toBeTruthy();
+      expectNoOldColours(utils);
+    });
+
+    it('keeps amber for a GPS problem and red for ending the run, because those mean something', async () => {
+      const utils = await mount();
+      expect(utils.getByText('Searching for GPS...')).toBeTruthy();
+      expect(coloursOnScreen(utils).has('RGBA(217,119,6,0.92)')).toBe(true);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      const end = utils.getByText('End Run');
+      expect(colourOf(end)).toBe('#FF3B30');
+      expect(String(StyleSheet.flatten(viewAround(end).props.style).borderColor).toUpperCase()).toBe('#FF3B30');
+    });
+
+    describe('in a program session', () => {
+      const intervals = getSessionIntervals('c25k', 1, 0);
+      beforeEach(() => { global.__params = { programId: 'c25k', week: '1', sessionIndex: '0' }; });
+
+      // The banner follows the phase: dark text on the white Run banner, white text on the grey Walk banner.
+      const expectBannerFor = (utils, interval) => {
+        const label = utils.getByText(interval.cue.toUpperCase());
+        const banner = viewAround(label);
+        if (interval.type === 'run') {
+          expect(fillOf(banner)).toBe('#FFFFFF');
+          expect(colourOf(label)).toBe('#0D1117');
+        } else {
+          expect(fillOf(banner)).toBe('#2A2F38');
+          expect(colourOf(label)).toBe('#FFF');
+        }
+      };
+
+      it('shows each phase in white or grey, with text you can read on it', async () => {
+        const utils = await mount();
+        expectBannerFor(utils, intervals[0]);
+        expectNoOldColours(utils);
+        await tick(intervals[0].seconds + 1);
+        expectBannerFor(utils, intervals[1]);
+        expectNoOldColours(utils);
+      });
+
+      it('has a white run phase and a grey walk phase somewhere in the session', () => {
+        expect(intervals.some((i) => i.type === 'run')).toBe(true);
+        expect(intervals.some((i) => i.type !== 'run')).toBe(true);
+      });
+
+      it('draws the end-early question in white and grey', async () => {
+        const utils = await mount();
+        await tick(100);
+        fireEvent.press(utils.getByTestId('run-menu-button'));
+        fireEvent.press(utils.getByText('End Run'));
+        expect(utils.getByTestId('run-confirm-end')).toBeTruthy();
+        expectNoOldColours(utils);
       });
     });
   });
