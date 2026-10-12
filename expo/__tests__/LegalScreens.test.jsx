@@ -114,6 +114,13 @@ describe('Terms of Service', () => {
     expect(text).toContain('support@zownhq.com');
   });
 
+  it('is governed by the laws of the State of New Jersey', () => {
+    const text = terms();
+    expect(text).toContain('12. Governing Law');
+    expect(text).toContain('governed by the laws of the State of New Jersey.');
+    expect(text).not.toContain('laws of the United States');
+  });
+
   it('does not name services the app no longer uses', () => {
     const text = terms();
     for (const gone of ['Passio', 'Open Food Facts', 'ExerciseDB', 'Meshy']) expect(text).not.toContain(gone);

@@ -95,7 +95,7 @@ export default function TermsOfService() {
 
         <Text style={styles.sectionTitle}>12. Governing Law</Text>
         <Text style={styles.bodyText}>
-          These Terms and any related disputes are governed by the laws of the United States.
+          These Terms and any related disputes are governed by the laws of the State of New Jersey.
         </Text>
 
         <Text style={styles.sectionTitle}>13. Contact</Text>
