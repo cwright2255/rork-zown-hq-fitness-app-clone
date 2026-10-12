@@ -1,10 +1,13 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
+import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
+import { eraseUserAccount } from './accountErasure.js';
 
 initializeApp();
 
@@ -1392,5 +1395,65 @@ export const getHeatmapVisualizeImage = onCall(
     const colors = muscleColors.map((m) => encodeURIComponent(m.color));
     const url = `${MUSCLE_VIZ_BASE}/visualize/heatmap?muscles=${encodeURIComponent(muscles.join(','))}&colors=${colors.join(',')}&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
     return fetchMuscleVizAsBase64(url, 'getHeatmapVisualizeImage');
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Delete my account: erases everything stored about the caller, then their
+// sign-in account (see accountErasure.js for exactly what and in what order).
+//
+// Only the signed-in person can delete themselves, and only if they signed in
+// within the last 5 minutes, the same rule Firebase applies to deleting your
+// own account from the phone. The app asks them to sign in again when this
+// answers `failed-precondition`.
+// ---------------------------------------------------------------------------
+const RECENT_SIGN_IN_SECONDS = 5 * 60;
+
+// Stops ROOK sending wearable data for this person. Best effort: the erase does
+// not fail if ROOK is down.
+async function revokeRookForUser(uid) {
+  const headers = rookBasicAuthHeader();
+  const list = await fetch(`${ROOK_API_BASE}/api/v2/user_id/${uid}/data_sources/authorized`, { headers });
+  if (!list.ok) throw new Error(`ROOK source list failed: ${list.status}`);
+  const body = await list.json();
+  for (const source of body.data_sources || []) {
+    const name = source?.data_source;
+    if (!name || source.authorized === false) continue;
+    await fetch(`${ROOK_API_BASE}/api/v1/user_id/${uid}/data_sources/revoke_auth`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data_source: name }),
+    });
+  }
+}
+
+export const deleteMyAccount = onCall(
+  {
+    secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET],
+    region: 'us-central1',
+    timeoutSeconds: 540,
+    memory: '512MiB',
+  },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const signedInAt = Number(req.auth?.token?.auth_time);
+    if (!Number.isFinite(signedInAt) || Date.now() / 1000 - signedInAt > RECENT_SIGN_IN_SECONDS) {
+      throw new HttpsError('failed-precondition', 'recent-login-required');
+    }
+
+    const result = await eraseUserAccount({
+      uid,
+      db: getFirestore(),
+      bucket: getStorage().bucket(),
+      auth: getAuth(),
+      increment: FieldValue.increment,
+      revokeIntegrations: revokeRookForUser,
+    });
+
+    if (!result.ok) {
+      const failed = result.steps.filter((s) => !s.ok && s.required !== false).map((s) => s.name);
+      throw new HttpsError('internal', 'delete-incomplete', { failed });
+    }
+    return { deleted: true };
   }
 );

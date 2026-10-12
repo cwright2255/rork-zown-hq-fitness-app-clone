@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions, Platform, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -13,8 +13,10 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
 import { setShowInLeaderboards } from '@/services/leaderboardVisibility';
-import { auth } from '../../src/config/firebase';
-import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
+import { auth, functions } from '../../src/config/firebase';
+import { sendPasswordResetEmail, signOut } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as CachedImage } from 'expo-image';
 import { meshCache } from '@/lib/meshCache';
 import * as Clipboard from 'expo-clipboard';
@@ -273,10 +275,43 @@ export default function SettingsScreen() {
     ]);
   };
 
+  // Erasing is done by the deleteMyAccount Cloud Function: it removes the person's
+  // data and files from our servers and then their sign-in (and email). Only when that
+  // worked is this phone cleaned up too and restarted into a signed-out state.
+  const [deleting, setDeleting] = useState(false);
+
+  const deleteAccountNow = async () => {
+    setDeleting(true);
+    try {
+      await httpsCallable(functions, 'deleteMyAccount', { timeout: 540000 })({});
+    } catch (e) {
+      setDeleting(false);
+      const message = String(e?.message || '');
+      if (message === 'recent-login-required' || /failed-precondition/.test(String(e?.code))) {
+        Alert.alert('Sign in again first', 'To protect your account, log out, sign back in, then delete your account.');
+      } else if (message === 'delete-incomplete') {
+        Alert.alert('Not finished', "We couldn't finish erasing your data. Nothing was lost, so please try again. If it keeps failing, email privacy@zownhq.com.");
+      } else {
+        Alert.alert('Could not delete', 'We could not reach the server. Check your connection and try again.');
+      }
+      return;
+    }
+
+    // The account is gone. Clear what this phone kept, then start over signed out.
+    try { await signOut(auth); } catch {}
+    try { await AsyncStorage.clear(); } catch {}
+    try { await Promise.all([meshCache.clear(), CachedImage.clearDiskCache(), CachedImage.clearMemoryCache()]); } catch {}
+    if (logout) logout();
+    setDeleting(false);
+    try { await Updates.reloadAsync(); } catch {}
+    router.replace('/auth/login');
+  };
+
   const handleDeleteAccount = () => {
+    if (deleting) return;
     Alert.alert(
       'Delete Account',
-      'This permanently deletes your ZOWN HQ account, so you will not be able to sign in with it again. This cannot be undone. Your stored workout, nutrition and profile records are not erased automatically yet. To have them removed, email privacy@zownhq.com.',
+      'This permanently deletes your ZOWN HQ account and erases your email, profile, workouts, nutrition and body-scan records, posts, messages and uploaded photos from our servers. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -285,28 +320,10 @@ export default function SettingsScreen() {
           onPress: () => {
             Alert.alert(
               'Final Confirmation',
-              'Are you absolutely sure? You will not be able to sign in to this account again.',
+              'Are you absolutely sure? Everything will be erased and you will not be able to sign in to this account again.',
               [
                 { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Yes, Delete',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      const currentUser = auth.currentUser;
-                      if (currentUser) {
-                        await deleteUser(currentUser);
-                      }
-                      if (logout) logout();
-                      router.replace('/auth/login');
-                    } catch (e) {
-                      Alert.alert(
-                        'Error',
-                        e?.message || 'Failed to delete account. Please log in again and retry.'
-                      );
-                    }
-                  },
-                },
+                { text: 'Yes, Delete', style: 'destructive', onPress: deleteAccountNow },
               ]
             );
           },
@@ -346,6 +363,13 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
+      <Modal transparent visible={deleting} animationType="fade" onRequestClose={() => {}}>
+        <View style={s.deletingOverlay} testID="deleting-overlay">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={s.deletingText}>Erasing your data...</Text>
+          <Text style={s.deletingSub}>This can take a minute. Please keep the app open.</Text>
+        </View>
+      </Modal>
       {/* Header */}
       <View style={s.header}>
         <Pressable
@@ -777,6 +801,9 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
+  deletingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 32 },
+  deletingText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginTop: 16 },
+  deletingSub: { color: '#DDDDDD', fontSize: 14, marginTop: 8, textAlign: 'center' },
   safe: {
     flex: 1,
     backgroundColor: '#FFFFFF',

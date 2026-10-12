@@ -46,20 +46,31 @@ describe('Privacy Policy', () => {
     for (const gone of ['Passio', 'Open Food Facts', 'ExerciseDB', 'Meshy']) expect(text).not.toContain(gone);
   });
 
-  it('says what deleting an account does today, without promising erasure that does not happen', () => {
+  it('says deleting an account erases the data and the sign-in, and names what stays outside our servers', () => {
     const text = policy();
-    expect(text).toMatch(/deletes your sign-in/);
-    expect(text).toMatch(/not erased automatically yet/);
+    expect(text).toMatch(/Deleting it permanently erases your email address, profile, workouts/);
+    expect(text).toMatch(/and then removes your sign-in/);
+    expect(text).toMatch(/removed for them too/);
+    expect(text).toMatch(/cannot be undone/);
+    // what it cannot reach
+    expect(text).toMatch(/Firebase keeps crash reports for a limited time/);
+    expect(text).toMatch(/OpenAI may keep AI requests/);
+    expect(text).toMatch(/Spotify, Apple Music, Apple Health or ROOK/);
+  });
+
+  it('does not make promises it cannot keep about deletion', () => {
+    const text = policy();
     expect(text).not.toMatch(/30 days/);
     expect(text).not.toMatch(/[Ii]nstantly/);
     expect(text).not.toMatch(/expunged/);
+    expect(text).not.toMatch(/not erased automatically/);
   });
 
   it('does not claim a data export or legal compliance the app does not have', () => {
     const text = policy();
     expect(text).not.toMatch(/GDPR|CCPA/);
     expect(text).not.toMatch(/Export/);
-    expect(text).toMatch(/get a copy of your data, email privacy@zownhq\.com/);
+    expect(text).toMatch(/get a copy of your data before you delete it, email privacy@zownhq\.com/);
   });
 
   it('says photos are kept on the phone or not stored: body-scan photos and meal photos', () => {

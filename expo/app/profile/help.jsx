@@ -117,11 +117,11 @@ const FAQ_DATA = [
       },
       {
         question: "How do I get a copy of my data?",
-        answer: "There is no in-app export yet. Email privacy@zownhq.com from the address on your account and we will send you a copy of your records."
+        answer: "There is no in-app export yet. Before you delete your account, email privacy@zownhq.com from the address on your account and we will send you a copy of your records."
       },
       {
         question: "How do I delete my account?",
-        answer: "Go to Settings > Danger Zone and tap 'Delete Account'. It asks you to confirm twice and then permanently deletes your sign-in. Your stored workout, nutrition and profile records are not erased automatically yet. To have them removed, email privacy@zownhq.com."
+        answer: "Go to Settings > Danger Zone and tap 'Delete Account'. It asks you to confirm twice, then permanently erases your email, profile, workouts, nutrition and body-scan records, posts, messages and uploaded photos from our servers, and removes your sign-in. If you signed in a while ago, it first asks you to log out and back in. This cannot be undone."
       },
       {
         question: "Is my data private?",

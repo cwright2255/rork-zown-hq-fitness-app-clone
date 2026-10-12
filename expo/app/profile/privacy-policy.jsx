@@ -75,7 +75,10 @@ export default function PrivacyPolicy() {
 
         <Text style={styles.sectionTitle}>6. Keeping and Deleting Your Data</Text>
         <Text style={styles.bodyText}>
-          We keep your data while your account is active. In Settings you can delete your account, which permanently deletes your sign-in. Your stored workout, nutrition and profile records are not erased automatically yet. To have them removed, or to get a copy of your data, email privacy@zownhq.com from the address on your account.
+          We keep your data while your account is active. You can delete your account at any time in Settings &gt; Danger Zone. Deleting it permanently erases your email address, profile, workouts, nutrition and body-scan records, posts, comments, likes, messages, duels, challenge entries, uploaded photos and videos, and your leaderboard entry from our servers, and then removes your sign-in. Conversations and duels you shared with other people are removed for them too. This cannot be undone.
+        </Text>
+        <Text style={styles.bodyText}>
+          A few things sit outside our servers. Firebase keeps crash reports for a limited time. OpenAI may keep AI requests for a short period under its own policy. Anything you connected to Spotify, Apple Music, Apple Health or ROOK stays in those services, where you can remove it yourself. To get a copy of your data before you delete it, email privacy@zownhq.com from the address on your account.
         </Text>
 
         <Text style={styles.sectionTitle}>7. Security</Text>
