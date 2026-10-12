@@ -47,6 +47,16 @@ service cloud.firestore {
         allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
       }
 
+      // NEW: finished fasts (services/fastingService.js), one document per
+      // fast, named by its start time. The running fast lives in
+      // users/{uid}/data/fasting and is already covered by the data/{docId}
+      // rule above; this is only the history behind the Fasting widget's
+      // streak and charts. Owner-only; update is allowed because saving the
+      // same fast twice writes the same document.
+      match /fastingHistory/{fastId} {
+        allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
       match /bodyScans/{scanId} {
         allow read, delete: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null && request.auth.uid == userId;
