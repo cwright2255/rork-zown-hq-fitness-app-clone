@@ -563,7 +563,7 @@ export default function BodyScanCaptureScreen() {
 
   if (!device) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <Text style={styles.centerMessageText}>No camera available on this device.</Text>
@@ -574,7 +574,7 @@ export default function BodyScanCaptureScreen() {
 
   if (!hasPermission) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
@@ -587,7 +587,7 @@ export default function BodyScanCaptureScreen() {
 
   if (showProfileForm) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Body Scan" showBack variant="light" />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -718,7 +718,7 @@ export default function BodyScanCaptureScreen() {
 
   if (isScanning) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <ActivityIndicator size="large" color={colors.text} />
@@ -729,7 +729,7 @@ export default function BodyScanCaptureScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <View style={styles.headerRow}>
         <ScreenHeader title="Body Scan" showBack transparent variant="light" />
         <Pressable onPress={() => handleToggleVoice(!voiceEnabled)} style={styles.voiceToggleBtn}>
@@ -803,7 +803,7 @@ export default function BodyScanCaptureScreen() {
           <Pressable onPress={handleRetry}><Text style={styles.retryText}>Retry</Text></Pressable>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

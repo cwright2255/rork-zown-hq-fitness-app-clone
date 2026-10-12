@@ -128,7 +128,7 @@ export default function FormCheckScreen() {
 
   if (!device) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Form Check" showBack />
         <View style={styles.centerMessage}>
           <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
@@ -140,7 +140,7 @@ export default function FormCheckScreen() {
 
   if (!hasPermission) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Form Check" showBack />
         <View style={styles.centerMessage}>
           <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
@@ -152,7 +152,7 @@ export default function FormCheckScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <ScreenHeader title="Form Check" showBack />
 
       <View
@@ -256,7 +256,7 @@ export default function FormCheckScreen() {
           loading={saving}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

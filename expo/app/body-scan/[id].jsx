@@ -148,7 +148,7 @@ export default function BodyScanViewerScreen() {
 
   if (!scan) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Body Scan" showBack variant="light" />
         <View style={styles.centerMessage}>
           <Text style={styles.centerMessageText}>No scan found. Take your first body scan to get started.</Text>
@@ -158,7 +158,7 @@ export default function BodyScanViewerScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <ScreenHeader title="Body Composition" showBack variant="light" />
 
       <View style={styles.viewerWrap} {...panResponder.panHandlers}>
@@ -231,7 +231,7 @@ export default function BodyScanViewerScreen() {
       <Pressable style={styles.viewProgressBtn} onPress={() => router.push('/progress')}>
         <Text style={styles.viewProgressBtnText}>View Progress</Text>
       </Pressable>
-    </SafeAreaView>
+    </View>
   );
 }
 

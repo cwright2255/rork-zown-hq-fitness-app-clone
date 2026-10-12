@@ -147,8 +147,9 @@ export default function FoodScanScreen() {
   }
 
   if (analysisResult) {
+    // ScreenHeader pads the top by itself, so only the bottom is padded here.
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingBottom: insets.bottom }]}>
         <ScreenHeader title="Food Identified" showBack />
         
         <View style={styles.resultContainer}>
@@ -204,7 +205,7 @@ export default function FoodScanScreen() {
             </View>
           </Card>
         </View>
-      </SafeAreaView>);
+      </View>);
 
   }
 

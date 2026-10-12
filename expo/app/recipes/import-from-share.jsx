@@ -108,7 +108,7 @@ export default function ImportFromShareScreen() {
   const dismiss = () => (router.canGoBack() ? router.back() : router.replace('/recipes'));
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <ScreenHeader title="Import Recipe" showBack onBack={dismiss} />
 
       <View style={styles.content}>

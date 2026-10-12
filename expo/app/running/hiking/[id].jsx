@@ -192,7 +192,7 @@ export default function TrailPreviewScreen() {
 
   if (!trail) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <ScreenHeader title="Trail" showBack />
         <View style={styles.centerBlock}>
           <Text style={styles.centerText}>Trail not found — go back and pick one from the list.</Text>

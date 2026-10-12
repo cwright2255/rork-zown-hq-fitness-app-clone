@@ -10,7 +10,6 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Image, ActivityIndicator, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -36,7 +35,7 @@ export default function HikingListScreen() {
   const openSettings = () => Linking.openSettings();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <ScreenHeader
         title="Hiking Near You"
         showBack
@@ -113,7 +112,7 @@ export default function HikingListScreen() {
           )}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

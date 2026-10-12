@@ -57,7 +57,7 @@ export default function CompareScansScreen() {
   }).filter(Boolean) : [];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <ScreenHeader title="Compare Scans" showBack variant="light" />
       {(!scanA || !scanB) ? (
         <View style={styles.centerMessage}>

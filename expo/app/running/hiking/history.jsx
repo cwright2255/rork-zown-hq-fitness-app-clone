@@ -7,7 +7,6 @@
 // out in lib/hikeLog.js.
 import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -84,7 +83,7 @@ export default function HikeHistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
       <ScreenHeader title="My Hikes" showBack variant="light" onBack={goBack} />
 
       {hikes.length === 0 ? (
@@ -121,7 +120,7 @@ export default function HikeHistoryScreen() {
           )}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
