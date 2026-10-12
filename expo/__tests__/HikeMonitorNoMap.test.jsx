@@ -38,6 +38,13 @@ jest.mock('@/services/runTracking', () => ({
   startTracking: jest.fn(async () => 'background'),
   stopTracking: jest.fn(async () => undefined),
 }));
+jest.mock('@/services/offRouteWatch', () => ({
+  watchOffRoute: jest.fn((options) => {
+    const watch = { options, stop: jest.fn(), mute: jest.fn() };
+    global.__watches.push(watch);
+    return watch;
+  }),
+}));
 
 import { useRunTrackerStore } from '../store/runTrackerStore';
 
@@ -47,6 +54,7 @@ const HikeMonitorScreen = require('../app/running/hiking/monitor').default;
 
 const { getWeatherSnapshot } = require('@/services/weatherService');
 const { fetchRouteForMap } = require('@/services/hikingService');
+const { watchOffRoute } = require('@/services/offRouteWatch');
 
 const settle = async () => { for (let i = 0; i < 6; i += 1) await act(async () => {}); };
 const mount = async () => {
@@ -61,6 +69,8 @@ describe('HikeMonitorScreen on a phone build without native maps', () => {
     global.__params = { id: 'trailapi-7', mapId: '55' };
     global.__hiking = { getTrailById: () => ({ id: 'trailapi-7', name: 'Old Rag' }), addCompletedHike: jest.fn(), completedHikes: [] };
     global.__offline = { trails: {}, keepTrail: jest.fn(), removeTrail: jest.fn() };
+    global.__watches = [];
+    watchOffRoute.mockClear();
     act(() => { useRunTrackerStore.getState().reset(); });
     getWeatherSnapshot.mockReset();
     getWeatherSnapshot.mockResolvedValue({ alerts: [], forecast: [], checkedAt: new Date().toISOString() });
@@ -90,5 +100,16 @@ describe('HikeMonitorScreen on a phone build without native maps', () => {
     const utils = await mount();
     expect(utils.getByTestId('hike-trail-view')).toBeTruthy();
     expect(utils.queryByTestId('hike-offline-note')).toBeNull();
+  });
+
+  it('still warns when the hiker strays from the path, on the trail-alone view', async () => {
+    const utils = await mount();
+    expect(watchOffRoute).toHaveBeenCalledTimes(1);
+    expect(utils.getByTestId('hike-off-route-status')).toBeTruthy();
+    expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+    act(() => { global.__watches[0].options.onChange({ off: true, distanceM: 120, event: 'off' }); });
+    expect(utils.getByText('Off the trail, about 100 m from the route')).toBeTruthy();
+    act(() => { global.__watches[0].options.onChange({ off: false, distanceM: 10, event: 'back' }); });
+    expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
   });
 });

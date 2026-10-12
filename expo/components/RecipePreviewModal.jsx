@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Pressable, Modal, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import recipeExtractionService from '@/services/recipeExtractionService';
+import { cookingSteps } from '@/lib/cookingSteps';
 
 // Real fraction formatting for cooking measurements - Spoonacular gives
 // amounts as decimals (0.25, 0.333, etc.), but recipes are
@@ -47,6 +48,10 @@ export default function RecipePreviewModal({ visible, recipeId, onClose, onSaved
     });
     return () => { cancelled = true; };
   }, [visible, recipeId]);
+
+  // A recipe can come back without a list of ingredients or steps; show what there is.
+  const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
+  const steps = cookingSteps(recipe?.instructions);
 
   const handleSave = async () => {
     if (!recipe) return;
@@ -96,14 +101,16 @@ export default function RecipePreviewModal({ visible, recipeId, onClose, onSaved
               {recipe.description ? <Text style={ps.description}>{recipe.description}</Text> : null}
 
               <Text style={ps.sectionTitle}>Ingredients</Text>
-              {recipe.ingredients.map((ing) => (
-                <Text key={ing.id} style={ps.ingredientText}>
+              {ingredients.map((ing, i) => (
+                <Text key={ing.id ?? i} style={ps.ingredientText}>
                   {'\u2022 '}{[formatAmount(ing.amount), ing.unit, ing.name].filter(Boolean).join(' ')}
                 </Text>
               ))}
 
               <Text style={ps.sectionTitle}>Instructions</Text>
-              {recipe.instructions.map((step, i) => (
+              {steps.length === 0 ? (
+                <Text testID="preview-no-steps" style={ps.noSteps}>No instructions for this recipe.</Text>
+              ) : steps.map((step, i) => (
                 <View key={i} style={ps.stepRow}>
                   <Text style={ps.stepNumber}>{i + 1}</Text>
                   <Text style={ps.stepText}>{step}</Text>
@@ -145,6 +152,7 @@ const ps = StyleSheet.create({
   stepRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 14, gap: 12 },
   stepNumber: { fontSize: 13, fontWeight: '700', color: '#FFF', backgroundColor: '#000', width: 22, height: 22, borderRadius: 11, textAlign: 'center', lineHeight: 22, overflow: 'hidden' },
   stepText: { fontSize: 14, color: '#333', lineHeight: 20, flex: 1 },
+  noSteps: { fontSize: 14, color: '#999', lineHeight: 20, paddingHorizontal: 20 },
   footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#EEE' },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#000', height: 52, borderRadius: 26 },
   saveBtnText: { fontSize: 15, fontWeight: '700', color: '#FFF' },

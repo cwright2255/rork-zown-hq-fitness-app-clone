@@ -4,9 +4,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Star, ScanLine, Camera, Plus, Zap } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useNutritionStore } from '@/store/nutritionStore';
+import { useMealPlanStore } from '@/store/mealPlanStore';
 import { searchFoodsDetailed, gradeToStars } from '@/services/calorieApiService';
 import { localDateKey } from '@/lib/localDate';
 import { matchesFoodQuery } from '@/lib/customFood';
+import { MEAL_SLOTS } from '@/lib/foodLog';
+import { dayLabel } from '@/lib/mealCopy';
 
 // Real, new 1-5 star display - same component/logic as app/nutrition.jsx,
 // duplicated locally rather than shared since these are two small,
@@ -23,7 +26,11 @@ function StarRating({ stars, size = 12 }) {
 }
 
 export default function SearchFoodScreen() {
-  const { mealId } = useLocalSearchParams();
+  const { mealId, planDate: planParam } = useLocalSearchParams();
+  // Opened from the meal plan: a tapped food goes on the plan for that day, not into the diary.
+  const planDate = Array.isArray(planParam) ? planParam[0] : planParam;
+  const planning = !!planDate;
+  const planSlot = planning && mealId ? MEAL_SLOTS.find((s) => s.id === mealId.toString()) : null;
   const { addFoodToMeal, recentFoods, customFoods, removeCustomFood } = useNutritionStore();
   const myFoods = customFoods || [];
 
@@ -61,6 +68,15 @@ export default function SearchFoodScreen() {
   }, [query]);
 
   const handleSelect = (food) => {
+    if (planning) {
+      const result = useMealPlanStore.getState().addFood(food, { date: planDate, slot: mealId ? mealId.toString() : undefined });
+      if (!result.ok) {
+        Alert.alert('Could not add', result.error);
+        return;
+      }
+      (router.canGoBack() ? router.back() : router.replace({ pathname: '/nutrition/plan', params: { date: planDate } }));
+      return;
+    }
     if (mealId && addFoodToMeal) {
       addFoodToMeal(localDateKey(), mealId.toString(), food);
       (router.canGoBack() ? router.back() : router.replace('/'));
@@ -77,7 +93,8 @@ export default function SearchFoodScreen() {
   // The meal the food is being added to (if any) and what was typed ride along to the forms.
   const openForm = (pathname) => {
     const params = {};
-    if (mealId) params.mealId = mealId.toString();
+    // A food made while planning is only saved to My Foods; it is not logged to today's diary.
+    if (mealId && !planning) params.mealId = mealId.toString();
     if (query.trim()) params.name = query.trim();
     router.push({ pathname, params });
   };
@@ -119,7 +136,15 @@ export default function SearchFoodScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Search Food" showBack />
+      <ScreenHeader title={planning ? 'Plan a Food' : 'Search Food'} showBack />
+
+      {planning ? (
+        <View testID="search-plan-banner" style={styles.planBanner}>
+          <Text style={styles.planBannerText}>
+            {`Adding to your meal plan: ${planSlot ? planSlot.name : 'a meal'} \u00B7 ${dayLabel(planDate)}`}
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.searchWrap}>
         <TextInput
@@ -130,20 +155,24 @@ export default function SearchFoodScreen() {
           placeholderTextColor="#999999"
           autoFocus
         />
-        <TouchableOpacity
-          testID="search-barcode"
-          accessibilityLabel="Scan a barcode"
-          style={styles.scanBtn}
-          onPress={() => openScanner('/nutrition/barcode-scan')}>
-          <ScanLine size={22} color="#000000" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID="search-photo"
-          accessibilityLabel="Scan food with the camera"
-          style={styles.scanBtn}
-          onPress={() => openScanner('/nutrition/scan')}>
-          <Camera size={22} color="#000000" />
-        </TouchableOpacity>
+        {planning ? null : (
+          <>
+            <TouchableOpacity
+              testID="search-barcode"
+              accessibilityLabel="Scan a barcode"
+              style={styles.scanBtn}
+              onPress={() => openScanner('/nutrition/barcode-scan')}>
+              <ScanLine size={22} color="#000000" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="search-photo"
+              accessibilityLabel="Scan food with the camera"
+              style={styles.scanBtn}
+              onPress={() => openScanner('/nutrition/scan')}>
+              <Camera size={22} color="#000000" />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <View style={styles.actionsRow}>
@@ -151,10 +180,12 @@ export default function SearchFoodScreen() {
           <Plus size={16} color="#000000" />
           <Text style={styles.actionText}>Create Food</Text>
         </TouchableOpacity>
-        <TouchableOpacity testID="search-quick-add" style={styles.actionBtn} onPress={() => openForm('/nutrition/quick-add')}>
-          <Zap size={16} color="#000000" />
-          <Text style={styles.actionText}>Quick Add</Text>
-        </TouchableOpacity>
+        {planning ? null : (
+          <TouchableOpacity testID="search-quick-add" style={styles.actionBtn} onPress={() => openForm('/nutrition/quick-add')}>
+            <Zap size={16} color="#000000" />
+            <Text style={styles.actionText}>Quick Add</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {fallback && query ? (
@@ -268,6 +299,8 @@ const styles = StyleSheet.create({
   },
   actionText: { color: '#000000', fontSize: 14, fontWeight: '600' },
   hint: { color: '#999999', fontSize: 12, marginBottom: 12 },
+  planBanner: { marginHorizontal: 16, marginBottom: 4, padding: 12, borderRadius: 12, backgroundColor: '#F0F0F0' },
+  planBannerText: { color: '#000000', fontSize: 13, fontWeight: '600' },
   banner: {
     marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 12,
     backgroundColor: '#FEF3C7',

@@ -51,6 +51,11 @@ jest.mock('@/services/hikingService', () => ({
   getTrailMaps: jest.fn(),
   fetchRouteForMap: jest.fn(),
 }));
+// The share sheet is the phone's; the file it would be given is what is tested here.
+jest.mock('@/services/gpxShare', () => ({
+  shareGpx: jest.fn((file) => global.__shareGpx(file)),
+  gpxShareErrorText: jest.requireActual('@/services/gpxShare').gpxShareErrorText,
+}));
 
 import TrailPreviewScreen from '../app/running/hiking/[id]';
 
@@ -89,6 +94,7 @@ const open = async (t = trail(), {
   global.__offline = { trails: record ? { [record.id]: record } : {}, keepTrail: jest.fn(), removeTrail: jest.fn() };
   Service.getTrailMaps.mockReset();
   Service.fetchRouteForMap.mockReset();
+  global.__shareGpx = jest.fn(async (file) => ({ ok: true, uri: `file:///cache/${file.filename}` }));
   if (maps instanceof Error) Service.getTrailMaps.mockRejectedValue(maps);
   else Service.getTrailMaps.mockResolvedValue(maps);
   Service.fetchRouteForMap.mockResolvedValue(route);
@@ -384,5 +390,114 @@ describe('choosing another path', () => {
     Service.fetchRouteForMap.mockResolvedValue({ ...ROUTE, distanceKm: 6.6 });
     await act(async () => { fireEvent.press(utils.getByText('Short cut')); });
     expect(utils.getByText('6.6 km route')).toBeTruthy();
+  });
+});
+
+describe('exporting the route', () => {
+  let warn;
+  beforeEach(() => { warn = jest.spyOn(console, 'warn').mockImplementation(() => {}); });
+  afterEach(() => warn.mockRestore());
+
+  const PATHS = [{ id: 11, name: 'Main loop' }, { id: 12, name: 'Short cut' }];
+  const press = async (utils) => { await act(async () => { fireEvent.press(utils.getByTestId('trail-export-gpx')); }); };
+
+  it('offers to export the route once it is drawn', async () => {
+    const utils = await open();
+    await settle();
+    expect(utils.getByText('Export route as GPX')).toBeTruthy();
+    expect(utils.queryByTestId('trail-export-error')).toBeNull();
+  });
+
+  it('hands the share sheet a GPX file of the route, named for the trail and the path', async () => {
+    const utils = await open();
+    await settle();
+    await press(utils);
+    expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+    const file = global.__shareGpx.mock.calls[0][0];
+    expect(file.filename).toBe('Old-Rag-Loop-Main-loop.gpx');
+    expect(file.title).toBe('Old Rag Loop - Main loop');
+    expect(file.xml).toContain('<name>Old Rag Loop - Main loop</name>');
+    expect(file.xml).toContain('<desc>Trail route, 4.2 km. From Zown HQ.</desc>');
+    expect(file.xml.match(/<trkpt /g)).toHaveLength(3);
+    expect(file.xml).toContain('<trkpt lat="38.55" lon="-78.3"></trkpt>');
+    expect(file.xml).toContain('<trkpt lat="38.57" lon="-78.32"></trkpt>');
+  });
+
+  it('exports the path that was chosen, not the first one', async () => {
+    const utils = await open(trail(), { maps: PATHS });
+    Service.fetchRouteForMap.mockResolvedValue({
+      coordinates: [{ latitude: 38.6, longitude: -78.4 }, { latitude: 38.61, longitude: -78.41 }],
+      distanceKm: 6.6,
+      elevationGainM: null,
+      elevationProfile: null,
+    });
+    await act(async () => { fireEvent.press(utils.getByText('Short cut')); });
+    await settle();
+    await press(utils);
+    const file = global.__shareGpx.mock.calls[0][0];
+    expect(file.title).toBe('Old Rag Loop - Short cut');
+    expect(file.filename).toBe('Old-Rag-Loop-Short-cut.gpx');
+    expect(file.xml.match(/<trkpt /g)).toHaveLength(2);
+    expect(file.xml).toContain('<trkpt lat="38.6" lon="-78.4"></trkpt>');
+  });
+
+  it('exports from the copy kept on the phone when there is no signal', async () => {
+    const record = kept();
+    const utils = await open(trail(), { record, maps: new Error('offline'), route: null });
+    await settle();
+    await press(utils);
+    expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+    expect(global.__shareGpx.mock.calls[0][0].xml.match(/<trkpt /g)).toHaveLength(3);
+  });
+
+  it('is not offered for a trail with no route', async () => {
+    const utils = await open(trail({ id: 'osm-5', source: 'osm' }));
+    await settle();
+    expect(utils.queryByTestId('trail-export-gpx')).toBeNull();
+  });
+
+  it('is not offered while the chosen path is still loading', async () => {
+    const utils = await open(trail(), { maps: PATHS });
+    Service.fetchRouteForMap.mockImplementation(() => new Promise(() => {}));
+    await act(async () => { fireEvent.press(utils.getByText('Short cut')); });
+    expect(utils.queryByTestId('trail-export-gpx')).toBeNull();
+  });
+
+  it('says it is preparing the file, and ignores a second tap meanwhile', async () => {
+    const utils = await open();
+    await settle();
+    let finish;
+    global.__shareGpx.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    await press(utils);
+    expect(utils.getByText('Preparing...')).toBeTruthy();
+    expect(utils.queryByText('Export route as GPX')).toBeNull();
+    await press(utils);
+    expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+    // Even a tap that reaches the handler anyway does nothing while it is busy.
+    const button = utils.UNSAFE_getAllByProps({ testID: 'trail-export-gpx' }).find((n) => typeof n.props.onPress === 'function');
+    await act(async () => { await button.props.onPress(); });
+    expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+    await act(async () => { finish({ ok: true, uri: 'file:///x.gpx' }); });
+    expect(utils.getByText('Export route as GPX')).toBeTruthy();
+  });
+
+  it('says what went wrong, and clears it on the next try', async () => {
+    const utils = await open();
+    await settle();
+    global.__shareGpx.mockResolvedValueOnce({ ok: false, reason: 'unavailable' });
+    await press(utils);
+    expect(utils.getByTestId('trail-export-error').props.children).toBe('Sharing files is not available on this phone.');
+    expect(utils.getByText('Export route as GPX')).toBeTruthy();
+    await press(utils);
+    expect(utils.queryByTestId('trail-export-error')).toBeNull();
+  });
+
+  it('does not start a hike, keep the trail, or change anything else', async () => {
+    const utils = await open();
+    await settle();
+    await press(utils);
+    expect(global.__router.push).not.toHaveBeenCalled();
+    expect(global.__offline.keepTrail).not.toHaveBeenCalled();
+    expect(global.__hiking.toggleSaveTrail).not.toHaveBeenCalled();
   });
 });

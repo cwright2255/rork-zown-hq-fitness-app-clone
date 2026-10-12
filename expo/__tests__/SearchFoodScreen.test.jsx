@@ -15,9 +15,13 @@ jest.mock('expo-router', () => ({
 jest.mock('@/components/ScreenHeader', () => {
   const mockReact = require('react');
   const mockRn = require('react-native');
-  return { __esModule: true, default: () => mockReact.createElement(mockRn.View) };
+  return {
+    __esModule: true,
+    default: ({ title }) => mockReact.createElement(mockRn.View, null, mockReact.createElement(mockRn.Text, { testID: 'header-title' }, title)),
+  };
 });
 jest.mock('@/store/nutritionStore', () => ({ useNutritionStore: () => global.__nutrition }));
+jest.mock('@/store/mealPlanStore', () => ({ useMealPlanStore: { getState: () => global.__plan } }));
 jest.mock('@/services/calorieApiService', () => ({
   searchFoodsDetailed: (...a) => global.__search(...a),
   gradeToStars: () => 4,
@@ -32,6 +36,7 @@ const open = ({ params = {}, search, recentFoods = [], customFoods = [] } = {}) 
   global.__router = { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) };
   global.__search = jest.fn(search || (async () => ({ results: [chicken], fallback: false })));
   global.__nutrition = { addFoodToMeal: jest.fn(), recentFoods, customFoods, removeCustomFood: jest.fn() };
+  global.__plan = { addFood: jest.fn(() => ({ ok: true })) };
   return render(<SearchFoodScreen />);
 };
 
@@ -250,5 +255,106 @@ describe('My Foods', () => {
     expect(buttons.map((b) => b.text)).toEqual(['Cancel', 'Delete']);
     buttons[1].onPress();
     expect(global.__nutrition.removeCustomFood).toHaveBeenCalledWith('custom-1');
+  });
+});
+
+describe('planning a food (opened from the meal plan)', () => {
+  const PLAN = { mealId: 'dinner', planDate: '2026-10-07' };
+  beforeEach(() => { jest.setSystemTime(new Date('2026-10-09T16:00:00Z')); });
+
+  it('says it is for the meal plan, with the meal and the day', () => {
+    const utils = open({ params: PLAN });
+    expect(utils.getByTestId('header-title').props.children).toBe('Plan a Food');
+    expect(utils.getByTestId('search-plan-banner')).toBeTruthy();
+    expect(utils.getByText('Adding to your meal plan: Dinner \u00B7 Wed, Oct 7')).toBeTruthy();
+  });
+
+  it('names today and yesterday', () => {
+    expect(open({ params: { ...PLAN, planDate: '2026-10-09' } }).getByText('Adding to your meal plan: Dinner \u00B7 Today')).toBeTruthy();
+    expect(open({ params: { ...PLAN, planDate: '2026-10-08' } }).getByText('Adding to your meal plan: Dinner \u00B7 Yesterday')).toBeTruthy();
+  });
+
+  it('does not say it is for the meal plan otherwise', () => {
+    const utils = open({ params: { mealId: 'dinner' } });
+    expect(utils.getByTestId('header-title').props.children).toBe('Search Food');
+    expect(utils.queryByTestId('search-plan-banner')).toBeNull();
+  });
+
+  it('puts a tapped search result on the plan for that day and meal, not in the diary', async () => {
+    const utils = open({ params: PLAN });
+    await typeQuery(utils, 'chicken');
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(global.__plan.addFood).toHaveBeenCalledTimes(1);
+    expect(global.__plan.addFood).toHaveBeenCalledWith(chicken, { date: '2026-10-07', slot: 'dinner' });
+    expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
+    expect(global.__router.push).not.toHaveBeenCalled();
+    expect(global.__router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts a tapped My Food on the plan', () => {
+    const shake = { id: 'custom-1', name: 'Protein shake', servingSize: '1 bottle', calories: 200 };
+    const utils = open({ params: PLAN, customFoods: [shake] });
+    fireEvent.press(utils.getByTestId('my-food-custom-1'));
+    expect(global.__plan.addFood).toHaveBeenCalledWith(shake, { date: '2026-10-07', slot: 'dinner' });
+    expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
+    expect(global.__router.back).toHaveBeenCalled();
+  });
+
+  it('puts a tapped recent food on the plan', () => {
+    const utils = open({ params: PLAN, recentFoods: [chicken] });
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(global.__plan.addFood).toHaveBeenCalledWith(chicken, { date: '2026-10-07', slot: 'dinner' });
+    expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
+  });
+
+  it('uses the first day when it is given more than once', () => {
+    const utils = open({ params: { mealId: 'lunch', planDate: ['2026-10-10', '2026-10-11'] }, recentFoods: [chicken] });
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(global.__plan.addFood).toHaveBeenCalledWith(chicken, { date: '2026-10-10', slot: 'lunch' });
+  });
+
+  it('goes to the plan on that day when there is no screen to go back to', () => {
+    const utils = open({ params: PLAN, recentFoods: [chicken] });
+    global.__router.canGoBack.mockReturnValue(false);
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(global.__router.back).not.toHaveBeenCalled();
+    expect(global.__router.replace).toHaveBeenCalledWith({ pathname: '/nutrition/plan', params: { date: '2026-10-07' } });
+  });
+
+  it('says why and stays put when the food could not be added', () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const utils = open({ params: PLAN, recentFoods: [chicken] });
+    global.__plan.addFood.mockReturnValue({ ok: false, error: 'Dinner already has 10 items on that day.' });
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(alert).toHaveBeenCalledWith('Could not add', 'Dinner already has 10 items on that day.');
+    expect(global.__router.back).not.toHaveBeenCalled();
+    expect(global.__router.replace).not.toHaveBeenCalled();
+  });
+
+  it('never logs to the diary, even with no valid meal', () => {
+    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const utils = open({ params: { planDate: '2026-10-07' }, recentFoods: [chicken] });
+    global.__plan.addFood.mockReturnValue({ ok: false, error: 'Pick a real day and meal.' });
+    expect(utils.getByText('Adding to your meal plan: a meal \u00B7 Wed, Oct 7')).toBeTruthy();
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(global.__plan.addFood).toHaveBeenCalledWith(chicken, { date: '2026-10-07', slot: undefined });
+    expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
+    expect(global.__router.push).not.toHaveBeenCalled();
+  });
+
+  it('hides the scanners and Quick Add, which would log straight to the diary', () => {
+    const utils = open({ params: PLAN });
+    expect(utils.queryByTestId('search-barcode')).toBeNull();
+    expect(utils.queryByTestId('search-photo')).toBeNull();
+    expect(utils.queryByTestId('search-quick-add')).toBeNull();
+    expect(utils.getByTestId('search-create-food')).toBeTruthy();
+    expect(utils.getByPlaceholderText('Search foods...')).toBeTruthy();
+  });
+
+  it('makes a food for My Foods without sending it to the diary', async () => {
+    const utils = open({ params: PLAN });
+    await typeQuery(utils, 'chili');
+    fireEvent.press(utils.getByTestId('search-create-food'));
+    expect(global.__router.push).toHaveBeenCalledWith({ pathname: '/nutrition/custom-food', params: { name: 'chili' } });
   });
 });

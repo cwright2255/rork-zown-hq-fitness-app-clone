@@ -70,6 +70,15 @@ jest.mock('@/services/runTracking', () => ({
   startTracking: jest.fn(async () => 'background'),
   stopTracking: jest.fn(async () => undefined),
 }));
+// The off-trail watch has its own tests (offRouteWatch.test.js); here it is replaced
+// by one that records how the screen started it and lets a test make it report.
+jest.mock('@/services/offRouteWatch', () => ({
+  watchOffRoute: jest.fn((options) => {
+    const watch = { options, stop: jest.fn(), mute: jest.fn() };
+    global.__watches.push(watch);
+    return watch;
+  }),
+}));
 
 import { Circle as SvgCircle, Polyline as SvgPolyline } from 'react-native-svg';
 import HikeMonitorScreen from '../app/running/hiking/monitor';
@@ -81,6 +90,7 @@ const Speech = require('expo-speech');
 const tracking = require('@/services/runTracking');
 const { getWeatherSnapshot } = require('@/services/weatherService');
 const { fetchRouteForMap } = require('@/services/hikingService');
+const { watchOffRoute } = require('@/services/offRouteWatch');
 
 const T0 = Date.UTC(2026, 9, 8, 12, 0, 0);
 const store = () => useRunTrackerStore.getState();
@@ -121,6 +131,8 @@ describe('HikeMonitorScreen', () => {
     global.__params = { id: 'trailapi-7', mapId: '55', pathName: 'Ridge Trail' };
     global.__polylines = [];
     global.__mapProps = null;
+    global.__watches = [];
+    watchOffRoute.mockClear();
     global.__addExp = jest.fn();
     global.__unlockBadge = jest.fn();
     global.__scans = [];
@@ -493,6 +505,78 @@ describe('HikeMonitorScreen', () => {
       utils.unmount();
       expect(store().tracker.status).toBe('idle');
     });
+
+    describe('a hike found when the app was opened', () => {
+      const HOURS_10 = 10 * 60 * 60 * 1000;
+      // A hike walked, left (the screen closed), and the app opened again ten hours later.
+      const leftOvernight = async () => {
+        const first = await goFar();
+        first.unmount();
+        const before = store().tracker;
+        jest.setSystemTime(Date.now() + HOURS_10);
+        return before;
+      };
+
+      it('is picked up however long ago it was left, when the unfinished-hike question opens it', async () => {
+        const before = await leftOvernight();
+        global.__params = { id: 'trailapi-7', mapId: '55', pathName: 'Ridge Trail', resume: '1' };
+        const utils = await mount();
+        expect(store().tracker.startedAt).toBe(before.startedAt);
+        expect(store().tracker.distanceM).toBe(before.distanceM);
+        expect(store().tracker.status).toBe('paused');
+        expect(utils.getByTestId('hike-leave-panel')).toBeTruthy();
+      });
+
+      it('does not count the time it was left', async () => {
+        const before = await leftOvernight();
+        global.__params = { id: 'trailapi-7', mapId: '55', pathName: 'Ridge Trail', resume: '1' };
+        const utils = await mount();
+        press(utils, 'Resume');
+        expect(store().tracker.status).toBe('running');
+        expect(trackedMs(store().tracker, Date.now())).toBe(trackedMs(before, before.lastT));
+      });
+
+      it('is replaced by a new hike when it was not opened from the question', async () => {
+        const before = await leftOvernight();
+        await mount();
+        expect(store().tracker.distanceM).toBe(0);
+        expect(store().tracker.startedAt).not.toBe(before.startedAt);
+        expect(store().tracker.status).toBe('running');
+      });
+
+      it.each(['0', 'true', '', undefined])('is not picked up for a resume of %p', async (resume) => {
+        const before = await leftOvernight();
+        global.__params = { id: 'trailapi-7', mapId: '55', pathName: 'Ridge Trail', resume };
+        await mount();
+        expect(store().tracker.startedAt).not.toBe(before.startedAt);
+        expect(store().tracker.distanceM).toBe(0);
+      });
+
+      it('is not picked up for a different trail', async () => {
+        const before = await leftOvernight();
+        global.__params = { id: 'trailapi-99', resume: '1' };
+        await mount();
+        expect(store().tracker.kind).toBe('hike:trailapi-99');
+        expect(store().tracker.startedAt).not.toBe(before.startedAt);
+      });
+
+      it('keeps the map and path it was recorded with', async () => {
+        await goFar();
+        expect(store().context).toEqual({ mapId: '55', pathName: 'Ridge Trail' });
+      });
+
+      it('keeps only the map and path it was opened with', async () => {
+        global.__params = { id: 'trailapi-7', pathName: 'Ridge Trail' };
+        await mount();
+        expect(store().context).toEqual({ pathName: 'Ridge Trail' });
+      });
+
+      it('keeps no map and path when it was opened with none', async () => {
+        global.__params = { id: 'trailapi-7' };
+        await mount();
+        expect(store().context).toBeNull();
+      });
+    });
   });
 
   describe('with no signal', () => {
@@ -634,6 +718,187 @@ describe('HikeMonitorScreen', () => {
       await settle();
       expect(utils.getByTestId('hike-trail-view')).toBeTruthy();
       expect(utils.queryByTestId('hike-offline-note')).toBeNull();
+    });
+  });
+  describe('off-trail warnings', () => {
+    const LINE = [{ latitude: 40.7, longitude: -74 }, { latitude: 40.71, longitude: -74.01 }];
+    const LONGER = [{ latitude: 40.7, longitude: -74 }, { latitude: 40.705, longitude: -74.005 }, { latitude: 40.71, longitude: -74.01 }];
+    const keepLine = (coordinates) => {
+      global.__offline.trails = {
+        'trailapi-7': { id: 'trailapi-7', trail: TRAIL, maps: [{ id: 55, name: 'Ridge Trail' }], routes: { 55: { coordinates } } },
+      };
+    };
+    const latest = () => global.__watches[global.__watches.length - 1];
+    const stray = (distanceM, event = 'off') => act(() => { latest().options.onChange({ off: true, distanceM, event }); });
+    const back = () => act(() => { latest().options.onChange({ off: false, distanceM: 20, event: 'back' }); });
+
+    it('watches the path that was chosen, once its line is known', async () => {
+      await mount();
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+      expect(latest().options.route).toEqual(LINE);
+    });
+
+    it('watches the path kept on the phone straight away, with no signal needed', async () => {
+      keepLine(LONGER);
+      await mount();
+      expect(fetchRouteForMap).not.toHaveBeenCalled();
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+      expect(latest().options.route).toBe(LONGER);
+    });
+
+    it('does not watch, or say it is watching, when no path was chosen', async () => {
+      global.__params = { id: 'trailapi-7' };
+      const utils = await mount();
+      expect(watchOffRoute).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+    });
+
+    it('does not watch a path that could not be fetched', async () => {
+      fetchRouteForMap.mockResolvedValue(null);
+      const utils = await mount();
+      expect(watchOffRoute).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+    });
+
+    it('does not watch a path with no line to follow', async () => {
+      fetchRouteForMap.mockResolvedValue({ coordinates: [LINE[0]] });
+      const utils = await mount();
+      expect(watchOffRoute).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+      fetchRouteForMap.mockResolvedValue({ coordinates: [] });
+    });
+
+    it('says the warnings are on for the path that was chosen', async () => {
+      const utils = await mount();
+      expect(utils.getByTestId('hike-off-route-status').props.children).toBe('Off-trail warnings are on for the path you chose.');
+      expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+    });
+
+    it('shows a red alert, with how far off, when the watch says the hiker has strayed', async () => {
+      const utils = await mount();
+      stray(84);
+      const banner = utils.getByTestId('hike-off-route-banner');
+      expect(banner.props.accessibilityRole).toBe('alert');
+      expect(utils.getByText('Off the trail, about 80 m from the route')).toBeTruthy();
+      expect(utils.getByText('Mute')).toBeTruthy();
+    });
+
+    it('rounds the distance the way it is spoken', async () => {
+      const utils = await mount();
+      stray(340);
+      expect(utils.getByText('Off the trail, about 350 m from the route')).toBeTruthy();
+      stray(1234);
+      expect(utils.getByText('Off the trail, about 1.2 km from the route')).toBeTruthy();
+    });
+
+    it('shows the new distance as the hiker gets further off', async () => {
+      const utils = await mount();
+      stray(80);
+      stray(130, null);
+      expect(utils.queryByText('Off the trail, about 80 m from the route')).toBeNull();
+      expect(utils.getByText('Off the trail, about 150 m from the route')).toBeTruthy();
+    });
+
+    it('takes the alert away when the hiker is back on the path', async () => {
+      const utils = await mount();
+      stray(90);
+      back();
+      expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+      expect(utils.getByTestId('hike-off-route-status')).toBeTruthy();
+    });
+
+    it('Mute switches the warnings off for this hike: the watch is muted, the alert goes, and the screen says so', async () => {
+      const utils = await mount();
+      stray(90);
+      fireEvent.press(utils.getByTestId('hike-off-route-mute'));
+      expect(latest().mute).toHaveBeenCalledTimes(1);
+      expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+      expect(utils.getByTestId('hike-off-route-status').props.children).toBe('Off-trail warnings are muted for this hike.');
+    });
+
+    it('speaks warnings only while the sound is on', async () => {
+      const utils = await mount();
+      expect(latest().options.speak()).toBe(true);
+      fireEvent.press(utils.UNSAFE_getByProps({ name: 'volume-high' }));
+      expect(latest().options.speak()).toBe(false);
+      fireEvent.press(utils.UNSAFE_getByProps({ name: 'volume-mute' }));
+      expect(latest().options.speak()).toBe(true);
+    });
+
+    it('stops watching when the screen closes', async () => {
+      const utils = await mount();
+      const watch = latest();
+      expect(watch.stop).not.toHaveBeenCalled();
+      utils.unmount();
+      expect(watch.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not start over when the same line comes back as a new copy', async () => {
+      const utils = await mount();
+      const first = latest();
+      stray(90);
+      keepLine(LINE.map((p) => ({ ...p })));
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+      expect(first.stop).not.toHaveBeenCalled();
+      expect(utils.getByTestId('hike-off-route-banner')).toBeTruthy();
+    });
+
+    it('starts over on a different line, and drops an alert about the old one', async () => {
+      const utils = await mount();
+      const first = latest();
+      stray(90);
+      keepLine(LONGER);
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(watchOffRoute).toHaveBeenCalledTimes(2);
+      expect(first.stop).toHaveBeenCalledTimes(1);
+      expect(latest().options.route).toBe(LONGER);
+      expect(latest().mute).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+    });
+
+    it.each([
+      ['first point\'s latitude', 0, 'latitude'],
+      ['first point\'s longitude', 0, 'longitude'],
+      ['last point\'s latitude', 1, 'latitude'],
+      ['last point\'s longitude', 1, 'longitude'],
+    ])('also starts over when only the %s is different', async (_name, index, key) => {
+      const utils = await mount();
+      const changed = LINE.map((p) => ({ ...p }));
+      changed[index][key] += 0.001;
+      keepLine(changed);
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(watchOffRoute).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops watching, and drops the alert, when the line is gone and cannot be fetched', async () => {
+      keepLine(LONGER);
+      fetchRouteForMap.mockResolvedValue(null);
+      const utils = await mount();
+      const first = latest();
+      stray(90);
+      global.__offline.trails = {};
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(first.stop).toHaveBeenCalledTimes(1);
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+      expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+    });
+
+    it('keeps the warnings muted when the line changes mid-hike', async () => {
+      const utils = await mount();
+      stray(90);
+      fireEvent.press(utils.getByTestId('hike-off-route-mute'));
+      keepLine(LONGER);
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(watchOffRoute).toHaveBeenCalledTimes(2);
+      expect(latest().mute).toHaveBeenCalledTimes(1);
+      expect(utils.getByTestId('hike-off-route-status').props.children).toBe('Off-trail warnings are muted for this hike.');
     });
   });
 });

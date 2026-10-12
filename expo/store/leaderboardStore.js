@@ -21,7 +21,7 @@
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';
 import {
-  collection, doc, setDoc, query, orderBy, limit, getDocs, onSnapshot, where, documentId, deleteField,
+  collection, doc, setDoc, deleteDoc, query, orderBy, limit, getDocs, onSnapshot, where, documentId,
 } from 'firebase/firestore';
 import { chunk, rankEntries } from '../lib/audience';
 import { boardField, boardValue, distanceTotals, isDistanceBoard } from '../lib/runLeaderboard';
@@ -125,11 +125,13 @@ export const useLeaderboardStore = create((set, get) => ({
     return myRank;
   },
 
-  // Called from store/expStore.js on real XP change — not exported for
-  // screens to call directly, since the leaderboard should only ever
-  // reflect actual XP changes, never be set arbitrarily.
-  _syncLeaderboardEntry: async (uid, { name, avatar, xp, level, streak }) => {
-    if (!uid) return;
+  // Called when XP really changes (see services/leaderboardVisibility.js, which
+  // every caller goes through) — not exported for screens to call directly,
+  // since the leaderboard should only ever reflect actual XP changes, never be
+  // set arbitrarily. `visible` false (the "Show in Leaderboards" setting is
+  // off) writes nothing. Returns true when the entry was written.
+  _syncLeaderboardEntry: async (uid, { name, avatar, xp, level, streak, visible = true } = {}) => {
+    if (!uid || visible === false) return false;
     try {
       await setDoc(doc(db, 'leaderboard', uid), {
         name: name || 'Zown User',
@@ -139,35 +141,53 @@ export const useLeaderboardStore = create((set, get) => ({
         streak: streak ?? 0,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
+      return true;
     } catch (e) {
       console.warn('[leaderboardStore] sync error:', e?.message);
+      return false;
+    }
+  },
+
+  // Takes the person's whole entry (name, picture, XP, level, streak and
+  // distance) off the boards, for someone who has chosen not to be shown.
+  // Nothing about them is left for others to see. Returns true when it is gone
+  // (it is also true when there was no entry to remove).
+  _removeEntry: async (uid) => {
+    if (!uid) return false;
+    try {
+      await deleteDoc(doc(db, 'leaderboard', uid));
+      // The next distance publish has to write the whole entry again.
+      set({ _distanceSignature: null });
+      return true;
+    } catch (e) {
+      console.warn('[leaderboardStore] remove error:', e?.message);
+      return false;
     }
   },
 
   // Publishes this week's and this month's distance (runs and walks recorded
   // in Zown) on the person's public leaderboard document. The whole `distance`
   // map is replaced each time, so last week's number disappears by itself.
-  // `visible` false (the "Show me in leaderboards" setting is off) removes it.
-  // Skips the write when nothing changed since the last one. Returns true
-  // when the document is up to date.
+  // `visible` false (the "Show in Leaderboards" setting is off) takes the whole
+  // entry off the boards instead. Skips the write when nothing changed since
+  // the last one. Returns true when the document is up to date.
   _syncDistanceEntry: async (uid, { name, avatar, runs, visible = true, now = Date.now() } = {}) => {
     if (!uid) return false;
     const distance = visible ? distanceTotals(runs, now) : null;
     const signature = JSON.stringify([uid, distance, name || '', avatar || '']);
     if (get()._distanceSignature === signature) return true;
+    if (distance === null) {
+      if (!(await get()._removeEntry(uid))) return false;
+      set({ _distanceSignature: signature });
+      return true;
+    }
     try {
       // Only the fields this writes are touched, and the name and picture only
       // when known, so the XP entry's own copy of them is never blanked.
-      // A person who has chosen not to be shown gets only the removal: nothing
-      // about them (not even their name) is written for others to see.
-      const data = { distance: distance === null ? deleteField() : distance };
-      const fields = ['distance'];
-      if (distance !== null) {
-        data.updatedAt = new Date().toISOString();
-        fields.push('updatedAt');
-        if (name) { data.name = name; fields.push('name'); }
-        if (avatar) { data.avatar = avatar; fields.push('avatar'); }
-      }
+      const data = { distance, updatedAt: new Date().toISOString() };
+      const fields = ['distance', 'updatedAt'];
+      if (name) { data.name = name; fields.push('name'); }
+      if (avatar) { data.avatar = avatar; fields.push('avatar'); }
       await setDoc(doc(db, 'leaderboard', uid), data, { mergeFields: fields });
       set({ _distanceSignature: signature });
       return true;

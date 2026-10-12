@@ -124,7 +124,9 @@ export function windowSpeed(win, minSpanMs = 4000) {
  */
 export function updateElevation(el, alt, t, counting = true) {
   if (alt === null || !Number.isFinite(alt)) return el;
-  if (!el) return restart({ gain: 0, loss: 0 }, alt, t);
+  // `el` can be bare totals ({ gain, loss }) from a hike picked up again after the
+  // app was closed: start over from this height, keeping them.
+  if (!el || !Number.isFinite(el.t)) return restart({ gain: (el && el.gain) || 0, loss: (el && el.loss) || 0 }, alt, t);
   const dt = Math.max(0, (t - el.t) / 1000);
   const smooth = el.smooth + (1 - Math.exp(-dt / ALT_SMOOTH_SECONDS)) * (alt - el.smooth);
   if (!counting) {

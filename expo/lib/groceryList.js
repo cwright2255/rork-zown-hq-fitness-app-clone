@@ -61,7 +61,15 @@ export function normalizeUnit(unit) {
   return u.length > 3 && u.endsWith('s') && !u.endsWith('ss') ? u.slice(0, -1) : u;
 }
 
-function unitLabel(unit, amount) {
+/** The unit a word stands for ("Tbsps" is "tbsp"); '' when it is not one of the units listed above. */
+export function recognizedUnit(word) {
+  if (typeof word !== 'string') return '';
+  const u = word.trim().toLowerCase().replace(/\.$/, '');
+  return Object.prototype.hasOwnProperty.call(UNIT_ALIASES, u) ? UNIT_ALIASES[u] : '';
+}
+
+/** A unit as it reads next to an amount: "cup" for 1 or less, "cups" for more. */
+export function unitLabel(unit, amount) {
   if (!unit || !(amount > 1) || SHORT_UNITS.includes(unit)) return unit || '';
   return /(ch|sh|s|x)$/.test(unit) ? `${unit}es` : `${unit}s`;
 }

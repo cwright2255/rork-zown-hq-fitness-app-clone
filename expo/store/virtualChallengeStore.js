@@ -4,17 +4,18 @@
 // the length of the Grand Canyon rim trail — 34km"), and your real
 // cumulative run/walk distance counts toward completing it.
 //
-// Built as a genuinely real data model — not a UI mockup — but the actual
-// screen entry point (app/running/program/index.jsx) presents this behind
-// a "Coming Soon" state on purpose. The reason isn't technical: this kind
+// Built as a genuinely real data model — not a UI mockup — but no screen
+// shows these challenges to join yet (the Running screen,
+// app/running/program/index.jsx, has no Virtual Challenges section), on
+// purpose. The reason isn't technical: this kind
 // of feature (see The Conqueror as the reference) usually ships a real
 // medal or physical reward on completion, and that needs a fulfillment
 // vendor, inventory, and shipping logistics set up on the business side —
 // none of which exists yet. Shipping the tracking/progress mechanic while
 // implying a physical reward that can't actually be fulfilled would be
-// worse than not shipping it at all, so this stays gated until that's
-// resolved. The moment it is, this store needs no further backend work —
-// only the UI gate needs to come off.
+// worse than not shipping it at all, so it stays out of the app until
+// that's resolved. The moment it is, this store needs no further backend
+// work — only a screen to show it.
 
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';

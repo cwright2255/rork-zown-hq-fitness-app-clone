@@ -24,6 +24,11 @@ jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__us
 jest.mock('@/store/communityStore', () => ({
   useCommunityStore: (select) => select({ createPost: global.__createPost }),
 }));
+// The share sheet is the phone's; the text it would be given is what is tested here.
+jest.mock('@/services/gpxShare', () => ({
+  shareGpx: jest.fn((file) => global.__shareGpx(file)),
+  gpxShareErrorText: jest.requireActual('@/services/gpxShare').gpxShareErrorText,
+}));
 
 import HikeDetailScreen from '../app/running/hiking/log/[id]';
 
@@ -59,6 +64,7 @@ const open = (id, hikes, { user = { uid: 'u1' }, loadCompletedHikes } = {}) => {
     markHikeShared: jest.fn(() => true),
   };
   global.__createPost = jest.fn(async () => 'post-1');
+  global.__shareGpx = jest.fn(async (file) => ({ ok: true, uri: `file:///cache/${file.filename}` }));
   return render(<HikeDetailScreen />);
 };
 
@@ -162,6 +168,83 @@ describe('HikeDetailScreen', () => {
       await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-share')); });
       expect(utils.getByTestId('hike-detail-share-error').props.children).toMatch(/Sign in/);
       expect(global.__createPost).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('exporting the route', () => {
+    it('offers to export the route as a GPX file', () => {
+      const utils = open('hike-1', [hike()]);
+      expect(utils.getByText('Export GPX')).toBeTruthy();
+      expect(utils.queryByTestId('hike-detail-export-error')).toBeNull();
+    });
+
+    it('hands the share sheet a GPX file of the route that was walked, named for the trail and the day', async () => {
+      const utils = open('hike-1', [hike()]);
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+      const file = global.__shareGpx.mock.calls[0][0];
+      expect(file.filename).toBe('Old-Rag-2026-10-08.gpx');
+      expect(file.title).toBe('Old Rag (Ridge Trail)');
+      expect(file.xml).toContain('<name>Old Rag (Ridge Trail)</name>');
+      expect(file.xml).toContain('Recorded with Zown HQ. 14.24 km, 4:15:00, 812 m climb.');
+      expect(file.xml.match(/<trkpt /g)).toHaveLength(60);
+      expect(file.xml).toContain('<trkpt lat="40" lon="-74"></trkpt>');
+    });
+
+    it('does not post anything to the feed, and does not need anyone signed in', async () => {
+      const utils = open('hike-1', [hike()], { user: null });
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+      expect(global.__createPost).not.toHaveBeenCalled();
+      expect(global.__hiking.markHikeShared).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-detail-export-error')).toBeNull();
+    });
+
+    it('says it is preparing the file, and ignores a second tap meanwhile', async () => {
+      const utils = open('hike-1', [hike()]);
+      let finish;
+      global.__shareGpx.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(utils.getByText('Preparing...')).toBeTruthy();
+      expect(utils.queryByText('Export GPX')).toBeNull();
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+      // Even a tap that reaches the handler anyway does nothing while it is busy.
+      const button = utils.UNSAFE_getAllByProps({ testID: 'hike-detail-export' }).find((n) => typeof n.props.onPress === 'function');
+      await act(async () => { await button.props.onPress(); });
+      expect(global.__shareGpx).toHaveBeenCalledTimes(1);
+      await act(async () => { finish({ ok: true, uri: 'file:///x.gpx' }); });
+      expect(utils.getByText('Export GPX')).toBeTruthy();
+      expect(utils.queryByText('Preparing...')).toBeNull();
+    });
+
+    it('says what went wrong, and clears it on the next try', async () => {
+      const utils = open('hike-1', [hike()]);
+      global.__shareGpx.mockResolvedValueOnce({ ok: false, reason: 'write-failed' });
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(utils.getByTestId('hike-detail-export-error').props.children)
+        .toBe('Could not prepare the file. Check that the phone has free space and try again.');
+      expect(utils.getByText('Export GPX')).toBeTruthy();
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(utils.queryByTestId('hike-detail-export-error')).toBeNull();
+    });
+
+    it('has a message for a phone that cannot share files', async () => {
+      const utils = open('hike-1', [hike()]);
+      global.__shareGpx.mockResolvedValueOnce({ ok: false, reason: 'unavailable' });
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(utils.getByTestId('hike-detail-export-error').props.children).toBe('Sharing files is not available on this phone.');
+    });
+
+    it('is not offered for a hike with no route to write', () => {
+      const utils = open('hike-1', [hike({ track: [] })]);
+      expect(utils.queryByTestId('hike-detail-export')).toBeNull();
+      expect(utils.queryByText('Export GPX')).toBeNull();
+    });
+
+    it('is still offered once the hike has been shared to the feed', () => {
+      const utils = open('hike-1', [hike({ sharedPostId: 'old' })]);
+      expect(utils.getByTestId('hike-detail-export')).toBeTruthy();
     });
   });
 

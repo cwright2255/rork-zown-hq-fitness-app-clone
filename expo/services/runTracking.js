@@ -18,8 +18,9 @@
 // background task has to be registered when the app launches, not when the run
 // screen opens.
 
+import { AppState } from 'react-native';
 import * as Location from 'expo-location';
-import { useRunTrackerStore } from '../store/runTrackerStore';
+import { useRunTrackerStore, isTrackerReady, whenTrackerReady, flushRunTracker } from '../store/runTrackerStore';
 import { pauseTimedOut } from '../lib/runTracker';
 
 export const RUN_TRACKING_TASK = 'zown-run-tracking';
@@ -35,9 +36,27 @@ try {
 
 let watchSubscription = null;
 
+// Readings that arrived before a hike saved on the phone was read back. The phone
+// can wake the app for a reading before it is ready; they are held (the most
+// recent ones, if it takes long) and handled, in order, as soon as it is.
+const MAX_HELD_READINGS = 120;
+let held = [];
+
 /** Hands readings to the tracker, or switches GPS off if nothing is recording. */
 export function handleLocations(locations) {
   if (!Array.isArray(locations) || locations.length === 0) return;
+  if (!isTrackerReady()) {
+    const first = held.length === 0;
+    held = [...held, ...locations].slice(-MAX_HELD_READINGS);
+    if (first) {
+      whenTrackerReady().then(() => {
+        const readings = held;
+        held = [];
+        handleLocations(readings);
+      });
+    }
+    return;
+  }
   const { tracker, ingest } = useRunTrackerStore.getState();
   // The phone can wake the app for a run that no longer exists (for example
   // after it was closed mid-run). Don't keep the GPS on for nothing.
@@ -46,6 +65,15 @@ export function handleLocations(locations) {
     return;
   }
   ingest(locations);
+}
+
+// A hike in progress is saved every few seconds; leaving the screen saves it at once.
+try {
+  AppState.addEventListener('change', (state) => {
+    if (state !== 'active') flushRunTracker();
+  });
+} catch (e) {
+  // no app state to watch (web, tests)
 }
 
 if (TaskManager) {

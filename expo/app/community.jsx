@@ -14,16 +14,6 @@ import PostComposer from '@/components/PostComposer';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
 import RunPostCard from '@/components/RunPostCard';
 
-// No real challenge-tracking backend exists yet (participant tracking,
-// join state, progress toward a goal) — that's a separate, larger feature
-// than a post feed. Left as a clearly-marked placeholder rather than
-// building a shallow version of it in the same pass as the real feed.
-const CHALLENGES = [
-  { id: 'c1', name: '30-Day Cardio', participants: 412, daysLeft: 12 },
-  { id: 'c2', name: 'Strength PR Month', participants: 206, daysLeft: 21 },
-  { id: 'c3', name: 'Summer Shred', participants: 894, daysLeft: 34 },
-];
-
 function timeAgo(timestamp) {
   if (!timestamp?.toDate) return '';
   const diffMs = Date.now() - timestamp.toDate().getTime();
@@ -36,7 +26,6 @@ function timeAgo(timestamp) {
 }
 
 export default function CommunityScreen() {
-  const [tab, setTab] = useState('feed');
   const [composerOpen, setComposerOpen] = useState(false);
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -173,102 +162,60 @@ export default function CommunityScreen() {
     <View style={styles.container}>
       <ScreenHeader title="Community" />
 
-      <View style={styles.tabs}>
-        {['feed', 'challenges'].map(t => {
-          const active = tab === t;
-          return (
-            <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
-              style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}>
-              <Text style={[styles.tabText, { color: active ? '#000' : '#999' }]}>
-                {t === 'feed' ? 'Feed' : 'Challenges'}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
       <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 100 }}>
-        {tab === 'feed' ? (
-          <>
-            <PrimaryButton title="Share an update" onPress={() => setComposerOpen(true)} style={{ marginBottom: tokens.spacing.md }} />
-            {posts.length === 0 && !isLoading && (
-              <Text style={{ color: '#999999', textAlign: 'center', marginTop: 20 }}>
-                No posts yet — be the first to share something.
-              </Text>
-            )}
-            {posts.map(post => (
-              <View key={post.id} style={styles.card}>
-                <TouchableOpacity
-                  style={styles.postHeader}
-                  disabled={post.authorId === user?.uid}
-                  onPress={() => {
-                    if (post.authorId === user?.uid) return;
-                    const conversationId = getConversationId(user.uid, post.authorId);
-                    router.push({
-                      pathname: '/messages/[id]',
-                      params: { id: conversationId, name: post.authorName, otherUid: post.authorId, avatar: post.authorAvatar || '' },
-                    });
-                  }}
-                >
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{initials(post.authorName)}</Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.postName}>{post.authorName}</Text>
-                    <Text style={styles.postTime}>{timeAgo(post.createdAt)} ago</Text>
-                  </View>
-                  {post.authorId !== user?.uid && (
-                    <MessageCircle size={16} color="#999999" />
-                  )}
-                </TouchableOpacity>
-                {!!post.text && <Text style={styles.postText}>{post.text}</Text>}
-                {!!post.run && <RunPostCard run={post.run} />}
-                <PostMedia media={normalizeMedia(post)} />
-                <View style={styles.postActions}>
-                  <TouchableOpacity style={styles.action} onPress={() => handleLike(post.id)}>
-                    <Heart
-                      size={18} color={likedByMe[post.id] ? '#EF4444' : '#999999'}
-                      fill={likedByMe[post.id] ? '#EF4444' : 'none'}
-                    />
-                    <Text style={styles.actionText}>{post.likeCount || 0}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.action} onPress={() => openComments(post)}>
-                    <MessageCircle size={18} color="#999999" />
-                    <Text style={styles.actionText}>{post.commentCount || 0}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.action} onPress={() => handleShare(post)}>
-                    <Share2 size={18} color="#999999" />
-                    <Text style={styles.actionText}>{post.shareCount || 0}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </>
-        ) : (
-          CHALLENGES.map(c => (
-            <View key={c.id} style={styles.card}>
-              <View style={styles.challengeRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.challengeName}>{c.name}</Text>
-                  <Text style={styles.challengeMeta}>{c.participants} participants</Text>
-                </View>
-                <View style={styles.daysBadge}>
-                  <Text style={styles.daysText}>{c.daysLeft}d left</Text>
-                </View>
-              </View>
-              <View style={{ marginTop: 12 }}>
-                <PrimaryButton
-                  title="Join"
-                  variant="outline"
-                  style={{ height: 36 }}
-                  onPress={() => Alert.alert('Coming soon', 'Challenge tracking is coming soon.')}
-                />
-              </View>
-            </View>
-          ))
+        <PrimaryButton title="Share an update" onPress={() => setComposerOpen(true)} style={{ marginBottom: tokens.spacing.md }} />
+        {posts.length === 0 && !isLoading && (
+          <Text style={{ color: '#999999', textAlign: 'center', marginTop: 20 }}>
+            No posts yet — be the first to share something.
+          </Text>
         )}
+        {posts.map(post => (
+          <View key={post.id} style={styles.card}>
+            <TouchableOpacity
+              style={styles.postHeader}
+              disabled={post.authorId === user?.uid}
+              onPress={() => {
+                if (post.authorId === user?.uid) return;
+                const conversationId = getConversationId(user.uid, post.authorId);
+                router.push({
+                  pathname: '/messages/[id]',
+                  params: { id: conversationId, name: post.authorName, otherUid: post.authorId, avatar: post.authorAvatar || '' },
+                });
+              }}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials(post.authorName)}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.postName}>{post.authorName}</Text>
+                <Text style={styles.postTime}>{timeAgo(post.createdAt)} ago</Text>
+              </View>
+              {post.authorId !== user?.uid && (
+                <MessageCircle size={16} color="#999999" />
+              )}
+            </TouchableOpacity>
+            {!!post.text && <Text style={styles.postText}>{post.text}</Text>}
+            {!!post.run && <RunPostCard run={post.run} />}
+            <PostMedia media={normalizeMedia(post)} />
+            <View style={styles.postActions}>
+              <TouchableOpacity style={styles.action} onPress={() => handleLike(post.id)}>
+                <Heart
+                  size={18} color={likedByMe[post.id] ? '#EF4444' : '#999999'}
+                  fill={likedByMe[post.id] ? '#EF4444' : 'none'}
+                />
+                <Text style={styles.actionText}>{post.likeCount || 0}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.action} onPress={() => openComments(post)}>
+                <MessageCircle size={18} color="#999999" />
+                <Text style={styles.actionText}>{post.commentCount || 0}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.action} onPress={() => handleShare(post)}>
+                <Share2 size={18} color="#999999" />
+                <Text style={styles.actionText}>{post.shareCount || 0}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
       </ScrollView>
 
       <PostComposer
@@ -367,11 +314,6 @@ const cardShadow = Platform.select({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  tabs: { flexDirection: 'row', paddingHorizontal: tokens.spacing.md, paddingVertical: tokens.spacing.sm, gap: tokens.spacing.sm },
-  tab: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999 },
-  tabActive: { backgroundColor: '#000000' },
-  tabInactive: { backgroundColor: '#FFFFFF', ...cardShadow },
-  tabText: { fontSize: 13, fontWeight: '600' },
   card: {
     backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 12,
@@ -393,14 +335,6 @@ const styles = StyleSheet.create({
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   actionText: { color: '#999999', fontSize: 13 },
-  challengeRow: { flexDirection: 'row', alignItems: 'center' },
-  challengeName: { color: '#000000', fontSize: 16, fontWeight: '600' },
-  challengeMeta: { color: '#999999', fontSize: 13, marginTop: 2 },
-  daysBadge: {
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-  },
-  daysText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalCard: {
     backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20,

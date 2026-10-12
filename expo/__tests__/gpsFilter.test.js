@@ -221,4 +221,59 @@ describe('updateElevation', () => {
     el = feed(Array.from({ length: 50 }, () => 110), { from: el, counting: false });
     expect(el.gain).toBeGreaterThanOrEqual(before);
   });
+
+  it('carries on from a result made at time zero, rather than starting over', () => {
+    const first = updateElevation(null, 50, 0);
+    expect(first.t).toBe(0);
+    const next = updateElevation(first, 60, 1000);
+    expect(next.smooth).toBeGreaterThan(50);
+    expect(next.smooth).toBeLessThan(51);
+    expect(next.lo).toBe(50);
+  });
+
+  // A hike picked up again after the app was closed has only its totals ({ gain, loss }).
+  describe('starting from totals alone', () => {
+    it('starts over from the new height and keeps the totals', () => {
+      const el = updateElevation({ gain: 120, loss: 45 }, 300, 5000);
+      expect(el).toEqual({
+        smooth: 300, t: 5000, dir: 0, base: 300, ext: 300, lo: 300, hi: 300, cg: 120, cl: 45, gain: 120, loss: 45,
+      });
+    });
+
+    it('keeps adding to the totals as the hike goes on', () => {
+      const alts = Array.from({ length: 300 }, (_, i) => 300 + i * 0.2); // +60 m
+      const el = feed(alts, { from: updateElevation({ gain: 120, loss: 45 }, 300, 0) });
+      expect(el.gain).toBeGreaterThan(120 + 60 - ALT_STEP_M - 4);
+      expect(el.gain).toBeLessThan(120 + 64);
+      expect(el.loss).toBe(45);
+    });
+
+    it('keeps the totals when it stops counting', () => {
+      const first = updateElevation({ gain: 120, loss: 45 }, 300, 0);
+      const el = updateElevation(first, 305, 1000, false);
+      expect(el.gain).toBe(120);
+      expect(el.loss).toBe(45);
+    });
+
+    it('takes a total that is missing as nothing', () => {
+      expect(updateElevation({ gain: 7 }, 300, 0)).toMatchObject({ gain: 7, loss: 0, cg: 7, cl: 0 });
+      expect(updateElevation({ loss: 9 }, 300, 0)).toMatchObject({ gain: 0, loss: 9, cg: 0, cl: 9 });
+      expect(updateElevation({}, 300, 0)).toMatchObject({ gain: 0, loss: 0 });
+    });
+
+    it('gives the totals back as they were when there is no height', () => {
+      const totals = { gain: 120, loss: 45 };
+      expect(updateElevation(totals, null, 1000)).toBe(totals);
+    });
+
+    it('does not start over from a height it cannot use', () => {
+      const totals = { gain: 120, loss: 45 };
+      expect(updateElevation(totals, NaN, 1000)).toBe(totals);
+    });
+
+    it('still starts from nothing when there is no earlier result', () => {
+      expect(updateElevation(null, 300, 0)).toMatchObject({ gain: 0, loss: 0, smooth: 300 });
+      expect(updateElevation(undefined, 300, 0)).toMatchObject({ gain: 0, loss: 0, smooth: 300 });
+    });
+  });
 });

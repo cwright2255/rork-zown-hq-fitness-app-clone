@@ -2,9 +2,9 @@
 //
 // One recorded hike in detail: the route walked on a dark map with start and
 // finish markers and the distance over it, then a white card with the headline
-// numbers, the climb and descent, the difficulty, and a button to share it to the
-// feed. Black and white, the same look as a finished run
-// (app/running/run/[id].jsx). Opened from My Hikes
+// numbers, the climb and descent, the difficulty, a button to share it to the
+// feed and one to export the route as a GPX file. Black and white, the same look
+// as a finished run (app/running/run/[id].jsx). Opened from My Hikes
 // (app/running/hiking/history.jsx). Route id is the hike's id; everything shown
 // is worked out in lib/hikeLog.js.
 import React, { useEffect, useMemo, useState } from 'react';
@@ -16,7 +16,9 @@ import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
 import { useCommunityStore } from '@/store/communityStore';
 import { describeHike } from '@/lib/hikeLog';
+import { hikeGpxFile } from '@/lib/gpxExport';
 import { shareHikeToFeed, hikeShareErrorText } from '@/services/hikeShare';
+import { shareGpx, gpxShareErrorText } from '@/services/gpxShare';
 
 const INK = '#000000';
 const MAP_BG = '#0D1117';
@@ -53,6 +55,9 @@ export default function HikeDetailScreen() {
   const [sharing, setSharing] = useState(false);
   const [justShared, setJustShared] = useState(false);
   const [shareError, setShareError] = useState('');
+  // Exporting the route as a GPX file through the phone's share sheet.
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const hike = useMemo(() => completedHikes.find((h) => h && String(h.id) === id) || null, [completedHikes, id]);
 
@@ -85,6 +90,15 @@ export default function HikeDetailScreen() {
     setSharing(false);
     if (result.ok || result.reason === 'already-shared') setJustShared(true);
     else setShareError(hikeShareErrorText(result.reason));
+  };
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError('');
+    const result = await shareGpx(hikeGpxFile(hike));
+    setExporting(false);
+    if (!result.ok) setExportError(gpxShareErrorText(result.reason));
   };
 
   if (!hike || !info) {
@@ -177,6 +191,20 @@ export default function HikeDetailScreen() {
           {!isShared && info.hasRoute && (
             <Text style={styles.privacy}>The first and last 200 m of your route are hidden when you share.</Text>
           )}
+
+          {info.hasRoute && (
+            <Pressable
+              style={styles.exportBtn}
+              onPress={handleExport}
+              disabled={exporting}
+              accessibilityRole="button"
+              testID="hike-detail-export"
+            >
+              <Ionicons name="download-outline" size={18} color={INK} />
+              <Text style={styles.exportText}>{exporting ? 'Preparing...' : 'Export GPX'}</Text>
+            </Pressable>
+          )}
+          {!!exportError && <Text style={styles.shareError} testID="hike-detail-export-error">{exportError}</Text>}
         </View>
       </ScrollView>
     </View>
@@ -242,6 +270,11 @@ const styles = StyleSheet.create({
   shareBtnDone: { backgroundColor: '#F0F0F0' },
   shareText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
   shareTextDone: { color: INK },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14,
+    borderWidth: 1.5, borderColor: INK, borderRadius: 28, paddingVertical: 14,
+  },
+  exportText: { fontSize: 15, fontWeight: '800', color: INK },
   shareError: { fontSize: 12, color: '#B91C1C', marginTop: 8, textAlign: 'center' },
   privacy: { fontSize: 12, color: '#8A8A8A', marginTop: 10, textAlign: 'center' },
 });

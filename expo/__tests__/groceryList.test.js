@@ -1,6 +1,6 @@
 import {
   parseQuantity, normalizeUnit, formatAmount, formatGroceryLine, categorizeIngredient,
-  buildGroceryItems, mergeGroceryItems, isRecipeOnList, remainingCount,
+  buildGroceryItems, mergeGroceryItems, isRecipeOnList, remainingCount, recognizedUnit, unitLabel,
 } from '../lib/groceryList';
 
 const ing = (name, amount, unit) => ({ id: name, name, amount, unit });
@@ -216,5 +216,45 @@ describe('isRecipeOnList and remainingCount', () => {
   it('counts the lines still to buy', () => {
     expect(remainingCount([{ checked: false }, { checked: true }, {}])).toBe(2);
     expect(remainingCount(undefined)).toBe(0);
+  });
+});
+
+describe('recognizedUnit', () => {
+  it('names the unit a word stands for', () => {
+    expect(recognizedUnit('Tbsps')).toBe('tbsp');
+    expect(recognizedUnit('cups')).toBe('cup');
+    expect(recognizedUnit('c.')).toBe('cup');
+    expect(recognizedUnit('  oz ')).toBe('oz');
+    expect(recognizedUnit('LBS.')).toBe('lb');
+    expect(recognizedUnit('Litres')).toBe('l');
+    expect(recognizedUnit('cloves')).toBe('clove');
+  });
+
+  it('is empty for a word that is not a unit it knows', () => {
+    ['large', 'bunch', 'canned', 'constructor', 'toString', '__proto__', 'hasOwnProperty', '', '   ', null, undefined, 5, {}].forEach((word) => {
+      expect(recognizedUnit(word)).toBe('');
+    });
+  });
+});
+
+describe('unitLabel', () => {
+  it('is singular for one or less and plural for more', () => {
+    expect(unitLabel('cup', 1)).toBe('cup');
+    expect(unitLabel('cup', 0.5)).toBe('cup');
+    expect(unitLabel('cup', 1.5)).toBe('cups');
+    expect(unitLabel('cup', 2)).toBe('cups');
+    expect(unitLabel('slice', 2)).toBe('slices');
+    expect(unitLabel('pinch', 2)).toBe('pinches');
+  });
+
+  it('leaves short units alone', () => {
+    ['tbsp', 'tsp', 'oz', 'lb', 'g', 'kg', 'ml', 'l'].forEach((unit) => {
+      expect(unitLabel(unit, 3)).toBe(unit);
+    });
+  });
+
+  it('is empty when there is no unit', () => {
+    expect(unitLabel('', 3)).toBe('');
+    expect(unitLabel(undefined, 3)).toBe('');
   });
 });

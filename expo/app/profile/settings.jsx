@@ -12,6 +12,7 @@ import { useUserStore } from '@/store/userStore';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
+import { setShowInLeaderboards } from '@/services/leaderboardVisibility';
 import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -549,7 +550,7 @@ export default function SettingsScreen() {
             right={
               <Switch
                 value={showInLeaderboards}
-                onValueChange={(v) => updateSetting('showInLeaderboards', v, uid)}
+                onValueChange={(v) => setShowInLeaderboards(v, user)}
                 trackColor={{ true: '#000000', false: '#E0E0E0' }}
                 thumbColor="#FFFFFF"
               />

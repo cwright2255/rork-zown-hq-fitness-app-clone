@@ -317,11 +317,6 @@ export default function WorkoutCompleteScreen() {
             onPress={() => setActiveTab('Summary')}
           />
           <TabButton
-            label="Stats"
-            active={activeTab === 'Stats'}
-            onPress={() => setActiveTab('Stats')}
-          />
-          <TabButton
             label="Exercises"
             active={activeTab === 'Exercises'}
             onPress={() => setActiveTab('Exercises')}
@@ -340,15 +335,6 @@ export default function WorkoutCompleteScreen() {
                 isLast={idx === summaryStats.length - 1}
               />
             ))}
-          </View>
-        )}
-
-        {activeTab === 'Stats' && (
-          <View style={styles.tabContentCenter}>
-            <Ionicons name="bar-chart-outline" size={48} color="#CCC" />
-            <Text style={styles.placeholderText}>
-              Detailed stats coming soon
-            </Text>
           </View>
         )}
 
@@ -556,10 +542,6 @@ const styles = StyleSheet.create({
   /* Tab content */
   tabContent: {
     paddingHorizontal: 20,
-  },
-  tabContentCenter: {
-    alignItems: 'center',
-    paddingVertical: 40,
   },
   placeholderText: {
     fontSize: 15,

@@ -46,7 +46,7 @@ const FAQ_DATA = [
       },
       {
         question: "Can I create custom workouts?",
-        answer: "Custom workout builder is coming soon! For now, you can choose from dozens of professional programs designed for any skill level."
+        answer: "Yes. On the Workouts tab, tap 'Quick Workout', confirm your goals, and Zown builds a workout for you from your fitness level and goals, ready to start. You can also choose from dozens of professional programs designed for any skill level."
       },
       {
         question: "How do I use the Spotify integration?",
@@ -67,11 +67,11 @@ const FAQ_DATA = [
     items: [
       {
         question: "How do I log meals?",
-        answer: "Go to the Nutrition tab and tap 'Log Meal'. You can search for food items via Passio.ai search, use the barcode scanner, or snap a photo for automatic AI recognition."
+        answer: "Go to the Nutrition tab and tap 'Log Food'. You can search for foods, use the barcode scanner, or snap a photo for automatic AI recognition."
       },
       {
         question: "How does the barcode scanner work?",
-        answer: "Tap the barcode icon inside the Log Meal screen, center the package barcode in your camera view, and the app will instantly match it with our product database."
+        answer: "Tap the barcode icon on the Search Food screen (Nutrition tab, then 'Log Food'), center the package barcode in your camera view, and the app will instantly match it with our product database."
       },
       {
         question: "How do I track water intake?",

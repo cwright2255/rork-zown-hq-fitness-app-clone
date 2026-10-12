@@ -227,6 +227,21 @@ describe('intake history and opening a day', () => {
     expect(global.__router.push).toHaveBeenCalledWith('/nutrition/history');
   });
 
+  it('has a meal plan button in the header that opens the plan on the day being viewed', () => {
+    const utils = open([]);
+    expect(utils.getByLabelText('Meal plan')).toBeTruthy();
+    fireEvent.press(utils.getByTestId('nutrition-plan'));
+    // The evening of Oct 8 in New Jersey (already Oct 9 in UTC).
+    expect(global.__router.push).toHaveBeenCalledWith({ pathname: '/nutrition/plan', params: { date: '2026-10-08' } });
+    expect(global.__router.push).not.toHaveBeenCalledWith('/nutrition/history');
+  });
+
+  it('opens the plan on another day when that day is on show', () => {
+    const utils = open([], {}, { date: '2026-10-05' });
+    fireEvent.press(utils.getByTestId('nutrition-plan'));
+    expect(global.__router.push).toHaveBeenCalledWith({ pathname: '/nutrition/plan', params: { date: '2026-10-05' } });
+  });
+
   it('opens on the day it is asked for', () => {
     const utils = open([], {}, { date: '2026-10-05' });
     expect(global.__nutrition.getMealsByDate).toHaveBeenCalledWith('2026-10-05');

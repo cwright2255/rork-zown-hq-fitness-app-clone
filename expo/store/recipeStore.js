@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buildGroceryItems, mergeGroceryItems } from '@/lib/groceryList';
+import { scaleRecipe } from '@/lib/recipeScale';
 import { db } from '../src/config/firebase';
 import { collection, addDoc, getDocs, query, orderBy, limit, doc, deleteDoc } from 'firebase/firestore';
 
@@ -143,17 +144,22 @@ export const useRecipeStore = create((set, get) => ({
   // Adds the ingredients of these recipes to the grocery list. What is already
   // on the list stays (with its ticks); an ingredient two recipes share becomes
   // one line, and a recipe that is already counted is not added twice.
-  generateGroceryList: (recipeIds) => {
+  // `factors` is how many times each recipe is made, by recipe id ({ r1: 2 } is
+  // double); a recipe that is not in it counts once.
+  generateGroceryList: (recipeIds, factors) => {
     const { savedRecipes, groceryList } = get();
-    const selectedRecipes = savedRecipes.filter((recipe) => recipeIds.includes(recipe.id));
+    const selectedRecipes = savedRecipes
+      .filter((recipe) => recipeIds.includes(recipe.id))
+      .map((recipe) => scaleRecipe(recipe, (factors || {})[recipe.id]));
     const merged = mergeGroceryItems(groceryList, buildGroceryItems(selectedRecipes), newGroceryId);
     set({ groceryList: merged });
     get().saveData();
   },
 
-  addToGroceryList: (recipeId) => {
+  // `factor` is how many times the recipe is made (2 for double the servings).
+  addToGroceryList: (recipeId, factor) => {
     const { savedRecipes } = get();
-    get().generateGroceryList([recipeId]);
+    get().generateGroceryList([recipeId], { [recipeId]: factor });
 
     // Mark recipe as added to grocery list
     const updatedRecipes = savedRecipes.map((recipe) =>

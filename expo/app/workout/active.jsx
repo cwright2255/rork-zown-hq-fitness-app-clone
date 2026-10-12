@@ -19,7 +19,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useAchievementStore } from '@/store/achievementStore';
-import { useLeaderboardStore } from '@/store/leaderboardStore';
+import { publishMyXp } from '@/services/leaderboardVisibility';
 import { useUserStore } from '@/store/userStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
@@ -641,16 +641,7 @@ export default function ActiveWorkoutScreen() {
         completed: true,
       }, user?.uid);
 
-      if (user?.uid) {
-        const freshExp = useExpStore.getState();
-        useLeaderboardStore.getState()._syncLeaderboardEntry(user.uid, {
-          name: user?.name,
-          avatar: user?.profileImage,
-          xp: freshExp.expSystem.totalExp,
-          level: freshExp.expSystem.level,
-          streak: user?.streak,
-        });
-      }
+      publishMyXp({ user });
     }
 
     if (router.canGoBack()) {
@@ -997,21 +988,13 @@ export default function ActiveWorkoutScreen() {
                 completed: true,
               }, user?.uid);
 
-              // Public leaderboard sync (store/leaderboardStore.js) — reads
+              // Public leaderboard sync (services/leaderboardVisibility.js) — reads
               // useExpStore.getState() directly rather than the totalExp/
               // level values already destructured above, since those are a
               // snapshot from this render and won't reflect the XP just
-              // awarded by addExpActivity a moment ago.
-              if (user?.uid) {
-                const freshExp = useExpStore.getState();
-                useLeaderboardStore.getState()._syncLeaderboardEntry(user.uid, {
-                  name: user?.name,
-                  avatar: user?.profileImage,
-                  xp: freshExp.expSystem.totalExp,
-                  level: freshExp.expSystem.level,
-                  streak: user?.streak,
-                });
-              }
+              // awarded by addExpActivity a moment ago. Nothing is published
+              // for someone who has turned off "Show in Leaderboards".
+              publishMyXp({ user });
 
               router.replace('/workout/complete');
             } : handleCenterButton}

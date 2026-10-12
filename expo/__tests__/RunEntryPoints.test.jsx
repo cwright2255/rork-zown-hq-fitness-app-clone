@@ -25,7 +25,9 @@ jest.mock('@/store/runningStore', () => ({
     { getState: () => global.__runningStore },
   ),
 }));
-jest.mock('@/store/virtualChallengeStore', () => ({ VIRTUAL_CHALLENGES: [] }));
+jest.mock('@/store/virtualChallengeStore', () => ({
+  VIRTUAL_CHALLENGES: [{ id: 'grand-canyon-rim', title: 'Grand Canyon Rim Trail', distanceKm: 34, region: 'Arizona, USA' }],
+}));
 // The finished-activity screen also reads saved hikes; none are needed here.
 jest.mock('@/store/hikingStore', () => ({
   useHikingStore: Object.assign(
@@ -283,5 +285,26 @@ describe('Running hub', () => {
     await act(async () => {});
     fireEvent.press(utils.getByTestId('start-free-walk'));
     expect(router.push).toHaveBeenCalledWith({ pathname: '/running/active', params: { activity: 'walk' } });
+  });
+
+  it('does not show challenges that cannot be joined yet', async () => {
+    setStore([]);
+    const utils = render(<RunningHubScreen />);
+    await act(async () => {});
+    expect(utils.queryByText('Virtual Challenges')).toBeNull();
+    expect(utils.queryByText('Grand Canyon Rim Trail')).toBeNull();
+    expect(utils.queryByText('Soon')).toBeNull();
+    expect(utils.queryByText(/coming soon/i)).toBeNull();
+  });
+
+  it('still shows the stats, the programs and the hiking entry', async () => {
+    setStore([], { programs: [{ id: 'c25k', title: 'Couch to 5K', subtitle: '9 weeks' }] });
+    const utils = render(<RunningHubScreen />);
+    await act(async () => {});
+    expect(utils.getByText('Your Stats')).toBeTruthy();
+    expect(utils.getByText('Running Programs')).toBeTruthy();
+    expect(utils.getByText('Couch to 5K')).toBeTruthy();
+    fireEvent.press(utils.getByText('Hiking Near You'));
+    expect(router.push).toHaveBeenCalledWith('/running/hiking');
   });
 });

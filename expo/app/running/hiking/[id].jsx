@@ -27,6 +27,8 @@ import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
 import { getPhotoUrl, getTrailMaps, fetchRouteForMap } from '@/services/hikingService';
 import { cachedRoute, downloadTrailForOffline } from '@/lib/offlineTrails';
+import { trailGpxFile } from '@/lib/gpxExport';
+import { shareGpx, gpxShareErrorText } from '@/services/gpxShare';
 import { promptDirections } from '@/lib/openDirections';
 import ElevationProfileChart from '@/components/ElevationProfileChart';
 import TrailWeather from '@/components/TrailWeather';
@@ -90,6 +92,8 @@ export default function TrailPreviewScreen() {
   const [loadingMaps, setLoadingMaps] = useState(false);
   const [fetched, setFetched] = useState(null); // { mapId, route } as the trail service sent it
   const [waitedFor, setWaitedFor] = useState(null); // the path whose request has finished, or been waited for long enough
+  const [exporting, setExporting] = useState(false); // the route is being written out as a GPX file
+  const [exportError, setExportError] = useState('');
 
   // Real, possibly-multiple named paths for this trail: the service's list when
   // it has answered, else the list kept on the phone.
@@ -173,6 +177,17 @@ export default function TrailPreviewScreen() {
     }).then((found) => {
       if (savedRef.current) keepTrail({ trail, ...found, pinned: true });
     }).catch((e) => console.warn('[TrailDetail] could not keep the trail for offline use:', e?.message));
+  };
+
+  // The route of the chosen path as a GPX file, through the phone's share sheet.
+  const handleExportGpx = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError('');
+    const selectedMap = availableMaps.find((m) => m.id === selectedMapId);
+    const result = await shareGpx(trailGpxFile({ trail, pathName: selectedMap ? selectedMap.name : '', route }));
+    setExporting(false);
+    if (!result.ok) setExportError(gpxShareErrorText(result.reason));
   };
 
   if (!trail) {
@@ -353,6 +368,17 @@ export default function TrailPreviewScreen() {
                   impression of relief. Built from the same real per-point
                   GPX data. */}
               <ElevationProfileChart profile={route.elevationProfile} width={chartWidth} />
+              <Pressable
+                style={styles.exportBtn}
+                onPress={handleExportGpx}
+                disabled={exporting}
+                accessibilityRole="button"
+                testID="trail-export-gpx"
+              >
+                <Ionicons name="download-outline" size={16} color={colors.text} />
+                <Text style={styles.exportBtnText}>{exporting ? 'Preparing...' : 'Export route as GPX'}</Text>
+              </Pressable>
+              {!!exportError && <Text style={styles.exportError} testID="trail-export-error">{exportError}</Text>}
             </View>
           )}
         </View>
@@ -420,6 +446,12 @@ const styles = StyleSheet.create({
   savedNote: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
   routeStatsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   routeStatText: { ...typography.caption, color: colors.textSecondary },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: spacing.sm, marginTop: spacing.md,
+  },
+  exportBtnText: { ...typography.bodySmall, color: colors.text, fontWeight: '600' },
+  exportError: { ...typography.caption, color: '#B91C1C', marginTop: spacing.xs, textAlign: 'center' },
   bottomBar: {
     position: 'absolute', left: spacing.base, right: spacing.base, bottom: spacing.lg,
   },

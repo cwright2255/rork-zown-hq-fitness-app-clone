@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { VIRTUAL_CHALLENGES } from '@/store/virtualChallengeStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
 
@@ -39,24 +38,6 @@ function ProgramCard({ item }) {
       </View>
       <Text style={styles.cardTitle}>{item.title}</Text>
       <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-    </Pressable>
-  );
-}
-
-function ChallengeCard({ item }) {
-  return (
-    <Pressable
-      style={styles.raceCard}
-      onPress={() => Alert.alert('Coming Soon', 'Virtual challenges (real-world route distances tracked from your actual runs) are coming soon.')}
-    >
-      <View style={styles.raceThumbnail}>
-        <Ionicons name="trophy-outline" size={32} color="#999" />
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateText}>Soon</Text>
-        </View>
-      </View>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardSubtitle}>{item.distanceKm}km • {item.region}</Text>
     </Pressable>
   );
 }
@@ -164,25 +145,6 @@ export default function RunningScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color="#999" />
         </Pressable>
-
-        {/* Virtual Challenges -- real distance model exists (see
-            store/virtualChallengeStore.js) but gated behind "Coming Soon"
-            here on purpose: this kind of feature typically ships a
-            physical medal/reward on completion (see The Conqueror as the
-            reference), and there's no fulfillment vendor or shipping
-            logistics set up for that yet. Shipping the tracking mechanic
-            while implying a reward that can't be fulfilled would be worse
-            than not shipping it. */}
-        <SectionHeader title="Virtual Challenges" />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-        >
-          {VIRTUAL_CHALLENGES.map((item) => (
-            <ChallengeCard key={item.id} item={item} />
-          ))}
-        </ScrollView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -304,34 +266,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E8E8',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  /* Race cards */
-  raceCard: {
-    width: 220,
-    marginRight: 14,
-  },
-  raceThumbnail: {
-    height: 130,
-    borderRadius: 14,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  dateBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  dateText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '600',
   },
 
   /* Shared card text */

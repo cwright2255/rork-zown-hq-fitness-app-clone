@@ -33,6 +33,7 @@ import '@/services/runTracking';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
+import HikeRecoveryPrompt from '@/components/HikeRecoveryPrompt';
 import * as Linking from 'expo-linking';
 import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -328,6 +329,8 @@ function RootLayoutInner() {
   return (
     <View style={styles.container}>
       {splashVisible && <SplashAnimation onFinish={() => setSplashVisible(false)} />}
+      {/* A hike that was being recorded when the app was last closed: asks what to do with it. */}
+      <HikeRecoveryPrompt enabled={!splashVisible && isOnboarded} />
       <StatusBar style="auto" />
       <Stack
         screenOptions={{

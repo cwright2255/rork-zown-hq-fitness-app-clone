@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -172,24 +171,6 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-            {/* social row */}
-            <View style={styles.socialRow}>
-              <TouchableOpacity
-                style={styles.socialBtn}
-                activeOpacity={0.7}
-                onPress={() => Alert.alert('Google Sign-In', 'Google authentication coming soon.', [{ text: 'OK' }])}>
-                <Text style={styles.socialIcon}>G</Text>
-                <Text style={styles.socialLabel}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.socialBtn}
-                activeOpacity={0.7}
-                onPress={() => Alert.alert('Meta Sign-In', 'Meta authentication coming soon.', [{ text: 'OK' }])}>
-                <Ionicons name="infinite-outline" size={18} color="#000000" />
-                <Text style={styles.socialLabel}>Meta</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* links */}
             <TouchableOpacity
               style={styles.forgotBtn}
@@ -341,34 +322,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
-  },
-
-  /* social */
-  socialRow: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  socialBtn: {
-    width: 130,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  socialIcon: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  socialLabel: {
-    color: '#000000',
-    fontSize: 13,
-    fontWeight: '600',
   },
 
   /* links */

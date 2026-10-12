@@ -155,3 +155,61 @@ describe('loadGroceryList', () => {
     expect(store().groceryList.find((i) => i.ingredient === 'flour')).toMatchObject({ amount: 4, recipes: ['Pancakes', 'Bread'] });
   });
 });
+
+describe('a recipe made for more or fewer servings', () => {
+  it('adds the amounts for the servings (double the recipe, double the amounts)', () => {
+    store().addToGroceryList('r1', 2);
+    expect(names()).toEqual([['flour', 2, 'cup'], ['milk', 2, 'cup'], ['eggs', 4, '']]);
+    expect(store().groceryList[0]).toMatchObject({ recipes: ['Pancakes'], recipeIds: ['r1'], checked: false });
+  });
+
+  it('adds half for half the servings', () => {
+    store().addToGroceryList('r1', 0.5);
+    expect(names()).toEqual([['flour', 0.5, 'cup'], ['milk', 0.5, 'cup'], ['eggs', 1, '']]);
+  });
+
+  it('adds the recipe once as written when no factor is given', () => {
+    store().addToGroceryList('r1');
+    expect(names()).toEqual([['flour', 1, 'cup'], ['milk', 1, 'cup'], ['eggs', 2, '']]);
+  });
+
+  it('still marks the recipe as on the list, and does not change the saved recipe', () => {
+    store().addToGroceryList('r1', 3);
+    expect(store().savedRecipes.find((r) => r.id === 'r1').addedToGroceryList).toBe(true);
+    expect(store().savedRecipes.find((r) => r.id === 'r1').ingredients[0].amount).toBe(1);
+  });
+
+  it('adds up with other recipes', () => {
+    store().addToGroceryList('r1', 2);
+    store().addToGroceryList('r2');
+    expect(names()[0]).toEqual(['flour', 5, 'cup']);
+  });
+
+  it('scales each recipe by its own factor when several are added at once', () => {
+    store().generateGroceryList(['r1', 'r2'], { r1: 2 });
+    expect(names()).toEqual([['flour', 5, 'cup'], ['milk', 2, 'cup'], ['eggs', 4, ''], ['salt', null, ''], ['milk', 2, 'tbsp']]);
+  });
+
+  it('counts a recipe that has no factor once', () => {
+    store().generateGroceryList(['r1', 'r2'], { r2: 2 });
+    expect(names()).toEqual([['flour', 7, 'cup'], ['milk', 1, 'cup'], ['eggs', 2, ''], ['salt', null, ''], ['milk', 4, 'tbsp']]);
+  });
+
+  it.each([[null], [undefined], [{}], [{ r1: 'x' }], [{ r1: 0 }], [{ r1: -2 }]])('counts the recipe once for the factors %p', (factors) => {
+    store().generateGroceryList(['r1'], factors);
+    expect(names()).toEqual([['flour', 1, 'cup'], ['milk', 1, 'cup'], ['eggs', 2, '']]);
+  });
+
+  it('scales ingredients saved as text', () => {
+    useRecipeStore.setState({ savedRecipes: [{ id: 'r3', name: 'Omelette', ingredients: ['2 eggs', '1 cup milk', 'salt'] }] });
+    store().addToGroceryList('r3', 2);
+    expect(names()).toEqual([['4 eggs', null, ''], ['2 cups milk', null, ''], ['salt', null, '']]);
+  });
+
+  it('does not add a recipe a second time at another size', () => {
+    store().addToGroceryList('r1', 2);
+    const before = store().groceryList;
+    store().addToGroceryList('r1', 4);
+    expect(store().groceryList).toEqual(before);
+  });
+});

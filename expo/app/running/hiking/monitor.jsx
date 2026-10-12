@@ -15,6 +15,10 @@
 //      trailhead before setting out.
 //   2. A real difficulty rating on completion (see lib/hikeDifficulty.js — the
 //      verified Shenandoah National Park formula) with XP/badges scaled to it.
+//   3. An off-trail warning when a path was chosen: buzz, spoken (or a
+//      notification if the app is in the background) and a red banner with a Mute
+//      button, once the hiker has strayed from the chosen path
+//      (services/offRouteWatch.js, rules in lib/offRoute.js).
 //
 // Polls the weather every 15 minutes, not continuously — real weather
 // conditions don't meaningfully change faster than that, and hammering a free
@@ -47,6 +51,8 @@ import { calculateHikeDifficulty, estimateHikeCalories } from '@/lib/hikeDifficu
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { fetchRouteForMap } from '@/services/hikingService';
 import { cachedRoute } from '@/lib/offlineTrails';
+import { watchOffRoute } from '@/services/offRouteWatch';
+import { distanceLabel } from '@/lib/offRoute';
 
 // Same safe/conditional import pattern already established in
 // app/running/hiking/[id].jsx - react-native-maps needs a native
@@ -111,6 +117,8 @@ export default function HikeWeatherMonitorScreen() {
   const [snapshot, setSnapshot] = useState(null);
   const [weatherFailed, setWeatherFailed] = useState(false); // the last weather check could not reach the network
   const [viewChoice, setViewChoice] = useState(null); // null: automatic, else 'map' or 'trail'
+  const [offTrail, setOffTrail] = useState(null); // null, or { distanceM } while strayed from the chosen path
+  const [offMuted, setOffMuted] = useState(false); // off-trail warnings switched off for this hike
   const [isChecking, setIsChecking] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [showLeave, setShowLeave] = useState(false);
@@ -130,6 +138,8 @@ export default function HikeWeatherMonitorScreen() {
   const currentLocationRef = useRef(null);
   const previousAlertIdsRef = useRef(new Set());
   const audioEnabledRef = useRef(true);
+  const offWatchRef = useRef(null);
+  const offMutedRef = useRef(false);
 
   const currentLocation = tracker.current || startPoint;
   const elapsed = Math.floor(trackedMs(tracker, now) / 1000);
@@ -214,7 +224,14 @@ export default function HikeWeatherMonitorScreen() {
       // Auto-pause is off for a hike: climbing a steep trail is slower than the
       // speed auto-pause treats as standing still. The kind includes the trail,
       // so only a hike on THIS trail that was left paused is picked up again.
-      const mode = useRunTrackerStore.getState().begin({ autoPause: false, kind: `hike:${trailId}` });
+      // `resume` comes from the prompt shown when the app opens with a hike that
+      // was being recorded when it was closed: that one is picked up however long ago.
+      const mode = useRunTrackerStore.getState().begin({
+        autoPause: false,
+        kind: `hike:${trailId}`,
+        resume: params.resume === '1',
+        context: { mapId, pathName },
+      });
       if (mode === 'resumed' && useRunTrackerStore.getState().tracker.status === 'paused') {
         setShowLeave(true);
       }
@@ -260,6 +277,41 @@ export default function HikeWeatherMonitorScreen() {
       if (!endedRef.current) useRunTrackerStore.getState().pause(Date.now());
     };
   }, []);
+
+  // Off-trail warnings: watches the hike against the chosen path once its line is
+  // known (from the phone's copy or fetched), until the screen closes. The watch
+  // is keyed on the shape of the line, not the object, so the copy being kept on
+  // the phone a moment after it was fetched does not restart it mid-hike.
+  const routeLine = plannedRoute && Array.isArray(plannedRoute.coordinates) ? plannedRoute.coordinates : null;
+  const routeKey = routeLine && routeLine.length > 1
+    ? [routeLine.length, routeLine[0]?.latitude, routeLine[0]?.longitude,
+      routeLine[routeLine.length - 1]?.latitude, routeLine[routeLine.length - 1]?.longitude].join(':')
+    : '';
+  const routeLineRef = useRef(null);
+  routeLineRef.current = routeLine;
+  useEffect(() => {
+    setOffTrail((v) => (v === null ? v : null)); // an alert about the old line is over
+    if (!routeKey) return undefined;
+    const line = routeLineRef.current;
+    const watch = watchOffRoute({
+      route: line,
+      speak: () => audioEnabledRef.current,
+      onChange: ({ off, distanceM }) => setOffTrail(off ? { distanceM } : null),
+    });
+    if (offMutedRef.current) watch.mute();
+    offWatchRef.current = watch;
+    return () => {
+      watch.stop();
+      if (offWatchRef.current === watch) offWatchRef.current = null;
+    };
+  }, [routeKey]);
+
+  const handleMuteOffRoute = () => {
+    offMutedRef.current = true;
+    if (offWatchRef.current) offWatchRef.current.mute();
+    setOffMuted(true);
+    setOffTrail(null);
+  };
 
   // The weather check reads the tracker's position when there is one.
   useEffect(() => {
@@ -520,11 +572,26 @@ export default function HikeWeatherMonitorScreen() {
             {isPaused ? `Paused at ${formatElapsed(elapsed)}` : `Hiking for ${formatElapsed(elapsed)}`}
           </Text>
         </View>
+        {plannedRoute?.coordinates?.length > 1 && (
+          <Text style={styles.offRouteNote} testID="hike-off-route-status">
+            {offMuted ? 'Off-trail warnings are muted for this hike.' : 'Off-trail warnings are on for the path you chose.'}
+          </Text>
+        )}
 
         {banner && (
           <View style={[styles.banner, banner.warn ? styles.bannerWarn : styles.bannerPause]} testID="hike-banner">
             <Ionicons name={banner.icon} size={14} color="#FFF" />
             <Text style={styles.bannerText}>{banner.text}</Text>
+          </View>
+        )}
+
+        {offTrail && (
+          <View style={[styles.banner, styles.bannerOff]} testID="hike-off-route-banner" accessibilityRole="alert">
+            <Ionicons name="warning" size={14} color="#FFF" />
+            <Text style={styles.bannerText}>{`Off the trail, about ${distanceLabel(offTrail.distanceM)} from the route`}</Text>
+            <Pressable onPress={handleMuteOffRoute} hitSlop={8} testID="hike-off-route-mute" accessibilityRole="button">
+              <Text style={styles.bannerAction}>Mute</Text>
+            </Pressable>
           </View>
         )}
 
@@ -656,7 +723,10 @@ const styles = StyleSheet.create({
   },
   bannerPause: { backgroundColor: 'rgba(74,144,217,0.92)' },
   bannerWarn: { backgroundColor: 'rgba(217,119,6,0.92)' },
+  bannerOff: { backgroundColor: 'rgba(185,28,28,0.95)' },
   bannerText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+  bannerAction: { color: '#FFF', fontSize: 12, fontWeight: '800', textDecorationLine: 'underline', marginLeft: 6 },
+  offRouteNote: { ...typography.caption, color: colors.textSecondary, marginTop: -spacing.sm, marginBottom: spacing.md },
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   statBox: { flex: 1, backgroundColor: colors.card, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
   statValue: { fontSize: 16, fontWeight: '800', color: colors.text },

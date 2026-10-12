@@ -4,17 +4,17 @@ jest.mock('firebase/firestore', () => ({
   collection: jest.fn((db, name) => ({ collection: name })),
   doc: jest.fn((db, ...path) => ({ path: path.join('/') })),
   setDoc: jest.fn(async () => undefined),
+  deleteDoc: jest.fn(async () => undefined),
   query: jest.fn((...parts) => ({ query: parts })),
   orderBy: jest.fn((field, dir) => ({ orderBy: field, dir })),
   limit: jest.fn((n) => ({ limit: n })),
   where: jest.fn((field, op, value) => ({ where: field, op, value })),
   documentId: jest.fn(() => '__name__'),
-  deleteField: jest.fn(() => ({ __deleteField: true })),
   getDocs: jest.fn(),
   onSnapshot: jest.fn(),
 }));
 
-import { setDoc, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { setDoc, deleteDoc, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
 
 const d = (month, day, hour = 12) => new Date(2026, month - 1, day, hour, 0, 0);
@@ -40,8 +40,9 @@ let now;
 beforeEach(() => {
   warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   now = jest.spyOn(Date, 'now').mockReturnValue(THU);
-  [setDoc, orderBy, getDocs, onSnapshot].forEach((fn) => fn.mockClear());
+  [setDoc, deleteDoc, orderBy, getDocs, onSnapshot].forEach((fn) => fn.mockClear());
   setDoc.mockResolvedValue(undefined);
+  deleteDoc.mockResolvedValue(undefined);
   fresh();
 });
 afterEach(() => { warn.mockRestore(); now.mockRestore(); });
@@ -84,11 +85,33 @@ describe('_syncDistanceEntry', () => {
     expect(setDoc.mock.calls[0][1].distance).toEqual({});
   });
 
-  it('removes the distance, and writes nothing else, when the person is hidden from leaderboards', async () => {
+  it('takes the whole entry off the boards, and writes nothing, when the person is hidden from leaderboards', async () => {
+    expect(await sync({ visible: false })).toBe(true);
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
+    expect(deleteDoc).toHaveBeenCalledWith({ path: 'leaderboard/u1' });
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('removes the entry once, not again every time the leaderboard is opened', async () => {
     await sync({ visible: false });
-    const [, data, options] = setDoc.mock.calls[0];
-    expect(data).toEqual({ distance: { __deleteField: true } });
-    expect(options).toEqual({ mergeFields: ['distance'] });
+    expect(await sync({ visible: false })).toBe(true);
+    expect(await sync({ visible: false, runs: [] })).toBe(true);
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the whole entry again when someone hidden is shown again, even with the same runs and name', async () => {
+    await sync();
+    await sync({ visible: false });
+    expect(await sync()).toBe(true);
+    expect(setDoc).toHaveBeenCalledTimes(2);
+    expect(setDoc.mock.calls[1][1].distance).toEqual({ w20261005: 5, m202610: 15 });
+  });
+
+  it('gives false, and tries the removal again next time, when it fails', async () => {
+    deleteDoc.mockRejectedValueOnce(new Error('offline'));
+    expect(await sync({ visible: false })).toBe(false);
+    expect(await sync({ visible: false })).toBe(true);
+    expect(deleteDoc).toHaveBeenCalledTimes(2);
   });
 
   it('skips the write when nothing has changed since the last one', async () => {
@@ -102,7 +125,8 @@ describe('_syncDistanceEntry', () => {
     await sync({ runs: [ran(d(10, 8, 7), 5), ran(d(10, 1, 7), 10), ran(d(10, 8, 9), 2)] });
     await sync({ runs: [ran(d(10, 8, 7), 5), ran(d(10, 1, 7), 10), ran(d(10, 8, 9), 2)], name: 'Carlton' });
     await sync({ visible: false });
-    expect(setDoc).toHaveBeenCalledTimes(4);
+    expect(setDoc).toHaveBeenCalledTimes(3);
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
   });
 
   it('writes again in a new week, when the same runs add up differently', async () => {
@@ -126,7 +150,99 @@ describe('_syncDistanceEntry', () => {
 
   it('does nothing without a user', async () => {
     expect(await useLeaderboardStore.getState()._syncDistanceEntry('', { runs: [] })).toBe(false);
+    expect(await useLeaderboardStore.getState()._syncDistanceEntry('', { runs: [], visible: false })).toBe(false);
     expect(setDoc).not.toHaveBeenCalled();
+    expect(deleteDoc).not.toHaveBeenCalled();
+  });
+});
+
+describe('_syncLeaderboardEntry', () => {
+  const store = () => useLeaderboardStore.getState();
+  const entry = (extra = {}) => ({ name: 'Cj', avatar: 'https://img/p.png', xp: 1200, level: 4, streak: 6, ...extra });
+
+  it("writes the person's name, picture, XP, level and streak to their own entry", async () => {
+    expect(await store()._syncLeaderboardEntry('u1', entry())).toBe(true);
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    const [ref, data, options] = setDoc.mock.calls[0];
+    expect(ref).toEqual({ path: 'leaderboard/u1' });
+    expect(data).toEqual({
+      name: 'Cj', avatar: 'https://img/p.png', xp: 1200, level: 4, streak: 6, updatedAt: expect.any(String),
+    });
+    expect(options).toEqual({ merge: true });
+  });
+
+  it('leaves the distance alone, so a new workout does not wipe it', async () => {
+    await store()._syncLeaderboardEntry('u1', entry());
+    expect(setDoc.mock.calls[0][1]).not.toHaveProperty('distance');
+    expect(setDoc.mock.calls[0][2]).toEqual({ merge: true });
+  });
+
+  it('fills in what it does not know', async () => {
+    await store()._syncLeaderboardEntry('u1', {});
+    expect(setDoc.mock.calls[0][1]).toEqual({
+      name: 'Zown User', avatar: null, xp: 0, level: 1, streak: 0, updatedAt: expect.any(String),
+    });
+    setDoc.mockClear();
+    await store()._syncLeaderboardEntry('u1');
+    expect(setDoc.mock.calls[0][1].name).toBe('Zown User');
+  });
+
+  it('keeps a real zero, for XP, level and streak', async () => {
+    await store()._syncLeaderboardEntry('u1', entry({ xp: 0, level: 0, streak: 0 }));
+    expect(setDoc.mock.calls[0][1]).toMatchObject({ xp: 0, level: 0, streak: 0 });
+  });
+
+  it('writes nothing for someone who has chosen not to be shown', async () => {
+    expect(await store()._syncLeaderboardEntry('u1', entry({ visible: false }))).toBe(false);
+    expect(setDoc).not.toHaveBeenCalled();
+    expect(deleteDoc).not.toHaveBeenCalled();
+  });
+
+  it('writes when told the person is shown', async () => {
+    expect(await store()._syncLeaderboardEntry('u1', entry({ visible: true }))).toBe(true);
+    expect(setDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing without a user', async () => {
+    expect(await store()._syncLeaderboardEntry('', entry())).toBe(false);
+    expect(await store()._syncLeaderboardEntry(undefined, entry())).toBe(false);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('gives false, and says why, when the write fails', async () => {
+    setDoc.mockRejectedValueOnce(new Error('offline'));
+    expect(await store()._syncLeaderboardEntry('u1', entry())).toBe(false);
+    expect(warn).toHaveBeenCalledWith('[leaderboardStore] sync error:', 'offline');
+  });
+});
+
+describe('_removeEntry', () => {
+  const store = () => useLeaderboardStore.getState();
+
+  it("deletes the person's own entry", async () => {
+    expect(await store()._removeEntry('u1')).toBe(true);
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
+    expect(deleteDoc).toHaveBeenCalledWith({ path: 'leaderboard/u1' });
+  });
+
+  it('makes the next distance publish write the whole entry again', async () => {
+    useLeaderboardStore.setState({ _distanceSignature: 'something' });
+    await store()._removeEntry('u1');
+    expect(store()._distanceSignature).toBeNull();
+  });
+
+  it('keeps what it knew about the last publish when the removal fails', async () => {
+    useLeaderboardStore.setState({ _distanceSignature: 'something' });
+    deleteDoc.mockRejectedValueOnce(new Error('offline'));
+    expect(await store()._removeEntry('u1')).toBe(false);
+    expect(store()._distanceSignature).toBe('something');
+    expect(warn).toHaveBeenCalledWith('[leaderboardStore] remove error:', 'offline');
+  });
+
+  it('does nothing without a user', async () => {
+    expect(await store()._removeEntry('')).toBe(false);
+    expect(await store()._removeEntry(undefined)).toBe(false);
+    expect(deleteDoc).not.toHaveBeenCalled();
   });
 });
 
