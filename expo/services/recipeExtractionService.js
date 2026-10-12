@@ -1,10 +1,9 @@
 import { Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { askLLM } from '@/services/llmClient';
 
 class RecipeExtractionService {
   constructor() {
-    const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
-    this.AI_API_URL = `${apiBase}/text/llm/`;
     this.lastDiagnostic = null;
   }
 
@@ -723,27 +722,7 @@ If real ingredients/instructions were provided above, reproduce them faithfully 
 If no recipe is found at all (not even in the real structured data above, and not within a video caption if this was a video), return null. Only return valid JSON.
 `;
 
-      const response = await fetch(this.AI_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: [
-          {
-            role: 'user',
-            content: prompt
-          }]
-
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`AI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const completion = data.completion;
+      const completion = await askLLM([{ role: 'user', content: prompt }]);
 
       try {
         const jsonMatch = completion.match(/\{[\s\S]*\}/);

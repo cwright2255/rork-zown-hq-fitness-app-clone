@@ -161,19 +161,25 @@ describe('barcode scanner', () => {
 describe('photo scanner', () => {
   const pasta = { name: 'Pasta', confidence: 0.8, calories: 158, protein: 6, carbs: 31, fat: 1 };
 
-  const mockNetwork = (aiBody) => {
-    global.fetch = jest.fn(async (url) => {
-      if (String(url).includes('/text/llm/')) return { json: async () => aiBody };
-      return { blob: async () => 'blob' };
-    });
+  // The picture is read from the phone with fetch + FileReader; the AI itself is
+  // reached through the postLLM Cloud Function (a callable), never a plain URL.
+  const mockPhoto = () => {
+    global.fetch = jest.fn(async () => ({ blob: async () => 'blob' }));
     global.FileReader = class {
       readAsDataURL() {
-        this.result = 'data:image/jpeg;base64,QUJD';
+        // The phone labels the picture with a generic type; the app must not pass that on.
+        this.result = 'data:application/octet-stream;base64,QUJD';
         Promise.resolve().then(() => this.onloadend());
       }
     };
     global.__takePicture = jest.fn(async () => ({ uri: 'file:///photo.jpg' }));
   };
+  const mockAi = (reply) => {
+    const call = jest.fn(async () => (typeof reply === 'function' ? reply() : { data: { completion: reply } }));
+    global.__httpsCallable = jest.fn(() => call);
+    return call;
+  };
+  const mockNetwork = (completion) => { mockPhoto(); return mockAi(completion); };
 
   const capture = async (utils) => {
     await act(async () => { fireEvent.press(utils.getByTestId('scan-capture')); });
@@ -181,7 +187,7 @@ describe('photo scanner', () => {
 
   it('identifies a photo and labels the numbers per 100g', async () => {
     setup();
-    mockNetwork({ completion: JSON.stringify(pasta) });
+    mockNetwork(JSON.stringify(pasta));
     const utils = render(<FoodScanScreen />);
     await capture(utils);
     await waitFor(() => expect(utils.getByText('Pasta')).toBeTruthy());
@@ -189,9 +195,60 @@ describe('photo scanner', () => {
     expect(utils.getByText('158')).toBeTruthy();
   });
 
+  it('sends the picture to the postLLM function as a JPEG image, not to a web address', async () => {
+    setup();
+    const call = mockNetwork(JSON.stringify(pasta));
+    const utils = render(<FoodScanScreen />);
+    await capture(utils);
+    await waitFor(() => utils.getByText('Pasta'));
+    expect(global.__httpsCallable).toHaveBeenCalledWith({ fake: true }, 'postLLM', expect.objectContaining({ timeout: expect.any(Number) }));
+    expect(call).toHaveBeenCalledTimes(1);
+    const { messages } = call.mock.calls[0][0];
+    const parts = messages[messages.length - 1].content;
+    expect(parts.find((p) => p.type === 'text')).toBeTruthy();
+    expect(parts.find((p) => p.type === 'image_url')).toEqual({
+      type: 'image_url',
+      image_url: { url: 'data:image/jpeg;base64,QUJD' },
+    });
+    // the only web request is reading the picture off the phone
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith('file:///photo.jpg');
+  });
+
+  it('asks the camera for a picture small enough to send', async () => {
+    setup();
+    mockNetwork(JSON.stringify(pasta));
+    const utils = render(<FoodScanScreen />);
+    await capture(utils);
+    await waitFor(() => utils.getByText('Pasta'));
+    const opts = global.__takePicture.mock.calls[0][0];
+    expect(opts.quality).toBeLessThanOrEqual(0.6);
+  });
+
+  it('reads an answer the AI wraps in a code fence', async () => {
+    setup();
+    mockNetwork('```json\n' + JSON.stringify(pasta) + '\n```');
+    const utils = render(<FoodScanScreen />);
+    await capture(utils);
+    await waitFor(() => expect(utils.getByText('Pasta')).toBeTruthy());
+  });
+
+  it('shows "Analyzing food..." while the AI is working, and stops once it answers', async () => {
+    setup();
+    let release;
+    mockNetwork(() => new Promise((resolve) => { release = () => resolve({ data: { completion: JSON.stringify(pasta) } }); }));
+    const utils = render(<FoodScanScreen />);
+    await capture(utils);
+    await waitFor(() => expect(utils.getByText('Analyzing food...')).toBeTruthy());
+    expect(utils.queryByTestId('scan-capture')).toBeNull();
+    await act(async () => { release(); });
+    await waitFor(() => expect(utils.getByText('Pasta')).toBeTruthy());
+    expect(utils.queryByText('Analyzing food...')).toBeNull();
+  });
+
   it('Add to Meal goes to the log screen as a 100g food, with the chosen meal', async () => {
     setup({ mealId: 'lunch' });
-    mockNetwork({ completion: JSON.stringify({ ...pasta, servingSize: '1 bowl' }) });
+    mockNetwork(JSON.stringify({ ...pasta, servingSize: '1 bowl' }));
     const utils = render(<FoodScanScreen />);
     await capture(utils);
     await waitFor(() => utils.getByText('Add to Meal'));
@@ -205,7 +262,7 @@ describe('photo scanner', () => {
 
   it('leaves the meal out when none was chosen', async () => {
     setup();
-    mockNetwork({ completion: JSON.stringify(pasta) });
+    mockNetwork(JSON.stringify(pasta));
     const utils = render(<FoodScanScreen />);
     await capture(utils);
     await waitFor(() => utils.getByText('Add to Meal'));
@@ -215,10 +272,31 @@ describe('photo scanner', () => {
 
   it('tells the person when no food was recognised', async () => {
     setup();
-    mockNetwork({ completion: 'null' });
+    mockNetwork('null');
+    const utils = render(<FoodScanScreen />);
+    await capture(utils);
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('Analysis Failed', expect.stringMatching(/clearer photo/)));
+    expect(utils.queryByText('Add to Meal')).toBeNull();
+  });
+
+  it('tells the person when the AI cannot be reached, and lets them try again', async () => {
+    setup();
+    mockNetwork(() => { throw new Error('unavailable'); });
+    const utils = render(<FoodScanScreen />);
+    await capture(utils);
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('Analysis Failed', expect.stringMatching(/connection/)));
+    expect(utils.queryByText('Add to Meal')).toBeNull();
+    expect(utils.getByTestId('scan-capture')).toBeTruthy();
+  });
+
+  it('tells the person when the picture cannot be read', async () => {
+    setup();
+    mockPhoto();
+    global.fetch = jest.fn(async () => { throw new Error('no file'); });
+    const call = mockAi('{}');
     const utils = render(<FoodScanScreen />);
     await capture(utils);
     await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('Analysis Failed', expect.any(String)));
-    expect(utils.queryByText('Add to Meal')).toBeNull();
+    expect(call).not.toHaveBeenCalled();
   });
 });

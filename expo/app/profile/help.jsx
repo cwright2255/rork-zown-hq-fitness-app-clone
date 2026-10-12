@@ -116,12 +116,12 @@ const FAQ_DATA = [
         answer: "Open your profile tab, tap settings, and toggle between Imperial and Metric in the 'Units & Preferences' section."
       },
       {
-        question: "How do I export my data?",
-        answer: "Under Settings > Account, tap 'Export Data'. The app will generate a structured CSV ZIP of your historical weight logs, runs, and logged workouts."
+        question: "How do I get a copy of my data?",
+        answer: "There is no in-app export yet. Email privacy@zownhq.com from the address on your account and we will send you a copy of your records."
       },
       {
         question: "How do I delete my account?",
-        answer: "Navigate to Settings > Danger Zone and tap 'Delete Account'. This requires double confirmation and will permanently delete your database records and media files."
+        answer: "Go to Settings > Danger Zone and tap 'Delete Account'. It asks you to confirm twice and then permanently deletes your sign-in. Your stored workout, nutrition and profile records are not erased automatically yet. To have them removed, email privacy@zownhq.com."
       },
       {
         question: "Is my data private?",

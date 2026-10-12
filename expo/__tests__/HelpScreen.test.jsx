@@ -55,4 +55,20 @@ describe('Help & FAQ', () => {
     expect(utils.getByText('Workouts & Running')).toBeTruthy();
     expect(utils.getByText('Can I create custom workouts?')).toBeTruthy();
   });
+  it('does not promise an in-app data export that does not exist, and says how to get a copy', () => {
+    const utils = render(<HelpScreen />);
+    expect(utils.queryByText('How do I export my data?')).toBeNull();
+    fireEvent.press(utils.getByText('How do I get a copy of my data?'));
+    expect(utils.getByText(/no in-app export yet/)).toBeTruthy();
+    expect(utils.getByText(/privacy@zownhq\.com/)).toBeTruthy();
+    expect(utils.queryByText(/CSV ZIP/)).toBeNull();
+  });
+
+  it('says what deleting an account really does: it removes the sign-in, and records are removed on request', () => {
+    const utils = render(<HelpScreen />);
+    fireEvent.press(utils.getByText('How do I delete my account?'));
+    expect(utils.getByText(/permanently deletes your sign-in/)).toBeTruthy();
+    expect(utils.getByText(/not erased automatically yet/)).toBeTruthy();
+    expect(utils.queryByText(/database records and media files/)).toBeNull();
+  });
 });

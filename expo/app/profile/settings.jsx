@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -15,7 +15,8 @@ import { spotifyService } from '@/services/spotifyService';
 import { setShowInLeaderboards } from '@/services/leaderboardVisibility';
 import { auth } from '../../src/config/firebase';
 import { sendPasswordResetEmail, deleteUser, signOut } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image as CachedImage } from 'expo-image';
+import { meshCache } from '@/lib/meshCache';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
@@ -255,25 +256,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleRateApp = () => {
-    const iosUrl = 'https://apps.apple.com/app/zown-hq/id_PLACEHOLDER';
-    const androidUrl = 'https://play.google.com/store/apps/details?id=com.cwright7.zownhq';
-    
-    const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
-    
-    Linking.canOpenURL(url).then(supported => {
-      if (supported) {
-        Linking.openURL(url);
-      } else {
-        Alert.alert(
-          'Coming Soon',
-          'ZOWN HQ will be available on the App Store and Google Play soon! Thanks for your support.',
-          [{ text: 'OK' }]
-        );
-      }
-    });
-  };
-
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -294,7 +276,7 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
-      'This will permanently delete your account and all records. This cannot be undone.',
+      'This permanently deletes your ZOWN HQ account, so you will not be able to sign in with it again. This cannot be undone. Your stored workout, nutrition and profile records are not erased automatically yet. To have them removed, email privacy@zownhq.com.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -303,7 +285,7 @@ export default function SettingsScreen() {
           onPress: () => {
             Alert.alert(
               'Final Confirmation',
-              'Are you absolutely sure? All data will be lost forever.',
+              'Are you absolutely sure? You will not be able to sign in to this account again.',
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -333,22 +315,33 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleClearCache = async () => {
-    Alert.alert('Clear Cache', 'Are you sure you want to clear cached image and workout data?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await AsyncStorage.clear();
-            Alert.alert('Success', 'Cache cleared successfully.');
-          } catch (e) {
-            Alert.alert('Error', 'Failed to clear cache.');
-          }
+  // Only things the app can fetch or build again: downloaded pictures and saved
+  // 3D body models. Never AsyncStorage as a whole, which also holds the signed-in
+  // user, settings, XP and progress, meal plan and any run or hike in progress.
+  const handleClearCache = () => {
+    Alert.alert(
+      'Clear Cache',
+      'Remove downloaded images and saved 3D body models from this phone? They download or build again when needed. Your workouts, logs, settings and sign-in are not affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all([
+                CachedImage.clearDiskCache(),
+                CachedImage.clearMemoryCache(),
+                meshCache.clear(),
+              ]);
+              Alert.alert('Success', 'Cache cleared successfully.');
+            } catch (e) {
+              Alert.alert('Error', 'Failed to clear cache.');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   return (
@@ -693,21 +686,10 @@ export default function SettingsScreen() {
         <SectionHeader title="Data & Storage" />
         <View style={s.card}>
           <SettingRow
-            icon="cloud-download-outline"
-            label="Export Data"
-            subLabel="Download all personal records and activity logs"
-            onPress={() => Alert.alert('Export Data', 'Your data export will be sent to your email shortly.')}
-          />
-          <SettingRow
             icon="refresh-outline"
             label="Clear Cache"
             subLabel="Free up local space by cleaning temporary files"
             onPress={handleClearCache}
-          />
-          <SettingRow
-            icon="save-outline"
-            label="Storage Used"
-            right={<Text style={s.infoText}>14.2 MB</Text>}
           />
         </View>
 
@@ -770,11 +752,6 @@ export default function SettingsScreen() {
             icon="ribbon-outline"
             label="Open Source Licenses"
             onPress={() => router.push('/profile/licenses')}
-          />
-          <SettingRow
-            icon="star-outline"
-            label="Rate App"
-            onPress={handleRateApp}
           />
         </View>
 

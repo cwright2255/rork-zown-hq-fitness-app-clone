@@ -8,6 +8,16 @@ import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ScreenHeader from '@/components/ScreenHeader';
+import { askLLM, parseJsonObject } from '@/services/llmClient';
+
+// Resolves to the file as a data URL (data:...;base64,...).
+const readAsDataUrl = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Could not read the photo'));
+    reader.readAsDataURL(blob);
+  });
 
 export default function FoodScanScreen() {
   // The meal the food was being added to (if any), carried through to the log screen.
@@ -27,70 +37,36 @@ export default function FoodScanScreen() {
     setIsAnalyzing(true);
 
     try {
-      console.log('Analyzing food image:', imageUri);
+      // The photo goes to the AI as a data URL. It is read as base64 and given a
+      // JPEG label, because the camera's picture is a JPEG and the AI rejects
+      // data URLs with any other type.
+      const blob = await (await fetch(imageUri)).blob();
+      const dataUrl = await readAsDataUrl(blob);
+      const base64Image = String(dataUrl).split(',')[1];
 
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-      const reader = new FileReader();
-
-      reader.onloadend = async () => {
-        const base64Data = reader.result;
-        const base64Image = base64Data.split(',')[1];
-
-        try {
-          const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
-          const aiResponse = await fetch(`${apiBase}/text/llm/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              messages: [
-              {
-                role: 'system',
-                content: 'You are a nutrition expert. Analyze the food in the image and provide detailed nutritional information. Return ONLY a JSON object with: name, confidence (0-1), calories, protein, carbs, fat (all per 100g), and servingSize. If you cannot identify food, return null.'
-              },
-              {
-                role: 'user',
-                content: [
-                {
-                  type: 'text',
-                  text: 'Analyze this food image and provide nutritional information.'
-                },
-                {
-                  type: 'image',
-                  image: base64Image
-                }]
-
-              }]
-
-            })
-          });
-
-          const aiResult = await aiResponse.json();
-          console.log('AI Analysis Result:', aiResult);
-
-          try {
-            const foodData = JSON.parse(aiResult.completion);
-            if (foodData && foodData.name) {
-              setAnalysisResult(foodData);
-            } else {
-              throw new Error('No food detected');
-            }
-          } catch (parseError) {
-            console.error('Failed to parse AI response:', parseError);
-            Alert.alert('Analysis Failed', 'Could not identify food in the image. Please try again with a clearer photo.');
-          }
-        } catch (error) {
-          console.error('AI analysis error:', error);
-          Alert.alert('Analysis Failed', 'Failed to analyze the image. Please check your connection and try again.');
+      const completion = await askLLM([
+        {
+          role: 'system',
+          content: 'You are a nutrition expert. Analyze the food in the image and provide detailed nutritional information. Return ONLY a JSON object with: name, confidence (0-1), calories, protein, carbs, fat (all per 100g), and servingSize. If you cannot identify food, return null.'
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this food image and provide nutritional information.' },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+          ]
         }
-      };
+      ]);
 
-      reader.readAsDataURL(blob);
+      const foodData = parseJsonObject(completion);
+      if (foodData && foodData.name) {
+        setAnalysisResult(foodData);
+      } else {
+        Alert.alert('Analysis Failed', 'Could not identify food in the image. Please try again with a clearer photo.');
+      }
     } catch (error) {
-      console.error('Image processing error:', error);
-      Alert.alert('Error', 'Failed to process the image. Please try again.');
+      console.error('Food photo analysis failed:', error);
+      Alert.alert('Analysis Failed', 'Failed to analyze the image. Please check your connection and try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -102,7 +78,7 @@ export default function FoodScanScreen() {
     try {
       console.log('Taking picture...');
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 0.5,
         base64: false
       });
 

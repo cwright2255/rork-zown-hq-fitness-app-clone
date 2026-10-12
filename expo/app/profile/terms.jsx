@@ -29,30 +29,30 @@ export default function TermsOfService() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.lastUpdated}>Last updated: July 2026</Text>
-        
+        <Text style={styles.lastUpdated}>Last updated: October 2026</Text>
+
         <Text style={styles.paragraph}>
-          Welcome to ZOWN HQ. Please read these Terms of Service ("Terms") carefully as they govern your access to and use of our fitness tracking, workout planning, nutrition logging, and social features via our mobile application.
+          Welcome to ZOWN HQ. Please read these Terms of Service ("Terms") carefully. They govern your access to and use of our fitness tracking, workout planning, nutrition logging, AI coaching and social features in our mobile application.
         </Text>
 
         <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
         <Text style={styles.bodyText}>
-          By creating an account or using the ZOWN HQ mobile application ("Service"), you agree to be bound by these Terms and our Privacy Policy. If you do not agree, do not use the Service. You must be at least 13 years old to use the Service.
+          By creating an account or using the ZOWN HQ mobile application ("Service"), you agree to be bound by these Terms and our Privacy Policy. If you do not agree, do not use the Service. You must be at least 13 years old to use the Service. ZOWN HQ is an early (alpha) release provided for testing. It may contain bugs, and features may change or be removed.
         </Text>
 
         <Text style={styles.sectionTitle}>2. Description of Service</Text>
         <Text style={styles.bodyText}>
-          ZOWN HQ is a comprehensive digital fitness companion offering workout tracking, GPS-assisted run tracking, meal/nutrition logging, metrics computation, and gamified progress systems including leveling, XP rewards, and peer challenges. All features are designed for motivational and recreational purposes.
+          ZOWN HQ is a digital fitness companion offering workout tracking, GPS run, walk and hike tracking, nutrition logging and meal planning, AI-generated coaching and plans, body-composition estimates, and social features such as leaderboards, challenges, groups and messaging, along with gamified progress such as levels and XP rewards. The Service is for motivation and general fitness information.
         </Text>
 
         <Text style={styles.sectionTitle}>3. User Accounts</Text>
         <Text style={styles.bodyText}>
-          To unlock the full suite of tracking tools, you must register for an account. You are solely responsible for keeping your login credentials confidential and secure. Only one account is permitted per person. You must provide accurate, current info, and we reserve the right to suspend or terminate accounts that breach these terms.
+          To use most features you must register for an account. You are responsible for keeping your login credentials confidential and secure. Only one account is permitted per person. You must provide accurate, current information, and we may suspend or end accounts that breach these Terms.
         </Text>
 
         <Text style={styles.sectionTitle}>4. User Content</Text>
         <Text style={styles.bodyText}>
-          You retain complete ownership of any data, images, logs, recipes, or custom workouts you create or upload ("User Content"). By submitting User Content, you grant ZOWN HQ a worldwide, non-exclusive, royalty-free license to host, display, and distribute this content within the app (subject to your privacy settings). Any form of harassment, spam, illegal content, or intellectual property infringement is strictly prohibited.
+          You keep ownership of the data, images, logs, recipes, posts and custom workouts you create or upload ("User Content"). By submitting User Content you grant ZOWN HQ a worldwide, non-exclusive, royalty-free license to host, display and distribute it within the app, subject to your privacy settings. Harassment, spam, illegal content and infringement of others' rights are prohibited, and we may remove content that breaks these Terms.
         </Text>
 
         <Text style={styles.sectionTitle}>5. Health & Fitness Disclaimer</Text>
@@ -60,42 +60,47 @@ export default function TermsOfService() {
           WARNING: ZOWN HQ IS NOT A MEDICAL DEVICE AND DOES NOT PROVIDE PROFESSIONAL MEDICAL ADVICE, DIAGNOSIS, OR TREATMENT.
         </Text>
         <Text style={styles.bodyText}>
-          Consult with a certified physician or health professional before starting any new training program, cardio routine, or dietary regimen. Calorie expenditures, active duration metrics, heart rate estimates, and body composition predictions are algorithmic calculations, not medical measurements. ZOWN HQ assumes no liability for injuries, physical strain, or complications resulting from exercises, guides, or recipes suggested inside the app.
+          Consult a physician or other qualified health professional before starting any new training program, cardio routine, or diet. Calorie estimates, heart-rate and recovery figures, and body-fat and body-composition estimates are calculations, not medical measurements. Workouts, plans, meal suggestions and insights generated by AI can be inaccurate or unsuitable for you, so use your own judgment. ZOWN HQ is not liable for injuries, strain, or complications resulting from exercises, plans, or recipes suggested in the app.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Privacy</Text>
         <Text style={styles.bodyText}>
-          Your privacy is vital to us. Our data collection practices, storage mechanisms, and disclosure rules are fully described in our Privacy Policy, which is accessible directly inside the app settings.
+          Our data practices are described in our Privacy Policy, which is available in the app under Settings.
         </Text>
 
         <Text style={styles.sectionTitle}>7. Third-Party Services</Text>
         <Text style={styles.bodyText}>
-          Our application integrates with external services to provide rich features, including Spotify (audio controls), Google Firebase (cloud hosting), ExerciseDB (exercise guides), Radar.io (geocoding/location maps), and Passio.ai (food indexing). Your interaction with these components is subject to their respective terms. We do not control and are not responsible for any third-party downtime or data discrepancies.
+          The app uses outside services to provide its features, including Google Firebase (accounts, storage and crash reporting), OpenAI (AI features), Spotify and Apple Music (if you connect them), Apple Health and ROOK (if you connect them), Radar, Google Places, TrailAPI and the U.S. National Weather Service (location features), and CalorieAPI, Spoonacular and exercise-data providers (food, recipe and exercise information). Your use of these services is subject to their own terms. We do not control them and are not responsible for their downtime or data errors.
         </Text>
 
         <Text style={styles.sectionTitle}>8. Intellectual Property</Text>
         <Text style={styles.bodyText}>
-          The design systems, source code, visual identity, graphics, icons, calculations, and overall brand elements of ZOWN HQ are the sole proprietary property of ZOWN HQ. Any open source libraries incorporated are explicitly compiled and listed on our Open Source Licenses page.
+          The design, source code, visual identity, graphics, icons, calculations and brand elements of ZOWN HQ belong to ZOWN HQ. Open-source libraries used in the app are listed on the Open Source Licenses page.
         </Text>
 
-        <Text style={styles.sectionTitle}>9. Limitation of Liability</Text>
+        <Text style={styles.sectionTitle}>9. Ending Your Account</Text>
         <Text style={styles.bodyText}>
-          The Service is provided on an "AS IS" and "AS AVAILABLE" basis. We offer no warranties, express or implied, regarding constant availability, accuracy of GPS data, or technical uptime. In no event shall ZOWN HQ or its contributors be liable for indirect, incidental, special, or consequential damages resulting from your use of or inability to use the platform.
+          You can stop using ZOWN HQ at any time and delete your account in Settings. Deleting your account is described in the Privacy Policy. We may suspend or end access to the Service if you break these Terms.
         </Text>
 
-        <Text style={styles.sectionTitle}>10. Modifications</Text>
+        <Text style={styles.sectionTitle}>10. Limitation of Liability</Text>
         <Text style={styles.bodyText}>
-          We reserve the right to amend or replace these Terms at any time. If a revision is material, we will provide an in-app notification prior to implementation. Continued use of ZOWN HQ after updates constitute acceptance of the modified Terms.
+          The Service is provided "AS IS" and "AS AVAILABLE". We make no warranties, express or implied, about availability, accuracy of GPS or health data, or uptime. ZOWN HQ and its contributors are not liable for indirect, incidental, special or consequential damages arising from your use of, or inability to use, the Service.
         </Text>
 
-        <Text style={styles.sectionTitle}>11. Governing Law</Text>
+        <Text style={styles.sectionTitle}>11. Modifications</Text>
         <Text style={styles.bodyText}>
-          These Terms and any associated disputes shall be governed by, construed, and enforced in accordance with the laws of the United States.
+          We may change these Terms at any time. If a change is important, we will tell you in the app before it takes effect. Continuing to use ZOWN HQ after a change means you accept the updated Terms.
         </Text>
 
-        <Text style={styles.sectionTitle}>12. Contact</Text>
+        <Text style={styles.sectionTitle}>12. Governing Law</Text>
+        <Text style={styles.bodyText}>
+          These Terms and any related disputes are governed by the laws of the United States.
+        </Text>
+
+        <Text style={styles.sectionTitle}>13. Contact</Text>
         <Text style={[styles.bodyText, { marginBottom: 40 }]}>
-          For queries, feedback, or compliance questions, please contact support at support@zownhq.com.
+          For questions, feedback or compliance matters, email support@zownhq.com.
         </Text>
       </ScrollView>
     </SafeAreaView>

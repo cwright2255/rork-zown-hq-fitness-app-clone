@@ -129,7 +129,18 @@ export function createMeshCache(getFs) {
     }
   }
 
-  return { read, write, remove };
+  // Deletes every saved mesh (the whole folder). Meshes are rebuilt on demand.
+  async function clear() {
+    try {
+      const ctx = await dirAndFs();
+      if (!ctx) return;
+      await ctx.fs.deleteAsync(ctx.dir, { idempotent: true });
+    } catch (e) {
+      // best-effort
+    }
+  }
+
+  return { read, write, remove, clear };
 }
 
 // Production instance: lazily imports the native module so a missing or

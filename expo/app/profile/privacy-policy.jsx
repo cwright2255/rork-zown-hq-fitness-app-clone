@@ -29,79 +29,83 @@ export default function PrivacyPolicy() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.lastUpdated}>Last updated: July 2026</Text>
+        <Text style={styles.lastUpdated}>Last updated: October 2026</Text>
 
         <Text style={styles.paragraph}>
-          At ZOWN HQ, your privacy is a core priority. This Privacy Policy details how we handle the collection, processing, and protection of your physical metrics, location data, and other profile assets.
+          This policy explains what ZOWN HQ collects, why we collect it, who it is shared with, and the choices you have. ZOWN HQ is an early (alpha) release, so features and this policy may change.
         </Text>
 
         <Text style={styles.sectionTitle}>1. Information We Collect</Text>
-        <Text style={styles.bodyText}>
-          We collect info necessary to track your fitness journey, including:
-        </Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Account Info</Text>: Name, email address, password (securely hashed via Firebase).</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Fitness Data</Text>: Completed workouts, duration, calorie expenditure, steps, and target metric logs.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>GPS & Location</Text>: GPS paths during run tracking (only with explicit authorization).</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Nutrition Data</Text>: Hydration logs, logged meals, macronutrient counts, and calorie totals.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Physical Metrics</Text>: Height, weight, age, 8-point structural measurements, body scans, and sleep metrics.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Device & Usage Data</Text>: Operating system version, model markers, session latency, and bug/crash logs.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Account</Text>: your name and email address. Your password is handled by Firebase Authentication; we never see it.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Profile and body metrics</Text>: age, gender, height, weight, goals, and body measurements you enter or that a body scan estimates. Body-scan photos are analyzed on your device. We save the resulting measurements and estimates, not the photos.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Fitness activity</Text>: workouts, sets, runs, walks and hikes, steps, and recovery or heart-rate data if you connect Apple Health or a wearable.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Location</Text>: GPS points while you record a run, walk or hike (including in the background while a recording is active), and your approximate location when you look up weather or nearby trails. Only with your permission.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Nutrition</Text>: food and water logs, meal plans, and recipes you save or import.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Social content</Text>: your public name and avatar, posts, comments, photos or videos you post, messages, who you follow, and challenge or duel activity.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Device and diagnostics</Text>: crash reports (with your account ID attached), device model, operating system and app version, usage events, and a notification token if you turn on notifications.</Text>
 
         <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
+        <Text style={styles.bulletItem}>• To run the app: your history, plans, goals, progress, streaks, XP and rewards.</Text>
+        <Text style={styles.bulletItem}>• To power social features such as the leaderboard, feed, groups, messages and duels.</Text>
+        <Text style={styles.bulletItem}>• To send reminders and alerts you have turned on.</Text>
+        <Text style={styles.bulletItem}>• To find and fix crashes and bugs.</Text>
         <Text style={styles.bodyText}>
-          We utilize your data to serve the following objectives:
-        </Text>
-        <Text style={styles.bulletItem}>• Calculating personalized metabolic rates, active goals, and weekly milestones.</Text>
-        <Text style={styles.bulletItem}>• Populating in-app peer leaderboards, battle pass progression, and active duels.</Text>
-        <Text style={styles.bulletItem}>• Managing smart push alerts and hydration triggers.</Text>
-        <Text style={styles.bulletItem}>• Tracking app diagnostic performance and debugging code errors.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>We never sell, rent, or lease your private physical metrics or profile details to third-party marketing brokers.</Text></Text>
-
-        <Text style={styles.sectionTitle}>3. Data Storage & Security</Text>
-        <Text style={styles.bodyText}>
-          All user records, health stores, and progression metrics are hosted on Google Firebase with industry-grade SSL encryption both in transit and at rest. Authentications are handled directly via Google's secure Firebase tokens. Profile data remains locked in secure databases and is completely expunged within 30 days of initiating account deletion.
+          We do not sell your personal information and we do not use it for advertising. Data from Apple Health is used only to provide fitness features inside ZOWN HQ.
         </Text>
 
-        <Text style={styles.sectionTitle}>4. Third-Party Services</Text>
+        <Text style={styles.sectionTitle}>3. AI Features</Text>
         <Text style={styles.bodyText}>
-          We partner with select APIs to power native features:
-        </Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Firebase (Google)</Text>: Handles DB persistence and user login auth.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Spotify</Text>: Synchronizes musical playback controls (only if authorized).</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Passio.ai & Open Food Facts</Text>: Recognizes barcodes and meals (the raw scans are processed locally; images are not retained).</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>ExerciseDB</Text>: Syncs instructional exercises. No personal profile data is shared.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Radar.io</Text>: Powers reverse-geocoding of run locations.</Text>
-
-        <Text style={styles.sectionTitle}>5. Your Rights (GDPR & CCPA Compliant)</Text>
-        <Text style={styles.bodyText}>
-          Regardless of your jurisdiction, ZOWN HQ offers global compliance rights:
-        </Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Access & Export</Text>: Request a full export of your health history at any time.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Erasure</Text>: Instantly remove your account and metrics from Settings &gt; Danger Zone.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Visibility Toggle</Text>: Adjust settings to control who sees your duels and rankings.</Text>
-
-        <Text style={styles.sectionTitle}>6. Children's Privacy</Text>
-        <Text style={styles.bodyText}>
-          ZOWN HQ is not designed for children under 13 years of age. We do not knowingly collect physical metrics or records of minors. If we discover any account belonging to an underage user, it will be immediately removed.
+          The AI coach, workout and challenge generation, nutrition suggestions, progress summaries, body-composition insights, and the photo food scanner send the information they need (for example your goals, age, measurements, the text you type, or the meal photo you take) through our servers to OpenAI, which generates the response. We do not store meal photos you send for scanning. AI output can be wrong and is not medical advice.
         </Text>
 
-        <Text style={styles.sectionTitle}>7. Location Data</Text>
+        <Text style={styles.sectionTitle}>4. Services That Receive Your Data</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Google Firebase</Text>: sign-in, database, file storage, cloud functions, crash reporting (Crashlytics) and analytics.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>OpenAI</Text>: AI features described above.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Radar, Google Places, TrailAPI and the U.S. National Weather Service</Text>: your coordinates or search text, to show a place name, find trails and places, and show weather.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>CalorieAPI and Spoonacular</Text>: food searches, barcodes you scan, and recipe links you import.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Exercise and muscle-diagram providers</Text>: exercise search terms and muscle groups. No personal profile data.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Our 3D body-model service</Text>: your height, weight, gender, body-fat estimate and waist and hip measurements, to draw your body model.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Spotify and Apple Music</Text>: only if you connect them, to control playback.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Apple Health and ROOK</Text>: only if you connect them, to bring in health and wearable data you choose to share.</Text>
+
+        <Text style={styles.sectionTitle}>5. What Other Users Can See</Text>
         <Text style={styles.bodyText}>
-          Active GPS tracking is used strictly for run-mapping. We only collect coordinates in the background while your run session is actively recording. This permission can be revoked through your device settings at any time.
+          Your public name and avatar, posts and comments are visible to other signed-in users. Your leaderboard entry (name, avatar, XP, level, streak and distance) is visible unless you turn off Show in Leaderboards in Settings. Messages are visible to the people in the conversation. Your workouts, body metrics and nutrition logs are private to your account.
         </Text>
 
-        <Text style={styles.sectionTitle}>8. Cookies & Analytics</Text>
+        <Text style={styles.sectionTitle}>6. Keeping and Deleting Your Data</Text>
         <Text style={styles.bodyText}>
-          Being a native mobile application, we do not deploy standard web cookies. We employ native analytics SDKs (such as Firebase Analytics) to track performance, screen views, and user flows.
+          We keep your data while your account is active. In Settings you can delete your account, which permanently deletes your sign-in. Your stored workout, nutrition and profile records are not erased automatically yet. To have them removed, or to get a copy of your data, email privacy@zownhq.com from the address on your account.
         </Text>
 
-        <Text style={styles.sectionTitle}>9. Changes to Privacy Policy</Text>
+        <Text style={styles.sectionTitle}>7. Security</Text>
         <Text style={styles.bodyText}>
-          We update this policy from time to time. Any material change will be brought to your attention via a prominent system-alert in the app interface.
+          Your data is stored with Google Firebase, which encrypts it in transit and at rest. Our database rules limit private records to your own account. No system is perfectly secure, so we cannot guarantee absolute security.
         </Text>
 
-        <Text style={styles.sectionTitle}>10. Contact</Text>
+        <Text style={styles.sectionTitle}>8. Your Choices</Text>
+        <Text style={styles.bulletItem}>• Turn location, camera, photos, Apple Health and notification access on or off in your device settings at any time.</Text>
+        <Text style={styles.bulletItem}>• Control who can find you and see your activity under Settings &gt; Privacy, and hide yourself from leaderboards.</Text>
+        <Text style={styles.bulletItem}>• Disconnect Spotify, Apple Music or wearables in Settings.</Text>
+
+        <Text style={styles.sectionTitle}>9. Children's Privacy</Text>
+        <Text style={styles.bodyText}>
+          ZOWN HQ is not for children under 13. We do not knowingly collect information from them, and we will remove any account we learn belongs to a child under 13.
+        </Text>
+
+        <Text style={styles.sectionTitle}>10. Cookies and Analytics</Text>
+        <Text style={styles.bodyText}>
+          The app does not use web cookies. It uses Firebase Analytics and Crashlytics to measure how the app performs and to find crashes.
+        </Text>
+
+        <Text style={styles.sectionTitle}>11. Changes to This Policy</Text>
+        <Text style={styles.bodyText}>
+          We may update this policy. When we make an important change we will tell you in the app, and the date at the top will change.
+        </Text>
+
+        <Text style={styles.sectionTitle}>12. Contact</Text>
         <Text style={[styles.bodyText, { marginBottom: 40 }]}>
-          For Data Protection inquiries, contact privacy@zownhq.com. For general support, write to support@zownhq.com.
+          For privacy questions or requests, email privacy@zownhq.com. For general support, email support@zownhq.com.
         </Text>
       </ScrollView>
     </SafeAreaView>
