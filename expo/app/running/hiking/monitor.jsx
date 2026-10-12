@@ -27,7 +27,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
@@ -483,7 +482,7 @@ export default function HikeWeatherMonitorScreen() {
 
   if (!isMonitoring) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <View style={styles.screen}>
         <ScreenHeader title="Hike" showBack variant="light" />
         <View style={styles.centerBlock}>
           <Ionicons name="location-outline" size={40} color={colors.textSecondary} />
@@ -491,12 +490,15 @@ export default function HikeWeatherMonitorScreen() {
             Location access is needed to record your hike and watch the weather along the way.
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  // A plain View, not a SafeAreaView: ScreenHeader already pads itself for the status bar
+  // and notch, so a safe area around it added the same space a second time and left a
+  // blank band above the title.
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.screen}>
       <ScreenHeader
         title={trail?.name || 'Hike'}
         showBack
@@ -696,12 +698,12 @@ export default function HikeWeatherMonitorScreen() {
           </View>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: colors.bg },
   centerBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
   centerText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   mapWrap: { height: 220, borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.md },
