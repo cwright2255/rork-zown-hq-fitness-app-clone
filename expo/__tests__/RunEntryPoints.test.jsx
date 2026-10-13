@@ -60,6 +60,8 @@ import RunningLogScreen from '../app/profile/running-log';
 import WorkoutCompleteScreen from '../app/workout/complete';
 import RunningHubScreen from '../app/running/program/index';
 import { useSettingsStore } from '../store/settingsStore';
+import { useVirtualRaceStore } from '../store/virtualRaceStore';
+import { currentRace, raceEntryId } from '../lib/virtualRaces';
 
 beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
@@ -377,5 +379,107 @@ describe('Running hub', () => {
     expect(utils.getByText('Couch to 5K')).toBeTruthy();
     fireEvent.press(utils.getByText('Hiking Near You'));
     expect(router.push).toHaveBeenCalledWith('/running/hiking');
+  });
+
+  describe('virtual races', () => {
+    // A Wednesday, so the local week has 4 days left.
+    const NOW = new Date(2026, 9, 14, 10, 0, 0);
+    beforeEach(() => {
+      jest.useFakeTimers({ now: NOW.getTime() });
+      useVirtualRaceStore.setState({ joined: {}, finished: {}, boards: {} });
+    });
+    afterEach(() => { jest.useRealTimers(); });
+
+    const open = async () => {
+      setStore([]);
+      const utils = render(<RunningHubScreen />);
+      await act(async () => {});
+      return utils;
+    };
+    const keep = (kind, timeSec) => useVirtualRaceStore.getState().recordFinish(
+      currentRace(kind, NOW), 'u1', { timeSec, finishedAt: NOW.toISOString(), areaId: '1300x1059' },
+    );
+
+    it('has a Virtual Races section with a Local 5K and a Worldwide 10K', async () => {
+      const utils = await open();
+      expect(utils.getByText('Virtual Races')).toBeTruthy();
+      expect(utils.getByText('Local 5K')).toBeTruthy();
+      expect(utils.getByText('Worldwide 10K')).toBeTruthy();
+      expect(utils.getByText('5K · Weekly · 4 days left')).toBeTruthy();
+      expect(utils.getByText(/^10K · Monthly · \d+ days left$/)).toBeTruthy();
+    });
+
+    it('comes after Hiking Near You', async () => {
+      const utils = await open();
+      const text = JSON.stringify(utils.toJSON());
+      expect(text.indexOf('Hiking Near You')).toBeGreaterThan(-1);
+      expect(text.indexOf('Hiking Near You')).toBeLessThan(text.indexOf('Virtual Races'));
+      expect(text.indexOf('Local 5K')).toBeLessThan(text.indexOf('Worldwide 10K'));
+    });
+
+    it('shows miles beside the distance when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await open();
+      expect(utils.getByText('5K · 3.1 mi · Weekly · 4 days left')).toBeTruthy();
+      expect(utils.getByText(/^10K · 6\.2 mi · Monthly/)).toBeTruthy();
+    });
+
+    it('opens the race that was tapped', async () => {
+      const utils = await open();
+      fireEvent.press(utils.getByTestId('race-card-local'));
+      expect(router.push).toHaveBeenLastCalledWith('/running/races/local');
+      fireEvent.press(utils.getByTestId('race-card-world'));
+      expect(router.push).toHaveBeenLastCalledWith('/running/races/world');
+    });
+
+    it('reads out the race, when it is on, and how you are doing in it', async () => {
+      useVirtualRaceStore.getState().join(currentRace('local', NOW), 'u1');
+      keep('world', 3100);
+      const utils = await open();
+      expect(utils.getByTestId('race-card-local').props.accessibilityLabel).toBe('Local 5K. Weekly · 4 days left. Joined');
+      expect(utils.getByTestId('race-card-world').props.accessibilityLabel).toMatch(/^Worldwide 10K\. Monthly · \d+ days left\. Your time 51:40$/);
+    });
+
+    it('reads out the race without a trailing gap while you have not joined', async () => {
+      const utils = await open();
+      expect(utils.getByTestId('race-card-local').props.accessibilityLabel).toBe('Local 5K. Weekly · 4 days left.');
+    });
+
+    it('has a pin for the local race and a globe for the worldwide one', async () => {
+      const utils = await open();
+      const iconIn = (id) => utils.getByTestId(id).findAllByType('Ionicons').map((n) => n.props.name);
+      expect(iconIn('race-card-local')).toContain('location');
+      expect(iconIn('race-card-local')).not.toContain('globe-outline');
+      expect(iconIn('race-card-world')).toContain('globe-outline');
+      expect(iconIn('race-card-world')).not.toContain('location');
+    });
+
+    it('says nothing about you until you have joined or finished', async () => {
+      const utils = await open();
+      expect(utils.queryByTestId('race-card-status-local')).toBeNull();
+      expect(utils.queryByTestId('race-card-status-world')).toBeNull();
+    });
+
+    it('says Joined once you have joined that race, and only that race', async () => {
+      useVirtualRaceStore.getState().join(currentRace('local', NOW), 'u1');
+      const utils = await open();
+      expect(utils.getByTestId('race-card-status-local').props.children).toBe('Joined');
+      expect(utils.queryByTestId('race-card-status-world')).toBeNull();
+    });
+
+    it('shows your time once you have finished, instead of Joined', async () => {
+      useVirtualRaceStore.getState().join(currentRace('world', NOW), 'u1');
+      keep('world', 3100);
+      const utils = await open();
+      expect(utils.getByTestId('race-card-status-world').props.children).toBe('Your time 51:40');
+      expect(utils.queryByTestId('race-card-status-local')).toBeNull();
+    });
+
+    it('does not show somebody else\'s time', async () => {
+      useVirtualRaceStore.getState().recordFinish(currentRace('local', NOW), 'u2', { timeSec: 1500, finishedAt: NOW.toISOString(), areaId: 'a' });
+      expect(Object.keys(useVirtualRaceStore.getState().finished)).toEqual([raceEntryId(currentRace('local', NOW).id, 'u2')]);
+      const utils = await open();
+      expect(utils.queryByTestId('race-card-status-local')).toBeNull();
+    });
   });
 });

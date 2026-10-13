@@ -42,7 +42,7 @@ export default function TermsOfService() {
 
         <Text style={styles.sectionTitle}>2. Description of Service</Text>
         <Text style={styles.bodyText}>
-          ZOWN HQ is a digital fitness companion offering workout tracking, GPS run, walk and hike tracking, nutrition logging and meal planning, AI-generated coaching and plans, body-composition estimates, and social features such as leaderboards, challenges, groups and messaging, along with gamified progress such as levels and XP rewards. The Service is for motivation and general fitness information.
+          ZOWN HQ is a digital fitness companion offering workout tracking, GPS run, walk and hike tracking, nutrition logging and meal planning, AI-generated coaching and plans, body-composition estimates, and social features such as leaderboards, challenges, virtual races, groups and messaging, along with gamified progress such as levels and XP rewards. The Service is for motivation and general fitness information.
         </Text>
 
         <Text style={styles.sectionTitle}>3. User Accounts</Text>

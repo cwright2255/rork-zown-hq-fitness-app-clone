@@ -11,6 +11,10 @@ jest.mock('../store/settingsStore', () => ({
 jest.mock('../services/distanceBoard', () => ({
   publishMyDistance: (...a) => global.__publishDistance(...a),
 }));
+jest.mock('../services/raceBoard', () => ({
+  publishMyRaces: (...a) => global.__publishRaces(...a),
+  withdrawMyRaces: (...a) => global.__withdrawRaces(...a),
+}));
 
 import {
   isShownOnLeaderboards, publishMyXp, setShowInLeaderboards,
@@ -29,6 +33,8 @@ beforeEach(() => {
   };
   global.__syncXp = jest.fn(async () => { mockLog.push('xp'); return true; });
   global.__publishDistance = jest.fn(async () => { mockLog.push('distance'); return true; });
+  global.__publishRaces = jest.fn(async () => { mockLog.push('races'); return true; });
+  global.__withdrawRaces = jest.fn(async () => { mockLog.push('withdrawRaces'); return true; });
 });
 afterEach(() => warn.mockRestore());
 
@@ -118,7 +124,7 @@ describe('setShowInLeaderboards', () => {
     expect(global.__syncXp).toHaveBeenCalledTimes(1);
     expect(global.__syncXp.mock.calls[0][1]).toMatchObject({ xp: 1200, level: 4, streak: 6, visible: true });
     expect(global.__publishDistance).toHaveBeenCalledWith({ user, loadFirst: true });
-    expect(mockLog).toEqual(['xp', 'distance']);
+    expect(mockLog).toEqual(['xp', 'distance', 'races']);
   });
 
   it('treats anything that is not a yes as off', async () => {
@@ -146,6 +152,33 @@ describe('setShowInLeaderboards', () => {
     expect(await setShowInLeaderboards(true, user)).toBe(false);
   });
 
+  it('turning it off also takes the virtual race times off the boards', async () => {
+    expect(await setShowInLeaderboards(false, user)).toBe(true);
+    expect(global.__withdrawRaces).toHaveBeenCalledTimes(1);
+    expect(global.__withdrawRaces).toHaveBeenCalledWith({ user });
+    expect(global.__publishRaces).not.toHaveBeenCalled();
+  });
+
+  it('turning it on puts the virtual race times back, after the setting is saved', async () => {
+    let seen;
+    global.__publishRaces = jest.fn(async () => { seen = global.__settings.showInLeaderboards; return true; });
+    global.__settings.showInLeaderboards = false;
+    expect(await setShowInLeaderboards(true, user)).toBe(true);
+    expect(global.__publishRaces).toHaveBeenCalledWith({ user });
+    expect(global.__withdrawRaces).not.toHaveBeenCalled();
+    expect(seen).toBe(true);
+  });
+
+  it('says the board does not match yet when the race times could not be taken off', async () => {
+    global.__withdrawRaces = jest.fn(async () => false);
+    expect(await setShowInLeaderboards(false, user)).toBe(false);
+  });
+
+  it('says the board does not match yet when the race times could not be put back', async () => {
+    global.__publishRaces = jest.fn(async () => false);
+    expect(await setShowInLeaderboards(true, user)).toBe(false);
+  });
+
   it('still saves the setting with nobody signed in, and publishes nothing', async () => {
     expect(await setShowInLeaderboards(false, null)).toBe(false);
     expect(await setShowInLeaderboards(true, {})).toBe(false);
@@ -157,5 +190,7 @@ describe('setShowInLeaderboards', () => {
     expect(calls[1][2]).toBeFalsy();
     expect(global.__syncXp).not.toHaveBeenCalled();
     expect(global.__publishDistance).not.toHaveBeenCalled();
+    expect(global.__publishRaces).not.toHaveBeenCalled();
+    expect(global.__withdrawRaces).not.toHaveBeenCalled();
   });
 });

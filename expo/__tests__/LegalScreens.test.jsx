@@ -92,6 +92,17 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/private to your account/);
   });
 
+  it('says what the virtual race boards show, that it is only a rough area, and that hiding removes it', () => {
+    const text = policy();
+    expect(text).toMatch(/virtual race results on the race boards: your name, avatar, finishing time and, for the Local 5K, the rough map square where you started/);
+    expect(text).toMatch(/rough map square \(about 7 miles across\) for where your run started, and the squares around where you are when you look at its board; never your exact position/);
+    expect(text).toMatch(/Turning off Show in Leaderboards takes them off the boards/);
+  });
+
+  it('says deleting an account erases the virtual race times too', () => {
+    expect(policy()).toMatch(/challenge entries, virtual race times, uploaded photos and videos/);
+  });
+
   it('says it does not sell personal information', () => {
     expect(policy()).toMatch(/do not sell your personal information/);
   });
@@ -114,6 +125,10 @@ describe('Privacy Policy', () => {
 });
 
 describe('Terms of Service', () => {
+  it('lists virtual races among the social features', () => {
+    expect(terms()).toMatch(/social features such as leaderboards, challenges, virtual races, groups and messaging/);
+  });
+
   it('is dated and shows the contact address', () => {
     const text = terms();
     expect(text).toContain('Last updated: October 2026');

@@ -16,6 +16,7 @@
 //   users/*/following/{uid}                other people's follow of them (holds their name and avatar)
 //   conversations, duels (participantIds)  threads and duels they were in, removed for both people
 //   challengeEntries (uid)                 their progress on challenges
+//   raceEntries (uid)                      their times on the virtual race boards
 //   users/*/groupMemberships               also lowers the group's member count
 //   Storage users/{uid}/ and posts/{uid}/  profile picture, uploads, post media
 //   ROOK                                   connected wearable sources are revoked
@@ -162,6 +163,7 @@ export async function eraseUserAccount({ uid, db, bucket, auth, increment, revok
   await run('conversations', () => deleteQuery(db, () => db.collection('conversations').where('participantIds', 'array-contains', uid), { recursive: true }));
   await run('duels', () => deleteQuery(db, () => db.collection('duels').where('participantIds', 'array-contains', uid), { recursive: true }));
   await run('challengeEntries', () => deleteQuery(db, () => db.collection('challengeEntries').where('uid', '==', uid)));
+  await run('raceEntries', () => deleteQuery(db, () => db.collection('raceEntries').where('uid', '==', uid)));
 
   for (const name of USER_KEYED_COLLECTIONS) {
     await run(name, () => deleteQuery(db, () => db.collection(name).where('userId', '==', uid)));

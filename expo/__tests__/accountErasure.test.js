@@ -143,6 +143,9 @@ const seed = () => ({
   'duels/d23': { participantIds: ['u2', 'u3'], status: 'active' },
   'challengeEntries/ch1_u1': { uid: 'u1', challengeId: 'ch1' },
   'challengeEntries/ch1_u2': { uid: 'u2', challengeId: 'ch1' },
+  'raceEntries/local-5k-week-2026-10-12_u1': { uid: 'u1', raceId: 'local-5k-week-2026-10-12', timeSec: 1500 },
+  'raceEntries/world-10k-month-2026-10_u1': { uid: 'u1', raceId: 'world-10k-month-2026-10', timeSec: 3100 },
+  'raceEntries/local-5k-week-2026-10-12_u2': { uid: 'u2', raceId: 'local-5k-week-2026-10-12', timeSec: 1600 },
   'communityGroups/g1': { memberCount: 5 },
 });
 
@@ -219,6 +222,14 @@ describe('erasing an account', () => {
     expect(has(db, 'challengeEntries/ch1_u1')).toBe(false);
   });
 
+  it('removes their times from the virtual race boards, and only theirs', async () => {
+    const { db, promise } = run();
+    await promise;
+    expect(has(db, 'raceEntries/local-5k-week-2026-10-12_u1')).toBe(false);
+    expect(has(db, 'raceEntries/world-10k-month-2026-10_u1')).toBe(false);
+    expect(has(db, 'raceEntries/local-5k-week-2026-10-12_u2')).toBe(true);
+  });
+
   it('lowers the member count of the groups they were in', async () => {
     const { db, promise } = run();
     await promise;
@@ -244,7 +255,7 @@ describe('erasing an account', () => {
       'users/u2', 'users/u2/bodyScans/s9', 'users/u2/following/u3', 'users/u3',
       'workouts/w2', 'loggedSets/l2', 'coachMessages/m2', 'goals/g2', 'aiRecommendations/r2',
       'leaderboard/u2', 'communityPosts/p2', 'communityPosts/p2/likes/u3',
-      'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'challengeEntries/ch1_u2',
+      'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'challengeEntries/ch1_u2', 'raceEntries/local-5k-week-2026-10-12_u2',
     ];
     for (const p of keep) expect(db.docs.get(p)).toEqual(p === 'communityPosts/p2' ? { authorId: 'u2', likeCount: 2, commentCount: 2 } : before.docs.get(p));
   });

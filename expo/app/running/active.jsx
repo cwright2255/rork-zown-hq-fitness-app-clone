@@ -31,8 +31,11 @@ import {
   trackedMs, gpsStatus, intervalAt, elevationGain, sessionCounts, plannedSeconds, PROGRAM_CREDIT_FRACTION,
 } from '@/lib/runTracker';
 import { ACTIVITIES, caloriesFor, xpFor } from '@/lib/runStats';
-import { distanceUnitLabel, formatDistanceValue, paceIn } from '@/lib/distanceUnits';
+import { distanceUnitLabel, formatDistance, formatDistanceValue, paceIn } from '@/lib/distanceUnits';
 import { goalLabel, goalProgress } from '@/lib/runGoal';
+import { currentRace } from '@/lib/virtualRaces';
+import { raceResultMessage, speakableRaceTime } from '@/lib/raceMessages';
+import { finishRace } from '@/services/raceBoard';
 
 /** How long the lock is held to open it again, so a pocket or a sweaty thumb does not. */
 const UNLOCK_HOLD_MS = 700;
@@ -79,6 +82,11 @@ export default function ActiveRunScreen() {
   // 'walk' when started from "Free walk"; program sessions and free runs are runs.
   const activity = !programId && params.activity === 'walk' ? 'walk' : 'run';
   const activityLabel = ACTIVITIES[activity].label;
+  // A virtual race, started from the race screen (app/running/races/[kind].jsx): a run with the
+  // race's distance as its goal and a time posted to the board when that distance is crossed.
+  // Only a run can be a race, never a walk or a program session.
+  const raceKind = !programId && activity === 'run' ? params.raceKind : null;
+  const race = useMemo(() => currentRace(raceKind), [raceKind]); // null unless it names a race
 
   const { endRun, completeProgramSession } = useRunningStore();
   const { addExpActivity } = useExpStore();
@@ -129,7 +137,8 @@ export default function ActiveRunScreen() {
   const [locked, setLocked] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
-  const goalKm = useRunTrackerStore((s) => s.goalKm); // the distance goal, in km
+  const storedGoalKm = useRunTrackerStore((s) => s.goalKm); // the distance goal, in km
+  const goalKm = race ? race.distanceKm : storedGoalKm; // a race is always its own distance
 
   const isRunning = tracker.status === 'running';
   const elapsed = Math.floor(trackedMs(tracker, now) / 1000);
@@ -158,7 +167,10 @@ export default function ActiveRunScreen() {
       // Auto-pause is off for program sessions, whose timed intervals shouldn't
       // stop for a red light; the menu can turn it on.
       // Only a run of the same kind that was left paused is picked up again.
-      const kind = isProgramRun ? `${programId}:${weekNumber}:${sessionIndex}` : activity;
+      // A race is its own kind of run, so a free run left paused is never taken for it (or the other way round).
+      let kind = activity;
+      if (race) kind = `race:${race.id}`;
+      else if (isProgramRun) kind = `${programId}:${weekNumber}:${sessionIndex}`;
       const mode = useRunTrackerStore.getState().begin({ autoPause: !isProgramRun, kind });
       if (mode === 'resumed' && useRunTrackerStore.getState().tracker.status === 'paused') {
         setShowPauseOptions(true);
@@ -228,6 +240,7 @@ export default function ActiveRunScreen() {
     setShowGoal(false);
   }, []);
   useEffect(() => {
+    if (race) return; // a race announces its finish instead (below)
     if (!goalReached) {
       announcedGoal.current = null;
       return;
@@ -239,6 +252,29 @@ export default function ActiveRunScreen() {
       Speech.speak('Distance goal reached', { rate: 1.0 });
     }
   }, [goalReached, goalKm]);
+
+  /* -- Race: when the race distance is crossed, the time is taken from the run's
+     kilometre splits and posted (services/raceBoard.js). The run carries on until it is ended. -- */
+  const [raceResult, setRaceResult] = useState(null);
+  const raceFinished = useRef(false);
+  const audioRef = useRef(audioEnabled);
+  audioRef.current = audioEnabled;
+  const raceReached = !!race && tracker.splits.length >= race.distanceKm;
+  useEffect(() => {
+    if (!raceReached || raceFinished.current) return;
+    raceFinished.current = true;
+    const { splits, route } = useRunTrackerStore.getState().tracker;
+    finishRace({ race, user, splits, coords: route, now: Date.now() })
+      .then((result) => {
+        setRaceResult(result);
+        if (result.status === 'finished' && audioRef.current) {
+          Speech.stop();
+          Speech.speak(`Race finished. Your time is ${speakableRaceTime(result.timeSec)}`, { rate: 1.0 });
+        }
+      })
+      .catch((e) => console.warn('Failed to post race:', e?.message));
+  }, [raceReached]);
+  const raceMessage = race ? raceResultMessage(raceResult, race) : '';
 
   /* -- Music: opens from the menu once the menu has closed -- */
   const musicTimer = useRef(null);
@@ -407,18 +443,24 @@ export default function ActiveRunScreen() {
         <View style={styles.goalBlock}>
           <Pressable
             style={styles.goalRow}
-            onPress={() => setShowGoal(true)}
+            onPress={race ? undefined : () => setShowGoal(true)}
             accessibilityRole="button"
-            accessibilityLabel={goalKm ? `Distance goal ${goalLabel(goalKm, units)}. Tap to change.` : 'Distance goal not set. Tap to set one.'}
+            accessibilityLabel={race
+              ? `${race.name}. ${raceReached ? 'Distance done' : `${formatDistance(Math.max(0, race.distanceKm - distance), units, 2)} to go`}.`
+              : (goalKm ? `Distance goal ${goalLabel(goalKm, units)}. Tap to change.` : 'Distance goal not set. Tap to set one.')}
             testID="run-goal-row"
           >
             <View style={[styles.goalCircle, goalReached && styles.goalCircleDone]}>
               {goalReached && <Ionicons name="checkmark" size={14} color="#000" />}
             </View>
-            <Text style={styles.goalText}>Distance Goal</Text>
+            <Text style={styles.goalText}>{race ? race.name : 'Distance Goal'}</Text>
             {goalKm ? (
               <>
-                <Text style={styles.goalValue} testID="run-goal-value">{goalLabel(goalKm, units)}</Text>
+                <Text style={styles.goalValue} testID="run-goal-value">
+                  {race
+                    ? (raceReached ? 'Distance done' : `${formatDistance(Math.max(0, race.distanceKm - distance), units, 2)} to go`)
+                    : goalLabel(goalKm, units)}
+                </Text>
                 <Text style={styles.goalPercent} testID="run-goal-percent">{goalPercent}%</Text>
               </>
             ) : (
@@ -431,6 +473,9 @@ export default function ActiveRunScreen() {
               <View style={[styles.goalFill, { width: `${goalPercent}%` }]} testID="run-goal-fill" />
             </View>
           ) : null}
+          {raceMessage !== '' && (
+            <Text style={styles.raceMessage} testID="run-race-result">{raceMessage}</Text>
+          )}
         </View>
 
         {/* Main stats 2x2 */}
@@ -617,6 +662,7 @@ const styles = StyleSheet.create({
   },
   goalCircleDone: { backgroundColor: '#FFFFFF' },
   goalText: { fontSize: 14, color: '#FFF', fontWeight: '500' },
+  raceMessage: { fontSize: 13, color: '#FFF', fontWeight: '600', marginTop: 8 },
   goalValue: { fontSize: 14, color: '#888', fontWeight: '500' },
   goalPercent: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
   goalTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 10, overflow: 'hidden' },

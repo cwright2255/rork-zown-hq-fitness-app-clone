@@ -249,6 +249,41 @@ service cloud.firestore {
       allow delete: if request.auth != null && entryId.matches('.*_' + request.auth.uid);
     }
 
+    // Public boards for the virtual races (the Local 5K every week, the Worldwide
+    // 10K every month). Anyone signed in can read. Each person can only write their
+    // OWN result (the document id must be `<raceId>_<uid>`), it must be a time a
+    // person could run (between 2:20 and 30:00 a kilometre), the local race carries
+    // only a coarse map square (never a position), and a result already there can
+    // only be replaced by a faster one.
+    match /raceEntries/{entryId} {
+      function validRaceEntry() {
+        let d = request.resource.data;
+        return request.auth != null &&
+          d.keys().hasOnly(['raceId', 'uid', 'kind', 'distanceKm', 'name', 'avatar', 'timeSec', 'finishedAt', 'areaId']) &&
+          d.keys().hasAll(['raceId', 'uid', 'kind', 'distanceKm', 'name', 'avatar', 'timeSec', 'finishedAt', 'areaId']) &&
+          d.uid == request.auth.uid &&
+          d.raceId is string &&
+          entryId == d.raceId + '_' + request.auth.uid &&
+          ((d.kind == 'local' && d.distanceKm == 5 &&
+              d.raceId.matches('^local-5k-week-[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+              d.areaId is string && d.areaId.size() > 0 && d.areaId.size() <= 12) ||
+           (d.kind == 'world' && d.distanceKm == 10 &&
+              d.raceId.matches('^world-10k-month-[0-9]{4}-[0-9]{2}$') &&
+              d.areaId == null)) &&
+          d.timeSec is int &&
+          d.timeSec >= d.distanceKm * 140 &&
+          d.timeSec <= d.distanceKm * 1800 &&
+          d.name is string && d.name.size() > 0 && d.name.size() <= 40 &&
+          (d.avatar == null || (d.avatar is string && d.avatar.size() <= 600)) &&
+          d.finishedAt is string && d.finishedAt.size() <= 40;
+      }
+
+      allow read: if request.auth != null;
+      allow create: if validRaceEntry();
+      allow update: if validRaceEntry() && request.resource.data.timeSec < resource.data.timeSec;
+      allow delete: if request.auth != null && entryId.matches('.*_' + request.auth.uid);
+    }
+
     match /duels/{duelId} {
       allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
 

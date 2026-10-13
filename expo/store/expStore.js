@@ -81,7 +81,7 @@ const defaultExpSystem = {
 // meal/challenge/mission XP awarding to, if that gets built - not
 // removed, since the numbers themselves may still be the intended
 // design targets.
-const baseExpValues = {
+export const baseExpValues = {
   // Updated values based on the provided table
   mainMission: 1125,
   sideMission: 375,

@@ -128,6 +128,16 @@ const defaultBadges = [
   rarity: 'rare',
   isUnlocked: false,
   unlockedAt: null
+},
+{
+  id: 'badge-14',
+  name: 'Race Day',
+  description: 'Finish a virtual race',
+  imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
+  category: 'running',
+  rarity: 'uncommon',
+  isUnlocked: false,
+  unlockedAt: null
 }];
 
 
@@ -142,8 +152,7 @@ export const useBadgeStore = create(
       // unlocked badge ids + timestamps, applied on top of the local catalog.
       loadBadges: async (uid) => {
         if (!uid) return;
-        const { badges } = get();
-        if (badges.length === 0) get().initializeDefaultBadges();
+        get().initializeDefaultBadges();
         try {
           const snap = await getDoc(doc(db, 'users', uid, 'data', 'badges'));
           if (snap.exists()) {
@@ -201,11 +210,15 @@ export const useBadgeStore = create(
         return badges.find((badge) => badge.id === id);
       },
 
+      // Sets up the badge list, and adds any badge a saved list does not have yet
+      // (badges added in a later version), keeping what is saved.
       initializeDefaultBadges: () => {
-        const { badges } = get();
+        const badges = get().badges || [];
+        const known = new Set(badges.map((badge) => badge.id));
+        const missing = defaultBadges.filter((badge) => !known.has(badge.id));
 
-        if (badges.length === 0) {
-          set({ badges: defaultBadges });
+        if (missing.length > 0) {
+          set({ badges: [...badges, ...missing] });
         }
       }
     }),
@@ -213,8 +226,8 @@ export const useBadgeStore = create(
       name: 'zown-badge-storage',
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
-        // When storage is rehydrated, initialize badges if needed
-        if (state && (!state.badges || state.badges.length === 0)) {
+        // When storage is rehydrated, set up the badges (and add any new ones)
+        if (state) {
           setTimeout(() => {
             useBadgeStore.getState().initializeDefaultBadges();
           }, 50);

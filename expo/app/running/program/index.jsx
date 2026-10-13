@@ -7,6 +7,8 @@ import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, paceIn, paceUnitLabel } from '@/lib/distanceUnits';
+import { RACE_KINDS } from '@/lib/virtualRaces';
+import VirtualRaceCard from '@/components/VirtualRaceCard';
 
 
 
@@ -150,6 +152,13 @@ export default function RunningScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color="#999" />
         </Pressable>
+
+        {/* Virtual races -- a Local 5K every week and a Worldwide 10K every
+            month, see lib/virtualRaces.js and app/running/races/[kind].jsx. */}
+        <SectionHeader title="Virtual Races" />
+        {RACE_KINDS.map((kind) => (
+          <VirtualRaceCard key={kind} kind={kind} />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

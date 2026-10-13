@@ -39,9 +39,9 @@ export default function PrivacyPolicy() {
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Account</Text>: your name and email address. Your password is handled by Firebase Authentication; we never see it.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Profile and body metrics</Text>: age, gender, height, weight, goals, and body measurements you enter or that a body scan estimates. Body-scan photos are analyzed on your device. We save the resulting measurements and estimates, not the photos.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Fitness activity</Text>: workouts, sets, runs, walks and hikes, steps, and recovery or heart-rate data if you connect Apple Health or a wearable.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Location</Text>: GPS points while you record a run, walk or hike (including in the background while a recording is active), and your approximate location when you look up weather or nearby trails. Only with your permission.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Location</Text>: GPS points while you record a run, walk or hike (including in the background while a recording is active), and your approximate location when you look up weather or nearby trails. For the Local 5K virtual race, a rough map square (about 7 miles across) for where your run started, and the squares around where you are when you look at its board; never your exact position. Only with your permission.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Nutrition</Text>: food and water logs, meal plans, and recipes you save or import.</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Social content</Text>: your public name and avatar, posts, comments, photos or videos you post, messages, who you follow, and challenge or duel activity.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Social content</Text>: your public name and avatar, posts, comments, photos or videos you post, messages, who you follow, and challenge, duel or virtual race activity (your finishing times).</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Device and diagnostics</Text>: crash reports (with your account ID attached), device model, operating system and app version, usage events, and a notification token if you turn on notifications.</Text>
 
         <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
@@ -71,12 +71,12 @@ export default function PrivacyPolicy() {
 
         <Text style={styles.sectionTitle}>5. What Other Users Can See</Text>
         <Text style={styles.bodyText}>
-          Your public name and avatar, posts and comments are visible to other signed-in users. Your leaderboard entry (name, avatar, XP, level, streak and distance) is visible unless you turn off Show in Leaderboards in Settings. Messages are visible to the people in the conversation. Your workouts, body metrics and nutrition logs are private to your account.
+          Your public name and avatar, posts and comments are visible to other signed-in users. Your leaderboard entry (name, avatar, XP, level, streak and distance) is visible unless you turn off Show in Leaderboards in Settings. So are your virtual race results on the race boards: your name, avatar, finishing time and, for the Local 5K, the rough map square where you started. Turning off Show in Leaderboards takes them off the boards. Messages are visible to the people in the conversation. Your workouts, body metrics and nutrition logs are private to your account.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Keeping and Deleting Your Data</Text>
         <Text style={styles.bodyText}>
-          We keep your data while your account is active. You can delete your account at any time in Settings &gt; Danger Zone. Deleting it permanently erases your email address, profile, workouts, nutrition and body-scan records, posts, comments, likes, messages, duels, challenge entries, uploaded photos and videos, and your leaderboard entry from our servers, and then removes your sign-in. Conversations and duels you shared with other people are removed for them too. This cannot be undone.
+          We keep your data while your account is active. You can delete your account at any time in Settings &gt; Danger Zone. Deleting it permanently erases your email address, profile, workouts, nutrition and body-scan records, posts, comments, likes, messages, duels, challenge entries, virtual race times, uploaded photos and videos, and your leaderboard entry from our servers, and then removes your sign-in. Conversations and duels you shared with other people are removed for them too. This cannot be undone.
         </Text>
         <Text style={styles.bodyText}>
           A few things sit outside our servers. Firebase keeps crash reports for a limited time. OpenAI may keep AI requests for a short period under its own policy. Anything you connected to Spotify, Apple Music, Apple Health or ROOK stays in those services, where you can remove it yourself. To get a copy of your data before you delete it, email privacy@zownhq.com from the address on your account.
