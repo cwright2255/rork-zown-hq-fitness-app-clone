@@ -41,10 +41,11 @@ describe('Privacy Policy', () => {
     expect(policy()).toContain(service);
   });
 
-  it('says what is sent to OpenStreetMap: the trail\'s point, not the person\'s own location', () => {
+  it('says what is sent to OpenStreetMap: the trail\'s point, or the hiker\'s rounded position when no path was chosen', () => {
     const text = policy();
     expect(text).toContain('OpenStreetMap (Overpass)');
-    expect(text).toMatch(/the map point of a trail you open, to find its marked paths\. Not your own location\./);
+    expect(text).toMatch(/the map point of a trail you open, or your position \(rounded to about 100 metres\) while you hike with no path chosen, to find marked paths nearby\./);
+    expect(text).not.toContain('Not your own location');
   });
 
   it('does not name services the app no longer uses', () => {

@@ -41,7 +41,10 @@ jest.mock('@/store/expStore', () => ({ useExpStore: () => ({ addExpActivity: jes
 jest.mock('@/store/badgeStore', () => ({ useBadgeStore: () => ({ unlockBadge: jest.fn() }) }));
 jest.mock('@/store/bodyCompositionStore', () => ({ useBodyCompositionStore: () => ({ scans: [] }) }));
 jest.mock('@/services/weatherService', () => ({ getWeatherSnapshot: jest.fn() }));
-jest.mock('@/services/hikingService', () => ({ fetchRouteForMap: jest.fn() }));
+jest.mock('@/services/hikingService', () => ({
+  fetchRouteForMap: jest.fn(),
+  fetchOsmPaths: jest.fn(async () => ({ maps: [], routes: {} })),
+}));
 jest.mock('@/services/runTracking', () => ({
   startTracking: jest.fn(async () => 'background'),
   stopTracking: jest.fn(async () => undefined),

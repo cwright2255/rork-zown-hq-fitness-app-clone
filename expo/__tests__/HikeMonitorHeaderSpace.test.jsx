@@ -64,7 +64,10 @@ jest.mock('@/store/bodyCompositionStore', () => ({ useBodyCompositionStore: () =
 jest.mock('@/services/weatherService', () => ({
   getWeatherSnapshot: jest.fn(async () => ({ alerts: [], forecast: [], checkedAt: new Date().toISOString() })),
 }));
-jest.mock('@/services/hikingService', () => ({ fetchRouteForMap: jest.fn(async () => null) }));
+jest.mock('@/services/hikingService', () => ({
+  fetchRouteForMap: jest.fn(async () => null),
+  fetchOsmPaths: jest.fn(async () => ({ maps: [], routes: {} })),
+}));
 jest.mock('@/services/runTracking', () => ({
   startTracking: jest.fn(async () => 'background'),
   stopTracking: jest.fn(async () => undefined),

@@ -25,8 +25,8 @@
 // public API on a fast interval would be inconsiderate of a service that costs
 // NWS nothing to offer and everyone something to keep working.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
@@ -49,7 +49,7 @@ import { distanceM } from '@/lib/gpsFilter';
 import { MIN_HIKE_KM } from '@/lib/hikeLog';
 import { calculateHikeDifficulty, estimateHikeCalories } from '@/lib/hikeDifficulty';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
-import { fetchRouteForMap } from '@/services/hikingService';
+import { fetchRouteForMap, fetchOsmPaths } from '@/services/hikingService';
 import { cachedRoute } from '@/lib/offlineTrails';
 import { watchOffRoute } from '@/services/offRouteWatch';
 import { distanceLabel } from '@/lib/offRoute';
@@ -75,6 +75,17 @@ if (Platform.OS !== 'web') {
 const POLL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 // The map follows the hiker once they are this far (metres) from where it is centred.
 const RECENTRE_M = 40;
+// The picture of the trail takes about half the screen's height, but never less than a
+// readable size on a small phone or more than a tall one needs.
+const MAP_SHARE = 0.48;
+const MAP_MIN_HEIGHT = 280;
+const MAP_MAX_HEIGHT = 520;
+// The hiker's position is rounded to about 100 m (three decimals) before it is used to
+// look for paths: the search covers 2 km round it, so the exact spot is not needed.
+const roundPoint = (p) => ({
+  latitude: Math.round(p.latitude * 1000) / 1000,
+  longitude: Math.round(p.longitude * 1000) / 1000,
+});
 
 const SEVERITY_COLOR = {
   Extreme: '#B91C1C',
@@ -125,6 +136,17 @@ export default function HikeWeatherMonitorScreen() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [showLeave, setShowLeave] = useState(false);
   const [completing, setCompleting] = useState(false);
+  // Paths near the hiker, looked up when no path was chosen before starting (or the one
+  // chosen has no line): { status: 'idle' | 'loading' | 'done' | 'error', maps, routes }.
+  const [routeSettled, setRouteSettled] = useState(!mapId); // the chosen path's line has arrived, or there is none to wait for
+  const [nearby, setNearby] = useState({ status: 'idle', maps: [], routes: {} });
+  const [searchPoint, setSearchPoint] = useState(null); // where the hiker was at the start, rounded
+  const [nearbyTry, setNearbyTry] = useState(0); // bumped by "Try again"
+  const [followId, setFollowId] = useState(null); // the nearby path tapped to follow, if any
+  const { height: windowHeight } = useWindowDimensions();
+  const mapHeight = Math.round(Math.min(MAP_MAX_HEIGHT, Math.max(MAP_MIN_HEIGHT, windowHeight * MAP_SHARE)));
+  const hasPlannedLine = !!plannedRoute && Array.isArray(plannedRoute.coordinates) && plannedRoute.coordinates.length > 1;
+  const needNearby = routeSettled && !hasPlannedLine;
 
   const pollIntervalRef = useRef(null);
   const endedRef = useRef(false);
@@ -206,13 +228,36 @@ export default function HikeWeatherMonitorScreen() {
       return undefined;
     }
     let cancelled = false;
-    fetchRouteForMap(mapId).then((result) => {
+    fetchRouteForMap(mapId).catch(() => null).then((result) => {
       if (cancelled) return;
       setPlannedRoute(result);
+      setRouteSettled(true);
       if (result && trail) keepTrail({ trail, routes: { [mapId]: result } });
     });
     return () => { cancelled = true; };
   }, [mapId, keptRoute]);
+
+  // The first position, rounded, is where nearby paths are looked for.
+  useEffect(() => {
+    if (searchPoint || !currentLocation) return;
+    setSearchPoint(roundPoint(currentLocation));
+  }, [currentLocation && currentLocation.latitude, currentLocation && currentLocation.longitude]);
+
+  // With no path to show, look for the marked paths around the hiker (OpenStreetMap, the
+  // same source as the trail page's list), draw them, and let one be picked to follow.
+  useEffect(() => {
+    if (!needNearby || !searchPoint) return undefined;
+    let cancelled = false;
+    setNearby((n) => ({ ...n, status: 'loading' }));
+    fetchOsmPaths(searchPoint)
+      .then((found) => {
+        if (!cancelled) setNearby({ status: 'done', maps: found.maps, routes: found.routes });
+      })
+      .catch(() => {
+        if (!cancelled) setNearby({ status: 'error', maps: [], routes: {} });
+      });
+    return () => { cancelled = true; };
+  }, [needNearby, searchPoint, nearbyTry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -284,7 +329,22 @@ export default function HikeWeatherMonitorScreen() {
   // known (from the phone's copy or fetched), until the screen closes. The watch
   // is keyed on the shape of the line, not the object, so the copy being kept on
   // the phone a moment after it was fetched does not restart it mid-hike.
-  const routeLine = plannedRoute && Array.isArray(plannedRoute.coordinates) ? plannedRoute.coordinates : null;
+  // The path being followed: the one chosen before starting, or a nearby one tapped on this screen.
+  const followed = followId && nearby.routes[followId] ? nearby.routes[followId] : null;
+  const followedMap = followed ? nearby.maps.find((m) => m.id === followId) : null;
+  const activeRoute = followed || plannedRoute;
+  const activePathName = followed ? (followedMap && followedMap.name) || null : pathName;
+  // The other nearby paths, drawn faint (tap one on the map to follow it).
+  const otherPaths = useMemo(
+    () => (nearby.status === 'done'
+      ? nearby.maps
+        .filter((m) => m.id !== followId && nearby.routes[m.id])
+        .map((m) => ({ id: m.id, coordinates: nearby.routes[m.id].coordinates }))
+      : []),
+    [nearby, followId],
+  );
+  const otherLines = useMemo(() => otherPaths.map((p) => p.coordinates), [otherPaths]);
+  const routeLine = activeRoute && Array.isArray(activeRoute.coordinates) ? activeRoute.coordinates : null;
   const routeKey = routeLine && routeLine.length > 1
     ? [routeLine.length, routeLine[0]?.latitude, routeLine[0]?.longitude,
       routeLine[routeLine.length - 1]?.latitude, routeLine[routeLine.length - 1]?.longitude].join(':')
@@ -406,7 +466,7 @@ export default function HikeWeatherMonitorScreen() {
       const record = addCompletedHike({
         trailId: trail?.id || null,
         trailName: trail?.name || 'Untitled hike',
-        pathName: pathName || null,
+        pathName: activePathName || null,
         distanceKm: km,
         elevationGainM: summary.elevGain,
         elevationLossM: summary.elevLoss,
@@ -468,6 +528,14 @@ export default function HikeWeatherMonitorScreen() {
     }
   };
 
+  // What the paths block says: it is looking, found none, could not look, or what to do with the ones found.
+  let pathsNote = null;
+  if (nearby.status === 'error') pathsNote = "Couldn't load nearby paths. Check your signal and try again.";
+  else if (nearby.status === 'done') {
+    if (nearby.maps.length === 0) pathsNote = 'No marked paths found near you.';
+    else if (!followed) pathsNote = 'Tap a path to follow it. You will be warned if you leave it.';
+  } else pathsNote = 'Looking for marked paths near you…';
+
   const worstAlert = snapshot?.alerts?.[0];
   const current = snapshot?.forecast?.[0];
   const liveDifficulty = calculateHikeDifficulty({ distanceKm, elevationGainM });
@@ -516,11 +584,12 @@ export default function HikeWeatherMonitorScreen() {
 
       <ScrollView contentContainerStyle={{ padding: spacing.base, paddingBottom: 220 }}>
         {currentLocation && (
-          <View style={styles.mapWrap}>
+          <View style={[styles.mapWrap, { height: mapHeight }]} testID="hike-display">
             {view === 'trail' ? (
               <TrailSketchMap
-                planned={plannedRoute?.coordinates}
+                planned={routeLine || undefined}
                 walked={walkedPath}
+                others={otherLines}
                 current={currentLocation}
                 style={styles.map}
                 testID="hike-trail-view"
@@ -536,8 +605,18 @@ export default function HikeWeatherMonitorScreen() {
                   longitudeDelta: 0.01,
                 }}
               >
-                {plannedRoute?.coordinates && (
-                  <Polyline coordinates={plannedRoute.coordinates} strokeColor={colors.textSecondary} strokeWidth={3} lineDashPattern={[6, 4]} />
+                {otherPaths.map((p) => (
+                  <Polyline
+                    key={p.id}
+                    coordinates={p.coordinates}
+                    strokeColor={colors.textSecondary}
+                    strokeWidth={4}
+                    tappable
+                    onPress={() => setFollowId(p.id)}
+                  />
+                ))}
+                {routeLine && (
+                  <Polyline coordinates={routeLine} strokeColor={colors.blue} strokeWidth={5} lineDashPattern={[8, 6]} />
                 )}
                 {walkedPath.length > 1 && (
                   <Polyline coordinates={walkedPath} strokeColor={colors.green} strokeWidth={4} />
@@ -571,13 +650,53 @@ export default function HikeWeatherMonitorScreen() {
             No signal, so the map picture is off. Your trail and your position still show.
           </Text>
         )}
+        {currentLocation && needNearby && (
+          <View style={styles.pathsBlock} testID="hike-paths">
+            {pathsNote && <Text style={styles.pathsNote} testID="hike-paths-note">{pathsNote}</Text>}
+            {nearby.status === 'error' && (
+              <Pressable
+                style={styles.pathsRetry}
+                onPress={() => setNearbyTry((n) => n + 1)}
+                accessibilityRole="button"
+                testID="hike-paths-retry"
+              >
+                <Text style={styles.pathsRetryText}>Try again</Text>
+              </Pressable>
+            )}
+            {nearby.status === 'done' && nearby.maps.length > 0 && (
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pathChips} testID="hike-path-picker">
+                  {nearby.maps.map((m) => {
+                    const on = followId === m.id;
+                    return (
+                      <Pressable
+                        key={m.id}
+                        testID={`hike-path-${m.id}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        style={[styles.pathChip, on && styles.pathChipOn]}
+                        onPress={() => setFollowId(on ? null : m.id)}
+                      >
+                        <Text style={[styles.pathChipName, on && styles.pathChipTextOn]} numberOfLines={1}>{m.name}</Text>
+                        {Number.isFinite(m.distanceKm) && (
+                          <Text style={[styles.pathChipLength, on && styles.pathChipTextOn]}>{formatDistance(m.distanceKm, units, 1)}</Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <Text style={styles.pathsCredit} testID="hike-osm-credit">Path data © OpenStreetMap contributors</Text>
+              </>
+            )}
+          </View>
+        )}
         <View style={styles.elapsedCard}>
           <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.elapsedText} testID="hike-elapsed">
             {isPaused ? `Paused at ${formatElapsed(elapsed)}` : `Hiking for ${formatElapsed(elapsed)}`}
           </Text>
         </View>
-        {plannedRoute?.coordinates?.length > 1 && (
+        {routeLine && routeLine.length > 1 && (
           <Text style={styles.offRouteNote} testID="hike-off-route-status">
             {offMuted ? 'Off-trail warnings are muted for this hike.' : 'Off-trail warnings are on for the path you chose.'}
           </Text>
@@ -709,7 +828,24 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   centerBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
   centerText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
-  mapWrap: { height: 220, borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.md },
+  mapWrap: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.md },
+  pathsBlock: { marginBottom: spacing.md },
+  pathsNote: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.xs },
+  pathsRetry: {
+    alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  pathsRetryText: { ...typography.caption, color: colors.text, fontWeight: '700' },
+  pathChips: { gap: spacing.sm, paddingVertical: 2 },
+  pathChip: {
+    maxWidth: 220, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.lg,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+  },
+  pathChipOn: { backgroundColor: colors.text, borderColor: colors.text },
+  pathChipName: { fontSize: 13, fontWeight: '700', color: colors.text },
+  pathChipLength: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
+  pathChipTextOn: { color: '#FFFFFF' },
+  pathsCredit: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
   map: { width: '100%', height: '100%' },
   viewToggle: {
     position: 'absolute', top: spacing.sm, right: spacing.sm, flexDirection: 'row',

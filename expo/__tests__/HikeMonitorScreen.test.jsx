@@ -1,5 +1,6 @@
 import React from 'react';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
 
 // These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
 // The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
@@ -73,7 +74,7 @@ jest.mock('@/store/expStore', () => ({ useExpStore: () => ({ addExpActivity: glo
 jest.mock('@/store/badgeStore', () => ({ useBadgeStore: () => ({ unlockBadge: global.__unlockBadge }) }));
 jest.mock('@/store/bodyCompositionStore', () => ({ useBodyCompositionStore: () => ({ scans: global.__scans }) }));
 jest.mock('@/services/weatherService', () => ({ getWeatherSnapshot: jest.fn() }));
-jest.mock('@/services/hikingService', () => ({ fetchRouteForMap: jest.fn() }));
+jest.mock('@/services/hikingService', () => ({ fetchRouteForMap: jest.fn(), fetchOsmPaths: jest.fn() }));
 jest.mock('@/services/runTracking', () => ({
   startTracking: jest.fn(async () => 'background'),
   stopTracking: jest.fn(async () => undefined),
@@ -100,7 +101,7 @@ const Location = require('expo-location');
 const Speech = require('expo-speech');
 const tracking = require('@/services/runTracking');
 const { getWeatherSnapshot } = require('@/services/weatherService');
-const { fetchRouteForMap } = require('@/services/hikingService');
+const { fetchRouteForMap, fetchOsmPaths } = require('@/services/hikingService');
 const { watchOffRoute } = require('@/services/offRouteWatch');
 
 const T0 = Date.UTC(2026, 9, 8, 12, 0, 0);
@@ -168,6 +169,8 @@ describe('HikeMonitorScreen', () => {
     getWeatherSnapshot.mockResolvedValue(snapshot());
     fetchRouteForMap.mockReset();
     fetchRouteForMap.mockResolvedValue({ coordinates: [{ latitude: 40.7, longitude: -74 }, { latitude: 40.71, longitude: -74.01 }] });
+    fetchOsmPaths.mockReset();
+    fetchOsmPaths.mockResolvedValue({ maps: [], routes: {} });
   });
   afterEach(() => { warn.mockRestore(); });
 
@@ -940,6 +943,322 @@ describe('HikeMonitorScreen', () => {
       expect(watchOffRoute).toHaveBeenCalledTimes(2);
       expect(latest().mute).toHaveBeenCalledTimes(1);
       expect(utils.getByTestId('hike-off-route-status').props.children).toBe('Off-trail warnings are muted for this hike.');
+    });
+  });
+  describe('paths near the hiker, when no path was chosen', () => {
+    const P1 = [{ latitude: 40.7, longitude: -74 }, { latitude: 40.7, longitude: -74.005 }];
+    const P2 = [{ latitude: 40.701, longitude: -74.001 }, { latitude: 40.704, longitude: -74.001 }];
+    const NEAR = {
+      maps: [
+        { id: 'osm-way-1', name: 'Blue Trail', distanceKm: 0.4 },
+        { id: 'osm-way-2', name: 'Red Trail', distanceKm: 1.2 },
+      ],
+      routes: {
+        'osm-way-1': { coordinates: P1, distanceKm: 0.4 },
+        'osm-way-2': { coordinates: P2, distanceKm: 1.2 },
+      },
+    };
+    const chip = (utils, id) => utils.getByTestId(`hike-path-${id}`);
+    const on = (utils, id) => chip(utils, id).props.accessibilityState.selected;
+    // The paths drawn as faint lines on the map in the latest render, by their coordinates.
+    const othersOnMap = (since) => global.__polylines.slice(since).filter((p) => p.tappable).map((p) => p.coordinates);
+    const deferred = () => {
+      let resolve; let reject;
+      const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+      return { promise, resolve, reject };
+    };
+
+    beforeEach(() => {
+      global.__params = { id: 'trailapi-7' };
+      fetchOsmPaths.mockResolvedValue(NEAR);
+    });
+
+    it('looks for paths around where the hiker is, rounded to about 100 m, once', async () => {
+      Location.getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 40.70449, longitude: -74.00551 } });
+      await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+      expect(fetchOsmPaths).toHaveBeenCalledWith({ latitude: 40.704, longitude: -74.006 });
+      // walking on does not start another search
+      act(() => { store().ingest(walk(120)); });
+      await tick(120);
+      await settle();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not look when the chosen path has its line', async () => {
+      global.__params = { id: 'trailapi-7', mapId: '55', pathName: 'Ridge Trail' };
+      const utils = await mount();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-paths')).toBeNull();
+      expect(utils.queryByTestId('hike-path-picker')).toBeNull();
+    });
+
+    it('waits for the chosen path to arrive before looking, so a path on its way is not pushed aside', async () => {
+      global.__params = { id: 'trailapi-7', mapId: '55' };
+      const slow = deferred();
+      fetchRouteForMap.mockReturnValue(slow.promise);
+      const utils = render(<HikeMonitorScreen />);
+      await settle();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-paths')).toBeNull();
+      await act(async () => { slow.resolve({ coordinates: P1 }); });
+      await settle();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+    });
+
+    it('looks when the chosen path has no line, whether it came back empty or the request failed', async () => {
+      global.__params = { id: 'trailapi-7', mapId: '55' };
+      fetchRouteForMap.mockResolvedValue(null);
+      const utils = await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+      expect(utils.getByTestId('hike-path-picker')).toBeTruthy();
+      utils.unmount();
+      fetchOsmPaths.mockClear();
+      fetchRouteForMap.mockRejectedValue(new Error('offline'));
+      const again = await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+      expect(again.getByTestId('hike-path-picker')).toBeTruthy();
+    });
+
+    it('looks when the chosen path is one line short of a line', async () => {
+      global.__params = { id: 'trailapi-7', mapId: '55' };
+      fetchRouteForMap.mockResolvedValue({ coordinates: [P1[0]] });
+      await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows nothing about paths before the first position, when there is no picture yet', async () => {
+      Location.getCurrentPositionAsync.mockReturnValue(new Promise(() => {}));
+      const utils = await mount();
+      expect(utils.queryByTestId('hike-display')).toBeNull();
+      expect(utils.queryByTestId('hike-paths')).toBeNull();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+    });
+
+    it('says it is looking, then offers the paths found, nearest first, with their lengths', async () => {
+      const search = deferred();
+      fetchOsmPaths.mockReturnValue(search.promise);
+      const utils = render(<HikeMonitorScreen />);
+      await settle();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Looking for marked paths near you…');
+      expect(utils.queryByTestId('hike-path-picker')).toBeNull();
+      await act(async () => { search.resolve(NEAR); });
+      await settle();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Tap a path to follow it. You will be warned if you leave it.');
+      expect(utils.getByText('Blue Trail')).toBeTruthy();
+      expect(utils.getByText('Red Trail')).toBeTruthy();
+      expect(utils.getByText('0.4 km')).toBeTruthy();
+      expect(utils.getByText('1.2 km')).toBeTruthy();
+      expect(on(utils, 'osm-way-1')).toBe(false);
+      expect(on(utils, 'osm-way-2')).toBe(false);
+      expect(utils.getByTestId('hike-osm-credit').props.children).toBe('Path data © OpenStreetMap contributors');
+    });
+
+    it('gives the lengths in miles when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await mount();
+      expect(utils.getByText('0.2 mi')).toBeTruthy();
+      expect(utils.getByText('0.7 mi')).toBeTruthy();
+    });
+
+    it('leaves the length off a path that has none', async () => {
+      fetchOsmPaths.mockResolvedValue({
+        maps: [{ id: 'osm-way-1', name: 'Blue Trail' }],
+        routes: { 'osm-way-1': { coordinates: P1 } },
+      });
+      const utils = await mount();
+      expect(utils.getByText('Blue Trail')).toBeTruthy();
+      expect(within(chip(utils, 'osm-way-1')).queryByText(/ (km|mi)$|NaN|undefined/)).toBeNull();
+    });
+
+    it('does not say anything about the watch until a path is followed', async () => {
+      const utils = await mount();
+      expect(watchOffRoute).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+    });
+
+    it('draws the paths found on the map as faint lines to tap, under the path walked', async () => {
+      await mount();
+      const tappable = global.__polylines.filter((p) => p.tappable);
+      expect(tappable.map((p) => p.coordinates)).toEqual(expect.arrayContaining([P1, P2]));
+      expect(tappable[0].lineDashPattern).toBeUndefined();
+      expect(tappable[0].strokeWidth).toBe(4);
+      // nothing is dashed yet: no path is being followed
+      expect(global.__polylines.filter((p) => p.lineDashPattern)).toHaveLength(0);
+    });
+
+    it('follows a path tapped on the map: it is watched, drawn dashed in blue, and left out of the faint ones', async () => {
+      const utils = await mount();
+      const tapped = global.__polylines.filter((p) => p.tappable && p.coordinates === P1).pop();
+      const since = global.__polylines.length;
+      act(() => { tapped.onPress(); });
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+      expect(watchOffRoute.mock.calls[0][0].route).toBe(P1);
+      const planned = global.__polylines.filter((p) => p.lineDashPattern).pop();
+      expect(planned.coordinates).toBe(P1);
+      expect(planned.strokeColor).toBe('#3B82F6');
+      expect(planned.strokeWidth).toBe(5);
+      expect(othersOnMap(since)).toEqual([P2]);
+      expect(on(utils, 'osm-way-1')).toBe(true);
+      expect(on(utils, 'osm-way-2')).toBe(false);
+      expect(utils.getByTestId('hike-off-route-status').props.children).toBe('Off-trail warnings are on for the path you chose.');
+      // the note about what to do is no longer needed
+      expect(utils.queryByTestId('hike-paths-note')).toBeNull();
+    });
+
+    it('follows a path picked from the list, and lets go of it when it is picked again', async () => {
+      const utils = await mount();
+      fireEvent.press(chip(utils, 'osm-way-2'));
+      expect(on(utils, 'osm-way-2')).toBe(true);
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+      const watch = watchOffRoute.mock.results[0].value;
+      expect(watch.options.route).toBe(P2);
+      const since = global.__polylines.length;
+      fireEvent.press(chip(utils, 'osm-way-2'));
+      expect(on(utils, 'osm-way-2')).toBe(false);
+      expect(watch.stop).toHaveBeenCalledTimes(1);
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Tap a path to follow it. You will be warned if you leave it.');
+      expect(global.__polylines.slice(since).filter((p) => p.lineDashPattern)).toHaveLength(0);
+      expect(othersOnMap(since)).toEqual(expect.arrayContaining([P1, P2]));
+    });
+
+    it('moves the watch to another path when another is picked, with the alert about the old one gone', async () => {
+      const utils = await mount();
+      fireEvent.press(chip(utils, 'osm-way-1'));
+      const first = watchOffRoute.mock.results[0].value;
+      act(() => { first.options.onChange({ off: true, distanceM: 90 }); });
+      expect(utils.getByTestId('hike-off-route-banner')).toBeTruthy();
+      fireEvent.press(chip(utils, 'osm-way-2'));
+      expect(first.stop).toHaveBeenCalledTimes(1);
+      expect(watchOffRoute).toHaveBeenCalledTimes(2);
+      expect(watchOffRoute.mock.calls[1][0].route).toBe(P2);
+      expect(on(utils, 'osm-way-1')).toBe(false);
+      expect(on(utils, 'osm-way-2')).toBe(true);
+      expect(utils.queryByTestId('hike-off-route-banner')).toBeNull();
+    });
+
+    it('saves the hike under the name of the path that was followed', async () => {
+      const utils = await mount();
+      fireEvent.press(chip(utils, 'osm-way-2'));
+      act(() => { store().ingest(walk(120)); });
+      await tick(120);
+      fireEvent.press(utils.getByText(/^Complete Hike/));
+      expect(global.__hiking.addCompletedHike.mock.calls[0][0]).toMatchObject({ pathName: 'Red Trail' });
+    });
+
+    it('saves no path name when none was followed', async () => {
+      const utils = await mount();
+      act(() => { store().ingest(walk(120)); });
+      await tick(120);
+      fireEvent.press(utils.getByText(/^Complete Hike/));
+      expect(global.__hiking.addCompletedHike.mock.calls[0][0].pathName).toBeNull();
+    });
+
+    it('shows the paths found on the trail picture too, faint, and the followed one dashed', async () => {
+      const utils = await mount();
+      fireEvent.press(utils.getByTestId('hike-view-trail'));
+      let lines = utils.UNSAFE_getAllByType(SvgPolyline);
+      expect(lines).toHaveLength(2);
+      expect(lines.filter((l) => l.props.strokeDasharray)).toHaveLength(0);
+      fireEvent.press(chip(utils, 'osm-way-1'));
+      lines = utils.UNSAFE_getAllByType(SvgPolyline);
+      expect(lines).toHaveLength(2);
+      expect(lines.filter((l) => l.props.strokeDasharray)).toHaveLength(1);
+    });
+
+    it('says so when there are no marked paths near, with no list and no credit', async () => {
+      fetchOsmPaths.mockResolvedValue({ maps: [], routes: {} });
+      const utils = await mount();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('No marked paths found near you.');
+      expect(utils.queryByTestId('hike-path-picker')).toBeNull();
+      expect(utils.queryByTestId('hike-osm-credit')).toBeNull();
+      expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
+    });
+
+    it('says so when the paths could not be loaded, and tries again on request', async () => {
+      fetchOsmPaths.mockRejectedValueOnce(new Error('timed out'));
+      const utils = await mount();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe("Couldn't load nearby paths. Check your signal and try again.");
+      expect(utils.queryByTestId('hike-path-picker')).toBeNull();
+      expect(utils.queryByTestId('hike-osm-credit')).toBeNull();
+      fireEvent.press(utils.getByTestId('hike-paths-retry'));
+      await settle();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(2);
+      expect(utils.getByTestId('hike-path-picker')).toBeTruthy();
+      expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
+    });
+
+    it('says it is looking again while a second try is on its way', async () => {
+      fetchOsmPaths.mockRejectedValueOnce(new Error('timed out'));
+      const utils = await mount();
+      const again = deferred();
+      fetchOsmPaths.mockReturnValue(again.promise);
+      fireEvent.press(utils.getByTestId('hike-paths-retry'));
+      await settle();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Looking for marked paths near you…');
+      expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
+      await act(async () => { again.resolve(NEAR); });
+      await settle();
+      expect(utils.getByTestId('hike-path-picker')).toBeTruthy();
+    });
+
+    it('copes with a path in the list that has no line, drawing and offering the rest', async () => {
+      fetchOsmPaths.mockResolvedValue({
+        maps: [...NEAR.maps, { id: 'osm-way-3', name: 'Green Trail', distanceKm: 2 }],
+        routes: NEAR.routes,
+      });
+      const utils = await mount();
+      expect(global.__polylines.filter((p) => p.tappable).map((p) => p.coordinates)).toEqual(expect.arrayContaining([P1, P2]));
+      fireEvent.press(chip(utils, 'osm-way-3'));
+      expect(watchOffRoute).not.toHaveBeenCalled();
+      expect(utils.queryByTestId('hike-off-route-status')).toBeNull();
+    });
+
+    it('does not show the retry button while looking', async () => {
+      fetchOsmPaths.mockReturnValue(new Promise(() => {}));
+      const utils = await mount();
+      expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
+    });
+
+    it('does not fail when an answer comes after the screen is closed', async () => {
+      const search = deferred();
+      fetchOsmPaths.mockReturnValue(search.promise);
+      const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const utils = render(<HikeMonitorScreen />);
+      await settle();
+      utils.unmount();
+      await act(async () => { search.resolve(NEAR); });
+      expect(errors).not.toHaveBeenCalled();
+      errors.mockRestore();
+    });
+  });
+
+  describe('the size of the display', () => {
+    const original = Dimensions.get('window');
+    const heightOf = (utils) => StyleSheet.flatten(utils.getByTestId('hike-display').props.style).height;
+    const phone = (height) => Dimensions.set({
+      window: { width: 390, height, scale: 3, fontScale: 1 },
+      screen: { width: 390, height, scale: 3, fontScale: 1 },
+    });
+    afterEach(() => phone(original.height));
+
+    it('takes about half the height of the screen', async () => {
+      phone(844);
+      const utils = await mount();
+      expect(heightOf(utils)).toBe(405);
+    });
+
+    it('is never smaller than 280, which is a good deal bigger than it was', async () => {
+      phone(568);
+      const utils = await mount();
+      expect(heightOf(utils)).toBe(280);
+    });
+
+    it('is never taller than 520', async () => {
+      phone(1334);
+      const utils = await mount();
+      expect(heightOf(utils)).toBe(520);
     });
   });
 });
