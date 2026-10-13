@@ -30,6 +30,22 @@ export const JOIN_TOLERANCE_M = 15;
 
 const isNum = (n) => typeof n === 'number' && Number.isFinite(n);
 
+const toCoordinate = (value) => (
+  (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) && Number.isFinite(Number(value)) ? Number(value) : null
+);
+
+/**
+ * Where a trail is on the map, as { latitude, longitude }, or null when it has no usable
+ * point. Numbers and numeric strings both count. Paths are looked for here, so the trail
+ * page and the hike screen ask about the same spot and share one answer.
+ */
+export function trailPoint(trail) {
+  if (!trail) return null;
+  const latitude = toCoordinate(trail.latitude);
+  const longitude = toCoordinate(trail.longitude);
+  return latitude === null || longitude === null ? null : { latitude, longitude };
+}
+
 export const osmPathId = (wayId) => `${OSM_PATH_PREFIX}${wayId}`;
 export const isOsmPathId = (id) => typeof id === 'string' && id.startsWith(OSM_PATH_PREFIX);
 

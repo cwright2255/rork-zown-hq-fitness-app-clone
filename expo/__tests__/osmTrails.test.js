@@ -1,6 +1,6 @@
 import {
   OSM_PATH_PREFIX, OSM_RADIUS_M, MAX_OSM_PATHS, MIN_PATH_KM, JOIN_TOLERANCE_M,
-  osmPathId, isOsmPathId, buildOverpassQuery, chainPieces, parseOverpassPaths, splitPaths,
+  osmPathId, isOsmPathId, buildOverpassQuery, chainPieces, parseOverpassPaths, splitPaths, trailPoint,
 } from '../lib/osmTrails';
 import { distanceM } from '../lib/gpsFilter';
 
@@ -371,5 +371,38 @@ describe('splitPaths', () => {
   it('gives empty lists for nothing', () => {
     expect(splitPaths([])).toEqual({ maps: [], routes: {} });
     expect(splitPaths(undefined)).toEqual({ maps: [], routes: {} });
+  });
+});
+
+describe('trailPoint', () => {
+  it('is the trail\'s latitude and longitude', () => {
+    expect(trailPoint({ latitude: 39.9924, longitude: -74.8342 })).toEqual({ latitude: 39.9924, longitude: -74.8342 });
+  });
+
+  it('reads numbers sent as text', () => {
+    expect(trailPoint({ latitude: '39.9924', longitude: ' -74.8342 ' })).toEqual({ latitude: 39.9924, longitude: -74.8342 });
+  });
+
+  it('counts 0 as a place (the equator and the prime meridian)', () => {
+    expect(trailPoint({ latitude: 0, longitude: 0 })).toEqual({ latitude: 0, longitude: 0 });
+  });
+
+  it('is null for no trail, or a trail with no point', () => {
+    expect(trailPoint(null)).toBeNull();
+    expect(trailPoint(undefined)).toBeNull();
+    expect(trailPoint({})).toBeNull();
+    expect(trailPoint({ id: 'trailapi-7', name: 'Old Rag' })).toBeNull();
+  });
+
+  it('is null when either half is missing or not a number', () => {
+    expect(trailPoint({ latitude: 39.9 })).toBeNull();
+    expect(trailPoint({ longitude: -74.8 })).toBeNull();
+    expect(trailPoint({ latitude: 39.9, longitude: '' })).toBeNull();
+    expect(trailPoint({ latitude: '   ', longitude: -74.8 })).toBeNull();
+    expect(trailPoint({ latitude: 'north', longitude: -74.8 })).toBeNull();
+    expect(trailPoint({ latitude: NaN, longitude: -74.8 })).toBeNull();
+    expect(trailPoint({ latitude: 39.9, longitude: Infinity })).toBeNull();
+    expect(trailPoint({ latitude: null, longitude: null })).toBeNull();
+    expect(trailPoint({ latitude: true, longitude: false })).toBeNull();
   });
 });

@@ -93,6 +93,7 @@ import { Circle as SvgCircle, Polyline as SvgPolyline } from 'react-native-svg';
 import HikeMonitorScreen from '../app/running/hiking/monitor';
 import { useRunTrackerStore } from '../store/runTrackerStore';
 import { trackedMs } from '../lib/runTracker';
+import { distanceM } from '../lib/gpsFilter';
 import { useSettingsStore } from '../store/settingsStore';
 
 beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
@@ -945,7 +946,7 @@ describe('HikeMonitorScreen', () => {
       expect(utils.getByTestId('hike-off-route-status').props.children).toBe('Off-trail warnings are muted for this hike.');
     });
   });
-  describe('paths near the hiker, when no path was chosen', () => {
+  describe('the trail\'s paths, when no path was chosen', () => {
     const P1 = [{ latitude: 40.7, longitude: -74 }, { latitude: 40.7, longitude: -74.005 }];
     const P2 = [{ latitude: 40.701, longitude: -74.001 }, { latitude: 40.704, longitude: -74.001 }];
     const NEAR = {
@@ -968,21 +969,79 @@ describe('HikeMonitorScreen', () => {
       return { promise, resolve, reject };
     };
 
+    // Where the trail is (Rancocas State Park). Paths are looked for here, wherever the hiker is.
+    const SPOT = { latitude: 39.9924, longitude: -74.8342 };
+
     beforeEach(() => {
       global.__params = { id: 'trailapi-7' };
+      global.__hiking.getTrailById = jest.fn((id) => (id === TRAIL.id ? { ...TRAIL, ...SPOT } : null));
       fetchOsmPaths.mockResolvedValue(NEAR);
     });
 
-    it('looks for paths around where the hiker is, rounded to about 100 m, once', async () => {
-      Location.getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 40.70449, longitude: -74.00551 } });
+    it('looks for paths around the trail, not around the hiker, once', async () => {
+      Location.getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 41.5, longitude: -73.1 } });
       await mount();
       expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
-      expect(fetchOsmPaths).toHaveBeenCalledWith({ latitude: 40.704, longitude: -74.006 });
+      expect(fetchOsmPaths).toHaveBeenCalledWith(SPOT);
       // walking on does not start another search
       act(() => { store().ingest(walk(120)); });
       await tick(120);
       await settle();
       expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads a trail point sent as text', async () => {
+      global.__hiking.getTrailById = jest.fn(() => ({ ...TRAIL, latitude: '39.9924', longitude: ' -74.8342 ' }));
+      await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledWith(SPOT);
+    });
+
+    it('uses the trail kept on the phone when the last search no longer has it', async () => {
+      global.__hiking.getTrailById = jest.fn(() => null);
+      global.__offline.trails = { 'trailapi-7': { id: 'trailapi-7', trail: { ...TRAIL, ...SPOT }, maps: [], routes: {} } };
+      await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledWith(SPOT);
+    });
+
+    it('says there are none, without asking, when the trail has no point on the map', async () => {
+      global.__hiking.getTrailById = jest.fn(() => TRAIL);
+      const utils = await mount();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('No marked paths found near this trailhead.');
+      expect(utils.queryByTestId('hike-path-picker')).toBeNull();
+      expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
+    });
+
+    it('asks once the trail turns up, when it was not known at first', async () => {
+      global.__hiking.getTrailById = jest.fn(() => null);
+      const utils = await mount();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+      global.__hiking.getTrailById = jest.fn(() => ({ ...TRAIL, ...SPOT }));
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+      expect(fetchOsmPaths).toHaveBeenCalledWith(SPOT);
+      expect(utils.getByTestId('hike-path-picker')).toBeTruthy();
+    });
+
+    it.each([
+      ['latitude', { latitude: 40.1 }],
+      ['longitude', { longitude: -74.7 }],
+    ])('asks again when the trail\'s %s turns out to be different', async (_name, shift) => {
+      const utils = await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
+      global.__hiking.getTrailById = jest.fn(() => ({ ...TRAIL, ...SPOT, ...shift }));
+      utils.rerender(<HikeMonitorScreen />);
+      await settle();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(2);
+      expect(fetchOsmPaths).toHaveBeenLastCalledWith({ ...SPOT, ...shift });
+    });
+
+    it('says there are none, without asking, when the trail is not known at all', async () => {
+      global.__hiking.getTrailById = jest.fn(() => null);
+      const utils = await mount();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('No marked paths found near this trailhead.');
     });
 
     it('does not look when the chosen path has its line', async () => {
@@ -1027,12 +1086,12 @@ describe('HikeMonitorScreen', () => {
       expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
     });
 
-    it('shows nothing about paths before the first position, when there is no picture yet', async () => {
+    it('asks as soon as the screen opens, but shows nothing until there is a display to put it under', async () => {
       Location.getCurrentPositionAsync.mockReturnValue(new Promise(() => {}));
       const utils = await mount();
+      expect(fetchOsmPaths).toHaveBeenCalledTimes(1);
       expect(utils.queryByTestId('hike-display')).toBeNull();
       expect(utils.queryByTestId('hike-paths')).toBeNull();
-      expect(fetchOsmPaths).not.toHaveBeenCalled();
     });
 
     it('says it is looking, then offers the paths found, nearest first, with their lengths', async () => {
@@ -1040,7 +1099,7 @@ describe('HikeMonitorScreen', () => {
       fetchOsmPaths.mockReturnValue(search.promise);
       const utils = render(<HikeMonitorScreen />);
       await settle();
-      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Looking for marked paths near you…');
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Looking for trail paths…');
       expect(utils.queryByTestId('hike-path-picker')).toBeNull();
       await act(async () => { search.resolve(NEAR); });
       await settle();
@@ -1170,7 +1229,7 @@ describe('HikeMonitorScreen', () => {
     it('says so when there are no marked paths near, with no list and no credit', async () => {
       fetchOsmPaths.mockResolvedValue({ maps: [], routes: {} });
       const utils = await mount();
-      expect(utils.getByTestId('hike-paths-note').props.children).toBe('No marked paths found near you.');
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('No marked paths found near this trailhead.');
       expect(utils.queryByTestId('hike-path-picker')).toBeNull();
       expect(utils.queryByTestId('hike-osm-credit')).toBeNull();
       expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
@@ -1179,7 +1238,7 @@ describe('HikeMonitorScreen', () => {
     it('says so when the paths could not be loaded, and tries again on request', async () => {
       fetchOsmPaths.mockRejectedValueOnce(new Error('timed out'));
       const utils = await mount();
-      expect(utils.getByTestId('hike-paths-note').props.children).toBe("Couldn't load nearby paths. Check your signal and try again.");
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe("Couldn't load the trail paths. Check your signal and try again.");
       expect(utils.queryByTestId('hike-path-picker')).toBeNull();
       expect(utils.queryByTestId('hike-osm-credit')).toBeNull();
       fireEvent.press(utils.getByTestId('hike-paths-retry'));
@@ -1196,7 +1255,7 @@ describe('HikeMonitorScreen', () => {
       fetchOsmPaths.mockReturnValue(again.promise);
       fireEvent.press(utils.getByTestId('hike-paths-retry'));
       await settle();
-      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Looking for marked paths near you…');
+      expect(utils.getByTestId('hike-paths-note').props.children).toBe('Looking for trail paths…');
       expect(utils.queryByTestId('hike-paths-retry')).toBeNull();
       await act(async () => { again.resolve(NEAR); });
       await settle();
@@ -1231,6 +1290,132 @@ describe('HikeMonitorScreen', () => {
       await act(async () => { search.resolve(NEAR); });
       expect(errors).not.toHaveBeenCalled();
       errors.mockRestore();
+    });
+  });
+
+  describe('when the hiker is far from the trail', () => {
+    // A path at Rancocas State Park; the hiker (40.7, -74) is about 100 km away, at home.
+    const PATH = [{ latitude: 39.9924, longitude: -74.8342 }, { latitude: 39.9960, longitude: -74.8310 }];
+    const SPOT = { latitude: 39.9924, longitude: -74.8342 };
+    const FAR = {
+      maps: [{ id: 'osm-way-9', name: 'Blue Trail', distanceKm: 0.5 }],
+      routes: { 'osm-way-9': { coordinates: PATH, distanceKm: 0.5 } },
+    };
+    const HOME = { latitude: 40.7, longitude: -74 };
+    const km = Math.round(Math.min(...PATH.map((p) => distanceM(HOME, p))) / 1000);
+    // The hiker, `metres` due south of the first point of the path.
+    const south = (metres) => ({ latitude: SPOT.latitude - metres / 111195, longitude: SPOT.longitude });
+    const at = (point) => fix(1, 0, point);
+
+    beforeEach(() => {
+      global.__params = { id: 'trailapi-7' };
+      global.__hiking.getTrailById = jest.fn((id) => (id === TRAIL.id ? { ...TRAIL, ...SPOT } : null));
+      fetchOsmPaths.mockResolvedValue(FAR);
+    });
+
+    it('says how far away they are, and shows the trail on the map rather than the hiker', async () => {
+      const utils = await mount();
+      expect(km).toBeGreaterThan(50);
+      expect(utils.getByTestId('hike-far-note').props.children).toBe(
+        `You are ${km} km from this trail, so the display shows the trail. It follows you once you are close.`,
+      );
+      const { region } = global.__mapProps;
+      expect(region.latitude).toBeCloseTo(39.9942, 4);
+      expect(region.longitude).toBeCloseTo(-74.8326, 4);
+      expect(region.latitudeDelta).toBeCloseTo(0.0036 * 1.4, 4);
+      expect(region.longitudeDelta).toBeCloseTo(0.0032 * 1.4, 4);
+    });
+
+    it('gives the distance in miles when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await mount();
+      expect(utils.getByTestId('hike-far-note').props.children).toContain(`You are ${Math.round(km * 0.621371)} mi from this trail`);
+    });
+
+    it('shows only the trail on the picture, with no dot for a hiker who is not on it', async () => {
+      const utils = await mount();
+      fireEvent.press(utils.getByTestId('hike-view-trail'));
+      expect(utils.UNSAFE_getAllByType(SvgPolyline)).toHaveLength(1);
+      expect(utils.UNSAFE_queryAllByType(SvgCircle)).toHaveLength(0);
+      fireEvent.press(utils.getByTestId('hike-path-osm-way-9'));
+      // the path being followed: a ring where it starts and a dot where it ends, but still no hiker
+      expect(utils.UNSAFE_getAllByType(SvgCircle)).toHaveLength(4);
+      expect(utils.UNSAFE_getAllByType(SvgPolyline)).toHaveLength(1);
+    });
+
+    it('leaves the path walked off the picture while the hiker is not on the trail', async () => {
+      const utils = await mount();
+      act(() => { store().ingest(walk(60)); });
+      await tick(60);
+      expect(store().tracker.route.length).toBeGreaterThan(1);
+      fireEvent.press(utils.getByTestId('hike-view-trail'));
+      // only the faint trail: no glow and no line for the walk
+      expect(utils.UNSAFE_getAllByType(SvgPolyline)).toHaveLength(1);
+    });
+
+    it('follows the hiker again once they are close to the trail, and the note goes', async () => {
+      const utils = await mount();
+      expect(utils.getByTestId('hike-far-note')).toBeTruthy();
+      act(() => { store().ingest([at(south(100))]); });
+      await tick(1);
+      expect(utils.queryByTestId('hike-far-note')).toBeNull();
+      const { region } = global.__mapProps;
+      expect(region.latitude).toBeCloseTo(south(100).latitude, 3);
+      expect(region.longitude).toBeCloseTo(SPOT.longitude, 3);
+      expect(region.latitudeDelta).toBe(0.01);
+      fireEvent.press(utils.getByTestId('hike-view-trail'));
+      expect(utils.UNSAFE_getAllByType(SvgCircle)).toHaveLength(2); // the hiker is on the picture again
+    });
+
+    it('counts 3 km as the line: just inside follows the hiker, just outside shows the trail', async () => {
+      const near = await mount();
+      act(() => { store().ingest([at(south(2900))]); });
+      await tick(1);
+      expect(near.queryByTestId('hike-far-note')).toBeNull();
+      near.unmount();
+      store().reset();
+      const far = await mount();
+      act(() => { store().ingest([at(south(3100))]); });
+      await tick(1);
+      expect(far.getByTestId('hike-far-note').props.children).toContain('You are 3 km from this trail');
+    });
+
+    it('measures from the nearest point of any path on show, not just the first', async () => {
+      // 2.9 km south of the last point of the path, far from its first
+      const last = PATH[PATH.length - 1];
+      const hiker = { latitude: last.latitude - 2900 / 111195, longitude: last.longitude };
+      fetchOsmPaths.mockResolvedValue({
+        maps: [{ id: 'osm-way-9', name: 'Blue Trail', distanceKm: 5 }],
+        routes: { 'osm-way-9': { coordinates: [{ latitude: 39.9, longitude: -74.8 }, ...PATH], distanceKm: 5 } },
+      });
+      const utils = await mount();
+      act(() => { store().ingest([at(hiker)]); });
+      await tick(1);
+      expect(utils.queryByTestId('hike-far-note')).toBeNull();
+    });
+
+    it('does the same for a path chosen on the trail page', async () => {
+      global.__params = { id: 'trailapi-7', mapId: '55', pathName: 'Ridge Trail' };
+      fetchRouteForMap.mockResolvedValue({ coordinates: PATH });
+      const utils = await mount();
+      expect(fetchOsmPaths).not.toHaveBeenCalled();
+      expect(utils.getByTestId('hike-far-note')).toBeTruthy();
+      expect(global.__mapProps.region.latitude).toBeCloseTo(39.9942, 4);
+      // ... and the path is still the one being watched for off-trail
+      expect(watchOffRoute).toHaveBeenCalledTimes(1);
+    });
+
+    it('says nothing, and follows the hiker, when there is no path on show', async () => {
+      fetchOsmPaths.mockResolvedValue({ maps: [], routes: {} });
+      const utils = await mount();
+      expect(utils.queryByTestId('hike-far-note')).toBeNull();
+      expect(global.__mapProps.region).toMatchObject({ latitude: 40.7, longitude: -74, latitudeDelta: 0.01 });
+    });
+
+    it('says nothing before the first position, when there is no display yet', async () => {
+      Location.getCurrentPositionAsync.mockReturnValue(new Promise(() => {}));
+      const utils = await mount();
+      expect(utils.queryByTestId('hike-far-note')).toBeNull();
     });
   });
 

@@ -19,6 +19,10 @@
 //      notification if the app is in the background) and a red banner with a Mute
 //      button, once the hiker has strayed from the chosen path
 //      (services/offRouteWatch.js, rules in lib/offRoute.js).
+//   4. When no path was chosen, the trail's own marked paths are looked up (OpenStreetMap,
+//      around the trail's map point, never the hiker's position), drawn on the display that
+//      tracks the hiker, and one can be tapped to follow. Far from the trail (a test at home),
+//      the display shows the trail instead of the hiker.
 //
 // Polls the weather every 15 minutes, not continuously — real weather
 // conditions don't meaningfully change faster than that, and hammering a free
@@ -51,6 +55,8 @@ import { calculateHikeDifficulty, estimateHikeCalories } from '@/lib/hikeDifficu
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { fetchRouteForMap, fetchOsmPaths } from '@/services/hikingService';
 import { cachedRoute } from '@/lib/offlineTrails';
+import { trailPoint } from '@/lib/osmTrails';
+import { routeRegion } from '@/lib/runDetail';
 import { watchOffRoute } from '@/services/offRouteWatch';
 import { distanceLabel } from '@/lib/offRoute';
 import { distanceUnitLabel, formatDistance, formatDistanceValue } from '@/lib/distanceUnits';
@@ -80,12 +86,10 @@ const RECENTRE_M = 40;
 const MAP_SHARE = 0.48;
 const MAP_MIN_HEIGHT = 280;
 const MAP_MAX_HEIGHT = 520;
-// The hiker's position is rounded to about 100 m (three decimals) before it is used to
-// look for paths: the search covers 2 km round it, so the exact spot is not needed.
-const roundPoint = (p) => ({
-  latitude: Math.round(p.latitude * 1000) / 1000,
-  longitude: Math.round(p.longitude * 1000) / 1000,
-});
+// Farther than this (metres) from every point of the paths being shown, the hiker is not on
+// the trail yet (a test at home, or still on the drive), so the display shows the trail
+// itself rather than following the hiker.
+const FAR_FROM_TRAIL_M = 3000;
 
 const SEVERITY_COLOR = {
   Extreme: '#B91C1C',
@@ -136,17 +140,20 @@ export default function HikeWeatherMonitorScreen() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [showLeave, setShowLeave] = useState(false);
   const [completing, setCompleting] = useState(false);
-  // Paths near the hiker, looked up when no path was chosen before starting (or the one
-  // chosen has no line): { status: 'idle' | 'loading' | 'done' | 'error', maps, routes }.
+  // The marked paths of the trail, looked up when no path was chosen before starting (or the
+  // one chosen has no line): { status: 'idle' | 'loading' | 'done' | 'error', maps, routes }.
   const [routeSettled, setRouteSettled] = useState(!mapId); // the chosen path's line has arrived, or there is none to wait for
   const [nearby, setNearby] = useState({ status: 'idle', maps: [], routes: {} });
-  const [searchPoint, setSearchPoint] = useState(null); // where the hiker was at the start, rounded
   const [nearbyTry, setNearbyTry] = useState(0); // bumped by "Try again"
   const [followId, setFollowId] = useState(null); // the nearby path tapped to follow, if any
   const { height: windowHeight } = useWindowDimensions();
   const mapHeight = Math.round(Math.min(MAP_MAX_HEIGHT, Math.max(MAP_MIN_HEIGHT, windowHeight * MAP_SHARE)));
   const hasPlannedLine = !!plannedRoute && Array.isArray(plannedRoute.coordinates) && plannedRoute.coordinates.length > 1;
   const needNearby = routeSettled && !hasPlannedLine;
+  // Where the trail is, not where the hiker is: its paths are looked for here.
+  const spot = trailPoint(trail);
+  const spotLat = spot ? spot.latitude : null;
+  const spotLon = spot ? spot.longitude : null;
 
   const pollIntervalRef = useRef(null);
   const endedRef = useRef(false);
@@ -237,19 +244,18 @@ export default function HikeWeatherMonitorScreen() {
     return () => { cancelled = true; };
   }, [mapId, keptRoute]);
 
-  // The first position, rounded, is where nearby paths are looked for.
+  // With no path to show, look for the trail's marked paths (OpenStreetMap, around the
+  // trail's own map point: the same question the trail page asks, so the answer it already
+  // has is reused), draw them where the hiker is being tracked, and let one be picked to follow.
   useEffect(() => {
-    if (searchPoint || !currentLocation) return;
-    setSearchPoint(roundPoint(currentLocation));
-  }, [currentLocation && currentLocation.latitude, currentLocation && currentLocation.longitude]);
-
-  // With no path to show, look for the marked paths around the hiker (OpenStreetMap, the
-  // same source as the trail page's list), draw them, and let one be picked to follow.
-  useEffect(() => {
-    if (!needNearby || !searchPoint) return undefined;
+    if (!needNearby) return undefined;
+    if (spotLat === null) {
+      setNearby({ status: 'done', maps: [], routes: {} });
+      return undefined;
+    }
     let cancelled = false;
     setNearby((n) => ({ ...n, status: 'loading' }));
-    fetchOsmPaths(searchPoint)
+    fetchOsmPaths({ latitude: spotLat, longitude: spotLon })
       .then((found) => {
         if (!cancelled) setNearby({ status: 'done', maps: found.maps, routes: found.routes });
       })
@@ -257,7 +263,7 @@ export default function HikeWeatherMonitorScreen() {
         if (!cancelled) setNearby({ status: 'error', maps: [], routes: {} });
       });
     return () => { cancelled = true; };
-  }, [needNearby, searchPoint, nearbyTry]);
+  }, [needNearby, spotLat, spotLon, nearbyTry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -345,6 +351,26 @@ export default function HikeWeatherMonitorScreen() {
   );
   const otherLines = useMemo(() => otherPaths.map((p) => p.coordinates), [otherPaths]);
   const routeLine = activeRoute && Array.isArray(activeRoute.coordinates) ? activeRoute.coordinates : null;
+  // How far the hiker is from the paths on show. Far away (a test at home, or still on the
+  // drive), the display shows the trail itself; close by, it follows the hiker.
+  const trailPoints = useMemo(
+    () => [routeLine, ...otherLines].reduce((all, line) => (Array.isArray(line) ? all.concat(line) : all), []),
+    [routeLine, otherLines],
+  );
+  const trailDistanceM = useMemo(() => {
+    if (!currentLocation) return null;
+    let least = Infinity;
+    trailPoints.forEach((p) => {
+      const d = distanceM(currentLocation, p);
+      if (d < least) least = d;
+    });
+    return Number.isFinite(least) ? least : null;
+  }, [currentLocation && currentLocation.latitude, currentLocation && currentLocation.longitude, trailPoints]);
+  const farFromTrail = trailDistanceM !== null && trailDistanceM > FAR_FROM_TRAIL_M;
+  const trailRegion = useMemo(
+    () => (farFromTrail ? routeRegion(trailPoints, { padding: 1.4 }) : null),
+    [farFromTrail, trailPoints],
+  );
   const routeKey = routeLine && routeLine.length > 1
     ? [routeLine.length, routeLine[0]?.latitude, routeLine[0]?.longitude,
       routeLine[routeLine.length - 1]?.latitude, routeLine[routeLine.length - 1]?.longitude].join(':')
@@ -530,11 +556,11 @@ export default function HikeWeatherMonitorScreen() {
 
   // What the paths block says: it is looking, found none, could not look, or what to do with the ones found.
   let pathsNote = null;
-  if (nearby.status === 'error') pathsNote = "Couldn't load nearby paths. Check your signal and try again.";
+  if (nearby.status === 'error') pathsNote = "Couldn't load the trail paths. Check your signal and try again.";
   else if (nearby.status === 'done') {
-    if (nearby.maps.length === 0) pathsNote = 'No marked paths found near you.';
+    if (nearby.maps.length === 0) pathsNote = 'No marked paths found near this trailhead.';
     else if (!followed) pathsNote = 'Tap a path to follow it. You will be warned if you leave it.';
-  } else pathsNote = 'Looking for marked paths near you…';
+  } else pathsNote = 'Looking for trail paths…';
 
   const worstAlert = snapshot?.alerts?.[0];
   const current = snapshot?.forecast?.[0];
@@ -588,9 +614,9 @@ export default function HikeWeatherMonitorScreen() {
             {view === 'trail' ? (
               <TrailSketchMap
                 planned={routeLine || undefined}
-                walked={walkedPath}
+                walked={farFromTrail ? undefined : walkedPath}
                 others={otherLines}
-                current={currentLocation}
+                current={farFromTrail ? null : currentLocation}
                 style={styles.map}
                 testID="hike-trail-view"
               />
@@ -598,7 +624,7 @@ export default function HikeWeatherMonitorScreen() {
               <MapView
                 style={styles.map}
                 provider={PROVIDER_DEFAULT}
-                region={{
+                region={trailRegion || {
                   latitude: (mapCenter || currentLocation).latitude,
                   longitude: (mapCenter || currentLocation).longitude,
                   latitudeDelta: 0.01,
@@ -648,6 +674,11 @@ export default function HikeWeatherMonitorScreen() {
         {currentLocation && MapView && view === 'trail' && viewChoice === null && weatherFailed && (
           <Text style={styles.offlineNote} testID="hike-offline-note">
             No signal, so the map picture is off. Your trail and your position still show.
+          </Text>
+        )}
+        {farFromTrail && (
+          <Text style={styles.offlineNote} testID="hike-far-note">
+            {`You are ${formatDistance(trailDistanceM / 1000, units, 0)} from this trail, so the display shows the trail. It follows you once you are close.`}
           </Text>
         )}
         {currentLocation && needNearby && (

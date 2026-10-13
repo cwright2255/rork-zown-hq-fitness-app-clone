@@ -32,7 +32,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, milesToKm } from '@/lib/distanceUnits';
 import { getPhotoUrl, getTrailMaps, fetchRouteForMap, fetchOsmPaths } from '@/services/hikingService';
 import { cachedRoute, downloadTrailForOffline, MAX_PATHS_PER_TRAIL } from '@/lib/offlineTrails';
-import { isOsmPathId } from '@/lib/osmTrails';
+import { isOsmPathId, trailPoint } from '@/lib/osmTrails';
 import { routeRegion } from '@/lib/runDetail';
 import { trailGpxFile } from '@/lib/gpxExport';
 import { shareGpx, gpxShareErrorText } from '@/services/gpxShare';
@@ -63,15 +63,6 @@ if (Platform.OS !== 'web') {
 const NO_MAPS = [];
 const NO_ROUTES = {};
 
-const toCoordinate = (value) => (
-  (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) && Number.isFinite(Number(value)) ? Number(value) : null
-);
-function trailPoint(trail) {
-  if (!trail) return null;
-  const latitude = toCoordinate(trail.latitude);
-  const longitude = toCoordinate(trail.longitude);
-  return latitude === null || longitude === null ? null : { latitude, longitude };
-}
 // A weak signal can leave a request hanging for a long time. After this long the
 // page shows the path kept on the phone instead (and swaps in the fresh one if it
 // still arrives).
