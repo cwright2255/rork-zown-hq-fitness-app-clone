@@ -22,6 +22,8 @@ import { shareHikeToFeed, hikeShareErrorText } from '@/services/hikeShare';
 import { publishMyDistance } from '@/services/distanceBoard';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistanceTight, formatDistanceValue, distanceUnitLabel } from '@/lib/distanceUnits';
+import { journeyById } from '@/lib/virtualJourneys';
+import JourneyFinishedCard from '@/components/JourneyFinishedCard';
 
 function StatCard({ icon, number, label }) {
   return (
@@ -130,6 +132,10 @@ export default function WorkoutCompleteScreen() {
   // it just saved; if that run was too short to save, no run is shown rather
   // than an older one.
   const savedRunId = typeof params.runId === 'string' ? params.runId : null;
+  // Journeys this run or walk finished (app/running/active.jsx passes their ids, comma separated).
+  const finishedJourneys = isRunCompletion && typeof params.journeys === 'string'
+    ? params.journeys.split(',').map((id) => journeyById(id)).filter(Boolean)
+    : [];
   const lastRun = savedRunId
     ? (runs.find((r) => r && String(r.id) === savedRunId) || null)
     : (runs.length > 0 ? runs[0] : null);
@@ -307,6 +313,15 @@ export default function WorkoutCompleteScreen() {
           <Text style={styles.celebrationTitle}>Great Job!</Text>
           <Text style={styles.celebrationName}>{displayName}</Text>
         </View>
+
+        {finishedJourneys.map((journey) => (
+          <JourneyFinishedCard
+            key={journey.id}
+            journey={journey}
+            units={units}
+            onPress={() => router.push(`/running/journeys/${journey.id}`)}
+          />
+        ))}
 
         {/* Stats row */}
         <View style={styles.statsRow}>

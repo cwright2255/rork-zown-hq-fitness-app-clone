@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('../src/config/firebase', () => ({ db: {} }));
@@ -77,15 +77,15 @@ describe('the top of the page', () => {
   it('shows the route, its length, where it is and what it is', async () => {
     const utils = await mount();
     expect(utils.getByText('Grand Canyon Rim Trail')).toBeTruthy();
-    expect(textOf(utils.getByTestId('journey-length'))).toBe('34 km');
+    expect(textOf(utils.getByTestId('journey-length'))).toBe('21 km');
     expect(utils.getByText('Arizona, USA')).toBeTruthy();
-    expect(utils.getByText('A walk along the South Rim of the Grand Canyon.')).toBeTruthy();
+    expect(utils.getByText('From Hermits Rest to the South Kaibab Trailhead, along the South Rim of the Grand Canyon.')).toBeTruthy();
   });
 
   it('writes the length in miles for a person who reads miles', async () => {
     useSettingsStore.setState({ units: 'imperial' });
     const utils = await mount();
-    expect(textOf(utils.getByTestId('journey-length'))).toBe('21.1 mi');
+    expect(textOf(utils.getByTestId('journey-length'))).toBe('13.0 mi');
   });
 
   it('goes back', async () => {
@@ -99,7 +99,7 @@ describe('the top of the page', () => {
     const icons = () => utils.UNSAFE_getAllByType('Ionicons').map((n) => n.props.name);
     expect(icons()).toContain('map-outline');
     expect(icons()).not.toContain('checkmark');
-    await act(async () => { await joined(34); });
+    await act(async () => { await joined(21); });
     expect(icons()).toContain('checkmark');
     expect(icons()).not.toContain('map-outline');
   });
@@ -128,7 +128,7 @@ describe('before joining', () => {
     expect(utils.getByText('Halfway')).toBeTruthy();
     expect(utils.getByText('Three quarters')).toBeTruthy();
     expect(utils.getByText('The finish')).toBeTruthy();
-    expect(['8.5 km', '17.0 km', '25.5 km', '34.0 km'].every((t) => utils.getByText(t))).toBe(true);
+    expect(['5.3 km', '10.5 km', '15.8 km', '21.0 km'].every((t) => utils.getByText(t))).toBe(true);
     expect(utils.queryAllByTestId(/-reached$/)).toHaveLength(0);
     expect(utils.queryAllByTestId(/-ahead$/)).toHaveLength(4);
   });
@@ -136,8 +136,8 @@ describe('before joining', () => {
   it('shows the milestones in miles for a person who reads miles', async () => {
     useSettingsStore.setState({ units: 'imperial' });
     const utils = await mount();
-    expect(['5.3 mi', '10.6 mi', '15.8 mi'].every((t) => utils.getByText(t))).toBe(true);
-    expect(utils.getAllByText('21.1 mi')).toHaveLength(2); // the finish, and the length of the route at the top
+    expect(['3.3 mi', '6.5 mi', '9.8 mi'].every((t) => utils.getByText(t))).toBe(true);
+    expect(utils.getAllByText('13.0 mi')).toHaveLength(2); // the finish, and the length of the route at the top
   });
 
   it('joins when asked, and then shows the start of the journey', async () => {
@@ -146,9 +146,9 @@ describe('before joining', () => {
     await flush();
     expect(store().byUser.u1['grand-canyon-rim']).toMatchObject({ distanceKm: 0, completedAt: null });
     expect(utils.queryByTestId('journey-join')).toBeNull();
-    expect(textOf(utils.getByTestId('journey-covered'))).toBe('0.0 km of 34 km');
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('0.0 km of 21 km');
     expect(utils.getByText('Your progress')).toBeTruthy();
-    expect(textOf(utils.getByTestId('journey-state'))).toBe('34.0 km to go. Next: A quarter of the way.');
+    expect(textOf(utils.getByTestId('journey-state'))).toBe('21.0 km to go. Next: A quarter of the way, near Hopi Point.');
     expect(utils.getByTestId('journey-start-run')).toBeTruthy();
     expect(utils.getByTestId('journey-start-walk')).toBeTruthy();
     expect(utils.getByText('Every run and walk you record in Zown adds to this journey.')).toBeTruthy();
@@ -162,24 +162,44 @@ describe('before joining', () => {
   });
 });
 
+describe('where the milestones are', () => {
+  it('names a place near each milestone, and where the finish is', async () => {
+    const utils = await mount();
+    expect([25, 50, 75, 100].map((p) => textOf(utils.getByTestId(`journey-milestone-${p}-place`)))).toEqual([
+      'Near Hopi Point', 'Near Trailview Overlook', 'Near Yavapai Point', 'South Kaibab Trailhead',
+    ]);
+  });
+
+  it('says the places are approximate', async () => {
+    const utils = await mount();
+    expect(textOf(utils.getByTestId('journey-places-note'))).toBe('Places along the route are approximate.');
+  });
+
+  it('says where the next milestone is, and the finish by its name', async () => {
+    await joined(17);
+    const utils = await mount();
+    expect(textOf(utils.getByTestId('journey-state'))).toBe('4.0 km to go. Next: The finish, South Kaibab Trailhead.');
+  });
+});
+
 describe('part way', () => {
   it('shows how far, how far is left, and the next milestone', async () => {
-    await joined(12);
+    await joined(8);
     const utils = await mount();
-    expect(textOf(utils.getByTestId('journey-covered'))).toBe('12.0 km of 34 km');
-    expect(textOf(utils.getByTestId('journey-state'))).toBe('22.0 km to go. Next: Halfway.');
-    expect(StyleSheet.flatten(utils.getByTestId('journey-fill').props.style).width).toBe('35%');
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('8.0 km of 21 km');
+    expect(textOf(utils.getByTestId('journey-state'))).toBe('13.0 km to go. Next: Halfway, near Trailview Overlook.');
+    expect(StyleSheet.flatten(utils.getByTestId('journey-fill').props.style).width).toBe('38%');
     expect(utils.queryByTestId('journey-join')).toBeNull();
   });
 
   it('fills the bar to the nearest whole per cent', async () => {
-    await joined(20); // 58.8
+    await joined(13); // 61.9
     const utils = await mount();
-    expect(StyleSheet.flatten(utils.getByTestId('journey-fill').props.style).width).toBe('59%');
+    expect(StyleSheet.flatten(utils.getByTestId('journey-fill').props.style).width).toBe('62%');
   });
 
   it('keeps the map in the picture until the route is finished', async () => {
-    await joined(12);
+    await joined(8);
     const utils = await mount();
     const names = utils.UNSAFE_getAllByType('Ionicons').map((n) => n.props.name);
     expect(names).toContain('map-outline');
@@ -187,7 +207,7 @@ describe('part way', () => {
   });
 
   it('ticks the milestones behind you and not those ahead', async () => {
-    await joined(18);
+    await joined(12);
     const utils = await mount();
     expect(utils.queryAllByTestId(/-reached$/).map((n) => n.props.testID)).toEqual(['journey-milestone-25-reached', 'journey-milestone-50-reached']);
     expect(utils.queryAllByTestId(/-ahead$/).map((n) => n.props.testID)).toEqual(['journey-milestone-75-ahead', 'journey-milestone-100-ahead']);
@@ -197,18 +217,18 @@ describe('part way', () => {
 
   it('counts in miles for a person who reads miles', async () => {
     useSettingsStore.setState({ units: 'imperial' });
-    await joined(16.09344);
+    await joined(8.04672);
     const utils = await mount();
-    expect(textOf(utils.getByTestId('journey-covered'))).toBe('10.0 mi of 21.1 mi');
-    expect(textOf(utils.getByTestId('journey-state'))).toBe('11.1 mi to go. Next: Halfway.');
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('5.0 mi of 13.0 mi');
+    expect(textOf(utils.getByTestId('journey-state'))).toBe('8.0 mi to go. Next: Halfway, near Trailview Overlook.');
   });
 
   it('moves along when a run is saved while the page is open', async () => {
     await joined();
     const utils = await mount();
     await credit(10);
-    expect(textOf(utils.getByTestId('journey-covered'))).toBe('10.0 km of 34 km');
-    expect(textOf(utils.getByTestId('journey-state'))).toBe('24.0 km to go. Next: Halfway.');
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('10.0 km of 21 km');
+    expect(textOf(utils.getByTestId('journey-state'))).toBe('11.0 km to go. Next: Halfway, near Trailview Overlook.');
   });
 
   it('starts a run or a walk', async () => {
@@ -221,12 +241,107 @@ describe('part way', () => {
   });
 });
 
+describe('leaving', () => {
+  let alert;
+  beforeEach(() => { alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {}); });
+  const buttons = () => alert.mock.calls[0][2];
+
+  it('is offered once joined, below the buttons that start a run or a walk', async () => {
+    await joined(8);
+    const utils = await mount();
+    expect(textOf(utils.getByTestId('journey-leave').findByType('Text'))).toBe('Leave journey');
+    expect(utils.getByTestId('journey-leave').props.accessibilityRole).toBe('button');
+  });
+
+  it('is not offered before joining', async () => {
+    expect((await mount()).queryByTestId('journey-leave')).toBeNull();
+  });
+
+  it('is not offered once the journey is finished', async () => {
+    await joined(21);
+    expect((await mount()).queryByTestId('journey-leave')).toBeNull();
+  });
+
+  it('is not offered when nobody is signed in', async () => {
+    global.__user = null;
+    expect((await mount()).queryByTestId('journey-leave')).toBeNull();
+  });
+
+  it('asks first, saying what will be cleared and that joining again starts over', async () => {
+    await joined(8);
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    expect(alert).toHaveBeenCalledTimes(1);
+    expect(alert.mock.calls[0][0]).toBe('Leave this journey?');
+    expect(alert.mock.calls[0][1]).toBe('The 8.0 km you have covered on it will be cleared. You can join again later, but you will start from the beginning.');
+    expect(buttons().map((b) => [b.text, b.style])).toEqual([['Cancel', 'cancel'], ['Leave', 'destructive']]);
+    expect(store().byUser.u1['grand-canyon-rim'].leftAt).toBeUndefined(); // nothing happens until it is confirmed
+  });
+
+  it('counts what was covered in miles for a person who reads miles', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    await joined(8.04672);
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    expect(alert.mock.calls[0][1]).toBe('The 5.0 mi you have covered on it will be cleared. You can join again later, but you will start from the beginning.');
+  });
+
+  it('does not talk of what was covered when nothing was', async () => {
+    await joined();
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    expect(alert.mock.calls[0][1]).toBe('You can join again later, but you will start from the beginning.');
+  });
+
+  it('keeps the journey when cancelled', async () => {
+    await joined(8);
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    await act(async () => { buttons()[0].onPress?.(); });
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('8.0 km of 21 km');
+    expect(store().byUser.u1['grand-canyon-rim'].leftAt).toBeUndefined();
+  });
+
+  it('leaves the journey when confirmed, and offers to join it again', async () => {
+    await joined(8);
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    await act(async () => { buttons()[1].onPress(); });
+    expect(store().byUser.u1['grand-canyon-rim']).toMatchObject({ distanceKm: 0, leftAt: expect.any(String) });
+    expect(utils.queryByTestId('journey-progress')).toBeNull();
+    expect(utils.queryByTestId('journey-leave')).toBeNull();
+    expect(utils.queryByTestId('journey-start-run')).toBeNull();
+    expect(utils.getByTestId('journey-join')).toBeTruthy();
+  });
+
+  it('starts again from nothing when joined again', async () => {
+    await joined(8);
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    await act(async () => { buttons()[1].onPress(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); }); // a moment on, as in life
+    fireEvent.press(utils.getByTestId('journey-join'));
+    await flush();
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('0.0 km of 21 km');
+    expect(utils.getByTestId('journey-leave')).toBeTruthy();
+  });
+
+  it('only leaves this journey', async () => {
+    store().joinChallenge('inca-trail', 'u1');
+    await joined(8);
+    const utils = await mount();
+    fireEvent.press(utils.getByTestId('journey-leave'));
+    await act(async () => { buttons()[1].onPress(); });
+    expect(store().byUser.u1['inca-trail'].leftAt).toBeUndefined();
+  });
+});
+
 describe('finished', () => {
   it('says so, with the day, and has nothing left to start', async () => {
-    await joined(34);
+    await joined(21);
     const utils = await mount();
     expect(utils.getByText('Completed')).toBeTruthy();
-    expect(textOf(utils.getByTestId('journey-covered'))).toBe('34.0 km of 34 km');
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('21.0 km of 21 km');
     expect(textOf(utils.getByTestId('journey-state'))).toMatch(/^Finished on .*\d{4}\. XP and the Trailblazer badge are yours\.$/);
     expect(StyleSheet.flatten(utils.getByTestId('journey-fill').props.style).width).toBe('100%');
     expect(utils.queryByTestId('journey-start-run')).toBeNull();
@@ -237,7 +352,7 @@ describe('finished', () => {
 
   it('writes the day as month, day and year, in the phone\'s language', async () => {
     const finishedAt = '2026-10-09T12:00:00Z';
-    useVirtualChallengeStore.setState({ byUser: { u1: { 'grand-canyon-rim': { startedAt: 's', distanceKm: 34, completedAt: finishedAt } } } });
+    useVirtualChallengeStore.setState({ byUser: { u1: { 'grand-canyon-rim': { startedAt: 's', distanceKm: 21, completedAt: finishedAt } } } });
     const utils = await mount();
     const day = new Date(finishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     expect(textOf(utils.getByTestId('journey-state'))).toBe(`Finished on ${day}. XP and the Trailblazer badge are yours.`);
@@ -245,26 +360,26 @@ describe('finished', () => {
   });
 
   it('shows a checkmark in the picture, and no map', async () => {
-    await joined(34);
+    await joined(21);
     const names = (await mount()).UNSAFE_getAllByType('Ionicons').map((n) => n.props.name);
     expect(names).toContain('checkmark');
     expect(names).not.toContain('map-outline');
   });
 
   it('says so without a day when the record has none', async () => {
-    useVirtualChallengeStore.setState({ byUser: { u1: { 'grand-canyon-rim': { startedAt: 's', distanceKm: 34, completedAt: '' } } } });
+    useVirtualChallengeStore.setState({ byUser: { u1: { 'grand-canyon-rim': { startedAt: 's', distanceKm: 21, completedAt: '' } } } });
     const utils = await mount();
     expect(textOf(utils.getByTestId('journey-state'))).toBe('Finished. XP and the Trailblazer badge are yours.');
   });
 
   it('says so without a day when the day cannot be read', async () => {
-    useVirtualChallengeStore.setState({ byUser: { u1: { 'grand-canyon-rim': { startedAt: 's', distanceKm: 34, completedAt: 'not a date' } } } });
+    useVirtualChallengeStore.setState({ byUser: { u1: { 'grand-canyon-rim': { startedAt: 's', distanceKm: 21, completedAt: 'not a date' } } } });
     const utils = await mount();
     expect(textOf(utils.getByTestId('journey-state'))).toBe('Finished on . XP and the Trailblazer badge are yours.');
   });
 
   it('turns to finished when the last run is saved while the page is open', async () => {
-    await joined(30);
+    await joined(15);
     const utils = await mount();
     expect(utils.getByTestId('journey-start-run')).toBeTruthy();
     await credit(10);
@@ -287,8 +402,9 @@ describe('not signed in', () => {
 
   it('still shows the route and the milestones', async () => {
     const utils = await mount();
-    expect(textOf(utils.getByTestId('journey-length'))).toBe('34 km');
+    expect(textOf(utils.getByTestId('journey-length'))).toBe('21 km');
     expect(utils.getAllByTestId(/^journey-milestone-\d+$/)).toHaveLength(4);
+    expect(utils.queryByTestId('journey-leave')).toBeNull();
   });
 });
 
@@ -313,7 +429,7 @@ describe('loading and privacy', () => {
       data: () => ({ activeChallenges: { 'grand-canyon-rim': { startedAt: '2026-10-01T00:00:00Z', distanceKm: 20, completedAt: null } } }),
     });
     const utils = await mount();
-    expect(textOf(utils.getByTestId('journey-covered'))).toBe('20.0 km of 34 km');
+    expect(textOf(utils.getByTestId('journey-covered'))).toBe('20.0 km of 21 km');
   });
 
   it('says the progress is private and where it is kept', async () => {

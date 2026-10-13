@@ -429,14 +429,14 @@ describe('Running hub', () => {
     it('says what each journey is on its card', async () => {
       const utils = await open();
       expect(utils.getByText('Grand Canyon Rim Trail')).toBeTruthy();
-      expect(utils.getByText('34 km · 4 milestones')).toBeTruthy();
+      expect(utils.getByText('21 km · 4 milestones')).toBeTruthy();
       expect(utils.getByText('Camino de Santiago (Camino Francés)')).toBeTruthy();
     });
 
     it('shows journey distances in miles when Settings say so', async () => {
       useSettingsStore.setState({ units: 'imperial' });
       const utils = await open();
-      expect(utils.getByText('21.1 mi · 4 milestones')).toBeTruthy();
+      expect(utils.getByText('13.0 mi · 4 milestones')).toBeTruthy();
     });
 
     it('opens the journey that was tapped', async () => {
@@ -458,7 +458,7 @@ describe('Running hub', () => {
 
     it('shows how far along a joined journey is, and nothing on the others', async () => {
       useVirtualChallengeStore.getState().joinChallenge('grand-canyon-rim', 'u1');
-      useVirtualChallengeStore.getState().creditDistance(8.5, 'u1');
+      useVirtualChallengeStore.getState().creditDistance(5.25, 'u1');
       const utils = await open();
       expect(utils.getByTestId('journey-card-grand-canyon-rim-label').props.children).toBe('25%');
       expect(utils.queryByTestId('journey-card-inca-trail-label')).toBeNull();

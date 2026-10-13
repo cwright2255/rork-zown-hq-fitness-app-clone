@@ -25,7 +25,7 @@ import { useVirtualChallengeStore } from '../store/virtualChallengeStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { journeyById } from '../lib/virtualJourneys';
 
-const canyon = journeyById('grand-canyon-rim'); // 34 km
+const canyon = journeyById('grand-canyon-rim'); // 21 km
 const textOf = (node) => [].concat(node.props.children).join('');
 const card = () => render(<JourneyCard journey={canyon} />);
 const set = (byUser) => useVirtualChallengeStore.setState({ byUser, loadedFor: 'u1' });
@@ -42,9 +42,9 @@ describe('JourneyCard', () => {
   it('names the route and gives its length, in the person\'s units', async () => {
     const utils = card();
     expect(utils.getByText('Grand Canyon Rim Trail')).toBeTruthy();
-    expect(utils.getByText('34 km · 4 milestones')).toBeTruthy();
+    expect(utils.getByText('21 km · 4 milestones')).toBeTruthy();
     await act(async () => { useSettingsStore.setState({ units: 'imperial' }); });
-    expect(utils.getByText('21.1 mi · 4 milestones')).toBeTruthy();
+    expect(utils.getByText('13.0 mi · 4 milestones')).toBeTruthy();
   });
 
   it('opens the journey when tapped', () => {
@@ -58,18 +58,18 @@ describe('JourneyCard', () => {
       expect(utils.queryByTestId('journey-card-grand-canyon-rim-label')).toBeNull();
       expect(utils.queryByTestId('journey-card-grand-canyon-rim-fill')).toBeNull();
       expect(utils.UNSAFE_getByType('Ionicons').props.name).toBe('map-outline');
-      expect(utils.getByTestId('journey-card-grand-canyon-rim').props.accessibilityLabel).toBe('Grand Canyon Rim Trail. 34 km · 4 milestones.');
+      expect(utils.getByTestId('journey-card-grand-canyon-rim').props.accessibilityLabel).toBe('Grand Canyon Rim Trail. 21 km · 4 milestones.');
     });
   });
 
   describe('once joined', () => {
     it('shows how far along, as a label and a bar, with a map icon', () => {
-      set({ u1: { 'grand-canyon-rim': record(17) } });
+      set({ u1: { 'grand-canyon-rim': record(10.5) } });
       const utils = card();
       expect(textOf(utils.getByTestId('journey-card-grand-canyon-rim-label'))).toBe('50%');
       expect(StyleSheet.flatten(utils.getByTestId('journey-card-grand-canyon-rim-fill').props.style).width).toBe('50%');
       expect(utils.UNSAFE_getByType('Ionicons').props.name).toBe('map-outline');
-      expect(utils.getByTestId('journey-card-grand-canyon-rim').props.accessibilityLabel).toBe('Grand Canyon Rim Trail. 34 km · 4 milestones. 50%');
+      expect(utils.getByTestId('journey-card-grand-canyon-rim').props.accessibilityLabel).toBe('Grand Canyon Rim Trail. 21 km · 4 milestones. 50%');
     });
 
     it('has an empty bar and 0% right after joining', () => {
@@ -82,31 +82,31 @@ describe('JourneyCard', () => {
     it('follows the journey as runs are added', () => {
       set({ u1: { 'grand-canyon-rim': record(0) } });
       const utils = card();
-      act(() => { useVirtualChallengeStore.getState().creditDistance(8.5, 'u1'); });
+      act(() => { useVirtualChallengeStore.getState().creditDistance(5.25, 'u1'); });
       expect(textOf(utils.getByTestId('journey-card-grand-canyon-rim-label'))).toBe('25%');
     });
   });
 
   describe('once finished', () => {
     it('says Completed, with a full bar and a tick', () => {
-      set({ u1: { 'grand-canyon-rim': record(34, '2026-10-09T00:00:00Z') } });
+      set({ u1: { 'grand-canyon-rim': record(21, '2026-10-09T00:00:00Z') } });
       const utils = card();
       expect(textOf(utils.getByTestId('journey-card-grand-canyon-rim-label'))).toBe('Completed');
       expect(StyleSheet.flatten(utils.getByTestId('journey-card-grand-canyon-rim-fill').props.style).width).toBe('100%');
       expect(utils.UNSAFE_getByType('Ionicons').props.name).toBe('checkmark-circle-outline');
-      expect(utils.getByTestId('journey-card-grand-canyon-rim').props.accessibilityLabel).toBe('Grand Canyon Rim Trail. 34 km · 4 milestones. Completed');
+      expect(utils.getByTestId('journey-card-grand-canyon-rim').props.accessibilityLabel).toBe('Grand Canyon Rim Trail. 21 km · 4 milestones. Completed');
     });
   });
 
   describe('whose progress it is', () => {
     it('shows only the signed-in person\'s own', () => {
-      set({ u2: { 'grand-canyon-rim': record(17) } });
+      set({ u2: { 'grand-canyon-rim': record(10.5) } });
       expect(card().queryByTestId('journey-card-grand-canyon-rim-label')).toBeNull();
     });
 
     it('shows no progress to nobody, whoever else has some', () => {
       global.__user = null;
-      set({ u1: { 'grand-canyon-rim': record(17) } });
+      set({ u1: { 'grand-canyon-rim': record(10.5) } });
       expect(card().queryByTestId('journey-card-grand-canyon-rim-label')).toBeNull();
     });
 

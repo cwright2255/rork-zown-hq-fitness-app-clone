@@ -295,6 +295,7 @@ export default function ActiveRunScreen() {
     setShowMenu(false);
     stopTracking();
     let savedRunId = 'none';
+    let finishedJourneys = ''; // ids of the journeys this run took over the line
     let countsForProgram = false;
     try {
       // The numbers come from the tracker, which has been counting moving time
@@ -314,7 +315,8 @@ export default function ActiveRunScreen() {
       });
       if (completed) {
         savedRunId = completed.id;
-        useVirtualChallengeStore.getState().creditDistance(summary.distance, user?.uid);
+        const credited = useVirtualChallengeStore.getState().creditDistance(summary.distance, user?.uid);
+        finishedJourneys = ((credited && credited.completed) || []).join(',');
         // A session ended well short of its plan is saved as a run, but is not
         // ticked off in the program.
         countsForProgram = !!(isProgramRun && programWeek && sessionCounts(programIntervals, summary.duration));
@@ -336,7 +338,7 @@ export default function ActiveRunScreen() {
     } catch (e) {
       console.warn('Failed to save run:', e?.message);
     }
-    router.replace(`/workout/complete?type=run&runId=${savedRunId}`);
+    router.replace(`/workout/complete?type=run&runId=${savedRunId}${finishedJourneys ? `&journeys=${finishedJourneys}` : ''}`);
   }, [router, endRun, addExpActivity, user, isProgramRun, programWeek, programIntervals, programId, weekNumber, sessionIndex, completeProgramSession, activity, units]);
 
   // End Run from the menu or the pause panel. Ending a program session before

@@ -256,6 +256,22 @@ describe('ActiveRunScreen', () => {
       return utils;
     };
 
+    it('tells the results which journey the run took over the line', async () => {
+      global.__creditDistance.mockReturnValue({ completed: ['grand-canyon-rim'] });
+      const utils = await runFor(520);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      fireEvent.press(utils.getByText('End Run'));
+      expect(global.__router.replace).toHaveBeenCalledWith('/workout/complete?type=run&runId=run-1&journeys=grand-canyon-rim');
+    });
+
+    it('adds nothing about journeys when the run finished none', async () => {
+      global.__creditDistance.mockReturnValue({ completed: [] });
+      const utils = await runFor(520);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      fireEvent.press(utils.getByText('End Run'));
+      expect(global.__router.replace).toHaveBeenCalledWith('/workout/complete?type=run&runId=run-1');
+    });
+
     it('saves what the tracker measured, credits it, and opens the results', async () => {
       const utils = await runFor(520);
       fireEvent.press(utils.getByTestId('run-main-button'));
@@ -355,6 +371,14 @@ describe('ActiveRunScreen', () => {
       expect(store().tracker.status).toBe('running');
       expect(store().tracker.autoPause).toBe(true);
       expect(store().tracker.kind).toBe('walk');
+    });
+
+    it('tells the results which journeys the walk took over the line', async () => {
+      global.__creditDistance.mockReturnValue({ completed: ['grand-canyon-rim', 'inca-trail'] });
+      const utils = await walkFor(900);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      fireEvent.press(utils.getByText('End Walk'));
+      expect(global.__router.replace).toHaveBeenCalledWith('/workout/complete?type=run&runId=run-1&journeys=grand-canyon-rim,inca-trail');
     });
 
     it('calls the buttons and menu "walk"', async () => {

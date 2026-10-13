@@ -107,7 +107,7 @@ describe('the cards', () => {
   it('says what each journey is', async () => {
     const utils = await mount();
     expect(utils.getByText('Grand Canyon Rim Trail')).toBeTruthy();
-    expect(utils.getByText('34 km · 4 milestones')).toBeTruthy();
+    expect(utils.getByText('21 km · 4 milestones')).toBeTruthy();
     expect(utils.getByText('Marathon to Athens')).toBeTruthy();
     expect(utils.getByText('Camino de Santiago (Camino Francés)')).toBeTruthy();
     expect(utils.getByText('780 km · 4 milestones')).toBeTruthy();
@@ -117,7 +117,7 @@ describe('the cards', () => {
   it('shows distances in miles for a person who reads miles', async () => {
     useSettingsStore.setState({ units: 'imperial' });
     const utils = await mount();
-    expect(utils.getByText('21.1 mi · 4 milestones')).toBeTruthy();
+    expect(utils.getByText('13.0 mi · 4 milestones')).toBeTruthy();
     expect(utils.getByText('5K · 3.1 mi · Weekly · 4 days left')).toBeTruthy();
   });
 
@@ -133,7 +133,7 @@ describe('the cards', () => {
     useVirtualRaceStore.getState().recordFinish(currentRace('local', NOW), 'u1', { timeSec: 1471, finishedAt: NOW.toISOString(), areaId: '1300x1059' });
     await act(async () => {
       useVirtualChallengeStore.getState().joinChallenge('grand-canyon-rim', 'u1');
-      useVirtualChallengeStore.getState().creditDistance(17, 'u1');
+      useVirtualChallengeStore.getState().creditDistance(10.5, 'u1');
     });
     const utils = await mount();
     expect(textOf(utils.getByTestId('journey-card-grand-canyon-rim-label'))).toBe('50%');
@@ -170,7 +170,7 @@ describe('the cards', () => {
 
 describe('on a phone whose width is not a round number', () => {
   const original = Dimensions.get('window');
-  afterEach(() => { Dimensions.set({ window: original, screen: Dimensions.get('screen') }); });
+  afterEach(() => { act(() => { Dimensions.set({ window: original, screen: Dimensions.get('screen') }); }); });
 
   it('rounds the cards down, so two always fit in a row', async () => {
     Dimensions.set({ window: { ...original, width: 393 }, screen: Dimensions.get('screen') });

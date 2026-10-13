@@ -4,8 +4,9 @@
 // record after joining counts toward. Shows the route, how far along you are, the four
 // milestones, and starts a run or a walk. What you have joined and covered is kept by
 // store/virtualChallengeStore.js; finishing pays XP and a badge (services/journeyRewards.js).
+// A journey that is not finished can be left, which clears what was covered.
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,8 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useVirtualChallengeStore } from '@/store/virtualChallengeStore';
 import { journeyById, journeyProgress, milestonesFor, journeyLength, journeyXp } from '@/lib/virtualJourneys';
 import { formatDistance } from '@/lib/distanceUnits';
+
+const capitalized = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const dayOf = (iso) => {
   const date = new Date(iso);
@@ -29,6 +32,7 @@ export default function JourneyScreen() {
   const journey = journeyById(id);
   const record = useVirtualChallengeStore((s) => (uid && journey ? (s.byUser[uid] || {})[journey.id] : undefined));
   const join = useVirtualChallengeStore((s) => s.joinChallenge);
+  const leave = useVirtualChallengeStore((s) => s.leaveChallenge);
 
   useEffect(() => {
     useVirtualChallengeStore.getState().loadChallenges(uid); // does nothing without a person
@@ -51,6 +55,20 @@ export default function JourneyScreen() {
   const progress = journeyProgress(journey, record);
   const milestones = milestonesFor(journey);
   const xp = journeyXp(journey.distanceKm);
+
+  const askToLeave = () => {
+    const covered = progress.coveredKm > 0
+      ? `The ${formatDistance(progress.coveredKm, units, 1)} you have covered on it will be cleared. `
+      : '';
+    Alert.alert(
+      'Leave this journey?',
+      `${covered}You can join again later, but you will start from the beginning.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Leave', style: 'destructive', onPress: () => leave(journey.id, uid) },
+      ],
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -82,7 +100,7 @@ export default function JourneyScreen() {
             <Text style={styles.progressText} testID="journey-state">
               {progress.completed
                 ? `Finished${record.completedAt ? ` on ${dayOf(record.completedAt)}` : ''}. XP and the Trailblazer badge are yours.`
-                : `${formatDistance(progress.leftKm, units, 1)} to go. Next: ${progress.next.name}.`}
+                : `${formatDistance(progress.leftKm, units, 1)} to go. Next: ${progress.next.name}, ${progress.next.place}.`}
             </Text>
           </View>
         )}
@@ -116,6 +134,11 @@ export default function JourneyScreen() {
                 </Pressable>
               </View>
             )}
+            {progress.joined && !progress.completed && (
+              <Pressable style={styles.leave} onPress={askToLeave} accessibilityRole="button" testID="journey-leave">
+                <Text style={styles.leaveText}>Leave journey</Text>
+              </Pressable>
+            )}
             <Text style={styles.fineprint}>
               {progress.joined
                 ? 'Every run and walk you record in Zown adds to this journey.'
@@ -136,12 +159,17 @@ export default function JourneyScreen() {
                   color={reached ? '#22C55E' : '#BBB'}
                   testID={`journey-milestone-${milestone.percent}-${reached ? 'reached' : 'ahead'}`}
                 />
-                <Text style={[styles.milestoneName, reached && styles.milestoneNameDone]}>{milestone.name}</Text>
+                <View style={styles.milestoneBody}>
+                  <Text style={[styles.milestoneName, reached && styles.milestoneNameDone]}>{milestone.name}</Text>
+                  <Text style={styles.milestonePlace} testID={`journey-milestone-${milestone.percent}-place`}>{capitalized(milestone.place)}</Text>
+                </View>
                 <Text style={styles.milestoneAt}>{formatDistance(milestone.atKm, units, 1)}</Text>
               </View>
             );
           })}
         </View>
+
+        <Text style={styles.places} testID="journey-places-note">Places along the route are approximate.</Text>
 
         <Text style={styles.privacy} testID="journey-privacy">
           Your journey progress is private to you. It is kept on your phone and copied to your account, so it carries over to a new phone.
@@ -180,15 +208,20 @@ const styles = StyleSheet.create({
   startWalk: { backgroundColor: '#F5F5F5' },
   startRunText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
   startWalkText: { fontSize: 15, fontWeight: '700', color: '#000' },
+  leave: { marginTop: 14, paddingVertical: 8, paddingHorizontal: 16 },
+  leaveText: { fontSize: 14, fontWeight: '600', color: '#999' },
   fineprint: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 10, lineHeight: 17 },
 
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000', paddingHorizontal: 20, marginBottom: 8 },
   milestones: { paddingHorizontal: 20, gap: 14 },
   milestone: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  milestoneName: { flex: 1, fontSize: 15, color: '#666' },
+  milestoneBody: { flex: 1 },
+  milestoneName: { fontSize: 15, color: '#666' },
+  milestonePlace: { fontSize: 12, color: '#999', marginTop: 1 },
   milestoneNameDone: { color: '#000', fontWeight: '600' },
   milestoneAt: { fontSize: 14, fontWeight: '600', color: '#000' },
 
   empty: { fontSize: 14, color: '#999', textAlign: 'center', marginHorizontal: 20, marginVertical: 24 },
-  privacy: { fontSize: 11, color: '#999', lineHeight: 16, marginHorizontal: 20, marginTop: 24 },
+  places: { fontSize: 11, color: '#999', marginHorizontal: 20, marginTop: 14 },
+  privacy: { fontSize: 11, color: '#999', lineHeight: 16, marginHorizontal: 20, marginTop: 10 },
 });
