@@ -25,23 +25,27 @@ beforeEach(() => {
 afterEach(() => warn.mockRestore());
 
 describe('the badge list', () => {
-  it('starts with every badge, including Race Day for finishing a virtual race', () => {
+  it('starts with every badge, including Race Day and Trailblazer', () => {
     store().initializeDefaultBadges();
-    expect(store().badges).toHaveLength(14);
+    expect(store().badges).toHaveLength(15);
     expect(byId('badge-14')).toMatchObject({
       name: 'Race Day', description: 'Finish a virtual race', category: 'running', isUnlocked: false, unlockedAt: null,
+    });
+    expect(byId('badge-15')).toMatchObject({
+      name: 'Trailblazer', description: 'Finish a virtual journey', category: 'running', rarity: 'rare', isUnlocked: false, unlockedAt: null,
     });
     expect(byId('badge-1').name).toBe('First Workout');
   });
 
   it('adds the badges a saved list is missing, and keeps what is saved', () => {
     store().initializeDefaultBadges();
-    const without = store().badges.filter((b) => b.id !== 'badge-14').map((b) => (b.id === 'badge-1'
+    const without = store().badges.filter((b) => b.id !== 'badge-14' && b.id !== 'badge-15').map((b) => (b.id === 'badge-1'
       ? { ...b, isUnlocked: true, unlockedAt: '2026-09-01T00:00:00Z' } : b));
     useBadgeStore.setState({ badges: without });
     store().initializeDefaultBadges();
-    expect(store().badges).toHaveLength(14);
+    expect(store().badges).toHaveLength(15);
     expect(byId('badge-14')).toBeDefined();
+    expect(byId('badge-15')).toBeDefined();
     expect(byId('badge-1')).toMatchObject({ isUnlocked: true, unlockedAt: '2026-09-01T00:00:00Z' });
     expect(store().badges.slice(0, 13).map((b) => b.id)).toEqual(without.map((b) => b.id));
   });
@@ -56,13 +60,13 @@ describe('the badge list', () => {
   it('copes with a saved list that has no badges in it at all', () => {
     useBadgeStore.setState({ badges: undefined });
     store().initializeDefaultBadges();
-    expect(store().badges).toHaveLength(14);
+    expect(store().badges).toHaveLength(15);
   });
 
   it('is filled in, with the new badge, when the badges are loaded for a person', async () => {
     useBadgeStore.setState({ badges: [{ id: 'badge-1', name: 'First Workout', isUnlocked: false }] });
     await store().loadBadges('u1');
-    expect(store().badges).toHaveLength(14);
+    expect(store().badges).toHaveLength(15);
     expect(byId('badge-14')).toBeDefined();
     expect(byId('badge-1').name).toBe('First Workout');
   });
@@ -79,14 +83,15 @@ describe('the badge list', () => {
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       store().initializeDefaultBadges();
-      const saved = store().badges.filter((b) => b.id !== 'badge-14');
+      const saved = store().badges.filter((b) => b.id !== 'badge-14' && b.id !== 'badge-15');
       useBadgeStore.setState({ badges: [] });
       AsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify({ state: { badges: saved }, version: 0 }));
       await useBadgeStore.persist.rehydrate();
       expect(store().badges).toHaveLength(13);
       jest.advanceTimersByTime(60);
-      expect(store().badges).toHaveLength(14);
+      expect(store().badges).toHaveLength(15);
       expect(byId('badge-14').name).toBe('Race Day');
+      expect(byId('badge-15').name).toBe('Trailblazer');
     } finally {
       jest.useRealTimers();
     }

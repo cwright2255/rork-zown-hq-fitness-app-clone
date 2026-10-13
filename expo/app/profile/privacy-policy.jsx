@@ -71,7 +71,7 @@ export default function PrivacyPolicy() {
 
         <Text style={styles.sectionTitle}>5. What Other Users Can See</Text>
         <Text style={styles.bodyText}>
-          Your public name and avatar, posts and comments are visible to other signed-in users. Your leaderboard entry (name, avatar, XP, level, streak and distance) is visible unless you turn off Show in Leaderboards in Settings. So are your virtual race results on the race boards: your name, avatar, finishing time and, for the Local 5K, the rough map square where you started. Turning off Show in Leaderboards takes them off the boards. Messages are visible to the people in the conversation. Your workouts, body metrics and nutrition logs are private to your account.
+          Your public name and avatar, posts and comments are visible to other signed-in users. Your leaderboard entry (name, avatar, XP, level, streak and distance) is visible unless you turn off Show in Leaderboards in Settings. So are your virtual race results on the race boards: your name, avatar, finishing time and, for the Local 5K, the rough map square where you started. Turning off Show in Leaderboards takes them off the boards. Messages are visible to the people in the conversation. Your workouts, body metrics, nutrition logs and virtual journey progress are private to your account.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Keeping and Deleting Your Data</Text>

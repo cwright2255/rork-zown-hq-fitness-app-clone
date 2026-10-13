@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
 
 // The three places that lead to a run: the Running Log, the finished-run screen
 // and the Running hub (Free run / Free walk).
@@ -26,16 +26,21 @@ jest.mock('react-native-safe-area-context', () => {
 }, { virtual: true });
 jest.mock('@/src/components/LoadingSkeleton', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/src/components/EmptyState', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1', name: 'Cj' } }) }));
+jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__hubUser || { uid: 'u1', name: 'Cj' } }) }));
 jest.mock('@/store/runningStore', () => ({
   useRunningStore: Object.assign(
     (select) => (typeof select === 'function' ? select(global.__runningStore) : global.__runningStore),
     { getState: () => global.__runningStore },
   ),
 }));
-jest.mock('@/store/virtualChallengeStore', () => ({
-  VIRTUAL_CHALLENGES: [{ id: 'grand-canyon-rim', title: 'Grand Canyon Rim Trail', distanceKm: 34, region: 'Arizona, USA' }],
+// The virtual journeys on the Running hub use the real store; these keep it off the network.
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(), getDocs: jest.fn(), deleteDoc: jest.fn(), query: jest.fn(), where: jest.fn(), orderBy: jest.fn(), limit: jest.fn(),
+  doc: jest.fn((db, ...path) => ({ path: path.join('/') })),
+  getDoc: jest.fn(async () => ({ exists: () => false })),
+  setDoc: jest.fn(async () => undefined),
 }));
+jest.mock('@/services/journeyRewards', () => ({ rewardJourney: jest.fn() }));
 // The finished-activity screen also reads saved hikes; none are needed here.
 jest.mock('@/store/hikingStore', () => ({
   useHikingStore: Object.assign(
@@ -61,7 +66,10 @@ import WorkoutCompleteScreen from '../app/workout/complete';
 import RunningHubScreen from '../app/running/program/index';
 import { useSettingsStore } from '../store/settingsStore';
 import { useVirtualRaceStore } from '../store/virtualRaceStore';
+import { useVirtualChallengeStore } from '../store/virtualChallengeStore';
 import { currentRace, raceEntryId } from '../lib/virtualRaces';
+import { JOURNEYS } from '../lib/virtualJourneys';
+import { getDoc } from 'firebase/firestore';
 
 beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
@@ -360,12 +368,10 @@ describe('Running hub', () => {
     });
   });
 
-  it('does not show challenges that cannot be joined yet', async () => {
+  it('does not show anything marked as coming soon', async () => {
     setStore([]);
     const utils = render(<RunningHubScreen />);
     await act(async () => {});
-    expect(utils.queryByText('Virtual Challenges')).toBeNull();
-    expect(utils.queryByText('Grand Canyon Rim Trail')).toBeNull();
     expect(utils.queryByText('Soon')).toBeNull();
     expect(utils.queryByText(/coming soon/i)).toBeNull();
   });
@@ -387,8 +393,10 @@ describe('Running hub', () => {
     beforeEach(() => {
       jest.useFakeTimers({ now: NOW.getTime() });
       useVirtualRaceStore.setState({ joined: {}, finished: {}, boards: {} });
+      useVirtualChallengeStore.setState({ byUser: {}, loadedFor: null });
+      getDoc.mockClear();
     });
-    afterEach(() => { jest.useRealTimers(); });
+    afterEach(() => { jest.useRealTimers(); delete global.__hubUser; });
 
     const open = async () => {
       setStore([]);
@@ -407,6 +415,66 @@ describe('Running hub', () => {
       expect(utils.getByText('Worldwide 10K')).toBeTruthy();
       expect(utils.getByText('5K · Weekly · 4 days left')).toBeTruthy();
       expect(utils.getByText(/^10K · Monthly · \d+ days left$/)).toBeTruthy();
+    });
+
+    it('puts the two timed races and then every journey in a row of cards, like Running Programs', async () => {
+      const utils = await open();
+      const row = within(utils.getByTestId('virtual-races-carousel'));
+      expect(row.getAllByTestId(/^(race|journey)-card-[a-z-]+$/).map((n) => n.props.testID)).toEqual([
+        'race-card-local', 'race-card-world', ...JOURNEYS.map((j) => `journey-card-${j.id}`),
+      ]);
+      expect(utils.getByTestId('virtual-races-carousel').props.horizontal).toBe(true);
+    });
+
+    it('says what each journey is on its card', async () => {
+      const utils = await open();
+      expect(utils.getByText('Grand Canyon Rim Trail')).toBeTruthy();
+      expect(utils.getByText('34 km · 4 milestones')).toBeTruthy();
+      expect(utils.getByText('Camino de Santiago (Camino Francés)')).toBeTruthy();
+    });
+
+    it('shows journey distances in miles when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await open();
+      expect(utils.getByText('21.1 mi · 4 milestones')).toBeTruthy();
+    });
+
+    it('opens the journey that was tapped', async () => {
+      const utils = await open();
+      fireEvent.press(utils.getByTestId('journey-card-marathon-to-athens'));
+      expect(router.push).toHaveBeenLastCalledWith('/running/journeys/marathon-to-athens');
+    });
+
+    it('opens the full Virtual Races page from View All', async () => {
+      const utils = await open();
+      fireEvent.press(utils.getByTestId('virtual-races-view-all'));
+      expect(router.push).toHaveBeenLastCalledWith('/running/races');
+    });
+
+    it('has one View All, for the Virtual Races row only', async () => {
+      const utils = await open();
+      expect(utils.getAllByText('View All')).toHaveLength(1);
+    });
+
+    it('shows how far along a joined journey is, and nothing on the others', async () => {
+      useVirtualChallengeStore.getState().joinChallenge('grand-canyon-rim', 'u1');
+      useVirtualChallengeStore.getState().creditDistance(8.5, 'u1');
+      const utils = await open();
+      expect(utils.getByTestId('journey-card-grand-canyon-rim-label').props.children).toBe('25%');
+      expect(utils.queryByTestId('journey-card-inca-trail-label')).toBeNull();
+    });
+
+    it('reads the person\'s journeys from their account', async () => {
+      await open();
+      expect(getDoc).toHaveBeenCalledWith({ path: 'users/u1/data/virtualChallenges' });
+    });
+
+    it('reads again for a different person who signs in while it is open', async () => {
+      const utils = await open();
+      getDoc.mockClear();
+      global.__hubUser = { uid: 'u2', name: 'Sam' };
+      await act(async () => { utils.rerender(<RunningHubScreen />); });
+      expect(getDoc).toHaveBeenCalledWith({ path: 'users/u2/data/virtualChallenges' });
     });
 
     it('comes after Hiking Near You', async () => {

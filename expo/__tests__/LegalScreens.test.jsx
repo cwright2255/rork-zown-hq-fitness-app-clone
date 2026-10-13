@@ -99,6 +99,10 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/Turning off Show in Leaderboards takes them off the boards/);
   });
 
+  it('says virtual journey progress is private to the person', () => {
+    expect(policy()).toMatch(/Your workouts, body metrics, nutrition logs and virtual journey progress are private to your account/);
+  });
+
   it('says deleting an account erases the virtual race times too', () => {
     expect(policy()).toMatch(/challenge entries, virtual race times, uploaded photos and videos/);
   });

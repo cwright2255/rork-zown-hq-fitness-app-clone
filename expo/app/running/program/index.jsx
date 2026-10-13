@@ -8,18 +8,21 @@ import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, paceIn, paceUnitLabel } from '@/lib/distanceUnits';
 import { RACE_KINDS } from '@/lib/virtualRaces';
+import { JOURNEYS } from '@/lib/virtualJourneys';
+import { useVirtualChallengeStore } from '@/store/virtualChallengeStore';
 import VirtualRaceCard from '@/components/VirtualRaceCard';
+import JourneyCard from '@/components/JourneyCard';
 
 
 
 /* ââ Static placeholder data ââ */
 
-function SectionHeader({ title, onViewAll }) {
+function SectionHeader({ title, onViewAll, viewAllTestID }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {onViewAll && (
-        <Pressable onPress={onViewAll}>
+        <Pressable onPress={onViewAll} testID={viewAllTestID}>
           <Text style={styles.viewAll}>View All</Text>
         </Pressable>
       )}
@@ -70,6 +73,11 @@ export default function RunningScreen() {
   useEffect(() => {
     loadRunningPrograms();
   }, []);
+
+  // Where you are on the journeys you have joined (kept on the phone, joined with your account's copy).
+  useEffect(() => {
+    useVirtualChallengeStore.getState().loadChallenges(user?.uid); // does nothing without a person
+  }, [user?.uid]);
 
   // A pace saved as seconds per km, shown as m'ss" per km (per mile for imperial `units`).
   const fmtPace = (secPerKm) => {
@@ -153,12 +161,23 @@ export default function RunningScreen() {
           <Ionicons name="chevron-forward" size={18} color="#999" />
         </Pressable>
 
-        {/* Virtual races -- a Local 5K every week and a Worldwide 10K every
-            month, see lib/virtualRaces.js and app/running/races/[kind].jsx. */}
-        <SectionHeader title="Virtual Races" />
-        {RACE_KINDS.map((kind) => (
-          <VirtualRaceCard key={kind} kind={kind} />
-        ))}
+        {/* Virtual races -- timed races (a Local 5K every week, a Worldwide 10K every
+            month: lib/virtualRaces.js) and journeys along a real route
+            (lib/virtualJourneys.js). View All opens app/running/races/index.jsx. */}
+        <SectionHeader title="Virtual Races" onViewAll={() => router.push('/running/races')} viewAllTestID="virtual-races-view-all" />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+          testID="virtual-races-carousel"
+        >
+          {RACE_KINDS.map((kind) => (
+            <VirtualRaceCard key={kind} kind={kind} />
+          ))}
+          {JOURNEYS.map((journey) => (
+            <JourneyCard key={journey.id} journey={journey} />
+          ))}
+        </ScrollView>
       </ScrollView>
     </SafeAreaView>
   );

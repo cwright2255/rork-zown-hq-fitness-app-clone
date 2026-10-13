@@ -138,6 +138,16 @@ const defaultBadges = [
   rarity: 'uncommon',
   isUnlocked: false,
   unlockedAt: null
+},
+{
+  id: 'badge-15',
+  name: 'Trailblazer',
+  description: 'Finish a virtual journey',
+  imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
+  category: 'running',
+  rarity: 'rare',
+  isUnlocked: false,
+  unlockedAt: null
 }];
 
 
