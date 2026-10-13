@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScanLine } from 'lucide-react-native';
@@ -85,16 +85,16 @@ export default function BarcodeScanScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ScreenHeader title="Scan Barcode" showBack />
         <View style={styles.center}><ActivityIndicator color="#000000" /></View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ScreenHeader title="Scan Barcode" showBack />
         <View style={styles.permWrap}>
           <ScanLine size={64} color="#666666" />
@@ -104,13 +104,13 @@ export default function BarcodeScanScreen() {
           </Text>
           <PrimaryButton title="Grant Permission" onPress={requestPermission} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (scanResult) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ScreenHeader title="Product Found" showBack />
         <View style={{ padding: 16 }}>
           <View style={styles.resultCard}>
@@ -137,7 +137,7 @@ export default function BarcodeScanScreen() {
             <PrimaryButton title="Scan Another" variant="outline" onPress={() => { setScanResult(null); setIsScanning(true); }} />
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 

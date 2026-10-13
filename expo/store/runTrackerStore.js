@@ -19,6 +19,7 @@ import {
 } from '../lib/runTracker';
 import { durableTracker, restoreTracker, canResumeSession, cleanContext } from '../lib/hikeRecovery';
 import { createThrottledStorage } from '../lib/throttledStorage';
+import { cleanGoalKm } from '../lib/runGoal';
 
 // The phone's key/value storage, or null where there is none (a test, an old
 // build): then a hike is simply not kept, and nothing else changes.
@@ -59,6 +60,7 @@ export const useRunTrackerStore = create(
       tracker: createTracker(),
       context: null, // the map and path chosen for the hike being recorded: { mapId?, pathName? }
       recovered: false,
+      goalKm: null, // the distance goal picked on the run screen, in km; kept while the app is open, not saved to the phone
 
       /**
        * Starts a run, unless one of the same kind was left a short while ago
@@ -75,7 +77,7 @@ export const useRunTrackerStore = create(
           flushRunTracker();
           return 'resumed';
         }
-        set({ tracker: startTracker(createTracker({ autoPause, kind }), now), context: cleanContext(context), recovered: false });
+        set({ tracker: startTracker(createTracker({ autoPause, kind }), now), context: cleanContext(context), recovered: false, goalKm: null });
         flushRunTracker();
         return 'new';
       },
@@ -96,17 +98,20 @@ export const useRunTrackerStore = create(
         flushRunTracker();
       },
 
+      /** The distance goal for this run, in km (null for none). */
+      setGoalKm: (km) => set({ goalKm: cleanGoalKm(km) }),
+
       /** Ends the run and returns what to save (see finishTracker). */
       finish: (now = Date.now()) => {
         const summary = finishTracker(get().tracker, now);
-        set({ tracker: createTracker(), context: null, recovered: false });
+        set({ tracker: createTracker(), context: null, recovered: false, goalKm: null });
         flushRunTracker();
         return summary;
       },
 
       /** Throws the run away. */
       reset: () => {
-        set({ tracker: createTracker(), context: null, recovered: false });
+        set({ tracker: createTracker(), context: null, recovered: false, goalKm: null });
         flushRunTracker();
       },
 

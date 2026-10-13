@@ -1,6 +1,14 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({ useRouter: () => global.__router }), { virtual: true });
 jest.mock('react-native-safe-area-context', () => {
@@ -38,6 +46,9 @@ jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1'
 jest.mock('@/services/hikingService', () => ({ getPhotoUrl: jest.fn(() => null) }));
 
 import HikingListScreen from '../app/running/hiking/index';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const open = (hiking = {}) => {
   global.__router = { push: jest.fn(), back: jest.fn() };
@@ -78,6 +89,30 @@ describe('HikingListScreen header', () => {
     expect(global.__hiking.loadNearbyTrails).toHaveBeenCalled();
     fireEvent.press(utils.getByText('Bear Rock'));
     expect(global.__router.push).toHaveBeenCalledWith('/running/hiking/osm-5');
+  });
+});
+
+describe('HikingListScreen distances', () => {
+  const trails = [{ id: 'osm-5', name: 'Bear Rock', address: 'Here', distanceKm: 3, lengthMiles: 9.2 }];
+
+  it('gives how far away a trail is and how long it is in kilometres when Settings are in km', () => {
+    const utils = open({ trails });
+    expect(utils.getByText('3.0 km away')).toBeTruthy();
+    expect(utils.getByText('14.8 km')).toBeTruthy(); // the trail service gives 9.2 miles
+  });
+
+  it('gives them in miles when Settings say so, and the trail keeps the length it was listed with', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open({ trails });
+    expect(utils.getByText('1.9 mi away')).toBeTruthy(); // 3 km
+    expect(utils.getByText('9.2 mi')).toBeTruthy();
+  });
+
+  it('shows no length for a trail that has none', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open({ trails: [{ id: 'osm-6', name: 'No Length', address: 'There', distanceKm: 3 }] });
+    expect(utils.getByText('1.9 mi away')).toBeTruthy();
+    expect(utils.queryByText(/^0\.0 mi$/)).toBeNull();
   });
 });
 

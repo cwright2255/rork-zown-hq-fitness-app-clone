@@ -41,10 +41,31 @@
 //    TrailAPI outage, empty result set, or an unverified field mismatch
 //    doesn't take the whole feature down. Needs its own key, see below.
 //
+// 3. OpenStreetMap (Overpass API) — not a search source, a source of trail PATHS:
+//    fetchOsmPaths() below returns the named footpaths around a trail's point with
+//    their shape, whichever of the two sources above found the trail. The trail
+//    service has a drawn line for only some trails; OpenStreetMap covers most parks.
+//
 // Neither Trek4Free nor AllTrails were used directly — neither exposes a
 // public API for third-party apps (confirmed by checking, not assumed).
 
 import { parseGpxToRoute } from '@/lib/parseGpx';
+import { buildOverpassQuery, isOsmPathId, parseOverpassPaths, splitPaths, OSM_RADIUS_M } from '@/lib/osmTrails';
+
+// OpenStreetMap's Overpass service: the named paths of a park, with their shape,
+// for the trail page's "Choose a Path". Free, no key. The second address is a
+// public mirror, asked when the first is busy (it says so with a 429 or 504).
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+// A weak signal can leave a request hanging; after this long the next address is tried.
+const OVERPASS_TIMEOUT_MS = 20000;
+// The paths around a point do not change from one visit to the next, so an answer
+// is reused for a while (opening the same trail again, coming back from the hike
+// screen): quicker for the person, and kinder to a free public service.
+const OSM_CACHE_MS = 15 * 60 * 1000;
+const osmCache = new Map(); // "lat,lon,radius" -> { at, found }
 
 const TRAILAPI_BASE = 'https://trailapi-trailapi.p.rapidapi.com';
 const TRAILAPI_HOST = 'trailapi-trailapi.p.rapidapi.com';
@@ -354,6 +375,8 @@ export async function fetchTrailRoute(trailId) {
  */
 export async function fetchRouteForMap(mapId) {
   if (!mapId) return null;
+  // A path from OpenStreetMap comes with its line (fetchOsmPaths), and is not a TrailAPI map to download.
+  if (isOsmPathId(String(mapId))) return null;
   try {
     const gpxXml = await getTrailGpx(mapId);
     return parseGpxToRoute(gpxXml);
@@ -361,6 +384,64 @@ export async function fetchRouteForMap(mapId) {
     console.warn('[hikingService] fetchRouteForMap failed:', e?.message);
     return null;
   }
+}
+
+async function askOverpass(url, query) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS) : null;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+      signal: controller ? controller.signal : undefined,
+    });
+    if (!res.ok) throw new Error(`Overpass request failed: ${res.status}`);
+    const data = await res.json();
+    // A busy server can answer 200 with a remark and nothing else; that is a failure, not "no paths here".
+    const empty = !data || !Array.isArray(data.elements) || data.elements.length === 0;
+    if (empty && data && typeof data.remark === 'string' && /error|timed out|out of memory/i.test(data.remark)) {
+      throw new Error(`Overpass could not answer: ${data.remark}`);
+    }
+    return data;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * The named paths of the park around a trail's point, from OpenStreetMap:
+ * { maps: [{ id, name, distanceKm }], routes: { [id]: { coordinates, distanceKm, ... } } }.
+ * Every path comes with its line, so choosing one needs no second request.
+ * `maps` is empty when OpenStreetMap has no named paths there. Throws when no
+ * address answers (no signal), so the page can say "could not load" rather than
+ * "none found".
+ */
+export async function fetchOsmPaths({ latitude, longitude, radiusM = OSM_RADIUS_M }) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return { maps: [], routes: {} };
+  // About 10 m: two visits to one trail ask about the same point even if the last digit differs.
+  const cacheKey = `${latitude.toFixed(4)},${longitude.toFixed(4)},${Math.round(radiusM)}`;
+  const cached = osmCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < OSM_CACHE_MS) return cached.found;
+  const query = buildOverpassQuery(latitude, longitude, radiusM);
+  let lastError = null;
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const data = await askOverpass(url, query);
+      const found = splitPaths(parseOverpassPaths(data, { origin: { latitude, longitude } }));
+      osmCache.set(cacheKey, { at: Date.now(), found });
+      return found;
+    } catch (e) {
+      lastError = e;
+      console.warn('[hikingService] Overpass request failed:', url, e?.message);
+    }
+  }
+  throw lastError || new Error('Overpass could not be reached.');
+}
+
+/** Forgets the paths reused from earlier answers (the next call asks again). */
+export function clearOsmPathCache() {
+  osmCache.clear();
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {

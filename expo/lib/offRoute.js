@@ -128,40 +128,54 @@ export function stepOffRoute(state, { position, route, t, accuracy } = {}) {
   return { state: next, event: null, distanceM };
 }
 
+const FEET_PER_METRE = 3.280839895;
+const FEET_SHOWN_AS_MILES = 525; // about a tenth of a mile
+
 /**
  * A distance in a form fit to say or show: to the nearest 10 m under 100 m, the
  * nearest 50 m under a kilometre, otherwise kilometres to one decimal.
- * @returns {{ value: number, unit: 'm' | 'km' }}
+ * For imperial `units` (the Settings distance unit) it is feet instead (the
+ * nearest 10 ft under 100 ft, then the nearest 50 ft) and, from about a tenth of a
+ * mile, miles to one decimal.
+ * @returns {{ value: number, unit: 'm' | 'km' | 'ft' | 'mi' }}
  */
-export function roundedDistance(metres) {
+export function roundedDistance(metres, units) {
   const m = Math.max(0, isNum(metres) ? metres : 0);
+  if (units === 'imperial') {
+    const ft = m * FEET_PER_METRE;
+    if (ft >= FEET_SHOWN_AS_MILES) return { value: Math.round((m / 1609.344) * 10) / 10, unit: 'mi' };
+    if (ft < 100) return { value: Math.round(ft / 10) * 10, unit: 'ft' };
+    return { value: Math.round(ft / 50) * 50, unit: 'ft' };
+  }
   if (m < 100) return { value: Math.round(m / 10) * 10, unit: 'm' };
   if (m < 1000) return { value: Math.round(m / 50) * 50, unit: 'm' };
   return { value: Math.round(m / 100) / 10, unit: 'km' };
 }
 
-/** "80 m" or "1.2 km". */
-export function distanceLabel(metres) {
-  const { value, unit } = roundedDistance(metres);
+/** "80 m" or "1.2 km" ("260 ft" or "0.4 mi" for imperial `units`). */
+export function distanceLabel(metres, units) {
+  const { value, unit } = roundedDistance(metres, units);
   return `${value} ${unit}`;
 }
 
-/** "80 meters" or "1.2 kilometers", for speaking. */
-export function distanceWords(metres) {
-  const { value, unit } = roundedDistance(metres);
-  return `${value} ${unit === 'km' ? 'kilometers' : 'meters'}`;
+const WORDS = { m: 'meters', km: 'kilometers', ft: 'feet', mi: 'miles' };
+
+/** "80 meters" or "1.2 kilometers" ("260 feet" or "0.4 miles" for imperial `units`), for speaking. */
+export function distanceWords(metres, units) {
+  const { value, unit } = roundedDistance(metres, units);
+  return `${value} ${unit === 'mi' && value === 1 ? 'mile' : WORDS[unit]}`;
 }
 
 /**
  * The words for a warning: { title, body, speech }, or null for an event that
  * has none.
  */
-export function describeOffRoute(event, metres) {
+export function describeOffRoute(event, metres, units) {
   if (event === 'off' || event === 'remind') {
     return {
       title: 'Off the trail',
-      body: `About ${distanceLabel(metres)} from the trail you chose.`,
-      speech: `You may be off the trail. You are about ${distanceWords(metres)} from the route.`,
+      body: `About ${distanceLabel(metres, units)} from the trail you chose.`,
+      speech: `You may be off the trail. You are about ${distanceWords(metres, units)} from the route.`,
     };
   }
   if (event === 'back') {

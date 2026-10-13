@@ -9,6 +9,7 @@
 
 import { ACTIVITIES, activityOf, cleanSplits, formatPace, routePoints } from './runStats';
 import { sourceLabel } from './runImport';
+import { distanceUnitLabel, formatDistanceValue } from './distanceUnits';
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
@@ -245,8 +246,11 @@ export function routeSketch(points, width = 300, height = 200, margin = 16) {
   };
 }
 
-/** Everything the detail screen shows, from one saved run. */
-export function describeRun(run) {
+/**
+ * Everything the detail screen shows, from one saved run. `units` is the Settings
+ * distance unit ('imperial' shows miles); a run is saved in km either way.
+ */
+export function describeRun(run, units) {
   const distance = Math.max(0, num(run && run.distance));
   const duration = Math.max(0, num(run && run.duration));
   const points = routePoints(run);
@@ -255,7 +259,8 @@ export function describeRun(run) {
     when: runDateLabel(run),
     activity: activityOf(run),
     source: sourceLabel(run),
-    distanceText: distance.toFixed(2),
+    distanceText: formatDistanceValue(distance, units, 2),
+    distanceUnit: distanceUnitLabel(units),
     timeText: formatClock(duration),
     calories: Math.max(0, Math.round(num(run && run.calories))),
     climb: num(run && run.elevGain) > 0 ? Math.round(run.elevGain) : 0,

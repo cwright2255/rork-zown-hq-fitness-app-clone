@@ -253,6 +253,14 @@ describe('describeRun', () => {
     expect(d.splits.rows).toHaveLength(5 + 1); // five full kilometres and 0.23 km over
   });
 
+  it('shows the distance in kilometres, or in miles when Settings say so, from the same saved run', () => {
+    expect(describeRun(run)).toMatchObject({ distanceText: '5.23', distanceUnit: 'km' });
+    expect(describeRun(run, 'metric')).toMatchObject({ distanceText: '5.23', distanceUnit: 'km' });
+    expect(describeRun(run, 'imperial')).toMatchObject({ distanceText: '3.25', distanceUnit: 'mi' });
+    expect(describeRun({ id: 'x', distance: 1.609344, duration: 600 }, 'imperial').distanceText).toBe('1.00');
+    expect(describeRun({ id: 'x', distance: 0.4, duration: 130 }, 'imperial').distanceText).toBe('0.25');
+  });
+
   it('copes with a bare, older record', () => {
     const d = describeRun({ id: 'x', distance: 0.4, duration: 130 });
     expect(d.title).toBe('Free Run');

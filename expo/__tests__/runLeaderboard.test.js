@@ -206,7 +206,18 @@ describe('formatBoardValue', () => {
     expect(formatBoardValue('month', 128.4)).toBe('128 km');
   });
 
+  it('writes distance in miles for imperial, with the same rounding, from km that are saved', () => {
+    expect(formatBoardValue('week', 16.09344, 'imperial')).toBe('10.0 mi');
+    expect(formatBoardValue('week', 12.44, 'imperial')).toBe('7.7 mi');
+    expect(formatBoardValue('month', 0.04, 'imperial')).toBe('0.0 mi');
+    expect(formatBoardValue('month', 160.9344, 'imperial')).toBe('100 mi'); // from 100, whole miles
+    expect(formatBoardValue('month', 159, 'imperial')).toBe('98.8 mi');
+    expect(formatBoardValue('month', 128.4, 'metric')).toBe('128 km');
+    expect(formatBoardValue('xp', 1250, 'imperial')).toBe(`${(1250).toLocaleString()} XP`); // XP is not a distance
+  });
+
   it('copes with junk', () => {
+    expect(formatBoardValue('week', undefined, 'imperial')).toBe('0.0 mi');
     expect(formatBoardValue('week', undefined)).toBe('0.0 km');
     expect(formatBoardValue('xp', 'x')).toBe('0 XP');
   });

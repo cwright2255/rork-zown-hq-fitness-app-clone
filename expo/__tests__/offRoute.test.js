@@ -374,7 +374,24 @@ describe('words for a warning', () => {
     expect(roundedDistance(12500)).toEqual({ value: 12.5, unit: 'km' });
   });
 
+  it('rounds a distance in feet, then miles, for imperial', () => {
+    expect(roundedDistance(0, 'imperial')).toEqual({ value: 0, unit: 'ft' });
+    expect(roundedDistance(10, 'imperial')).toEqual({ value: 30, unit: 'ft' }); // 32.8 ft, nearest 10
+    expect(roundedDistance(30, 'imperial')).toEqual({ value: 100, unit: 'ft' }); // 98.4 ft
+    expect(roundedDistance(40, 'imperial')).toEqual({ value: 150, unit: 'ft' }); // 131 ft, nearest 50
+    expect(roundedDistance(80, 'imperial')).toEqual({ value: 250, unit: 'ft' }); // 262 ft
+    expect(roundedDistance(150, 'imperial')).toEqual({ value: 500, unit: 'ft' }); // 492 ft
+    expect(roundedDistance(200, 'imperial')).toEqual({ value: 0.1, unit: 'mi' }); // 656 ft is over a tenth of a mile
+    expect(roundedDistance(500, 'imperial')).toEqual({ value: 0.3, unit: 'mi' });
+    expect(roundedDistance(1609.344, 'imperial')).toEqual({ value: 1, unit: 'mi' });
+    expect(roundedDistance(20000, 'imperial')).toEqual({ value: 12.4, unit: 'mi' });
+    expect(roundedDistance(150, 'metric')).toEqual({ value: 150, unit: 'm' });
+    expect(roundedDistance(150)).toEqual({ value: 150, unit: 'm' });
+  });
+
   it('copes with a distance that is not a number', () => {
+    expect(roundedDistance(NaN, 'imperial')).toEqual({ value: 0, unit: 'ft' });
+    expect(roundedDistance(-40, 'imperial')).toEqual({ value: 0, unit: 'ft' });
     expect(roundedDistance(NaN)).toEqual({ value: 0, unit: 'm' });
     expect(roundedDistance(-40)).toEqual({ value: 0, unit: 'm' });
     expect(roundedDistance(undefined)).toEqual({ value: 0, unit: 'm' });
@@ -385,6 +402,24 @@ describe('words for a warning', () => {
     expect(distanceLabel(1500)).toBe('1.5 km');
     expect(distanceWords(84)).toBe('80 meters');
     expect(distanceWords(1500)).toBe('1.5 kilometers');
+  });
+
+  it('writes a distance short and spoken in feet and miles for imperial', () => {
+    expect(distanceLabel(84, 'imperial')).toBe('300 ft');
+    expect(distanceLabel(1500, 'imperial')).toBe('0.9 mi');
+    expect(distanceWords(84, 'imperial')).toBe('300 feet');
+    expect(distanceWords(1500, 'imperial')).toBe('0.9 miles');
+    expect(distanceWords(1609.344, 'imperial')).toBe('1 mile');
+    expect(distanceWords(3000, 'imperial')).toBe('1.9 miles');
+  });
+
+  it('warns in feet or miles for imperial, in the same words', () => {
+    const m = describeOffRoute('off', 84, 'imperial');
+    expect(m.title).toBe('Off the trail');
+    expect(m.body).toBe('About 300 ft from the trail you chose.');
+    expect(m.speech).toBe('You may be off the trail. You are about 300 feet from the route.');
+    expect(describeOffRoute('remind', 84, 'metric').body).toBe('About 80 m from the trail you chose.');
+    expect(describeOffRoute('back', 5, 'imperial').speech).toBe('Back on the trail.');
   });
 
   it('says what is wrong, how far, and for how long it is spoken', () => {

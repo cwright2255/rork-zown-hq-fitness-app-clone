@@ -16,6 +16,7 @@
 // back paused where it stopped, and carries on from there when the person says so.
 
 import { createTracker, trackedMs } from './runTracker';
+import { formatDistance } from './distanceUnits';
 
 // A hike last heard from this recently (ms) was still being recorded: keep it going.
 export const STILL_RECORDING_MS = 2 * 60 * 1000;
@@ -120,11 +121,11 @@ export function durationLabel(seconds) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-/** The question asked on opening the app with an unfinished hike. */
-export function recoveryMessage(tracker, now = Date.now()) {
+/** The question asked on opening the app with an unfinished hike. `units` is the Settings distance unit. */
+export function recoveryMessage(tracker, now = Date.now(), units) {
   const km = tracker.distanceM / 1000;
   const seconds = Math.round(trackedMs(tracker, now) / 1000);
-  return `You have an unfinished hike: ${km.toFixed(1)} km in ${durationLabel(seconds)}. Open it to carry on or to save it.`;
+  return `You have an unfinished hike: ${formatDistance(km, units)} in ${durationLabel(seconds)}. Open it to carry on or to save it.`;
 }
 
 /** The map and path chosen for a hike, kept so it can be picked up with them: { mapId?, pathName? } or null. */

@@ -15,6 +15,7 @@ import RunRouteMap from '@/components/RunRouteMap';
 import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
 import { useCommunityStore } from '@/store/communityStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { describeHike } from '@/lib/hikeLog';
 import { hikeGpxFile } from '@/lib/gpxExport';
 import { shareHikeToFeed, hikeShareErrorText } from '@/services/hikeShare';
@@ -70,7 +71,8 @@ export default function HikeDetailScreen() {
     return () => { cancelled = true; };
   }, [hike, user?.uid]);
 
-  const info = useMemo(() => (hike ? describeHike(hike) : null), [hike]);
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
+  const info = useMemo(() => (hike ? describeHike(hike, units) : null), [hike, units]);
 
   const goBack = () => {
     if (router.canGoBack && router.canGoBack()) router.back();
@@ -86,6 +88,7 @@ export default function HikeDetailScreen() {
       user,
       createPost,
       markShared: useHikingStore.getState().markHikeShared,
+      units,
     });
     setSharing(false);
     if (result.ok || result.reason === 'already-shared') setJustShared(true);
@@ -142,7 +145,7 @@ export default function HikeDetailScreen() {
             {info.when ? <Text style={styles.when}>{info.when}</Text> : null}
             <View style={styles.bigRow}>
               <Text style={styles.bigValue} testID="hike-detail-distance">{info.distanceText}</Text>
-              <Text style={styles.bigUnit}>km</Text>
+              <Text style={styles.bigUnit}>{info.distanceUnit}</Text>
             </View>
           </View>
         </View>
@@ -151,7 +154,7 @@ export default function HikeDetailScreen() {
           <View style={styles.statsRow}>
             <Stat value={info.timeText} label="Duration" icon="time-outline" testID="hike-detail-time" />
             <View style={styles.statDivider} />
-            <Stat value={info.paceText} unit="/km" label="Avg pace" icon="speedometer-outline" testID="hike-detail-pace" />
+            <Stat value={info.paceText} unit={info.paceUnit} label="Avg pace" icon="speedometer-outline" testID="hike-detail-pace" />
             <View style={styles.statDivider} />
             <Stat value={String(info.calories)} unit="kcal" label="Calories" icon="flame-outline" testID="hike-detail-calories" />
           </View>

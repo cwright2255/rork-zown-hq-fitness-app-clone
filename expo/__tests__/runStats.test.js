@@ -31,6 +31,14 @@ describe('pace', () => {
     expect(paceLabel(330)).toBe('5:30 /km');
   });
 
+  it('writes the pace per mile for imperial, and per km for metric or no setting', () => {
+    expect(paceLabel(300, 'imperial')).toBe('8:03 /mi'); // 5:00 per km is 8:03 per mile
+    expect(paceLabel(300, 'metric')).toBe('5:00 /km');
+    expect(paceLabel(300)).toBe('5:00 /km');
+    expect(paceLabel(0, 'imperial')).toBe('--');
+    expect(paceLabel(NaN, 'imperial')).toBe('--');
+  });
+
   it('shows -- when there is no usable pace', () => {
     expect(formatPace(0)).toBe('--');
     expect(formatPace(NaN)).toBe('--');

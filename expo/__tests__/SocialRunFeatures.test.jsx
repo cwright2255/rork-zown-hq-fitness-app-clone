@@ -4,6 +4,14 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 // The two run features on the Social screen: run cards in the feed, and the
 // XP / Distance picker on the Leaderboard tab.
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }), { virtual: true });
 jest.mock('react-native-safe-area-context', () => {
@@ -50,6 +58,9 @@ jest.mock('@/services/distanceBoard', () => ({
 
 import SocialScreen from '../app/social';
 import { periodKeys } from '../lib/runLeaderboard';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const keys = periodKeys();
 
@@ -128,6 +139,16 @@ describe('Social leaderboard tab', () => {
     fireEvent.press(utils.getByTestId('board-month'));
     expect(global.__lb.subscribeTop).toHaveBeenLastCalledWith(50, 'month');
     expect(utils.getByText('130 km')).toBeTruthy();
+  });
+
+  it('shows the same distances in miles when Settings say so', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = await openLeaderboard(entries);
+    fireEvent.press(utils.getByTestId('board-distance'));
+    expect(utils.getByText('13.3 mi')).toBeTruthy(); // 21.4 km
+    expect(utils.getByText('7.7 mi')).toBeTruthy(); // 12.4 km
+    fireEvent.press(utils.getByTestId('board-month'));
+    expect(utils.getByText('80.9 mi')).toBeTruthy(); // 130.2 km
   });
 
   it('says so when nobody has logged any distance', async () => {

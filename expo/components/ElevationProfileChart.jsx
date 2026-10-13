@@ -12,13 +12,15 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polygon, Polyline as SvgPolyline, Line, Text as SvgText } from 'react-native-svg';
 import { colors, typography, spacing } from '@/constants/theme';
+import { distanceUnitLabel, formatDistanceValue } from '@/lib/distanceUnits';
 
 const CHART_HEIGHT = 100;
 const PADDING_X = 8;
 const PADDING_TOP = 12;
 const PADDING_BOTTOM = 18;
 
-export default function ElevationProfileChart({ profile, width = 320 }) {
+// `units` is the Settings distance unit ('imperial' labels the distance axis in miles).
+export default function ElevationProfileChart({ profile, width = 320, units }) {
   if (!profile || profile.length < 2) return null;
 
   const chartWidth = width - PADDING_X * 2;
@@ -58,9 +60,9 @@ export default function ElevationProfileChart({ profile, width = 320 }) {
         />
         <Polygon points={fillPoints} fill={colors.green} fillOpacity={0.15} />
         <SvgPolyline points={linePoints} fill="none" stroke={colors.green} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-        <SvgText x={PADDING_X} y={CHART_HEIGHT - 4} fontSize={10} fill={colors.textSecondary}>0 km</SvgText>
+        <SvgText x={PADDING_X} y={CHART_HEIGHT - 4} fontSize={10} fill={colors.textSecondary}>{`0 ${distanceUnitLabel(units)}`}</SvgText>
         <SvgText x={width - PADDING_X} y={CHART_HEIGHT - 4} fontSize={10} fill={colors.textSecondary} textAnchor="end">
-          {maxDist.toFixed(1)} km
+          {`${formatDistanceValue(maxDist, units, 1)} ${distanceUnitLabel(units)}`}
         </SvgText>
       </Svg>
     </View>

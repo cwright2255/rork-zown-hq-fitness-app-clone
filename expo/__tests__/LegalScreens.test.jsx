@@ -26,7 +26,7 @@ const terms = () => textOf(render(<TermsOfService />).toJSON());
 
 // Every outside service the app really talks to (see the services/ folder and the
 // Cloud Functions). If one is added, the policy has to name it.
-const SERVICES = ['Firebase', 'Crashlytics', 'OpenAI', 'Radar', 'Google Places', 'TrailAPI', 'National Weather Service',
+const SERVICES = ['Firebase', 'Crashlytics', 'OpenAI', 'Radar', 'Google Places', 'TrailAPI', 'OpenStreetMap', 'National Weather Service',
   'CalorieAPI', 'Spoonacular', 'Spotify', 'Apple Music', 'Apple Health', 'ROOK'];
 
 describe('Privacy Policy', () => {
@@ -39,6 +39,12 @@ describe('Privacy Policy', () => {
 
   it.each(SERVICES)('names %s', (service) => {
     expect(policy()).toContain(service);
+  });
+
+  it('says what is sent to OpenStreetMap: the trail\'s point, not the person\'s own location', () => {
+    const text = policy();
+    expect(text).toContain('OpenStreetMap (Overpass)');
+    expect(text).toMatch(/the map point of a trail you open, to find its marked paths\. Not your own location\./);
   });
 
   it('does not name services the app no longer uses', () => {
@@ -128,7 +134,7 @@ describe('Terms of Service', () => {
 
   it('names the main outside services', () => {
     const text = terms();
-    for (const service of ['Firebase', 'OpenAI', 'Spotify', 'Apple Music', 'Apple Health', 'ROOK', 'Radar', 'Google Places', 'CalorieAPI', 'Spoonacular']) {
+    for (const service of ['Firebase', 'OpenAI', 'Spotify', 'Apple Music', 'Apple Health', 'ROOK', 'Radar', 'Google Places', 'TrailAPI', 'OpenStreetMap', 'CalorieAPI', 'Spoonacular']) {
       expect(text).toContain(service);
     }
   });

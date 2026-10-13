@@ -79,6 +79,14 @@ describe('buildHikePost', () => {
     expect(post.text).toBe('Old Rag: 6.60 km in 2:30:00 \uD83E\uDD7E');
     expect(hikeCaption({})).toBe('Hike: 0.00 km in 0:00 \uD83E\uDD7E');
   });
+
+  it('writes the caption in miles for a poster whose Settings are in miles, and stores the distance in km', () => {
+    const post = buildHikePost(hike(), 'imperial');
+    expect(post.text).toBe('Old Rag: 4.10 mi in 2:30:00 \uD83E\uDD7E');
+    expect(post.run.distance).toBe(6.6); // what is stored never changes with the setting
+    expect(buildHikePost(hike(), 'metric').text).toBe('Old Rag: 6.60 km in 2:30:00 \uD83E\uDD7E');
+    expect(hikeCaption({}, 'imperial')).toBe('Hike: 0.00 mi in 0:00 \uD83E\uDD7E');
+  });
 });
 
 describe('the feed card for a hike', () => {

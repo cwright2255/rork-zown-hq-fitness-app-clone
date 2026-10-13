@@ -9,6 +9,7 @@ import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useDuelStore, DUEL_PRESETS } from '@/store/duelStore';
 import { useGroupStore } from '@/store/groupStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { getConversationId } from '@/store/messagingStore';
 import AudienceFilter from '@/components/AudienceFilter';
 import BoardPicker from '@/components/BoardPicker';
@@ -58,6 +59,7 @@ export default function SocialScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('Feed');
   const { user } = useUserStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const displayName = user?.name || 'Athlete';
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -421,7 +423,7 @@ export default function SocialScreen() {
               <Text style={[s.leaderRank, i < 3 && { color: MEDAL_COLORS[i] }]}>{i + 1}</Text>
               <View style={s.leaderAvatar}><Text style={s.leaderAvatarText}>{initials(entry.name)}</Text></View>
               <Text style={s.leaderName}>{isMe ? 'You' : (entry.name || 'Zown User')}{isClose ? '  ★' : ''}</Text>
-              <Text style={s.leaderXp}>{formatBoardValue(board, boardValue(entry, board))}</Text>
+              <Text style={s.leaderXp}>{formatBoardValue(board, boardValue(entry, board), units)}</Text>
               {!isMe && (
                 <Pressable style={s.duelIconBtn} onPress={() => setDuelTarget({ uid: entry.id, name: entry.name })}>
                   <Ionicons name="flash-outline" size={16} color="#000" />

@@ -7,6 +7,14 @@ import { act, render } from '@testing-library/react-native';
 // so it measures what a phone would show: how much space sits above the title.
 const INSET_TOP = 59; // an iPhone with the Dynamic Island
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('lucide-react-native', () => new Proxy({}, { get: (_, name) => (name === '__esModule' ? false : name) }), { virtual: true });
 jest.mock('expo-router', () => ({
@@ -65,6 +73,9 @@ jest.mock('@/services/offRouteWatch', () => ({ watchOffRoute: jest.fn(() => ({ s
 
 import HikeMonitorScreen from '../app/running/hiking/monitor';
 import { useRunTrackerStore } from '../store/runTrackerStore';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const Location = require('expo-location');
 

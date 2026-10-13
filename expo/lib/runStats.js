@@ -11,6 +11,8 @@
 //   history   newest run first
 //   splits    seconds for each full kilometre; elevGain/elevLoss whole metres
 
+import { paceIn, paceUnitLabel } from './distanceUnits';
+
 export const MAX_SAVED_RUNS = 100;
 export const MIN_SAVED_RUN_SECONDS = 10;
 export const MAX_ROUTE_POINTS = 200;
@@ -69,10 +71,10 @@ export function formatPace(secPerKm) {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-/** "5:30 /km", or "--" when there is no usable pace. */
-export function paceLabel(secPerKm) {
-  const p = formatPace(secPerKm);
-  return p === '--' ? p : `${p} /km`;
+/** "5:30 /km" (or "8:51 /mi" for imperial `units`), or "--" when there is no usable pace. */
+export function paceLabel(secPerKm, units) {
+  const p = formatPace(paceIn(secPerKm, units));
+  return p === '--' ? p : `${p} ${paceUnitLabel(units)}`;
 }
 
 /**

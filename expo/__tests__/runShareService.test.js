@@ -33,6 +33,14 @@ describe('shareRunToFeed', () => {
     expect(markShared).toHaveBeenCalledWith('u1', 'run-1', 'post-1');
   });
 
+  it('writes the caption in the unit it is given, and stores the distance in km either way', async () => {
+    const createPost = jest.fn(async () => 'post-1');
+    await shareRunToFeed({ run: run(), user: user(), createPost, units: 'imperial' });
+    const args = createPost.mock.calls[0][0];
+    expect(args.text).toBe('Morning Run: 3.25 mi in 26:50 \uD83D\uDCAA');
+    expect(args.run.distance).toBe(5.23);
+  });
+
   it('names the author from the display name, then the name, then "Zown User"', async () => {
     const make = () => jest.fn(async () => 'p');
     let createPost = make();

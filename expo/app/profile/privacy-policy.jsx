@@ -62,6 +62,7 @@ export default function PrivacyPolicy() {
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Google Firebase</Text>: sign-in, database, file storage, cloud functions, crash reporting (Crashlytics) and analytics.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>OpenAI</Text>: AI features described above.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Radar, Google Places, TrailAPI and the U.S. National Weather Service</Text>: your coordinates or search text, to show a place name, find trails and places, and show weather.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>OpenStreetMap (Overpass)</Text>: the map point of a trail you open, to find its marked paths. Not your own location.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>CalorieAPI and Spoonacular</Text>: food searches, barcodes you scan, and recipe links you import.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Exercise and muscle-diagram providers</Text>: exercise search terms and muscle groups. No personal profile data.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Our 3D body-model service</Text>: your height, weight, gender, body-fat estimate and waist and hip measurements, to draw your body model.</Text>

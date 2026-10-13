@@ -1,6 +1,14 @@
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   useRouter: () => global.__router,
@@ -29,6 +37,9 @@ jest.mock('@/services/hikeShare', () => ({
 jest.mock('@/services/distanceBoard', () => ({ publishMyDistance: jest.fn() }));
 
 import WorkoutCompleteScreen from '../app/workout/complete';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const Hikes = require('@/services/hikeShare');
 const Runs = require('@/services/runShare');
@@ -62,6 +73,64 @@ beforeEach(() => {
   Hikes.shareHikeToFeed.mockReset();
   Hikes.hikeShareErrorText.mockClear();
   Runs.shareRunToFeed.mockReset();
+});
+
+describe('Workout complete screen distances', () => {
+  const { Share } = require('react-native');
+  let shareSpy;
+  beforeEach(() => { shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({}); });
+  afterEach(() => shareSpy.mockRestore());
+
+  const RUN = { id: 'run-1', distance: 5, duration: 1500, calories: 300 };
+  const pressShareIcon = async (utils) => {
+    const icon = utils.UNSAFE_getAllByType('Ionicons').find((i) => i.props.name === 'share-outline');
+    await act(async () => { fireEvent.press(icon); });
+  };
+
+  it('gives a hike\'s distance in kilometres when Settings are in km', () => {
+    expect(open(hikeParams()).getByText('8.40 km')).toBeTruthy();
+  });
+
+  it('gives a hike\'s distance in miles when Settings say so', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open(hikeParams());
+    expect(utils.getByText('5.22 mi')).toBeTruthy(); // 8.4 km
+    expect(utils.queryByText(/ km$/)).toBeNull();
+    expect(utils.getByText('640 m')).toBeTruthy(); // elevation stays in metres
+  });
+
+  it('gives a run\'s distance in kilometres, or in miles', () => {
+    expect(open({ type: 'run', runId: 'run-1' }, { runs: [RUN] }).getByText('5.00 km')).toBeTruthy();
+    useSettingsStore.setState({ units: 'imperial' });
+    expect(open({ type: 'run', runId: 'run-1' }, { runs: [RUN] }).getByText('3.11 mi')).toBeTruthy();
+  });
+
+  it('says the distance in the share-sheet message in the unit Settings have', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    await pressShareIcon(open(hikeParams()));
+    expect(shareSpy.mock.calls[0][0].message).toBe('Just completed a hard hike on Zown \u2014 5.22mi, 640m elevation gain. \uD83E\uDD7E');
+    await pressShareIcon(open({ type: 'run', runId: 'run-1' }, { runs: [RUN] }));
+    expect(shareSpy.mock.calls[1][0].message).toBe('Just finished a 3.11mi run on Zown in 25 min. \uD83D\uDCAA');
+    useSettingsStore.setState({ units: 'metric' });
+    await pressShareIcon(open({ type: 'run', runId: 'run-1' }, { runs: [RUN] }));
+    expect(shareSpy.mock.calls[2][0].message).toBe('Just finished a 5.00km run on Zown in 25 min. \uD83D\uDCAA');
+  });
+
+  it('hands the unit to the feed share so the caption on the post matches', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    Hikes.shareHikeToFeed.mockResolvedValue({ ok: true, postId: 'h1' });
+    await press(open(hikeParams()), 'share-to-community');
+    expect(Hikes.shareHikeToFeed).toHaveBeenCalledWith(expect.objectContaining({ units: 'imperial' }));
+    Runs.shareRunToFeed.mockResolvedValue({ ok: true, postId: 'r1' });
+    await press(open({ type: 'run', runId: 'run-1' }, { runs: [RUN] }), 'share-to-community');
+    expect(Runs.shareRunToFeed).toHaveBeenCalledWith(expect.objectContaining({ units: 'imperial' }));
+  });
+
+  it('writes the plain text post for a hike with no saved record in the unit Settings have', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    await press(open(hikeParams(), { hikes: [] }), 'share-to-community');
+    expect(global.__community.createPost.mock.calls[0][0].text).toBe('Just completed a hard hike \u2014 5.22mi, 640m elevation gain. \uD83E\uDD7E');
+  });
 });
 
 describe('Workout complete screen after a hike', () => {

@@ -13,14 +13,15 @@ import { compactTrack } from './runStats';
 import { formatClock } from './runDetail';
 import { RUN_POST_VERSION, SHARE_MAX_POINTS, hideRouteEnds } from './runShare';
 import { hikeRoute, hikeTitle } from './hikeLog';
+import { formatDistance } from './distanceUnits';
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
-/** The line that goes with a shared hike when nobody has written anything. */
-export function hikeCaption(post) {
+/** The line that goes with a shared hike when nobody has written anything. `units` is the poster's Settings distance unit. */
+export function hikeCaption(post, units) {
   const title = (post && post.title) || 'Hike';
   // \uD83E\uDD7E is the hiking boot emoji (written as an escape so the file stays plain text).
-  return `${title}: ${num(post && post.distance).toFixed(2)} km in ${formatClock(post && post.duration)} \uD83E\uDD7E`;
+  return `${title}: ${formatDistance(num(post && post.distance), units, 2)} in ${formatClock(post && post.duration)} \uD83E\uDD7E`;
 }
 
 /**
@@ -29,7 +30,7 @@ export function hikeCaption(post) {
  * caption. Returns null when there is nothing worth sharing (no distance or no
  * time). Never contains undefined (Firestore refuses it).
  */
-export function buildHikePost(hike) {
+export function buildHikePost(hike, units) {
   if (!hike || typeof hike !== 'object') return null;
   const distance = Math.round(Math.max(0, num(hike.distanceKm)) * 100) / 100;
   const duration = Math.max(0, Math.round(num(hike.durationSeconds)));
@@ -52,5 +53,5 @@ export function buildHikePost(hike) {
   const tier = typeof hike.difficultyTier === 'string' ? hike.difficultyTier.trim().slice(0, 20) : '';
   if (tier) shared.tier = tier;
 
-  return { run: shared, text: hikeCaption(shared) };
+  return { run: shared, text: hikeCaption(shared, units) };
 }

@@ -118,6 +118,12 @@ describe('runCaption', () => {
   it('copes with nothing at all', () => {
     expect(runCaption(undefined)).toBe('Run: 0.00 km in 0:00 \uD83D\uDCAA');
   });
+
+  it('writes the distance in miles for a poster whose Settings are in miles', () => {
+    expect(runCaption({ title: 'Morning Run', distance: 5.234, duration: 1610 }, 'imperial')).toBe('Morning Run: 3.25 mi in 26:50 \uD83D\uDCAA');
+    expect(runCaption({ title: 'Morning Run', distance: 5.234, duration: 1610 }, 'metric')).toBe('Morning Run: 5.23 km in 26:50 \uD83D\uDCAA');
+    expect(runCaption(undefined, 'imperial')).toBe('Run: 0.00 mi in 0:00 \uD83D\uDCAA');
+  });
 });
 
 describe('buildRunPost', () => {
@@ -128,6 +134,14 @@ describe('buildRunPost', () => {
       startTime: START, calories: 366, elevGain: 42,
     });
     expect(post.text).toBe('Morning Run: 5.23 km in 26:50 \uD83D\uDCAA');
+  });
+
+  it('writes the caption in miles for a poster in miles, and still saves the distance in kilometres', () => {
+    const post = buildRunPost(savedRun(), 'imperial');
+    expect(post.text).toBe('Morning Run: 3.25 mi in 26:50 \uD83D\uDCAA');
+    expect(post.run.distance).toBe(5.23); // what is stored never changes with the setting
+    expect(post.run.pace).toBe(308);
+    expect(buildRunPost(savedRun(), 'metric').run).toEqual(post.run);
   });
 
   it('shares a walk as a walk', () => {
@@ -231,8 +245,10 @@ describe('describeSharedRun', () => {
       activity: 'run',
       title: 'Morning Run',
       distanceText: '5.23',
+      distanceUnit: 'km',
       timeText: '26:50',
       paceText: '5:08',
+      paceUnit: '/km',
       climb: 42,
       points: [
         { latitude: 40.002, longitude: -74 },
@@ -241,6 +257,17 @@ describe('describeSharedRun', () => {
       ],
       hasRoute: true,
     });
+  });
+
+  it('shows a post in miles and minutes per mile for a reader whose Settings are in miles', () => {
+    const card = describeSharedRun(shared(), 'imperial');
+    expect(card).toMatchObject({ distanceText: '3.25', distanceUnit: 'mi', paceText: '8:16', paceUnit: '/mi' });
+    expect(describeSharedRun(shared(), 'metric')).toMatchObject({ distanceText: '5.23', distanceUnit: 'km', paceText: '5:08', paceUnit: '/km' });
+  });
+
+  it('works the pace out per mile too when the post has none', () => {
+    // 5 km in 25:00 is 5:00 /km, which is 8:03 /mi
+    expect(describeSharedRun(shared({ pace: undefined, distance: 5, duration: 1500 }), 'imperial').paceText).toBe('8:03');
   });
 
   it('knows a walk', () => {

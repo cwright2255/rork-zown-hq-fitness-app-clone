@@ -1,3 +1,11 @@
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('expo-speech', () => ({ speak: jest.fn(), stop: jest.fn() }), { virtual: true });
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => undefined),
@@ -12,6 +20,9 @@ import { AppState } from 'react-native';
 import { alertOffRoute, watchOffRoute } from '../services/offRouteWatch';
 import { useRunTrackerStore } from '../store/runTrackerStore';
 import { OFF_ROUTE_AFTER_MS, REMIND_EVERY_MS } from '../lib/offRoute';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const Speech = require('expo-speech');
 const Haptics = require('expo-haptics');
@@ -103,6 +114,16 @@ describe('watchOffRoute', () => {
       expect(Speech.stop).toHaveBeenCalled();
       expect(Speech.speak).toHaveBeenCalledTimes(1);
       expect(Speech.speak.mock.calls[0][0]).toBe('You may be off the trail. You are about 150 meters from the route.');
+    });
+
+    it('speaks the distance in feet when Settings are in miles', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      start();
+      stray();
+      await flush();
+      expect(onChange.mock.calls[0][0].distanceM).toBeGreaterThanOrEqual(149); // the screen gets metres and says them in its own unit
+      expect(Speech.speak).toHaveBeenCalledTimes(1);
+      expect(Speech.speak.mock.calls[0][0]).toBe('You may be off the trail. You are about 500 feet from the route.');
     });
 
     it('waits for the hiker to stay off before it says anything', async () => {
@@ -459,6 +480,22 @@ describe('alertOffRoute', () => {
     await done;
     expect(finished).toBe(true);
     expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('says the distance in the unit Settings have when the warning is given, not when the hike began', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    await alertOffRoute('off', 120);
+    expect(Speech.speak.mock.calls[0][0]).toBe('You may be off the trail. You are about 400 feet from the route.');
+    useSettingsStore.setState({ units: 'metric' });
+    await alertOffRoute('off', 120);
+    expect(Speech.speak.mock.calls[1][0]).toBe('You may be off the trail. You are about 100 meters from the route.');
+  });
+
+  it('puts the distance in the background notification in the same unit', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    setAppState('background');
+    await alertOffRoute('off', 120);
+    expect(Notifications.scheduleNotificationAsync.mock.calls[0][0].content.body).toBe('About 400 ft from the trail you chose.');
   });
 
   it('does nothing for an event with no warning', async () => {

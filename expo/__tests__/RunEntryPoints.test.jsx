@@ -5,6 +5,14 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 // The three places that lead to a run: the Running Log, the finished-run screen
 // and the Running hub (Free run / Free walk).
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
@@ -51,6 +59,9 @@ jest.mock('@/services/distanceBoard', () => ({
 import RunningLogScreen from '../app/profile/running-log';
 import WorkoutCompleteScreen from '../app/workout/complete';
 import RunningHubScreen from '../app/running/program/index';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const { router } = require('expo-router');
 
@@ -118,6 +129,24 @@ describe('Running Log', () => {
     const second = render(<RunningLogScreen />);
     expect(second.getByText('Activities')).toBeTruthy();
     expect(second.queryByText('Runs')).toBeNull();
+  });
+
+  it('shows the totals, each run and the pace in kilometres when Settings are in km', () => {
+    setStore([run()]);
+    const utils = render(<RunningLogScreen />);
+    expect(utils.getByText('5.0 km')).toBeTruthy(); // total
+    expect(utils.getByText('5.00 km')).toBeTruthy(); // the run
+    expect(utils.getAllByText('5:00 /km').length).toBeGreaterThanOrEqual(2); // average pace and the run's pace
+  });
+
+  it('shows them in miles and minutes per mile when Settings say so', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    setStore([run()]);
+    const utils = render(<RunningLogScreen />);
+    expect(utils.getByText('3.1 mi')).toBeTruthy(); // total, 5 km
+    expect(utils.getByText('3.11 mi')).toBeTruthy(); // the run
+    expect(utils.getAllByText('8:03 /mi').length).toBeGreaterThanOrEqual(2);
+    expect(utils.queryByText(/ km$/)).toBeNull();
   });
 
   it('has an import button that opens the Apple Health import screen', () => {
@@ -205,6 +234,15 @@ describe('Finished-run screen', () => {
     expect(post.run).toMatchObject({ activity: 'run', distance: 5, duration: 1500, pace: 300, calories: 350 });
   });
 
+  it('words the caption of the shared run in miles when Settings say so, and stores kilometres', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open([run({ distance: 5 })], { type: 'run', runId: 'run-1' });
+    await act(async () => { fireEvent.press(utils.getByTestId('share-to-community')); });
+    const post = global.__createPost.mock.calls[0][0];
+    expect(post.text).toBe('Morning Run: 3.11 mi in 25:00 \uD83D\uDCAA');
+    expect(post.run.distance).toBe(5);
+  });
+
   it('hides the ends of the route it shares', async () => {
     // 41 points about 111 m apart going north: 4.4 km.
     const track = Array.from({ length: 41 }, (_, i) => [40 + i * 0.001, -74]).flat();
@@ -285,6 +323,39 @@ describe('Running hub', () => {
     await act(async () => {});
     fireEvent.press(utils.getByTestId('start-free-walk'));
     expect(router.push).toHaveBeenCalledWith({ pathname: '/running/active', params: { activity: 'walk' } });
+  });
+
+  describe('personal records', () => {
+    const records = { totalDistance: 50, longestRun: { distance: 21.1 }, fastestPace: { pace: 300 }, best5k: null };
+
+    it('are in kilometres when Settings are in km', async () => {
+      setStore([], { getPersonalRecords: jest.fn(() => records) });
+      const utils = render(<RunningHubScreen />);
+      await act(async () => {});
+      expect(utils.getByText('50.0 km')).toBeTruthy();
+      expect(utils.getByText('21.1 km')).toBeTruthy();
+      expect(utils.getByText('5\'00"')).toBeTruthy();
+      expect(utils.getByText('Best Pace /km')).toBeTruthy();
+    });
+
+    it('are in miles when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      setStore([], { getPersonalRecords: jest.fn(() => records) });
+      const utils = render(<RunningHubScreen />);
+      await act(async () => {});
+      expect(utils.getByText('31.1 mi')).toBeTruthy(); // 50 km
+      expect(utils.getByText('13.1 mi')).toBeTruthy(); // 21.1 km
+      expect(utils.getByText('8\'03"')).toBeTruthy(); // 5:00 per km
+      expect(utils.getByText('Best Pace /mi')).toBeTruthy();
+    });
+
+    it('show dashes when there is nothing yet', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      setStore([]);
+      const utils = render(<RunningHubScreen />);
+      await act(async () => {});
+      expect(utils.getAllByText('--').length).toBeGreaterThanOrEqual(3);
+    });
   });
 
   it('does not show challenges that cannot be joined yet', async () => {

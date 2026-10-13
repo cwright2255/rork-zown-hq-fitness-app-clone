@@ -1,6 +1,14 @@
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   useRouter: () => global.__router,
@@ -84,6 +92,9 @@ import { Circle as SvgCircle, Polyline as SvgPolyline } from 'react-native-svg';
 import HikeMonitorScreen from '../app/running/hiking/monitor';
 import { useRunTrackerStore } from '../store/runTrackerStore';
 import { trackedMs } from '../lib/runTracker';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const Location = require('expo-location');
 const Speech = require('expo-speech');
@@ -184,13 +195,23 @@ describe('HikeMonitorScreen', () => {
 
     it('shows distance, climb and difficulty from the tracker as the hike goes on', async () => {
       const utils = await mount();
-      expect(utils.getByTestId('hike-distance').props.children.join('')).toBe('0.00 km');
+      expect(utils.getByTestId('hike-distance').props.children).toBe('0.00 km');
       act(() => { store().ingest(walk(250, (i) => ({ altitude: 50 + (i + 1) * 0.2, altitudeAccuracy: 4 }))); });
       await tick(250);
-      expect(utils.getByTestId('hike-distance').props.children.join('')).toMatch(/^0\.7\d km$/);
+      expect(utils.getByTestId('hike-distance').props.children).toMatch(/^0\.7\d km$/);
       expect(Number(utils.getByTestId('hike-climb').props.children[0])).toBeGreaterThan(30);
       expect(utils.getByTestId('hike-difficulty').props.children).toBe('Easy');
       expect(utils.getByTestId('hike-elapsed').props.children).toBe('Hiking for 4m');
+    });
+
+    it('shows the distance in miles when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await mount();
+      expect(utils.getByTestId('hike-distance').props.children).toBe('0.00 mi');
+      act(() => { store().ingest(walk(250, (i) => ({ altitude: 50 + (i + 1) * 0.2, altitudeAccuracy: 4 }))); });
+      await tick(250);
+      // the 0.7x km of the test above, as 0.4x miles
+      expect(utils.getByTestId('hike-distance').props.children).toMatch(/^0\.4\d mi$/);
     });
 
     it('keeps counting the clock while no readings come in', async () => {
@@ -387,6 +408,17 @@ describe('HikeMonitorScreen', () => {
         type: 'hike', hikeId: 'hike-1', distanceKm: expect.any(String), durationSeconds: '120', difficultyTier: 'Easy',
       });
       expect(Number(arg.params.xpEarned)).toBeGreaterThan(0);
+    });
+
+    it('saves the hike in kilometres, and words the XP note in miles when Settings are in miles', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await goFar(await mount());
+      fireEvent.press(utils.getByText(/^Complete Hike/));
+      const [hike] = global.__hiking.addCompletedHike.mock.calls[0];
+      expect(hike.distanceKm).toBeGreaterThan(0.3); // kilometres, as always
+      expect(hike.distanceKm).toBeLessThan(0.4);
+      const miles = Number((hike.distanceKm / 1.609344).toFixed(2));
+      expect(global.__addExp.mock.calls[0][0].description).toMatch(new RegExp(`^Completed a easy hike \u2014 ${miles}mi, \\d+ft gain$`));
     });
 
     it('gives the XP, and the First Trail badge for the first hike', async () => {
@@ -781,6 +813,15 @@ describe('HikeMonitorScreen', () => {
       expect(banner.props.accessibilityRole).toBe('alert');
       expect(utils.getByText('Off the trail, about 80 m from the route')).toBeTruthy();
       expect(utils.getByText('Mute')).toBeTruthy();
+    });
+
+    it('says the distance off the trail in feet and miles when Settings say so', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = await mount();
+      stray(84);
+      expect(utils.getByText('Off the trail, about 300 ft from the route')).toBeTruthy();
+      stray(1234, null);
+      expect(utils.getByText('Off the trail, about 0.8 mi from the route')).toBeTruthy();
     });
 
     it('rounds the distance the way it is spoken', async () => {

@@ -1,6 +1,14 @@
 import React from 'react';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   useRouter: () => global.__router,
@@ -29,6 +37,9 @@ jest.mock('@/store/communityStore', () => ({
 }));
 
 import RunDetailScreen from '../app/running/run/[id]';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 // 7:05 in the morning on Thu 8 Oct 2026 (local time, the screen reads local time too).
 const START = new Date(2026, 9, 8, 7, 5, 0).toISOString();
@@ -71,6 +82,40 @@ describe('RunDetailScreen', () => {
     expect(utils.getByTestId('run-detail-time').props.children).toEqual(['26:50', null]);
     expect(utils.getByTestId('run-detail-calories')).toBeTruthy();
     expect(utils.getByTestId('run-detail-pace')).toBeTruthy();
+  });
+
+  it('names the unit beside the distance and the pace: km and /km', () => {
+    const utils = open('run-1', [run()]);
+    expect(utils.getByText('km')).toBeTruthy();
+    expect(utils.getByTestId('run-detail-pace').props.children).toEqual(['5:08', expect.anything()]);
+    expect(utils.getByTestId('run-detail-pace').props.children[1].props.children).toBe(' /km');
+  });
+
+  it('shows the same run in miles and minutes per mile when Settings say so', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open('run-1', [run()]);
+    expect(utils.getByTestId('run-detail-distance').props.children).toBe('3.25'); // 5.234 km
+    expect(utils.getByText('mi')).toBeTruthy();
+    expect(utils.queryByText('km')).toBeNull();
+    // 1610 s over 5.234 km is 5:08 per km, which is 8:15 per mile
+    expect(utils.getByTestId('run-detail-pace').props.children).toEqual(['8:15', expect.anything()]);
+    expect(utils.getByTestId('run-detail-pace').props.children[1].props.children).toBe(' /mi');
+    expect(utils.getByTestId('run-detail-time').props.children).toEqual(['26:50', null]);
+  });
+
+  it('changes when the setting changes while the screen is open', () => {
+    const utils = open('run-1', [run()]);
+    expect(utils.getByTestId('run-detail-distance').props.children).toBe('5.23');
+    act(() => { useSettingsStore.setState({ units: 'imperial' }); });
+    expect(utils.getByTestId('run-detail-distance').props.children).toBe('3.25');
+    expect(utils.getByTestId('run-detail-pace').props.children).toEqual(['8:15', expect.anything()]);
+  });
+
+  it('keeps the kilometre splits table in kilometres, with its own heading', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open('run-1', [run()]);
+    expect(utils.getByText('PACE /KM')).toBeTruthy();
+    expect(utils.getByTestId('split-row-1')).toBeTruthy();
   });
 
   it('calls a walk a walk', () => {
@@ -223,6 +268,15 @@ describe('RunDetailScreen sharing to the feed', () => {
     expect(post).toMatchObject({ uid: 'u1', type: 'run', text: 'Morning Run: 5.23 km in 26:50 \uD83D\uDCAA' });
     expect(post.run).toMatchObject({ activity: 'run', distance: 5.23, duration: 1610, calories: 366, elevGain: 42 });
     expect(global.__runningStore.markRunShared).toHaveBeenCalledWith('u1', 'run-1', 'post-1');
+  });
+
+  it('writes the caption of the shared run in the poster\'s unit and stores the distance in km', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open('run-1', [run()]);
+    await press(utils);
+    const post = global.__createPost.mock.calls[0][0];
+    expect(post.text).toBe('Morning Run: 3.25 mi in 26:50 \uD83D\uDCAA');
+    expect(post.run.distance).toBe(5.23);
   });
 
   it('then shows the run as shared, and does not post it again', async () => {

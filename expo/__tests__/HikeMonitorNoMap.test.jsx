@@ -2,6 +2,14 @@ import React from 'react';
 import { act, render } from '@testing-library/react-native';
 import { Polyline as SvgPolyline } from 'react-native-svg';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   useRouter: () => global.__router,
@@ -47,6 +55,9 @@ jest.mock('@/services/offRouteWatch', () => ({
 }));
 
 import { useRunTrackerStore } from '../store/runTrackerStore';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 // The screen says so when it cannot load the maps package; that is expected here.
 const loadWarning = jest.spyOn(console, 'warn').mockImplementation(() => {});

@@ -20,6 +20,8 @@ import { useCommunityStore } from '@/store/communityStore';
 import { shareRunToFeed, shareErrorText } from '@/services/runShare';
 import { shareHikeToFeed, hikeShareErrorText } from '@/services/hikeShare';
 import { publishMyDistance } from '@/services/distanceBoard';
+import { useSettingsStore } from '@/store/settingsStore';
+import { formatDistanceTight, formatDistanceValue, distanceUnitLabel } from '@/lib/distanceUnits';
 
 function StatCard({ icon, number, label }) {
   return (
@@ -109,6 +111,7 @@ export default function WorkoutCompleteScreen() {
   const { badges, loadBadges } = useBadgeStore();
   const { loadRuns } = useRunningStore();
   const { createPost } = useCommunityStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const [sharing, setSharing] = useState(false);
   const [shared, setShared] = useState(false);
   const [shareError, setShareError] = useState('');
@@ -163,7 +166,7 @@ export default function WorkoutCompleteScreen() {
 
   const summaryStats = isHikeCompletion
     ? [
-        { label: 'Distance', value: `${params.distanceKm || '0'} km` },
+        { label: 'Distance', value: `${formatDistanceValue(params.distanceKm, units, 2)} ${distanceUnitLabel(units)}` },
         { label: 'Elevation Gain', value: `${params.elevationGainM || '0'} m` },
         { label: 'Difficulty', value: params.difficultyTier || 'Easy' },
         { label: 'Calories Burned', value: `${params.calories || '0'} kcal` },
@@ -171,7 +174,7 @@ export default function WorkoutCompleteScreen() {
       ]
     : isRunCompletion
       ? [
-          { label: 'Distance', value: `${(lastRun?.distance || 0).toFixed(2)} km` },
+          { label: 'Distance', value: `${formatDistanceValue(lastRun?.distance || 0, units, 2)} ${distanceUnitLabel(units)}` },
           { label: 'Duration', value: realDuration },
           { label: 'Calories Burned', value: `${realCalories} kcal` },
           { label: 'XP Earned', value: `+${realXP} XP` },
@@ -202,6 +205,7 @@ export default function WorkoutCompleteScreen() {
         user: { ...user, displayName },
         createPost,
         markShared: useHikingStore.getState().markHikeShared,
+        units,
       });
       if (result.ok || result.reason === 'already-shared') setShared(true);
       else setShareError(hikeShareErrorText(result.reason));
@@ -215,6 +219,7 @@ export default function WorkoutCompleteScreen() {
         user: { ...user, displayName },
         createPost,
         markShared: useRunningStore.getState().markRunShared,
+        units,
       });
       if (result.ok || result.reason === 'already-shared') setShared(true);
       else setShareError(shareErrorText(result.reason));
@@ -223,7 +228,7 @@ export default function WorkoutCompleteScreen() {
     }
     try {
       const text = isHikeCompletion
-        ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
+        ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike — ${formatDistanceTight(params.distanceKm, units, 2)}, ${params.elevationGainM}m elevation gain. 🥾`
         : `Just completed a workout — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
       await createPost({
         uid: user.uid,
@@ -255,9 +260,9 @@ export default function WorkoutCompleteScreen() {
   // names the app.
   const handleShareExternally = async () => {
     const text = isHikeCompletion
-      ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike on Zown — ${params.distanceKm}km, ${params.elevationGainM}m elevation gain. 🥾`
+      ? `Just completed a ${(params.difficultyTier || 'moderate').toLowerCase()} hike on Zown — ${formatDistanceTight(params.distanceKm, units, 2)}, ${params.elevationGainM}m elevation gain. 🥾`
       : isRunCompletion
-        ? `Just finished a ${(lastRun?.distance || 0).toFixed(2)}km ${activityOf(lastRun)} on Zown in ${realDuration}. 💪`
+        ? `Just finished a ${formatDistanceTight(lastRun?.distance || 0, units, 2)} ${activityOf(lastRun)} on Zown in ${realDuration}. 💪`
         : `Just completed a workout on Zown — ${realExercises} exercises, ${realCalories} kcal burned. 💪`;
     try {
       await Share.share({ message: text });

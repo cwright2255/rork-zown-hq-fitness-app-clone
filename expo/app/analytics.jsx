@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { formatDistance, paceIn, paceUnitLabel } from '@/lib/distanceUnits';
 
 /* -- Real calendar boundaries, same logic already proven correct in
    store/challengeStore.js / functions/src/index.js's generateChallenges
@@ -62,14 +64,17 @@ function inRange(date, range) {
 function fmtNum(n) {
   return Math.round(n).toLocaleString();
 }
-function fmtKm(n) {
-  return `${(Math.round(n * 10) / 10).toFixed(1)} km`;
+// A distance saved in km, in the Settings unit (miles for 'imperial', else km).
+function fmtKm(n, units) {
+  return formatDistance(Math.round(n * 10) / 10, units, 1);
 }
-function fmtPace(secPerKm) {
+// A pace saved as seconds per km, as m'ss" per km (per mile for 'imperial').
+function fmtPace(secPerKm, units) {
   if (!secPerKm || !Number.isFinite(secPerKm) || secPerKm <= 0) return '--';
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}'${String(s).padStart(2, '0')}"/km`;
+  const total = Math.round(paceIn(secPerKm, units));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}'${String(s).padStart(2, '0')}"${paceUnitLabel(units)}`;
 }
 function fmtDuration(totalSeconds) {
   if (!totalSeconds || totalSeconds <= 0) return '0 min';
@@ -120,6 +125,7 @@ export default function AnalysisScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { user } = useUserStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const { completedWorkouts, loadWorkouts, getWorkoutStreak } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
 
@@ -242,12 +248,12 @@ export default function AnalysisScreen() {
       ? withPace.reduce((s, r) => s + r.pace, 0) / withPace.length
       : 0;
     return {
-      dist: fmtKm(totalDistance),
-      pace: fmtPace(avgPace),
-      longest: fmtKm(longest?.distance || 0),
+      dist: fmtKm(totalDistance, units),
+      pace: fmtPace(avgPace, units),
+      longest: fmtKm(longest?.distance || 0, units),
       time: fmtDuration(totalDuration),
     };
-  }, [runsInRange]);
+  }, [runsInRange, units]);
 
   /* -- Workout stats, period-filtered from real completed workouts. -- */
   const workoutStats = useMemo(() => {
@@ -285,7 +291,7 @@ export default function AnalysisScreen() {
     }
     const longestRun = runsWithData.reduce((b, r) => (!b || r.distance > b.distance ? r : b), null);
     if (longestRun) {
-      list.push({ title: 'Longest Run', value: fmtKm(longestRun.distance), date: fmtShortDate(runDate(longestRun)) });
+      list.push({ title: 'Longest Run', value: fmtKm(longestRun.distance, units), date: fmtShortDate(runDate(longestRun)) });
     }
 
     const calorieCandidates = [
@@ -319,7 +325,7 @@ export default function AnalysisScreen() {
     }
 
     return list;
-  }, [completedWorkouts, runs, getWorkoutStreak]);
+  }, [completedWorkouts, runs, getWorkoutStreak, units]);
 
   /* -- Recent activity: real completed workouts + real runs merged and
      sorted by real date, always most-recent-first regardless of the
@@ -340,7 +346,7 @@ export default function AnalysisScreen() {
       ...(showRunning ? (runs || []).map((r) => ({
         id: `r-${r.id}`,
         title: 'Run',
-        sub: `Running \u2022 ${fmtDuration(r.duration)}${r.distance ? ` \u2022 ${fmtKm(r.distance)}` : ''}`,
+        sub: `Running \u2022 ${fmtDuration(r.duration)}${r.distance ? ` \u2022 ${fmtKm(r.distance, units)}` : ''}`,
         xp: null,
         icon: 'fitness',
         date: runDate(r),
@@ -350,7 +356,7 @@ export default function AnalysisScreen() {
       .sort((a, b) => b.date - a.date)
       .slice(0, 8);
     return items;
-  }, [completedWorkouts, runs, showWorkouts, showRunning]);
+  }, [completedWorkouts, runs, showWorkouts, showRunning, units]);
 
   const hasAnyDataInRange = workoutsInRange.length > 0 || runsInRange.length > 0;
   const hasAnyDataAtAll = (completedWorkouts && completedWorkouts.length > 0) || (runs && runs.length > 0);

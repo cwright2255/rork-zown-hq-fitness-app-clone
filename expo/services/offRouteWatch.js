@@ -16,6 +16,7 @@ import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { useRunTrackerStore } from '@/store/runTrackerStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { createOffRoute, stepOffRoute, describeOffRoute } from '@/lib/offRoute';
 
 // The distance on the screen only changes in steps of this many metres, so it
@@ -40,7 +41,8 @@ async function notifyInBackground(message) {
  * @param speak  whether to speak it aloud when the app is open
  */
 export async function alertOffRoute(event, distanceM, { speak = true } = {}) {
-  const message = describeOffRoute(event, distanceM);
+  // The Settings distance unit, read when the warning is given (it may have changed since the hike began).
+  const message = describeOffRoute(event, distanceM, useSettingsStore.getState().units);
   if (!message) return;
   try {
     await Haptics.notificationAsync(

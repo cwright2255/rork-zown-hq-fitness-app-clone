@@ -1,6 +1,14 @@
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('lucide-react-native', () => ({ Trophy: 'Trophy' }), { virtual: true });
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }), { virtual: true });
 jest.mock('@/components/ScreenHeader', () => ({ __esModule: true, default: () => null }));
@@ -18,6 +26,9 @@ jest.mock('@/services/distanceBoard', () => ({
 
 import LeaderboardScreen from '../app/leaderboard';
 import { periodKeys } from '../lib/runLeaderboard';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const keys = periodKeys();
 
@@ -88,6 +99,20 @@ describe('LeaderboardScreen', () => {
     expect(utils.getByText('3.0 km')).toBeTruthy();
     expect(utils.getByText('1.3 km')).toBeTruthy();
     expect(utils.getByTestId('board-week').props.accessibilityState.selected).toBe(true);
+  });
+
+  it('shows the same distances in miles when Settings say so', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = setup();
+    fireEvent.press(utils.getByTestId('board-distance'));
+    expect(utils.getByText('13.3 mi')).toBeTruthy(); // 21.4 km
+    expect(utils.getByText('7.7 mi')).toBeTruthy(); // 12.4 km
+    expect(utils.getByText('1.9 mi')).toBeTruthy(); // 3.0 km
+    expect(utils.getByText('0.8 mi')).toBeTruthy(); // 1.3 km
+    expect(utils.queryByText(/ km$/)).toBeNull();
+    fireEvent.press(utils.getByTestId('board-month'));
+    expect(utils.getByText('80.9 mi')).toBeTruthy(); // 130.2 km
+    expect(utils.getByText('24.9 mi')).toBeTruthy(); // 40.0 km
   });
 
   it('switches to this month, with whole kilometres from 100', () => {

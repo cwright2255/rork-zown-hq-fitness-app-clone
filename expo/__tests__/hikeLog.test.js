@@ -216,6 +216,15 @@ describe('titles and details', () => {
     expect(info.points).toHaveLength(60);
   });
 
+  it('describes a hike in miles and minutes per mile when Settings say so', () => {
+    const hike = buildSavedHike(tracked(), { now: NOW });
+    expect(describeHike(hike, 'metric')).toMatchObject({ distanceText: '14.24', distanceUnit: 'km', paceText: '17:54', paceUnit: '/km' });
+    // 14.24 km is 8.85 mi; 17:54 per km is 28:49 per mile
+    expect(describeHike(hike, 'imperial')).toMatchObject({ distanceText: '8.85', distanceUnit: 'mi', paceText: '28:49', paceUnit: '/mi' });
+    expect(describeHike(hike, 'imperial').climb).toBe(812); // climb stays in metres
+    expect(describeHike({ id: 1, distanceKm: 0, durationSeconds: 0 }, 'imperial').paceText).toBe('--');
+  });
+
   it('describes an older hike that has no route, start time or descent', () => {
     const info = describeHike({
       id: 'hike-1', completedAt: START, trailName: 'Untitled hike', distanceKm: 4, durationSeconds: 3600,

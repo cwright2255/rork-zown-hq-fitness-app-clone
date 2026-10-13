@@ -9,16 +9,20 @@ import {
   Platform,
   StatusBar,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 import RunningMap from '@/components/RunningMap';
+import RunGoalSheet from '@/components/RunGoalSheet';
+import RunMusicSheet from '@/components/RunMusicSheet';
 import { useRunningStore } from '@/store/runningStore';
 import { useVirtualChallengeStore } from '@/store/virtualChallengeStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { radarService } from '@/services/radarService';
 import { getSessionIntervals, getProgramWeek } from '@/data/runningPrograms';
 import { useRunTrackerStore } from '@/store/runTrackerStore';
@@ -27,6 +31,13 @@ import {
   trackedMs, gpsStatus, intervalAt, elevationGain, sessionCounts, plannedSeconds, PROGRAM_CREDIT_FRACTION,
 } from '@/lib/runTracker';
 import { ACTIVITIES, caloriesFor, xpFor } from '@/lib/runStats';
+import { distanceUnitLabel, formatDistanceValue, paceIn } from '@/lib/distanceUnits';
+import { goalLabel, goalProgress } from '@/lib/runGoal';
+
+/** How long the lock is held to open it again, so a pocket or a sweaty thumb does not. */
+const UNLOCK_HOLD_MS = 700;
+/** The menu fades out in about this long; a sheet opened from it waits, since a second sheet cannot open while the first is closing. */
+const MENU_CLOSE_MS = 350;
 
 /* Ã¢ÂÂÃ¢ÂÂ Helpers Ã¢ÂÂÃ¢ÂÂ */
 
@@ -37,11 +48,12 @@ function formatTimer(secs) {
   return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
-function formatPace(distKm, secs) {
+// The pace so far as m'ss" per km, or per mile when `units` is 'imperial'.
+function formatPace(distKm, secs, units) {
   if (distKm < 0.01) return "--'--\"";
-  const paceSecsPerKm = secs / distKm;
-  const pm = Math.floor(paceSecsPerKm / 60);
-  const ps = Math.floor(paceSecsPerKm % 60);
+  const paceSecs = paceIn(secs / distKm, units);
+  const pm = Math.floor(paceSecs / 60);
+  const ps = Math.floor(paceSecs % 60);
   return pm + "'" + String(ps).padStart(2, '0') + '"';
 }
 
@@ -107,12 +119,17 @@ export default function ActiveRunScreen() {
      the tracker store, fed by GPS from services/runTracking.js. That keeps
      recording when the phone is locked and the app is in the background. */
   const tracker = useRunTrackerStore((s) => s.tracker);
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const [now, setNow] = useState(() => Date.now());
   const [audioEnabled, setAudioEnabled] = useState(params.audioCues !== 'false');
   const [showMenu, setShowMenu] = useState(false);
   const [showPauseOptions, setShowPauseOptions] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [locationPermission, setLocationPermission] = useState(null);
+  const [locked, setLocked] = useState(false);
+  const [showGoal, setShowGoal] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
+  const goalKm = useRunTrackerStore((s) => s.goalKm); // the distance goal, in km
 
   const isRunning = tracker.status === 'running';
   const elapsed = Math.floor(trackedMs(tracker, now) / 1000);
@@ -122,6 +139,7 @@ export default function ActiveRunScreen() {
   const currentLocation = tracker.current;
   const gps = gpsStatus(tracker, now);
   const climb = Math.round(elevationGain(tracker));
+  const { percent: goalPercent, reached: goalReached } = goalProgress(distance, goalKm);
 
   /* -- Request location permission on mount, then start recording -- */
   useEffect(() => {
@@ -185,6 +203,52 @@ export default function ActiveRunScreen() {
     setShowMenu(false);
   }, []);
 
+  /* -- Lock: the screen ignores touches until the lock is held, so a run in a pocket
+     or an armband is not paused or ended by accident. Recording carries on. -- */
+  const handleLock = useCallback(() => {
+    setShowMenu(false);
+    setLocked(true);
+  }, []);
+  const handleUnlock = useCallback(() => setLocked(false), []);
+  useEffect(() => {
+    if (!locked) return undefined;
+    // The Android back button does nothing while locked.
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => subscription.remove();
+  }, [locked]);
+
+  /* -- Distance goal: picked from the sheet, kept in km by the tracker store, and
+     announced once when it is reached (a goal that is already behind the run is not). -- */
+  const announcedGoal = useRef(null);
+  const handleChooseGoal = useCallback((km) => {
+    const { setGoalKm, tracker: current } = useRunTrackerStore.getState();
+    setGoalKm(km);
+    const next = useRunTrackerStore.getState().goalKm;
+    announcedGoal.current = goalProgress(current.distanceM / 1000, next).reached ? next : null;
+    setShowGoal(false);
+  }, []);
+  useEffect(() => {
+    if (!goalReached) {
+      announcedGoal.current = null;
+      return;
+    }
+    if (announcedGoal.current === goalKm) return;
+    announcedGoal.current = goalKm;
+    if (audioEnabled) {
+      Speech.stop();
+      Speech.speak('Distance goal reached', { rate: 1.0 });
+    }
+  }, [goalReached, goalKm]);
+
+  /* -- Music: opens from the menu once the menu has closed -- */
+  const musicTimer = useRef(null);
+  const handleOpenMusic = useCallback(() => {
+    setShowMenu(false);
+    clearTimeout(musicTimer.current);
+    musicTimer.current = setTimeout(() => setShowMusic(true), MENU_CLOSE_MS);
+  }, []);
+  useEffect(() => () => clearTimeout(musicTimer.current), []);
+
   const handleEndRun = useCallback(() => {
     // A double tap on End, or the program timer firing as you tap, must not
     // save the same run twice.
@@ -229,7 +293,7 @@ export default function ActiveRunScreen() {
           date: new Date().toISOString().split('T')[0],
           description: countsForProgram
             ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
-            : `Completed a ${summary.distance.toFixed(2)}km ${activity}`,
+            : `Completed a ${formatDistanceValue(summary.distance, units, 2)}${distanceUnitLabel(units)} ${activity}`,
           completed: true,
         }, user?.uid);
       }
@@ -237,7 +301,7 @@ export default function ActiveRunScreen() {
       console.warn('Failed to save run:', e?.message);
     }
     router.replace(`/workout/complete?type=run&runId=${savedRunId}`);
-  }, [router, endRun, addExpActivity, user, isProgramRun, programWeek, programIntervals, programId, weekNumber, sessionIndex, completeProgramSession, activity]);
+  }, [router, endRun, addExpActivity, user, isProgramRun, programWeek, programIntervals, programId, weekNumber, sessionIndex, completeProgramSession, activity, units]);
 
   // End Run from the menu or the pause panel. Ending a program session before
   // it has counted would quietly lose the credit, so stop the clock and ask.
@@ -289,8 +353,7 @@ export default function ActiveRunScreen() {
     banner = { icon: 'locate', text, warn: true };
   }
 
-  const pace = formatPace(distance, elapsed);
-  const goalPercent = Math.min(100, Math.round((distance / 5) * 100));
+  const pace = formatPace(distance, elapsed, units);
 
   return (
     <View style={styles.container}>
@@ -340,12 +403,34 @@ export default function ActiveRunScreen() {
 
       {/* Ã¢ÂÂÃ¢ÂÂ Stats panel Ã¢ÂÂÃ¢ÂÂ */}
       <View style={styles.statsPanel}>
-        {/* Distance goal row */}
-        <View style={styles.goalRow}>
-          <View style={styles.goalCircle} />
-          <Text style={styles.goalText}>Distance Goal</Text>
-          <Text style={styles.goalPercent}>{goalPercent}%</Text>
-          {climb > 0 && <Text style={styles.climbText} testID="run-climb">{climb} m climb</Text>}
+        {/* Distance goal row: tap to pick a goal */}
+        <View style={styles.goalBlock}>
+          <Pressable
+            style={styles.goalRow}
+            onPress={() => setShowGoal(true)}
+            accessibilityRole="button"
+            accessibilityLabel={goalKm ? `Distance goal ${goalLabel(goalKm, units)}. Tap to change.` : 'Distance goal not set. Tap to set one.'}
+            testID="run-goal-row"
+          >
+            <View style={[styles.goalCircle, goalReached && styles.goalCircleDone]}>
+              {goalReached && <Ionicons name="checkmark" size={14} color="#000" />}
+            </View>
+            <Text style={styles.goalText}>Distance Goal</Text>
+            {goalKm ? (
+              <>
+                <Text style={styles.goalValue} testID="run-goal-value">{goalLabel(goalKm, units)}</Text>
+                <Text style={styles.goalPercent} testID="run-goal-percent">{goalPercent}%</Text>
+              </>
+            ) : (
+              <Text style={styles.goalValue} testID="run-goal-value">Not set</Text>
+            )}
+            {climb > 0 && <Text style={styles.climbText} testID="run-climb">{climb} m climb</Text>}
+          </Pressable>
+          {goalKm ? (
+            <View style={styles.goalTrack}>
+              <View style={[styles.goalFill, { width: `${goalPercent}%` }]} testID="run-goal-fill" />
+            </View>
+          ) : null}
         </View>
 
         {/* Main stats 2x2 */}
@@ -358,9 +443,9 @@ export default function ActiveRunScreen() {
           </View>
           <View style={styles.statCell}>
             <Text style={styles.statValue}>
-              {distance.toFixed(2)}
+              {formatDistanceValue(distance, units, 2)}
             </Text>
-            <Text style={styles.statLabel}>Kilometers</Text>
+            <Text style={styles.statLabel}>{distanceUnitLabel(units) === 'mi' ? 'Miles' : 'Kilometers'}</Text>
           </View>
           <View style={styles.statCell}>
             <Text style={styles.statValue}>
@@ -378,7 +463,12 @@ export default function ActiveRunScreen() {
 
         {/* Controls row */}
         <View style={styles.controlsRow}>
-          <Pressable style={styles.smallBtn}>
+          <Pressable
+            style={styles.smallBtn}
+            onPress={handleLock}
+            accessibilityLabel="Lock screen"
+            testID="run-lock-button"
+          >
             <Ionicons name="lock-closed-outline" size={20} color="#FFF" />
           </Pressable>
           <Pressable
@@ -391,6 +481,8 @@ export default function ActiveRunScreen() {
           <Pressable
             style={styles.smallBtn}
             onPress={() => setAudioEnabled(!audioEnabled)}
+            accessibilityLabel={audioEnabled ? 'Turn voice cues off' : 'Turn voice cues on'}
+            testID="run-sound-button"
           >
             <Ionicons name={audioEnabled ? 'volume-high' : 'volume-mute'} size={20} color="#FFF" />
           </Pressable>
@@ -428,7 +520,7 @@ export default function ActiveRunScreen() {
       <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
           <View style={styles.menuCard}>
-            <MenuOption icon="musical-notes-outline" label="Music" onPress={() => setShowMenu(false)} />
+            <MenuOption icon="musical-notes-outline" label="Music" onPress={handleOpenMusic} />
             <MenuOption icon="pause-circle-outline" label={`Pause ${activityLabel}`} onPress={() => { setShowMenu(false); handlePause(); }} />
             <MenuOption
               icon={tracker.autoPause ? 'flash' : 'flash-off-outline'}
@@ -439,6 +531,32 @@ export default function ActiveRunScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      <RunGoalSheet
+        visible={showGoal}
+        units={units}
+        goalKm={goalKm}
+        onChoose={handleChooseGoal}
+        onClose={() => setShowGoal(false)}
+      />
+      <RunMusicSheet visible={showMusic} onClose={() => setShowMusic(false)} />
+
+      {/* Screen lock: covers everything and ignores touches until it is held */}
+      {locked && (
+        <Pressable
+          style={styles.lockOverlay}
+          onLongPress={handleUnlock}
+          delayLongPress={UNLOCK_HOLD_MS}
+          accessibilityRole="button"
+          accessibilityLabel="Screen locked. Press and hold to unlock."
+          testID="run-lock-overlay"
+        >
+          <View style={styles.lockHint} pointerEvents="none">
+            <Ionicons name="lock-closed" size={14} color="#FFF" />
+            <Text style={styles.lockHintText} testID="run-lock-hint">Locked. Hold to unlock.</Text>
+          </View>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -488,16 +606,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, paddingTop: 20,
     zIndex: 5,
   },
+  goalBlock: { marginBottom: 16 },
   goalRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
   goalCircle: {
     width: 24, height: 24, borderRadius: 12,
     borderWidth: 2.5, borderColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
   },
+  goalCircleDone: { backgroundColor: '#FFFFFF' },
   goalText: { fontSize: 14, color: '#FFF', fontWeight: '500' },
+  goalValue: { fontSize: 14, color: '#888', fontWeight: '500' },
   goalPercent: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
+  goalTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 10, overflow: 'hidden' },
+  goalFill: { height: 4, borderRadius: 2, backgroundColor: '#FFFFFF' },
   climbText: { marginLeft: 'auto', fontSize: 13, color: '#888', fontWeight: '600' },
+
+  /* Screen lock */
+  lockOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50,
+  },
+  lockHint: {
+    position: 'absolute', top: 54, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16,
+    backgroundColor: 'rgba(13,17,23,0.88)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+  },
+  lockHintText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
 
   /* Banner over the map */
   bannerWrap: {

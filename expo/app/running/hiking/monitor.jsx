@@ -41,6 +41,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useRunTrackerStore } from '@/store/runTrackerStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { getWeatherSnapshot } from '@/services/weatherService';
 import { startTracking, stopTracking } from '@/services/runTracking';
 import { trackedMs, gpsStatus, elevationGain, finishTracker } from '@/lib/runTracker';
@@ -52,6 +53,7 @@ import { fetchRouteForMap } from '@/services/hikingService';
 import { cachedRoute } from '@/lib/offlineTrails';
 import { watchOffRoute } from '@/services/offRouteWatch';
 import { distanceLabel } from '@/lib/offRoute';
+import { distanceUnitLabel, formatDistance, formatDistanceValue } from '@/lib/distanceUnits';
 
 // Same safe/conditional import pattern already established in
 // app/running/hiking/[id].jsx - react-native-maps needs a native
@@ -108,6 +110,7 @@ export default function HikeWeatherMonitorScreen() {
 
   // The hike being recorded. Everything measured lives in the tracker store.
   const tracker = useRunTrackerStore((s) => s.tracker);
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const [now, setNow] = useState(() => Date.now());
   const [isMonitoring, setIsMonitoring] = useState(true);
   const [startPoint, setStartPoint] = useState(null); // first position, before the tracker has one
@@ -425,7 +428,7 @@ export default function HikeWeatherMonitorScreen() {
         baseExp: baseXp,
         multiplier: difficulty.xpMultiplier,
         date: new Date().toISOString().split('T')[0],
-        description: `Completed a ${difficulty.tier.toLowerCase()} hike — ${record.distanceKm}km, ${difficulty.elevationGainFt}ft gain`,
+        description: `Completed a ${difficulty.tier.toLowerCase()} hike — ${Number(formatDistanceValue(record.distanceKm, units, 2))}${distanceUnitLabel(units)}, ${difficulty.elevationGainFt}ft gain`,
         completed: true,
       }, user?.uid);
 
@@ -590,7 +593,7 @@ export default function HikeWeatherMonitorScreen() {
         {offTrail && (
           <View style={[styles.banner, styles.bannerOff]} testID="hike-off-route-banner" accessibilityRole="alert">
             <Ionicons name="warning" size={14} color="#FFF" />
-            <Text style={styles.bannerText}>{`Off the trail, about ${distanceLabel(offTrail.distanceM)} from the route`}</Text>
+            <Text style={styles.bannerText}>{`Off the trail, about ${distanceLabel(offTrail.distanceM, units)} from the route`}</Text>
             <Pressable onPress={handleMuteOffRoute} hitSlop={8} testID="hike-off-route-mute" accessibilityRole="button">
               <Text style={styles.bannerAction}>Mute</Text>
             </Pressable>
@@ -599,7 +602,7 @@ export default function HikeWeatherMonitorScreen() {
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue} testID="hike-distance">{distanceKm.toFixed(2)} km</Text>
+            <Text style={styles.statValue} testID="hike-distance">{formatDistance(distanceKm, units, 2)}</Text>
             <Text style={styles.statLabel}>Distance</Text>
           </View>
           <View style={styles.statBox}>

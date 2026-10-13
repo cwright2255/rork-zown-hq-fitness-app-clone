@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { formatDistance, paceIn, paceUnitLabel } from '@/lib/distanceUnits';
 
 
 
@@ -54,6 +56,7 @@ function StatBox({ value, label }) {
 export default function RunningScreen() {
   const { getPersonalRecords, loadRuns, programs, loadRunningPrograms } = useRunningStore();
   const { user } = useUserStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const [records, setRecords] = useState({ longestRun: null, fastestPace: null, best5k: null, totalDistance: 0 });
 
   useEffect(() => {
@@ -66,10 +69,12 @@ export default function RunningScreen() {
     loadRunningPrograms();
   }, []);
 
+  // A pace saved as seconds per km, shown as m'ss" per km (per mile for imperial `units`).
   const fmtPace = (secPerKm) => {
     if (!secPerKm) return '--';
-    const m = Math.floor(secPerKm / 60);
-    const s = Math.round(secPerKm % 60);
+    const total = Math.round(paceIn(secPerKm, units));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
     return `${m}'${String(s).padStart(2, '0')}"`;
   };
 
@@ -116,9 +121,9 @@ export default function RunningScreen() {
             a fake "Featured Runs" carousel of workouts nobody has done. */}
         <SectionHeader title="Your Stats" />
         <View style={styles.statsRow}>
-          <StatBox value={records.totalDistance ? `${records.totalDistance.toFixed(1)} km` : '--'} label="Total Distance" />
-          <StatBox value={records.longestRun ? `${records.longestRun.distance.toFixed(1)} km` : '--'} label="Longest Run" />
-          <StatBox value={fmtPace(records.fastestPace?.pace)} label="Best Pace" />
+          <StatBox value={records.totalDistance ? formatDistance(records.totalDistance, units, 1) : '--'} label="Total Distance" />
+          <StatBox value={records.longestRun ? formatDistance(records.longestRun.distance, units, 1) : '--'} label="Longest Run" />
+          <StatBox value={fmtPace(records.fastestPace?.pace)} label={`Best Pace ${paceUnitLabel(units)}`} />
         </View>
 
         {/* Running Programs -- real content from data/runningPrograms.js */}

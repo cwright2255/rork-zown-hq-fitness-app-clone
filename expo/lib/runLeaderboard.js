@@ -17,6 +17,7 @@
 // than MIN_BOARD_PACE seconds per km, which is a bike or a car, not a person.
 
 import { runPaceSecPerKm, runTime } from './runStats';
+import { distanceIn, distanceUnitLabel } from './distanceUnits';
 
 /** The ways the leaderboard can be ranked. `xp` is the original one. */
 export const BOARDS = [
@@ -112,12 +113,13 @@ export function boardValue(entry, board, now = Date.now()) {
   return Number.isFinite(km) && km > 0 ? km : 0;
 }
 
-/** "12.4 km" / "128 km" / "1,250 XP". */
-export function formatBoardValue(board, value) {
-  const v = Number(value) || 0;
-  if (!isDistanceBoard(board)) return `${Math.round(v).toLocaleString()} XP`;
+/** "12.4 km" / "128 km" / "1,250 XP" (miles instead of km for imperial `units`; a board's distances are saved in km). */
+export function formatBoardValue(board, value, units) {
+  const km = Number(value) || 0;
+  if (!isDistanceBoard(board)) return `${Math.round(km).toLocaleString()} XP`;
+  const v = distanceIn(km, units);
   const tenth = Math.round(v * 10) / 10;
-  return `${tenth >= 100 ? Math.round(v) : tenth.toFixed(1)} km`;
+  return `${tenth >= 100 ? Math.round(v) : tenth.toFixed(1)} ${distanceUnitLabel(units)}`;
 }
 
 /** What to say when a board has nobody on it. */

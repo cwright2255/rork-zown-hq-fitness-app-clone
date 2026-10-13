@@ -8,8 +8,10 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { paceLabel, runPaceSecPerKm, routePoints, activityOf } from '@/lib/runStats';
 import { runTitle } from '@/lib/runDetail';
+import { formatDistance } from '@/lib/distanceUnits';
 import { sourceLabel } from '@/lib/runImport';
 import { lightColors } from '../../../theme/tokens';
 
@@ -18,6 +20,7 @@ export default function RunningLogScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { runs, loadRuns, getStats } = useRunningStore();
   const { user } = useUserStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
 
   // Real fix: filter/setFilter/filteredRuns/stats were referenced below
   // but never declared. getStats() already existed in runningStore.js
@@ -47,10 +50,10 @@ export default function RunningLogScreen() {
   const rawStats = getStats ? getStats() : { totalRuns: 0, totalDistance: 0, totalDuration: 0, avgPace: 0 };
   const stats = {
     totalRuns: rawStats.totalRuns,
-    totalDistance: `${rawStats.totalDistance.toFixed(1)} km`,
+    totalDistance: formatDistance(rawStats.totalDistance, units, 1),
     totalTime: formatDuration(rawStats.totalDuration),
     // Pace is stored as seconds per km, so it goes through the shared formatter.
-    avgPace: paceLabel(rawStats.avgPace),
+    avgPace: paceLabel(rawStats.avgPace, units),
   };
 
   const onRefresh = async () => {
@@ -175,7 +178,7 @@ return (
 
                 <View style={styles.runStatsGrid}>
                   <View style={styles.runStat}>
-                    <Text style={styles.runStatVal}>{run.distance ? run.distance.toFixed(2) : '0.00'} km</Text>
+                    <Text style={styles.runStatVal}>{formatDistance(run.distance || 0, units, 2)}</Text>
                     <Text style={styles.runStatLbl}>Distance</Text>
                   </View>
                   <View style={styles.runStat}>
@@ -183,7 +186,7 @@ return (
                     <Text style={styles.runStatLbl}>Time</Text>
                   </View>
                   <View style={styles.runStat}>
-                    <Text style={styles.runStatVal}>{paceLabel(runPaceSecPerKm(run))}</Text>
+                    <Text style={styles.runStatVal}>{paceLabel(runPaceSecPerKm(run), units)}</Text>
                     <Text style={styles.runStatLbl}>Pace</Text>
                   </View>
                 </View>

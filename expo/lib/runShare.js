@@ -18,6 +18,7 @@ import {
   ACTIVITIES, activityOf, compactTrack, formatPace, routePoints, runPaceSecPerKm,
 } from './runStats';
 import { formatClock, runTitle } from './runDetail';
+import { distanceUnitLabel, formatDistance, formatDistanceValue, paceIn, paceUnitLabel } from './distanceUnits';
 
 /** How much of each end of the route is hidden, in metres (straight line from the start / finish). */
 export const SHARE_HIDE_ENDS_M = 200;
@@ -63,11 +64,11 @@ export function hideRouteEnds(points, hideM = SHARE_HIDE_ENDS_M, minShownM = SHA
   return routeLengthM(kept) >= minShownM ? kept : [];
 }
 
-/** The line that goes with a shared run when nobody has written anything. */
-export function runCaption(post) {
+/** The line that goes with a shared run when nobody has written anything. `units` is the poster's Settings distance unit. */
+export function runCaption(post, units) {
   const label = ACTIVITIES[post && post.activity === 'walk' ? 'walk' : 'run'].label;
   const title = (post && post.title) || label;
-  return `${title}: ${num(post && post.distance).toFixed(2)} km in ${formatClock(post && post.duration)} \uD83D\uDCAA`;
+  return `${title}: ${formatDistance(num(post && post.distance), units, 2)} in ${formatClock(post && post.duration)} \uD83D\uDCAA`;
 }
 
 /**
@@ -76,7 +77,7 @@ export function runCaption(post) {
  * nothing worth sharing (no distance or no time). Never contains undefined
  * (Firestore refuses it).
  */
-export function buildRunPost(run) {
+export function buildRunPost(run, units) {
   if (!run || typeof run !== 'object') return null;
   const distance = Math.round(Math.max(0, num(run.distance)) * 100) / 100;
   const duration = Math.max(0, Math.round(num(run.duration)));
@@ -97,7 +98,7 @@ export function buildRunPost(run) {
   const climb = Math.round(num(run.elevGain));
   if (climb > 0) shared.elevGain = climb;
 
-  return { run: shared, text: runCaption(shared) };
+  return { run: shared, text: runCaption(shared, units) };
 }
 
 /**
@@ -105,7 +106,7 @@ export function buildRunPost(run) {
  * written by other people's phones, so nothing is trusted: anything that is
  * not usable gives null (the card then shows nothing).
  */
-export function describeSharedRun(raw) {
+export function describeSharedRun(raw, units) {
   if (!raw || typeof raw !== 'object') return null;
   const distance = num(raw.distance);
   const duration = num(raw.duration);
@@ -129,9 +130,11 @@ export function describeSharedRun(raw) {
   return {
     activity,
     title,
-    distanceText: distance.toFixed(2),
+    distanceText: formatDistanceValue(distance, units, 2),
+    distanceUnit: distanceUnitLabel(units),
     timeText: formatClock(duration),
-    paceText: formatPace(pace),
+    paceText: formatPace(paceIn(pace, units)),
+    paceUnit: paceUnitLabel(units),
     climb: num(raw.elevGain) > 0 ? Math.round(raw.elevGain) : 0,
     ...(tier ? { tier } : {}),
     points,

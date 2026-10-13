@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useRunTrackerStore } from '@/store/runTrackerStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { stopTracking } from '@/services/runTracking';
 import { hikeTrailId, recoveryMessage } from '@/lib/hikeRecovery';
 
@@ -31,7 +32,7 @@ export default function HikeRecoveryPrompt({ enabled = true }) {
 
     const ask = () => {
       const { tracker } = useRunTrackerStore.getState();
-      Alert.alert('Unfinished hike', recoveryMessage(tracker, Date.now()), [
+      Alert.alert('Unfinished hike', recoveryMessage(tracker, Date.now(), useSettingsStore.getState().units), [
         { text: 'Discard', style: 'destructive', onPress: confirmDiscard },
         { text: 'Open hike', onPress: open },
       ], { cancelable: false });

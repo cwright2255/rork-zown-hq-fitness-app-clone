@@ -70,7 +70,7 @@ export default function TermsOfService() {
 
         <Text style={styles.sectionTitle}>7. Third-Party Services</Text>
         <Text style={styles.bodyText}>
-          The app uses outside services to provide its features, including Google Firebase (accounts, storage and crash reporting), OpenAI (AI features), Spotify and Apple Music (if you connect them), Apple Health and ROOK (if you connect them), Radar, Google Places, TrailAPI and the U.S. National Weather Service (location features), and CalorieAPI, Spoonacular and exercise-data providers (food, recipe and exercise information). Your use of these services is subject to their own terms. We do not control them and are not responsible for their downtime or data errors.
+          The app uses outside services to provide its features, including Google Firebase (accounts, storage and crash reporting), OpenAI (AI features), Spotify and Apple Music (if you connect them), Apple Health and ROOK (if you connect them), Radar, Google Places, TrailAPI, OpenStreetMap and the U.S. National Weather Service (location features), and CalorieAPI, Spoonacular and exercise-data providers (food, recipe and exercise information). Your use of these services is subject to their own terms. We do not control them and are not responsible for their downtime or data errors.
         </Text>
 
         <Text style={styles.sectionTitle}>8. Intellectual Property</Text>

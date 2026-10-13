@@ -17,6 +17,8 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { formatDistance, milesToKm } from '@/lib/distanceUnits';
 import { getPhotoUrl } from '@/services/hikingService';
 
 export default function HikingListScreen() {
@@ -117,6 +119,7 @@ export default function HikingListScreen() {
 }
 
 function TrailCard({ trail, saved, onPress }) {
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const photoUrl = trail.photoUrl || (trail.photoName ? getPhotoUrl(trail.photoName, 500) : null);
   return (
     <Pressable style={styles.card} onPress={onPress}>
@@ -135,7 +138,7 @@ function TrailCard({ trail, saved, onPress }) {
         )}
         {trail.distanceKm != null && (
           <View style={styles.distanceBadge}>
-            <Text style={styles.distanceBadgeText}>{trail.distanceKm.toFixed(1)} km away</Text>
+            <Text style={styles.distanceBadgeText}>{formatDistance(trail.distanceKm, units, 1)} away</Text>
           </View>
         )}
       </View>
@@ -152,7 +155,7 @@ function TrailCard({ trail, saved, onPress }) {
             </View>
           )}
           {trail.lengthMiles != null && (
-            <Text style={styles.openText}>{trail.lengthMiles.toFixed(1)} mi</Text>
+            <Text style={styles.openText}>{formatDistance(milesToKm(trail.lengthMiles), units, 1)}</Text>
           )}
           {trail.isOpen != null && (
             <Text style={[styles.openText, { color: trail.isOpen ? colors.green : colors.textSecondary }]}>

@@ -15,9 +15,11 @@ import PaceLineChart from '@/components/PaceLineChart';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
 import { useCommunityStore } from '@/store/communityStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { describeRun, formatDelta } from '@/lib/runDetail';
 import { shareRunToFeed, shareErrorText } from '@/services/runShare';
 import { formatPace, runPaceSecPerKm } from '@/lib/runStats';
+import { paceIn, paceUnitLabel } from '@/lib/distanceUnits';
 
 const INK = '#000000';
 const MAP_BG = '#0D1117';
@@ -66,7 +68,8 @@ export default function RunDetailScreen() {
     return () => { cancelled = true; };
   }, [run, user?.uid]);
 
-  const info = useMemo(() => (run ? describeRun(run) : null), [run]);
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
+  const info = useMemo(() => (run ? describeRun(run, units) : null), [run, units]);
 
   const goBack = () => {
     if (router.canGoBack && router.canGoBack()) router.back();
@@ -82,6 +85,7 @@ export default function RunDetailScreen() {
       user,
       createPost,
       markShared: useRunningStore.getState().markRunShared,
+      units,
     });
     setSharing(false);
     if (result.ok || result.reason === 'already-shared') setJustShared(true);
@@ -133,7 +137,7 @@ export default function RunDetailScreen() {
             {info.source ? <Text style={styles.sourceTag} testID="run-detail-source">{`Imported from ${info.source}`}</Text> : null}
             <View style={styles.bigRow}>
               <Text style={styles.bigValue} testID="run-detail-distance">{info.distanceText}</Text>
-              <Text style={styles.bigUnit}>km</Text>
+              <Text style={styles.bigUnit}>{info.distanceUnit}</Text>
             </View>
           </View>
         </View>
@@ -142,7 +146,7 @@ export default function RunDetailScreen() {
           <View style={styles.statsRow}>
             <Stat value={info.timeText} label="Duration" icon="time-outline" testID="run-detail-time" />
             <View style={styles.statDivider} />
-            <Stat value={formatPace(runPaceSecPerKm(run))} unit="/km" label="Avg pace" icon="speedometer-outline" testID="run-detail-pace" />
+            <Stat value={formatPace(paceIn(runPaceSecPerKm(run), units))} unit={paceUnitLabel(units)} label="Avg pace" icon="speedometer-outline" testID="run-detail-pace" />
             <View style={styles.statDivider} />
             <Stat value={String(info.calories)} unit="kcal" label="Calories" icon="flame-outline" testID="run-detail-calories" />
           </View>
@@ -187,7 +191,7 @@ export default function RunDetailScreen() {
               <Text style={styles.sectionTitle}>Splits</Text>
               <View style={styles.tableHead}>
                 <Text style={[styles.th, { width: 56 }]}>KM</Text>
-                <Text style={[styles.th, { width: 84 }]}>PACE</Text>
+                <Text style={[styles.th, { width: 84 }]}>PACE /KM</Text>
                 <Text style={[styles.th, { flex: 1 }]} />
                 <Text style={[styles.th, { width: 56, textAlign: 'right' }]}>VS AVG</Text>
               </View>

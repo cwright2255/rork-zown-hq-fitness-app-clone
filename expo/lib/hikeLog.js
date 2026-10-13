@@ -15,6 +15,7 @@
 
 import { compactTrack, formatPace, routePoints } from './runStats';
 import { formatClock, runDateLabel } from './runDetail';
+import { distanceUnitLabel, formatDistanceValue, paceIn, paceUnitLabel } from './distanceUnits';
 
 /** Under this distance (km) a tracked outing is not saved or rewarded as a hike. */
 export const MIN_HIKE_KM = 0.3;
@@ -147,8 +148,11 @@ export function hikeTitle(hike) {
   return `${part} Hike`;
 }
 
-/** Everything the history list and the detail screen show for one hike. Null when it is not a hike. */
-export function describeHike(hike) {
+/**
+ * Everything the history list and the detail screen show for one hike. Null when it is not a hike.
+ * `units` is the Settings distance unit ('imperial' shows miles); a hike is saved in km either way.
+ */
+export function describeHike(hike, units) {
   if (!hike || typeof hike !== 'object') return null;
   const distance = Math.max(0, num(hike.distanceKm));
   const duration = Math.max(0, num(hike.durationSeconds));
@@ -158,9 +162,11 @@ export function describeHike(hike) {
     title: hikeTitle(hike),
     pathName: text(hike.pathName),
     when: runDateLabel({ startTime: hike.startTime || hike.completedAt }),
-    distanceText: distance.toFixed(2),
+    distanceText: formatDistanceValue(distance, units, 2),
+    distanceUnit: distanceUnitLabel(units),
     timeText: formatClock(duration),
-    paceText: distance >= 0.01 && duration > 0 ? formatPace(duration / distance) : '--',
+    paceText: distance >= 0.01 && duration > 0 ? formatPace(paceIn(duration / distance, units)) : '--',
+    paceUnit: paceUnitLabel(units),
     calories: Math.max(0, Math.round(num(hike.calories))),
     climb: Math.max(0, Math.round(num(hike.elevationGainM))),
     descent: Math.max(0, Math.round(num(hike.elevationLossM))),

@@ -9,6 +9,7 @@ import PersonSheet from '@/components/PersonSheet';
 import { tokens } from '../../theme/tokens';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useSocialGraphStore } from '@/store/socialGraphStore';
 import { useAudience } from '@/store/useAudience';
 import { emptyAudienceMessage } from '@/lib/audience';
@@ -25,6 +26,7 @@ export default function LeaderboardScreen() {
     entries, audienceEntries, isLoading, isLoadingAudience, subscribeTop, unsubscribe, computeMyRank, loadForUids,
   } = useLeaderboardStore();
   const { user } = useUserStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
   const { audience, setAudience, uids, uidKey } = useAudience('leaderboard', user?.uid);
   const following = useSocialGraphStore((s) => s.following);
 
@@ -57,8 +59,8 @@ export default function LeaderboardScreen() {
 
   const nowMs = Date.now();
   const distanceBoard = isDistanceBoard(board);
-  // XP shows as a plain number (as it always has); distance as "12.4 km".
-  const showPts = (v) => (distanceBoard ? formatBoardValue(board, v) : v);
+  // XP shows as a plain number (as it always has); distance as "12.4 km" (or miles).
+  const showPts = (v) => (distanceBoard ? formatBoardValue(board, v, units) : v);
   const sorted = list.map((e) => ({
     id: e.id, name: e.name || 'Zown User', pts: boardValue(e, board, nowMs), avatar: e.avatar, isMe: e.id === user?.uid,
     isClose: following.some((f) => f.uid === e.id && f.close),

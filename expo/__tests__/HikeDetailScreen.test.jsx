@@ -1,6 +1,14 @@
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   useRouter: () => global.__router,
@@ -31,6 +39,9 @@ jest.mock('@/services/gpxShare', () => ({
 }));
 
 import HikeDetailScreen from '../app/running/hiking/log/[id]';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 // 7:05 in the morning on Thu 8 Oct 2026 (local time, the screen reads local time too).
 const START = new Date(2026, 9, 8, 7, 5, 0).toISOString();
@@ -83,6 +94,40 @@ describe('HikeDetailScreen', () => {
     expect(utils.getByTestId('hike-detail-time').props.children).toEqual(['4:15:00', null]);
     expect(utils.getByTestId('hike-detail-pace').props.children).toEqual(['17:54', expect.anything()]);
     expect(utils.getByTestId('hike-detail-calories').props.children).toEqual(['2211', expect.anything()]);
+  });
+
+  it('names the unit beside the distance and the pace: km and /km', () => {
+    const utils = open('hike-1', [hike()]);
+    expect(utils.getByText('km')).toBeTruthy();
+    expect(utils.getByTestId('hike-detail-pace').props.children[1].props.children).toBe(' /km');
+  });
+
+  it('shows the same hike in miles and minutes per mile when Settings say so', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open('hike-1', [hike()]);
+    expect(utils.getByTestId('hike-detail-distance').props.children).toBe('8.85'); // 14.24 km
+    expect(utils.getByText('mi')).toBeTruthy();
+    expect(utils.queryByText('km')).toBeNull();
+    expect(utils.getByTestId('hike-detail-pace').props.children).toEqual(['28:49', expect.anything()]); // 17:54 per km
+    expect(utils.getByTestId('hike-detail-pace').props.children[1].props.children).toBe(' /mi');
+    expect(utils.getByTestId('hike-detail-climb').props.children).toBe('812 m climb'); // climb stays in metres
+  });
+
+  it('changes when the setting changes while the screen is open', () => {
+    const utils = open('hike-1', [hike()]);
+    expect(utils.getByTestId('hike-detail-distance').props.children).toBe('14.24');
+    act(() => { useSettingsStore.setState({ units: 'imperial' }); });
+    expect(utils.getByTestId('hike-detail-distance').props.children).toBe('8.85');
+    expect(utils.getByTestId('hike-detail-pace').props.children).toEqual(['28:49', expect.anything()]);
+  });
+
+  it('writes the caption of the shared hike in the poster\'s unit and stores the distance in km', async () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    const utils = open('hike-1', [hike()]);
+    await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-share')); });
+    const args = global.__createPost.mock.calls[0][0];
+    expect(args.text).toBe('Old Rag: 8.85 mi in 4:15:00 \uD83E\uDD7E');
+    expect(args.run.distance).toBe(14.24);
   });
 
   it('hands the route walked to the map, with its own wording for when there is none', () => {
@@ -189,6 +234,13 @@ describe('HikeDetailScreen', () => {
       expect(file.xml).toContain('Recorded with Zown HQ. 14.24 km, 4:15:00, 812 m climb.');
       expect(file.xml.match(/<trkpt /g)).toHaveLength(60);
       expect(file.xml).toContain('<trkpt lat="40" lon="-74"></trkpt>');
+    });
+
+    it('writes the note inside the file in kilometres whatever the setting, since the file is for other apps', async () => {
+      useSettingsStore.setState({ units: 'imperial' });
+      const utils = open('hike-1', [hike()]);
+      await act(async () => { fireEvent.press(utils.getByTestId('hike-detail-export')); });
+      expect(global.__shareGpx.mock.calls[0][0].xml).toContain('Recorded with Zown HQ. 14.24 km, 4:15:00, 812 m climb.');
     });
 
     it('does not post anything to the feed, and does not need anyone signed in', async () => {

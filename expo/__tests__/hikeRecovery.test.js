@@ -534,6 +534,13 @@ describe('recoveryMessage', () => {
       .toBe('You have an unfinished hike: 5.2 km in 2h 10m. Open it to carry on or to save it.');
   });
 
+  it('says the distance in miles when Settings say so', () => {
+    expect(recoveryMessage(paused(5234, 7800 * SEC), T0 + HOUR, 'imperial'))
+      .toBe('You have an unfinished hike: 3.3 mi in 2h 10m. Open it to carry on or to save it.');
+    expect(recoveryMessage(paused(1609.344, 600 * SEC), T0, 'imperial')).toContain('1.0 mi');
+    expect(recoveryMessage(paused(5234, 7800 * SEC), T0 + HOUR, 'metric')).toContain('5.2 km');
+  });
+
   it('shows one decimal for the distance', () => {
     expect(recoveryMessage(paused(5240, 600 * SEC), T0)).toContain('5.2 km');
     expect(recoveryMessage(paused(5260, 600 * SEC), T0)).toContain('5.3 km');

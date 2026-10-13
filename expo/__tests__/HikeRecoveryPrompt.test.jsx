@@ -2,6 +2,14 @@ import React from 'react';
 import { act, render } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }), { virtual: true });
 jest.mock('@/services/runTracking', () => ({ stopTracking: jest.fn(async () => undefined) }));
 
@@ -10,6 +18,9 @@ import { stopTracking } from '@/services/runTracking';
 import HikeRecoveryPrompt from '../components/HikeRecoveryPrompt';
 import { useRunTrackerStore } from '../store/runTrackerStore';
 import { createTracker } from '../lib/runTracker';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const NOW = 1_760_000_000_000;
 const store = () => useRunTrackerStore.getState();
@@ -74,6 +85,13 @@ describe('HikeRecoveryPrompt', () => {
     });
     render(<HikeRecoveryPrompt />);
     expect(alerts()[0][1]).toBe('You have an unfinished hike: 5.4 km in 1h 0m. Open it to carry on or to save it.');
+  });
+
+  it('asks how far in miles when Settings say so', () => {
+    useSettingsStore.setState({ units: 'imperial' });
+    foundHike();
+    render(<HikeRecoveryPrompt />);
+    expect(alerts()[0][1]).toBe('You have an unfinished hike: 3.4 mi in 1h 2m. Open it to carry on or to save it.'); // 5.4 km
   });
 
   it('asks when it is not told otherwise', () => {

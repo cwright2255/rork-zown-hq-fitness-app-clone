@@ -16,12 +16,12 @@ import { buildHikePost } from '../lib/hikeShare';
  * @returns {Promise<{ok:true, postId:string}
  *   | {ok:false, reason:'no-hike'|'signed-out'|'too-short'|'already-shared'|'error', postId?:string}>}
  */
-export async function shareHikeToFeed({ hike, user, createPost, markShared } = {}) {
+export async function shareHikeToFeed({ hike, user, createPost, markShared, units } = {}) {
   if (!hike) return { ok: false, reason: 'no-hike' };
   if (hike.sharedPostId) return { ok: false, reason: 'already-shared', postId: String(hike.sharedPostId) };
   const uid = user && user.uid;
   if (!uid) return { ok: false, reason: 'signed-out' };
-  const payload = buildHikePost(hike);
+  const payload = buildHikePost(hike, units);
   if (!payload) return { ok: false, reason: 'too-short' };
 
   try {

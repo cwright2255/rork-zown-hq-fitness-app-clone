@@ -10,6 +10,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RunRouteMap, { hasNativeMap } from './RunRouteMap';
 import { describeSharedRun, SHARE_HIDE_ENDS_M } from '../lib/runShare';
+import { useSettingsStore } from '../store/settingsStore';
 
 const WHITE = '#FFFFFF';
 const ICONS = { run: 'fitness-outline', walk: 'walk-outline', hike: 'trail-sign-outline' };
@@ -29,7 +30,8 @@ function Stat({ value, unit, label, testID }) {
 }
 
 export default function RunPostCard({ run, style }) {
-  const info = useMemo(() => describeSharedRun(run), [run]);
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
+  const info = useMemo(() => describeSharedRun(run, units), [run, units]);
   const [mapOpen, setMapOpen] = useState(false);
   if (!info) return null;
   const canOpenMap = info.hasRoute && hasNativeMap();
@@ -68,9 +70,9 @@ export default function RunPostCard({ run, style }) {
       )}
 
       <View style={styles.stats}>
-        <Stat value={info.distanceText} unit="km" label="Distance" testID="run-post-distance" />
+        <Stat value={info.distanceText} unit={info.distanceUnit} label="Distance" testID="run-post-distance" />
         <Stat value={info.timeText} label="Time" testID="run-post-time" />
-        <Stat value={info.paceText} unit="/km" label="Pace" testID="run-post-pace" />
+        <Stat value={info.paceText} unit={info.paceUnit} label="Pace" testID="run-post-pace" />
       </View>
 
       {(info.climb > 0 || !!info.tier) && (

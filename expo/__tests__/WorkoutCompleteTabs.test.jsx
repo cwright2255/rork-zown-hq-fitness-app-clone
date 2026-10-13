@@ -1,6 +1,14 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
+// These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
+// The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
+jest.mock('../src/config/firebase', () => ({ db: {} }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({
   useRouter: () => global.__router,
@@ -23,6 +31,9 @@ jest.mock('@/services/hikeShare', () => ({ shareHikeToFeed: jest.fn(), hikeShare
 jest.mock('@/services/distanceBoard', () => ({ publishMyDistance: jest.fn() }));
 
 import WorkoutCompleteScreen from '../app/workout/complete';
+import { useSettingsStore } from '../store/settingsStore';
+
+beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const open = (workout = {}) => {
   global.__router = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };

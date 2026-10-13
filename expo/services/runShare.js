@@ -15,12 +15,12 @@ import { buildRunPost } from '../lib/runShare';
  * @returns {Promise<{ok:true, postId:string}
  *   | {ok:false, reason:'no-run'|'signed-out'|'too-short'|'already-shared'|'error', postId?:string}>}
  */
-export async function shareRunToFeed({ run, user, createPost, markShared } = {}) {
+export async function shareRunToFeed({ run, user, createPost, markShared, units } = {}) {
   if (!run) return { ok: false, reason: 'no-run' };
   if (run.sharedPostId) return { ok: false, reason: 'already-shared', postId: String(run.sharedPostId) };
   const uid = user && user.uid;
   if (!uid) return { ok: false, reason: 'signed-out' };
-  const payload = buildRunPost(run);
+  const payload = buildRunPost(run, units);
   if (!payload) return { ok: false, reason: 'too-short' };
 
   try {

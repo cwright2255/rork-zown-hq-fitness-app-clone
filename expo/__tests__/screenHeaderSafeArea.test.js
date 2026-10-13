@@ -86,12 +86,9 @@ describe('finding a header inside a second top safe area', () => {
   });
 });
 
-// Screens this still happens on, by file and how many times. Fixing one means lowering
-// its number (or removing the line); a new screen with the problem fails here.
-const STILL_DOUBLED = {
-  'app/nutrition/barcode-scan.jsx': 3, // the loading, camera-access and Product Found screens
-  'app/running/hiking/[id].jsx': 1, // the trail detail with its photo
-};
+// Screens this still happens on, by file and how many times. None are left, so a new
+// screen with the problem fails here. To allow one on purpose, list its file and the count.
+const STILL_DOUBLED = {};
 
 describe('screens in app/', () => {
   const found = {};

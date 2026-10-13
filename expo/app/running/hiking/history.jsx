@@ -15,8 +15,10 @@ import RunRouteMap from '@/components/RunRouteMap';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { describeHike, sortHikesNewest, summarizeHikes } from '@/lib/hikeLog';
 import { formatClock } from '@/lib/runDetail';
+import { distanceUnitLabel, formatDistanceValue } from '@/lib/distanceUnits';
 
 const INK = '#000000';
 // The route thumbnail sits in a short, wide frame, so it needs little room around it.
@@ -52,7 +54,7 @@ function HikeCard({ info, onPress }) {
         </View>
         {!!info.when && <Text style={styles.cardWhen}>{info.when}</Text>}
         <View style={styles.cardStats}>
-          <Stat value={info.distanceText} unit="km" label="Distance" testID={`hike-card-distance-${info.id}`} />
+          <Stat value={info.distanceText} unit={info.distanceUnit} label="Distance" testID={`hike-card-distance-${info.id}`} />
           <Stat value={info.timeText} label="Time" />
           <Stat value={String(info.climb)} unit="m" label="Climb" />
         </View>
@@ -66,14 +68,15 @@ export default function HikeHistoryScreen() {
   const completedHikes = useHikingStore((s) => s.completedHikes);
   const loadCompletedHikes = useHikingStore((s) => s.loadCompletedHikes);
   const { user } = useUserStore();
+  const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
 
   useEffect(() => {
     if (user?.uid && typeof loadCompletedHikes === 'function') loadCompletedHikes(user.uid);
   }, [user?.uid]);
 
   const hikes = useMemo(
-    () => sortHikesNewest(completedHikes).map(describeHike).filter(Boolean),
-    [completedHikes],
+    () => sortHikesNewest(completedHikes).map((h) => describeHike(h, units)).filter(Boolean),
+    [completedHikes, units],
   );
   const totals = useMemo(() => summarizeHikes(completedHikes), [completedHikes]);
 
@@ -108,7 +111,7 @@ export default function HikeHistoryScreen() {
             <View style={styles.summary} testID="hike-history-summary">
               <Stat value={String(totals.count)} label={totals.count === 1 ? 'Hike' : 'Hikes'} testID="hike-total-count" />
               <View style={styles.divider} />
-              <Stat value={totals.distanceKm.toFixed(1)} unit="km" label="Distance" testID="hike-total-distance" />
+              <Stat value={formatDistanceValue(totals.distanceKm, units, 1)} unit={distanceUnitLabel(units)} label="Distance" testID="hike-total-distance" />
               <View style={styles.divider} />
               <Stat value={formatClock(totals.durationSeconds)} label="Time" testID="hike-total-time" />
               <View style={styles.divider} />
