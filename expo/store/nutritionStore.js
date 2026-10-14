@@ -34,7 +34,7 @@ function awardFoodXp(food) {
       type: 'meal',
       baseExp,
       multiplier: 1.0,
-      date: new Date().toISOString().split('T')[0],
+      date: localDateKey(),
       description: `Logged ${food.name} (${stars}-star)`,
       completed: true
     }, useUserStore.getState().user?.uid);

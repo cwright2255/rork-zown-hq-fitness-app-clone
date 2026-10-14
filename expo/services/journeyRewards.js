@@ -7,6 +7,7 @@
 import { useExpStore } from '../store/expStore';
 import { useBadgeStore } from '../store/badgeStore';
 import { journeyXp } from '../lib/virtualJourneys';
+import { localDateKey } from '../lib/localDate';
 
 /** The badge for finishing a virtual journey (see store/badgeStore.js). */
 export const JOURNEY_BADGE_ID = 'badge-15';
@@ -24,7 +25,7 @@ export function rewardJourney(journey, uid, now = Date.now()) {
       type: 'running',
       baseExp: journeyXp(journey.distanceKm),
       multiplier: 1.0,
-      date: new Date(now).toISOString().split('T')[0],
+      date: localDateKey(new Date(now)),
       description: `Finished the ${journey.title} journey`,
       completed: true,
     }, uid);

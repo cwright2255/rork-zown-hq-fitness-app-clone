@@ -20,6 +20,7 @@ import { useExpStore } from '@/store/expStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { publishMyXp } from '@/services/leaderboardVisibility';
+import { getActivityStreak } from '@/services/streakService';
 import { useUserStore } from '@/store/userStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
@@ -27,6 +28,7 @@ import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
 import { getNextPrescription, estimateOneRepMax } from '@/services/progressiveOverloadService';
 import { getCurrentReadiness } from '@/services/wearableService';
+import { localDateKey } from '@/lib/localDate';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -625,7 +627,7 @@ export default function ActiveWorkoutScreen() {
 
       checkAchievements?.({
         workoutsCompleted: (useWorkoutStore.getState().completedWorkouts || []).length,
-        streak: user?.streak ?? 0,
+        streak: getActivityStreak().current,
         caloriesBurned,
         level,
         xp: totalExp,
@@ -636,12 +638,12 @@ export default function ActiveWorkoutScreen() {
         type: 'workout',
         baseExp: xpEarned,
         multiplier: 1.0,
-        date: new Date().toISOString().split('T')[0],
+        date: localDateKey(),
         description: `Saved ${completedCount}/${totalExercises} exercises of ${selectedWorkout?.name || 'workout'}`,
         completed: true,
       }, user?.uid);
 
-      publishMyXp({ user });
+      publishMyXp({ user, streak: getActivityStreak().current });
     }
 
     if (router.canGoBack()) {
@@ -972,7 +974,7 @@ export default function ActiveWorkoutScreen() {
               // assuming any of these condition types are met.
               checkAchievements?.({
                 workoutsCompleted: (useWorkoutStore.getState().completedWorkouts || []).length,
-                streak: user?.streak ?? 0,
+                streak: getActivityStreak().current,
                 caloriesBurned,
                 level,
                 xp: totalExp,
@@ -983,7 +985,7 @@ export default function ActiveWorkoutScreen() {
                 type: 'workout',
                 baseExp: xpEarned,
                 multiplier: 1.0,
-                date: new Date().toISOString().split('T')[0],
+                date: localDateKey(),
                 description: `Completed ${selectedWorkout?.name || 'workout'}`,
                 completed: true,
               }, user?.uid);
@@ -994,7 +996,7 @@ export default function ActiveWorkoutScreen() {
               // snapshot from this render and won't reflect the XP just
               // awarded by addExpActivity a moment ago. Nothing is published
               // for someone who has turned off "Show in Leaderboards".
-              publishMyXp({ user });
+              publishMyXp({ user, streak: getActivityStreak().current });
 
               router.replace('/workout/complete');
             } : handleCenterButton}

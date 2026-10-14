@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { localDateKey } from '../lib/localDate';
 
 // Real, re-tuned leveling curve: 1.03 per level, not 1.3299. The
 // original 1.3299 rate, confirmed from an earlier design spreadsheet,
@@ -149,7 +150,8 @@ const calculateMultiplier = (level) => {
   return Math.min(multiplier, MAX_MULTIPLIER);
 };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// Today as the person lives it (their own calendar day), not the UTC date.
+const todayStr = () => localDateKey();
 
 export const useExpStore = create(
   persist(

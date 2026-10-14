@@ -25,6 +25,7 @@
 import { httpsCallable } from 'firebase/functions';
 import * as WebBrowser from 'expo-web-browser';
 import { functions } from '../src/config/firebase';
+import { localDateKey } from '../lib/localDate';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -112,7 +113,8 @@ class RookService {
   async getTodayRecovery() {
     try {
       const getRecovery = httpsCallable(functions, 'getRookRecoveryData');
-      const result = await getRecovery();
+      // The person's own calendar day: the server's clock is UTC, which is already tomorrow after about 8 PM in New Jersey.
+      const result = await getRecovery({ date: localDateKey() });
       return result.data || null;
     } catch (e) {
       console.warn('[rookService] getTodayRecovery failed:', e?.message);

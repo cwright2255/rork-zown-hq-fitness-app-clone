@@ -73,13 +73,14 @@ export async function endFast(uid, active, endedAt = new Date()) {
   return { entry, saved };
 }
 
-/** The finished fasts, newest first. */
-export async function getFastHistory(uid) {
+/** The finished fasts, newest first. `max` asks for fewer than the usual 500 (the Coach only needs the last week). */
+export async function getFastHistory(uid, max = HISTORY_LIMIT) {
   if (!uid) return [];
+  const count = Number.isInteger(max) && max > 0 ? Math.min(max, HISTORY_LIMIT) : HISTORY_LIMIT;
   const snap = await getDocs(query(
     collection(db, 'users', uid, HISTORY),
     orderBy('endedAt', 'desc'),
-    limit(HISTORY_LIMIT),
+    limit(count),
   ));
   return snap.docs.map((d) => normalizeFast({ id: d.id, ...d.data() })).filter(Boolean);
 }

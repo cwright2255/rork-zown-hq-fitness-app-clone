@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useActivityStreak } from '@/services/streakService';
 
 /* âââ Placeholder data âââ */
 
@@ -145,6 +146,7 @@ export default function ProfileScreen() {
     }
   }, [user?.uid]);
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  const { current: currentStreak } = useActivityStreak();
 
   // Real fix: this previously hardcoded a flat "1000 XP per level"
   // formula, matching what expStore.js used to do - but that store's
@@ -167,7 +169,7 @@ export default function ProfileScreen() {
 
   const STATS_LIVE = [
     { label: 'Workouts', value: completedWorkouts?.length || 0 },
-    { label: 'Streak', value: user?.streak || 0 },
+    { label: 'Streak', value: currentStreak },
     { label: 'Total XP', value: Math.round(totalExp || 0) },
   ];
 

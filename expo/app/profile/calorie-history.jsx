@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
 import { computeCalorieMetrics } from '@/lib/calorieMetrics';
 
@@ -14,11 +15,12 @@ export default function CalorieHistoryScreen() {
   const [filter, setFilter] = useState('All');
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
+  const { completedHikes, loadCompletedHikes } = useHikingStore();
   const { user } = useUserStore();
 
   const metrics = useMemo(
-    () => computeCalorieMetrics(completedWorkouts, runs, user?.dailyCalorieGoal),
-    [completedWorkouts, runs, user?.dailyCalorieGoal]
+    () => computeCalorieMetrics(completedWorkouts, runs, user?.dailyCalorieGoal, 0, completedHikes),
+    [completedWorkouts, runs, completedHikes, user?.dailyCalorieGoal]
   );
 
   const filteredEntries = useMemo(() => {
@@ -38,7 +40,7 @@ export default function CalorieHistoryScreen() {
     setRefreshing(true);
     try {
       if (user?.uid) {
-        await Promise.all([loadWorkouts?.(user.uid), loadRuns?.(user.uid)]);
+        await Promise.all([loadWorkouts?.(user.uid), loadRuns?.(user.uid), loadCompletedHikes?.(user.uid)]);
       }
     } catch (e) {
       console.error(e);
@@ -102,7 +104,7 @@ export default function CalorieHistoryScreen() {
           <View style={styles.emptyState}>
             <Ionicons name="flame-outline" size={48} color="#CCC" />
             <Text style={styles.emptyTitle}>No Calories Logged</Text>
-            <Text style={styles.emptySubtitle}>Completed workouts and runs will appear here.</Text>
+            <Text style={styles.emptySubtitle}>Completed workouts, runs and hikes will appear here.</Text>
           </View>
         ) : (
           filteredEntries.map((e, i) => {

@@ -38,6 +38,7 @@ import { colors, typography, spacing, radius, shadows } from '@/constants/theme'
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import formAnalysisService, { SKELETON_CONNECTIONS } from '@/services/formAnalysisService';
+import { localDateKey } from '@/lib/localDate';
 
 const POSE_MODEL = 'pose_landmarker_lite.task'; // bundled asset — see setup note above
 
@@ -116,7 +117,7 @@ export default function FormCheckScreen() {
           type: 'sideMission',
           baseExp: 40 * session.reps,
           multiplier: 1.0,
-          date: new Date().toISOString().split('T')[0],
+          date: localDateKey(),
           description: `Form check: ${session.reps} ${EXERCISES.find(e => e.id === session.exercise)?.label ?? session.exercise} reps`,
           completed: true,
         }, user?.uid);

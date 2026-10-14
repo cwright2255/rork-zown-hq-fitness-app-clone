@@ -11,11 +11,14 @@
 // when this shipped - a day before that, or any day with no activity,
 // correctly shows 0, never a fabricated number.
 
+import { localDateKey } from './localDate';
+
 const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// The person's own calendar day, the same key store/expStore.js records the day's XP under.
 function dayKey(date) {
-  return date.toISOString().slice(0, 10);
+  return localDateKey(date);
 }
 
 export function computeXpMetrics(xpHistory) {

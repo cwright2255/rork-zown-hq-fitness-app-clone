@@ -24,7 +24,7 @@ import { useWeightLogStore } from '@/store/weightLogStore';
 export default function ProgressScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { weightHistory, loadAllHealth } = useHealthStore();
+  const { loadAllHealth } = useHealthStore();
   const { user, updateUser, saveProfile } = useUserStore();
 
   const { scans, loadScans } = useBodyCompositionStore();

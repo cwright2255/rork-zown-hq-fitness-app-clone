@@ -22,10 +22,11 @@ export function isShownOnLeaderboards() {
  * Puts this person's XP, level and streak on the leaderboard (nothing when they
  * are hidden). Called after XP is earned.
  * @param {object} options
- *   user  the signed-in user ({ uid, name, profileImage, streak })
+ *   user    the signed-in user ({ uid, name, profileImage })
+ *   streak  days in a row with a workout, a run or a hike (services/streakService.js); 0 when not given
  * @returns {Promise<boolean>} true when the entry was written
  */
-export async function publishMyXp({ user } = {}) {
+export async function publishMyXp({ user, streak } = {}) {
   const uid = user && user.uid;
   if (!uid) return false;
   try {
@@ -35,7 +36,7 @@ export async function publishMyXp({ user } = {}) {
       avatar: user.profileImage,
       xp: expSystem.totalExp,
       level: expSystem.level,
-      streak: user.streak,
+      streak: Number.isFinite(streak) && streak > 0 ? streak : 0,
       visible: isShownOnLeaderboards(),
     });
   } catch (e) {
@@ -48,15 +49,16 @@ export async function publishMyXp({ user } = {}) {
  * Saves the setting and acts on it at once: off takes the person's whole entry
  * and their virtual race times off the boards, on puts their XP, distance and
  * race times back.
- * @param {boolean} show  true to be shown
- * @param {object} user   the signed-in user ({ uid, name, profileImage, streak })
+ * @param {boolean} show    true to be shown
+ * @param {object} user     the signed-in user ({ uid, name, profileImage })
+ * @param {number} streak   days in a row with a workout, a run or a hike (services/streakService.js), put back with the XP
  * @returns {Promise<boolean>} true when the leaderboard now matches the setting
  */
-export async function setShowInLeaderboards(show, user) {
+export async function setShowInLeaderboards(show, user, streak) {
   const uid = user && user.uid;
   useSettingsStore.getState().updateSetting('showInLeaderboards', !!show, uid);
   if (!uid) return false;
-  const xp = show ? await publishMyXp({ user }) : true;
+  const xp = show ? await publishMyXp({ user, streak }) : true;
   const distance = await publishMyDistance({ user, loadFirst: !!show });
   const races = show ? await publishMyRaces({ user }) : await withdrawMyRaces({ user });
   return xp && distance && races;

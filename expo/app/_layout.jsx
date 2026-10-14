@@ -28,6 +28,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useRecipeStore } from '@/store/recipeStore';
 import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 // Registers the background GPS task for run recording; it must be loaded at app start.
 import '@/services/runTracking';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -241,6 +242,7 @@ function RootLayoutInner() {
   const { loadAllHealth } = useHealthStore();
   const { loadRecipes } = useRecipeStore();
   const { loadRuns } = useRunningStore();
+  const loadCompletedHikes = useHikingStore((s) => s.loadCompletedHikes);
   const { loadSettings } = useSettingsStore();
   const [storesReady, setStoresReady] = useState(false);
 
@@ -261,6 +263,7 @@ function RootLayoutInner() {
             loadAllHealth(uid),
             loadRecipes(uid),
             loadRuns(uid),
+            loadCompletedHikes(uid),
             loadSettings(uid),
           ]);
         } catch (e) {
@@ -352,7 +355,6 @@ function RootLayoutInner() {
         <Stack.Screen name="messaging" />
         <Stack.Screen name="messages" />
         <Stack.Screen name="messages/[id]" />
-        <Stack.Screen name="mood-tracking" />
         <Stack.Screen name="health-assessment" />
         <Stack.Screen name="wearables" />
         <Stack.Screen name="rook-connect" />
@@ -413,7 +415,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/meal') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && <BottomNavigation />}
     </View>
   );
 }

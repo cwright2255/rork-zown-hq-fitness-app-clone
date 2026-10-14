@@ -12,7 +12,7 @@ import {
   extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply,
 } from '@/lib/coachActions';
 import { executeCoachActions } from '@/services/coachActionService';
-import { loadSnapshotSources, buildSnapshotFromStores } from '@/services/coachSnapshotService';
+import { loadSnapshotSources, loadHabitSources, buildSnapshotFromStores } from '@/services/coachSnapshotService';
 import {
   buildCoachSystemPrompt, getCoachHistory, saveCoachMessage,
   summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext,
@@ -113,6 +113,9 @@ export default function CoachScreen() {
   useEffect(() => {
     if (!user?.uid) return;
     let cancelled = false;
+    // Fasting for the Coach's snapshot. Not part of the Promise.all below on purpose: it never rejects and gives up
+    // after a few seconds, but even so nothing else should wait on it.
+    loadHabitSources(user.uid);
     (async () => {
       try {
         await Promise.all([loadWorkouts(user.uid), loadRuns(user.uid), loadCompletedHikes(user.uid), loadSnapshotSources(user.uid)]);

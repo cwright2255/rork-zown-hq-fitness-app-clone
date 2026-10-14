@@ -9,6 +9,8 @@ import * as Clipboard from 'expo-clipboard';
 import { useRecipeStore } from '@/store/recipeStore';
 import GroceryListButton from '@/components/GroceryListButton';
 import { useUserStore } from '@/store/userStore';
+import { useNutritionStore } from '@/store/nutritionStore';
+import { eatGoal } from '@/lib/calorieGoals';
 import RecipeImportModal from '@/components/RecipeImportModal';
 import RecipePreviewModal from '@/components/RecipePreviewModal';
 import recipeExtractionService from '@/services/recipeExtractionService';
@@ -36,9 +38,8 @@ function dailyOffset(pageSize) {
 
 // Real fix: this screen used to read user.dietaryPreferences, a field
 // nothing in the app ever sets (onboarding and Edit Profile save the diet
-// choice as user.fitnessMetrics.nutritionPreference, goals as
-// fitnessMetrics.targetGoals, and the calorie target as
-// user.dailyCalorieGoal), so diet, calorie and goal filters were silently
+// choice as user.fitnessMetrics.nutritionPreference and goals as
+// fitnessMetrics.targetGoals), so diet, calorie and goal filters were silently
 // never applied. This maps the real fields onto the shape the builders
 // below expect. The app's diet ids don't match Spoonacular's values
 // (keto -> ketogenic, pescatarian -> pescetarian, gluten_free ->
@@ -50,7 +51,12 @@ function dailyOffset(pageSize) {
 // become excluded ingredients, and diets Spoonacular has no label for
 // (Mediterranean, carnivore, low carb, high protein) become a cuisine or
 // per-meal macro limits.
-function resolveDietaryPreferences(user) {
+//
+// The calorie figure that sizes a meal is the EAT goal (what the person is meant to take in per day, from the
+// nutrition store), passed in as eatTarget. user.dailyCalorieGoal is a BURN goal set from the home Calories card
+// and says nothing about how much to eat (lib/calorieGoals.js). eatTarget is null until a real target exists, and
+// meals are then sized to the 300-700 calorie default.
+function resolveDietaryPreferences(user, eatTarget) {
   const profile = getDietProfile(user);
   const filters = buildDietFilters(profile);
   return {
@@ -59,7 +65,7 @@ function resolveDietaryPreferences(user) {
     allergies: filters.intolerances,
     excludeIngredients: filters.excludeIngredients,
     dietExtras: filters.extras,
-    dailyCalorieGoal: user?.dailyCalorieGoal || null,
+    dailyCalorieGoal: eatTarget || null,
     goals: user?.fitnessMetrics?.targetGoals || user?.goals || [],
     signature: [profile.dietId, filters.intolerances.join(','), filters.excludeIngredients || ''].join('|'),
   };
@@ -289,6 +295,7 @@ export default function RecipesScreen() {
   const [showImportModal, setShowImportModal] = useState(false);
   const { savedRecipes, loadRecipes, removeRecipe, addRecipe } = useRecipeStore();
   const { user } = useUserStore();
+  const eatTarget = useNutritionStore((s) => eatGoal(s));
 
   const [browse, setBrowse] = useState({ featured: [], aiRecommendations: [], postWorkout: [], mealPrep: [], quickEasy: [] });
   // Real fix: was a single shared boolean, meaning every section showed
@@ -318,7 +325,7 @@ export default function RecipesScreen() {
     }
   }, [user?.uid]);
 
-  const dietaryPrefs = resolveDietaryPreferences(user);
+  const dietaryPrefs = resolveDietaryPreferences(user, eatTarget);
   const dietPref = dietaryPrefs.diet || null;
   const allergiesPref = dietaryPrefs.allergies.join(',');
   const calorieGoalPref = dietaryPrefs.dailyCalorieGoal || null;

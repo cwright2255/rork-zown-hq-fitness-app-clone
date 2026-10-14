@@ -13,6 +13,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
 import { setShowInLeaderboards } from '@/services/leaderboardVisibility';
+import { getActivityStreak } from '@/services/streakService';
 import { auth, functions } from '../../src/config/firebase';
 import { sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
@@ -567,7 +568,7 @@ export default function SettingsScreen() {
             right={
               <Switch
                 value={showInLeaderboards}
-                onValueChange={(v) => setShowInLeaderboards(v, user)}
+                onValueChange={(v) => setShowInLeaderboards(v, user, getActivityStreak().current)}
                 trackColor={{ true: '#000000', false: '#E0E0E0' }}
                 thumbColor="#FFFFFF"
               />

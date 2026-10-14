@@ -28,6 +28,7 @@
 import { groupSetsBySession, estimateOneRepMax } from '../services/progressiveOverloadService';
 import { aggregateDailyLoad } from './trainingLoad';
 import { RUNNING_MUSCLES, HIKING_MUSCLES, canonicalizeMuscle } from './muscleFatigue';
+import { shiftDateKey } from './localDate';
 
 // recentWindow + priorWindow sessions needed before saying anything real -
 // fewer than that and "flat" vs "still ramping up" genuinely can't be
@@ -127,14 +128,13 @@ export function findCrossDomainCause({ muscleGroups, plateauSessionDays, runs = 
   const baseline = loadValues.reduce((a, b) => a + b, 0) / loadValues.length;
   if (baseline <= 0) return null;
 
-  const dayMs = 24 * 60 * 60 * 1000;
   let elevatedCount = 0;
   plateauSessionDays.forEach((day) => {
-    const sessionTime = new Date(day).getTime();
+    // `day` is a calendar day (YYYY-MM-DD) and so are the keys of cardioDailyLoad: step back from it a day at a time.
     let weekSum = 0;
     for (let i = 1; i <= 7; i++) {
-      const key = new Date(sessionTime - i * dayMs).toISOString().split('T')[0];
-      weekSum += cardioDailyLoad[key] || 0;
+      const key = shiftDateKey(day, -i);
+      weekSum += (key && cardioDailyLoad[key]) || 0;
     }
     if (weekSum > baseline * 7 * CARDIO_ELEVATED_MULTIPLIER) elevatedCount++;
   });

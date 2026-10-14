@@ -6,9 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, paceIn, paceUnitLabel } from '@/lib/distanceUnits';
+import { activityStreak, sessionsOf } from '@/lib/activity';
 
 /* -- Real calendar boundaries, same logic already proven correct in
    store/challengeStore.js / functions/src/index.js's generateChallenges
@@ -55,6 +57,9 @@ function workoutDate(w) {
 }
 function runDate(r) {
   return parseDate(r.endTime || r.startTime);
+}
+function hikeDate(h) {
+  return parseDate(h.completedAt || h.startTime);
 }
 
 function inRange(date, range) {
@@ -126,13 +131,15 @@ export default function AnalysisScreen() {
 
   const { user } = useUserStore();
   const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
-  const { completedWorkouts, loadWorkouts, getWorkoutStreak } = useWorkoutStore();
+  const { completedWorkouts, loadWorkouts } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
+  const { completedHikes, loadCompletedHikes } = useHikingStore();
 
   useEffect(() => {
     if (user?.uid) {
       loadWorkouts(user.uid);
       loadRuns(user.uid);
+      loadCompletedHikes?.(user.uid);
     }
   }, [user?.uid]);
 
@@ -141,6 +148,7 @@ export default function AnalysisScreen() {
     await Promise.all([
       user?.uid ? loadWorkouts(user.uid) : Promise.resolve(),
       user?.uid ? loadRuns(user.uid) : Promise.resolve(),
+      user?.uid && loadCompletedHikes ? loadCompletedHikes(user.uid) : Promise.resolve(),
     ]);
     setRefreshing(false);
   };
@@ -158,6 +166,11 @@ export default function AnalysisScreen() {
     () => (runs || []).filter((r) => inRange(runDate(r), range)),
     [runs, range]
   );
+  // Hikes are activity too: they count in the totals, the chart, the records and the recent list below.
+  const hikesInRange = useMemo(
+    () => (completedHikes || []).filter((h) => inRange(hikeDate(h), range)),
+    [completedHikes, range]
+  );
 
   /* -- Overview: real counts, real calories, real XP (workout-sourced
      only -- see workoutDurationSeconds comment above and the module
@@ -166,13 +179,14 @@ export default function AnalysisScreen() {
   const overview = useMemo(() => {
     const workoutCals = workoutsInRange.reduce((s, w) => s + (w.caloriesBurned || 0), 0);
     const runCals = runsInRange.reduce((s, r) => s + (r.calories || 0), 0);
+    const hikeCals = hikesInRange.reduce((s, h) => s + (h.calories || 0), 0);
     const xp = workoutsInRange.reduce((s, w) => s + (w.xpEarned || 0), 0);
     return {
-      activities: workoutsInRange.length + runsInRange.length,
-      calories: workoutCals + runCals,
+      activities: workoutsInRange.length + runsInRange.length + hikesInRange.length,
+      calories: workoutCals + runCals + hikeCals,
       xp,
     };
-  }, [workoutsInRange, runsInRange]);
+  }, [workoutsInRange, runsInRange, hikesInRange]);
 
   /* -- Activity bar chart: real calories per bucket, bucketed by hour
      for Day, day-of-week for Week, week-of-month for Month. With real,
@@ -182,6 +196,7 @@ export default function AnalysisScreen() {
     const combined = [
       ...workoutsInRange.map((w) => ({ date: workoutDate(w), cal: w.caloriesBurned || 0 })),
       ...runsInRange.map((r) => ({ date: runDate(r), cal: r.calories || 0 })),
+      ...hikesInRange.map((h) => ({ date: hikeDate(h), cal: h.calories || 0 })),
     ].filter((x) => x.date);
 
     if (timeFilter === 'Day') {
@@ -213,7 +228,7 @@ export default function AnalysisScreen() {
       buckets[dayNum].h += cal;
     });
     return buckets;
-  }, [workoutsInRange, runsInRange, timeFilter]);
+  }, [workoutsInRange, runsInRange, hikesInRange, timeFilter]);
   const maxBar = Math.max(...bars.map((b) => b.h), 1);
   const hasAnyBarData = bars.some((b) => b.h > 0);
 
@@ -297,13 +312,15 @@ export default function AnalysisScreen() {
     const calorieCandidates = [
       ...(completedWorkouts || []).map((w) => ({ cal: w.caloriesBurned || 0, date: workoutDate(w) })),
       ...runsWithData.map((r) => ({ cal: r.calories || 0, date: runDate(r) })),
+      ...(completedHikes || []).map((h) => ({ cal: h.calories || 0, date: hikeDate(h) })),
     ].filter((c) => c.cal > 0);
     if (calorieCandidates.length > 0) {
       const best = calorieCandidates.reduce((b, c) => (c.cal > b.cal ? c : b));
       list.push({ title: 'Most Calories (Single)', value: `${fmtNum(best.cal)} kcal`, date: fmtShortDate(best.date) });
     }
 
-    const streak = getWorkoutStreak();
+    // Days in a row with a workout, a run or a hike (a runner's streak is not 0).
+    const streak = activityStreak(sessionsOf({ workouts: completedWorkouts, runs, hikes: completedHikes }));
     if (streak.longest > 0) {
       list.push({
         title: 'Longest Streak',
@@ -325,14 +342,15 @@ export default function AnalysisScreen() {
     }
 
     return list;
-  }, [completedWorkouts, runs, getWorkoutStreak, units]);
+  }, [completedWorkouts, runs, completedHikes, units]);
 
-  /* -- Recent activity: real completed workouts + real runs merged and
+  /* -- Recent activity: real completed workouts + real runs + real hikes merged and
      sorted by real date, always most-recent-first regardless of the
      current Day/Week/Month filter -- a "recent activity" feed scoped to
      "today" would be nearly always empty. XP is only shown for
      workouts, since only workouts carry a real, traceable xpEarned
      value (see module header note). -- */
+  const showHikes = activityFilter === 'All';
   const recentActivity = useMemo(() => {
     const items = [
       ...(showWorkouts ? (completedWorkouts || []).map((w) => ({
@@ -351,15 +369,23 @@ export default function AnalysisScreen() {
         icon: 'fitness',
         date: runDate(r),
       })) : []),
+      ...(showHikes ? (completedHikes || []).map((h) => ({
+        id: `h-${h.id || h.completedAt}`,
+        title: h.trailName || 'Hike',
+        sub: `Hiking \u2022 ${fmtDuration(h.durationSeconds || 0)}${h.distanceKm ? ` \u2022 ${fmtKm(h.distanceKm, units)}` : ''}${h.calories ? ` \u2022 ${fmtNum(h.calories)} kcal` : ''}`,
+        xp: null,
+        icon: 'walk',
+        date: hikeDate(h),
+      })) : []),
     ]
       .filter((a) => a.date)
       .sort((a, b) => b.date - a.date)
       .slice(0, 8);
     return items;
-  }, [completedWorkouts, runs, showWorkouts, showRunning, units]);
+  }, [completedWorkouts, runs, completedHikes, showWorkouts, showRunning, showHikes, units]);
 
-  const hasAnyDataInRange = workoutsInRange.length > 0 || runsInRange.length > 0;
-  const hasAnyDataAtAll = (completedWorkouts && completedWorkouts.length > 0) || (runs && runs.length > 0);
+  const hasAnyDataInRange = workoutsInRange.length > 0 || runsInRange.length > 0 || hikesInRange.length > 0;
+  const hasAnyDataAtAll = (completedWorkouts && completedWorkouts.length > 0) || (runs && runs.length > 0) || (completedHikes && completedHikes.length > 0);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -392,7 +418,7 @@ export default function AnalysisScreen() {
           <EmptyState
             icon="TrendingUp"
             title="No activity yet"
-            subtitle="Complete a workout or log a run to see real stats here"
+            subtitle="Complete a workout, log a run or finish a hike to see real stats here"
             buttonText="Go to Workouts"
             onPress={() => {}}
           />

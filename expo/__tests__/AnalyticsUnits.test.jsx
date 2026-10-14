@@ -23,6 +23,8 @@ const mockWorkouts = { completedWorkouts: [], loadWorkouts: () => {}, getWorkout
 jest.mock('@/store/workoutStore', () => ({ useWorkoutStore: () => mockWorkouts }));
 const mockRunning = { runs: [], loadRuns: () => {} };
 jest.mock('@/store/runningStore', () => ({ useRunningStore: () => mockRunning }));
+const mockHiking = { completedHikes: [], loadCompletedHikes: () => {} };
+jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => mockHiking }));
 
 import AnalysisScreen from '../app/analytics';
 import { useSettingsStore } from '../store/settingsStore';

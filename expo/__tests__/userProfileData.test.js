@@ -112,6 +112,31 @@ describe('snapshot message', () => {
     expect(msg.content).toContain('Eaten so far today: 800 kcal');
     expect(msg.content).toContain('Leg Day');
   });
+
+  it('carries the day\'s readings (recovery, water, steps ...) it is given, skipping blanks and non-text', () => {
+    const msg = buildSnapshotMessage({
+      profile: buildProfile({ user: {} }),
+      signals: ['  Water logged today: 5 of 8 glasses.  ', '', '   ', null, 987654, undefined, 'Steps so far today: 6,420.'],
+    });
+    expect(msg.content).toContain(' Water logged today: 5 of 8 glasses. Steps so far today: 6,420.');
+    expect(msg.content).not.toContain('null');
+    expect(msg.content).not.toContain('987654');
+    expect(msg.content).not.toContain('  ');
+  });
+
+  it('is still null when there are no readings and nothing else', () => {
+    expect(buildSnapshotMessage({ profile: buildProfile({ user: {} }), signals: [] })).toBeNull();
+    expect(buildSnapshotMessage({ profile: buildProfile({ user: {} }), signals: ['', null] })).toBeNull();
+    expect(buildSnapshotMessage({ profile: buildProfile({ user: {} }), signals: 'not a list' })).toBeNull();
+  });
+
+  it('puts the readings before the calendar', () => {
+    const msg = buildSnapshotMessage({
+      profile: buildProfile({ user: {} }), signals: ['Water logged today: 5 of 8 glasses.'],
+      upcoming: [{ title: 'Leg Day', when: 'Thu Oct 8, 7:00 AM' }],
+    });
+    expect(msg.content.indexOf('Water logged today')).toBeLessThan(msg.content.indexOf('Leg Day'));
+  });
 });
 
 describe('coach goal action', () => {

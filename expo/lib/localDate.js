@@ -32,3 +32,17 @@ export function shiftDateKey(key, days) {
   if (!base) return null;
   return localDateKey(new Date(base.getFullYear(), base.getMonth(), base.getDate() + Number(days || 0)));
 }
+
+/**
+ * The local calendar day of a moment in time: a Date, an ISO string, a number of milliseconds, or a Firestore
+ * Timestamp (anything with toDate()). A plain "YYYY-MM-DD" is already a calendar day and comes back as it is,
+ * because reading it as a time would make it midnight UTC, which is the evening before in New Jersey. Anything
+ * that is not a usable date gives null, so callers can skip it instead of crashing on a bad record.
+ */
+export function dayKeyOf(value) {
+  if (value == null || value === '' || typeof value === 'boolean') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return parseDateKey(value) ? value : null;
+  const d = typeof value?.toDate === 'function' ? value.toDate() : value instanceof Date ? value : new Date(value);
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return null;
+  return localDateKey(d);
+}

@@ -11,6 +11,7 @@ import { eraseUserAccount } from './accountErasure.js';
 import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
+import { recoveryDay } from './recoveryDay.js';
 
 initializeApp();
 
@@ -519,7 +520,8 @@ export const getRookRecoveryData = onCall(
   { secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
-    const today = new Date().toISOString().split('T')[0];
+    // The person's own day when the app sends it (see recoveryDay.js); the UTC date for older versions of the app.
+    const today = recoveryDay(req.data?.date);
     const headers = rookBasicAuthHeader();
 
     const [sleepRes, physicalRes] = await Promise.all([

@@ -23,7 +23,10 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PAGE_WIDTH = SCREEN_WIDTH - 76;
 const DEFAULT_HEIGHT = 200; // fallback only until the first onLayout measurement lands
 
-export default function SwipeableCaloriesContent({ metrics, onSetGoal }) {
+// eatenToday / eatTarget are the other half of the picture: the card is about calories BURNED, and its goal is a burn
+// goal (lib/calorieGoals.js). Calories EATEN today and the eat goal come from the food diary and are shown beside it.
+// Leave eatenToday out and that row is not drawn.
+export default function SwipeableCaloriesContent({ metrics, onSetGoal, eatenToday, eatTarget }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [pageHeights, setPageHeights] = useState({});
 
@@ -65,14 +68,22 @@ export default function SwipeableCaloriesContent({ metrics, onSetGoal }) {
           ) : null}
           {metrics.dailyCalorieGoal ? (
             <View style={styles.row}>
-              <Text style={styles.rowLabel}>Goal</Text>
+              <Text style={styles.rowLabel}>Burn goal</Text>
               <Text style={styles.rowValue}>{metrics.dailyCalorieGoal} cal ({Math.round(goalPct * 100)}%)</Text>
             </View>
           ) : (
             <TouchableOpacity style={styles.goalPromptBtn} onPress={onSetGoal}>
-              <Text style={styles.goalPromptText}>Set a daily calorie goal</Text>
+              <Text style={styles.goalPromptText}>Set a daily burn goal</Text>
             </TouchableOpacity>
           )}
+          {eatenToday != null ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>Eaten today</Text>
+              <Text style={styles.rowValue}>
+                {eatTarget ? `${eatenToday.toLocaleString()} of ${eatTarget.toLocaleString()} kcal` : `${eatenToday.toLocaleString()} kcal`}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Streak</Text>
             <Text style={styles.rowValue}>{metrics.streak} {metrics.streak === 1 ? 'day' : 'days'}</Text>

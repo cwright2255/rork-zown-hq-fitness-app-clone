@@ -6,6 +6,7 @@ import { ALCOHOL_NUTRITION_NOTE } from '@/lib/alcoholGuidance';
 import { getGoalLabels, INJURY_LABELS } from '@/lib/userProfileData';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
+import { localDateKey } from '@/lib/localDate';
 
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {
@@ -200,7 +201,7 @@ export const generateWorkoutPlan = async (request) => {
           type: 'mainMission',
           baseExp: 1125,
           multiplier: 1.0,
-          date: new Date().toISOString().split('T')[0],
+          date: localDateKey(),
           description: `Created ${workout.name} workout plan`,
           completed: true
         }, useUserStore.getState().user?.uid);
@@ -263,7 +264,7 @@ dietaryRestrictions) =>
           type: 'sideMission',
           baseExp: 375,
           multiplier: 1.0,
-          date: new Date().toISOString().split('T')[0],
+          date: localDateKey(),
           description: `Received nutrition advice (${readiness} readiness)`,
           completed: true
         }, useUserStore.getState().user?.uid);

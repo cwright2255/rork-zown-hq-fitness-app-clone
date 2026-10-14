@@ -16,6 +16,8 @@
 // result; this file only does the math, which is what makes it
 // possible to verify directly and thoroughly on its own.
 
+import { dayKeyOf } from '../lib/localDate';
+
 // Epley formula - one of the two or three most commonly used 1RM
 // estimators in strength training, textbook-standard, not tied to any
 // single app or product.
@@ -32,7 +34,9 @@ export function estimateOneRepMax(weight, reps) {
 export function groupSetsBySession(loggedSets) {
   const bySession = new Map();
   for (const set of loggedSets) {
-    const day = new Date(set.date).toISOString().slice(0, 10);
+    // The calendar day the person lived it: a session that runs past 8 PM is still one session.
+    const day = dayKeyOf(set.date);
+    if (!day) continue; // a set with no usable date cannot be placed in a session
     if (!bySession.has(day)) bySession.set(day, []);
     bySession.get(day).push(set);
   }

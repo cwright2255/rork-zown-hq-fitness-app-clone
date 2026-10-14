@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import LoadingSkeleton from '../src/components/LoadingSkeleton';
 import { useChallengeStore } from '@/store/challengeStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
 import AudienceFilter from '@/components/AudienceFilter';
 import { useAudience } from '@/store/useAudience';
@@ -146,13 +148,20 @@ export default function ChallengesScreen() {
     participants, participantsLoading, loadParticipants, publishMyProgress,
   } = useChallengeStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  // Runs, walks and hikes count toward a challenge the same as a workout does.
+  const { runs, loadRuns } = useRunningStore();
+  const { completedHikes, loadCompletedHikes } = useHikingStore();
   const { audience, setAudience, uids, uidKey } = useAudience('challenges', user?.uid);
   const lastPublished = useRef({});
 
   useEffect(() => {
     (async () => {
       await loadChallenges(user?.uid);
-      if (user?.uid) loadWorkouts(user.uid);
+      if (user?.uid) {
+        loadWorkouts(user.uid);
+        loadRuns?.(user.uid);
+        loadCompletedHikes?.(user.uid);
+      }
     })();
   }, [user?.uid]);
 
@@ -181,7 +190,7 @@ export default function ChallengesScreen() {
     if (joinedNow.length === 0) return;
     (async () => {
       for (const challenge of joinedNow) {
-        const progress = getProgress(challenge, completedWorkouts);
+        const progress = getProgress(challenge, completedWorkouts, runs, completedHikes);
         const stamp = `${progress?.current}/${progress?.target}`;
         if (progress && lastPublished.current[challenge.id] !== stamp) {
           lastPublished.current[challenge.id] = stamp;
@@ -191,7 +200,7 @@ export default function ChallengesScreen() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, joinedKey, challenges, completedWorkouts, audience, uidKey]);
+  }, [user?.uid, joinedKey, challenges, completedWorkouts, runs, completedHikes, audience, uidKey]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -237,7 +246,7 @@ export default function ChallengesScreen() {
           ['daily', 'weekly', 'monthly', 'seasonal'].map((cadence) => {
             const challenge = currentByCadence[cadence];
             const joined = challenge ? joinedChallengeIds.has(challenge.id) : false;
-            const progress = joined ? getProgress(challenge, completedWorkouts) : null;
+            const progress = joined ? getProgress(challenge, completedWorkouts, runs, completedHikes) : null;
             return (
               <ChallengeSection
                 key={cadence}

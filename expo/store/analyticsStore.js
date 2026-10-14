@@ -2,11 +2,12 @@ import { create } from 'zustand';
 import { useWorkoutStore } from './workoutStore';
 import { useHealthStore } from './healthStore';
 import { useExpStore } from './expStore';
+import { localDateKey, shiftDateKey, dayKeyOf } from '../lib/localDate';
 
 export const useAnalyticsStore = create(() => ({
   getAnalytics: (timeRange) => {
     const { completedWorkouts } = useWorkoutStore.getState();
-    const { weight, hydration, sleep } = useHealthStore.getState();
+    const { hydration, sleep } = useHealthStore.getState();
     const { totalExp } = useExpStore.getState();
 
     const now = Date.now();
@@ -29,12 +30,11 @@ export const useAnalyticsStore = create(() => ({
     // Streak: count consecutive days with workouts from today backwards
     let streakDays = 0;
     const dayMs = 24 * 60 * 60 * 1000;
+    // Days are the person's own calendar days (a 9 PM workout belongs to today, not tomorrow).
+    const workoutDays = new Set((completedWorkouts || []).map(w => dayKeyOf(w.completedAt || w.date)).filter(Boolean));
+    const todayKey = localDateKey();
     for (let d = 0; d < 365; d++) {
-      const dayStart = new Date(now - d * dayMs).toISOString().slice(0, 10);
-      const hasWorkout = (completedWorkouts || []).some(w => {
-        const wd = w.completedAt || w.date;
-        return wd && wd.startsWith(dayStart);
-      });
+      const hasWorkout = workoutDays.has(shiftDateKey(todayKey, -d));
       if (hasWorkout) streakDays++;
       else if (d > 0) break;
     }

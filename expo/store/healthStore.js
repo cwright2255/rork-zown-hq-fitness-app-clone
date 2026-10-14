@@ -4,11 +4,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useExpStore } from './expStore';
-import { gradeToMealStars } from '@/services/calorieApiService';
 import { rookService } from '@/services/rookService';
 import { appleHealthService } from '@/services/appleHealthService';
+import { localDateKey, parseDateKey } from '../lib/localDate';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// Today as the person lives it (their own calendar day), not the UTC date, which turns over at 8 PM in New Jersey.
+const todayStr = () => localDateKey();
+
+// The step count of each day, {"YYYY-MM-DD": count}, which the Steps card on Home reads its streak, averages and totals
+// from (lib/stepsMetrics.js). Nothing used to write it, so the card never had anything to show. A little over a year is kept.
+export const STEPS_HISTORY_DAYS = 400;
+
+/** A steps history as it should be held: only real days with a count of 0 or more, the newest STEPS_HISTORY_DAYS of them. Anything else (the empty list this started as, null) is {}. */
+export function normalizeStepsHistory(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const days = Object.keys(value)
+    .filter((day) => parseDateKey(day) && Number.isFinite(value[day]) && value[day] >= 0)
+    .sort()
+    .slice(-STEPS_HISTORY_DAYS);
+  const out = {};
+  for (const day of days) out[day] = value[day];
+  return out;
+}
+
+/** Two histories as one. For a day in both the larger count wins: a day's steps only add up, so the smaller is the older reading. */
+export function mergeStepsHistory(a, b) {
+  const left = normalizeStepsHistory(a);
+  const right = normalizeStepsHistory(b);
+  const out = { ...left };
+  for (const day of Object.keys(right)) out[day] = Math.max(out[day] ?? 0, right[day]);
+  return normalizeStepsHistory(out);
+}
+
+/** The history with one day's count put in, replacing what was there. A count that is not 0 or more leaves it as it was. */
+export function withStepsOn(history, day, count) {
+  const base = normalizeStepsHistory(history);
+  if (!parseDateKey(day) || !Number.isFinite(count) || count < 0) return base;
+  return normalizeStepsHistory({ ...base, [day]: count });
+}
 
 export const useHealthStore = create(
   persist(
@@ -28,22 +61,23 @@ export const useHealthStore = create(
       measurements: {},
       goals: [],
       hydration: { glasses: 0, target: 8, date: todayStr() },
-      meals: [],
       bodyScan: null,
       sleep: { hours: 0, quality: null, date: todayStr() },
       steps: 0,
+      // The day (YYYY-MM-DD, the person's own) that `steps` was last set. The count is saved on the phone, so
+      // without this a count from another day looks like today's. null for a count saved before this existed.
+      stepsDate: null,
       isLoading: false,
 
       // rookRecovery/stepsHistory/flightsClimbed: destructured by
       // app/hq.jsx. loadRookRecovery/loadAppleHealthActivity below are
       // real implementations against services/rookService.js and
       // services/appleHealthService.js, both of which already existed
-      // and worked - stepsHistory itself isn't populated by either
-      // function (neither service exposes a historical series, only
-      // "today"), so it stays an empty array until something explicitly
-      // needs it.
+      // and worked. Neither service exposes a historical series, only
+      // "today", so stepsHistory is built up one day at a time: setSteps
+      // files each count under its day ({"YYYY-MM-DD": count}).
       rookRecovery: null,
-      stepsHistory: [],
+      stepsHistory: {},
       flightsClimbed: 0,
 
       /* ── Firestore sync ── */
@@ -65,10 +99,15 @@ export const useHealthStore = create(
               // only code path that ever checked the date. Same check,
               // applied here too.
               hydration:    (d.hydration && d.hydration.date === todayStr()) ? d.hydration : { glasses: 0, target: 8, date: todayStr() },
-              meals:        d.meals        || [],
               bodyScan:     d.bodyScan     || null,
               sleep:        d.sleep        || { hours: 0, quality: null, date: todayStr() },
               steps:        d.steps        || 0,
+              stepsDate:    d.stepsDate    || null,
+              // What is saved and what is on this phone, together, plus the last count that was saved with its day.
+              stepsHistory: mergeStepsHistory(
+                mergeStepsHistory(get().stepsHistory, d.stepsHistory),
+                d.stepsDate ? { [d.stepsDate]: d.steps } : {},
+              ),
             });
           }
         } catch (e) {
@@ -147,10 +186,11 @@ export const useHealthStore = create(
             measurements: s.measurements,
             goals: s.goals,
             hydration: s.hydration,
-            meals: s.meals,
             bodyScan: s.bodyScan,
             sleep: s.sleep,
             steps: s.steps,
+            stepsDate: s.stepsDate,
+            stepsHistory: s.stepsHistory,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -199,50 +239,6 @@ export const useHealthStore = create(
         get()._persist(uid);
       },
 
-      /* ── Meals ── */
-      logMeal: (meal, uid) => {
-        const entry = { ...meal, id: Date.now().toString(36), timestamp: new Date().toISOString() };
-        set((s) => ({ meals: [...s.meals, entry] }));
-        // Real XP award, now based on actual nutrient quality where
-        // it's known. If this entry carries a real nutritionalScore
-        // (set when it came from a food search result - see
-        // lib/foodRating.js, which grades A-E from the food's nutrition
-        // per 100 g), that grade decides the stars via
-        // gradeToMealStars. For entries with no computed grade (manual
-        // entries, or a barcode scan that didn't run through scoring),
-        // falls back to how complete the entry's real nutrition data is
-        // - logging just calories is 3-star, adding any one macro is
-        // 4-star, logging all three (protein/carbs/fat) is 5-star. No
-        // calories logged at all earns nothing - there's no real
-        // nutrition data to reward yet either way. Routed through
-        // addExpActivity (type: 'meal') so it correctly feeds
-        // expSources.nutrition, the same breakdown workouts already
-        // feed via type: 'workout'. Star XP values (33/44/55) are
-        // expStore.js's existing mealThreeStar/FourStar/FiveStar,
-        // unchanged.
-        const hasCalories = entry.calories != null && entry.calories > 0;
-        if (hasCalories) {
-          let stars;
-          if (entry.nutritionalScore?.score) {
-            stars = gradeToMealStars(entry.nutritionalScore.score);
-          } else {
-            const macroCount = [entry.protein, entry.carbs, entry.fat].filter((v) => v != null && v > 0).length;
-            stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
-          }
-          const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
-          useExpStore.getState().addExpActivity({
-            id: entry.id,
-            type: 'meal',
-            baseExp,
-            multiplier: 1.0,
-            date: todayStr(),
-            description: `Logged ${entry.name || 'a meal'} (${stars}-star)`,
-            completed: true,
-          }, uid);
-        }
-        get()._persist(uid);
-      },
-
       /* ── Body Scan ── */
       saveBodyScan: (results, uid) => {
         set({ bodyScan: { ...results, date: new Date().toISOString() } });
@@ -257,7 +253,8 @@ export const useHealthStore = create(
 
       /* ── Steps ── */
       setSteps: (count, uid) => {
-        set({ steps: count });
+        const today = todayStr();
+        set((s) => ({ steps: count, stepsDate: today, stepsHistory: withStepsOn(s.stepsHistory, today, count) }));
         // Real, restored XP award - linear, top-up logic lives in
         // expStore.js so it isn't re-implemented here.
         useExpStore.getState().awardStepsXp(count, uid);
@@ -265,20 +262,10 @@ export const useHealthStore = create(
       },
 
       /* ── Computed helpers ── */
-      getTodayCalories: () => {
-        const today = todayStr();
-        return get().meals
-          .filter(m => m.timestamp && m.timestamp.startsWith(today))
-          .reduce((sum, m) => sum + (m.calories || 0), 0);
-      },
-      getTodayMacros: () => {
-        const today = todayStr();
-        const todayMeals = get().meals.filter(m => m.timestamp && m.timestamp.startsWith(today));
-        return {
-          protein: todayMeals.reduce((s, m) => s + (m.protein || 0), 0),
-          carbs:   todayMeals.reduce((s, m) => s + (m.carbs || 0), 0),
-          fat:     todayMeals.reduce((s, m) => s + (m.fat || 0), 0),
-        };
+      // Today's step count, or null when the saved count is from another day (or from before the day was recorded).
+      getTodaySteps: () => {
+        const { steps, stepsDate } = get();
+        return stepsDate === todayStr() && Number.isFinite(steps) ? steps : null;
       },
     }),
     {
@@ -288,11 +275,25 @@ export const useHealthStore = create(
         measurements: s.measurements,
         goals: s.goals,
         hydration: s.hydration,
-        meals: s.meals.slice(-200),
         bodyScan: s.bodyScan,
         sleep: s.sleep,
         steps: s.steps,
+        stepsDate: s.stepsDate,
+        stepsHistory: s.stepsHistory,
       }),
+      // The saved days and any already counted in memory go together. A phone that saved its steps before the history
+      // existed gets that count, with its day, as the first entry.
+      merge: (persisted, current) => {
+        const saved = persisted || {};
+        return {
+          ...current,
+          ...saved,
+          stepsHistory: mergeStepsHistory(
+            mergeStepsHistory(current.stepsHistory, saved.stepsHistory),
+            saved.stepsDate ? { [saved.stepsDate]: saved.steps } : {},
+          ),
+        };
+      },
     }
   )
 );

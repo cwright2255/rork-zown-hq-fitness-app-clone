@@ -51,6 +51,11 @@ describe('rewardJourney', () => {
     expect(global.__exp.addExpActivity.mock.calls[0][0].date).toBe('2026-12-31');
   });
 
+  it('dates a finish in the evening as that evening, not the next day (9:30 PM in New York is already tomorrow in UTC)', () => {
+    rewardJourney(canyon, 'u1', Date.UTC(2026, 9, 15, 1, 30));
+    expect(global.__exp.addExpActivity.mock.calls[0][0].date).toBe('2026-10-14');
+  });
+
   it('uses the time now when none is given', () => {
     jest.useFakeTimers({ now: Date.UTC(2026, 5, 1, 12) });
     try {

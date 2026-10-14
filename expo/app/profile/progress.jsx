@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import ProgressBar from '@/components/ProgressBar';
 import { useUserStore } from '@/store/userStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useActivityDays, useActivityStreak } from '@/services/streakService';
 import { useChampionPassStore } from '@/store/championPassStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useAchievementStore } from '@/store/achievementStore';
@@ -38,7 +39,7 @@ export default function ProgressTrackerScreen() {
 
 
 
-  const { getWorkoutStreak, completedWorkouts = [], getWorkoutsByDate } = useWorkoutStore();
+  const { completedWorkouts = [], getWorkoutsByDate } = useWorkoutStore();
 
 
 
@@ -149,8 +150,9 @@ export default function ProgressTrackerScreen() {
     }
   }, [initializeChampionPass, initializeBadges, initializeAchievements, updateCurrentTier, user, tiers.length, badges.length, achievements.length]);
 
-  const streakData = user?.streakData || { currentStreak: 0, longestStreak: 0, streakHistory: [] };
-  const workoutStreak = getWorkoutStreak();
+  // Days in a row with a workout, a run or a hike, and which days those were.
+  const workoutStreak = useActivityStreak();
+  const activityDays = useActivityDays();
 
   const handleClaimReward = (tierId, rewardId) => {
     // Claim the reward
@@ -384,7 +386,7 @@ export default function ProgressTrackerScreen() {
     contentContainerStyle={styles.sectionContent}
     showsVerticalScrollIndicator={false}>
     
-      <StreakCalendar compact={false} streakData={streakData} />
+      <StreakCalendar compact={false} days={activityDays} />
       
       <Card variant="elevated" style={styles.streakStatsCard}>
         <View style={styles.streakStatsHeader}>

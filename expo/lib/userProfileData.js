@@ -186,7 +186,7 @@ export function profileForWorkouts(profile) {
   return out;
 }
 
-/** Calories and macros eaten on one local date key (YYYY-MM-DD) or the UTC key the nutrition store uses. */
+/** Calories and macros eaten on a date key or keys (YYYY-MM-DD). The food diary keys its days by the person's own date. */
 export function dayTotals(meals, dateKeys) {
   const keys = Array.isArray(dateKeys) ? dateKeys : [dateKeys];
   const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, foods: 0 };
@@ -211,7 +211,7 @@ const kgToLb = (kg) => Math.round(kg * 2.20462);
  * Returns null when there is nothing to say.
  */
 export function buildSnapshotMessage({
-  profile, weightLogs = [], goals = [], nutrition = null, upcoming = [], now = new Date(),
+  profile, weightLogs = [], goals = [], nutrition = null, upcoming = [], signals = [], now = new Date(),
 } = {}) {
   const p = profile || {};
   const lines = [];
@@ -258,6 +258,11 @@ export function buildSnapshotMessage({
       lines.push(`Eaten so far today: ${t.calories} kcal, ${t.protein}g protein, ${t.carbs}g carbs, ${t.fat}g fat.`);
     }
   }
+
+  // Day-to-day readings (lib/coachSignals.js): recovery, water, steps, fasting, the last week of eating, calories burned.
+  (Array.isArray(signals) ? signals : []).forEach((line) => {
+    if (typeof line === 'string' && line.trim()) lines.push(line.trim());
+  });
 
   if (upcoming && upcoming.length) {
     lines.push(`Already on their calendar: ${upcoming.slice(0, 6).map((e) => `${e.title} (${e.when})`).join('; ')}. Do not double-book these times.`);

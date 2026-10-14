@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Switch } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('expo-web-browser', () => ({ maybeCompleteAuthSession: jest.fn() }), { virtual: true });
@@ -25,6 +25,7 @@ jest.mock('@/store/appleMusicStore', () => ({
 }));
 jest.mock('@/services/spotifyService', () => ({ spotifyService: {} }));
 jest.mock('@/services/leaderboardVisibility', () => ({ setShowInLeaderboards: jest.fn() }));
+jest.mock('@/services/streakService', () => ({ getActivityStreak: () => ({ current: 4, longest: 9 }) }));
 jest.mock('../src/config/firebase', () => ({ auth: { currentUser: { uid: 'u1', email: 'cj@example.com' } }, functions: { fake: true } }));
 // firebase/auth and firebase/functions get the same fake, so this test does not
 // depend on how the module resolver maps the two (some setups point both at one stub).
@@ -299,5 +300,21 @@ describe('Settings: Clear Cache', () => {
     const utils = render(<SettingsScreen />);
     expect(utils.queryByText('Storage Used')).toBeNull();
     expect(utils.queryByText('14.2 MB')).toBeNull();
+  });
+});
+
+describe('Settings: Show in Leaderboards', () => {
+  const { setShowInLeaderboards } = require('@/services/leaderboardVisibility');
+  const switchOf = (utils, label) => {
+    let node = utils.getByText(label);
+    while (node && node.findAllByType(Switch).length === 0) node = node.parent;
+    return node.findAllByType(Switch)[0];
+  };
+
+  it('hands the real streak over, so turning it back on does not put a streak of 0 on the board', () => {
+    setShowInLeaderboards.mockClear();
+    const utils = render(<SettingsScreen />);
+    fireEvent(switchOf(utils, 'Show in Leaderboards'), 'valueChange', true);
+    expect(setShowInLeaderboards).toHaveBeenCalledWith(true, { uid: 'u1' }, 4);
   });
 });

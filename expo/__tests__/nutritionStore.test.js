@@ -187,6 +187,16 @@ describe('quick add', () => {
     expect(mockAwardMealXp).toHaveBeenCalledTimes(1);
     expect(mockAwardMealXp.mock.calls[0][0]).toBe('apple');
   });
+
+  it('dates the XP with the day the person ate it: a 9:30 PM meal in New York is not tomorrow\'s', () => {
+    jest.useFakeTimers({ now: new Date('2026-10-15T01:30:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    try {
+      store().addFoodToMeal('2026-10-14', 'dinner', apple());
+      expect(mockAwardMealXp.mock.calls[0][1].date).toBe('2026-10-14');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe('custom foods', () => {

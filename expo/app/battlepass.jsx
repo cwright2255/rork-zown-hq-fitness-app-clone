@@ -7,10 +7,12 @@ import { useExpStore } from '@/store/expStore';
 import { useBattlePassStore } from '@/store/battlePassStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { localDateKey } from '@/lib/localDate';
+import { sessionsOf, countOnDay, countSince, activityStreak } from '@/lib/activity';
 
 const TIER_REWARDS = [
   {t:1,icon:'trophy',name:'Profile Badge'},
@@ -93,6 +95,7 @@ export default function BattlePassScreen(){
   const { claimedTiers, claimTier, loadBattlePass } = useBattlePassStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
+  const { completedHikes, loadCompletedHikes } = useHikingStore();
   const { getMealsByDate, loadNutritionData } = useNutritionStore();
   const { steps, loadAllHealth } = useHealthStore();
   const { achievements, getUnlockedAchievements, getLockedAchievements, loadAchievements } = useAchievementStore();
@@ -103,6 +106,7 @@ export default function BattlePassScreen(){
       loadBattlePass(uid);
       loadWorkouts?.(uid);
       loadRuns?.(uid);
+      loadCompletedHikes?.(uid);
       loadNutritionData(uid);
       loadAllHealth(uid);
       loadAchievements(uid);
@@ -146,15 +150,16 @@ export default function BattlePassScreen(){
 
   const missions = useMemo(() => {
     const now = new Date();
-    const todayKey = now.toISOString().slice(0, 10);
+    const todayKey = localDateKey(now);
     const monday = getMonday(now);
-    const isToday = (d) => d && new Date(d).toISOString().slice(0, 10) === todayKey;
     const isThisWeek = (d) => d && new Date(d) >= monday;
 
-    const todayWorkouts = (completedWorkouts || []).filter(w => isToday(w.completedAt)).length;
+    // A workout, a run or a hike each counts as a workout for these two missions.
+    const sessions = sessionsOf({ workouts: completedWorkouts, runs, hikes: completedHikes });
+    const todayWorkouts = countOnDay(sessions, todayKey);
     const todayMealsLogged = (getMealsByDate ? getMealsByDate(localDateKey(now)) : []).filter(m => m.foods?.length > 0).length;
     const weekRunKm = (runs || []).filter(r => isThisWeek(r.startTime)).reduce((s, r) => s + (r.distance || 0), 0);
-    const weekWorkouts = (completedWorkouts || []).filter(w => isThisWeek(w.completedAt)).length;
+    const weekWorkouts = countSince(sessions, monday.getTime());
 
     return {
       daily: [
@@ -167,7 +172,7 @@ export default function BattlePassScreen(){
         { title: 'Complete 5 workouts', xp: 300, current: weekWorkouts, target: 5 },
       ],
     };
-  }, [completedWorkouts, runs, steps, getMealsByDate]);
+  }, [completedWorkouts, runs, completedHikes, steps, getMealsByDate]);
 
   const hoursUntilMidnight = useMemo(() => {
     const now = new Date();
@@ -181,6 +186,13 @@ export default function BattlePassScreen(){
     return ['All', ...Array.from(cats)];
   }, [achievements]);
 
+  // Days in a row with a workout, a run or a hike, worked out from those records (not a stored counter).
+  const today = localDateKey();
+  const currentStreak = useMemo(
+    () => activityStreak(sessionsOf({ workouts: completedWorkouts, runs, hikes: completedHikes }), today).current,
+    [completedWorkouts, runs, completedHikes, today],
+  );
+
   const achProgress = useMemo(() => {
     const progress = {};
     achievements.forEach((a) => {
@@ -190,7 +202,7 @@ export default function BattlePassScreen(){
           progress[a.id] = { current: (completedWorkouts || []).length, target };
           break;
         case 'streak':
-          progress[a.id] = { current: user?.streak || 0, target };
+          progress[a.id] = { current: currentStreak, target };
           break;
         case 'level':
           progress[a.id] = { current: xpLevel, target };
@@ -209,7 +221,7 @@ export default function BattlePassScreen(){
       }
     });
     return progress;
-  }, [achievements, completedWorkouts, user?.streak, xpLevel, totalExp]);
+  }, [achievements, completedWorkouts, currentStreak, xpLevel, totalExp]);
 
   const filteredAch = useMemo(() => {
     const allEarned = getUnlockedAchievements();

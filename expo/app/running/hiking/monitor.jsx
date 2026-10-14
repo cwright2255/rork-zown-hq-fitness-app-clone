@@ -60,6 +60,7 @@ import { routeRegion } from '@/lib/runDetail';
 import { watchOffRoute } from '@/services/offRouteWatch';
 import { distanceLabel } from '@/lib/offRoute';
 import { distanceUnitLabel, formatDistance, formatDistanceValue } from '@/lib/distanceUnits';
+import { localDateKey } from '@/lib/localDate';
 
 // Same safe/conditional import pattern already established in
 // app/running/hiking/[id].jsx - react-native-maps needs a native
@@ -513,7 +514,7 @@ export default function HikeWeatherMonitorScreen() {
         type: 'hiking',
         baseExp: baseXp,
         multiplier: difficulty.xpMultiplier,
-        date: new Date().toISOString().split('T')[0],
+        date: localDateKey(),
         description: `Completed a ${difficulty.tier.toLowerCase()} hike — ${Number(formatDistanceValue(record.distanceKm, units, 2))}${distanceUnitLabel(units)}, ${difficulty.elevationGainFt}ft gain`,
         completed: true,
       }, user?.uid);

@@ -122,6 +122,11 @@ describe('finishRace: a finish that counts', () => {
 });
 
 describe('finishRace: the reward for a first finish', () => {
+  it('dates the reward with the evening it was run, not the next day in UTC', async () => {
+    await finishLocal({ now: Date.UTC(2026, 9, 15, 1, 30) }); // 9:30 PM on the 14th in New York
+    expect(global.__exp.addExpActivity.mock.calls[0][0].date).toBe('2026-10-14');
+  });
+
   it('gives the race XP and the Race Day badge, once, to the person who finished', async () => {
     await finishLocal();
     expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);

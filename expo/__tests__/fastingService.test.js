@@ -179,6 +179,18 @@ describe('getFastHistory', () => {
     expect(out[1].plan).toBeNull();
   });
 
+  it('can be asked for fewer, never more than 500, and ignores a count that makes no sense', async () => {
+    getDocs.mockResolvedValue({ docs: [] });
+    for (const [asked, read] of [[60, 60], [1, 1], [5000, 500], [0, 500], [-3, 500], [2.5, 500], ['7', 500], [null, 500]]) {
+      limit.mockClear();
+      await getFastHistory('u1', asked);
+      expect(limit).toHaveBeenCalledWith(read);
+    }
+    limit.mockClear();
+    await getFastHistory('u1', undefined);
+    expect(limit).toHaveBeenCalledWith(500);
+  });
+
   it('is empty without a signed in person', async () => {
     expect(await getFastHistory(undefined)).toEqual([]);
     expect(getDocs).not.toHaveBeenCalled();

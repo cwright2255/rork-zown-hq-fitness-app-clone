@@ -18,6 +18,7 @@ import { useBadgeStore } from '../store/badgeStore';
 import {
   raceTimeSec, isPlausibleTime, isRaceOpen, areaOf, raceEntryId,
 } from '../lib/virtualRaces';
+import { localDateKey } from '../lib/localDate';
 
 /** The badge for finishing a virtual race (see store/badgeStore.js). */
 export const RACE_BADGE_ID = 'badge-14';
@@ -32,7 +33,7 @@ function reward(race, uid, now) {
       type: 'running',
       baseExp: baseExpValues.virtualRace,
       multiplier: 1.0,
-      date: new Date(now).toISOString().split('T')[0],
+      date: localDateKey(new Date(now)),
       description: `Finished the ${race.name}`,
       completed: true,
     }, uid);

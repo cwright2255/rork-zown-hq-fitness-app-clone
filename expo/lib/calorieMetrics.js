@@ -2,12 +2,16 @@
 //
 // Pure computation layer for the Calories widget/log - real numbers
 // derived from completedWorkouts (store/workoutStore.js, caloriesBurned +
-// duration + category + completedAt) and runs (store/runningStore.js,
-// calories + duration + startTime). No fabricated fields: this app has
+// duration + category + completedAt), runs (store/runningStore.js,
+// calories + duration + startTime) and hikes (store/hikingStore.js,
+// calories + durationSeconds + startTime). No fabricated fields: this app has
 // no continuous/background activity feed, so anything requiring
 // intraday timestamps (hourly distribution, passive-movement calories)
 // is intentionally not computed here - a single completedAt/startTime
 // per session is all that's real.
+//
+// A "day" is the person's own calendar day (lib/localDate.js), so a 9 PM workout counts for today.
+import { dayKeyOf, parseDateKey } from './localDate';
 
 // Rough, widely-cited estimate for walking-pace calorie burn: about
 // 0.04 kcal per step for a ~70kg reference adult (the conservative end
@@ -25,9 +29,9 @@ export function estimateCaloriesFromSteps(steps, weightKg) {
   return Math.round(steps * caloriesPerStep);
 }
 
-// Normalizes a workout + run into one common shape for merging:
+// Normalizes a workout + run + hike into one common shape for merging:
 // { calories, durationSecs, dateStr (ISO), category, source }
-function toEntries(completedWorkouts, runs) {
+function toEntries(completedWorkouts, runs, hikes) {
   const workoutEntries = (completedWorkouts || [])
     .filter((w) => w.completedAt)
     .map((w) => ({
@@ -46,13 +50,25 @@ function toEntries(completedWorkouts, runs) {
       category: 'Running',
       source: 'run',
     }));
-  return [...workoutEntries, ...runEntries].sort(
+  // A saved hike always has numbers here, but a record that came back from the server with something else must
+  // not turn the whole day's total into text or NaN.
+  const count = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  const hikeEntries = (Array.isArray(hikes) ? hikes : [])
+    .filter((h) => h && (h.startTime || h.completedAt))
+    .map((h) => ({
+      calories: count(h.calories),
+      durationSecs: count(h.durationSeconds),
+      dateStr: h.startTime || h.completedAt,
+      category: 'Hiking',
+      source: 'hike',
+    }));
+  return [...workoutEntries, ...runEntries, ...hikeEntries].sort(
     (a, b) => new Date(a.dateStr) - new Date(b.dateStr)
   );
 }
 
-function dayKey(dateStr) {
-  return new Date(dateStr).toISOString().slice(0, 10); // YYYY-MM-DD, local-agnostic bucket
+function dayKey(value) {
+  return dayKeyOf(value); // YYYY-MM-DD in local time, or null for a bad date
 }
 
 // Sums calories per real calendar day - the building block nearly every
@@ -61,6 +77,7 @@ function caloriesByDay(entries) {
   const map = {};
   for (const e of entries) {
     const key = dayKey(e.dateStr);
+    if (!key) continue; // a session with no usable date cannot be put on a day
     map[key] = (map[key] || 0) + e.calories;
   }
   return map;
@@ -77,13 +94,13 @@ function caloriesByDay(entries) {
 // figures - doing so would mean estimating calories for days that were
 // never actually tracked, which is exactly the kind of fabrication this
 // file avoids everywhere else.
-export function computeCalorieMetrics(completedWorkouts, runs, dailyCalorieGoal, stepsCalorieEstimate = 0) {
-  const entries = toEntries(completedWorkouts, runs);
+export function computeCalorieMetrics(completedWorkouts, runs, dailyCalorieGoal, stepsCalorieEstimate = 0, hikes = []) {
+  const entries = toEntries(completedWorkouts, runs, hikes);
   const byDay = caloriesByDay(entries);
   const dayKeys = Object.keys(byDay).sort();
 
   const today = new Date();
-  const todayKey = dayKey(today.toISOString());
+  const todayKey = dayKey(today);
   const todayCalories = (byDay[todayKey] || 0) + stepsCalorieEstimate;
 
   // Streak: consecutive real days (walking backward from today) where
@@ -93,7 +110,7 @@ export function computeCalorieMetrics(completedWorkouts, runs, dailyCalorieGoal,
   if (dailyCalorieGoal && dailyCalorieGoal > 0) {
     let cursor = new Date(today);
     for (;;) {
-      const key = dayKey(cursor.toISOString());
+      const key = dayKey(cursor);
       const dayTotal = byDay[key] || 0;
       if (dayTotal >= dailyCalorieGoal) {
         streak += 1;
@@ -111,7 +128,7 @@ export function computeCalorieMetrics(completedWorkouts, runs, dailyCalorieGoal,
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    last7.push(byDay[dayKey(d.toISOString())] || 0);
+    last7.push(byDay[dayKey(d)] || 0);
   }
   const weeklyTotal = last7.reduce((sum, v) => sum + v, 0);
   const sevenDayAverage = weeklyTotal / 7;
@@ -121,7 +138,7 @@ export function computeCalorieMetrics(completedWorkouts, runs, dailyCalorieGoal,
   for (let i = 7; i < 14; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    prev7.push(byDay[dayKey(d.toISOString())] || 0);
+    prev7.push(byDay[dayKey(d)] || 0);
   }
   const prevWeeklyTotal = prev7.reduce((sum, v) => sum + v, 0);
   const velocity = weeklyTotal - prevWeeklyTotal;
@@ -131,7 +148,7 @@ export function computeCalorieMetrics(completedWorkouts, runs, dailyCalorieGoal,
   // history yet rather than showing a misleading 0.
   const todayWeekday = today.getDay();
   const sameWeekdayTotals = dayKeys
-    .filter((k) => new Date(k).getDay() === todayWeekday)
+    .filter((k) => parseDateKey(k)?.getDay() === todayWeekday)
     .map((k) => byDay[k]);
   const historicalDailyAverage = sameWeekdayTotals.length
     ? sameWeekdayTotals.reduce((sum, v) => sum + v, 0) / sameWeekdayTotals.length

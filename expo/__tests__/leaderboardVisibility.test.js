@@ -20,7 +20,8 @@ import {
   isShownOnLeaderboards, publishMyXp, setShowInLeaderboards,
 } from '../services/leaderboardVisibility';
 
-const user = { uid: 'u1', name: 'Cj', profileImage: 'https://img/p.png', streak: 6 };
+// Not a streak of its own: the streak is passed in (services/streakService.js), the user record's old counter was never updated.
+const user = { uid: 'u1', name: 'Cj', profileImage: 'https://img/p.png', streak: 99 };
 
 let warn;
 beforeEach(() => {
@@ -55,11 +56,24 @@ describe('isShownOnLeaderboards', () => {
 
 describe('publishMyXp', () => {
   it('puts the person\'s XP, level and streak on the board under their name and picture', async () => {
-    expect(await publishMyXp({ user })).toBe(true);
+    expect(await publishMyXp({ user, streak: 6 })).toBe(true);
     expect(global.__syncXp).toHaveBeenCalledTimes(1);
     expect(global.__syncXp).toHaveBeenCalledWith('u1', {
       name: 'Cj', avatar: 'https://img/p.png', xp: 1200, level: 4, streak: 6, visible: true,
     });
+  });
+
+  it('takes the streak it is given, not the old counter on the user record', async () => {
+    await publishMyXp({ user, streak: 3 });
+    expect(global.__syncXp.mock.calls[0][1].streak).toBe(3);
+  });
+
+  it('puts 0 when no usable streak is given', async () => {
+    for (const streak of [undefined, null, NaN, -2, 'six', Infinity]) {
+      global.__syncXp.mockClear();
+      await publishMyXp({ user, streak });
+      expect(global.__syncXp.mock.calls[0][1].streak).toBe(0);
+    }
   });
 
   it('uses the XP as it is now, not as it was when the screen opened', async () => {
@@ -119,7 +133,7 @@ describe('setShowInLeaderboards', () => {
 
   it('turning it on saves the setting and puts the XP and then the distance back', async () => {
     global.__settings.showInLeaderboards = false;
-    expect(await setShowInLeaderboards(true, user)).toBe(true);
+    expect(await setShowInLeaderboards(true, user, 6)).toBe(true);
     expect(global.__settings.updateSetting).toHaveBeenCalledWith('showInLeaderboards', true, 'u1');
     expect(global.__syncXp).toHaveBeenCalledTimes(1);
     expect(global.__syncXp.mock.calls[0][1]).toMatchObject({ xp: 1200, level: 4, streak: 6, visible: true });

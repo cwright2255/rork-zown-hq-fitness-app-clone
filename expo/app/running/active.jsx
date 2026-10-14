@@ -36,6 +36,7 @@ import { goalLabel, goalProgress } from '@/lib/runGoal';
 import { currentRace } from '@/lib/virtualRaces';
 import { raceResultMessage, speakableRaceTime } from '@/lib/raceMessages';
 import { finishRace } from '@/services/raceBoard';
+import { localDateKey } from '@/lib/localDate';
 
 /** How long the lock is held to open it again, so a pocket or a sweaty thumb does not. */
 const UNLOCK_HOLD_MS = 700;
@@ -328,7 +329,7 @@ export default function ActiveRunScreen() {
           type: 'running',
           baseExp: xpFor(activity, summary.distance),
           multiplier: 1.0,
-          date: new Date().toISOString().split('T')[0],
+          date: localDateKey(),
           description: countsForProgram
             ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`
             : `Completed a ${formatDistanceValue(summary.distance, units, 2)}${distanceUnitLabel(units)} ${activity}`,

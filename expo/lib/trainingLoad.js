@@ -24,14 +24,15 @@
 // length, which calories (via the real difficulty-to-MET mapping) does
 // not.
 
+import { dayKeyOf } from './localDate';
+
 const SWEET_SPOT_MIN = 0.8;
 const SWEET_SPOT_MAX = 1.3;
 const HIGH_RISK_THRESHOLD = 1.5;
 
+// The person's own calendar day for a date, ISO string or Firestore Timestamp, or null when it is not a date.
 function toDateKey(dateInput) {
-  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().split('T')[0];
+  return dayKeyOf(dateInput);
 }
 
 /**
@@ -66,14 +67,16 @@ export function aggregateDailyLoad({ completedWorkouts = [], runs = [], complete
  */
 export function calculateTrainingLoad(dailyLoadByDate) {
   const now = new Date();
-  const dayMs = 24 * 60 * 60 * 1000;
 
   let acuteSum = 0;
   let chronicSum = 0;
   let daysWithDataInChronicWindow = 0;
 
   for (let i = 0; i < 28; i++) {
-    const key = toDateKey(new Date(now.getTime() - i * dayMs));
+    // setDate steps one calendar day back, even over a clock change (a day is not always 24 hours)
+    const day = new Date(now);
+    day.setDate(day.getDate() - i);
+    const key = toDateKey(day);
     const load = dailyLoadByDate[key] || 0;
     if (dailyLoadByDate[key] != null) daysWithDataInChronicWindow++;
     chronicSum += load;

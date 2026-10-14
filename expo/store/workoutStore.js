@@ -7,6 +7,7 @@ import {
   doc, setDoc, deleteDoc,
 } from 'firebase/firestore';
 import { optimizeArrayForPerformance } from '@/utils/storeOptimizations';
+import { localDateKey, shiftDateKey, dayKeyOf } from '@/lib/localDate';
 
 
 
@@ -444,35 +445,29 @@ export const useWorkoutStore = create(
         if (completed.length === 0) {
           return { current: 0, longest: 0 };
         }
-        // Extract unique local dates (YYYY-MM-DD)
+        // Extract unique local dates (YYYY-MM-DD): the day the person lived it, so a 9 PM workout is still today's
         const dates = Array.from(new Set(
           completed
-            .map(w => w.completedAt || w.timestamp)
+            .map(w => dayKeyOf(w.completedAt || w.timestamp))
             .filter(Boolean)
-            .map(d => d.slice(0, 10))
         )).sort();
 
         let longest = 0;
         let current = 0;
         
         // Calculate streak
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const todayStr = localDateKey();
+        const yesterdayStr = shiftDateKey(todayStr, -1);
         
         // Find if they worked out today or yesterday
         const hasTodayOrYesterday = dates.includes(todayStr) || dates.includes(yesterdayStr);
         
         if (hasTodayOrYesterday) {
-          // Count backwards
-          let checkDate = dates.includes(todayStr) ? new Date() : new Date(Date.now() - 24 * 60 * 60 * 1000);
-          while (true) {
-            const checkStr = checkDate.toISOString().slice(0, 10);
-            if (dates.includes(checkStr)) {
-              current++;
-              checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
-            } else {
-              break;
-            }
+          // Count backwards one calendar day at a time (shiftDateKey is safe across clock changes)
+          let checkStr = dates.includes(todayStr) ? todayStr : yesterdayStr;
+          while (checkStr && dates.includes(checkStr)) {
+            current++;
+            checkStr = shiftDateKey(checkStr, -1);
           }
         }
         
@@ -502,10 +497,7 @@ export const useWorkoutStore = create(
 
       getWorkoutsByDate: (dateStr) => {
         const completed = get().completedWorkouts || [];
-        return completed.filter(w => {
-          const date = w.completedAt || w.timestamp;
-          return date && date.startsWith(dateStr);
-        });
+        return completed.filter(w => dayKeyOf(w.completedAt || w.timestamp) === dateStr);
       },
 
       // Real, new: persists one actually-logged set (real weight and

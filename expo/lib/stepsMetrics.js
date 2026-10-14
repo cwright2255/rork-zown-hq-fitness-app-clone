@@ -17,10 +17,13 @@
 // down any further than that (the same constraint calorieMetrics.js
 // already documents for its own domain).
 
+import { localDateKey, parseDateKey } from './localDate';
+
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// The person's own calendar day.
 function dayKey(date) {
-  return date.toISOString().slice(0, 10);
+  return localDateKey(date);
 }
 
 export function computeStepsMetrics(stepsHistory, stepsGoal) {
@@ -77,7 +80,7 @@ export function computeStepsMetrics(stepsHistory, stepsGoal) {
   // history yet rather than a misleading 0.
   const todayWeekday = today.getDay();
   const sameWeekdayTotals = dayKeys
-    .filter((k) => new Date(k).getDay() === todayWeekday)
+    .filter((k) => parseDateKey(k)?.getDay() === todayWeekday)
     .map((k) => history[k]);
   const historicalDailyAverage = sameWeekdayTotals.length
     ? sameWeekdayTotals.reduce((sum, v) => sum + v, 0) / sameWeekdayTotals.length
@@ -89,7 +92,9 @@ export function computeStepsMetrics(stepsHistory, stepsGoal) {
   const weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
   const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
   for (const k of dayKeys) {
-    const wd = new Date(k).getDay();
+    // A key is a calendar day, so read it as one: new Date('2026-10-14') is midnight UTC, the evening before here.
+    const wd = parseDateKey(k)?.getDay();
+    if (wd === undefined) continue;
     weekdayTotals[wd] += history[k];
     weekdayCounts[wd] += 1;
   }

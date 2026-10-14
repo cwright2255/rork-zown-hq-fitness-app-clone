@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useUserStore } from '@/store/userStore';
 import { tokens } from '../../theme/tokens';
+import { localDateKey } from '@/lib/localDate';
 
 
 
@@ -9,15 +9,10 @@ import { tokens } from '../../theme/tokens';
 
 
 
-const StreakCalendar = ({ compact = false, streakData }) => {
-  const { user } = useUserStore();
-
-  // Use provided streakData or get it from user store
-  const streakInfo = streakData || (user ? user.streakData : { currentStreak: 0, longestStreak: 0, streakHistory: [] });
-
-  if (!streakInfo) return null;
-
-  const streakHistory = streakInfo.streakHistory || [];
+// The last 7 days (compact) or 30 days (full) with the days that had a workout, a run or a hike coloured in.
+// `days` is the list of those calendar days ("YYYY-MM-DD"), e.g. from useActivityDays() in services/streakService.js.
+const StreakCalendar = ({ compact = false, days = [] }) => {
+  const doneDays = new Set(Array.isArray(days) ? days : []);
 
   // Get the last 7 days for compact view, or last 30 days for full view
   const daysToShow = compact ? 7 : 30;
@@ -29,15 +24,12 @@ const StreakCalendar = ({ compact = false, streakData }) => {
   for (let i = daysToShow - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
-    const dateString = date.toISOString().split('T')[0];
-
-    // Check if this date is in the streak history
-    const historyEntry = streakHistory.find((entry) => entry.date === dateString);
+    const dateString = localDateKey(date);
 
     dates.push({
       date: dateString,
       day: date.getDate(),
-      completed: historyEntry ? historyEntry.completed : false,
+      completed: doneDays.has(dateString),
       isFuture: i === 0 ? false : date > today,
       isToday: i === 0
     });

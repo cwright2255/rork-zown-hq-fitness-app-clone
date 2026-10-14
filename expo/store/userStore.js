@@ -236,53 +236,6 @@ export const useUserStore = create(
         return Math.floor(xp / 1000) + 1;
       },
 
-      updateStreak: (workoutCompleted) => {
-        const { user } = get();
-        if (!user) return;
-
-        const today = new Date().toISOString().split('T')[0];
-        const streakData = user.streakData || createDefaultStreakData();
-
-        let currentStreak = streakData.currentStreak;
-        let longestStreak = streakData.longestStreak;
-        let streakDates = [...streakData.streakDates];
-
-        if (workoutCompleted) {
-          if (!streakDates.includes(today)) {
-            currentStreak += 1;
-            streakDates.push(today);
-
-            if (currentStreak > longestStreak) {
-              longestStreak = currentStreak;
-            }
-          }
-        } else {
-          currentStreak = 0;
-        }
-
-        // Limit streak dates for performance - keep only last 7 days
-        streakDates = streakDates.slice(-7);
-
-        set({
-          user: {
-            ...user,
-            streak: currentStreak,
-            streakData: {
-              currentStreak,
-              longestStreak,
-              streakDates
-            }
-          }
-        });
-      },
-
-      getStreakData: () => {
-        const { user } = get();
-        if (!user) return createDefaultStreakData();
-
-        return user.streakData || createDefaultStreakData();
-      },
-
       updateFitnessMetrics: (metrics) => {
         const { user } = get();
         if (!user) return;
@@ -300,47 +253,6 @@ export const useUserStore = create(
           }
         });
       },
-
-      incrementSteps: (steps) => {
-        // Implementation for step tracking
-        console.log('Steps incremented:', steps);
-      },
-
-      logSleep: (duration, quality) => {
-        // Implementation for sleep tracking
-        console.log('Sleep logged:', duration, quality);
-      },
-
-      updateRecovery: (score) => {
-        // Implementation for recovery tracking
-        console.log('Recovery updated:', score);
-      },
-
-      logCaloriesBurned: (calories) => {
-        // Implementation for calorie tracking
-        console.log('Calories burned:', calories);
-      },
-
-      logActiveMinutes: (minutes) => {
-        // Implementation for active minutes tracking
-        console.log('Active minutes:', minutes);
-      },
-
-      updateHeartRate: (rate) => {
-        // Implementation for heart rate tracking
-        console.log('Heart rate updated:', rate);
-      },
-
-      logWaterIntake: (amount) => {
-        // Implementation for water intake tracking
-        console.log('Water intake:', amount);
-      },
-
-      resetDailyMetrics: () => {
-        // Implementation for resetting daily metrics
-        console.log('Daily metrics reset');
-      },
-
 
       /* ── Firestore sync ── */
       loadProfile: async (uid) => {

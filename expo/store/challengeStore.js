@@ -9,7 +9,8 @@
 // one for each cadence, and auto-fills whatever's missing.
 //
 // Progress is never stored or faked — it's computed live from the
-// user's own completedWorkouts in store/workoutStore.js, same principle
+// user's own completed workouts (store/workoutStore.js), runs
+// (store/runningStore.js) and hikes (store/hikingStore.js), same principle
 // store/virtualChallengeStore.js already uses for crediting real run
 // distance toward a route challenge. Joining a challenge just records
 // that this user opted in.
@@ -20,6 +21,7 @@ import {
   collection, query, orderBy, limit, getDocs, doc, setDoc, deleteDoc, where, documentId,
 } from 'firebase/firestore';
 import { chunk, rankEntries, challengeEntryId } from '../lib/audience';
+import { sessionsOf, sessionsBetween, distinctDays } from '../lib/activity';
 
 export const CADENCES = ['daily', 'weekly', 'monthly', 'seasonal'];
 
@@ -221,38 +223,33 @@ export const useChallengeStore = create((set, get) => ({
     }
   },
 
-  // Real progress from the user's actual completed workouts within the
+  // Real progress from the user's actual completed sessions within the
   // challenge's real calendar window — never a separately stored or
-  // invented number. goalType is either 'workout_count' (how many
-  // completed workouts fall in the window) or 'streak_days' (how many
-  // distinct calendar days had at least one). total_minutes was
+  // invented number. A session is a completed workout, a run or walk, or a
+  // hike (lib/activity.js): a person who trains by running is training.
+  // goalType is either 'workout_count' (how many sessions fall in the
+  // window) or 'streak_days' (how many distinct calendar days — the
+  // person's own days, so a 9 PM run is that day's — had at least one).
+  // The window itself is the server's UTC one. total_minutes was
   // deliberately left out of the generated goal types: workout.duration
   // is stored in seconds for real completed sessions (see
   // app/workout/active.jsx) but in minutes for saved templates (see
   // app/workout/quick.jsx) — a real, pre-existing inconsistency
   // elsewhere in this app that a minutes-based challenge goal would
   // silently inherit. Not fixing that here; it's a separate issue.
-  getProgress: (challenge, completedWorkouts) => {
+  // `runs` and `hikes` are optional so older callers keep working.
+  getProgress: (challenge, completedWorkouts, runs = [], hikes = []) => {
     if (!challenge) return null;
     const startMs = challenge.startDate ? new Date(challenge.startDate).getTime() : 0;
     const endMs = challenge.endDate ? new Date(challenge.endDate).getTime() : Date.now();
 
-    const relevant = (completedWorkouts || []).filter((w) => {
-      const t = new Date(w.completedAt || w.date || w.timestamp).getTime();
-      return Number.isFinite(t) && t >= startMs && t <= endMs;
-    });
+    const relevant = sessionsBetween(
+      sessionsOf({ workouts: completedWorkouts, runs, hikes }),
+      startMs,
+      endMs
+    );
 
-    let current;
-    if (challenge.goalType === 'streak_days') {
-      const days = new Set(
-        relevant
-          .map((w) => (w.completedAt || w.date || w.timestamp || '').slice(0, 10))
-          .filter(Boolean)
-      );
-      current = days.size;
-    } else {
-      current = relevant.length;
-    }
+    const current = challenge.goalType === 'streak_days' ? distinctDays(relevant) : relevant.length;
 
     const target = challenge.goalTarget || 1;
     const percent = Math.min(100, Math.round((current / target) * 100));

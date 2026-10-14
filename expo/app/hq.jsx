@@ -39,6 +39,9 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useNutritionStore } from '@/store/nutritionStore';
+import { eatGoal, eatenOn } from '@/lib/calorieGoals';
+import { localDateKey } from '@/lib/localDate';
 import { useHomeWidgetsStore } from '@/store/homeWidgetsStore';
 import { computeCalorieMetrics, estimateCaloriesFromSteps } from '@/lib/calorieMetrics';
 import SwipeableCaloriesContent from '@/components/SwipeableCaloriesContent';
@@ -47,6 +50,7 @@ import { computeXpMetrics } from '@/lib/xpMetrics';
 import SwipeableStepsContent from '@/components/SwipeableStepsContent';
 import PromptModal from '@/components/PromptModal';
 import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { getFullOrderedLayout, getWidgetDefinition } from '@/lib/homeWidgets';
 import StrengthScoreWidget from '@/components/StrengthScoreWidget';
 import FastingWidget from '@/components/FastingWidget';
@@ -138,6 +142,7 @@ export default function HQScreen() {
   const { loadWorkouts } = useWorkoutStore();
   const { loadAllHealth } = useHealthStore();
   const { loadRuns } = useRunningStore();
+  const loadCompletedHikes = useHikingStore((s) => s.loadCompletedHikes);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -149,7 +154,8 @@ export default function HQScreen() {
           loadXP(user.uid),
           loadWorkouts(user.uid),
           loadAllHealth(user.uid),
-          loadRuns(user.uid)
+          loadRuns(user.uid),
+          loadCompletedHikes(user.uid)
         ]);
       }
     } catch (e) {
@@ -164,7 +170,7 @@ export default function HQScreen() {
   const { user, updateUser, saveProfile } = useUserStore();
   const { getDailyExp, getLevel, getExpToNextLevel, xpHistory } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
-  const { hydration, sleep, steps: storeSteps, stepsHistory, meals, addGlass, flightsClimbed } = useHealthStore();
+  const { hydration, sleep, steps: storeSteps, stepsHistory, addGlass, flightsClimbed } = useHealthStore();
   const { rookRecovery, loadRookRecovery, loadAppleHealthActivity } = useHealthStore();
   useEffect(() => {
     if (user?.uid) {
@@ -186,13 +192,17 @@ export default function HQScreen() {
     return entry ? entry.enabled : true;
   };
   const { runs } = useRunningStore();
+  const completedHikes = useHikingStore((s) => s.completedHikes);
 
   const [expandedCard, setExpandedCard] = useState(null);
   const [showWidgetMenu, setShowWidgetMenu] = useState(false);
   const [showCalorieGoalModal, setShowCalorieGoalModal] = useState(false);
 
-  const isToday = (d) => d && new Date(d).toDateString() === new Date().toDateString();
-  const todayMealCals = (meals || []).filter(m => isToday(m.timestamp)).reduce((s, m) => s + (m.calories || 0), 0);
+  // Calories eaten today, from the food diary the Nutrition screen writes to, beside what the Calories card shows
+  // as burned. The card's own goal is a burn goal; the eat goal is the Nutrition screen's (lib/calorieGoals.js).
+  const dietMeals = useNutritionStore((s) => s.meals);
+  const eatTarget = useNutritionStore((s) => eatGoal(s));
+  const eatenToday = eatenOn(dietMeals, localDateKey());
 
   const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
@@ -217,11 +227,10 @@ export default function HQScreen() {
   // same "today" total in a slightly different way from calorieMetrics.js
   // (risk of the two silently drifting apart over time).
   const calorieMetrics = useMemo(
-    () => computeCalorieMetrics(completedWorkouts, runs, user?.dailyCalorieGoal, stepsCalorieEstimate),
-    [completedWorkouts, runs, user?.dailyCalorieGoal, stepsCalorieEstimate]
+    () => computeCalorieMetrics(completedWorkouts, runs, user?.dailyCalorieGoal, stepsCalorieEstimate, completedHikes),
+    [completedWorkouts, runs, completedHikes, user?.dailyCalorieGoal, stepsCalorieEstimate]
   );
   const caloriesVal = calorieMetrics.todayCalories;
-  const caloriesGoal = calorieMetrics.dailyCalorieGoal || 2200;
 
   // Real Overview/Breakdown/Trends/Lifetime for Steps, mirroring
   // calorieMetrics above exactly - see lib/stepsMetrics.js. stepsHistory
@@ -340,6 +349,8 @@ export default function HQScreen() {
               <SwipeableCaloriesContent
                 metrics={calorieMetrics}
                 onSetGoal={() => setShowCalorieGoalModal(true)}
+                eatenToday={eatenToday}
+                eatTarget={eatTarget}
               />
             )
           )
@@ -767,7 +778,7 @@ export default function HQScreen() {
       />
       <PromptModal
         visible={showCalorieGoalModal}
-        title="Daily Calorie Goal"
+        title="Daily Burn Goal"
         submitLabel="Save"
         fields={[
           { key: 'goal', label: 'How many calories do you want to burn per day?', placeholder: 'e.g. 500', keyboardType: 'numeric' },
