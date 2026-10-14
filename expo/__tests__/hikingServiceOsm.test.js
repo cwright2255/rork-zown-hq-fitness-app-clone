@@ -1,4 +1,8 @@
 import { fetchOsmPaths, fetchRouteForMap, clearOsmPathCache } from '../services/hikingService';
+import { callProxy } from '../services/callProxy';
+
+// The trail service is asked through the app's cloud functions; none is called here.
+jest.mock('../services/callProxy', () => ({ callProxy: jest.fn() }));
 
 const line = (lat0, lon0, n) => Array.from({ length: n }, (_, i) => ({ lat: lat0 + i * 0.001, lon: lon0 }));
 const way = (id, name, geometry) => ({ type: 'way', id, geometry, tags: { highway: 'path', name } });
@@ -21,11 +25,11 @@ beforeEach(() => {
   clearOsmPathCache();
   warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   global.fetch = jest.fn();
+  callProxy.mockReset();
 });
 afterEach(() => {
   warn.mockRestore();
   delete global.fetch;
-  delete process.env.EXPO_PUBLIC_TRAILAPI_KEY;
   jest.useRealTimers();
 });
 
@@ -241,21 +245,22 @@ describe('reusing an answer', () => {
 
 describe('fetchRouteForMap and a path from OpenStreetMap', () => {
   it('does not ask the trail service for the line: the path came with it', async () => {
-    process.env.EXPO_PUBLIC_TRAILAPI_KEY = 'key';
     await expect(fetchRouteForMap('osm-way-701')).resolves.toBeNull();
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(callProxy).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('still asks for the line of a trail service map', async () => {
-    process.env.EXPO_PUBLIC_TRAILAPI_KEY = 'key';
     const gpx = '<gpx><trk><trkseg>'
       + '<trkpt lat="39.9" lon="-74.9"><ele>10</ele></trkpt>'
       + '<trkpt lat="39.91" lon="-74.9"><ele>20</ele></trkpt>'
       + '</trkseg></trk></gpx>';
-    global.fetch.mockResolvedValue({ ok: true, status: 200, text: async () => gpx });
+    callProxy.mockResolvedValue({ gpx });
     const route = await fetchRouteForMap(55);
-    expect(global.fetch.mock.calls[0][0]).toBe('https://trailapi-trailapi.p.rapidapi.com/trails/map/55/gpx/');
+    expect(callProxy).toHaveBeenCalledTimes(1);
+    expect(callProxy).toHaveBeenCalledWith('getTrailApiGpx', { mapId: 55 });
+    expect(global.fetch).not.toHaveBeenCalled();
     expect(route.coordinates).toHaveLength(2);
     expect(route.elevationGainM).toBe(10);
   });
@@ -264,5 +269,6 @@ describe('fetchRouteForMap and a path from OpenStreetMap', () => {
     await expect(fetchRouteForMap(null)).resolves.toBeNull();
     await expect(fetchRouteForMap(undefined)).resolves.toBeNull();
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(callProxy).not.toHaveBeenCalled();
   });
 });

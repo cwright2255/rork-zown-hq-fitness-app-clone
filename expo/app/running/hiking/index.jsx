@@ -19,7 +19,7 @@ import { useHikingStore } from '@/store/hikingStore';
 import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, milesToKm } from '@/lib/distanceUnits';
-import { getPhotoUrl } from '@/services/hikingService';
+import { useTrailPhoto } from '@/hooks/useTrailPhoto';
 
 export default function HikingListScreen() {
   const router = useRouter();
@@ -120,7 +120,7 @@ export default function HikingListScreen() {
 
 function TrailCard({ trail, saved, onPress }) {
   const units = useSettingsStore((s) => s.units); // Settings > Distance Units: miles or km
-  const photoUrl = trail.photoUrl || (trail.photoName ? getPhotoUrl(trail.photoName, 500) : null);
+  const photoUrl = useTrailPhoto(trail, 500);
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardImageWrap}>

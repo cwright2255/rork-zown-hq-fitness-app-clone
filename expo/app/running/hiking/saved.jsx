@@ -15,7 +15,18 @@ import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useHikingStore } from '@/store/hikingStore';
 import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
-import { getPhotoUrl } from '@/services/hikingService';
+import { useTrailPhoto } from '@/hooks/useTrailPhoto';
+
+// The small picture of a saved trail: its photo once it is known, else a placeholder.
+function SavedThumb({ trail }) {
+  const photoUrl = useTrailPhoto(trail, 300);
+  if (photoUrl) return <Image source={{ uri: photoUrl }} style={styles.thumb} />;
+  return (
+    <View style={[styles.thumb, styles.thumbFallback]}>
+      <Ionicons name="image-outline" size={20} color={colors.textSecondary} />
+    </View>
+  );
+}
 
 export default function SavedTrailsScreen() {
   const router = useRouter();
@@ -65,16 +76,9 @@ export default function SavedTrailsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => {
-            const photoUrl = item.photoUrl || (item.photoName ? getPhotoUrl(item.photoName, 300) : null);
             return (
               <Pressable style={styles.row} onPress={() => router.push(`/running/hiking/${item.id}`)}>
-                {photoUrl ? (
-                  <Image source={{ uri: photoUrl }} style={styles.thumb} />
-                ) : (
-                  <View style={[styles.thumb, styles.thumbFallback]}>
-                    <Ionicons name="image-outline" size={20} color={colors.textSecondary} />
-                  </View>
-                )}
+                <SavedThumb trail={item} />
                 <View style={{ flex: 1, marginLeft: spacing.sm }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
                   <Text style={styles.rowSubtitle} numberOfLines={1}>{item.address}</Text>

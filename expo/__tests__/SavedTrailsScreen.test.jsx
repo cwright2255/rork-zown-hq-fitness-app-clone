@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('expo-router', () => ({ useRouter: () => global.__router }), { virtual: true });
@@ -12,7 +12,10 @@ jest.mock('@/components/ScreenHeader', () => ({ __esModule: true, default: () =>
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => global.__hiking }));
 jest.mock('@/store/offlineTrailStore', () => ({ useOfflineTrailStore: () => global.__offline }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__user }) }));
-jest.mock('@/services/hikingService', () => ({ getPhotoUrl: jest.fn((name) => `https://photo/${name}`) }));
+jest.mock('@/services/hikingService', () => ({
+  getPhotoUri: jest.fn(async (name) => `https://photo/${name}`),
+  peekPhotoUri: jest.fn((name) => `https://photo/${name}`),
+}));
 
 import SavedTrailsScreen from '../app/running/hiking/saved';
 
@@ -124,6 +127,20 @@ describe('SavedTrailsScreen', () => {
     });
     const uris = utils.UNSAFE_getAllByType(require('react-native').Image).map((i) => i.props.source.uri);
     expect(uris).toEqual(['https://img/1.jpg', 'https://photo/places/2/photos/x']);
+  });
+
+  it('shows the placeholder until the photo address arrives, then the photo', async () => {
+    const Service = require('@/services/hikingService');
+    Service.peekPhotoUri.mockReturnValueOnce(null).mockReturnValueOnce(null);
+    let finish;
+    Service.getPhotoUri.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const utils = show({ trails: [trail(2, { photoName: 'places/2/photos/x' })], saved: ['trailapi-2'] });
+    const { Image } = require('react-native');
+    expect(utils.UNSAFE_queryAllByType(Image)).toHaveLength(0);
+    expect(utils.UNSAFE_getAllByType('Ionicons').some((i) => i.props.name === 'image-outline')).toBe(true);
+    expect(Service.getPhotoUri).toHaveBeenCalledWith('places/2/photos/x', 300);
+    await act(async () => { finish('https://lh3/late.jpg'); });
+    expect(utils.UNSAFE_getAllByType(Image).map((i) => i.props.source.uri)).toEqual(['https://lh3/late.jpg']);
   });
 
   it('shows a spinner while the first search is still loading', () => {

@@ -67,7 +67,8 @@ jest.mock('@/store/bodyCompositionStore', () => ({
   useBodyCompositionStore: () => ({ scans: [], loadScans: jest.fn() }),
 }));
 jest.mock('@/services/hikingService', () => ({
-  getPhotoUrl: jest.fn(() => 'https://example.com/trail.jpg'),
+  getPhotoUri: jest.fn(async () => 'https://example.com/trail.jpg'),
+  peekPhotoUri: jest.fn(() => 'https://example.com/trail.jpg'),
   getTrailMaps: jest.fn(async () => []),
   fetchRouteForMap: jest.fn(async () => null),
   fetchOsmPaths: jest.fn(async () => ({ maps: [], routes: {} })),

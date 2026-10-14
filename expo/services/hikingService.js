@@ -33,13 +33,18 @@
 //        trail detail, GPX, maps list) without adding field-level detail.
 //    Freemium: ~500 requests/day before billing, per a real developer's
 //    account of using it. Needs a RapidAPI account + subscription to the
-//    TrailAPI product, set as EXPO_PUBLIC_TRAILAPI_KEY.
+//    TrailAPI product; its key is the TRAILAPI_KEY secret of the cloud functions.
 //
 // 2. Google Places API (New) — the fallback. This one WAS verified with a
 //    real live search against a real location before any code was written
 //    (see the audit) and is kept rather than discarded, specifically so a
 //    TrailAPI outage, empty result set, or an unverified field mismatch
-//    doesn't take the whole feature down. Needs its own key, see below.
+//    doesn't take the whole feature down. Its key is the GOOGLE_PLACES_API_KEY
+//    secret of the cloud functions.
+//
+// Both keys stay on the server: the app asks the proxy functions in
+// functions/src/index.js (through services/callProxy.js) and turns the answers into
+// trail records here. Nothing in this file holds a key.
 //
 // 3. OpenStreetMap (Overpass API) — not a search source, a source of trail PATHS:
 //    fetchOsmPaths() below returns the named footpaths around a trail's point with
@@ -50,6 +55,7 @@
 // public API for third-party apps (confirmed by checking, not assumed).
 
 import { parseGpxToRoute } from '@/lib/parseGpx';
+import { callProxy } from '@/services/callProxy';
 import { buildOverpassQuery, isOsmPathId, parseOverpassPaths, splitPaths, OSM_RADIUS_M } from '@/lib/osmTrails';
 
 // OpenStreetMap's Overpass service: the named paths of a park, with their shape,
@@ -66,10 +72,6 @@ const OVERPASS_TIMEOUT_MS = 20000;
 // screen): quicker for the person, and kinder to a free public service.
 const OSM_CACHE_MS = 15 * 60 * 1000;
 const osmCache = new Map(); // "lat,lon,radius" -> { at, found }
-
-const TRAILAPI_BASE = 'https://trailapi-trailapi.p.rapidapi.com';
-const TRAILAPI_HOST = 'trailapi-trailapi.p.rapidapi.com';
-const PLACES_API_BASE = 'https://places.googleapis.com/v1';
 
 // Real fix, found from a screen-recording review: TrailAPI (the
 // separate, non-Google data source merged in below) was observed
@@ -92,76 +94,26 @@ function sanitizeApiNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-// Trail-relevant Places types. `hiking_area` is the direct match; `park`
-// and `state_park`/`national_park` are included too since many real trail
-// systems (state forests, county parks) are typed as parks rather than
-// hiking_area specifically — confirmed by real search results returning
-// Wharton State Forest as `state_park` even though it has real trails.
-const TRAIL_TYPES = ['hiking_area', 'park', 'state_park', 'national_park'];
-
-const FIELD_MASK = [
-  'places.id',
-  'places.displayName',
-  'places.formattedAddress',
-  'places.location',
-  'places.rating',
-  'places.userRatingCount',
-  'places.photos',
-  'places.regularOpeningHours',
-  'places.types',
-  'places.googleMapsUri',
-].join(',');
-
-function getTrailApiKey() {
-  return process.env.EXPO_PUBLIC_TRAILAPI_KEY || null;
-}
-
-function getPlacesApiKey() {
-  const key = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
-  if (!key) {
-    throw new Error(
-      'EXPO_PUBLIC_GOOGLE_PLACES_API_KEY is not set. Enable "Places API (New)" in Google Cloud Console and set the key as an EAS secret.'
-    );
-  }
-  return key;
-}
-
 /**
  * Real hiking trails / trail-bearing parks within radiusMeters of a real
  * GPS position. Tries TrailAPI first, falls back to Google Places if
  * TrailAPI isn't configured, errors, or returns nothing usable.
  */
 export async function searchNearbyTrails({ latitude, longitude, radiusMeters = 24000 }) {
-  const trailApiKey = getTrailApiKey();
-  if (trailApiKey) {
-    try {
-      const trails = await searchTrailApi({ latitude, longitude, radiusMeters, apiKey: trailApiKey });
-      if (trails.length > 0) return trails;
-    } catch (e) {
-      console.warn('[hikingService] TrailAPI failed, falling back to Places:', e?.message);
-    }
+  try {
+    const trails = await searchTrailApi({ latitude, longitude, radiusMeters });
+    if (trails.length > 0) return trails;
+  } catch (e) {
+    // Includes TrailAPI not being set up on the server: the search carries on with Places.
+    console.warn('[hikingService] TrailAPI failed, falling back to Places:', e?.message);
   }
   return searchPlacesApi({ latitude, longitude, radiusMeters });
 }
 
-async function searchTrailApi({ latitude, longitude, radiusMeters, apiKey }) {
+async function searchTrailApi({ latitude, longitude, radiusMeters }) {
   const radiusMiles = Math.round(radiusMeters / 1609.34);
-  const url = `${TRAILAPI_BASE}/?lat=${latitude}&lon=${longitude}&radius=${radiusMiles}`;
-
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-key': apiKey,
-      'x-rapidapi-host': TRAILAPI_HOST,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`TrailAPI request failed: ${res.status}`);
-  }
-
-  const data = await res.json();
-  const places = data.places || [];
+  const data = await callProxy('searchTrailApiNearby', { latitude, longitude, radiusMiles });
+  const places = (data && data.places) || [];
 
   const trails = [];
   places.forEach((place) => {
@@ -199,35 +151,8 @@ async function searchTrailApi({ latitude, longitude, radiusMeters, apiKey }) {
 }
 
 async function searchPlacesApi({ latitude, longitude, radiusMeters }) {
-  const apiKey = getPlacesApiKey();
-
-  const res = await fetch(`${PLACES_API_BASE}/places:searchNearby`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': FIELD_MASK,
-    },
-    body: JSON.stringify({
-      includedTypes: TRAIL_TYPES,
-      maxResultCount: 20,
-      rankPreference: 'DISTANCE',
-      locationRestriction: {
-        circle: {
-          center: { latitude, longitude },
-          radius: radiusMeters,
-        },
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Places searchNearby failed: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-  const places = data.places || [];
+  const data = await callProxy('searchPlacesNearby', { latitude, longitude, radiusMeters });
+  const places = (data && data.places) || [];
 
   return places.map((p) => normalizePlacesTrail(p, latitude, longitude));
 }
@@ -248,22 +173,56 @@ function normalizePlacesTrail(place, userLat, userLng) {
     googleMapsUri: place.googleMapsUri || null,
     directions: null,
     lengthMiles: null, // Places doesn't have a structured trail-length field
-    photoUrl: null, // resolved lazily via getPhotoUrl() below, unlike TrailAPI's direct thumbnail
+    photoUrl: null, // resolved on the screen via getPhotoUri() below, unlike TrailAPI's direct thumbnail
     photoName: place.photos?.[0]?.name || null,
     distanceKm: lat && lng ? haversineKm(userLat, userLng, lat, lng) : null,
     source: 'places',
   };
 }
 
+// Google's address for a photo is short-lived, so one is reused for a couple of minutes
+// (scrolling back to a trail, opening it from the list) and then asked for again.
+const PHOTO_CACHE_MS = 2 * 60 * 1000;
+const photoCache = new Map(); // "name|width" -> { at, uri }
+const photoPending = new Map(); // "name|width" -> the request on its way
+
+/** The address already known for this photo, or null. Nothing is asked for. */
+export function peekPhotoUri(photoName, maxWidthPx = 500) {
+  const hit = photoCache.get(`${photoName}|${maxWidthPx}`);
+  return hit && Date.now() - hit.at < PHOTO_CACHE_MS ? hit.uri : null;
+}
+
 /**
- * Resolves a Google Places photo resource name to an actual image URL.
- * Only relevant for source:'places' trails — TrailAPI results already have
- * a direct photoUrl and don't need this.
+ * Resolves a Google Places photo resource name to an address the phone can show.
+ * Only relevant for source:'places' trails - TrailAPI results already have a direct
+ * photoUrl and don't need this. The key stays on the server (getPlacesPhotoUri in
+ * functions/src/index.js). Never throws: a photo that cannot be found is null, and the
+ * screen shows its placeholder.
  */
-export function getPhotoUrl(photoName, maxWidthPx = 500) {
+export async function getPhotoUri(photoName, maxWidthPx = 500) {
   if (!photoName) return null;
-  const apiKey = getPlacesApiKey();
-  return `${PLACES_API_BASE}/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
+  const key = `${photoName}|${maxWidthPx}`;
+  const known = peekPhotoUri(photoName, maxWidthPx);
+  if (known) return known;
+  if (photoPending.has(key)) return photoPending.get(key);
+  const request = callProxy('getPlacesPhotoUri', { photoName, maxWidthPx })
+    .then((data) => {
+      const uri = data && typeof data.photoUri === 'string' && data.photoUri ? data.photoUri : null;
+      if (uri) photoCache.set(key, { at: Date.now(), uri });
+      return uri;
+    })
+    .catch((e) => {
+      console.warn('[hikingService] Trail photo request failed:', e?.message);
+      return null;
+    })
+    .finally(() => { photoPending.delete(key); });
+  photoPending.set(key, request);
+  return request;
+}
+
+export function clearPhotoCache() {
+  photoCache.clear();
+  photoPending.clear();
 }
 
 /**
@@ -278,25 +237,14 @@ export function getPhotoUrl(photoName, maxWidthPx = 500) {
  * response you've inspected directly, or once getTrailMaps() is verified).
  */
 export async function getTrailGpx(mapId) {
-  const apiKey = getTrailApiKey();
-  if (!apiKey) throw new Error('EXPO_PUBLIC_TRAILAPI_KEY is not set.');
   if (!mapId) throw new Error('getTrailGpx requires a real map id.');
 
-  const res = await fetch(`${TRAILAPI_BASE}/trails/map/${encodeURIComponent(mapId)}/gpx/`, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-key': apiKey,
-      'x-rapidapi-host': TRAILAPI_HOST,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`TrailAPI GPX request failed: ${res.status}`);
-  }
+  const data = await callProxy('getTrailApiGpx', { mapId });
+  if (!data || typeof data.gpx !== 'string') throw new Error('TrailAPI GPX request sent no route.');
 
   // GPX is XML, not JSON — returned as text for the caller to parse or
   // hand off to a GPX-rendering library / share sheet as-is.
-  return res.text();
+  return data.gpx;
 }
 
 /**
@@ -311,26 +259,11 @@ export async function getTrailGpx(mapId) {
  * is where to look first.
  */
 export async function getTrailMaps(trailId) {
-  const apiKey = getTrailApiKey();
-  if (!apiKey) throw new Error('EXPO_PUBLIC_TRAILAPI_KEY is not set.');
-
-  const res = await fetch(`${TRAILAPI_BASE}/trails/${encodeURIComponent(trailId)}/maps/`, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-key': apiKey,
-      'x-rapidapi-host': TRAILAPI_HOST,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`TrailAPI maps list request failed: ${res.status}`);
-  }
-
-  const data = await res.json();
+  const data = await callProxy('getTrailApiMaps', { trailId });
   // Tries the two most likely shapes (a bare array, or {data: [...]} /
   // {maps: [...]} wrappers matching the shapes seen elsewhere in this
   // API) rather than assuming one is correct.
-  const list = Array.isArray(data) ? data : (data.maps || data.data || []);
+  const list = Array.isArray(data) ? data : ((data && (data.maps || data.data)) || []);
   // Real diagnostic, not decoration: a live test showed the path picker
   // never appearing at all, meaning this returned 0 or 1 maps for that
   // trail - logging the actual raw shape here (not guessing a fourth
@@ -352,7 +285,7 @@ export async function getTrailMaps(trailId) {
  * showing an error for something that was always an optional enhancement.
  */
 export async function fetchTrailRoute(trailId) {
-  if (!trailId || !getTrailApiKey()) return null;
+  if (!trailId) return null;
   try {
     const maps = await getTrailMaps(trailId);
     const firstMap = maps?.[0];

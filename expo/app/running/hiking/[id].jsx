@@ -30,7 +30,8 @@ import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, milesToKm } from '@/lib/distanceUnits';
-import { getPhotoUrl, getTrailMaps, fetchRouteForMap, fetchOsmPaths } from '@/services/hikingService';
+import { getTrailMaps, fetchRouteForMap, fetchOsmPaths } from '@/services/hikingService';
+import { useTrailPhoto } from '@/hooks/useTrailPhoto';
 import { cachedRoute, downloadTrailForOffline, MAX_PATHS_PER_TRAIL } from '@/lib/offlineTrails';
 import { isOsmPathId, trailPoint } from '@/lib/osmTrails';
 import { routeRegion } from '@/lib/runDetail';
@@ -95,7 +96,7 @@ export default function TrailPreviewScreen() {
   const record = offlineTrails[trailId] || null;
   const trail = getTrailById(trailId) || (record ? record.trail : null);
   const saved = savedTrailIds.includes(trailId);
-  const photoUrl = trail?.photoUrl || (trail?.photoName ? getPhotoUrl(trail.photoName, 900) : null);
+  const photoUrl = useTrailPhoto(trail, 900);
   // The trail's point on the map as numbers (a trail service may send them as text); null when it has none.
   const point = trailPoint(trail);
   const hasPoint = point !== null;

@@ -8,6 +8,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
+import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 
 initializeApp();
 
@@ -38,6 +39,12 @@ const ROOK_API_BASE = 'https://api.rook-connect.review'; // sandbox host - see c
 // Calorie API/ROOK secrets above already correctly avoid.
 const SPOONACULAR_API_KEY = defineSecret('SPOONACULAR_API_KEY');
 const RAPIDAPI_KEY = defineSecret('RAPIDAPI_KEY');
+// TrailAPI (a RapidAPI product with its own key) and Google Places: the trail search, trail
+// routes and trail photos in services/hikingService.js. They used to be read on the phone from
+// EXPO_PUBLIC_TRAILAPI_KEY and EXPO_PUBLIC_GOOGLE_PLACES_API_KEY, which put both in the app
+// itself. The proxies further down hold them instead.
+const TRAILAPI_KEY = defineSecret('TRAILAPI_KEY');
+const GOOGLE_PLACES_API_KEY = defineSecret('GOOGLE_PLACES_API_KEY');
 
 function rookBasicAuthHeader() {
   const basic = Buffer.from(`${ROOK_CLIENT_UUID.value()}:${ROOK_CLIENT_SECRET.value()}`).toString('base64');
@@ -1348,19 +1355,21 @@ async function fetchMuscleVizAsBase64(url, label) {
 // pure, local function with no key involved, no reason to round-trip
 // it through a network call.
 const MUSCLE_VIZ_BASE = 'https://muscle-visualizer-api.p.rapidapi.com/v1';
+// More muscles than the body has: a longer list is not a real request.
+const MUSCLE_LIST_MAX = 60;
 
 export const getMuscleVisualizeImage = onCall(
   { secrets: [RAPIDAPI_KEY], region: 'us-central1' },
   async (req) => {
     requireAuth(req.auth);
     const { muscles, color, gender, size } = req.data;
-    if (!Array.isArray(muscles) || !muscles.length) {
+    if (!Array.isArray(muscles) || !muscles.length || muscles.length > MUSCLE_LIST_MAX) {
       throw new HttpsError('invalid-argument', 'muscles required');
     }
 
     const musclesParam = encodeURIComponent(muscles.join(','));
     const colorParam = encodeURIComponent(color || '#E74C3C');
-    const url = `${MUSCLE_VIZ_BASE}/visualize/muscles?muscles=${musclesParam}&color=${colorParam}&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
+    const url = `${MUSCLE_VIZ_BASE}/visualize/muscles?muscles=${musclesParam}&color=${colorParam}&gender=${encodeURIComponent(gender || 'male')}&background=transparent&size=${encodeURIComponent(size || 'small')}&format=png`;
     return fetchMuscleVizAsBase64(url, 'getMuscleVisualizeImage');
   }
 );
@@ -1370,11 +1379,11 @@ export const getWorkoutVisualizeImage = onCall(
   async (req) => {
     requireAuth(req.auth);
     const { targetMuscles, secondaryMuscles, gender, size } = req.data;
-    if (!Array.isArray(targetMuscles) || !targetMuscles.length) {
+    if (!Array.isArray(targetMuscles) || !targetMuscles.length || targetMuscles.length > MUSCLE_LIST_MAX) {
       throw new HttpsError('invalid-argument', 'targetMuscles required');
     }
 
-    let url = `${MUSCLE_VIZ_BASE}/visualize/workout?targetMuscles=${encodeURIComponent(targetMuscles.join(','))}&targetMusclesColor=%23E74C3C&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
+    let url = `${MUSCLE_VIZ_BASE}/visualize/workout?targetMuscles=${encodeURIComponent(targetMuscles.join(','))}&targetMusclesColor=%23E74C3C&gender=${encodeURIComponent(gender || 'male')}&background=transparent&size=${encodeURIComponent(size || 'small')}&format=png`;
     if (Array.isArray(secondaryMuscles) && secondaryMuscles.length) {
       url += `&secondaryMuscles=${encodeURIComponent(secondaryMuscles.join(','))}&secondaryMusclesColor=%23F39C12`;
     }
@@ -1387,14 +1396,165 @@ export const getHeatmapVisualizeImage = onCall(
   async (req) => {
     requireAuth(req.auth);
     const { muscleColors, gender, size } = req.data;
-    if (!Array.isArray(muscleColors) || !muscleColors.length) {
+    if (!Array.isArray(muscleColors) || !muscleColors.length || muscleColors.length > MUSCLE_LIST_MAX) {
       throw new HttpsError('invalid-argument', 'muscleColors required');
     }
 
     const muscles = muscleColors.map((m) => m.muscle);
     const colors = muscleColors.map((m) => encodeURIComponent(m.color));
-    const url = `${MUSCLE_VIZ_BASE}/visualize/heatmap?muscles=${encodeURIComponent(muscles.join(','))}&colors=${colors.join(',')}&gender=${gender || 'male'}&background=transparent&size=${size || 'small'}&format=png`;
+    const url = `${MUSCLE_VIZ_BASE}/visualize/heatmap?muscles=${encodeURIComponent(muscles.join(','))}&colors=${colors.join(',')}&gender=${encodeURIComponent(gender || 'male')}&background=transparent&size=${encodeURIComponent(size || 'small')}&format=png`;
     return fetchMuscleVizAsBase64(url, 'getHeatmapVisualizeImage');
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Trail search, trail routes and trail photos (TrailAPI and Google Places).
+//
+// services/hikingService.js used to call both services itself, with the two keys read
+// from EXPO_PUBLIC_* variables, which puts them inside the app. These functions make the
+// same requests and hand back the service's answer as it came; the app still turns that
+// answer into its own trail records exactly as before. Signed-in callers only. Each
+// function builds the outgoing address and the fixed parts of the request (the trail
+// types, the fields asked for) itself, from values checked in proxyInput.js, so the app
+// cannot use them to ask either service anything else.
+// ---------------------------------------------------------------------------
+const TRAILAPI_BASE = 'https://trailapi-trailapi.p.rapidapi.com';
+const TRAILAPI_HOST = 'trailapi-trailapi.p.rapidapi.com';
+const PLACES_API_BASE = 'https://places.googleapis.com/v1';
+
+// Trail-relevant Places types and the fields asked for: the same lists the app used.
+const PLACES_TRAIL_TYPES = ['hiking_area', 'park', 'state_park', 'national_park'];
+const PLACES_FIELD_MASK = [
+  'places.id',
+  'places.displayName',
+  'places.formattedAddress',
+  'places.location',
+  'places.rating',
+  'places.userRatingCount',
+  'places.photos',
+  'places.regularOpeningHours',
+  'places.types',
+  'places.googleMapsUri',
+].join(',');
+
+// A small ceiling on how many copies of each run at once, so a flood of calls cannot
+// become a flood of paid requests.
+const TRAIL_PROXY_OPTIONS = { region: 'us-central1', maxInstances: 10 };
+
+function trailApiHeaders() {
+  return { 'x-rapidapi-key': TRAILAPI_KEY.value(), 'x-rapidapi-host': TRAILAPI_HOST };
+}
+
+async function trailApiGet(path, label) {
+  const res = await fetch(`${TRAILAPI_BASE}${path}`, { method: 'GET', headers: trailApiHeaders() });
+  if (!res.ok) {
+    console.warn(`[${label}] request failed`, { status: res.status });
+    throw new HttpsError('internal', `TrailAPI ${label} failed: ${res.status}`);
+  }
+  return res;
+}
+
+export const searchTrailApiNearby = onCall(
+  { ...TRAIL_PROXY_OPTIONS, secrets: [TRAILAPI_KEY] },
+  async (req) => {
+    requireAuth(req.auth);
+    const lat = numberInRange(req.data?.latitude, -90, 90);
+    const lon = numberInRange(req.data?.longitude, -180, 180);
+    const radiusMiles = numberInRange(req.data?.radiusMiles, 0, 200);
+    if (lat === null || lon === null || radiusMiles === null) {
+      throw new HttpsError('invalid-argument', 'latitude, longitude and radiusMiles required');
+    }
+    const res = await trailApiGet(`/?lat=${lat}&lon=${lon}&radius=${Math.round(radiusMiles)}`, 'searchTrailApiNearby');
+    const data = await res.json().catch(() => null);
+    if (data === null) throw new HttpsError('internal', 'TrailAPI search sent no readable answer');
+    return data;
+  }
+);
+
+export const getTrailApiMaps = onCall(
+  { ...TRAIL_PROXY_OPTIONS, secrets: [TRAILAPI_KEY] },
+  async (req) => {
+    requireAuth(req.auth);
+    const trailId = trailServiceId(req.data?.trailId);
+    if (trailId === null) throw new HttpsError('invalid-argument', 'trailId required');
+    const res = await trailApiGet(`/trails/${encodeURIComponent(trailId)}/maps/`, 'getTrailApiMaps');
+    const data = await res.json().catch(() => null);
+    if (data === null) throw new HttpsError('internal', 'TrailAPI maps sent no readable answer');
+    return data;
+  }
+);
+
+export const getTrailApiGpx = onCall(
+  { ...TRAIL_PROXY_OPTIONS, secrets: [TRAILAPI_KEY] },
+  async (req) => {
+    requireAuth(req.auth);
+    const mapId = trailServiceId(req.data?.mapId);
+    if (mapId === null) throw new HttpsError('invalid-argument', 'mapId required');
+    const res = await trailApiGet(`/trails/map/${encodeURIComponent(mapId)}/gpx/`, 'getTrailApiGpx');
+    // GPX is XML, so it goes back as text for the app to parse.
+    return { gpx: await res.text() };
+  }
+);
+
+export const searchPlacesNearby = onCall(
+  { ...TRAIL_PROXY_OPTIONS, secrets: [GOOGLE_PLACES_API_KEY] },
+  async (req) => {
+    requireAuth(req.auth);
+    const latitude = numberInRange(req.data?.latitude, -90, 90);
+    const longitude = numberInRange(req.data?.longitude, -180, 180);
+    // Places accepts a radius above 0 and up to 50,000 metres.
+    const radiusMeters = numberInRange(req.data?.radiusMeters, 1, 50000);
+    if (latitude === null || longitude === null || radiusMeters === null) {
+      throw new HttpsError('invalid-argument', 'latitude, longitude and radiusMeters required');
+    }
+    const res = await fetch(`${PLACES_API_BASE}/places:searchNearby`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY.value(),
+        'X-Goog-FieldMask': PLACES_FIELD_MASK,
+      },
+      body: JSON.stringify({
+        includedTypes: PLACES_TRAIL_TYPES,
+        maxResultCount: 20,
+        rankPreference: 'DISTANCE',
+        locationRestriction: { circle: { center: { latitude, longitude }, radius: radiusMeters } },
+      }),
+    });
+    if (!res.ok) {
+      console.warn('[searchPlacesNearby] request failed', { status: res.status });
+      throw new HttpsError('internal', `Places searchNearby failed: ${res.status}`);
+    }
+    const data = await res.json().catch(() => null);
+    if (data === null) throw new HttpsError('internal', 'Places search sent no readable answer');
+    return data;
+  }
+);
+
+// A Places photo as a short-lived address the phone can show. (Google's own answer; the
+// address needs no key, which is why the phone can load it directly.)
+export const getPlacesPhotoUri = onCall(
+  { ...TRAIL_PROXY_OPTIONS, secrets: [GOOGLE_PLACES_API_KEY] },
+  async (req) => {
+    requireAuth(req.auth);
+    const photoName = placePhotoName(req.data?.photoName);
+    if (photoName === null) throw new HttpsError('invalid-argument', 'photoName required');
+    // Places accepts 1 to 4800.
+    const maxWidthPx = req.data?.maxWidthPx === undefined ? 500 : numberInRange(req.data.maxWidthPx, 1, 4800);
+    if (maxWidthPx === null) throw new HttpsError('invalid-argument', 'maxWidthPx must be 1 to 4800');
+    const res = await fetch(
+      `${PLACES_API_BASE}/${photoName}/media?maxWidthPx=${Math.round(maxWidthPx)}&skipHttpRedirect=true`,
+      { headers: { 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY.value() } }
+    );
+    if (!res.ok) {
+      console.warn('[getPlacesPhotoUri] request failed', { status: res.status });
+      throw new HttpsError('internal', `Places photo failed: ${res.status}`);
+    }
+    const data = await res.json().catch(() => null);
+    if (!data || typeof data.photoUri !== 'string') {
+      throw new HttpsError('internal', 'Places photo sent no address');
+    }
+    return { photoUri: data.photoUri };
   }
 );
 

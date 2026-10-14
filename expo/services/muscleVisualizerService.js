@@ -25,12 +25,11 @@
 // X-RapidAPI-Key header across platforms/caching the way a real fetch()
 // call can, and auth headers are exactly what this API requires.
 
-const MUSCLE_VIZ_BASE = 'https://muscle-visualizer-api.p.rapidapi.com/v1';
-const MUSCLE_VIZ_HOST = 'muscle-visualizer-api.p.rapidapi.com';
-
-function getApiKey() {
-  return process.env.EXPO_PUBLIC_RAPIDAPI_KEY || null;
-}
+// The API key is not in the app. The three requests below go through the cloud functions
+// of the same names (functions/src/index.js), which hold the key, fetch the image and send
+// it back as base64; this file turns that into the same data URI as before. Nothing here
+// reads a key.
+import { callProxy } from '@/services/callProxy';
 
 // Real names, lowercase — matches confirmed real exercise data from the
 // same provider (oss.exercisedb.dev) and the visualizer API's own
@@ -41,37 +40,16 @@ export function normalizeMuscleNames(muscles = []) {
     .map((m) => m.toLowerCase().trim());
 }
 
-async function fetchAsDataUri(url, apiKey) {
-  if (!apiKey) return null;
+async function fetchAsDataUri(functionName, request) {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': MUSCLE_VIZ_HOST,
-      },
-    });
-    if (!res.ok) {
-      console.warn('[muscleVisualizerService] request failed:', res.status);
+    const answer = await callProxy(functionName, request);
+    if (!answer || typeof answer.base64 !== 'string' || !answer.base64) {
+      console.warn('[muscleVisualizerService] request sent no image:', functionName);
       return null;
     }
-    const blob = await res.blob();
-    // Real, documented React Native edge case: a blob's own .type is
-    // sometimes empty/missing depending on RN version and how the
-    // response was produced, which breaks FileReader.readAsDataURL
-    // silently or with a native error. Filling it in from the response's
-    // actual Content-Type header first avoids relying on the blob
-    // getting this right on its own.
-    if (blob && !blob.type) {
-      blob.type = res.headers.get('content-type') || 'image/png';
-    }
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    return `data:${answer.contentType || 'image/png'};base64,${answer.base64}`;
   } catch (e) {
-    console.warn('[muscleVisualizerService] fetch error:', e?.message);
+    console.warn('[muscleVisualizerService] request failed:', e?.message);
     return null;
   }
 }
@@ -89,14 +67,9 @@ export async function getMuscleVisualizeImage({
   gender = 'male',
   size = 'small',
 } = {}) {
-  const apiKey = getApiKey();
   const names = normalizeMuscleNames(muscles);
-  if (!names.length || !apiKey) return null;
-
-  const musclesParam = encodeURIComponent(names.join(','));
-  const colorParam = encodeURIComponent(color);
-  const url = `${MUSCLE_VIZ_BASE}/visualize/muscles?muscles=${musclesParam}&color=${colorParam}&gender=${gender}&background=transparent&size=${size}&format=png`;
-  return fetchAsDataUri(url, apiKey);
+  if (!names.length) return null;
+  return fetchAsDataUri('getMuscleVisualizeImage', { muscles: names, color, gender, size });
 }
 
 /**
@@ -110,16 +83,14 @@ export async function getWorkoutVisualizeImage({
   gender = 'male',
   size = 'small',
 } = {}) {
-  const apiKey = getApiKey();
   const target = normalizeMuscleNames(targetMuscles);
-  if (!target.length || !apiKey) return null;
-
-  let url = `${MUSCLE_VIZ_BASE}/visualize/workout?targetMuscles=${encodeURIComponent(target.join(','))}&targetMusclesColor=%23E74C3C&gender=${gender}&background=transparent&size=${size}&format=png`;
-  const secondary = normalizeMuscleNames(secondaryMuscles);
-  if (secondary.length) {
-    url += `&secondaryMuscles=${encodeURIComponent(secondary.join(','))}&secondaryMusclesColor=%23F39C12`;
-  }
-  return fetchAsDataUri(url, apiKey);
+  if (!target.length) return null;
+  return fetchAsDataUri('getWorkoutVisualizeImage', {
+    targetMuscles: target,
+    secondaryMuscles: normalizeMuscleNames(secondaryMuscles),
+    gender,
+    size,
+  });
 }
 
 /**
@@ -134,11 +105,12 @@ export async function getHeatmapVisualizeImage({
   gender = 'male',
   size = 'small',
 } = {}) {
-  const apiKey = getApiKey();
-  if (!muscleColors.length || !apiKey) return null;
-
-  const muscles = normalizeMuscleNames(muscleColors.map((m) => m.muscle));
-  const colors = muscleColors.map((m) => encodeURIComponent(m.color));
-  const url = `${MUSCLE_VIZ_BASE}/visualize/heatmap?muscles=${encodeURIComponent(muscles.join(','))}&colors=${colors.join(',')}&gender=${gender}&background=transparent&size=${size}&format=png`;
-  return fetchAsDataUri(url, apiKey);
+  if (!muscleColors.length) return null;
+  // A muscle and its colour travel together, so an entry without a usable name drops out
+  // with its colour rather than shifting the colours onto the wrong muscles.
+  const entries = muscleColors
+    .filter((m) => m && typeof m.muscle === 'string' && m.muscle)
+    .map((m) => ({ muscle: m.muscle.toLowerCase().trim(), color: m.color }));
+  if (!entries.length) return null;
+  return fetchAsDataUri('getHeatmapVisualizeImage', { muscleColors: entries, gender, size });
 }

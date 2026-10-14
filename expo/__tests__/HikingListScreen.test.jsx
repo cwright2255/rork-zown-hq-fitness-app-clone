@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 // These read Settings > Distance Units from the real settings store; the next two keep it off the network and the phone's storage.
 // The tests below were written in kilometres, so they start there (the miles tests set 'imperial' themselves).
@@ -43,7 +43,7 @@ jest.mock('@/components/PrimaryButton', () => {
 });
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => global.__hiking }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1' } }) }));
-jest.mock('@/services/hikingService', () => ({ getPhotoUrl: jest.fn(() => null) }));
+jest.mock('@/services/hikingService', () => ({ getPhotoUri: jest.fn(async () => null), peekPhotoUri: jest.fn(() => null) }));
 
 import HikingListScreen from '../app/running/hiking/index';
 import { useSettingsStore } from '../store/settingsStore';
@@ -113,6 +113,42 @@ describe('HikingListScreen distances', () => {
     const utils = open({ trails: [{ id: 'osm-6', name: 'No Length', address: 'There', distanceKm: 3 }] });
     expect(utils.getByText('1.9 mi away')).toBeTruthy();
     expect(utils.queryByText(/^0\.0 mi$/)).toBeNull();
+  });
+});
+
+describe('HikingListScreen trail photos', () => {
+  const { Image } = require('react-native');
+  const Service = require('@/services/hikingService');
+  const uris = (utils) => utils.UNSAFE_queryAllByType(Image).map((i) => i.props.source.uri);
+  const flush = async () => { await act(async () => {}); };
+  beforeEach(() => {
+    Service.getPhotoUri.mockClear();
+    Service.peekPhotoUri.mockReset();
+    Service.peekPhotoUri.mockReturnValue(null);
+  });
+
+  it('shows the picture a trail comes with, and asks for no other', async () => {
+    const utils = open({ trails: [{ id: 'trailapi-1', name: 'Pine Loop', address: 'Medford', photoUrl: 'https://img/pine.jpg' }] });
+    await flush();
+    expect(uris(utils)).toEqual(['https://img/pine.jpg']);
+    expect(Service.getPhotoUri).not.toHaveBeenCalled();
+  });
+
+  it('shows a placeholder until the address of a Places photo arrives, then the photo, asked for 500 wide', async () => {
+    Service.getPhotoUri.mockResolvedValueOnce('https://lh3/late.jpg');
+    const utils = open({ trails: [{ id: 'ChIJ1', name: 'Wharton', address: 'Hammonton', photoName: 'places/ChIJ1/photos/AbC' }] });
+    expect(uris(utils)).toEqual([]);
+    expect(utils.UNSAFE_getAllByType('Ionicons').some((i) => i.props.name === 'image-outline')).toBe(true);
+    await flush();
+    expect(Service.getPhotoUri).toHaveBeenCalledWith('places/ChIJ1/photos/AbC', 500);
+    expect(uris(utils)).toEqual(['https://lh3/late.jpg']);
+  });
+
+  it('keeps the placeholder for a trail with no photo at all', async () => {
+    const utils = open({ trails: [{ id: 'osm-5', name: 'Bear Rock', address: 'Here' }] });
+    await flush();
+    expect(uris(utils)).toEqual([]);
+    expect(Service.getPhotoUri).not.toHaveBeenCalled();
   });
 });
 

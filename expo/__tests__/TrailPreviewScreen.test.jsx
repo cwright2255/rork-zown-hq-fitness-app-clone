@@ -58,7 +58,8 @@ jest.mock('@/store/bodyCompositionStore', () => ({
   useBodyCompositionStore: () => ({ scans: [], loadScans: jest.fn() }),
 }));
 jest.mock('@/services/hikingService', () => ({
-  getPhotoUrl: jest.fn(() => null),
+  getPhotoUri: jest.fn(async () => null),
+  peekPhotoUri: jest.fn(() => null),
   getTrailMaps: jest.fn(),
   fetchRouteForMap: jest.fn(),
   fetchOsmPaths: jest.fn(),
@@ -143,6 +144,36 @@ describe('TrailPreviewScreen', () => {
     expect(allText(utils)).not.toMatch(DEBUG_TEXT);
     expect(allText(utils)).not.toMatch(/FEF3C7|78350F/i);
     expect(Service.getTrailMaps).toHaveBeenCalledWith('77');
+  });
+
+  describe('the photo at the top', () => {
+    const { Image } = require('react-native');
+    const uris = (utils) => utils.UNSAFE_queryAllByType(Image).map((i) => i.props.source.uri);
+    beforeEach(() => {
+      Service.getPhotoUri.mockReset();
+      Service.peekPhotoUri.mockReset();
+      Service.peekPhotoUri.mockReturnValue(null);
+      Service.getPhotoUri.mockResolvedValue(null);
+    });
+
+    it('is the picture the trail comes with', async () => {
+      const utils = await open(trail({ photoUrl: 'https://img/rag.jpg' }));
+      expect(uris(utils)).toEqual(['https://img/rag.jpg']);
+      expect(Service.getPhotoUri).not.toHaveBeenCalled();
+    });
+
+    it('is a Places photo, once its address arrives, asked for 900 wide', async () => {
+      Service.getPhotoUri.mockResolvedValue('https://lh3/rag.jpg');
+      const utils = await open(trail({ source: 'places', photoName: 'places/ChIJ1/photos/AbC' }));
+      expect(Service.getPhotoUri).toHaveBeenCalledWith('places/ChIJ1/photos/AbC', 900);
+      expect(uris(utils)).toEqual(['https://lh3/rag.jpg']);
+    });
+
+    it('is a placeholder when the trail has no photo', async () => {
+      const utils = await open(trail());
+      expect(uris(utils)).toEqual([]);
+      expect(utils.UNSAFE_getAllByType('Ionicons').some((i) => i.props.name === 'image-outline')).toBe(true);
+    });
   });
 
   it('shows no debug box for a trail that has no path data', async () => {
