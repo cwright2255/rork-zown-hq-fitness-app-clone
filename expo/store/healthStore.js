@@ -206,9 +206,8 @@ export const useHealthStore = create(
         // Real XP award, now based on actual nutrient quality where
         // it's known. If this entry carries a real nutritionalScore
         // (set when it came from a food search result - see
-        // services/calorieApiService.js's calculateNutritionalScore, which
-        // grades A-E using real FDA Daily Value percentages, not
-        // arbitrary cutoffs), that grade decides the stars via
+        // lib/foodRating.js, which grades A-E from the food's nutrition
+        // per 100 g), that grade decides the stars via
         // gradeToMealStars. For entries with no computed grade (manual
         // entries, or a barcode scan that didn't run through scoring),
         // falls back to how complete the entry's real nutrition data is

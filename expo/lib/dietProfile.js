@@ -17,22 +17,31 @@
 //
 // Allergy filtering is best-effort, not a medical guarantee - the UI says
 // so, and the AI prompt tells the model to treat allergies as strict.
+//
+// `aiNote` is what the AI is told about each diet: what it is, what to watch for, and who needs a doctor's
+// guidance. The evidence behind each note, with sources, is in functions/EXERCISE_SCIENCE_KNOWLEDGE.md
+// (section 8). Notes say plainly when the evidence is limited, so the AI does not oversell a diet.
 
 export const DIET_OPTIONS = [
   { id: 'no_preference', label: 'No Preference' },
-  { id: 'vegetarian', label: 'Vegetarian', spoonacularDiet: 'vegetarian' },
-  { id: 'vegan', label: 'Vegan', spoonacularDiet: 'vegan' },
-  { id: 'pescatarian', label: 'Pescatarian', spoonacularDiet: 'pescetarian' },
-  { id: 'mediterranean', label: 'Mediterranean', cuisine: 'mediterranean' },
-  { id: 'paleo', label: 'Paleo', spoonacularDiet: 'paleo' },
-  { id: 'keto', label: 'Keto', spoonacularDiet: 'ketogenic' },
-  { id: 'low_carb', label: 'Low Carb', macros: { maxCarbs: '30' } },
-  { id: 'high_protein', label: 'High Protein', macros: { minProtein: '30' } },
-  { id: 'carnivore', label: 'Carnivore', macros: { maxCarbs: '5' }, aiNote: 'animal-based foods only (meat, fish, eggs, optionally dairy); no plant foods' },
-  { id: 'whole30', label: 'Whole30', spoonacularDiet: 'whole30' },
-  { id: 'low_fodmap', label: 'Low FODMAP', spoonacularDiet: 'low FODMAP' },
-  { id: 'gluten_free', label: 'Gluten-Free', spoonacularDiet: 'gluten free' },
-  { id: 'intermittent_fasting', label: 'Intermittent Fasting', aiNote: 'eats within a restricted daily window, so it is about meal timing, not which foods are allowed' },
+  { id: 'vegetarian', label: 'Vegetarian', spoonacularDiet: 'vegetarian', aiNote: 'no meat or fish; plan for vitamin B12 (eggs and dairy help, otherwise fortified foods or a supplement), iron eaten with vitamin C, calcium, zinc and omega-3; protein from eggs, dairy, legumes and soy. A well-planned vegetarian diet suits every life stage and athletes' },
+  { id: 'vegan', label: 'Vegan', spoonacularDiet: 'vegan', aiNote: 'no animal products; needs a dependable vitamin B12 source (fortified foods or a supplement), plus iron eaten with vitamin C, calcium, iodine, zinc, omega-3 and vitamin D; mix protein sources (soy, legumes, grains, nuts, seeds) across the day. A well-planned vegan diet suits every life stage and athletes' },
+  { id: 'pescatarian', label: 'Pescatarian', spoonacularDiet: 'pescetarian', aiNote: 'no meat; fish and seafood allowed, and fatty fish about twice a week is a good source of omega-3' },
+  { id: 'mediterranean', label: 'Mediterranean', cuisine: 'mediterranean', aiNote: 'mostly vegetables, fruit, legumes, whole grains and nuts, extra-virgin olive oil as the main fat, fish at least twice a week, modest poultry, eggs and dairy, little red or processed meat. A large randomized trial (PREDIMED) found fewer heart attacks and strokes on it; olive oil and nuts are calorie-dense, so portion them' },
+  { id: 'whole_foods', label: 'Whole Foods', aiNote: 'mostly whole, minimally processed foods; cut back on ultra-processed foods, sugary drinks and refined carbohydrates (in an NIH trial people ate about 500 more calories a day on an ultra-processed diet); keep it practical and affordable, since frozen produce, canned beans and plain yogurt count' },
+  { id: 'paleo', label: 'Paleo', spoonacularDiet: 'paleo', aiNote: 'whole foods with no grains, dairy, legumes or refined sugar; watch calcium, vitamin D and fiber, and be honest that the research is short-term' },
+  // Pegan: Spoonacular has no label for it. Paleo is the nearest, and a safe subset (pegan allows a little
+  // more: small portions of grains and legumes).
+  { id: 'pegan', label: 'Pegan', spoonacularDiet: 'paleo', aiNote: 'a paleo-vegan blend: about three quarters of the plate low-glycemic vegetables and fruit, the rest pasture-raised meat, fish or eggs; limits dairy, gluten, most grains (about half a cup cooked per meal), legumes (about a cup cooked a day) and added sugar. A sensible whole-food pattern, but some restrictions are not evidence-based, so watch calcium and fiber' },
+  { id: 'keto', label: 'Keto', spoonacularDiet: 'ketogenic', aiNote: 'very low carbohydrate (usually under 50 g a day, about 70-80% of calories from fat); LDL cholesterol often rises; hard to sustain for high-intensity training; after a year its weight-loss results are not clearly different from other diets; people on diabetes medication, with kidney or liver disease, or who are pregnant need a doctor\'s guidance; keep fiber up with non-starchy vegetables, nuts and seeds' },
+  { id: 'low_carb', label: 'Low Carb', macros: { maxCarbs: '30' }, aiNote: 'lower carbohydrate than usual but not ketogenic; keep vegetables, legumes, berries and modest whole-grain portions rather than cutting fiber' },
+  { id: 'high_protein', label: 'High Protein', macros: { minProtein: '30' }, aiNote: 'about 1.6-2.0 g of protein per kg of body weight a day, spread over meals of roughly 0.25-0.4 g/kg (20-40 g); people with kidney disease need a doctor\'s guidance' },
+  { id: 'carnivore', label: 'Carnivore', macros: { maxCarbs: '5' }, aiNote: 'animal-based foods only (meat, fish, eggs, optionally dairy); no plant foods. Research is very limited (case reports and surveys), fiber is near zero, saturated fat in modeled meal plans passes the 10% of calories limit, LDL cholesterol often rises, and vitamin C, calcium, magnesium and potassium can run low. Say plainly that long-term safety is unproven, and suggest regular blood work with a doctor' },
+  { id: 'whole30', label: 'Whole30', spoonacularDiet: 'whole30', aiNote: 'a 30-day elimination plan (no added sugar, alcohol, grains, legumes or dairy) followed by reintroducing one group at a time to see what affects them; meant to be temporary, with little formal research behind it' },
+  { id: 'low_fodmap', label: 'Low FODMAP', spoonacularDiet: 'low FODMAP', aiNote: 'a short-term plan for IBS-type symptoms: swap high-FODMAP foods for low-FODMAP ones for about 2-6 weeks, then reintroduce groups one at a time and settle on the least restrictive diet that controls symptoms; best done with a dietitian and not meant to be followed long term' },
+  { id: 'gluten_free', label: 'Gluten-Free', spoonacularDiet: 'gluten free', aiNote: 'needed for celiac disease (strictly, including cross-contact); otherwise there is no proven health or weight-loss benefit; processed gluten-free products can be low in fiber, iron, calcium and B vitamins, so favor naturally gluten-free whole foods (rice, quinoa, potatoes, legumes, meat, fish, vegetables, fruit)' },
+  { id: 'intermittent_fasting', label: 'Intermittent Fasting', aiNote: 'eats within a restricted daily window, so it is about meal timing, not which foods are allowed; trials show no clear weight-loss edge over eating the same calories across the day; keep protein and training-day carbohydrate inside the window; not suitable with diabetes medication, a history of eating disorders, pregnancy, or for teenagers' },
+  { id: 'intuitive_eating', label: 'Intuitive Eating', aiNote: 'no calorie counting or food rules; eats by hunger and fullness cues. It is not designed for weight loss, so do not push calorie deficits, tracking or good-food/bad-food labels; offer protein, fiber, variety and hydration as gentle habits instead' },
 ];
 
 export const ALLERGY_OPTIONS = [
@@ -99,6 +108,11 @@ export function buildDietFilters(profile) {
     excludeIngredients: exclude.length ? exclude.join(',') : null,
     extras,
   };
+}
+
+// What the AI is told about one diet id ('' for no preference or an unknown id).
+export function dietAiNote(dietId) {
+  return DIET_BY_ID[dietId]?.aiNote || '';
 }
 
 // Plain-English lines for AI system prompts. Allergies are worded as strict

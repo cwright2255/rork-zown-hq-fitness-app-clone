@@ -112,10 +112,9 @@ function MacroRing({ size = 180, strokeWidth = 14, macros, dailyGoalCalories, la
 }
 
 
-// Real 1-5 star display - matches the FDA-Daily-Value-based grade
-// already computed for any food that came from a search result (see
-// services/calorieApiService.js's calculateNutritionalScore), shown
-// alongside calories to aid both the meal's XP tier and the user's own
+// Real 1-5 star display - matches the A-E grade already computed for
+// any food that came from a search result (see lib/foodRating.js),
+// shown alongside calories to aid both the meal's XP tier and the user's own
 // decision-making. Renders nothing for a food with no computed grade
 // (a manually-adjusted quantity, etc.) rather than a misleading
 // default rating.

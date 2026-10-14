@@ -1,7 +1,8 @@
 import { useExpStore } from '@/store/expStore';
 import { wearableService } from '@/services/wearableService';
 import { useUserStore } from '@/store/userStore';
-import { listDietRestrictions } from '@/lib/dietProfile';
+import { listDietRestrictions, getDietProfile, dietAiNote } from '@/lib/dietProfile';
+import { ALCOHOL_NUTRITION_NOTE } from '@/lib/alcoholGuidance';
 import { getGoalLabels, INJURY_LABELS } from '@/lib/userProfileData';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
@@ -117,10 +118,12 @@ const getUserDietaryContext = () => {
     if (typeof pref === 'string' && pref.trim().length > 0) {
       restrictions.push(pref.trim());
     }
-    return { goals, restrictions, injuries };
+    // What the AI is told about the chosen diet (what it is, what to watch, who needs a doctor).
+    const dietNote = dietAiNote(getDietProfile(user).dietId);
+    return { goals, restrictions, injuries, dietNote };
   } catch (e) {
     console.warn('[AI] user dietary context unavailable', e);
-    return { goals: [], restrictions: [], injuries: [] };
+    return { goals: [], restrictions: [], injuries: [], dietNote: '' };
   }
 };
 
@@ -238,15 +241,17 @@ dietaryRestrictions) =>
     const userCtx = getUserDietaryContext();
     const finalGoals = goals && goals.length > 0 ? goals : userCtx.goals;
     const finalRestrictions = (dietaryRestrictions && dietaryRestrictions.length > 0 ? dietaryRestrictions : userCtx.restrictions) ?? [];
+    // The note describes the diet from the profile, so it is only used when the restrictions came from the profile too.
+    const dietGuidance = dietaryRestrictions && dietaryRestrictions.length > 0 ? '' : userCtx.dietNote;
     const sys = {
       role: 'system',
       content:
-      'You are a certified nutritionist. Use TodayRecovery if provided to autoregulate nutrition. Rules: High readiness -> raise carbs by 10-20% (focus starches around training), modestly lower fats, keep protein ~1.6-2.2 g/kg. Low readiness -> emphasize recovery foods (omega-3, berries, leafy greens, turmeric/ginger), keep protein ~1.8-2.2 g/kg, shift carbs to lower-GI and earlier in day, add electrolytes and fluids, limit caffeine late. Medium -> balanced split. Respect restrictions. Output 120-180 words, terse bullet-like lines. Include: daily calories, macro split with gram targets, fueling timing, 3-5 food ideas, 2 tips adapted to readiness. No preamble.'
+      'You are a certified nutritionist. Use TodayRecovery if provided to autoregulate nutrition. Rules: High readiness -> raise carbs by 10-20% (focus starches around training), modestly lower fats, keep protein ~1.6-2.2 g/kg. Low readiness -> emphasize recovery foods (omega-3, berries, leafy greens, turmeric/ginger), keep protein ~1.8-2.2 g/kg, shift carbs to lower-GI and earlier in day, add electrolytes and fluids, limit caffeine late. Medium -> balanced split. Respect restrictions. Output 120-180 words, terse bullet-like lines. Include: daily calories, macro split with gram targets, fueling timing, 3-5 food ideas, 2 tips adapted to readiness. No preamble. ' + ALCOHOL_NUTRITION_NOTE
     };
     const usr = {
       role: 'user',
       content:
-      `Goals: ${finalGoals.join(', ')}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${currentWeight ? `Current: ${currentWeight}kg. ` : ''}${targetWeight ? `Target: ${targetWeight}kg. ` : ''}${finalRestrictions.length > 0 ? `Restrictions: ${finalRestrictions.join(', ')}. ` : ''}${recoveryNote} Provide precise, safe, practical guidance for today.`
+      `Goals: ${finalGoals.join(', ')}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${currentWeight ? `Current: ${currentWeight}kg. ` : ''}${targetWeight ? `Target: ${targetWeight}kg. ` : ''}${finalRestrictions.length > 0 ? `Restrictions: ${finalRestrictions.join(', ')}. ` : ''}${dietGuidance ? `DietGuidance: ${dietGuidance}. ` : ''}${recoveryNote} Provide precise, safe, practical guidance for today.`
     };
 
     const data = await postLLM([sys, usr], 28000, 1);
@@ -293,6 +298,7 @@ export const getAIDailyTargets = async (params) => {
     const userCtx = getUserDietaryContext();
     const finalGoals = params.goals && params.goals.length > 0 ? params.goals : userCtx.goals;
     const finalRestrictions = (params.dietaryRestrictions && params.dietaryRestrictions.length > 0 ? params.dietaryRestrictions : userCtx.restrictions) ?? [];
+    const dietGuidance = params.dietaryRestrictions && params.dietaryRestrictions.length > 0 ? '' : userCtx.dietNote;
     const sys = {
       role: 'system',
       content:
@@ -301,7 +307,7 @@ export const getAIDailyTargets = async (params) => {
 
     const usr = {
       role: 'user',
-      content: `Goals: ${finalGoals.join(', ')}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${params.currentWeightKg ? `Weight:${params.currentWeightKg}kg. ` : ''}Activity:${params.activityLevel ?? 'moderate'}. ${finalRestrictions.length > 0 ? `Restrictions:${finalRestrictions.join(', ')}. ` : ''}${recoveryNote}`
+      content: `Goals: ${finalGoals.join(', ')}. PreferredGoalDefaults: ${userCtx.goals.join(', ')}. ${params.currentWeightKg ? `Weight:${params.currentWeightKg}kg. ` : ''}Activity:${params.activityLevel ?? 'moderate'}. ${finalRestrictions.length > 0 ? `Restrictions:${finalRestrictions.join(', ')}. ` : ''}${dietGuidance ? `DietGuidance:${dietGuidance}. ` : ''}${recoveryNote}`
     };
 
 

@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { groupSetsBySession, estimateOneRepMax } from './progressiveOverloadService';
 import { getDietProfile, describeDietForAI } from '../lib/dietProfile';
+import { ALCOHOL_COACH_NOTE } from '../lib/alcoholGuidance';
 import { buildActionInstructions } from '../lib/coachActions';
 
 // Real, new: readable labels for the raw ids app/profile/edit.jsx's
@@ -56,6 +57,10 @@ export function buildCoachSystemPrompt(user, now = new Date()) {
       : null,
     ...dietLines,
     'Be encouraging, specific, and concise. Reference their real goals and injuries naturally when relevant, not every message.',
+    // Nutrition honesty: the diet notes above carry the evidence for the diet this person chose.
+    'For food and diet questions, give evidence-based guidance and say plainly when the evidence for a diet is limited or mixed. Never claim a diet treats or cures a disease. For medical conditions, medications, pregnancy or a history of eating disorders, suggest a doctor or registered dietitian.',
+    // What alcohol does to calories, fat burning and sleep, the guideline limits, and who should not drink.
+    ALCOHOL_COACH_NOTE,
     // Lets the coach propose workouts, calendar events and nutrition plans
     // that the user approves with Yes / No in the chat (lib/coachActions.js).
     buildActionInstructions(now),

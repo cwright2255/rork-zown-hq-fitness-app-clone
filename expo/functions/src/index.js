@@ -9,6 +9,8 @@ import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
 import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
+import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
+import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 
 initializeApp();
 
@@ -107,9 +109,9 @@ export const generateWorkoutPlan = onCall(
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
-      messages: [
+      messages: withScopePolicy([
       { role: 'system', content: 'You are an elite personal trainer applying real exercise science, not generic advice. Core principles, per functions/EXERCISE_SCIENCE_KNOWLEDGE.md: (1) Progressive overload - prescribe small, consistent increases in volume, load, reps, or difficulty over time, never random variation. (2) Training volume is the primary driver of hypertrophy - aim for roughly 10-20 hard sets per muscle group per week, in the 6-15 rep range, taken close to failure (0-3 reps in reserve); training each muscle group twice a week beats once a week for most people. (3) For heavier strength-focused work, 70-85% of 1RM (roughly 1-3 reps shy of failure) is the most effective zone - very light work (65% 1RM or below) builds muscle but not much strength, very heavy work (90%+) builds strength efficiently but limits the volume a session can accumulate. (4) Beginners progress fastest with simple, consistent programming, staying a few reps from failure to build technique first; advanced lifters need more volume and exercise variation to keep progressing. (5) Build in a lighter deload week roughly every 4-8 weeks of consistent training. (6) When the goals or history suggest bodyweight/no-equipment training, calisthenics builds comparable strength and muscle to weighted training at equal effort - progress it with harder exercise variations, slower eccentric tempo, greater range of motion, or added unilateral work instead of endless extra reps. Always return valid JSON.' },
-      { role: 'user', content: prompt }]
+      { role: 'user', content: prompt }])
 
     });
     const content = completion.choices[0]?.message?.content ?? '{}';
@@ -158,9 +160,9 @@ export const getProgressSummary = onCall(
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [
+      messages: withScopePolicy([
       { role: 'system', content: 'You are a supportive fitness coach.' },
-      { role: 'user', content: prompt }]
+      { role: 'user', content: prompt }])
 
     });
 
@@ -200,12 +202,13 @@ export const postLLM = onCall(
     }
 
     const openai = getOpenAI();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages
-    });
+    const answer = await askWithinScope(openai, { model: 'gpt-4o', messages });
+    if (answer.refused) {
+      console.info('[postLLM] declined a request outside fitness and health');
+      return { completion: REFUSAL, refused: true };
+    }
 
-    const content = completion.choices[0]?.message?.content ?? '';
+    const content = answer.completion.choices[0]?.message?.content ?? '';
     return { completion: content };
   }
 );
@@ -231,7 +234,7 @@ export const generateBodyCompositionInsight = onCall(
       completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
-        messages: [
+        messages: withScopePolicy([
           {
             role: 'system',
             content:
@@ -247,7 +250,7 @@ export const generateBodyCompositionInsight = onCall(
               '{"summary": string, "trend": "improving"|"steady"|"declining"|"mixed", "suggestion": string}.',
           },
           { role: 'user', content: prompt },
-        ],
+        ]),
       });
     } catch (err) {
       console.error('[generateBodyCompositionInsight] OpenAI call failed:', err?.message || err);
@@ -315,15 +318,17 @@ Recent workouts (last 30 days): ${JSON.stringify(recentWorkouts ?? [])}
 
 Base the calorie target on a real, honest calculation: derive BMR using the Mifflin-St Jeor equation from the real weight/height/age/gender given (if gender is not Male or Female, average the male and female formula results rather than guessing which applies), multiply by a realistic activity factor for the stated activity level, then adjust for the goal - a real, moderate deficit of roughly 300-500 kcal/day if target weight is below current weight, a moderate surplus of roughly 200-300 kcal/day if above, maintenance if equal or no target weight was given. Never recommend a deficit below 1200 kcal/day for any adult regardless of the numbers. For the protein target specifically (per functions/EXERCISE_SCIENCE_KNOWLEDGE.md), use roughly 1.6g per kg of body weight per day when weight is known and the user is doing resistance training with a muscle-building or recomposition goal - this is backed by meta-analysis evidence showing it meaningfully beats lower intakes for lean mass, roughly double the general RDA. Fall back to a reasonable general estimate only when weight is missing, and say so honestly. Split remaining calories between carbs and fat based on the stated dietary preference and remaining calorie budget. If a real dietary preference was given, make all 3 meal ideas genuinely fit it, not generic meals with a note bolted on.
 
+${NUTRITION_EVIDENCE_NOTES}
+
 Return strict JSON { "dailyMacros": { "calories": number, "protein": number, "carbs": number, "fat": number }, "mealIdeas": [{ "name": string, "description": string }], "summary": string }. "summary" is one honest sentence naming what actually shaped this number (e.g. "Based on your BMR, moderately active level, and a goal to lose 10 lbs, this targets a 400 kcal/day deficit.") - if profile data was missing, say that honestly instead.`;
 
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
-      messages: [
+      messages: withScopePolicy([
       { role: 'system', content: 'You are a sports nutrition expert calculating real, personalized calorie and macro targets from real body metrics using established formulas (Mifflin-St Jeor for BMR). Always return valid JSON. Never invent a number you have not actually derived from the given data, and never state an estimate with false precision or as personalized when the real inputs to personalize it were not provided.' },
-      { role: 'user', content: prompt }]
+      { role: 'user', content: prompt }])
 
     });
     const content = completion.choices[0]?.message?.content ?? '{}';
@@ -765,13 +770,13 @@ Return strict JSON: { "challenges": [{ "cadence": string, "title": string, "desc
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
-      messages: [
+      messages: withScopePolicy([
         {
           role: 'system',
           content: 'You are a fitness program designer creating realistic, achievable community challenges grounded in real activity data and established exercise science guidelines. Always return valid JSON. Never invent statistics beyond what you are given.',
         },
         { role: 'user', content: prompt },
-      ],
+      ]),
     });
 
     const content = completion.choices[0]?.message?.content ?? '{}';

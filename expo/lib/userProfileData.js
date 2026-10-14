@@ -5,7 +5,7 @@
 // the AI coach, the workout generator and the nutrition targets all read the
 // SAME facts instead of each guessing on their own. Pure functions only, so
 // they are easy to test.
-import { getDietProfile } from './dietProfile';
+import { getDietProfile, dietAiNote } from './dietProfile';
 
 export const GOAL_LABELS = {
   lose_weight: 'Lose Weight',
@@ -139,11 +139,17 @@ export function buildProfile({ user, weightLogs = [], scans = [] } = {}) {
   };
 }
 
-/** Flat string for the nutrition function, e.g. "keto; allergies: peanuts; avoids: pork". */
+/**
+ * Flat string for the nutrition function, e.g. "keto (very low carbohydrate ...); allergies (strict): peanut;
+ * avoids: pork". The note after the diet is what the AI is told about it (lib/dietProfile.js).
+ */
 export function nutritionPreferenceText(diet) {
   const d = diet || { dietId: 'no_preference', allergies: [], avoid: [] };
   const parts = [];
-  if (d.dietId && d.dietId !== 'no_preference') parts.push(humanize(d.dietId));
+  if (d.dietId && d.dietId !== 'no_preference') {
+    const note = dietAiNote(d.dietId);
+    parts.push(note ? `${humanize(d.dietId)} (${note})` : humanize(d.dietId));
+  }
   if (d.allergies?.length) parts.push(`allergies (strict): ${d.allergies.map(humanize).join(', ')}`);
   if (d.avoid?.length) parts.push(`avoids: ${d.avoid.map(humanize).join(', ')}`);
   return parts.length ? parts.join('; ') : 'no_preference';

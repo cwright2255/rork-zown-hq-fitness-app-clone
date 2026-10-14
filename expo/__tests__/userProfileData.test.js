@@ -3,6 +3,7 @@ import {
   nutritionPreferenceText, profileForNutrition, profileForWorkouts, dayTotals, buildSnapshotMessage,
 } from '../lib/userProfileData';
 import { normalizeActions, describeActions, buildQuestion, buildActionInstructions } from '../lib/coachActions';
+import { dietAiNote } from '../lib/dietProfile';
 
 const user = {
   fitnessLevel: 'intermediate', heightCm: 180, weightKg: 90, age: 30, gender: 'Male', targetWeightKg: 82,
@@ -68,6 +69,16 @@ describe('profile', () => {
   });
   it('says no_preference when no diet is set', () => {
     expect(nutritionPreferenceText(null)).toBe('no_preference');
+  });
+  it('puts what the AI is told about the diet right after its name, then the strict allergies and avoided foods', () => {
+    const text = nutritionPreferenceText({ dietId: 'keto', allergies: ['peanut'], avoid: ['pork'] });
+    expect(text).toBe(`keto (${dietAiNote('keto')}); allergies (strict): peanut; avoids: pork`);
+    expect(nutritionPreferenceText({ dietId: 'low_fodmap', allergies: [], avoid: [] })).toBe(`low fodmap (${dietAiNote('low_fodmap')})`);
+    expect(nutritionPreferenceText({ dietId: 'intuitive_eating', allergies: [], avoid: [] })).toMatch(/^intuitive eating \(no calorie counting/);
+  });
+  it('sends only the name for a diet the app has no note for, and nothing extra for no preference', () => {
+    expect(nutritionPreferenceText({ dietId: 'something_new', allergies: [], avoid: [] })).toBe('something new');
+    expect(nutritionPreferenceText({ dietId: 'no_preference', allergies: ['soy'], avoid: [] })).toBe('allergies (strict): soy');
   });
 });
 
