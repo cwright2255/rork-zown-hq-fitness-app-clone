@@ -225,7 +225,8 @@ dietaryRestrictions) =>
 {
   try {
     let recoveryNote = '';
-    let readiness = 'medium';
+    // Stays null when there is no wearable reading: the XP history below must not claim a readiness nobody measured.
+    let readiness = null;
     try {
       const mood = await wearableService.getMoodDataFromWearables();
       if (mood) {
@@ -265,7 +266,7 @@ dietaryRestrictions) =>
           baseExp: 375,
           multiplier: 1.0,
           date: localDateKey(),
-          description: `Received nutrition advice (${readiness} readiness)`,
+          description: readiness ? `Received nutrition advice (${readiness} readiness)` : 'Received nutrition advice',
           completed: true
         }, useUserStore.getState().user?.uid);
       }

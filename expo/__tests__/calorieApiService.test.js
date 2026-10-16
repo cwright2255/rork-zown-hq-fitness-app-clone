@@ -1,8 +1,9 @@
 const mockCall = jest.fn();
-jest.mock('firebase/functions', () => ({ httpsCallable: () => mockCall }), { virtual: true });
+const mockFunctionsCalled = [];
+jest.mock('firebase/functions', () => ({ httpsCallable: (_functions, name) => { mockFunctionsCalled.push(name); return mockCall; } }), { virtual: true });
 jest.mock('../src/config/firebase', () => ({ functions: {} }));
 
-import { searchFoodsDetailed, searchFoods, calculateNutritionalScore, gradeToStars, gradeToMealStars } from '../services/calorieApiService';
+import { searchFoodsDetailed, searchFoods, getFoodById, calculateNutritionalScore, gradeToStars, gradeToMealStars } from '../services/calorieApiService';
 
 const apiFood = (extra = {}) => ({
   id: 77, name: 'Chicken Soup', calories_100g: 40, protein_100g: 3, carbs_100g: 4, fat_100g: 1.2,
@@ -12,42 +13,45 @@ const apiFood = (extra = {}) => ({
 let errorSpy;
 beforeEach(() => {
   mockCall.mockReset();
+  mockFunctionsCalled.length = 0;
   errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterEach(() => errorSpy.mockRestore());
 
 describe('searchFoodsDetailed', () => {
-  it('returns the real results and says they are not a fallback', async () => {
+  it('returns the real results and says the search worked', async () => {
     mockCall.mockResolvedValueOnce({ data: { data: [apiFood()] } });
-    const { results, fallback } = await searchFoodsDetailed('soup real');
-    expect(fallback).toBe(false);
+    const { results, failed } = await searchFoodsDetailed('soup real');
+    expect(failed).toBe(false);
     expect(results).toHaveLength(1);
     expect(results[0].name).toBe('Chicken Soup');
     expect(results[0].calories).toBe(40);
+    expect(mockFunctionsCalled).toEqual(['searchCalorieApiFoods']);
+    expect(mockCall).toHaveBeenCalledWith({ query: 'soup real' });
   });
 
-  it('says so when the search could not be reached and only the built-in list is shown', async () => {
+  it('says so, and lists no foods at all, when the search could not be reached', async () => {
     mockCall.mockRejectedValueOnce(new Error('offline'));
-    const { results, fallback } = await searchFoodsDetailed('chicken');
-    expect(fallback).toBe(true);
-    expect(results.map((f) => f.name)).toEqual(['Chicken Breast']);
-  });
-
-  it('shows an empty list, still marked as a fallback, when nothing built-in matches', async () => {
-    mockCall.mockRejectedValueOnce(new Error('offline'));
-    const { results, fallback } = await searchFoodsDetailed('dragonfruit smoothie');
-    expect(fallback).toBe(true);
+    const { results, failed } = await searchFoodsDetailed('chicken');
+    expect(failed).toBe(true);
     expect(results).toEqual([]);
   });
 
-  it('does not remember a fallback: the next try goes back to the real search', async () => {
+  it('never fills in foods of its own, whatever was searched for', async () => {
+    for (const word of ['chicken', 'banana', 'egg', 'salmon', 'spinach', 'avocado', 'rice']) {
+      mockCall.mockRejectedValueOnce(new Error('offline'));
+      expect(await searchFoodsDetailed(`${word} offline`)).toEqual({ results: [], failed: true });
+    }
+  });
+
+  it('does not remember a failure: the next try goes back to the real search', async () => {
     mockCall.mockRejectedValueOnce(new Error('offline'));
     const first = await searchFoodsDetailed('chicken retry');
-    expect(first.fallback).toBe(true);
+    expect(first.failed).toBe(true);
 
     mockCall.mockResolvedValueOnce({ data: { data: [apiFood({ name: 'Chicken Wrap' })] } });
     const second = await searchFoodsDetailed('chicken retry');
-    expect(second.fallback).toBe(false);
+    expect(second.failed).toBe(false);
     expect(second.results[0].name).toBe('Chicken Wrap');
   });
 
@@ -55,12 +59,12 @@ describe('searchFoodsDetailed', () => {
     mockCall.mockResolvedValueOnce({ data: { data: [apiFood()] } });
     await searchFoodsDetailed('soup cached');
     const again = await searchFoodsDetailed('soup cached');
-    expect(again.fallback).toBe(false);
+    expect(again.failed).toBe(false);
     expect(mockCall).toHaveBeenCalledTimes(1);
   });
 
   it('returns nothing for an empty search', async () => {
-    expect(await searchFoodsDetailed('   ')).toEqual({ results: [], fallback: false });
+    expect(await searchFoodsDetailed('   ')).toEqual({ results: [], failed: false });
     expect(mockCall).not.toHaveBeenCalled();
   });
 });
@@ -219,5 +223,44 @@ describe('grades as stars', () => {
 
   it('gives the experience tiers 5, 4 and 3 stars, with C to E sharing the lowest', () => {
     expect(['A', 'B', 'C', 'D', 'E'].map(gradeToMealStars)).toEqual([5, 4, 3, 3, 3]);
+  });
+});
+
+describe('looking up one food', () => {
+  it('returns the real food', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: apiFood({ id: 'real-1' }) } });
+    const food = await getFoodById('real-1');
+    expect(food.name).toBe('Chicken Soup');
+    expect(food.calories).toBe(40);
+    expect(mockFunctionsCalled).toEqual(['getCalorieApiFoodById']);
+    expect(mockCall).toHaveBeenCalledWith({ id: 'real-1' });
+  });
+
+  it('returns nothing, not a stand-in food, when it cannot be loaded', async () => {
+    mockCall.mockRejectedValueOnce(new Error('offline'));
+    expect(await getFoodById('real-2')).toBeNull();
+  });
+
+  it('remembers a real food for the next time', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: apiFood({ id: 'real-3' }) } });
+    await getFoodById('real-3');
+    await getFoodById('real-3');
+    expect(mockCall).toHaveBeenCalledTimes(1);
+  });
+
+  // The numbers 1 to 10 were the ids of the ten foods the app used to make up when a search failed. Nothing real has
+  // those ids, so one that turns up (an old "recent" food) is not looked up: it could come back as an unrelated food.
+  it('does not look up the ids the old built-in foods had, and has no food for them', async () => {
+    for (const id of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) {
+      expect(await getFoodById(id)).toBeNull();
+    }
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it('still looks up an id that only starts like one of them', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: apiFood({ id: '11' }) } });
+    expect((await getFoodById('11')).name).toBe('Chicken Soup');
+    mockCall.mockResolvedValueOnce({ data: { data: apiFood({ id: '100' }) } });
+    expect((await getFoodById('100')).name).toBe('Chicken Soup');
   });
 });

@@ -34,7 +34,7 @@ const chicken = { id: 'c1', name: 'Chicken Breast', servingSize: '100g', calorie
 const open = ({ params = {}, search, recentFoods = [], customFoods = [] } = {}) => {
   global.__params = params;
   global.__router = { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) };
-  global.__search = jest.fn(search || (async () => ({ results: [chicken], fallback: false })));
+  global.__search = jest.fn(search || (async () => ({ results: [chicken], failed: false })));
   global.__nutrition = { addFoodToMeal: jest.fn(), recentFoods, customFoods, removeCustomFood: jest.fn() };
   global.__plan = { addFood: jest.fn(() => ({ ok: true })) };
   return render(<SearchFoodScreen />);
@@ -88,27 +88,51 @@ describe('search results', () => {
     expect(utils.queryByTestId('search-fallback-banner')).toBeNull();
   });
 
-  it('says so when the search could not be reached and these are only built-in foods', async () => {
-    const utils = open({ search: async () => ({ results: [chicken], fallback: true }) });
+  it('says so when the search could not be reached, and lists no foods', async () => {
+    const utils = open({ search: async () => ({ results: [], failed: true }) });
     await typeQuery(utils, 'chicken');
-    expect(utils.getByText('Chicken Breast')).toBeTruthy();
     expect(utils.getByTestId('search-fallback-banner')).toBeTruthy();
-    expect(utils.getByText(/Couldn't reach food search/)).toBeTruthy();
+    expect(utils.getByText(/Couldn't reach food search\. Check your connection and search again\./)).toBeTruthy();
+    expect(utils.queryByText(/only a few common foods/)).toBeNull();
+    expect(utils.queryByText('Chicken Breast')).toBeNull();
   });
 
-  it('shows the warning even when the built-in list has nothing for the query', async () => {
-    const utils = open({ search: async () => ({ results: [], fallback: true }) });
+  it('does not also say "No results found", because the search never ran', async () => {
+    const utils = open({ search: async () => ({ results: [], failed: true }) });
     await typeQuery(utils, 'dragonfruit');
     expect(utils.getByTestId('search-fallback-banner')).toBeTruthy();
+    expect(utils.queryByText('No results found')).toBeNull();
+  });
+
+  it('says so when the search call itself blows up', async () => {
+    const utils = open({ search: async () => { throw new Error('boom'); } });
+    await typeQuery(utils, 'chicken');
+    expect(utils.getByTestId('search-fallback-banner')).toBeTruthy();
+    expect(utils.queryByText('No results found')).toBeNull();
+  });
+
+  it('says "No results found" when the search worked and found nothing', async () => {
+    const utils = open({ search: async () => ({ results: [], failed: false }) });
+    await typeQuery(utils, 'dragonfruit');
     expect(utils.getByText('No results found')).toBeTruthy();
+    expect(utils.queryByTestId('search-fallback-banner')).toBeNull();
+  });
+
+  it('still shows the person\'s own foods while the search is down', async () => {
+    const mine = { id: 'mine-1', name: 'Chicken Salad (mine)', servingSize: '1 bowl', calories: 320, protein: 30, carbs: 10, fat: 15 };
+    const utils = open({ customFoods: [mine], search: async () => ({ results: [], failed: true }) });
+    await typeQuery(utils, 'chicken');
+    expect(utils.getByTestId('search-fallback-banner')).toBeTruthy();
+    expect(utils.getByText('Chicken Salad (mine)')).toBeTruthy();
   });
 
   it('takes the warning away once a search works again', async () => {
-    const utils = open({ search: jest.fn().mockResolvedValueOnce({ results: [], fallback: true }).mockResolvedValue({ results: [chicken], fallback: false }) });
+    const utils = open({ search: jest.fn().mockResolvedValueOnce({ results: [], failed: true }).mockResolvedValue({ results: [chicken], failed: false }) });
     await typeQuery(utils, 'chicken');
     expect(utils.getByTestId('search-fallback-banner')).toBeTruthy();
     await typeQuery(utils, 'chicken b');
     expect(utils.queryByTestId('search-fallback-banner')).toBeNull();
+    expect(utils.getByText('Chicken Breast')).toBeTruthy();
   });
 
   it('adds a tapped result to the meal on the local day when a meal was chosen', async () => {
@@ -153,7 +177,7 @@ describe('create food and quick add buttons', () => {
   });
 
   it('carry what was typed, so a food that was not found can be made with that name', async () => {
-    const utils = open({ params: { mealId: 'lunch' }, search: async () => ({ results: [], fallback: false }) });
+    const utils = open({ params: { mealId: 'lunch' }, search: async () => ({ results: [], failed: false }) });
     await typeQuery(utils, '  homemade chili ');
     fireEvent.press(utils.getByTestId('search-create-food'));
     expect(global.__router.push).toHaveBeenCalledWith({
@@ -201,7 +225,7 @@ describe('My Foods', () => {
   });
 
   it('are still shown when the search finds nothing, instead of "No results found"', async () => {
-    const utils = open({ customFoods: [chili], search: async () => ({ results: [], fallback: false }) });
+    const utils = open({ customFoods: [chili], search: async () => ({ results: [], failed: false }) });
     await typeQuery(utils, 'chili');
     expect(utils.getByText('Homemade chili')).toBeTruthy();
     expect(utils.queryByText('No results found')).toBeNull();
@@ -214,7 +238,7 @@ describe('My Foods', () => {
     fireEvent.changeText(utils.getByPlaceholderText('Search foods...'), 'chili');
     await act(async () => { jest.advanceTimersByTime(400); });
     expect(utils.getByText('Homemade chili')).toBeTruthy();
-    await act(async () => { finish({ results: [chicken], fallback: false }); });
+    await act(async () => { finish({ results: [chicken], failed: false }); });
     expect(utils.getByText('Chicken Breast')).toBeTruthy();
   });
 

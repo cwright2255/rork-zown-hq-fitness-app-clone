@@ -115,13 +115,14 @@ export const gradeToMealStars = (grade) => {
   return 3;
 };
 
-// Search foods via the real Cloud Function proxy. Returns { results, fallback }:
-// `fallback` is true when the search itself could not be reached and the
-// results are only the short built-in list below, so the screen can say so
-// instead of presenting them as real search results. A fallback is not cached,
-// so trying again goes back to the real search.
+// Search foods via the real Cloud Function proxy. Returns { results, failed }:
+// `failed` is true when the search itself could not be reached. The list is
+// then empty: the app has no foods of its own to stand in, and a made-up list
+// would show invented calories as if they were real. The screen says the
+// search could not be reached instead. A failure is not cached, so trying
+// again goes back to the real search.
 export const searchFoodsDetailed = async (query) => {
-  if (!query || !query.trim()) return { results: [], fallback: false };
+  if (!query || !query.trim()) return { results: [], failed: false };
 
   if (Date.now() - lastCacheTime > CACHE_EXPIRY) {
     searchCache.clear();
@@ -130,7 +131,7 @@ export const searchFoodsDetailed = async (query) => {
 
   const cacheKey = query.toLowerCase().trim();
   if (searchCache.has(cacheKey)) {
-    return { results: searchCache.get(cacheKey), fallback: false };
+    return { results: searchCache.get(cacheKey), failed: false };
   }
 
   try {
@@ -143,41 +144,32 @@ export const searchFoodsDetailed = async (query) => {
     const results = (payload.data || []).map(convertCalorieApiToFoodItem);
 
     searchCache.set(cacheKey, results);
-    return { results, fallback: false };
+    return { results, failed: false };
   } catch (error) {
     console.error('Food search failed:', error);
-
-    const mockResults = getMockFallback().filter((food) =>
-    food.name.toLowerCase().includes(cacheKey)
-    );
-
-    return { results: mockResults, fallback: true };
+    return { results: [], failed: true };
   }
 };
 
-// The results alone, for callers that do not need to know about the fallback.
+// The results alone, for callers that do not need to know whether the search failed.
 export const searchFoods = async (query) => (await searchFoodsDetailed(query)).results;
 
-// Get food by ID via the real Cloud Function proxy
+// The ids of the ten foods this file used to make up when a search failed. Nothing real has them, so one that turns up
+// (an old "recent" food saved from then) is not looked up: a real lookup could come back as an unrelated food.
+const RETIRED_BUILT_IN_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+
+// Get food by ID via the real Cloud Function proxy. Returns null when the food cannot be loaded.
 export const getFoodById = async (id) => {
   if (foodCache.has(id)) {
     return foodCache.get(id);
   }
 
-  // Real mock ids ('1' through '10') never correspond to a real
-  // Calorie API id - checking these first means a mock-sourced
-  // selection always resolves to the correct mock food, rather than
-  // risking a real API call returning an unrelated, mismatched real
-  // food that happens to share that id.
-  const mockMatch = getMockFallback().find((food) => food.id === id);
-  if (mockMatch) {
-    foodCache.set(id, mockMatch);
-    return mockMatch;
-  }
+  if (RETIRED_BUILT_IN_IDS.has(String(id))) return null;
 
   try {
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('../src/config/firebase');
+    // require, not import(): the same lazy load, and it can be run under Jest.
+    const { httpsCallable } = require('firebase/functions');
+    const { functions } = require('../src/config/firebase');
     const fn = httpsCallable(functions, 'getCalorieApiFoodById');
     const result = await fn({ id });
     const payload = result.data || {};
@@ -192,156 +184,3 @@ export const getFoodById = async (id) => {
     return null;
   }
 };
-
-// Enhanced mock data with more variety for better fallback experience
-const getMockFallback = () => [
-{
-  id: '1',
-  name: 'Chicken Breast',
-  servingSize: '100g',
-  calories: 165,
-  protein: 31,
-  carbs: 0,
-  fat: 3.6,
-  fiber: 0,
-  sugar: 0,
-  sodium: 74,
-  imageUrl: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 1, sugar: 0, fiber: 0, sodium: 74 }
-},
-{
-  id: '2',
-  name: 'Brown Rice',
-  servingSize: '100g cooked',
-  calories: 112,
-  protein: 2.6,
-  carbs: 23,
-  fat: 0.9,
-  fiber: 1.8,
-  sugar: 0.4,
-  sodium: 5,
-  imageUrl: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?w=500',
-  nutritionalScore: { score: 'B' },
-  nutritionalDetails: { saturatedFat: 0.2, sugar: 0.4, fiber: 1.8, sodium: 5 }
-},
-{
-  id: '3',
-  name: 'Avocado',
-  servingSize: '1 medium',
-  calories: 240,
-  protein: 3,
-  carbs: 12,
-  fat: 22,
-  fiber: 10,
-  sugar: 1,
-  sodium: 10,
-  imageUrl: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=500',
-  nutritionalScore: { score: 'B' },
-  nutritionalDetails: { saturatedFat: 3.1, sugar: 1, fiber: 10, sodium: 10 }
-},
-{
-  id: '4',
-  name: 'Banana',
-  servingSize: '1 medium',
-  calories: 105,
-  protein: 1.3,
-  carbs: 27,
-  fat: 0.4,
-  fiber: 3.1,
-  sugar: 14,
-  sodium: 1,
-  imageUrl: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500',
-  nutritionalScore: { score: 'B' },
-  nutritionalDetails: { saturatedFat: 0.1, sugar: 14, fiber: 3.1, sodium: 1 }
-},
-{
-  id: '5',
-  name: 'Egg',
-  servingSize: '1 large',
-  calories: 72,
-  protein: 6.3,
-  carbs: 0.4,
-  fat: 5,
-  fiber: 0,
-  sugar: 0.2,
-  sodium: 71,
-  imageUrl: 'https://images.unsplash.com/photo-1607690424560-5e6f6f4874d2?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 1.6, sugar: 0.2, fiber: 0, sodium: 71 }
-},
-{
-  id: '6',
-  name: 'Salmon',
-  servingSize: '100g',
-  calories: 208,
-  protein: 25.4,
-  carbs: 0,
-  fat: 12.4,
-  fiber: 0,
-  sugar: 0,
-  sodium: 59,
-  imageUrl: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 3.1, sugar: 0, fiber: 0, sodium: 59 }
-},
-{
-  id: '7',
-  name: 'Quinoa',
-  servingSize: '100g cooked',
-  calories: 120,
-  protein: 4.4,
-  carbs: 22,
-  fat: 1.9,
-  fiber: 2.8,
-  sugar: 0.9,
-  sodium: 7,
-  imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 0.2, sugar: 0.9, fiber: 2.8, sodium: 7 }
-},
-{
-  id: '8',
-  name: 'Greek Yogurt',
-  servingSize: '100g',
-  calories: 97,
-  protein: 9,
-  carbs: 3.6,
-  fat: 5,
-  fiber: 0,
-  sugar: 3.6,
-  sodium: 36,
-  imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 3.1, sugar: 3.6, fiber: 0, sodium: 36 }
-},
-{
-  id: '9',
-  name: 'Sweet Potato',
-  servingSize: '1 medium baked',
-  calories: 112,
-  protein: 2,
-  carbs: 26,
-  fat: 0.1,
-  fiber: 3.9,
-  sugar: 5.4,
-  sodium: 6,
-  imageUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 0.1, sugar: 5.4, fiber: 3.9, sodium: 6 }
-},
-{
-  id: '10',
-  name: 'Spinach',
-  servingSize: '100g raw',
-  calories: 23,
-  protein: 2.9,
-  carbs: 3.6,
-  fat: 0.4,
-  fiber: 2.2,
-  sugar: 0.4,
-  sodium: 79,
-  imageUrl: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500',
-  nutritionalScore: { score: 'A' },
-  nutritionalDetails: { saturatedFat: 0.1, sugar: 0.4, fiber: 2.2, sodium: 79 }
-}];

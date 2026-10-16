@@ -385,13 +385,13 @@ export default function HelpSupportScreen() {
           {/* Entry point to the dedicated, ongoing AI Coach - this tab's
               own history is local-only and resets on navigation; the
               coach screen persists it and knows real user context. */}
-          <Pressable style={s.coachBanner} onPress={() => router.push('/coach')}>
-            <View style={s.coachBannerIcon}>
+          <Pressable style={styles.coachBanner} onPress={() => router.push('/coach')}>
+            <View style={styles.coachBannerIcon}>
               <Ionicons name="sparkles" size={16} color="#FFFFFF" />
             </View>
-            <View style={s.coachBannerTextWrap}>
-              <Text style={s.coachBannerTitle}>Talk to your AI Coach</Text>
-              <Text style={s.coachBannerSubtitle}>An ongoing conversation that remembers your goals and history</Text>
+            <View style={styles.coachBannerTextWrap}>
+              <Text style={styles.coachBannerTitle}>Talk to your AI Coach</Text>
+              <Text style={styles.coachBannerSubtitle}>An ongoing conversation that remembers your goals and history</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#999999" />
           </Pressable>

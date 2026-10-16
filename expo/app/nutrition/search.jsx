@@ -37,13 +37,13 @@ export default function SearchFoodScreen() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  // True when the search could not be reached and the list is only the short built-in one.
-  const [fallback, setFallback] = useState(false);
+  // True when the search could not be reached. The list is then empty (the app has no foods of its own to show instead).
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!query || query.length < 2) {
       setResults([]);
-      setFallback(false);
+      setFailed(false);
       return;
     }
     let cancelled = false;
@@ -53,12 +53,12 @@ export default function SearchFoodScreen() {
         const res = await searchFoodsDetailed(query);
         if (!cancelled) {
           setResults(res.results || []);
-          setFallback(!!res.fallback);
+          setFailed(!!res.failed);
         }
       } catch (e) {
         if (!cancelled) {
           setResults([]);
-          setFallback(false);
+          setFailed(true);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -188,10 +188,10 @@ export default function SearchFoodScreen() {
         )}
       </View>
 
-      {fallback && query ? (
+      {failed && query ? (
         <View testID="search-fallback-banner" style={styles.banner}>
           <Text style={styles.bannerText}>
-            Couldn't reach food search. These are only a few common foods, not full search results.
+            Couldn't reach food search. Check your connection and search again.
           </Text>
         </View>
       ) : null}
@@ -269,7 +269,8 @@ export default function SearchFoodScreen() {
             </TouchableOpacity>
           )}
           ListEmptyComponent={
-            customMatches.length ? null : <Text style={styles.empty}>No results found</Text>
+            // "No results found" would claim the search ran; when it could not be reached the banner above says so.
+            customMatches.length || failed ? null : <Text style={styles.empty}>No results found</Text>
           }
         />
       )}

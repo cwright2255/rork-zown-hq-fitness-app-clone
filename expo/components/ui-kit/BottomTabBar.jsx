@@ -100,7 +100,6 @@ const WorkoutsIcon = ({ color, size = 22 }) => (
         backgroundColor: color,
         borderRadius: 2,
         alignItems: 'center',
-        justifyContent: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
       }}

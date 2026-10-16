@@ -74,3 +74,25 @@ describe('Help & FAQ', () => {
     expect(utils.queryByText(/not erased automatically/)).toBeNull();
   });
 });
+
+describe('Help & FAQ, AI Assistant tab', () => {
+  // The banner at the top of this tab used a style object called `s`, which the file never defined, so opening the tab
+  // threw "s is not defined" and took the screen down. ESLint's no-undef found it; this keeps it from coming back.
+  it('opens, and its banner leads to the AI Coach screen', () => {
+    const { router } = require('expo-router');
+    const utils = render(<HelpScreen />);
+    fireEvent.press(utils.getByText('AI Assistant'));
+    expect(utils.getByText('Talk to your AI Coach')).toBeTruthy();
+    expect(utils.getByText(/remembers your goals and history/)).toBeTruthy();
+    fireEvent.press(utils.getByText('Talk to your AI Coach'));
+    expect(router.push).toHaveBeenCalledWith('/coach');
+  });
+
+  it('goes back to the questions when FAQ is tapped again', () => {
+    const utils = render(<HelpScreen />);
+    fireEvent.press(utils.getByText('AI Assistant'));
+    fireEvent.press(utils.getByText('FAQ'));
+    expect(utils.getByText('Getting Started')).toBeTruthy();
+    expect(utils.queryByText('Talk to your AI Coach')).toBeNull();
+  });
+});

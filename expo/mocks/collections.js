@@ -1,5 +1,3 @@
-import { Collection } from '@/types';
-
 export const mockCollections = [
   {
     id: 'c1',

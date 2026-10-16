@@ -6,5 +6,4 @@ export { default as BottomTabBar } from './BottomTabBar';
 export { default as ProfileHeader } from './ProfileHeader';
 export { default as NutritionCard } from './NutritionCard';
 export { default as ActionButton } from './ActionButton';
-export { default as ActivityListItem } from './ActivityListItem';
 export { default as CardContainer } from './CardContainer';

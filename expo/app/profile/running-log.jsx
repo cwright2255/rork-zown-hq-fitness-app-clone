@@ -13,7 +13,6 @@ import { paceLabel, runPaceSecPerKm, routePoints, activityOf } from '@/lib/runSt
 import { runTitle } from '@/lib/runDetail';
 import { formatDistance } from '@/lib/distanceUnits';
 import { sourceLabel } from '@/lib/runImport';
-import { lightColors } from '../../../theme/tokens';
 
 export default function RunningLogScreen() {
   const [refreshing, setRefreshing] = useState(false);

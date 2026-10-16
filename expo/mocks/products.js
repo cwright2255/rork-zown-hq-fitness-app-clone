@@ -1,5 +1,3 @@
-import { Product } from '@/types';
-
 export const mockProducts = [
   {
     id: 'p1',

@@ -1,20 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Bell, Trophy, Droplets, Users } from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { tokens } from '../../theme/tokens';
 
 
 
-const MOCK = [
-  { id: '1', icon: Trophy, title: 'Badge Earned', body: 'You unlocked the 7-Day Streak badge.', time: '2h ago', unread: true },
-  { id: '2', icon: Users, title: 'New Follower', body: 'Sarah started following you.', time: '5h ago', unread: true },
-  { id: '3', icon: Droplets, title: 'Hydration Reminder', body: 'Time for a glass of water.', time: 'Yesterday', unread: false },
-  { id: '4', icon: Bell, title: 'Workout Reminder', body: "Don't forget today's push session.", time: '2 days ago', unread: false },
-];
-
+// Nothing in the app puts notifications on this screen yet, so it starts empty and says so. (It used to open on four typed-in
+// ones, such as "Sarah started following you", that no one had sent.) Each item is { id, icon, title, body, time, unread }.
 export default function NotificationsScreen() {
-  const [items, setItems] = useState(MOCK);
+  const [items, setItems] = useState([]);
 
   const handleMark = (id) => {
     setItems(items.map(n => n.id === id ? { ...n, unread: false } : n));

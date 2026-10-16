@@ -11,9 +11,7 @@ const EXTENSIONS = ['', '.js', '.jsx', '.ts', '.tsx', '.json', '.ios.js', '.andr
 const IMPORT = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g;
 
 // Imports that were already broken before this check existed and that nothing loads. Delete a line when its file is fixed.
-const KNOWN_BROKEN = [
-  'components/ui-kit/index.js: ./ActivityListItem', // the file was never added; nothing imports components/ui-kit
-];
+const KNOWN_BROKEN = [];
 
 const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
 const isDir = (p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } };

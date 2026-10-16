@@ -53,6 +53,19 @@ describe('the tests workflow', () => {
     expect(active).toMatch(/run: npx jest --ci\b/);
   });
 
+  it('checks the code with ESLint after installing and before the tests, and still runs the tests when the check fails', () => {
+    expect(pkg.scripts.lint).toBe('eslint . --max-warnings 0');
+    const installAt = active.indexOf('run: bun install --frozen-lockfile');
+    const lintAt = active.indexOf('run: npm run lint');
+    const jestAt = active.indexOf('run: npx jest --ci');
+    expect(installAt).toBeGreaterThan(-1);
+    expect(lintAt).toBeGreaterThan(installAt);
+    expect(jestAt).toBeGreaterThan(lintAt);
+    // The step that runs the tests, from its "- name:" line on, must not be skipped because the check before it failed.
+    const testsStep = active.slice(active.lastIndexOf('- name:', jestAt));
+    expect(testsStep).toMatch(/if: \$\{\{ !cancelled\(\) \}\}/);
+  });
+
   it('cannot be left running forever, and can only read the repository', () => {
     expect(active).toMatch(/timeout-minutes: \d+/);
     expect(active).toMatch(/permissions:\n\s+contents: read/);
@@ -61,6 +74,47 @@ describe('the tests workflow', () => {
   it('needs no secrets, so it can run on pull requests from anyone', () => {
     expect(active).not.toMatch(/\$\{\{\s*secrets\./);
     expect(active).not.toMatch(/\bEXPO_TOKEN\b/);
+  });
+});
+
+describe('the Firestore rules job', () => {
+  // From the "rules:" job to the end of the file (it is the last job).
+  const job = active.slice(active.search(/^ {2}rules:\n/m));
+  const step = (text) => job.slice(job.indexOf(text));
+
+  it('exists, as a job of its own, so a problem with the emulator does not hide the lint and test results', () => {
+    expect(active).toMatch(/^jobs:\n\s+checks:/m);
+    expect(active).toMatch(/^ {2}rules:\n\s+name: Firestore rules/m);
+    expect(active.indexOf('\n  rules:')).toBeGreaterThan(active.indexOf('\n  checks:'));
+  });
+
+  it('works in the expo folder, cannot be left running forever, and needs no secrets', () => {
+    expect(job).toMatch(/working-directory: expo\b/);
+    expect(job).toMatch(/timeout-minutes: \d+/);
+    expect(job).not.toMatch(/\$\{\{\s*secrets\./);
+  });
+
+  it('installs from the lockfile, then sets up Java, which the emulator needs, and a pinned Firebase CLI', () => {
+    const installAt = job.indexOf('run: bun install --frozen-lockfile');
+    const javaAt = job.indexOf('uses: actions/setup-java@v4');
+    const cliAt = job.search(/run: npm install --global firebase-tools@\d+\.\d+\.\d+\s*$/m);
+    expect(installAt).toBeGreaterThan(-1);
+    expect(javaAt).toBeGreaterThan(installAt);
+    expect(step('uses: actions/setup-java@v4')).toMatch(/java-version: '?(2\d|[3-9]\d)'?/);
+    expect(cliAt).toBeGreaterThan(javaAt);
+  });
+
+  it('runs npm run test:rules last, the same command as on your own machine', () => {
+    const runAt = job.indexOf('run: npm run test:rules');
+    expect(runAt).toBeGreaterThan(job.search(/firebase-tools@\d/));
+    expect(job.slice(runAt).trim().split('\n')).toHaveLength(1);
+    expect(pkg.scripts['test:rules']).toMatch(/emulators:exec/);
+  });
+
+  it('is not run by the main job, which has no emulator', () => {
+    const checks = active.slice(active.indexOf('\n  checks:'), active.indexOf('\n  rules:'));
+    expect(checks).not.toMatch(/test:rules/);
+    expect(checks).toMatch(/run: npx jest --ci/);
   });
 });
 

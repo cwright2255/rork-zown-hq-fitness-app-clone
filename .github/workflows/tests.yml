@@ -1,10 +1,15 @@
 name: Tests
 
-# Runs the whole jest suite on every push to main and on every pull request, so a change that breaks something shows up
-# as a red mark on the commit instead of on someone's phone. It needs no secrets.
+# On every push to main and every pull request this reads the whole app for mistakes (ESLint) and runs the whole jest
+# suite, so a change that breaks something shows up as a red mark on the commit instead of on someone's phone. It needs
+# no secrets.
 #
-# The suite stands in for Firebase and the phone's own features, so a green run does not replace the phone checks in
+# ESLint finds what the tests do not happen to open: a name that is not defined, an import of something a file does not
+# export. The suite stands in for Firebase and the phone's own features. Neither replaces the phone checks in
 # expo/docs/DEVICE_CHECKS.md.
+#
+# A second job, "Firestore rules", starts the Firestore emulator and runs expo/firestore.rules itself against it
+# (expo/rules-tests: who can read and write what). The main suite cannot do that: it has no emulator and never reads the rules.
 #
 # workflow_call lets another workflow run these tests first. To make "Expo Publish" wait for them, give it a job
 # `tests: { uses: ./.github/workflows/tests.yml }` and put `needs: tests` on its publish job.
@@ -24,8 +29,8 @@ permissions:
   contents: read
 
 jobs:
-  jest:
-    name: Jest
+  checks:
+    name: Lint and tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -50,5 +55,55 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Same command as `npm run lint` on your own machine; the rules are in expo/eslint.config.js.
+      - name: Check the code
+        run: npm run lint
+
+      # Runs even when the check above failed, so one push shows both results.
       - name: Run the tests
+        if: ${{ !cancelled() }}
         run: npx jest --ci --maxWorkers=2
+
+  # Runs the real expo/firestore.rules in the Firestore emulator and tries reads and writes as different people (see
+  # expo/rules-tests/README.md). It is a job of its own so a problem starting the emulator shows up by itself and does not
+  # hide the lint and test results above.
+  rules:
+    name: Firestore rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: expo
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The Firestore emulator is a Java program.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # The version is pinned so a new release cannot change the result by itself. The emulator is downloaded the first
+      # time it starts.
+      - name: Install the Firebase CLI
+        run: npm install --global firebase-tools@15.32.1
+
+      # Starts the emulator, runs expo/rules-tests against it, stops it. Same command as on your own machine.
+      - name: Test the Firestore rules
+        run: npm run test:rules

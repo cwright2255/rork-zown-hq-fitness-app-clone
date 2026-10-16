@@ -14,7 +14,7 @@ export class RadarService {
   /**
    * Get route between two coordinates using Radar Routes API
    * @param coordinates Array of coordinates for the route
-   * @returns Route data including geometry and distance
+   * @returns Route data including geometry and distance, or null when Radar could not be reached
    */
   async getRoute(coordinates) {
     if (coordinates.length < 2) {
@@ -69,28 +69,16 @@ export class RadarService {
       };
     } catch (error) {
       console.error('Error fetching route:', error);
-      // Return fallback route with calculated distance
-      const distance = this.calculateDistance(coordinates[0], coordinates[coordinates.length - 1]);
-      return {
-        distance: {
-          value: Math.round(distance * 1000),
-          text: `${distance.toFixed(1)} km`
-        },
-        duration: {
-          value: Math.round(distance * 12 * 60), // Assume 5 km/h walking speed
-          text: `${Math.round(distance * 12)} min`
-        },
-        geometry: {
-          coordinates: coordinates.map((coord) => [coord.longitude, coord.latitude])
-        }
-      };
+      // No route: the caller is told so. (It used to be given a straight-line distance with a walking time worked out from an
+      // assumed pace, which looked like a real route.)
+      return null;
     }
   }
 
   /**
    * Search for locations using Radar Search API
    * @param query Search text for location
-   * @returns Array of location results
+   * @returns Array of location results (empty when Radar could not be reached)
    */
   async searchLocations(query) {
     try {
@@ -122,30 +110,8 @@ export class RadarService {
       })) || [];
     } catch (error) {
       console.error('Error searching locations:', error);
-      // Return mock locations for demo
-      return [
-      {
-        latitude: 37.7749,
-        longitude: -122.4194,
-        formattedAddress: 'San Francisco, CA, USA',
-        name: 'San Francisco',
-        city: 'San Francisco',
-        state: 'CA',
-        country: 'USA'
-      },
-      {
-        latitude: 40.7128,
-        longitude: -74.0060,
-        formattedAddress: 'New York, NY, USA',
-        name: 'New York',
-        city: 'New York',
-        state: 'NY',
-        country: 'USA'
-      }].
-      filter((location) =>
-      location.name?.toLowerCase().includes(query.toLowerCase()) ||
-      location.city?.toLowerCase().includes(query.toLowerCase())
-      );
+      // Nothing found: two hard-coded cities used to be returned here as if they were search results.
+      return [];
     }
   }
 
