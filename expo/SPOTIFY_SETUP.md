@@ -22,15 +22,18 @@ This app uses Spotify's Client Credentials Flow to access public music data for 
    - **Client ID**: Already configured in the code
    - **Client Secret**: Click "Show Client Secret" to reveal it
 
-### 3. Configure Environment Variables
+### 3. Save the Client Secret in Firebase
 
-Create a `.env` file in your project root (if it doesn't exist) and add:
+Never put the Client Secret in `.env` or in an `EXPO_PUBLIC_` variable: those are copied into the app, where anyone can read
+them. Save it where only the cloud functions can read it. The app asks the `getSpotifyAppToken` function for its token.
 
 ```
-EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_actual_client_secret_here
+firebase functions:secrets:set SPOTIFY_CLIENT_ID
+firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
+firebase deploy --only functions
 ```
 
-Replace `your_actual_client_secret_here` with the Client Secret from step 2.
+Paste the Client ID and the Client Secret from step 2 when asked.
 
 ### 4. Restart Development Server
 

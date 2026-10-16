@@ -38,10 +38,10 @@ In your Spotify Developer Dashboard:
    - `zownhq://spotify-callback`
 2. Note your Client ID and Client Secret
 
-### 2. Environment Variables
-Add to your `.env` file:
+### 2. Secrets (cloud functions)
+The Client Secret never goes in `.env` or in the app. Save it in Firebase; the `getSpotifyAppToken` function uses it:
 ```
-EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_actual_client_secret_here
+firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
 ```
 
 ### 3. Callback Page Setup

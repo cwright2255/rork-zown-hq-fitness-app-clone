@@ -12,6 +12,7 @@ import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
+import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
 
 initializeApp();
 
@@ -393,6 +394,26 @@ export const refreshSpotifyToken = onCall(
       expiresIn: data.expires_in,
       refreshToken: data.refresh_token
     };
+  }
+);
+
+// The Spotify app token (client credentials) for the public catalogue. Spotify wants the client secret to hand one out, so
+// the phone asks here and only ever receives the token. See spotifyAppToken.js.
+export const getSpotifyAppToken = onCall(
+  { region: 'us-central1', maxInstances: 10, secrets: [SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET] },
+  async (req) => {
+    requireAuth(req.auth);
+    const clientId = SPOTIFY_CLIENT_ID.value();
+    const clientSecret = SPOTIFY_CLIENT_SECRET.value();
+    if (!clientId || !clientSecret) {
+      throw new HttpsError('failed-precondition', 'Spotify is not set up on the server');
+    }
+    try {
+      return await fetchSpotifyAppToken({ clientId, clientSecret });
+    } catch (error) {
+      console.warn('[getSpotifyAppToken] failed', { status: error?.status });
+      throw new HttpsError('internal', error?.message || 'Spotify app token request failed');
+    }
   }
 );
 

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Linking, AppState } from 'react-native';
 import { pickDevice, isNoDeviceError } from '../lib/spotifyDevices';
+import { callProxy } from './callProxy';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 
@@ -92,7 +93,6 @@ class SpotifyService {
   constructor() {
     console.log('SpotifyService: Initializing...');
     console.log('SpotifyService: Client ID:', this.clientId);
-    console.log('SpotifyService: Client Secret available:', !!this.getClientSecret());
     console.log('SpotifyService: Redirect URI:', this.redirectUri);
     void this.loadStoredToken();
     void this.autoInitialize();
@@ -123,7 +123,7 @@ class SpotifyService {
     if (success) {
       console.log('SpotifyService: Client credentials initialized successfully!');
     } else {
-      console.log('SpotifyService: Client credentials failed - check EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET');
+      console.log('SpotifyService: Client credentials failed - the app token comes from the getSpotifyAppToken cloud function, and needs a signed-in user');
     }
   }
 
@@ -133,10 +133,6 @@ class SpotifyService {
     }
     console.log('SpotifyService: Token missing or expired, re-initializing...');
     return await this.initializeClientCredentials();
-  }
-
-  getClientSecret() {
-    return process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET || '';
   }
 
   async loadStoredToken() {
@@ -533,30 +529,29 @@ class SpotifyService {
 
   // Get setup instructions for Spotify integration
   getSetupInstructions() {
-    const clientSecret = this.getClientSecret();
-    const hasValidClientSecret = !!clientSecret && clientSecret.length > 10 && clientSecret !== this.clientId;
-
     return `
 Spotify Integration (Client Credentials Flow):
 
 This app uses Client Credentials flow which:
-ÃÂ¢ÃÂÃÂ Does NOT require redirect URIs
-ÃÂ¢ÃÂÃÂ Works immediately with valid credentials
-ÃÂ¢ÃÂÃÂ Allows searching tracks, playlists, and recommendations
+- Does NOT require redirect URIs
+- Works as soon as the cloud function has the credentials
+- Allows searching tracks, playlists, and recommendations
 
 Setup:
 1. Go to https://developer.spotify.com/dashboard
 2. Create or select your app
 3. Copy your Client ID and Client Secret
-4. Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment
+4. Save both in Firebase, never in the app:
+   firebase functions:secrets:set SPOTIFY_CLIENT_ID
+   firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
+   then: firebase deploy --only functions
 
 Current Status:
-- Client ID: ${this.clientId} ÃÂ¢ÃÂÃÂ
-- Client Secret: ${hasValidClientSecret ? 'Configured ÃÂ¢ÃÂÃÂ' : 'Not configured or invalid ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ'}
-- Token Status: ${this.token ? 'Active ÃÂ¢ÃÂÃÂ' : 'Not available'}
+- Client ID: ${this.clientId}
+- Token Status: ${this.token ? 'Active' : 'Not available'}
 - Flow Type: ${this.isClientCredentialsFlow ? 'Client Credentials' : 'User Auth'}
 
-${hasValidClientSecret ? 'ÃÂ¢ÃÂÃÂ Ready! You can search playlists and get recommendations.' : 'ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ Add your Client Secret to enable Spotify features.'}
+${this.token ? 'Ready! You can search playlists and get recommendations.' : 'No token yet. Sign in, and check that the getSpotifyAppToken function is deployed.'}
 
 Note: Client Credentials flow provides access to:
 - Search tracks and playlists
@@ -589,45 +584,29 @@ It does NOT provide access to:
 
   // Initialize Client Credentials Flow for public data access
   // This is the PRIMARY authentication method - no redirect URIs needed
+  // The app's own token for the public catalogue (search, featured playlists, recommendations). Spotify wants the client
+  // secret to hand one out, so the secret stays in the cloud function getSpotifyAppToken (functions/src/index.js) and
+  // only the token comes back. Nothing in the app holds or reads the secret.
   async initializeClientCredentials() {
-    const clientSecret = this.getClientSecret();
     console.log('SpotifyService: Initializing client credentials...');
-
-    // Validate client secret
-    if (!clientSecret || clientSecret.length < 10) {
-      console.log('SpotifyService: Client secret not configured or too short');
-      console.log('SpotifyService: Set EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your environment');
-      return false;
-    }
-
-    if (clientSecret === this.clientId) {
-      console.log('SpotifyService: Client secret cannot be the same as client ID');
-      return false;
-    }
-
     try {
-      console.log('SpotifyService: Making client credentials request through backend proxy...');
-      const data = await this.requestSpotifyTokenViaProxy({
-        grantType: 'client_credentials'
-      });
-      console.log('SpotifyService: Token received, expires in', data.expires_in, 'seconds');
+      const data = await callProxy('getSpotifyAppToken', {});
+      const seconds = Number(data?.expiresIn);
+      if (typeof data?.accessToken !== 'string' || !data.accessToken || !Number.isFinite(seconds) || seconds <= 0) {
+        throw new Error('The cloud function sent no usable token');
+      }
+      console.log('SpotifyService: Token received, expires in', seconds, 'seconds');
 
-      await this.storeToken(data.access_token, undefined, data.expires_in, true);
+      await this.storeToken(data.accessToken, undefined, seconds, true);
 
       console.log('SpotifyService: Client credentials initialized successfully!');
       return true;
     } catch (error) {
-      console.error('SpotifyService: Network error during client credentials:', error);
-      console.error('SpotifyService: Proxy status snapshot:', {
-        apiBaseUrl: this.apiBaseUrl,
-        proxyCandidates: this.getSpotifyProxyCandidates(),
-        platform: Platform.OS
-      });
+      // Signed out, offline, or the function is not deployed: no token, and the caller falls back as before.
+      console.log('SpotifyService: Could not get the app token:', error?.code || '', error?.message || error);
       return false;
     }
   }
-
-  // Refresh client credentials token
   async refreshClientCredentialsToken() {
     return await this.initializeClientCredentials();
   }
@@ -1515,11 +1494,9 @@ It does NOT provide access to:
 
   // Get service status for debugging
   getServiceStatus() {
-    const clientSecret = this.getClientSecret();
     return {
       clientId: this.clientId,
       redirectUri: this.redirectUri,
-      hasClientSecret: !!clientSecret && clientSecret.length > 0,
       hasToken: !!this.token,
       isClientCredentials: this.isClientCredentialsFlow,
       tokenExpiresAt: this.tokenExpiresAt

@@ -36,7 +36,6 @@ import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
 import HikeRecoveryPrompt from '@/components/HikeRecoveryPrompt';
 import * as Linking from 'expo-linking';
-import { processAdminLink } from '@/services/remoteAdminService';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { auth, isFirebaseConfigured } from '../src/config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -296,12 +295,6 @@ function RootLayoutInner() {
           } catch (error) {
             console.error('Error handling Spotify deep link:', error);
           }
-          try {
-            const result = await processAdminLink(url);
-            if (result.handled) console.log('[AdminLink] Command handled:', result.message);
-          } catch {
-            console.log('[AdminLink] No admin command in link');
-          }
         })();
       }, 0);
     },
@@ -349,20 +342,14 @@ function RootLayoutInner() {
         <Stack.Screen name="shop" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="community" />
-        <Stack.Screen name="telehealth" />
         <Stack.Screen name="analytics" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="messaging" />
         <Stack.Screen name="messages" />
         <Stack.Screen name="messages/[id]" />
-        <Stack.Screen name="health-assessment" />
-        <Stack.Screen name="wearables" />
         <Stack.Screen name="rook-connect" />
-        <Stack.Screen name="support" />
-        <Stack.Screen name="order-tracking" />
         <Stack.Screen name="leaderboard" />
         <Stack.Screen name="recipes" />
-        <Stack.Screen name="champion-pass" />
         <Stack.Screen name="exp-dashboard" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/register" />
@@ -401,14 +388,11 @@ function RootLayoutInner() {
         <Stack.Screen name="shop/collection/[id]" />
         <Stack.Screen name="shop/category/[category]" />
         <Stack.Screen name="profile/achievements" />
-        <Stack.Screen name="profile/progress" />
+        <Stack.Screen name="profile/streak" />
         <Stack.Screen name="profile/settings" />
-        <Stack.Screen name="profile/body-scan" />
         <Stack.Screen name="profile/workout-history" />
         <Stack.Screen name="profile/calorie-history" />
         <Stack.Screen name="recipe/[id]" />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="admin" />
         <Stack.Screen name="spotify-integration" />
         <Stack.Screen name="spotify-redirect" />
         <Stack.Screen name="spotify-callback" />

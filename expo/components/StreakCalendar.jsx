@@ -37,16 +37,16 @@ const StreakCalendar = ({ compact = false, days = [] }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.daysContainer}>
+      <View style={[styles.daysContainer, !compact && styles.fullDaysContainer]}>
         {dates.map((date, index) =>
         <View key={date.date} style={[
         styles.dayContainer,
-        compact && styles.compactDayContainer]
+        compact ? styles.compactDayContainer : styles.fullDayContainer]
         }>
             {!compact &&
           <Text style={styles.dayText}>{date.day}</Text>
           }
-            <View style={[
+            <View testID={`streak-day-${date.date}`} style={[
           styles.dayIndicator,
           date.completed && styles.completedDay,
           date.isToday && styles.todayIndicator,
@@ -73,6 +73,16 @@ const styles = StyleSheet.create({
   },
   compactDayContainer: {
     width: 12
+  },
+  // The 30-day view is three rows of ten. In one row of 24-wide days it was 720 wide, wider than a phone, and the
+  // newest days, today included, ran off the right-hand edge.
+  fullDaysContainer: {
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start'
+  },
+  fullDayContainer: {
+    width: '10%',
+    marginBottom: 8
   },
   dayText: {
     fontSize: 12,

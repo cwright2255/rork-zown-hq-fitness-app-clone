@@ -22,9 +22,10 @@ The Implicit Grant Flow is a simplified OAuth 2.0 flow that allows client-side a
 
 ### 2. Environment Configuration
 
-For Client Credentials Flow (optional, for public data):
+For Client Credentials Flow (optional, for public data) the secret stays in Firebase, never in the app. The app asks the
+`getSpotifyAppToken` function for its token:
 ```bash
-EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_client_secret_here
+firebase functions:secrets:set SPOTIFY_CLIENT_SECRET
 ```
 
 ## Implementation

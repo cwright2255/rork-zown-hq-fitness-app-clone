@@ -37,6 +37,7 @@ const MENU_GROUPS = [
     items: [
       { icon: 'create-outline', label: 'Edit Profile', route: '/profile/edit' },
       { icon: 'time-outline', label: 'Workout History', route: '/profile/workout-history' },
+      { icon: 'calendar-outline', label: 'Streak Calendar', route: '/profile/streak' },
       { icon: 'fitness-outline', label: 'Running Log', route: '/profile/running-log' },
       { icon: 'trophy-outline', label: 'Personal Records', route: '/analytics' },
       { icon: 'body-outline', label: 'Body Scan', route: '/body-scan/capture' },

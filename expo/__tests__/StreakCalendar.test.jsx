@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { act, render, renderHook } from '@testing-library/react-native';
+import { act, fireEvent, render, renderHook } from '@testing-library/react-native';
 
 jest.mock('../src/config/firebase', () => ({ db: {}, functions: {} }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -13,7 +13,16 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
 }));
 jest.mock('expo-location', () => ({}), { virtual: true }); // the hiking store imports it; no GPS is used here
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), push: jest.fn() } }), { virtual: true });
+jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
+jest.mock('react-native-safe-area-context', () => {
+  const mockReact = require('react');
+  const mockRn = require('react-native');
+  return { SafeAreaView: (props) => mockReact.createElement(mockRn.View, null, props.children) };
+}, { virtual: true });
 
+import { router } from 'expo-router';
+import StreakCalendarScreen from '../app/profile/streak';
 import StreakCalendar from '../components/StreakCalendar';
 import { useActivityDays } from '../services/streakService';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -81,6 +90,37 @@ describe('StreakCalendar', () => {
     expect(full.getByText('15')).toBeTruthy(); // 15 Sep, 29 days back
     expect(render(<StreakCalendar compact />).queryByText('14')).toBeNull();
   });
+
+  // From a dot, up to the day's cell (the first parent that centres its children), and from there to the row.
+  const up = (node, test) => { let n = node.parent; while (n && !test(StyleSheet.flatten(n.props.style) || {})) n = n.parent; return n; };
+  const cellOf = (utils, day) => up(utils.getByTestId(`streak-day-${day}`), (s) => s.alignItems === 'center');
+  const rowOf = (cell) => up(cell, (s) => s.flexDirection === 'row');
+
+  it('lays the 30 days out in rows that fit a phone, not in one row of 720', () => {
+    // React Native does not shrink a fixed-width child, so 30 days 24 wide ran off the right-hand edge of the screen and
+    // today, the last one, was never visible.
+    const utils = render(<StreakCalendar />);
+    let perRow;
+    for (const day of ['2026-09-15', '2026-10-14']) {
+      const cell = cellOf(utils, day);
+      const width = StyleSheet.flatten(cell.props.style).width;
+      expect(width).toMatch(/^\d+%$/);
+      perRow = Math.floor(100 / parseFloat(width));
+      const row = StyleSheet.flatten(rowOf(cell).props.style);
+      expect(row.flexWrap).toBe('wrap');
+      expect(row.justifyContent).toBe('flex-start');
+    }
+    // Ten to a row at that width, so the 30 days are three rows and every one of them is on the screen.
+    expect(perRow).toBe(10);
+    expect(Math.ceil(30 / perRow)).toBe(3);
+  });
+
+  it('keeps the compact week as one narrow row', () => {
+    const utils = render(<StreakCalendar compact />);
+    const cell = cellOf(utils, '2026-10-14');
+    expect(StyleSheet.flatten(cell.props.style).width).toBe(12);
+    expect(StyleSheet.flatten(rowOf(cell).props.style).flexWrap).toBeUndefined();
+  });
 });
 
 describe('useActivityDays', () => {
@@ -114,17 +154,64 @@ describe('useActivityDays', () => {
   });
 });
 
-describe('the progress screen', () => {
-  // app/profile/progress.jsx is too big to render here, so this reads its source.
-  const source = fs.readFileSync(path.join(__dirname, '..', 'app', 'profile', 'progress.jsx'), 'utf8');
+describe('the Streak Calendar screen (Profile > Streak Calendar)', () => {
+  const workout = (completedAt) => ({ id: `w-${completedAt}`, completedAt });
+  const run = (at) => ({ id: `r-${at}`, startTime: at, endTime: at });
+  const dot = (utils, day) => StyleSheet.flatten(utils.getByTestId(`streak-day-${day}`).props.style);
 
-  it('gives the calendar the real days, and shows the streak worked out the same way', () => {
-    expect(source).toContain('<StreakCalendar compact={false} days={activityDays} />');
-    expect(source).toContain('const activityDays = useActivityDays();');
-    expect(source).toContain('const workoutStreak = useActivityStreak();');
+  beforeEach(() => {
+    router.back.mockClear();
+    useWorkoutStore.setState({ completedWorkouts: [] });
+    useRunningStore.setState({ runs: [] });
+    useHikingStore.setState({ completedHikes: [] });
   });
 
-  it('no longer reads the empty streak history or the workouts-only streak', () => {
-    expect(source).not.toMatch(/streakData|streakHistory|getWorkoutStreak/);
+  it('says so when nothing has been logged, and shows no streak', () => {
+    const utils = render(<StreakCalendarScreen />);
+    expect(utils.getByText('Streak Calendar')).toBeTruthy();
+    expect(utils.getByTestId('streak-current').props.children).toBe(0);
+    expect(utils.getByTestId('streak-longest').props.children).toBe(0);
+    expect(utils.getByTestId('streak-calendar-caption').props.children).toMatch(/Nothing logged yet/);
+    expect(dot(utils, '2026-10-14').backgroundColor).toBe(tokens.colors.sky.light);
+  });
+
+  it('colours in the real days and shows the streak worked out from the same records', () => {
+    useWorkoutStore.setState({ completedWorkouts: [workout('2026-10-12T13:00:00Z'), workout('2026-10-15T01:30:00Z')] }); // the 12th, and 9:30 PM on the 14th
+    useRunningStore.setState({ runs: [run('2026-10-13T13:00:00Z')] });
+    const utils = render(<StreakCalendarScreen />);
+    for (const day of ['2026-10-12', '2026-10-13', '2026-10-14']) expect(dot(utils, day).backgroundColor).toBe(tokens.colors.brand.base);
+    expect(dot(utils, '2026-10-11').backgroundColor).toBe(tokens.colors.sky.light);
+    expect(utils.getByTestId('streak-current').props.children).toBe(3);
+    expect(utils.getByTestId('streak-longest').props.children).toBe(3);
+    expect(utils.getByTestId('streak-calendar-caption').props.children).toBe('3 of the last 30 days had a workout, a run or a hike.');
+  });
+
+  it('counts only the last 30 days in the sentence, but keeps an older best streak', () => {
+    useWorkoutStore.setState({
+      completedWorkouts: ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-10-01'].map((d) => workout(`${d}T13:00:00Z`)),
+    });
+    const utils = render(<StreakCalendarScreen />);
+    expect(utils.getByTestId('streak-longest').props.children).toBe(5);
+    expect(utils.getByTestId('streak-current').props.children).toBe(0); // nothing since 1 Oct
+    expect(utils.getByTestId('streak-calendar-caption').props.children).toBe('1 of the last 30 days had a workout, a run or a hike.');
+  });
+
+  it('keeps the streak going through today when only yesterday has been done', () => {
+    useWorkoutStore.setState({ completedWorkouts: [workout('2026-10-12T13:00:00Z'), workout('2026-10-13T13:00:00Z')] });
+    const utils = render(<StreakCalendarScreen />);
+    expect(utils.getByTestId('streak-current').props.children).toBe(2);
+    expect(dot(utils, '2026-10-14').backgroundColor).toBe(tokens.colors.sky.light); // today is not done yet
+  });
+
+  it('has a back button', () => {
+    const utils = render(<StreakCalendarScreen />);
+    fireEvent.press(utils.getByLabelText('Back'));
+    expect(router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('promises nothing it does not do: no XP, rewards or badges', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'app', 'profile', 'streak.jsx'), 'utf8');
+    const code = source.split('\n').filter((line) => !line.trim().startsWith('//')).join('\n');
+    expect(code).not.toMatch(/\bXP\b|reward|badge|premium/i);
   });
 });
