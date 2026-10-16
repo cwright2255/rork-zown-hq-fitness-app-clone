@@ -1,8 +1,8 @@
 name: Tests
 
-# On every push to main and every pull request this reads the whole app for mistakes (ESLint) and runs the whole jest
-# suite, so a change that breaks something shows up as a red mark on the commit instead of on someone's phone. It needs
-# no secrets.
+# On every pull request, and on every push to main (through the "Expo Publish" workflow, which calls this one and publishes
+# only if it passes), this reads the whole app for mistakes (ESLint) and runs the whole jest suite, so a change that breaks
+# something shows up as a red mark on the commit instead of on someone's phone. It needs no secrets.
 #
 # ESLint finds what the tests do not happen to open: a name that is not defined, an import of something a file does not
 # export. The suite stands in for Firebase and the phone's own features. Neither replaces the phone checks in
@@ -11,12 +11,9 @@ name: Tests
 # A second job, "Firestore rules", starts the Firestore emulator and runs expo/firestore.rules itself against it
 # (expo/rules-tests: who can read and write what). The main suite cannot do that: it has no emulator and never reads the rules.
 #
-# workflow_call lets another workflow run these tests first. To make "Expo Publish" wait for them, give it a job
-# `tests: { uses: ./.github/workflows/tests.yml }` and put `needs: tests` on its publish job.
+# workflow_call is how "Expo Publish" runs these tests first (its publish job has `needs: tests`). There is no push trigger
+# here on purpose: with one, every push to main would run all of this twice.
 on:
-  push:
-    branches:
-      - main
   pull_request:
   workflow_dispatch:
   workflow_call:

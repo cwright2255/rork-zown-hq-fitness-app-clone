@@ -201,7 +201,9 @@ The app scheme is `zownhq`. Supported deep links:
 
 ## Expo Go — Stable QR Code
 
-Every push to `main` triggers an automatic EAS Update. Once published, open the update in Expo Go via:
+Every push to `main` runs the tests (ESLint, jest and the Firestore rules) and, only if they all pass, publishes an EAS Update to the
+`development` channel. Production updates are published by hand. To undo an update, see [expo/docs/ROLLBACK.md](expo/docs/ROLLBACK.md).
+Once published, open the update in Expo Go via:
 
 **expo.dev/accounts/cwright2255/projects/zown-hq**
 

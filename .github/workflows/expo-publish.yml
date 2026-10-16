@@ -1,13 +1,24 @@
 name: Expo Publish
 
+# Every push to main publishes an EAS Update to the development channel, but only after the whole Tests workflow
+# (.github/workflows/tests.yml: ESLint, jest and the Firestore rules) has passed on that same commit. If any part of it
+# fails, the publish job is skipped, so a red commit never reaches the phones. The tests run here and not on a push trigger of
+# their own, so each push to main is tested once.
+#
+# Production is published by hand (eas update --branch main --environment production). To undo an update, see
+# expo/docs/ROLLBACK.md.
 on:
   push:
     branches:
       - main
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   publish:
     name: Publish to Expo Go
+    needs: tests
     runs-on: ubuntu-latest
     defaults:
       run:
