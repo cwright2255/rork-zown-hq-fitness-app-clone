@@ -13,7 +13,7 @@ jest.mock('firebase-functions/v2/https', () => {
   }
   return { onCall: (opts, handler) => Object.assign(handler, { __opts: opts }), onRequest: (opts, handler) => handler, HttpsError };
 }, { virtual: true });
-jest.mock('firebase-functions/v2/firestore', () => ({ onDocumentCreated: (opts, handler) => handler }), { virtual: true });
+jest.mock('firebase-functions/v2/firestore', () => ({ onDocumentCreated: (opts, handler) => handler, onDocumentDeleted: (opts, handler) => handler }), { virtual: true });
 jest.mock('openai', () => ({ __esModule: true, default: class OpenAI {} }), { virtual: true });
 jest.mock('../functions/src/accountErasure.js', () => ({ eraseUserAccount: jest.fn() }));
 

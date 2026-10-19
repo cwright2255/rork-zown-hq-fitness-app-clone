@@ -4,10 +4,11 @@ import { getMessaging } from 'firebase-admin/messaging';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
+import { changeMemberCount } from './groupMemberCount.js';
 import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
@@ -1644,4 +1645,29 @@ export const deleteMyAccount = onCall(
     }
     return { deleted: true };
   }
+);
+
+// The member count on a community group follows the people who joined it: when a person's own users/{uid}/groupMemberships/{groupId}
+// document appears the count goes up by one, and when it goes (they left, or their account was erased) it goes down by one. The app
+// does not write the count, and the rules let only an admin change a group. See groupMemberCount.js.
+export const onGroupJoined = onDocumentCreated(
+  { document: 'users/{uid}/groupMemberships/{groupId}', region: 'us-central1' },
+  (event) => changeMemberCount({
+    db: getFirestore(),
+    groupId: event.params.groupId,
+    delta: 1,
+    eventId: event.id,
+    stamp: FieldValue.serverTimestamp(),
+  })
+);
+
+export const onGroupLeft = onDocumentDeleted(
+  { document: 'users/{uid}/groupMemberships/{groupId}', region: 'us-central1' },
+  (event) => changeMemberCount({
+    db: getFirestore(),
+    groupId: event.params.groupId,
+    delta: -1,
+    eventId: event.id,
+    stamp: FieldValue.serverTimestamp(),
+  })
 );

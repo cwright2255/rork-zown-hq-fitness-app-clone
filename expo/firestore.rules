@@ -146,9 +146,36 @@ service cloud.firestore {
     // from everything above. Every authenticated user can READ every
     // entry (that's the whole point of a leaderboard), but each user can
     // only ever write their own document, keyed by uid.
+    //
+    // What each entry may hold is limited to what store/leaderboardStore.js publishes (name, picture, XP, level, streak and
+    // the distance map), every field optional because XP and distance are written separately, and each one that is there must
+    // be the right kind of value within what the app can produce (level 100 is the cap in store/expStore.js). That keeps
+    // junk, negative or absurd numbers and extra fields off the boards. It does not prove a plausible number was earned: XP and
+    // distance are worked out on the phone, so someone sending their own requests can still claim any value below these limits.
     match /leaderboard/{uid} {
+      function knownKeys() {
+        return ['name', 'avatar', 'xp', 'level', 'streak', 'distance', 'updatedAt'];
+      }
+
+      function validValues() {
+        let d = request.resource.data;
+        return (!('name' in d) || (d.name is string && d.name.size() <= 100)) &&
+          (!('avatar' in d) || d.avatar == null || (d.avatar is string && d.avatar.size() <= 2000)) &&
+          (!('xp' in d) || (d.xp is number && d.xp >= 0 && d.xp <= 5000000)) &&
+          (!('level' in d) || (d.level is int && d.level >= 1 && d.level <= 100)) &&
+          (!('streak' in d) || (d.streak is int && d.streak >= 0 && d.streak <= 5000)) &&
+          (!('distance' in d) || (d.distance is map && d.distance.size() <= 2)) &&
+          (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 40));
+      }
+
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      // A new entry may hold only those fields. An update may only touch them, so an entry written by an older version of the
+      // app, with a field that is not listed, can still be updated.
+      allow create: if request.auth != null && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(knownKeys()) && validValues();
+      allow update: if request.auth != null && request.auth.uid == uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(knownKeys()) && validValues();
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // NEW: store/communityStore.js — a real public feed. Any authenticated
@@ -188,11 +215,21 @@ service cloud.firestore {
     // NEW: store/messagingStore.js — a conversation is only ever readable
     // or writable by its two participants. participantIds is set once at
     // creation (sorted uids, see getConversationId) and never changes, so
-    // checking membership against it is safe for both read and update.
+    // checking membership against it is safe for both read and update. The
+    // rules hold it to that: a conversation can only be created with exactly
+    // two ids, in order, under the id those two make (so nobody can claim
+    // the id of a pair they are not in), and an update cannot change the list.
     match /conversations/{conversationId} {
       allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
-      allow create: if request.auth != null && request.auth.uid in request.resource.data.participantIds;
-      allow update: if request.auth != null && request.auth.uid in resource.data.participantIds;
+      allow create: if request.auth != null &&
+        request.resource.data.participantIds is list &&
+        request.resource.data.participantIds.size() == 2 &&
+        request.auth.uid in request.resource.data.participantIds &&
+        request.resource.data.participantIds[0] < request.resource.data.participantIds[1] &&
+        conversationId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1];
+      allow update: if request.auth != null &&
+        request.auth.uid in resource.data.participantIds &&
+        request.resource.data.participantIds == resource.data.participantIds;
 
       match /messages/{messageId} {
         allow read: if request.auth != null &&
@@ -284,19 +321,25 @@ service cloud.firestore {
       allow delete: if request.auth != null && entryId.matches('.*_' + request.auth.uid);
     }
 
+    // A duel is proposed by one of its two people (`proposedBy`, which must be the person creating it) and only the OTHER
+    // person can accept it. Either of them can decline it (the proposer withdrawing it counts as declining).
     match /duels/{duelId} {
       allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
 
       allow create: if request.auth != null &&
         request.auth.uid in request.resource.data.participantIds &&
         request.resource.data.participantIds.size() == 2 &&
+        request.resource.data.proposedBy == request.auth.uid &&
         request.resource.data.status == 'pending';
 
       allow update: if request.auth != null &&
         request.auth.uid in resource.data.participantIds &&
         resource.data.status == 'pending' &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-        (request.resource.data.status == 'active' || request.resource.data.status == 'declined');
+        (request.resource.data.status == 'declined' ||
+          (request.resource.data.status == 'active' &&
+            resource.data.get('proposedBy', null) in resource.data.participantIds &&
+            resource.data.proposedBy != request.auth.uid));
 
       allow delete: if false;
     }
@@ -305,10 +348,10 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create, delete: if request.auth != null &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-      allow update: if request.auth != null && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
-      );
+      // Only an admin changes a group. The member count is not written from the app at all: the onGroupJoined and onGroupLeft
+      // functions (expo/functions/src/groupMemberCount.js) move it whenever a users/{uid}/groupMemberships document appears or goes.
+      allow update: if request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
   }
 }

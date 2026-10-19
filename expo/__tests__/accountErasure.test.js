@@ -230,10 +230,12 @@ describe('erasing an account', () => {
     expect(has(db, 'raceEntries/local-5k-week-2026-10-12_u2')).toBe(true);
   });
 
-  it('lowers the member count of the groups they were in', async () => {
+  it('removes their group memberships and leaves the member count to the onGroupLeft function', async () => {
     const { db, promise } = run();
     await promise;
-    expect(db.docs.get('communityGroups/g1').memberCount).toBe(4);
+    expect(has(db, 'users/u1/groupMemberships/g1')).toBe(false);
+    // onGroupLeft lowers the count when the membership goes (functions/src/groupMemberCount.js); lowering it here too would count the leave twice.
+    expect(db.docs.get('communityGroups/g1').memberCount).toBe(5);
   });
 
   it('removes their uploaded files and post media, and only theirs', async () => {
@@ -324,7 +326,7 @@ describe('when something goes wrong', () => {
     const second = await run({ db, bucket, auth }).promise;
     expect(second.ok).toBe(true);
     expect(auth.users.has('u1')).toBe(false);
-    expect(db.docs.get('communityGroups/g1').memberCount).toBe(4);
+    expect(db.docs.get('communityGroups/g1').memberCount).toBe(5);
     expect(db.docs.get('communityPosts/p2')).toMatchObject({ likeCount: 2, commentCount: 2 });
     expect(startsWith(db, 'users/u1')).toBe(false);
   });

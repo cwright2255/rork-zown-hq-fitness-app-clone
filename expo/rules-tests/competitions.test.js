@@ -189,7 +189,10 @@ describe('/raceEntries/{entryId}', () => {
 });
 
 describe('/duels/{duelId}', () => {
-  const duel = (over = {}) => ({ participantIds: ['alice', 'bob'], status: 'pending', distanceKm: 5, ...over });
+  // alice proposed it, so bob is the person who can accept it.
+  const duel = (over = {}) => ({ participantIds: ['alice', 'bob'], status: 'pending', proposedBy: 'alice', distanceKm: 5, ...over });
+  // A duel with no `proposedBy`, as one from before the field existed would look.
+  const withoutProposer = () => { const d = duel(); delete d.proposedBy; return d; };
 
   it('can be read by the two people in it, not by anyone else', async () => {
     await env.seed({ 'duels/d1': duel() });
@@ -225,15 +228,42 @@ describe('/duels/{duelId}', () => {
       await no(env.as('alice').doc('duels/d1').set(duel({ status: 'active' })));
       await no(env.as('alice').doc('duels/d2').set(duel({ status: 'declined' })));
     });
+
+    it('is refused unless the person creating it is the one it says proposed it', async () => {
+      await ok(env.as('bob').doc('duels/d1').set(duel({ proposedBy: 'bob' })));
+      await no(env.as('alice').doc('duels/d2').set(duel({ proposedBy: 'bob' }))); // alice naming bob as the proposer
+      await no(env.as('alice').doc('duels/d3').set(duel({ proposedBy: 'carol' })));
+      await no(env.as('alice').doc('duels/d4').set(withoutProposer()));
+    });
   });
 
   describe('answering one', () => {
     beforeEach(() => env.seed({ 'duels/d1': duel() }));
 
-    it('lets a person in it accept (active) or decline it', async () => {
+    it('lets the other person accept (active) or decline it', async () => {
       await ok(env.as('bob').doc('duels/d1').update({ status: 'active' }));
       await env.seed({ 'duels/d2': duel() });
       await ok(env.as('bob').doc('duels/d2').update({ status: 'declined' }));
+    });
+
+    it('does not let the person who proposed it accept it', async () => {
+      await no(env.as('alice').doc('duels/d1').update({ status: 'active' }));
+    });
+
+    it('lets the person who proposed it withdraw it (declined)', async () => {
+      await ok(env.as('alice').doc('duels/d1').update({ status: 'declined' }));
+    });
+
+    it('cannot be accepted when it does not name one of the two people as the proposer', async () => {
+      await env.seed({ 'duels/none': withoutProposer(), 'duels/stranger': duel({ proposedBy: 'carol' }) });
+      await no(env.as('bob').doc('duels/none').update({ status: 'active' }));
+      await no(env.as('alice').doc('duels/none').update({ status: 'active' }));
+      await no(env.as('bob').doc('duels/stranger').update({ status: 'active' }));
+      await no(env.as('alice').doc('duels/stranger').update({ status: 'active' }));
+    });
+
+    it('cannot have the proposer changed on the way to accepting it', async () => {
+      await no(env.as('alice').doc('duels/d1').update({ status: 'active', proposedBy: 'bob' }));
     });
 
     it('refuses any other status', async () => {

@@ -90,11 +90,23 @@ describe('/communityGroups/{groupId}', () => {
     await ok(env.as('root').doc('communityGroups/g1').update({ name: 'Evening Runners', memberCount: 4 }));
   });
 
-  it('lets anyone else change only the member count (joining or leaving)', async () => {
+  it('cannot be changed by anyone else, member count included', async () => {
     await env.seed({ 'communityGroups/g1': group });
-    await ok(env.as('alice').doc('communityGroups/g1').update({ memberCount: 4 }));
+    await no(env.as('alice').doc('communityGroups/g1').update({ memberCount: 4 }));
+    await no(env.as('alice').doc('communityGroups/g1').update({ memberCount: 999999 }));
     await no(env.as('alice').doc('communityGroups/g1').update({ name: "Alice's group now" }));
     await no(env.as('alice').doc('communityGroups/g1').update({ memberCount: 5, name: 'and renamed' }));
     await no(env.anon().doc('communityGroups/g1').update({ memberCount: 5 }));
+  });
+
+  it('is not changed by joining: the count moves only through the onGroupJoined and onGroupLeft functions', async () => {
+    await env.seed({ 'communityGroups/g1': group });
+    const alice = env.as('alice');
+    const join = alice.batch();
+    join.set(alice.doc('users/alice/groupMemberships/g1'), { joinedAt: '2026-10-19T12:00:00.000Z' });
+    join.update(alice.doc('communityGroups/g1'), { memberCount: 4 });
+    await no(join.commit());
+    // Joining on its own is still fine; it is the function's job to move the count.
+    await ok(alice.doc('users/alice/groupMemberships/g1').set({ joinedAt: '2026-10-19T12:00:00.000Z' }));
   });
 });

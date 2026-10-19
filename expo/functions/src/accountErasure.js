@@ -17,7 +17,7 @@
 //   conversations, duels (participantIds)  threads and duels they were in, removed for both people
 //   challengeEntries (uid)                 their progress on challenges
 //   raceEntries (uid)                      their times on the virtual race boards
-//   users/*/groupMemberships               also lowers the group's member count
+//   users/*/groupMemberships               their group memberships (the onGroupLeft function lowers each group's member count)
 //   Storage users/{uid}/ and posts/{uid}/  profile picture, uploads, post media
 //   ROOK                                   connected wearable sources are revoked
 //
@@ -112,16 +112,14 @@ export async function eraseUserAccount({ uid, db, bucket, auth, increment, revok
     if (revokeIntegrations) await revokeIntegrations(uid);
   }, { required: false });
 
-  // Group member counts. Each membership is removed in the same write as the count,
-  // so running this twice never lowers a count twice.
+  // Group memberships. The member count of each group is not touched here: removing a membership document is what makes the
+  // onGroupLeft function lower the count (functions/src/groupMemberCount.js), once per membership, so running this twice never
+  // lowers a count twice.
   await run('groups', async () => {
     const memberships = await db.collection(`users/${uid}/groupMemberships`).get();
     if (memberships.empty) return;
     await writeAll(db, (w) => {
-      memberships.docs.forEach((m) => {
-        w.update(db.doc(`communityGroups/${m.id}`), { memberCount: increment(-1) });
-        w.delete(m.ref);
-      });
+      memberships.docs.forEach((m) => w.delete(m.ref));
     });
   });
 
