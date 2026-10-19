@@ -30,6 +30,8 @@ jest.mock('@/src/components/LoadingSkeleton', () => () => null);
 jest.mock('@/components/StrengthScoreWidget', () => () => null);
 jest.mock('@/components/FastingWidget', () => () => null);
 jest.mock('@/components/MusicWidget', () => () => null);
+jest.mock('@/components/StreakWidget', () => () => null);
+jest.mock('@/components/NextUpWidget', () => () => null);
 jest.mock('@/components/WidgetEditorModal', () => () => null);
 
 import Hq from '../app/hq';

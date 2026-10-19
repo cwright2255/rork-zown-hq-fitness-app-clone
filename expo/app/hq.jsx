@@ -55,6 +55,8 @@ import { getFullOrderedLayout, getWidgetDefinition } from '@/lib/homeWidgets';
 import StrengthScoreWidget from '@/components/StrengthScoreWidget';
 import FastingWidget from '@/components/FastingWidget';
 import MusicWidget from '@/components/MusicWidget';
+import StreakWidget from '@/components/StreakWidget';
+import NextUpWidget from '@/components/NextUpWidget';
 import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
@@ -666,6 +668,8 @@ export default function HQScreen() {
     strengthScore: () => isWidgetEnabled('strengthScore') && <StrengthScoreWidget />,
     fasting: () => isWidgetEnabled('fasting') && <FastingWidget />,
     music: () => isWidgetEnabled('music') && <MusicWidget />,
+    streak: () => isWidgetEnabled('streak') && <StreakWidget />,
+    nextUp: () => isWidgetEnabled('nextUp') && <NextUpWidget />,
   };
 
   const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {

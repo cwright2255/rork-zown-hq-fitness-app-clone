@@ -36,6 +36,10 @@ export const WIDGET_REGISTRY = [
   { id: 'strengthScore', label: 'Strength Score', icon: 'trophy-outline', kind: 'card' },
   { id: 'fasting', label: 'Fasting Timer', icon: 'timer-outline', kind: 'card' },
   { id: 'music', label: 'Music', icon: 'musical-notes-outline', kind: 'card' },
+  // Newer widgets. People who already saved a layout get them at the end, switched on (getFullOrderedLayout); they can hide or
+  // move them in edit mode like any other.
+  { id: 'streak', label: 'Workout Streak', icon: 'flash-outline', kind: 'card' },
+  { id: 'nextUp', label: 'Next Up', icon: 'calendar-outline', kind: 'card' },
 ];
 
 // Default layout for a user who has never customized their home screen -

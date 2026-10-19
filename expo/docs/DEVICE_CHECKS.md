@@ -48,6 +48,18 @@ Finish a short run or hike (or look at one you already did).
 - [ ] Finish a short workout or run, then open Streak Calendar again. Today is filled in and the streak went up by one, or
       started at 1.
 
+## Home widgets: Workout Streak and Next Up (once, on the first update with them)
+
+On Home, scroll to the end of the cards. They come after Music. To hide or move them: the menu at the top of Home, then Edit Home Screen.
+
+- [ ] Workout Streak shows the same number as Streak on Profile, and the last 7 days as dots, today last and ringed. Days with a
+      workout, a run or a hike are filled in. Tap it: Streak Calendar (`app/profile/streak.jsx`) opens.
+- [ ] Finish a short workout, go back to Home. The streak went up (or started at 1) and today's dot is filled in, without
+      pulling down to refresh.
+- [ ] Next Up shows the next event on your calendar, with Today, Tomorrow or the day, and the time. Tap it: the Calendar opens
+      on that day. With nothing planned it says "Nothing planned" and opens the Calendar.
+- [ ] Ask the Coach to add a workout to your calendar and say yes. Back on Home, Next Up shows it if it is the next one.
+
 ## The Coach
 
 Profile, then AI Coach. Ask "What do you know about my day?"
