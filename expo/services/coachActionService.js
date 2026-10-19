@@ -5,8 +5,9 @@
 // by lib/coachActions.js normalizeActions - this file only writes them to
 // the app's real stores:
 //   workout_plan   -> store/workoutStore.js addWorkout (shows in My Workouts)
-//   schedule       -> store/scheduleStore.js (shows on the Calendar) plus a
-//                     reminder notification for each future event
+//   schedule       -> store/scheduleStore.js (shows on the Calendar); the phone's
+//                     reminders are then set from the calendar
+//                     (services/calendarReminders.js)
 //   nutrition_plan -> store/nutritionStore.js daily targets, and each meal
 //                     as a Calendar event
 //   goal           -> store/goalsStore.js (shows on the Progress tab)
@@ -16,7 +17,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useNutritionStore } from '../store/nutritionStore';
 import { useScheduleStore } from '../store/scheduleStore';
 import { useGoalsStore } from '../store/goalsStore';
-import { notificationService } from './notificationService';
+import { askForReminderPermission, reconcileReminders } from './calendarReminders';
 import { buildEventRecords } from '../lib/scheduleUtils';
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -35,34 +36,21 @@ async function saveWorkouts(action, user, created) {
 
 async function addToCalendar(events, workoutIdsByName) {
   const records = buildEventRecords(events, workoutIdsByName);
-  let reminders = 0;
-  let remindersBlocked = false;
 
-  const wantsReminder = records.some((r) => r.kind !== 'nutrition' && new Date(r.start).getTime() > Date.now());
-  if (wantsReminder) {
-    try {
-      // Asked now, right after the user said yes, so the prompt makes sense.
-      await notificationService.requestPermissions();
-    } catch {
-      // handled below: no reminder will come back as scheduled
-    }
-  }
+  // A reminder is wanted when one of the new events has its reminder time still ahead.
+  const wantsReminder = records.some(
+    (r) => r.remindMinutes !== null && new Date(r.start).getTime() - r.remindMinutes * 60 * 1000 > Date.now()
+  );
+  // Asked now, right after the user said yes, so the prompt makes sense.
+  if (wantsReminder) await askForReminderPermission();
 
-  for (const record of records) {
-    // Meals show on the calendar but do not buzz the phone; a plan can hold
-    // 20+ meals and iOS only keeps 64 pending notifications in total.
-    if (record.kind === 'nutrition') continue;
-    const id = await notificationService.scheduleEventReminder(record.title, record.kind, new Date(record.start));
-    if (id) {
-      record.notificationId = id;
-      reminders += 1;
-    } else if (new Date(record.start).getTime() > Date.now()) {
-      remindersBlocked = true;
-    }
-  }
+  const kept = useScheduleStore.getState().addEvents(records);
+  if (kept.length === 0 && records.length > 0) throw new Error('no event was added to the calendar');
 
-  useScheduleStore.getState().addEvents(records);
-  return { count: records.length, reminders, remindersBlocked };
+  // Meals show on the calendar but do not buzz the phone unless the person turns a reminder on for them (a plan can hold 20+
+  // meals and iOS only keeps 64 pending notifications in total); lib/scheduleUtils.js buildEventRecords sets that.
+  const { scheduled, blocked } = await reconcileReminders();
+  return { count: kept.length, reminders: scheduled, remindersBlocked: blocked && wantsReminder };
 }
 
 /**

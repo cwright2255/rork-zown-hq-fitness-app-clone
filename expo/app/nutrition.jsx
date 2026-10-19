@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, TouchableOpacity, Platform, Modal } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, Plus, Star, Droplet, Copy, Clock, Calendar } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, Star, Droplet, Copy, Clock, CalendarDays, ClipboardList } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -298,11 +298,18 @@ export default function NutritionScreen() {
         rightAction={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <TouchableOpacity
+              testID="nutrition-calendar"
+              accessibilityLabel="Calendar"
+              onPress={() => router.push({ pathname: '/calendar', params: { date: dateStr } })}
+              hitSlop={8}>
+              <CalendarDays size={22} color="#000" />
+            </TouchableOpacity>
+            <TouchableOpacity
               testID="nutrition-plan"
               accessibilityLabel="Meal plan"
               onPress={() => router.push({ pathname: '/nutrition/plan', params: { date: dateStr } })}
               hitSlop={8}>
-              <Calendar size={22} color="#000" />
+              <ClipboardList size={22} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity testID="nutrition-history" accessibilityLabel="Intake history" onPress={() => router.push('/nutrition/history')} hitSlop={8}>
               <Clock size={22} color="#000" />

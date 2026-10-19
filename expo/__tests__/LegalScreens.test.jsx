@@ -99,8 +99,16 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/Turning off Show in Leaderboards takes them off the boards/);
   });
 
-  it('says virtual journey progress is private to the person', () => {
-    expect(policy()).toMatch(/Your workouts, body metrics, nutrition logs and virtual journey progress are private to your account/);
+  it('says virtual journey progress, and the calendar, are private to the person', () => {
+    expect(policy()).toMatch(/Your workouts, body metrics, nutrition logs, calendar and virtual journey progress are private to your account/);
+  });
+
+  it('says what is kept in the calendar, that it is saved to the account, and that deleting the account erases it', () => {
+    const text = policy();
+    expect(text).toMatch(/Calendar: the events you schedule \(title, day and time, notes, how often it repeats, and when to remind you\)/);
+    expect(text).toMatch(/the workouts and meals the AI coach adds to it after you say yes/);
+    expect(text).toMatch(/saved to your account so a new phone gets them back/);
+    expect(text).toMatch(/workouts, nutrition, calendar and body-scan records/);
   });
 
   it('says deleting an account erases the virtual race times too', () => {

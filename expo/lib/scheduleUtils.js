@@ -68,6 +68,9 @@ const defaultId = () => {
   return `evt-${Date.now()}-${idCounter}-${Math.random().toString(36).slice(2, 6)}`;
 };
 
+/** A new id for a calendar event. */
+export const newEventId = defaultId;
+
 /**
  * Turns validated coach events (lib/coachActions.js normalizeActions) into
  * the records store/scheduleStore.js keeps. An event that names a workout
@@ -88,6 +91,10 @@ export function buildEventRecords(events, workoutIdsByName = {}, makeId = defaul
       workoutId: workoutId || null,
       notificationId: null,
       source: 'coach',
+      // Workouts and runs remind at their start time, as they always have; meals only show on the calendar (a plan can hold 20 or
+      // more of them, and iOS keeps 64 pending reminders for the whole app). The person can change either on the event.
+      remindMinutes: e.kind === 'nutrition' ? null : 0,
+      repeat: null,
     };
   });
 }

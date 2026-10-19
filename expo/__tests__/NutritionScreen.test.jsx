@@ -236,6 +236,20 @@ describe('intake history and opening a day', () => {
     expect(global.__router.push).not.toHaveBeenCalledWith('/nutrition/history');
   });
 
+  it('has a calendar button in the header that opens the calendar on the day being viewed', () => {
+    const utils = open([]);
+    expect(utils.getByLabelText('Calendar')).toBeTruthy();
+    fireEvent.press(utils.getByTestId('nutrition-calendar'));
+    expect(global.__router.push).toHaveBeenCalledWith({ pathname: '/calendar', params: { date: '2026-10-08' } });
+    expect(global.__router.push).not.toHaveBeenCalledWith({ pathname: '/nutrition/plan', params: { date: '2026-10-08' } });
+  });
+
+  it('opens the calendar on another day when that day is on show', () => {
+    const utils = open([], {}, { date: '2026-10-05' });
+    fireEvent.press(utils.getByTestId('nutrition-calendar'));
+    expect(global.__router.push).toHaveBeenCalledWith({ pathname: '/calendar', params: { date: '2026-10-05' } });
+  });
+
   it('opens the plan on another day when that day is on show', () => {
     const utils = open([], {}, { date: '2026-10-05' });
     fireEvent.press(utils.getByTestId('nutrition-plan'));

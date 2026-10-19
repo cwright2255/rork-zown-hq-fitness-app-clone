@@ -16,7 +16,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useRunningStore } from '../store/runningStore';
 import { useHikingStore } from '../store/hikingStore';
 import { getActiveFast, getFastHistory } from './fastingService';
-import { upcomingEvents } from '../lib/scheduleUtils';
+import { upcomingOccurrences } from '../lib/calendarEvents';
 import { formatEventWhen } from '../lib/coachActions';
 import { buildProfile, buildSnapshotMessage, dayTotals } from '../lib/userProfileData';
 import { buildSignalLines } from '../lib/coachSignals';
@@ -79,7 +79,7 @@ export function buildSnapshotFromStores(user, now = new Date()) {
   }, null);
   const signals = safe(() => buildSignals(user, now), []);
   const upcoming = safe(
-    () => upcomingEvents(useScheduleStore.getState().events, now, 6).map((e) => ({ title: e.title, when: formatEventWhen(e.start) })),
+    () => upcomingOccurrences(useScheduleStore.getState().events, now, 6).map((e) => ({ title: e.title, when: formatEventWhen(e.start) })),
     []
   );
   return buildSnapshotMessage({ profile, weightLogs, goals, nutrition, upcoming, signals, now });

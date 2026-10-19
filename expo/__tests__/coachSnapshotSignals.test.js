@@ -19,6 +19,7 @@ import { useNutritionStore } from '../store/nutritionStore';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useRunningStore } from '../store/runningStore';
 import { useHikingStore } from '../store/hikingStore';
+import { useScheduleStore } from '../store/scheduleStore';
 
 const EVENING = new Date('2026-10-15T01:30:00Z');
 const H = 3600000;
@@ -219,5 +220,29 @@ describe('nothing known', () => {
     for (const heading of ['Latest recovery reading', 'Water logged', 'Steps so far', 'Fasting right now', 'Fasts finished', 'Food diary, the 7 days', 'Calories burned today']) {
       expect(text).not.toContain(heading);
     }
+  });
+});
+
+describe('the calendar', () => {
+  const calendarEvent = (o) => ({
+    id: 'e1', title: 'Morning run', kind: 'run', start: new Date(2026, 9, 15, 7, 0).toISOString(), notes: '', workoutId: null, repeat: null,
+    remindMinutes: null, doneDates: [], skipDates: [], source: 'user', inviteId: null, host: null, updatedAt: '2026-10-01T00:00:00.000Z', ...o,
+  });
+  afterEach(() => useScheduleStore.setState({ events: [] }));
+
+  it('tells the Coach what is coming up, each day of a repeat included, so it does not double-book them', () => {
+    useScheduleStore.setState({ events: [calendarEvent({ repeat: { every: 'day', until: null } })] });
+    const text = snapshot({ uid: 'nobody' });
+    expect(text).toContain('Already on their calendar: Morning run (Thu Oct 15, 7:00 AM); Morning run (Fri Oct 16, 7:00 AM); Morning run (Sat Oct 17, 7:00 AM);');
+    // Six at most.
+    expect(text.match(/Morning run \(/g)).toHaveLength(6);
+  });
+
+  it('leaves out a day of a repeat that was removed, and a day that was ticked off', () => {
+    useScheduleStore.setState({ events: [calendarEvent({ repeat: { every: 'day', until: null }, skipDates: ['2026-10-16'], doneDates: ['2026-10-15'] })] });
+    const text = snapshot({ uid: 'nobody' });
+    expect(text).not.toContain('Thu Oct 15');
+    expect(text).not.toContain('Fri Oct 16');
+    expect(text).toContain('Morning run (Sat Oct 17, 7:00 AM)');
   });
 });

@@ -173,6 +173,47 @@ class NotificationService {
     }
   }
 
+  // Whether reminders can be shown right now (false on the web, and when the person has turned notifications off for ZOWN).
+  async hasPermission() {
+    if (Platform.OS === 'web') {
+      return false;
+    }
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      return status === 'granted';
+    } catch (e) {
+      console.warn('[notificationService] hasPermission failed:', e?.message);
+      return false;
+    }
+  }
+
+  // One reminder for one day of a calendar event: { title, body } is what it says, `date` when it comes. Returns the
+  // notification id, or null when nothing was scheduled. Permission is checked by the caller (hasPermission), once for the lot.
+  async scheduleCalendarReminder({ title, body }, date, eventId) {
+    if (Platform.OS === 'web') {
+      return null;
+    }
+    if (!(date instanceof Date) || Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      return null;
+    }
+    try {
+      return await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: 'schedule-event', eventId }
+        },
+        trigger: {
+          type: 'date',
+          date
+        }
+      });
+    } catch (e) {
+      console.warn('[notificationService] scheduleCalendarReminder failed:', e?.message);
+      return null;
+    }
+  }
+
   async cancelReminder(notificationId) {
     if (Platform.OS === 'web' || !notificationId) {
       return;
