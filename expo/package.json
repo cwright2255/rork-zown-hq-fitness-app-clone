@@ -80,6 +80,7 @@
     "@expo/ngrok": "^4.1.0",
     "@firebase/rules-unit-testing": "^5.0.2",
     "@testing-library/react-native": "^12.5.0",
+    "ajv": "^8.17.1",
     "babel-plugin-module-resolver": "^5.0.0",
     "eslint": "^9.39.0",
     "eslint-plugin-import": "^2.32.0",

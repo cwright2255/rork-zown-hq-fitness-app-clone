@@ -157,6 +157,35 @@ describe('the publish workflow', () => {
     expect(job('publish')).toMatch(/EXPO_TOKEN: \$\{\{ secrets\.EXPO_TOKEN \}\}/);
   });
 
+  it('installs from the lockfile, like the tests do, so it publishes the dependencies the tests ran against', () => {
+    // Without a lockfile, npm leaves out query-string (the bundle fails: "Unable to resolve module query-string") and
+    // puts the wrong ajv where expo-router's config plugin finds it (`expo config` fails). Every Expo Publish run failed.
+    const publishJob = job('publish');
+    const setupAt = publishJob.indexOf('uses: oven-sh/setup-bun@v2');
+    const installAt = publishJob.indexOf('run: bun install --frozen-lockfile');
+    expect(setupAt).toBeGreaterThan(-1);
+    expect(installAt).toBeGreaterThan(setupAt);
+    expect(installAt).toBeLessThan(publishJob.indexOf('run: eas update'));
+    expect(publishJob).not.toMatch(/npm install --legacy-peer-deps/);
+  });
+
+  it('has Expo read the app config before publishing, so a failure there shows its reason', () => {
+    const publishJob = job('publish');
+    const checkAt = publishJob.indexOf('run: npx expo config');
+    expect(checkAt).toBeGreaterThan(publishJob.indexOf('run: bun install --frozen-lockfile'));
+    expect(checkAt).toBeLessThan(publishJob.indexOf('run: eas update'));
+  });
+
+  it('has ajv 8 as a direct dependency, so a plain npm install (the manual EAS build workflows use one) works', () => {
+    // ESLint wants ajv 6. With --legacy-peer-deps and no lockfile, npm then puts ajv 6 at the top of node_modules, where
+    // expo-router's config plugin (schema-utils, then ajv-keywords) finds it and fails with "Cannot find module
+    // 'ajv/dist/compile/codegen'", so `expo config` crashes. bun.lock nests it properly either way, which is why the
+    // tests never noticed.
+    expect(pkg.devDependencies.ajv).toMatch(/^\^8\./);
+    const lock = fs.readFileSync(path.join(expoDir, 'bun.lock'), 'utf8');
+    expect(lock).toMatch(/^\s+"ajv": \["ajv@8\./m);
+  });
+
   it('tells you where to look when an update has to be undone', () => {
     expect(publishText).toContain('expo/docs/ROLLBACK.md');
     expect(fs.existsSync(path.join(expoDir, 'docs', 'ROLLBACK.md'))).toBe(true);
