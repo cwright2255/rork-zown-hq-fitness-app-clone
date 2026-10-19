@@ -23,6 +23,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
 import { initCrashReporting, setCrashUser, logBreadcrumb } from '@/lib/crashReporting';
+import { setAnalyticsUser } from '@/src/services/analytics';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useHealthStore } from '@/store/healthStore';
@@ -236,6 +237,8 @@ function RootLayoutInner() {
   useEffect(() => { initCrashReporting(); }, []);
   useEffect(() => { if (crashUid) setCrashUser(crashUid); }, [crashUid]);
   useEffect(() => { logBreadcrumb(`screen: ${pathname}`); }, [pathname]);
+  // The same uid goes to analytics so its events are counted per person. It is cleared when they sign out (no uid).
+  useEffect(() => { setAnalyticsUser(crashUid); }, [crashUid]);
   const { cart } = useShopStore();
   const { connectSpotify, connectSpotifyImplicit } = useSpotifyStore();
 

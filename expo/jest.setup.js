@@ -21,6 +21,14 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { HIGH: 4 },
 }));
 
+// The phone's Firebase Analytics is a native module, so tests never load the real one: whatever asks for it gets this.
+// (__tests__/analytics.test.js sets up its own, to look at exactly what the app asks Firebase to log.)
+jest.mock('@react-native-firebase/analytics', () => ({
+  getAnalytics: jest.fn(() => ({ stand: 'in' })),
+  logEvent: jest.fn(),
+  setUserId: jest.fn(() => Promise.resolve()),
+}), { virtual: true });
+
 // The firebase mocks are registered as virtual (the package is installed all the same). A test that mocks one of these
 // names with { virtual: true } would otherwise be ignored by any module an earlier test file had already loaded, and
 // get the stand-in below instead of its own mock, on some runs and not others. __tests__/jestFirebaseMockOrder.test.js.

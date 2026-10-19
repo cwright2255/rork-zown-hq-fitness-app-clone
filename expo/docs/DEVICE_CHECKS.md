@@ -67,6 +67,21 @@ One of each. A message like "request failed", or nothing at all, means that key 
 - [ ] Browse recipes (Spoonacular key).
 - [ ] Search a food in Nutrition (Calorie API key).
 
+## Analytics (once, on the first build made after analytics was added)
+
+Needs a new native build, not only `eas update`. An older build ignores the new code and sends nothing. Use a real device with
+that build, signed in. Open the Realtime report: in the Firebase console, Analytics, Realtime, or in the linked Google Analytics
+property, Reports, then Realtime. Event names show within a minute or two. The Events table can take a day to fill in, and the
+values on an event (the workout name, the coach's `feature_type`) only show in reports once they are registered as custom
+definitions in Google Analytics. Realtime lists the event names.
+
+- [ ] Open the app. `first_open` and `session_start` show up. They come from Firebase itself, so if these are missing, the
+      build or the Firebase config is the cause, not the app's own events.
+- [ ] Start a workout (the screen where the exercises begin). `workout_started` shows up.
+- [ ] Finish it all the way. `workout_completed` shows up. Start another, save and leave early: no `workout_completed`.
+- [ ] Send the Coach a message. `ai_coach_used` shows up.
+- [ ] Connect Spotify (Settings). `spotify_connected` shows up.
+
 ## Links into the app (once, after the update that removed the admin links)
 
 - [ ] On the phone, open `zownhq://admin?cmd=logout` from Safari's address bar, and let it open the app. You are still signed

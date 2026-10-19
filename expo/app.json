@@ -83,6 +83,7 @@
       "expo-apple-authentication",
       ["@react-native-firebase/app", { "ios": { "disableSPM": true } }],
       "@react-native-firebase/crashlytics",
+      ["@react-native-firebase/analytics", { "ios": { "withoutAdIdSupport": true } }],
       "./plugins/withPoseModel.js",
       "./plugins/withPoseDetectorErrorPatch.js",
       "./plugins/withPoseDetectionThreadingPatch.js",
@@ -97,7 +98,7 @@
           "ios": {
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp", "RNFBCrashlytics"]
+            "forceStaticLinking": ["RNFBApp", "RNFBCrashlytics", "RNFBAnalytics"]
           }
         }
       ],

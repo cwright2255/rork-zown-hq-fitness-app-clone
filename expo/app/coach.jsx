@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing as spacing, Radius as radius } from '@/src/constants/tokens';
 import { chatAI } from '@/services/aiService';
+import { logAICoachUsed } from '@/src/services/analytics';
 import {
   extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply,
 } from '@/lib/coachActions';
@@ -284,6 +285,9 @@ export default function CoachScreen() {
         const lines = describeActions(actions);
         if (actions.length > 0 && lines.length > 0) proposal = { status: 'pending', actions, lines, links: [] };
       }
+
+      // One per answer the coach gave: a plain reply, or a reply that comes with something to add (a Yes / No proposal).
+      logAICoachUsed(proposal ? 'proposal' : 'chat');
 
       let content = replyText;
       if (proposal) {

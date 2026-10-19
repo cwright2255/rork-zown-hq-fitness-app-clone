@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spotifyService } from '@/services/spotifyService';
+import { logSpotifyConnected } from '@/src/services/analytics';
 
 // Real, new: queue auto-advance watcher. Lives at module scope (not in
 // persisted store state) because it's a live setInterval handle, not data -
@@ -93,6 +94,7 @@ export const useSpotifyStore = create(
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
             get().startQueueWatcher();
+            logSpotifyConnected();
 
             return true;
           }
@@ -142,6 +144,7 @@ export const useSpotifyStore = create(
                   get().loadWorkoutPlaylists();
                   get().loadRunningPlaylists();
                   get().startQueueWatcher();
+                  logSpotifyConnected();
                   return true;
                 }
                 set({ isLoading: false });
@@ -183,6 +186,7 @@ export const useSpotifyStore = create(
             get().loadWorkoutPlaylists();
             get().loadRunningPlaylists();
             get().startQueueWatcher();
+            logSpotifyConnected();
 
             return true;
           }

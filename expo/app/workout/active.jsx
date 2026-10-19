@@ -28,6 +28,7 @@ import { isBodyweightExercise } from '@/services/exerciseDbService';
 import { getNextPrescription, estimateOneRepMax } from '@/services/progressiveOverloadService';
 import { getCurrentReadiness } from '@/services/wearableService';
 import { localDateKey } from '@/lib/localDate';
+import { logWorkoutStarted, logWorkoutCompleted } from '@/src/services/analytics';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -208,6 +209,16 @@ export default function ActiveWorkoutScreen() {
   const workoutDisplayName = isProgramSession
     ? `${program?.title || 'Program'} - ${programDay?.day || 'Day'}`
     : selectedWorkout?.name || 'Workout';
+
+  // What the analytics events call this workout: its id, or the program's id for a program day.
+  const analyticsWorkoutId = selectedWorkout?.id ?? (isProgramSession ? programId : null);
+  // One "workout started" each time this screen opens (continuing a saved workout opens it again, and is a new session).
+  const startLoggedRef = useRef(false);
+  useEffect(() => {
+    if (startLoggedRef.current) return;
+    startLoggedRef.current = true;
+    logWorkoutStarted(analyticsWorkoutId, workoutDisplayName);
+  }, [analyticsWorkoutId, workoutDisplayName]);
   // Real, new: resumes from where the user left off if this workout was
   // previously saved-and-exited (see handleSaveAndExit's
   // saveWorkoutProgress call and store/workoutStore.js's inProgress
@@ -951,6 +962,9 @@ export default function ActiveWorkoutScreen() {
                 completedAt: new Date().toISOString(),
                 startedAt: workoutStartRef.current,
               }, user?.uid);
+
+              // Only a workout finished all the way is "completed" for analytics; saving and leaving early is not.
+              logWorkoutCompleted(analyticsWorkoutId, Math.round(elapsedSeconds / 60), caloriesBurned);
 
               // Real trigger for the "First Workout" badge — checks the
               // actual completed-workout count rather than assuming.
