@@ -66,6 +66,13 @@ describe('/users/{uid}/xpClaims/{claimId}', () => {
     await no(claimDoc('alice', 'c4').set({ kind: 'workout', baseExp: 200 }));
     await no(claimDoc('alice', 'c5').set(claim({ day: '19-10-2026' })));
     await no(claimDoc('alice', 'c6').set(claim({ day: 20261019 })));
+    // Ten characters, but not a day written as YYYY-MM-DD.
+    await no(claimDoc('alice', 'c7').set(claim({ day: '2026/10/19' })));
+    await no(claimDoc('alice', 'c8').set(claim({ day: 'abcdefghij' })));
+    await no(claimDoc('alice', 'c9').set(claim({ day: '2026-10-1x' })));
+    await no(claimDoc('alice', 'd1').set(claim({ day: '2026-1-019' })));
+    await no(claimDoc('alice', 'd2').set(claim({ day: '' })));
+    await ok(claimDoc('alice', 'd3').set(claim({ day: '2026-10-19' })));
   });
 
   it('holds each number to a sensible limit and the right kind', async () => {
