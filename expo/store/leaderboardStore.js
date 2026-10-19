@@ -12,11 +12,14 @@
 //
 // Standard approach for this in Firestore: a denormalized top-level
 // `leaderboard/{uid}` collection — one small public document per user
-// (name, avatar, xp, level — NOT their full profile) — separate from their
-// private `users/{uid}` document. `_syncLeaderboardEntry` below is called
-// from store/expStore.js whenever XP actually changes, so this collection
-// stays a lightweight mirror rather than something screens write to
-// directly.
+// (name, avatar, xp, level, streak, distance — NOT their full profile) —
+// separate from their private `users/{uid}` document.
+//
+// The app writes only WHO the person is on their entry (name and picture,
+// `_syncProfile` below). XP, level, streak and distance are the server's: the
+// XP ledger (functions/src/xpLedger.js) works them out from claims the app files
+// and writes them here, and the rules do not let the app write them. So nobody can
+// put a score they did not earn on the board, whatever requests they send.
 
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';
@@ -24,7 +27,7 @@ import {
   collection, doc, setDoc, deleteDoc, query, orderBy, limit, getDocs, onSnapshot, where, documentId,
 } from 'firebase/firestore';
 import { chunk, rankEntries } from '../lib/audience';
-import { boardField, boardValue, distanceTotals, isDistanceBoard } from '../lib/runLeaderboard';
+import { boardField, boardValue, isDistanceBoard } from '../lib/runLeaderboard';
 
 export const useLeaderboardStore = create((set, get) => ({
   entries: [],
@@ -38,7 +41,7 @@ export const useLeaderboardStore = create((set, get) => ({
   error: null,
   _unsubscribe: null,
   _board: 'xp',
-  _distanceSignature: null,
+  _profileSignature: null,
 
   // One-time fetch (e.g. pull-to-refresh). `board` is 'xp' (the default),
   // 'week' or 'month' (distance), see lib/runLeaderboard.js.
@@ -125,29 +128,6 @@ export const useLeaderboardStore = create((set, get) => ({
     return myRank;
   },
 
-  // Called when XP really changes (see services/leaderboardVisibility.js, which
-  // every caller goes through) — not exported for screens to call directly,
-  // since the leaderboard should only ever reflect actual XP changes, never be
-  // set arbitrarily. `visible` false (the "Show in Leaderboards" setting is
-  // off) writes nothing. Returns true when the entry was written.
-  _syncLeaderboardEntry: async (uid, { name, avatar, xp, level, streak, visible = true } = {}) => {
-    if (!uid || visible === false) return false;
-    try {
-      await setDoc(doc(db, 'leaderboard', uid), {
-        name: name || 'Zown User',
-        avatar: avatar || null,
-        xp: xp ?? 0,
-        level: level ?? 1,
-        streak: streak ?? 0,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-      return true;
-    } catch (e) {
-      console.warn('[leaderboardStore] sync error:', e?.message);
-      return false;
-    }
-  },
-
   // Takes the person's whole entry (name, picture, XP, level, streak and
   // distance) off the boards, for someone who has chosen not to be shown.
   // Nothing about them is left for others to see. Returns true when it is gone
@@ -156,8 +136,8 @@ export const useLeaderboardStore = create((set, get) => ({
     if (!uid) return false;
     try {
       await deleteDoc(doc(db, 'leaderboard', uid));
-      // The next distance publish has to write the whole entry again.
-      set({ _distanceSignature: null });
+      // The next publish has to write the entry again.
+      set({ _profileSignature: null });
       return true;
     } catch (e) {
       console.warn('[leaderboardStore] remove error:', e?.message);
@@ -165,34 +145,31 @@ export const useLeaderboardStore = create((set, get) => ({
     }
   },
 
-  // Publishes this week's and this month's distance (runs and walks recorded
-  // in Zown) on the person's public leaderboard document. The whole `distance`
-  // map is replaced each time, so last week's number disappears by itself.
-  // `visible` false (the "Show in Leaderboards" setting is off) takes the whole
-  // entry off the boards instead. Skips the write when nothing changed since
-  // the last one. Returns true when the document is up to date.
-  _syncDistanceEntry: async (uid, { name, avatar, runs, visible = true, now = Date.now() } = {}) => {
+  // Puts the person's name and picture on their entry: all the app writes there (see the note at the top). The entry's XP, level,
+  // streak and distance are put on it by the server, which also fills them in on an entry made here (functions/src/xpLedger.js).
+  // `visible` false (the "Show in Leaderboards" setting is off) takes the whole entry off the boards instead. Only the fields
+  // written are touched, and the name and picture only when known, so the other copy of them is never blanked. Skips the write when
+  // nothing changed since the last one. Returns true when the entry is as it should be.
+  _syncProfile: async (uid, { name, avatar, visible = true } = {}) => {
     if (!uid) return false;
-    const distance = visible ? distanceTotals(runs, now) : null;
-    const signature = JSON.stringify([uid, distance, name || '', avatar || '']);
-    if (get()._distanceSignature === signature) return true;
-    if (distance === null) {
+    const shown = visible !== false;
+    const signature = JSON.stringify([uid, shown, name || '', avatar || '']);
+    if (get()._profileSignature === signature) return true;
+    if (!shown) {
       if (!(await get()._removeEntry(uid))) return false;
-      set({ _distanceSignature: signature });
+      set({ _profileSignature: signature });
       return true;
     }
     try {
-      // Only the fields this writes are touched, and the name and picture only
-      // when known, so the XP entry's own copy of them is never blanked.
-      const data = { distance, updatedAt: new Date().toISOString() };
-      const fields = ['distance', 'updatedAt'];
+      const data = { updatedAt: new Date().toISOString() };
+      const fields = ['updatedAt'];
       if (name) { data.name = name; fields.push('name'); }
       if (avatar) { data.avatar = avatar; fields.push('avatar'); }
       await setDoc(doc(db, 'leaderboard', uid), data, { mergeFields: fields });
-      set({ _distanceSignature: signature });
+      set({ _profileSignature: signature });
       return true;
     } catch (e) {
-      console.warn('[leaderboardStore] distance sync error:', e?.message);
+      console.warn('[leaderboardStore] profile sync error:', e?.message);
       return false;
     }
   },

@@ -1,16 +1,15 @@
 // services/leaderboardVisibility.js
 //
-// "Show in Leaderboards" in Settings. When it is off, nothing about the person
-// is put on the leaderboard: not their XP, level or streak (publishMyXp), not
-// their distance (services/distanceBoard.js), not their virtual race times
-// (services/raceBoard.js), and whatever is already there is taken off
-// (setShowInLeaderboards). Everything that writes the person's entry goes
-// through here, distanceBoard or raceBoard, so the setting is checked in one place. Nothing here throws; a failed write just tries again the next
-// time something is published.
-import { useExpStore } from '../store/expStore';
+// "Show in Leaderboards" in Settings. When it is off, nothing about the person is put on the leaderboard: not their name or
+// picture (publishMyProfile), not their XP, level, streak or distance (the server writes those, and leaves a person who is hidden
+// off: functions/src/xpLedger.js), and not their virtual race times (services/raceBoard.js). Whatever is already there is taken off
+// (setShowInLeaderboards). Everything the app writes to the person's entry goes through here, or through raceBoard for race times,
+// so the setting is checked in one place. Nothing here throws; a failed write just tries again the next time something is published.
+//
+// The app does not write a score. XP, level, streak and distance come from the XP ledger, which the server works out from claims the
+// app files (store/expStore.js, services/xpSync.js); all the app puts on its entry is who the person is.
 import { useLeaderboardStore } from '../store/leaderboardStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { publishMyDistance } from './distanceBoard';
 import { publishMyRaces, withdrawMyRaces } from './raceBoard';
 
 /** Whether the person is to be shown on the boards. On unless they turned it off. */
@@ -19,24 +18,20 @@ export function isShownOnLeaderboards() {
 }
 
 /**
- * Puts this person's XP, level and streak on the leaderboard (nothing when they
- * are hidden). Called after XP is earned.
+ * Puts this person's name and picture on their leaderboard entry, making it if there is none (the server then fills in the XP,
+ * level, streak and distance), or takes the entry off the boards when they are hidden. Called when the app opens, when the
+ * leaderboard or social screen opens, and when the setting changes.
  * @param {object} options
  *   user    the signed-in user ({ uid, name, profileImage })
- *   streak  days in a row with a workout, a run or a hike (services/streakService.js); 0 when not given
- * @returns {Promise<boolean>} true when the entry was written
+ * @returns {Promise<boolean>} true when the entry is as it should be
  */
-export async function publishMyXp({ user, streak } = {}) {
+export async function publishMyProfile({ user } = {}) {
   const uid = user && user.uid;
   if (!uid) return false;
   try {
-    const { expSystem } = useExpStore.getState();
-    return await useLeaderboardStore.getState()._syncLeaderboardEntry(uid, {
+    return await useLeaderboardStore.getState()._syncProfile(uid, {
       name: user.name,
       avatar: user.profileImage,
-      xp: expSystem.totalExp,
-      level: expSystem.level,
-      streak: Number.isFinite(streak) && streak > 0 ? streak : 0,
       visible: isShownOnLeaderboards(),
     });
   } catch (e) {
@@ -46,20 +41,17 @@ export async function publishMyXp({ user, streak } = {}) {
 }
 
 /**
- * Saves the setting and acts on it at once: off takes the person's whole entry
- * and their virtual race times off the boards, on puts their XP, distance and
- * race times back.
+ * Saves the setting and acts on it at once: off takes the person's whole entry and their virtual race times off the boards, on
+ * puts their entry (and so their XP, filled in by the server) and race times back.
  * @param {boolean} show    true to be shown
  * @param {object} user     the signed-in user ({ uid, name, profileImage })
- * @param {number} streak   days in a row with a workout, a run or a hike (services/streakService.js), put back with the XP
  * @returns {Promise<boolean>} true when the leaderboard now matches the setting
  */
-export async function setShowInLeaderboards(show, user, streak) {
+export async function setShowInLeaderboards(show, user) {
   const uid = user && user.uid;
   useSettingsStore.getState().updateSetting('showInLeaderboards', !!show, uid);
   if (!uid) return false;
-  const xp = show ? await publishMyXp({ user, streak }) : true;
-  const distance = await publishMyDistance({ user, loadFirst: !!show });
+  const profile = await publishMyProfile({ user });
   const races = show ? await publishMyRaces({ user }) : await withdrawMyRaces({ user });
-  return xp && distance && races;
+  return profile && races;
 }

@@ -52,8 +52,8 @@ jest.mock('@/store/socialGraphStore', () => ({
 jest.mock('@/store/useAudience', () => ({
   useAudience: () => ({ audience: 'everyone', setAudience: jest.fn(), uids: null, uidKey: '', follows: [] }),
 }));
-jest.mock('@/services/distanceBoard', () => ({
-  publishMyDistance: (...args) => global.__publish(...args),
+jest.mock('@/services/leaderboardVisibility', () => ({
+  publishMyProfile: (...args) => global.__publish(...args),
 }));
 
 import SocialScreen from '../app/social';
@@ -164,9 +164,9 @@ describe('Social leaderboard tab', () => {
     expect(global.__lb.subscribeTop).toHaveBeenLastCalledWith(50, 'xp');
   });
 
-  it('puts this person\'s distance on the board when the screen opens', async () => {
+  it('puts this person\'s name and picture on their entry when the screen opens', async () => {
     setup();
     await act(async () => {});
-    expect(global.__publish).toHaveBeenCalledWith({ user: { uid: 'u1', name: 'Cj' }, loadFirst: true });
+    expect(global.__publish).toHaveBeenCalledWith({ user: { uid: 'u1', name: 'Cj' } });
   });
 });

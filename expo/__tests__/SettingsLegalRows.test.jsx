@@ -25,7 +25,6 @@ jest.mock('@/store/appleMusicStore', () => ({
 }));
 jest.mock('@/services/spotifyService', () => ({ spotifyService: {} }));
 jest.mock('@/services/leaderboardVisibility', () => ({ setShowInLeaderboards: jest.fn() }));
-jest.mock('@/services/streakService', () => ({ getActivityStreak: () => ({ current: 4, longest: 9 }) }));
 jest.mock('../src/config/firebase', () => ({ auth: { currentUser: { uid: 'u1', email: 'cj@example.com' } }, functions: { fake: true } }));
 // firebase/auth and firebase/functions get the same fake, so this test does not
 // depend on how the module resolver maps the two (some setups point both at one stub).
@@ -311,10 +310,13 @@ describe('Settings: Show in Leaderboards', () => {
     return node.findAllByType(Switch)[0];
   };
 
-  it('hands the real streak over, so turning it back on does not put a streak of 0 on the board', () => {
+  it('turns the person on or off the boards with the switch, handing over who they are (the server puts their scores back)', () => {
     setShowInLeaderboards.mockClear();
     const utils = render(<SettingsScreen />);
     fireEvent(switchOf(utils, 'Show in Leaderboards'), 'valueChange', true);
-    expect(setShowInLeaderboards).toHaveBeenCalledWith(true, { uid: 'u1' }, 4);
+    expect(setShowInLeaderboards).toHaveBeenCalledTimes(1);
+    expect(setShowInLeaderboards).toHaveBeenCalledWith(true, { uid: 'u1' });
+    fireEvent(switchOf(utils, 'Show in Leaderboards'), 'valueChange', false);
+    expect(setShowInLeaderboards).toHaveBeenLastCalledWith(false, { uid: 'u1' });
   });
 });

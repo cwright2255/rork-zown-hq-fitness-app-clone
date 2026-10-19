@@ -21,7 +21,7 @@ import { filterByAudience, emptyAudienceMessage } from '@/lib/audience';
 import {
   DEFAULT_BOARD, boardValue, emptyBoardMessage, formatBoardValue, isDistanceBoard,
 } from '@/lib/runLeaderboard';
-import { publishMyDistance } from '@/services/distanceBoard';
+import { publishMyProfile } from '@/services/leaderboardVisibility';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
@@ -236,10 +236,9 @@ export default function SocialScreen() {
     return () => unsubscribeLeaderboard();
   }, [activeBoard]);
 
-  // Put this person's own weekly and monthly distance on the board (it also
-  // covers runs recorded before the distance boards existed).
+  // Put this person's name and picture on their entry (their XP and distance are the server's).
   useEffect(() => {
-    if (user?.uid) publishMyDistance({ user, loadFirst: true });
+    if (user?.uid) publishMyProfile({ user });
   }, [user?.uid]);
 
   // Everyone / Following / Close Friends for the Leaderboard and Duels tabs

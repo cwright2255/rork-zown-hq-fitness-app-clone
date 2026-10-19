@@ -20,19 +20,11 @@ import { useLeaderboardStore } from '../store/leaderboardStore';
 const d = (month, day, hour = 12) => new Date(2026, month - 1, day, hour, 0, 0);
 const THU = d(10, 8).getTime(); // week of Mon 5 Oct 2026
 
-const ran = (start, km) => ({
-  id: `${start.getTime()}`,
-  startTime: start.toISOString(),
-  endTime: new Date(start.getTime() + km * 300000).toISOString(),
-  distance: km,
-  duration: Math.round(km * 300),
-});
-
 const docs = (list) => ({ docs: list.map(({ id, ...data }) => ({ id, data: () => data })) });
 
 const fresh = () => useLeaderboardStore.setState({
   entries: [], audienceEntries: [], myRank: null, isLoading: false, error: null,
-  _unsubscribe: null, _board: 'xp', _distanceSignature: null,
+  _unsubscribe: null, _board: 'xp', _profileSignature: null,
 });
 
 let warn;
@@ -47,29 +39,30 @@ beforeEach(() => {
 });
 afterEach(() => { warn.mockRestore(); now.mockRestore(); });
 
-describe('_syncDistanceEntry', () => {
-  const sync = (extra = {}) => useLeaderboardStore.getState()._syncDistanceEntry('u1', {
-    name: 'Cj', avatar: 'https://img/p.png', runs: [ran(d(10, 8, 7), 5), ran(d(10, 1, 7), 10)], now: THU, ...extra,
+describe('_syncProfile', () => {
+  const sync = (extra = {}) => useLeaderboardStore.getState()._syncProfile('u1', {
+    name: 'Cj', avatar: 'https://img/p.png', ...extra,
   });
 
-  it("writes this week's and this month's distance to the person's own entry", async () => {
+  it("writes the person's name and picture to their own entry", async () => {
     expect(await sync()).toBe(true);
     expect(setDoc).toHaveBeenCalledTimes(1);
     const [ref, data, options] = setDoc.mock.calls[0];
     expect(ref).toEqual({ path: 'leaderboard/u1' });
-    expect(data.distance).toEqual({ w20261005: 5, m202610: 15 });
     expect(data.name).toBe('Cj');
     expect(data.avatar).toBe('https://img/p.png');
     expect(typeof data.updatedAt).toBe('string');
-    expect(options).toEqual({ mergeFields: ['distance', 'updatedAt', 'name', 'avatar'] });
+    expect(options).toEqual({ mergeFields: ['updatedAt', 'name', 'avatar'] });
   });
 
-  it('touches only the fields it writes, so XP, level and streak are never overwritten', async () => {
-    await sync();
+  it('never writes a score: XP, level, streak and distance are the server\'s', async () => {
+    await sync({ xp: 5000000, level: 100, streak: 5000, distance: { w20261005: 999 } });
     const [, data, options] = setDoc.mock.calls[0];
-    expect(Object.keys(data).sort()).toEqual(['avatar', 'distance', 'name', 'updatedAt']);
-    expect(options.mergeFields).not.toEqual(expect.arrayContaining(['xp']));
-    expect(data).not.toHaveProperty('xp');
+    expect(Object.keys(data).sort()).toEqual(['avatar', 'name', 'updatedAt']);
+    ['xp', 'level', 'streak', 'distance'].forEach((field) => {
+      expect(data).not.toHaveProperty(field);
+      expect(options.mergeFields).not.toContain(field);
+    });
   });
 
   it('does not blank the name or picture when it does not know them', async () => {
@@ -77,12 +70,13 @@ describe('_syncDistanceEntry', () => {
     const [, data, options] = setDoc.mock.calls[0];
     expect(data).not.toHaveProperty('name');
     expect(data).not.toHaveProperty('avatar');
-    expect(options).toEqual({ mergeFields: ['distance', 'updatedAt'] });
+    expect(options).toEqual({ mergeFields: ['updatedAt'] });
   });
 
-  it('writes an empty distance for someone with no runs this month, which clears last week\'s', async () => {
-    await sync({ runs: [ran(d(9, 1, 7), 5)] });
-    expect(setDoc.mock.calls[0][1].distance).toEqual({});
+  it('is shown unless told otherwise', async () => {
+    await useLeaderboardStore.getState()._syncProfile('u1', { name: 'Cj' });
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    expect(deleteDoc).not.toHaveBeenCalled();
   });
 
   it('takes the whole entry off the boards, and writes nothing, when the person is hidden from leaderboards', async () => {
@@ -95,16 +89,16 @@ describe('_syncDistanceEntry', () => {
   it('removes the entry once, not again every time the leaderboard is opened', async () => {
     await sync({ visible: false });
     expect(await sync({ visible: false })).toBe(true);
-    expect(await sync({ visible: false, runs: [] })).toBe(true);
+    expect(await sync({ visible: false })).toBe(true);
     expect(deleteDoc).toHaveBeenCalledTimes(1);
   });
 
-  it('writes the whole entry again when someone hidden is shown again, even with the same runs and name', async () => {
+  it('makes the entry again when someone hidden is shown again, even with the same name and picture', async () => {
     await sync();
     await sync({ visible: false });
     expect(await sync()).toBe(true);
     expect(setDoc).toHaveBeenCalledTimes(2);
-    expect(setDoc.mock.calls[1][1].distance).toEqual({ w20261005: 5, m202610: 15 });
+    expect(setDoc.mock.calls[1][1].name).toBe('Cj');
   });
 
   it('gives false, and tries the removal again next time, when it fails', async () => {
@@ -120,99 +114,33 @@ describe('_syncDistanceEntry', () => {
     expect(setDoc).toHaveBeenCalledTimes(1);
   });
 
-  it('writes again when the totals, the name or the visibility change', async () => {
+  it('writes again when the name, the picture or the visibility change', async () => {
     await sync();
-    await sync({ runs: [ran(d(10, 8, 7), 5), ran(d(10, 1, 7), 10), ran(d(10, 8, 9), 2)] });
-    await sync({ runs: [ran(d(10, 8, 7), 5), ran(d(10, 1, 7), 10), ran(d(10, 8, 9), 2)], name: 'Carlton' });
+    await sync({ name: 'Carlton' });
+    await sync({ name: 'Carlton', avatar: 'https://img/q.png' });
     await sync({ visible: false });
     expect(setDoc).toHaveBeenCalledTimes(3);
     expect(deleteDoc).toHaveBeenCalledTimes(1);
   });
 
-  it('writes again in a new week, when the same runs add up differently', async () => {
-    await sync();
-    await sync({ now: d(10, 12).getTime() });
-    expect(setDoc).toHaveBeenCalledTimes(2);
-    expect(setDoc.mock.calls[1][1].distance).toEqual({ m202610: 15 });
-  });
-
-  it('does not count imported runs', async () => {
-    await sync({ runs: [{ ...ran(d(10, 8, 7), 9), source: 'apple-health' }] });
-    expect(setDoc.mock.calls[0][1].distance).toEqual({});
-  });
-
   it('gives false, and tries again next time, when the write fails', async () => {
     setDoc.mockRejectedValueOnce(new Error('offline'));
     expect(await sync()).toBe(false);
+    expect(warn).toHaveBeenCalledWith('[leaderboardStore] profile sync error:', 'offline');
     expect(await sync()).toBe(true);
     expect(setDoc).toHaveBeenCalledTimes(2);
   });
 
   it('does nothing without a user', async () => {
-    expect(await useLeaderboardStore.getState()._syncDistanceEntry('', { runs: [] })).toBe(false);
-    expect(await useLeaderboardStore.getState()._syncDistanceEntry('', { runs: [], visible: false })).toBe(false);
-    expect(setDoc).not.toHaveBeenCalled();
-    expect(deleteDoc).not.toHaveBeenCalled();
-  });
-});
-
-describe('_syncLeaderboardEntry', () => {
-  const store = () => useLeaderboardStore.getState();
-  const entry = (extra = {}) => ({ name: 'Cj', avatar: 'https://img/p.png', xp: 1200, level: 4, streak: 6, ...extra });
-
-  it("writes the person's name, picture, XP, level and streak to their own entry", async () => {
-    expect(await store()._syncLeaderboardEntry('u1', entry())).toBe(true);
-    expect(setDoc).toHaveBeenCalledTimes(1);
-    const [ref, data, options] = setDoc.mock.calls[0];
-    expect(ref).toEqual({ path: 'leaderboard/u1' });
-    expect(data).toEqual({
-      name: 'Cj', avatar: 'https://img/p.png', xp: 1200, level: 4, streak: 6, updatedAt: expect.any(String),
-    });
-    expect(options).toEqual({ merge: true });
-  });
-
-  it('leaves the distance alone, so a new workout does not wipe it', async () => {
-    await store()._syncLeaderboardEntry('u1', entry());
-    expect(setDoc.mock.calls[0][1]).not.toHaveProperty('distance');
-    expect(setDoc.mock.calls[0][2]).toEqual({ merge: true });
-  });
-
-  it('fills in what it does not know', async () => {
-    await store()._syncLeaderboardEntry('u1', {});
-    expect(setDoc.mock.calls[0][1]).toEqual({
-      name: 'Zown User', avatar: null, xp: 0, level: 1, streak: 0, updatedAt: expect.any(String),
-    });
-    setDoc.mockClear();
-    await store()._syncLeaderboardEntry('u1');
-    expect(setDoc.mock.calls[0][1].name).toBe('Zown User');
-  });
-
-  it('keeps a real zero, for XP, level and streak', async () => {
-    await store()._syncLeaderboardEntry('u1', entry({ xp: 0, level: 0, streak: 0 }));
-    expect(setDoc.mock.calls[0][1]).toMatchObject({ xp: 0, level: 0, streak: 0 });
-  });
-
-  it('writes nothing for someone who has chosen not to be shown', async () => {
-    expect(await store()._syncLeaderboardEntry('u1', entry({ visible: false }))).toBe(false);
+    expect(await useLeaderboardStore.getState()._syncProfile('', { name: 'Cj' })).toBe(false);
+    expect(await useLeaderboardStore.getState()._syncProfile(undefined, { name: 'Cj', visible: false })).toBe(false);
     expect(setDoc).not.toHaveBeenCalled();
     expect(deleteDoc).not.toHaveBeenCalled();
   });
 
-  it('writes when told the person is shown', async () => {
-    expect(await store()._syncLeaderboardEntry('u1', entry({ visible: true }))).toBe(true);
-    expect(setDoc).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing without a user', async () => {
-    expect(await store()._syncLeaderboardEntry('', entry())).toBe(false);
-    expect(await store()._syncLeaderboardEntry(undefined, entry())).toBe(false);
-    expect(setDoc).not.toHaveBeenCalled();
-  });
-
-  it('gives false, and says why, when the write fails', async () => {
-    setDoc.mockRejectedValueOnce(new Error('offline'));
-    expect(await store()._syncLeaderboardEntry('u1', entry())).toBe(false);
-    expect(warn).toHaveBeenCalledWith('[leaderboardStore] sync error:', 'offline');
+  it('no longer has a way to write a score at all', () => {
+    expect(useLeaderboardStore.getState()._syncLeaderboardEntry).toBeUndefined();
+    expect(useLeaderboardStore.getState()._syncDistanceEntry).toBeUndefined();
   });
 });
 
@@ -225,17 +153,17 @@ describe('_removeEntry', () => {
     expect(deleteDoc).toHaveBeenCalledWith({ path: 'leaderboard/u1' });
   });
 
-  it('makes the next distance publish write the whole entry again', async () => {
-    useLeaderboardStore.setState({ _distanceSignature: 'something' });
+  it('makes the next publish write the entry again', async () => {
+    useLeaderboardStore.setState({ _profileSignature: 'something' });
     await store()._removeEntry('u1');
-    expect(store()._distanceSignature).toBeNull();
+    expect(store()._profileSignature).toBeNull();
   });
 
   it('keeps what it knew about the last publish when the removal fails', async () => {
-    useLeaderboardStore.setState({ _distanceSignature: 'something' });
+    useLeaderboardStore.setState({ _profileSignature: 'something' });
     deleteDoc.mockRejectedValueOnce(new Error('offline'));
     expect(await store()._removeEntry('u1')).toBe(false);
-    expect(store()._distanceSignature).toBe('something');
+    expect(store()._profileSignature).toBe('something');
     expect(warn).toHaveBeenCalledWith('[leaderboardStore] remove error:', 'offline');
   });
 

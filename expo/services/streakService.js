@@ -21,6 +21,15 @@ export function getActivityStreak() {
   return activityStreak(sessions);
 }
 
+/** The calendar days with a workout, a run or a hike, oldest first ("YYYY-MM-DD"), read from the stores. For code that is not a component. */
+export function getActivityDayKeys() {
+  return activeDays(sessionsOf({
+    workouts: useWorkoutStore.getState().completedWorkouts,
+    runs: useRunningStore.getState().runs,
+    hikes: useHikingStore.getState().completedHikes,
+  }));
+}
+
 /** The same for a screen: { current, longest }, worked out again when a record arrives or the day changes. */
 export function useActivityStreak() {
   const workouts = useWorkoutStore((s) => s.completedWorkouts);

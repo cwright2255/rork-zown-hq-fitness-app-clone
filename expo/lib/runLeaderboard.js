@@ -4,7 +4,9 @@
 // this week and this month. Pure functions, no React, no Firebase.
 //
 // How it is stored: each person's public `leaderboard/{uid}` document gets a
-// `distance` map holding only the CURRENT week and month, keyed by the period,
+// `distance` map, written by the server from the runs the person has claimed
+// (functions/src/xpLedger.js, with the same period keys as lib/xpRules.js; the
+// phone cannot write it), holding only the CURRENT week and month, keyed by the period,
 // for example { w20261005: 12.4, m202610: 31.8 } (kilometres). The map is
 // replaced as a whole every time it is published, so when a new week starts
 // the old key is simply gone. The board orders by `distance.w20261005`, and

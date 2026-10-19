@@ -1,8 +1,8 @@
 // When a workout is finished (app/workout/active.jsx, in two places: finishing early and finishing all the way), the
-// achievements check and the leaderboard entry are given the streak worked out from the person's workouts, runs and
-// hikes (services/streakService.js). They used to be given user.streak, a counter nothing ever updated, so a streak
-// achievement could never unlock and the leaderboard always showed 0. The screen is too big to render in a test, so this
-// reads its source, the way signInLoadsHikes does for the sign-in code.
+// achievements check is given the streak worked out from the person's workouts, runs and hikes (services/streakService.js).
+// It used to be given user.streak, a counter nothing ever updated, so a streak achievement could never unlock. (The leaderboard
+// used to be handed it too, by the phone; the leaderboard's XP and streak are the server's now, so the phone hands it nothing.)
+// The screen is too big to render in a test, so this reads its source, the way signInLoadsHikes does for the sign-in code.
 const fs = require('fs');
 const path = require('path');
 
@@ -19,9 +19,10 @@ describe('finishing a workout', () => {
     expect(count(/streak: getActivityStreak\(\)\.current,/g)).toBe(2);
   });
 
-  it('hands the leaderboard entry the real streak, both ways of finishing', () => {
-    expect(count(/publishMyXp\(/g)).toBe(2);
-    expect(count(/publishMyXp\(\{ user, streak: getActivityStreak\(\)\.current \}\);/g)).toBe(2);
+  it('does not put a score on the leaderboard itself: the XP it files is what the server turns into one', () => {
+    expect(source).not.toMatch(/publishMyXp/);
+    expect(source).not.toMatch(/leaderboardVisibility/);
+    expect(count(/addExpActivity\?\.\(\{/g)).toBe(2);
   });
 
   it('no longer reads the counter on the user record', () => {

@@ -34,7 +34,6 @@ jest.mock('@/services/hikeShare', () => ({
   shareHikeToFeed: jest.fn(),
   hikeShareErrorText: jest.fn((r) => `hike share problem: ${r}`),
 }));
-jest.mock('@/services/distanceBoard', () => ({ publishMyDistance: jest.fn() }));
 
 import WorkoutCompleteScreen from '../app/workout/complete';
 import JourneyFinishedCard from '../components/JourneyFinishedCard';

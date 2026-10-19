@@ -19,7 +19,6 @@ import { activityOf, xpFor } from '@/lib/runStats';
 import { useCommunityStore } from '@/store/communityStore';
 import { shareRunToFeed, shareErrorText } from '@/services/runShare';
 import { shareHikeToFeed, hikeShareErrorText } from '@/services/hikeShare';
-import { publishMyDistance } from '@/services/distanceBoard';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistanceTight, formatDistanceValue, distanceUnitLabel } from '@/lib/distanceUnits';
 import { journeyById } from '@/lib/virtualJourneys';
@@ -121,8 +120,7 @@ export default function WorkoutCompleteScreen() {
   useEffect(() => {
     if (user?.uid) {
       loadBadges(user.uid);
-      // Once the saved runs are loaded, put this week's and month's distance on the leaderboard.
-      if (isRunCompletion) Promise.resolve(loadRuns(user.uid)).then(() => publishMyDistance({ user }));
+      if (isRunCompletion) loadRuns(user.uid);
     }
   }, [user?.uid]);
 

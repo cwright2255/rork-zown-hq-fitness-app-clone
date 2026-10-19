@@ -9,6 +9,7 @@ import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
 import { changeMemberCount } from './groupMemberCount.js';
+import { handleClaim, fillLeaderboardEntry } from './xpLedger.js';
 import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
@@ -1669,5 +1670,42 @@ export const onGroupLeft = onDocumentDeleted(
     delta: -1,
     eventId: event.id,
     stamp: FieldValue.serverTimestamp(),
+  })
+);
+
+// A person's XP, level, streak and distance are kept here, not by the app. The app files a claim for what it earned as
+// users/{uid}/xpClaims/{claimId} (the rules let it create one and never change it); this checks it, adds it to the ledger at
+// users/{uid}/stats/xp, and puts the result on the leaderboard entry, which the rules let only a function write. A failed run is
+// tried again (each claim is applied once however many times that happens). See xpLedger.js and xpRules.js.
+async function accountCreatedMs(uid) {
+  try {
+    const user = await getAuth().getUser(uid);
+    const created = Date.parse(user.metadata && user.metadata.creationTime);
+    return Number.isFinite(created) ? created : null;
+  } catch (e) {
+    // An account that no longer exists has no age; anything else is worth trying again.
+    if (e && e.code === 'auth/user-not-found') return null;
+    throw e;
+  }
+}
+
+export const onXpClaim = onDocumentCreated(
+  { document: 'users/{uid}/xpClaims/{claimId}', region: 'us-central1', retry: true },
+  (event) => handleClaim({
+    db: getFirestore(),
+    uid: event.params.uid,
+    claimId: event.params.claimId,
+    accountCreatedMs: () => accountCreatedMs(event.params.uid),
+  })
+);
+
+// The app cannot write XP on a leaderboard entry, so an entry it has just created (the first one, or one put back after the person
+// chose to be shown again) is filled in from the ledger here.
+export const onLeaderboardEntryCreated = onDocumentCreated(
+  { document: 'leaderboard/{uid}', region: 'us-central1' },
+  (event) => fillLeaderboardEntry({
+    db: getFirestore(),
+    uid: event.params.uid,
+    entry: event.data && event.data.data(),
   })
 );

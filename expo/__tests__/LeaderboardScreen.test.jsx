@@ -20,8 +20,8 @@ jest.mock('@/store/socialGraphStore', () => ({
   useSocialGraphStore: (select) => select({ following: [{ uid: 'friend', close: true }] }),
 }));
 jest.mock('@/store/useAudience', () => ({ useAudience: () => global.__audience }));
-jest.mock('@/services/distanceBoard', () => ({
-  publishMyDistance: (...args) => global.__publish(...args),
+jest.mock('@/services/leaderboardVisibility', () => ({
+  publishMyProfile: (...args) => global.__publish(...args),
 }));
 
 import LeaderboardScreen from '../app/leaderboard';
@@ -72,9 +72,9 @@ describe('LeaderboardScreen', () => {
     expect(utils.getByText('100')).toBeTruthy();
   });
 
-  it('puts this person\'s weekly distance on the board when it opens', () => {
+  it('puts this person\'s name and picture on their entry when it opens', () => {
     setup();
-    expect(global.__publish).toHaveBeenCalledWith({ user: global.__user, loadFirst: true });
+    expect(global.__publish).toHaveBeenCalledWith({ user: global.__user });
   });
 
   it('does not publish anything when nobody is signed in', () => {

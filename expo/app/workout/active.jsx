@@ -19,7 +19,6 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useAchievementStore } from '@/store/achievementStore';
-import { publishMyXp } from '@/services/leaderboardVisibility';
 import { getActivityStreak } from '@/services/streakService';
 import { useUserStore } from '@/store/userStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
@@ -642,8 +641,6 @@ export default function ActiveWorkoutScreen() {
         description: `Saved ${completedCount}/${totalExercises} exercises of ${selectedWorkout?.name || 'workout'}`,
         completed: true,
       }, user?.uid);
-
-      publishMyXp({ user, streak: getActivityStreak().current });
     }
 
     if (router.canGoBack()) {
@@ -990,13 +987,8 @@ export default function ActiveWorkoutScreen() {
                 completed: true,
               }, user?.uid);
 
-              // Public leaderboard sync (services/leaderboardVisibility.js) — reads
-              // useExpStore.getState() directly rather than the totalExp/
-              // level values already destructured above, since those are a
-              // snapshot from this render and won't reflect the XP just
-              // awarded by addExpActivity a moment ago. Nothing is published
-              // for someone who has turned off "Show in Leaderboards".
-              publishMyXp({ user, streak: getActivityStreak().current });
+              // The XP, level and streak on the leaderboard are the server's: the claim filed just above is what puts
+              // this workout on them (functions/src/xpLedger.js).
 
               router.replace('/workout/complete');
             } : handleCenterButton}

@@ -9,7 +9,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 jest.mock('expo-location', () => ({}), { virtual: true }); // the hiking store imports it; no GPS is used here
 
-import { getActivityStreak, useActivityStreak } from '../services/streakService';
+import { getActivityDayKeys, getActivityStreak, useActivityStreak } from '../services/streakService';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useRunningStore } from '../store/runningStore';
 import { useHikingStore } from '../store/hikingStore';
@@ -83,6 +83,24 @@ describe('getActivityStreak', () => {
     useWorkoutStore.setState({ completedWorkouts: [workout('2026-10-14T13:00:00Z'), { id: 'x' }, null] });
     useRunningStore.setState({ runs: [{ id: 'r' }, null] });
     expect(getActivityStreak().current).toBe(1);
+  });
+});
+
+describe('getActivityDayKeys', () => {
+  it('is empty with nothing done', () => {
+    expect(getActivityDayKeys()).toEqual([]);
+  });
+
+  it('lists the days with a workout, a run or a hike, oldest first, each day once', () => {
+    useWorkoutStore.setState({ completedWorkouts: [workout('2026-10-14T13:00:00Z'), workout('2026-10-14T15:00:00Z'), workout('2026-10-10T15:00:00Z')] });
+    useRunningStore.setState({ runs: [run('2026-10-12T13:00:00Z')] });
+    useHikingStore.setState({ completedHikes: [hike('2026-10-11T13:00:00Z')] });
+    expect(getActivityDayKeys()).toEqual(['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-14']);
+  });
+
+  it('puts a 9 PM run on the person\'s own day, not the UTC one', () => {
+    useRunningStore.setState({ runs: [run('2026-10-15T01:00:00Z')] }); // 9:00 PM on the 14th
+    expect(getActivityDayKeys()).toEqual(['2026-10-14']);
   });
 });
 

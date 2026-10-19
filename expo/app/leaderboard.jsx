@@ -16,7 +16,7 @@ import { emptyAudienceMessage } from '@/lib/audience';
 import {
   DEFAULT_BOARD, boardValue, emptyBoardMessage, formatBoardValue, isDistanceBoard,
 } from '@/lib/runLeaderboard';
-import { publishMyDistance } from '@/services/distanceBoard';
+import { publishMyProfile } from '@/services/leaderboardVisibility';
 
 export default function LeaderboardScreen() {
   const [sheetPerson, setSheetPerson] = useState(null);
@@ -38,10 +38,9 @@ export default function LeaderboardScreen() {
     return () => unsubscribe();
   }, [board]);
 
-  // Put this person's own weekly and monthly distance on the board (it also
-  // covers runs recorded before the distance boards existed).
+  // Put this person's name and picture on their entry (their XP and distance are the server's).
   useEffect(() => {
-    if (user?.uid) publishMyDistance({ user, loadFirst: true });
+    if (user?.uid) publishMyProfile({ user });
   }, [user?.uid]);
 
   useEffect(() => {

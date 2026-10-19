@@ -28,7 +28,6 @@ jest.mock('@/store/hikingStore', () => ({ useHikingStore: mockStore('__hiking') 
 jest.mock('@/store/communityStore', () => ({ useCommunityStore: mockStore('__community') }));
 jest.mock('@/services/runShare', () => ({ shareRunToFeed: jest.fn(), shareErrorText: jest.fn() }));
 jest.mock('@/services/hikeShare', () => ({ shareHikeToFeed: jest.fn(), hikeShareErrorText: jest.fn() }));
-jest.mock('@/services/distanceBoard', () => ({ publishMyDistance: jest.fn() }));
 
 import WorkoutCompleteScreen from '../app/workout/complete';
 import { useSettingsStore } from '../store/settingsStore';

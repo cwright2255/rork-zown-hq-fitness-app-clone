@@ -514,6 +514,9 @@ export default function HikeWeatherMonitorScreen() {
         type: 'hiking',
         baseExp: baseXp,
         multiplier: difficulty.xpMultiplier,
+        // What the server needs to work the XP out for itself (lib/xpClaims.js).
+        distanceKm: km,
+        durationSec: seconds,
         date: localDateKey(),
         description: `Completed a ${difficulty.tier.toLowerCase()} hike — ${Number(formatDistanceValue(record.distanceKm, units, 2))}${distanceUnitLabel(units)}, ${difficulty.elevationGainFt}ft gain`,
         completed: true,

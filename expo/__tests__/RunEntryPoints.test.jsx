@@ -57,8 +57,8 @@ jest.mock('@/store/badgeStore', () => ({
 jest.mock('@/store/communityStore', () => ({
   useCommunityStore: () => ({ createPost: global.__createPost }),
 }));
-jest.mock('@/services/distanceBoard', () => ({
-  publishMyDistance: (...args) => global.__publishDistance(...args),
+jest.mock('@/services/leaderboardVisibility', () => ({
+  publishMyProfile: (...args) => global.__publishDistance(...args),
 }));
 
 import RunningLogScreen from '../app/profile/running-log';
@@ -304,16 +304,18 @@ describe('Finished-run screen', () => {
     warn.mockRestore();
   });
 
-  it('puts this week\'s distance on the leaderboard once the runs are loaded', async () => {
+  it('loads the saved runs when a run is finished, and publishes nothing itself: the distance on the board is the server\'s', async () => {
     open([run()], { type: 'run', runId: 'run-1' });
     await act(async () => { await Promise.resolve(); });
     expect(global.__runningStore.loadRuns).toHaveBeenCalledWith('u1');
-    expect(global.__publishDistance).toHaveBeenCalledWith({ user: expect.objectContaining({ uid: 'u1' }) });
+    expect(global.__publishDistance).not.toHaveBeenCalled();
   });
 
-  it('does not touch the distance boards after a workout', async () => {
+  it('does not load the runs after a workout', async () => {
+    global.__runningStore.loadRuns.mockClear();
     open([run()], { type: 'workout' });
     await act(async () => { await Promise.resolve(); });
+    expect(global.__runningStore.loadRuns).not.toHaveBeenCalled();
     expect(global.__publishDistance).not.toHaveBeenCalled();
   });
 });

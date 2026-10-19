@@ -8,9 +8,44 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
+      // Written only by Cloud Functions. users/{uid}/stats/xp is the XP ledger (functions/src/xpLedger.js): the person's XP, level,
+      // streak and distance, which they can read here and never write.
       match /stats/{docId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow write: if false;
+      }
+
+      // XP claims (services/xpClaims.js). The app no longer writes a score anywhere: it files a claim for what it earned ("a 5.2 km
+      // run today"), and onXpClaim (functions/src/xpLedger.js, with the rules in lib/xpRules.js) checks it, works out the XP and
+      // adds it to the ledger above. A claim can be created once and never changed or removed, so it cannot be sent again
+      // under the same name, and the fields the function writes back (processedAt, result, amount, reason) cannot be put on a
+      // new one. The numbers are only held to sensible limits here; the function does the real checking.
+      match /xpClaims/{claimId} {
+        function claimKeys() {
+          return ['kind', 'day', 'baseExp', 'multiplier', 'distanceKm', 'durationSec', 'activity', 'foodKey', 'tier', 'steps', 'total', 'activeDays'];
+        }
+
+        function validClaim() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(claimKeys()) && d.keys().hasAll(['kind', 'day']) &&
+            d.kind in ['workout', 'run', 'hike', 'meal', 'plan', 'advice', 'formcheck', 'journey', 'race', 'hydration', 'steps', 'import'] &&
+            d.day is string && d.day.size() == 10 &&
+            (!('baseExp' in d) || (d.baseExp is number && d.baseExp >= 0 && d.baseExp <= 10000)) &&
+            (!('multiplier' in d) || (d.multiplier is number && d.multiplier >= 0 && d.multiplier <= 10)) &&
+            (!('distanceKm' in d) || (d.distanceKm is number && d.distanceKm >= 0 && d.distanceKm <= 1000)) &&
+            (!('durationSec' in d) || (d.durationSec is number && d.durationSec >= 0 && d.durationSec <= 1000000)) &&
+            (!('activity' in d) || (d.activity is string && d.activity.size() <= 10)) &&
+            (!('foodKey' in d) || (d.foodKey is string && d.foodKey.size() <= 80)) &&
+            (!('tier' in d) || (d.tier is int && d.tier >= 0 && d.tier <= 5)) &&
+            (!('steps' in d) || (d.steps is int && d.steps >= 0 && d.steps <= 100000)) &&
+            (!('total' in d) || (d.total is number && d.total >= 0 && d.total <= 5000000)) &&
+            (!('activeDays' in d) || (d.activeDays is list && d.activeDays.size() <= 400));
+        }
+
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId &&
+          claimId.matches('^[A-Za-z0-9_-]+$') && claimId.size() <= 100 && validClaim();
+        allow update, delete: if false;
       }
 
       // CRITICAL FIX: users/{uid}/data/{key} is used by SEVEN different
@@ -147,30 +182,25 @@ service cloud.firestore {
     // entry (that's the whole point of a leaderboard), but each user can
     // only ever write their own document, keyed by uid.
     //
-    // What each entry may hold is limited to what store/leaderboardStore.js publishes (name, picture, XP, level, streak and
-    // the distance map), every field optional because XP and distance are written separately, and each one that is there must
-    // be the right kind of value within what the app can produce (level 100 is the cap in store/expStore.js). That keeps
-    // junk, negative or absurd numbers and extra fields off the boards. It does not prove a plausible number was earned: XP and
-    // distance are worked out on the phone, so someone sending their own requests can still claim any value below these limits.
+    // And even their own entry only for who they are: the name and picture. XP, level, streak and distance are NOT the app's to
+    // write. They are worked out by the XP ledger (functions/src/xpLedger.js) from claims the app files under
+    // users/{uid}/xpClaims, and written here by the function (which is not held to these rules). So nobody can put a score they
+    // did not earn on the board, whatever requests they send. An entry may be deleted (hiding from the leaderboards) and made
+    // again; the function fills the scores back in when it is (onLeaderboardEntryCreated). An entry written by an older version
+    // of the app, with scores already on it, can still be updated for the name and picture.
     match /leaderboard/{uid} {
       function knownKeys() {
-        return ['name', 'avatar', 'xp', 'level', 'streak', 'distance', 'updatedAt'];
+        return ['name', 'avatar', 'updatedAt'];
       }
 
       function validValues() {
         let d = request.resource.data;
         return (!('name' in d) || (d.name is string && d.name.size() <= 100)) &&
           (!('avatar' in d) || d.avatar == null || (d.avatar is string && d.avatar.size() <= 2000)) &&
-          (!('xp' in d) || (d.xp is number && d.xp >= 0 && d.xp <= 5000000)) &&
-          (!('level' in d) || (d.level is int && d.level >= 1 && d.level <= 100)) &&
-          (!('streak' in d) || (d.streak is int && d.streak >= 0 && d.streak <= 5000)) &&
-          (!('distance' in d) || (d.distance is map && d.distance.size() <= 2)) &&
           (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 40));
       }
 
       allow read: if request.auth != null;
-      // A new entry may hold only those fields. An update may only touch them, so an entry written by an older version of the
-      // app, with a field that is not listed, can still be updated.
       allow create: if request.auth != null && request.auth.uid == uid &&
         request.resource.data.keys().hasOnly(knownKeys()) && validValues();
       allow update: if request.auth != null && request.auth.uid == uid &&

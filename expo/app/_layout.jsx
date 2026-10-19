@@ -34,6 +34,8 @@ import '@/services/runTracking';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { reconcileReminders } from '@/services/calendarReminders';
+import { startXpSync, stopXpSync } from '@/services/xpSync';
+import { publishMyProfile } from '@/services/leaderboardVisibility';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
 import HikeRecoveryPrompt from '@/components/HikeRecoveryPrompt';
@@ -270,9 +272,15 @@ function RootLayoutInner() {
         } catch (e) {
           console.warn('[Layout] Store init error:', e?.message);
         }
+        // XP is the server's (functions/src/xpLedger.js): follow its ledger, and put the person's name and picture on their leaderboard
+        // entry. After the stores load, because the workout, run and hike records give the days that carry a streak over.
+        startXpSync(uid);
+        publishMyProfile({ user: useUserStore.getState().user });
         // The calendar is merged with its cloud copy, then the phone's reminders are set from it (the next ones come due as
         // days pass, so this is done each time the app opens). The app does not wait for either.
         useScheduleStore.getState().startSync(uid).then(() => reconcileReminders()).catch(() => undefined);
+      } else {
+        stopXpSync();
       }
       setStoresReady(true);
     });

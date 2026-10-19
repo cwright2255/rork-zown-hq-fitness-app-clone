@@ -115,6 +115,7 @@ export default function FormCheckScreen() {
         addExpActivity({
           id: Date.now().toString(),
           type: 'sideMission',
+          kind: 'formcheck', // paid by the rep, not as a side mission (lib/xpClaims.js)
           baseExp: 40 * session.reps,
           multiplier: 1.0,
           date: localDateKey(),

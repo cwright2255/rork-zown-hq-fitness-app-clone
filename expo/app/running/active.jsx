@@ -329,6 +329,10 @@ export default function ActiveRunScreen() {
           type: 'running',
           baseExp: xpFor(activity, summary.distance),
           multiplier: 1.0,
+          // What the server needs to work the XP out for itself (lib/xpClaims.js).
+          activity,
+          distanceKm: summary.distance,
+          durationSec: summary.duration,
           date: localDateKey(),
           description: countsForProgram
             ? `Completed ${programId} week ${weekNumber}, session ${sessionIndex + 1}`

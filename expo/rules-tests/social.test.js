@@ -5,11 +5,13 @@ const { rulesEnv, ok, no } = require('./helpers');
 const env = rulesEnv();
 
 describe('/leaderboard/{uid}', () => {
-  // What store/leaderboardStore.js publishes: XP, level and streak together, and the distance map on its own.
-  const entry = (over = {}) => ({ name: 'Alice', avatar: null, xp: 1200, level: 4, streak: 3, updatedAt: '2026-10-19T12:00:00.000Z', ...over });
+  // What store/leaderboardStore.js publishes: who the person is. The scores (XP, level, streak and the distance map) are written
+  // by the XP ledger function, which is not held to the rules, so a score here is put in without them.
+  const entry = (over = {}) => ({ name: 'Alice', avatar: null, updatedAt: '2026-10-19T12:00:00.000Z', ...over });
+  const scored = (over = {}) => entry({ xp: 1200, level: 4, streak: 3, distance: { w20261019: 5, m202610: 9 }, ...over });
 
   it('can be read by anyone signed in, whoever it is about', async () => {
-    await env.seed({ 'leaderboard/alice': entry() });
+    await env.seed({ 'leaderboard/alice': scored() });
     await ok(env.as('bob').doc('leaderboard/alice').get());
     await ok(env.as('bob').collection('leaderboard').get());
   });
@@ -17,63 +19,75 @@ describe('/leaderboard/{uid}', () => {
   it('can only be written by the person it is about', async () => {
     const mine = env.as('alice').doc('leaderboard/alice');
     await ok(mine.set(entry()));
-    await ok(mine.update({ xp: 1300 }));
+    await ok(mine.update({ name: 'Alice W.' }));
     await ok(mine.delete());
     await no(env.as('alice').doc('leaderboard/bob').set(entry()));
   });
 
   it('cannot be changed by someone else, even to a lower score', async () => {
-    await env.seed({ 'leaderboard/alice': entry() });
+    await env.seed({ 'leaderboard/alice': scored() });
     await no(env.as('bob').doc('leaderboard/alice').update({ xp: 0 }));
+    await no(env.as('bob').doc('leaderboard/alice').update({ name: 'Not Alice' }));
     await no(env.as('bob').doc('leaderboard/alice').delete());
   });
 
   it('is closed to a visitor who is not signed in', async () => {
-    await env.seed({ 'leaderboard/alice': entry() });
+    await env.seed({ 'leaderboard/alice': scored() });
     await no(env.anon().doc('leaderboard/alice').get());
     await no(env.anon().doc('leaderboard/alice').set(entry()));
   });
 
-  describe('what an entry may hold', () => {
+  describe('what the person may write: who they are, and nothing about their score', () => {
     const write = (data, options) => env.as('alice').doc('leaderboard/alice').set(data, options);
 
-    it('accepts what the app publishes: XP with level and streak, a picture, fractional XP, and the distance map', async () => {
+    it('accepts a name and a picture, and a merge of them into what is already there, as the app writes them', async () => {
       await ok(write(entry()));
-      await ok(write(entry({ avatar: 'https://example.com/a.jpg', xp: 1234.56 })));
-      await ok(write({ name: 'Alice', distance: { w20261019: 12.4, m202610: 31.8 }, updatedAt: '2026-10-19T12:00:00.000Z' }));
-      await ok(write({ distance: {}, updatedAt: '2026-10-19T12:00:00.000Z' }));
+      await ok(write(entry({ avatar: 'https://example.com/a.jpg' })));
+      await ok(write({ name: 'Alice' }));
+      await env.seed({ 'leaderboard/alice': scored() });
+      await ok(write({ name: 'Alice Wright', avatar: 'https://example.com/b.jpg', updatedAt: '2026-10-19T13:00:00.000Z' }, { merge: true }));
     });
 
-    it('accepts a merge of one part into what is already there, as the app writes it', async () => {
-      await env.seed({ 'leaderboard/alice': entry() });
-      await ok(write({ distance: { w20261019: 5 }, updatedAt: '2026-10-19T13:00:00.000Z' }, { merge: true }));
-      await ok(write({ xp: 1500, level: 5, streak: 4, updatedAt: '2026-10-19T14:00:00.000Z' }, { merge: true }));
+    it('refuses XP on a new entry, whatever the number', async () => {
+      await no(write(entry({ xp: 1200 })));
+      await no(write(entry({ xp: 0 })));
+      await no(write(entry({ xp: 5000000 })));
     });
 
-    it('accepts the limits themselves', async () => {
-      await ok(write(entry({ xp: 0, level: 1, streak: 0 })));
-      await ok(write(entry({ xp: 5000000, level: 100, streak: 5000 })));
+    it('refuses a level, a streak or a distance on a new entry', async () => {
+      await no(write(entry({ level: 4 })));
+      await no(write(entry({ streak: 3 })));
+      await no(write(entry({ distance: { w20261019: 5000 } })));
+      await no(write(entry({ distance: {} })));
+      await no(write(scored()));
     });
 
-    it('refuses XP that is negative, past the limit, or not a number', async () => {
-      await no(write(entry({ xp: -1 })));
-      await no(write(entry({ xp: 5000001 })));
-      await no(write(entry({ xp: 999999999999 })));
-      await no(write(entry({ xp: '1200' })));
-      await no(write(entry({ xp: null })));
+    it('refuses to change the score of an entry that has one, by any way of writing it', async () => {
+      await env.seed({ 'leaderboard/alice': scored() });
+      const mine = env.as('alice').doc('leaderboard/alice');
+      await no(mine.update({ xp: 5000000 }));
+      await no(mine.update({ xp: 0 }));
+      await no(mine.update({ level: 100 }));
+      await no(mine.update({ streak: 5000 }));
+      await no(mine.update({ distance: { w20261019: 5000 } }));
+      await no(mine.update({ 'distance.w20261019': 5000 }));
+      await no(write({ xp: 5000000 }, { merge: true }));
+      await no(write({ distance: { w20261019: 5000 } }, { merge: true }));
+      await no(write(scored({ xp: 5000000 })));
+      await no(write(scored({ xp: 5000000, name: 'Alice' }), { merge: true }));
     });
 
-    it('refuses a level outside 1 to 100 or that is not a whole number', async () => {
-      await no(write(entry({ level: 0 })));
-      await no(write(entry({ level: 101 })));
-      await no(write(entry({ level: 4.5 })));
-      await no(write(entry({ level: '4' })));
+    it('refuses a change to the score even when it comes with a change to the name', async () => {
+      await env.seed({ 'leaderboard/alice': scored() });
+      await no(env.as('alice').doc('leaderboard/alice').update({ name: 'Alice W.', xp: 5000000 }));
     });
 
-    it('refuses a streak that is negative, past the limit, or not a whole number', async () => {
-      await no(write(entry({ streak: -1 })));
-      await no(write(entry({ streak: 5001 })));
-      await no(write(entry({ streak: 2.5 })));
+    it('cannot get a score on by deleting the entry and making it again', async () => {
+      await env.seed({ 'leaderboard/alice': scored() });
+      const mine = env.as('alice').doc('leaderboard/alice');
+      await ok(mine.delete());
+      await no(mine.set(scored({ xp: 5000000 })));
+      await ok(mine.set(entry()));
     });
 
     it('refuses a name or picture that is the wrong kind or far too long', async () => {
@@ -81,11 +95,8 @@ describe('/leaderboard/{uid}', () => {
       await no(write(entry({ name: 'x'.repeat(101) })));
       await no(write(entry({ avatar: 42 })));
       await no(write(entry({ avatar: 'x'.repeat(2001) })));
-    });
-
-    it('refuses a distance that is not a map, or holds more than the week and the month', async () => {
-      await no(write(entry({ distance: 12 })));
-      await no(write(entry({ distance: { a: 1, b: 2, c: 3 } })));
+      await no(write(entry({ updatedAt: 5 })));
+      await no(write(entry({ updatedAt: 'x'.repeat(41) })));
     });
 
     it('refuses fields the app never writes', async () => {
@@ -94,19 +105,13 @@ describe('/leaderboard/{uid}', () => {
       await no(write(entry({ rank: 1 })));
     });
 
-    it('refuses an update that pushes a value past the limits', async () => {
-      await env.seed({ 'leaderboard/alice': entry() });
+    it('still lets an entry written by an older version of the app, with scores on it, be updated for the name, and removed', async () => {
+      await env.seed({ 'leaderboard/alice': scored({ points: 120 }) });
       const mine = env.as('alice').doc('leaderboard/alice');
-      await no(mine.update({ xp: 9999999 }));
-      await no(mine.update({ level: 500 }));
-      await no(mine.update({ xp: -5 }));
-    });
-
-    it('still lets an entry written by an older version of the app be updated, but not through the field the app does not write', async () => {
-      await env.seed({ 'leaderboard/alice': entry({ points: 120 }) });
-      const mine = env.as('alice').doc('leaderboard/alice');
-      await ok(mine.update({ xp: 1300 }));
+      await ok(mine.update({ name: 'Alice W.' }));
       await no(mine.update({ points: 5000 }));
+      await no(mine.update({ xp: 1300 }));
+      await ok(mine.delete());
     });
   });
 });

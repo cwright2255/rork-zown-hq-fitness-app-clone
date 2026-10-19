@@ -1,15 +1,9 @@
 const mockLog = [];
-jest.mock('../store/expStore', () => ({
-  useExpStore: { getState: () => global.__exp },
-}));
 jest.mock('../store/leaderboardStore', () => ({
-  useLeaderboardStore: { getState: () => ({ _syncLeaderboardEntry: (...a) => global.__syncXp(...a) }) },
+  useLeaderboardStore: { getState: () => ({ _syncProfile: (...a) => global.__syncProfile(...a) }) },
 }));
 jest.mock('../store/settingsStore', () => ({
   useSettingsStore: { getState: () => global.__settings },
-}));
-jest.mock('../services/distanceBoard', () => ({
-  publishMyDistance: (...a) => global.__publishDistance(...a),
 }));
 jest.mock('../services/raceBoard', () => ({
   publishMyRaces: (...a) => global.__publishRaces(...a),
@@ -17,23 +11,22 @@ jest.mock('../services/raceBoard', () => ({
 }));
 
 import {
-  isShownOnLeaderboards, publishMyXp, setShowInLeaderboards,
+  isShownOnLeaderboards, publishMyProfile, setShowInLeaderboards,
 } from '../services/leaderboardVisibility';
 
-// Not a streak of its own: the streak is passed in (services/streakService.js), the user record's old counter was never updated.
+// The app writes only who the person is on the board (name and picture). XP, level, streak and distance are the server's
+// (functions/src/xpLedger.js), so nothing here takes a score.
 const user = { uid: 'u1', name: 'Cj', profileImage: 'https://img/p.png', streak: 99 };
 
 let warn;
 beforeEach(() => {
   warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   mockLog.length = 0;
-  global.__exp = { expSystem: { totalExp: 1200, level: 4 } };
   global.__settings = {
     showInLeaderboards: true,
     updateSetting: jest.fn((key, value) => { global.__settings[key] = value; }),
   };
-  global.__syncXp = jest.fn(async () => { mockLog.push('xp'); return true; });
-  global.__publishDistance = jest.fn(async () => { mockLog.push('distance'); return true; });
+  global.__syncProfile = jest.fn(async () => { mockLog.push('profile'); return true; });
   global.__publishRaces = jest.fn(async () => { mockLog.push('races'); return true; });
   global.__withdrawRaces = jest.fn(async () => { mockLog.push('withdrawRaces'); return true; });
 });
@@ -54,115 +47,85 @@ describe('isShownOnLeaderboards', () => {
   });
 });
 
-describe('publishMyXp', () => {
-  it('puts the person\'s XP, level and streak on the board under their name and picture', async () => {
-    expect(await publishMyXp({ user, streak: 6 })).toBe(true);
-    expect(global.__syncXp).toHaveBeenCalledTimes(1);
-    expect(global.__syncXp).toHaveBeenCalledWith('u1', {
-      name: 'Cj', avatar: 'https://img/p.png', xp: 1200, level: 4, streak: 6, visible: true,
-    });
+describe('publishMyProfile', () => {
+  it('puts the person\'s name and picture on their entry, and nothing else about them', async () => {
+    expect(await publishMyProfile({ user })).toBe(true);
+    expect(global.__syncProfile).toHaveBeenCalledTimes(1);
+    expect(global.__syncProfile).toHaveBeenCalledWith('u1', { name: 'Cj', avatar: 'https://img/p.png', visible: true });
   });
 
-  it('takes the streak it is given, not the old counter on the user record', async () => {
-    await publishMyXp({ user, streak: 3 });
-    expect(global.__syncXp.mock.calls[0][1].streak).toBe(3);
-  });
-
-  it('puts 0 when no usable streak is given', async () => {
-    for (const streak of [undefined, null, NaN, -2, 'six', Infinity]) {
-      global.__syncXp.mockClear();
-      await publishMyXp({ user, streak });
-      expect(global.__syncXp.mock.calls[0][1].streak).toBe(0);
-    }
-  });
-
-  it('uses the XP as it is now, not as it was when the screen opened', async () => {
-    await publishMyXp({ user });
-    global.__exp = { expSystem: { totalExp: 1350, level: 5 } };
-    await publishMyXp({ user });
-    expect(global.__syncXp.mock.calls[1][1]).toMatchObject({ xp: 1350, level: 5 });
+  it('does not hand over a score, whatever the user record holds', async () => {
+    await publishMyProfile({ user: { ...user, xp: 99999, level: 100, exp: 99999 } });
+    expect(Object.keys(global.__syncProfile.mock.calls[0][1]).sort()).toEqual(['avatar', 'name', 'visible']);
   });
 
   it('says the person is hidden when "Show in Leaderboards" is off', async () => {
     global.__settings = { showInLeaderboards: false };
-    global.__syncXp = jest.fn(async () => false);
-    expect(await publishMyXp({ user })).toBe(false);
-    expect(global.__syncXp.mock.calls[0][1].visible).toBe(false);
+    await publishMyProfile({ user });
+    expect(global.__syncProfile.mock.calls[0][1].visible).toBe(false);
   });
 
   it('says the person is shown when the setting was never set', async () => {
     global.__settings = {};
-    await publishMyXp({ user });
-    expect(global.__syncXp.mock.calls[0][1].visible).toBe(true);
+    await publishMyProfile({ user });
+    expect(global.__syncProfile.mock.calls[0][1].visible).toBe(true);
   });
 
-  it('says whether the entry was written', async () => {
-    global.__syncXp = jest.fn(async () => false);
-    expect(await publishMyXp({ user })).toBe(false);
+  it('says whether the entry is as it should be', async () => {
+    global.__syncProfile = jest.fn(async () => false);
+    expect(await publishMyProfile({ user })).toBe(false);
   });
 
   it('does nothing with nobody signed in', async () => {
-    expect(await publishMyXp({ user: null })).toBe(false);
-    expect(await publishMyXp({ user: {} })).toBe(false);
-    expect(await publishMyXp()).toBe(false);
-    expect(global.__syncXp).not.toHaveBeenCalled();
+    expect(await publishMyProfile({ user: null })).toBe(false);
+    expect(await publishMyProfile({ user: {} })).toBe(false);
+    expect(await publishMyProfile()).toBe(false);
+    expect(global.__syncProfile).not.toHaveBeenCalled();
   });
 
   it('never throws: a failed write just gives false', async () => {
-    global.__syncXp = jest.fn(async () => { throw new Error('offline'); });
-    expect(await publishMyXp({ user })).toBe(false);
+    global.__syncProfile = jest.fn(async () => { throw new Error('offline'); });
+    expect(await publishMyProfile({ user })).toBe(false);
     expect(warn).toHaveBeenCalledWith('[leaderboardVisibility] publish failed:', 'offline');
   });
 });
 
 describe('setShowInLeaderboards', () => {
-  it('turning it off saves the setting and takes the person off the boards, publishing no XP', async () => {
+  it('turning it off saves the setting and takes the person off the boards', async () => {
     expect(await setShowInLeaderboards(false, user)).toBe(true);
     expect(global.__settings.updateSetting).toHaveBeenCalledWith('showInLeaderboards', false, 'u1');
-    expect(global.__syncXp).not.toHaveBeenCalled();
-    expect(global.__publishDistance).toHaveBeenCalledTimes(1);
-    expect(global.__publishDistance).toHaveBeenCalledWith({ user, loadFirst: false });
+    expect(global.__syncProfile).toHaveBeenCalledTimes(1);
+    expect(global.__syncProfile).toHaveBeenCalledWith('u1', { name: 'Cj', avatar: 'https://img/p.png', visible: false });
   });
 
   it('saves the setting before it publishes, so the publish sees the new setting', async () => {
     let seen;
-    global.__publishDistance = jest.fn(async () => { seen = global.__settings.showInLeaderboards; return true; });
+    global.__syncProfile = jest.fn(async () => { seen = global.__settings.showInLeaderboards; return true; });
     await setShowInLeaderboards(false, user);
     expect(seen).toBe(false);
   });
 
-  it('turning it on saves the setting and puts the XP and then the distance back', async () => {
+  it('turning it on saves the setting and puts the person\'s entry back, then their race times', async () => {
     global.__settings.showInLeaderboards = false;
-    expect(await setShowInLeaderboards(true, user, 6)).toBe(true);
+    expect(await setShowInLeaderboards(true, user)).toBe(true);
     expect(global.__settings.updateSetting).toHaveBeenCalledWith('showInLeaderboards', true, 'u1');
-    expect(global.__syncXp).toHaveBeenCalledTimes(1);
-    expect(global.__syncXp.mock.calls[0][1]).toMatchObject({ xp: 1200, level: 4, streak: 6, visible: true });
-    expect(global.__publishDistance).toHaveBeenCalledWith({ user, loadFirst: true });
-    expect(mockLog).toEqual(['xp', 'distance', 'races']);
+    expect(global.__syncProfile).toHaveBeenCalledWith('u1', { name: 'Cj', avatar: 'https://img/p.png', visible: true });
+    expect(mockLog).toEqual(['profile', 'races']);
   });
 
   it('treats anything that is not a yes as off', async () => {
     await setShowInLeaderboards(0, user);
     expect(global.__settings.updateSetting).toHaveBeenCalledWith('showInLeaderboards', false, 'u1');
-    expect(global.__syncXp).not.toHaveBeenCalled();
+    expect(global.__syncProfile.mock.calls[0][1].visible).toBe(false);
+    expect(global.__withdrawRaces).toHaveBeenCalledTimes(1);
     await setShowInLeaderboards(1, user);
     expect(global.__settings.updateSetting).toHaveBeenLastCalledWith('showInLeaderboards', true, 'u1');
-    expect(global.__publishDistance).toHaveBeenLastCalledWith({ user, loadFirst: true });
+    expect(global.__syncProfile.mock.calls[1][1].visible).toBe(true);
   });
 
-  it('says the board does not match yet when the removal fails', async () => {
-    global.__publishDistance = jest.fn(async () => false);
+  it('says the board does not match yet when the entry could not be removed or put back', async () => {
+    global.__syncProfile = jest.fn(async () => false);
     expect(await setShowInLeaderboards(false, user)).toBe(false);
-  });
-
-  it('says the board does not match yet when the XP could not be put back', async () => {
-    global.__syncXp = jest.fn(async () => false);
-    expect(await setShowInLeaderboards(true, user)).toBe(false);
-    expect(global.__publishDistance).toHaveBeenCalledTimes(1);
-  });
-
-  it('says the board does not match yet when the distance could not be put back', async () => {
-    global.__publishDistance = jest.fn(async () => false);
     expect(await setShowInLeaderboards(true, user)).toBe(false);
   });
 
@@ -202,8 +165,7 @@ describe('setShowInLeaderboards', () => {
     expect(calls[1].slice(0, 2)).toEqual(['showInLeaderboards', true]);
     expect(calls[0][2]).toBeFalsy();
     expect(calls[1][2]).toBeFalsy();
-    expect(global.__syncXp).not.toHaveBeenCalled();
-    expect(global.__publishDistance).not.toHaveBeenCalled();
+    expect(global.__syncProfile).not.toHaveBeenCalled();
     expect(global.__publishRaces).not.toHaveBeenCalled();
     expect(global.__withdrawRaces).not.toHaveBeenCalled();
   });

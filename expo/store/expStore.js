@@ -4,6 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { localDateKey } from '../lib/localDate';
+import {
+  LEVEL_CAP, MAX_STEPS_PER_DAY, applyClaim, emptyLedger, levelFromXp, levelMultiplier, normalizeLedger, xpRequiredForLevel,
+} from '../lib/xpRules';
+import { claimFromActivity, hydrationClaim, importClaim, stepsClaim } from '../lib/xpClaims';
 
 // Real, re-tuned leveling curve: 1.03 per level, not 1.3299. The
 // original 1.3299 rate, confirmed from an earlier design spreadsheet,
@@ -24,26 +28,9 @@ import { localDateKey } from '../lib/localDate';
 // have baseExpValues defined below but nothing in the app currently
 // calls them, so they weren't counted toward this estimate - see the
 // note where they're defined.
-const BASE_LEVEL_XP = 1000;
-const GROWTH_RATE = 1.03;
-const LEVEL_CAP = 100;
-
-const xpRequiredForLevel = (level) => {
-  if (level <= 1) return 0;
-  return Math.round(BASE_LEVEL_XP * (Math.pow(GROWTH_RATE, level - 1) - 1) / (GROWTH_RATE - 1));
-};
-
-const calculateLevelFromExp = (exp) => {
-  let level = 1;
-  for (let n = 2; n <= LEVEL_CAP; n++) {
-    if (exp >= xpRequiredForLevel(n)) {
-      level = n;
-    } else {
-      break;
-    }
-  }
-  return level;
-};
+// The curve itself (1.03 per level, 1,000 XP for level 2, level 100 the cap) and the level multiplier live in lib/xpRules.js, which
+// the server uses too: XP is worked out there now, and this store follows it. Same numbers, same names here as before.
+const calculateLevelFromExp = levelFromXp;
 
 // Generate level requirements using the real curve above, not a flat
 // level*1000 line.
@@ -114,44 +101,32 @@ export const baseExpValues = {
   stepsXpPerStep: 0.10
 };
 
-// Real fix: baseIncrease/baseDecline were 0.43/0.07 (43%/7%), compounding
-// to x1.36 PER LEVEL - confirmed directly by computing it out: a single
-// ~200 XP workout award becomes ~37,000 XP by level 18 alone (x186), and
-// keeps exploding from there (x345 by level 20). That's the exact
-// mechanism behind "35,071 XP from one workout" - not a double-award,
-// one addExpActivity call multiplied by an exponentially runaway level
-// multiplier.
-//
-// The values are a 10x decimal-place slip, not a deliberate design
-// choice. 0.043/0.007 (4.3%/0.7%, net x1.036/level) is what they were
-// almost certainly meant to be: it lines up with this file's own
-// already-tuned leveling curve (GROWTH_RATE = 1.03 above), which was
-// deliberately chosen for a realistic ~971 XP/day pace - a multiplier
-// that itself grows 36%/level fights that same goal instead of serving
-// it. At x1.036/level, a late-game level 100 award is a reasonable x33,
-// not an astronomical x345-at-level-20-and-still-climbing.
-//
-// MAX_MULTIPLIER is a hard ceiling on top of that fix - defense in
-// depth, so a single award can never again reach an absurd value
-// regardless of level or any future rebalance of the rate itself.
-const MAX_MULTIPLIER = 5;
-const calculateMultiplier = (level) => {
-  const baseIncrease = 0.043;
-  const baseDecline = 0.007;
-
-  // Start with a multiplier of 1 for level 1
-  let multiplier = 1.0;
-
-  // Apply the increase and decline for each level
-  for (let i = 2; i <= level; i++) {
-    multiplier *= 1 + baseIncrease - baseDecline;
-  }
-
-  return Math.min(multiplier, MAX_MULTIPLIER);
-};
+// The level multiplier (3.6% more for each level, never above x5) is lib/xpRules.js's levelMultiplier. Its history: the rates were
+// once 0.43/0.07, a 10x decimal-place slip that made one ~200 XP workout pay ~37,000 XP by level 18; they were fixed to 0.043/0.007
+// and capped, and nothing about that has changed.
+const calculateMultiplier = levelMultiplier;
 
 // Today as the person lives it (their own calendar day), not the UTC date.
 const todayStr = () => localDateKey();
+
+// ---- the server's record of XP ----
+// XP is worked out by the server now (functions/src/xpLedger.js, rules in lib/xpRules.js). When something earns XP this store files
+// a claim (lib/xpClaims.js) under the person's account, and follows the ledger the server keeps (users/{uid}/stats/xp, heard
+// through services/xpSync.js). What is shown is the ledger as the server last said it, plus every claim still on its way, worked out
+// with the same rules (applyClaim), so the XP counts up the moment it is earned and settles on the server's number.
+const STEPS_CLAIM_CHUNK = 500; // steps XP is claimed in steps of this many, not on every step
+const PENDING_MAX_AGE_MS = 14 * 86400000; // a claim the server has not dealt with in two weeks is given up on (once it has been heard from)
+const OWN_IMPORT_AGE_DAYS = 100000; // the phone takes its own word for how much XP it had before the server kept the record
+const sending = new Set(); // ids of the claims being sent right now
+
+// A ledger with one more claim added, the way the server will add it.
+const replay = (ledger, claim, now) => applyClaim({
+  ledger,
+  id: claim.id,
+  claim: claim.body,
+  now,
+  ageDays: claim.body.kind === 'import' ? OWN_IMPORT_AGE_DAYS : 0,
+});
 
 export const useExpStore = create(
   persist(
@@ -205,6 +180,17 @@ export const useExpStore = create(
       // same account.
       xpHistory: {},
 
+      // The server's ledger as it last said it (null until it has), and the claims filed or waiting to be filed that it does not
+      // include yet: [{ id, uid, body, at, sent }]. What is on screen is the first with the second added (_show below).
+      serverLedger: null,
+      pendingClaims: [],
+      // Whose XP this phone holds (kept, so another person signing in here starts clean), and whose ledger is being followed right
+      // now (not kept: it starts again each time the app opens).
+      ownerUid: null,
+      syncUid: null,
+      // The one-off claim that brings in the XP this phone had before the server kept the record has been made.
+      importQueued: false,
+
       initializeExpSystem: () => {
         set({ expSystem: defaultExpSystem });
       },
@@ -219,6 +205,8 @@ export const useExpStore = create(
       // so they can never end up inconsistent with the actual total.
       loadXP: async (uid) => {
         if (!uid) return;
+        // Once the server's ledger is being followed it is the record; what was saved in the old per-user document is not.
+        if (get().syncUid === uid) return;
         try {
           const snap = await getDoc(doc(db, 'users', uid, 'data', 'xp'));
           if (snap.exists()) {
@@ -308,15 +296,159 @@ export const useExpStore = create(
         if (uid) get().saveXP(uid);
       },
 
+      /* ── The server's record (see the note at the top of this file) ── */
+
+      // The ledger as it will be once every claim still waiting has been added: what to show.
+      _predicted: () => {
+        const { serverLedger, pendingClaims, syncUid } = get();
+        const now = Date.now();
+        let ledger = serverLedger;
+        for (const claim of pendingClaims) {
+          if (claim.uid === syncUid) ledger = replay(ledger, claim, now).ledger;
+        }
+        return ledger ? normalizeLedger(ledger) : emptyLedger();
+      },
+
+      // Puts that on screen: the total, level, today's XP and the per-day history.
+      _show: () => {
+        const state = get();
+        if (!state.syncUid) return;
+        const predicted = state._predicted();
+        const today = todayStr();
+        const total = predicted.total;
+        const level = calculateLevelFromExp(total);
+        const history = { ...state.xpHistory };
+        Object.keys(predicted.days).forEach((day) => {
+          const entry = predicted.days[day];
+          history[day] = entry && Number.isFinite(entry.xp) ? entry.xp : 0;
+        });
+        const todayEntry = predicted.days[today];
+        set({
+          expSystem: {
+            ...state.expSystem,
+            totalExp: total,
+            level,
+            expToNextLevel: xpRequiredForLevel(level + 1) - total,
+          },
+          dailyXp: todayEntry && Number.isFinite(todayEntry.xp) ? todayEntry.xp : 0,
+          dailyXpDate: today,
+          xpHistory: history,
+        });
+      },
+
+      // Files a claim for XP. Returns { queued, amount }: whether it was kept to be sent (the server would refuse one the ledger
+      // already shows, such as the same food twice in a day, so that is not), and what it will be worth.
+      _file: (uid, claim) => {
+        if (!uid || !claim) return { queued: false, amount: 0 };
+        const state = get();
+        if (state.pendingClaims.some((c) => c.id === claim.id)) return { queued: false, amount: 0 };
+        if (state.serverLedger && state.serverLedger.ids && state.serverLedger.ids.includes(claim.id)) return { queued: false, amount: 0 };
+        let amount = 0;
+        if (state.syncUid === uid) {
+          const { outcome } = replay(state._predicted(), claim, Date.now());
+          if (outcome.status !== 'awarded') return { queued: false, amount: 0 };
+          amount = outcome.amount;
+        }
+        set({ pendingClaims: [...state.pendingClaims, { id: claim.id, uid, body: claim.body, at: Date.now(), sent: false }] });
+        get()._show();
+        get().flushClaims(uid).catch(() => undefined);
+        return { queued: true, amount };
+      },
+
+      // Sends the claims that have not been sent. A claim is created once and never changed (the rules), so one that is already
+      // there (sent before, and the answer was lost) is found and not sent again. A failure is tried again at the next chance.
+      flushClaims: async (uid) => {
+        if (!uid) return;
+        const waiting = get().pendingClaims.filter((c) => c.uid === uid && !c.sent && !sending.has(c.id));
+        for (const claim of waiting) {
+          sending.add(claim.id);
+          try {
+            const ref = doc(db, 'users', uid, 'xpClaims', claim.id);
+            try {
+              await setDoc(ref, claim.body);
+              set((state) => ({ pendingClaims: state.pendingClaims.map((c) => (c.id === claim.id ? { ...c, sent: true } : c)) }));
+            } catch (e) {
+              const snap = await getDoc(ref);
+              if (!snap.exists()) throw e;
+              if (snap.data() && snap.data().processedAt) {
+                // Counted already: the ledger has it.
+                set((state) => ({ pendingClaims: state.pendingClaims.filter((c) => c.id !== claim.id) }));
+              } else {
+                set((state) => ({ pendingClaims: state.pendingClaims.map((c) => (c.id === claim.id ? { ...c, sent: true } : c)) }));
+              }
+              get()._show();
+            }
+          } catch (e) {
+            console.warn('[expStore] claim not sent yet:', e?.message);
+          } finally {
+            sending.delete(claim.id);
+          }
+        }
+      },
+
+      // Starts following this person's XP: keeps what is on the phone only if it is theirs, brings in the XP the phone had from before
+      // the server kept the record (once), and sends what is waiting. activeDays are the days with a workout, a run or a hike, so the
+      // streak carries over with it.
+      beginXpSync: (uid, { activeDays = [] } = {}) => {
+        if (!uid) return;
+        const state = get();
+        if (state.ownerUid && state.ownerUid !== uid) {
+          // Another person signing in on this phone starts from their own XP, not the last person's.
+          set({
+            expSystem: defaultExpSystem,
+            serverLedger: null,
+            importQueued: false,
+            hydrationXpDate: null, hydrationXpTier: 0, stepsXpDate: null, stepsXpAwardedFor: 0, mealXpDate: null, mealXpFoodKeys: [],
+            dailyXp: 0, dailyXpDate: null, xpHistory: {},
+          });
+        }
+        set({ ownerUid: uid, syncUid: uid });
+        if (!get().importQueued) {
+          const total = get().expSystem.totalExp;
+          set({ importQueued: true });
+          if (total > 0) get()._file(uid, importClaim({ day: todayStr(), total, activeDays }));
+        }
+        get()._show();
+        get().flushClaims(uid).catch(() => undefined);
+      },
+
+      endXpSync: () => {
+        set({ syncUid: null });
+      },
+
+      // The server's ledger changed (data is null when it has none yet): follow it, and stop waiting for the claims it has dealt with.
+      applyLedger: (uid, data) => {
+        const state = get();
+        if (!uid || state.syncUid !== uid) return;
+        const ledger = data ? normalizeLedger(data) : null;
+        const dealtWith = new Set((ledger && ledger.ids) || []);
+        const now = Date.now();
+        const pendingClaims = state.pendingClaims.filter((c) => {
+          if (c.uid !== uid) return true;
+          if (dealtWith.has(c.id)) return false;
+          return !(ledger && now - c.at > PENDING_MAX_AGE_MS);
+        });
+        set({ serverLedger: ledger, pendingClaims });
+        get()._show();
+        get().flushClaims(uid).catch(() => undefined);
+      },
+
       addExpActivity: (activity, uid) => {
+        // With a person signed in the XP is the server's: the activity becomes a claim, and what it is worth comes from the ledger.
+        if (uid) {
+          get()._file(uid, claimFromActivity(activity));
+          return;
+        }
+
+        // Nobody signed in: counted on the phone alone, as it always was.
         const { expSystem } = get();
         const { level } = expSystem;
 
         // Calculate the multiplier based on the current level
-        const levelMultiplier = calculateMultiplier(level);
+        const multiplierForLevel = calculateMultiplier(level);
 
         // Apply the multiplier to the base EXP
-        let expAmount = activity.baseExp * levelMultiplier * activity.multiplier;
+        let expAmount = activity.baseExp * multiplierForLevel * activity.multiplier;
 
         // Round to the nearest integer
         expAmount = Math.round(expAmount);
@@ -359,6 +491,14 @@ export const useExpStore = create(
       awardHydrationXp: (glasses, target, uid) => {
         const state = get();
         const today = todayStr();
+
+        // With a person signed in, reaching a tier is a claim; the ledger knows which tiers today have been paid.
+        if (uid) {
+          const reached = target > 0 ? Math.min(5, Math.floor((glasses / target) * 5)) : 0;
+          if (reached >= 1) get()._file(uid, hydrationClaim(today, reached));
+          return;
+        }
+
         const alreadyTier = state.hydrationXpDate === today ? (state.hydrationXpTier || 0) : 0;
 
         const TIER_XP = [0, baseExpValues.hydrationTier1, baseExpValues.hydrationTier2, baseExpValues.hydrationTier3, baseExpValues.hydrationTier4, baseExpValues.hydrationTier5];
@@ -383,6 +523,17 @@ export const useExpStore = create(
       awardStepsXp: (steps, uid) => {
         const state = get();
         const today = todayStr();
+
+        // With a person signed in, the steps counted so far are a claim, made each time they have gone up by a chunk; the ledger
+        // knows how many of today's steps have been paid.
+        if (uid) {
+          const counted = Math.min(MAX_STEPS_PER_DAY, Math.floor(Number(steps)));
+          if (!(counted >= 1)) return;
+          const paid = state.syncUid === uid ? ((state._predicted().days[today] || {}).steps || 0) : 0;
+          if (counted - paid >= STEPS_CLAIM_CHUNK) get()._file(uid, stepsClaim(today, counted));
+          return;
+        }
+
         const alreadyAwardedFor = state.stepsXpDate === today ? (state.stepsXpAwardedFor || 0) : 0;
 
         const newSteps = Math.max(0, steps - alreadyAwardedFor);
@@ -408,6 +559,12 @@ export const useExpStore = create(
       awardMealXp: (foodKey, activity, uid) => {
         const state = get();
         const today = todayStr();
+
+        // With a person signed in, a food logged is a claim; the ledger knows which foods today have been paid.
+        if (uid) {
+          return get()._file(uid, claimFromActivity({ ...activity, kind: 'meal', foodKey })).queued;
+        }
+
         const alreadyAwarded = state.mealXpDate === today ? (state.mealXpFoodKeys || []) : [];
 
         if (alreadyAwarded.includes(foodKey)) {
@@ -492,7 +649,11 @@ export const useExpStore = create(
         mealXpFoodKeys: state.mealXpFoodKeys,
         dailyXpDate: state.dailyXpDate,
         dailyXp: state.dailyXp,
-        xpHistory: state.xpHistory
+        xpHistory: state.xpHistory,
+        serverLedger: state.serverLedger,
+        pendingClaims: state.pendingClaims,
+        ownerUid: state.ownerUid,
+        importQueued: state.importQueued
       }),
       onRehydrateStorage: () => (state) => {
         // When storage is rehydrated, initialize the EXP system if needed
