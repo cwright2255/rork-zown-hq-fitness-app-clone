@@ -41,7 +41,7 @@ const INJURY_LABELS = {
 // given message. Every field degrades gracefully when unset - a brand
 // new profile with nothing filled in still produces a clean, sensible
 // prompt, not an awkward "Goals: ." fragment.
-export function buildCoachSystemPrompt(user, now = new Date()) {
+export function buildCoachSystemPrompt(user, now = new Date(), { calendar = true } = {}) {
   const name = user?.name?.trim() || 'there';
   const goals = (user?.fitnessMetrics?.targetGoals || []).map((id) => GOAL_LABELS[id] || id);
   const injuries = (user?.fitnessMetrics?.injuries || []).map((id) => INJURY_LABELS[id] || id);
@@ -63,7 +63,7 @@ export function buildCoachSystemPrompt(user, now = new Date()) {
     ALCOHOL_COACH_NOTE,
     // Lets the coach propose workouts, calendar events and nutrition plans
     // that the user approves with Yes / No in the chat (lib/coachActions.js).
-    buildActionInstructions(now),
+    buildActionInstructions(now, { calendar }),
   ].filter(Boolean);
 
   return { role: 'system', content: lines.join(' ') };

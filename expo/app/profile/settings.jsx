@@ -90,6 +90,7 @@ export default function SettingsScreen() {
     weeklySummary,
     showInLeaderboards,
     allowFriendRequests,
+    coachCanAddToCalendar,
     updateSetting,
     updatePrivacy,
   } = useSettingsStore();
@@ -580,6 +581,25 @@ export default function SettingsScreen() {
               <Switch
                 value={allowFriendRequests}
                 onValueChange={(v) => updateSetting('allowFriendRequests', v, uid)}
+                trackColor={{ true: '#000000', false: '#E0E0E0' }}
+                thumbColor="#FFFFFF"
+              />
+            }
+          />
+        </View>
+
+        {/* AI COACH */}
+        <SectionHeader title="AI Coach" />
+        <View style={s.card}>
+          <SettingRow
+            icon="calendar-outline"
+            label="Let the coach add to my calendar"
+            subLabel="When this is off, the coach will not put workouts, runs or meals on your calendar"
+            right={
+              <Switch
+                value={coachCanAddToCalendar !== false}
+                onValueChange={(v) => updateSetting('coachCanAddToCalendar', v, uid)}
+                accessibilityLabel="Let the coach add to my calendar"
                 trackColor={{ true: '#000000', false: '#E0E0E0' }}
                 thumbColor="#FFFFFF"
               />

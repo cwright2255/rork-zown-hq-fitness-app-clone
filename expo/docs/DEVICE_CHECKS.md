@@ -147,6 +147,25 @@ Profile, then AI Coach. Ask "What do you know about my day?"
 - [ ] It mentions things the app really has: steps, water, calories burned against your burn goal, and a fast if one is running.
 - [ ] With no wearable connected it says it has no recovery reading. It does not make one up.
 
+## The Coach and your calendar (once, on the first update with the switch)
+
+Settings (`app/profile/settings.jsx`), then the new AI Coach section, just above Connected Services: "Let the coach add to my calendar".
+It is on until you turn it off, and it follows your account, so the other phone shows the same. It only decides what the Coach may
+put on the Calendar. Your own events, and the Calendar itself, are not touched by it.
+
+- [ ] The switch is there and starts on. Close Settings and open it again: it stays where you left it.
+- [ ] Switch on: ask the Coach "Put leg day on my calendar Monday at 7". The Yes / No card says "Add 1 event to your calendar".
+      Tap Yes. It is on the Calendar. (Delete it from the Calendar after.)
+- [ ] Switch off: ask the same thing. The Coach says it cannot while the setting is off and where to turn it on. There is no Yes /
+      No card for the calendar, and nothing new on the Calendar.
+- [ ] Switch off: ask for a workout ("Build me a 3 exercise leg workout and save it"). It still offers to save it to My Workouts, and
+      Yes puts it there. Ask for a goal: that still works too.
+- [ ] Switch off: ask for a meal plan with calorie targets. It can offer the daily targets, but no meals for the Calendar, and the
+      chat says so.
+- [ ] Switch on, ask for a workout and a schedule, and do not tap yes yet. Turn the switch off in Settings, come back and tap Yes.
+      The workout saves and the Calendar stays empty, and the Coach says it left the calendar alone.
+- [ ] Turn the switch back on and the Coach can use the Calendar on the next message, without closing the app.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

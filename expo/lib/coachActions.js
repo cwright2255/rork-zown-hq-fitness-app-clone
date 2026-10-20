@@ -42,28 +42,47 @@ const pad2 = (n) => String(n).padStart(2, '0');
 // Prompt
 // ---------------------------------------------------------------------------
 
+const SCHEDULE_SHAPE =
+  '{"type":"schedule","events":[{"title":string,"kind":"workout"|"run"|"nutrition"|"other","date":"YYYY-MM-DD","time":"HH:mm" in 24-hour time,"notes":string,"workout":the name of a workout from the same block, optional}]} - at most 30 events; write every repeat out as its own event.';
+const NUTRITION_SHAPE =
+  '{"type":"nutrition_plan","dailyGoals":{"calories":number,"protein":number,"carbs":number,"fat":number},"meals":[{"date":"YYYY-MM-DD","time":"HH:mm","mealType":"breakfast"|"lunch"|"dinner"|"snack","name":string,"description":string}]} - macros in grams, at most 28 meals, and dailyGoals and meals are each optional.';
+const NUTRITION_SHAPE_NO_MEALS =
+  '{"type":"nutrition_plan","dailyGoals":{"calories":number,"protein":number,"carbs":number,"fat":number}} - macros in grams. Do not add a "meals" list: meals would go on their calendar.';
+// Said to the model when the calendar switch is off.
+const CALENDAR_OFF_INSTRUCTION =
+  'The user has turned off "Let the coach add to my calendar" in Settings, so you cannot put anything on their calendar: never send a "schedule" action and never put meals in a nutrition_plan. If they ask you to schedule something or add it to their calendar, say in one sentence that you cannot while that setting is off and that they can turn it on in Settings, then offer to save the workouts to My Workouts or to write the plan out as text.';
+
+/** Said to the person (not the model) when the coach left calendar items out because Settings > "Let the coach add to my calendar" is off. */
+export const CALENDAR_OFF_NOTE =
+  'I can\'t add things to your calendar while "Let the coach add to my calendar" is off. You can turn it on in Settings.';
+
 export function formatDateKey(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
-export function buildActionInstructions(now = new Date()) {
+// `calendar` is Settings > "Let the coach add to my calendar". When it is off the coach is told it cannot use the calendar: no schedule
+// action, and a nutrition plan with daily targets only (no meals, which would land on the calendar).
+export function buildActionInstructions(now = new Date(), { calendar = true } = {}) {
   const today = `${WEEKDAYS[now.getDay()]} ${formatDateKey(now)}`;
   const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
   return [
     'You can create things inside the user\'s ZOWN app, but only after they say yes.',
     `Today is ${today} and the local time is ${time}; use that to turn "tomorrow" or "Monday" into real dates.`,
-    'When the user asks you to build or save a workout plan, schedule something or put it on their calendar, or make a nutrition or meal plan:',
+    calendar
+      ? 'When the user asks you to build or save a workout plan, schedule something or put it on their calendar, or make a nutrition or meal plan:'
+      : 'When the user asks you to build or save a workout plan, or make a nutrition or meal plan:',
     '(1) Reply in plain text with a short summary of what you would create.',
     '(2) End that text with one yes/no question such as "Want me to add this to your workouts?". Never say it has already been created.',
     `(3) On a new line after the question, add exactly one block: <${ACTION_TAG}>JSON</${ACTION_TAG}>. The app hides this block and shows Yes and No buttons, and nothing is created unless they tap Yes.`,
     'Only add the block when they actually asked you to create, schedule or plan something. For ordinary questions and advice, answer normally with no block. If you are missing something essential (for example which days they can train), ask one short question first instead of guessing; otherwise pick sensible defaults and mention them in your summary.',
+    ...(calendar ? [] : [CALENDAR_OFF_INSTRUCTION]),
     'The JSON is an array of actions, each one of these shapes:',
     '{"type":"workout_plan","workouts":[{"name":string,"description":string,"exercises":[{"name":string,"sets":number,"reps":number or a range string like "8-12","restSeconds":number}]}]} - one workout per training day, at most 7 workouts and 12 exercises each.',
-    '{"type":"schedule","events":[{"title":string,"kind":"workout"|"run"|"nutrition"|"other","date":"YYYY-MM-DD","time":"HH:mm" in 24-hour time,"notes":string,"workout":the name of a workout from the same block, optional}]} - at most 30 events; write every repeat out as its own event.',
-    '{"type":"nutrition_plan","dailyGoals":{"calories":number,"protein":number,"carbs":number,"fat":number},"meals":[{"date":"YYYY-MM-DD","time":"HH:mm","mealType":"breakfast"|"lunch"|"dinner"|"snack","name":string,"description":string}]} - macros in grams, at most 28 meals, and dailyGoals and meals are each optional.',
+    ...(calendar ? [SCHEDULE_SHAPE] : []),
+    calendar ? NUTRITION_SHAPE : NUTRITION_SHAPE_NO_MEALS,
     '{"type":"goal","goals":[{"title":string,"target":number,"unit":string,"current":number,"deadline":"YYYY-MM-DD"}]} - a measurable goal for the Progress tab (for example {"title":"Bench press 225 lb","target":225,"unit":"lb","current":185}); at most 5 goals, and current and deadline are optional.',
     'Use everything you know about this user when you build anything: their goals, injuries, weight and target weight, how many days a week and how long they like to train, their food rules, and what is already on their calendar. Set calorie and protein targets from their weight and goal, avoid exercises that stress a listed injury, and do not double-book calendar times. If they ask for a plan without saying what it is for, build it around their stated goals.',
-    'To save a workout and also put it on the calendar, send a workout_plan and a schedule action together in the same block.',
+    ...(calendar ? ['To save a workout and also put it on the calendar, send a workout_plan and a schedule action together in the same block.'] : []),
     'When the plan is meant to improve a specific lift or skill (for example "improve my bench press"), never fill it with only that lift. Build a complete program: the main lift once or twice a week (a heavy day and a lighter or variation day), plus supporting work for the muscles and weak points that drive it. For bench press that means overhead press or incline dumbbell press, triceps work (close-grip bench, dips, extensions), upper back and rear delts (rows, face pulls, pull-ups) for stability, and core. Spread the work across training days, keep each workout to 5-8 exercises, say in each workout description how to progress (for example add weight once every set reaches the top of the rep range), and respect the injuries listed above. Use the same approach for squat, deadlift, running and any other goal.',
     'Every meal in a nutrition plan must follow the diet, allergy and avoid-food rules above, with no exceptions.',
     'Write all replies as plain text: do not use markdown symbols such as # or **.',
@@ -315,7 +334,7 @@ export function findFoodConflict(text, user) {
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-function normalizeNutritionPlan(raw, now, user) {
+function normalizeNutritionPlan(raw, now, user, calendar) {
   const goals = raw.dailyGoals && typeof raw.dailyGoals === 'object' ? raw.dailyGoals : {};
   const ranges = { calories: [800, 6000], protein: [20, 400], carbs: [0, 800], fat: [10, 300] };
   const dailyGoals = {};
@@ -327,7 +346,9 @@ function normalizeNutritionPlan(raw, now, user) {
   const meals = [];
   const blocked = [];
   let dropped = 0;
-  (Array.isArray(raw.meals) ? raw.meals : []).slice(0, LIMITS.meals).forEach((m) => {
+  // With the calendar switch off no meal is kept (meals only ever go on the calendar); the count lets the chat say why.
+  const mealsLeftOut = calendar ? 0 : (Array.isArray(raw.meals) ? raw.meals : []).slice(0, LIMITS.meals).filter((m) => cleanString(m?.name, 80)).length;
+  (calendar && Array.isArray(raw.meals) ? raw.meals : []).slice(0, LIMITS.meals).forEach((m) => {
     const name = cleanString(m?.name, 80);
     if (!name) {
       dropped += 1;
@@ -354,16 +375,17 @@ function normalizeNutritionPlan(raw, now, user) {
     });
   });
 
-  if (Object.keys(dailyGoals).length === 0 && meals.length === 0) return { action: null, dropped, blocked };
-  return { action: { type: 'nutrition_plan', dailyGoals, meals, blocked }, dropped, blocked };
+  if (Object.keys(dailyGoals).length === 0 && meals.length === 0) return { action: null, dropped, blocked, mealsLeftOut };
+  return { action: { type: 'nutrition_plan', dailyGoals, meals, blocked }, dropped, blocked, mealsLeftOut };
 }
 
 /**
  * Validates and cleans the raw actions from extractCoachAction.
- * @returns {{ actions: object[], dropped: number, blocked: object[] }}
- *   actions  only well-formed, bounded actions the app knows how to run
- *   dropped  items discarded (malformed, or dated in the past)
- *   blocked  meals left out because of the user's allergies / avoid list
+ * @returns {{ actions: object[], dropped: number, blocked: object[], calendarBlocked: number }}
+ *   actions         only well-formed, bounded actions the app knows how to run
+ *   dropped         items discarded (malformed, or dated in the past)
+ *   blocked         meals left out because of the user's allergies / avoid list
+ *   calendarBlocked events and meals left out because `calendar` is false (Settings > "Let the coach add to my calendar" is off)
  */
 function normalizeGoal(raw, now) {
   if (!raw || typeof raw !== 'object') return null;
@@ -381,10 +403,11 @@ function normalizeGoal(raw, now) {
   return { title, target, unit, current, deadline };
 }
 
-export function normalizeActions(rawActions, { now = new Date(), user = null } = {}) {
+export function normalizeActions(rawActions, { now = new Date(), user = null, calendar = true } = {}) {
   const actions = [];
   const blocked = [];
   let dropped = 0;
+  let calendarBlocked = 0;
   const difficulty = ['beginner', 'intermediate', 'advanced'].includes(user?.fitnessLevel) ? user.fitnessLevel : 'intermediate';
 
   (Array.isArray(rawActions) ? rawActions : []).forEach((raw) => {
@@ -397,6 +420,12 @@ export function normalizeActions(rawActions, { now = new Date(), user = null } =
       const valid = workouts.filter(Boolean);
       dropped += workouts.length - valid.length;
       if (valid.length > 0) actions.push({ type: 'workout_plan', workouts: valid });
+      return;
+    }
+
+    if (raw.type === 'schedule' && !calendar) {
+      // Settings > "Let the coach add to my calendar" is off: nothing the coach proposes goes on the calendar.
+      calendarBlocked += (Array.isArray(raw.events) ? raw.events : []).slice(0, LIMITS.events).filter((e) => e && typeof e === 'object').length;
       return;
     }
 
@@ -423,14 +452,15 @@ export function normalizeActions(rawActions, { now = new Date(), user = null } =
     }
 
     if (raw.type === 'nutrition_plan') {
-      const result = normalizeNutritionPlan(raw, now, user);
+      const result = normalizeNutritionPlan(raw, now, user, calendar);
       dropped += result.dropped;
+      calendarBlocked += result.mealsLeftOut;
       blocked.push(...result.blocked);
       if (result.action) actions.push(result.action);
     }
   });
 
-  return { actions, dropped, blocked };
+  return { actions, dropped, blocked, calendarBlocked };
 }
 
 // ---------------------------------------------------------------------------

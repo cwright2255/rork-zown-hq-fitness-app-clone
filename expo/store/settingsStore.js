@@ -24,6 +24,9 @@ export const useSettingsStore = create(
       weeklySummary: true,
       showInLeaderboards: true,
       allowFriendRequests: true,
+      // Settings > AI Coach > "Let the coach add to my calendar". On by default (the coach has always been able to). When off, the
+      // coach is told it cannot use the calendar and nothing it proposes is put there (lib/coachActions.js, services/coachActionService.js).
+      coachCanAddToCalendar: true,
       // 'indefinite' matches current (pre-existing) behavior — sessions
       // never expired before this setting existed, so defaulting to
       // anything else would silently log out existing users the moment
@@ -52,6 +55,7 @@ export const useSettingsStore = create(
               weeklySummary: d.weeklySummary !== undefined ? d.weeklySummary : true,
               showInLeaderboards: d.showInLeaderboards !== undefined ? d.showInLeaderboards : true,
               allowFriendRequests: d.allowFriendRequests !== undefined ? d.allowFriendRequests : true,
+              coachCanAddToCalendar: d.coachCanAddToCalendar !== undefined ? d.coachCanAddToCalendar : true,
               rememberMeDuration: d.rememberMeDuration || 'indefinite',
             });
           }
@@ -81,6 +85,7 @@ export const useSettingsStore = create(
             weeklySummary: s.weeklySummary,
             showInLeaderboards: s.showInLeaderboards,
             allowFriendRequests: s.allowFriendRequests,
+            coachCanAddToCalendar: s.coachCanAddToCalendar,
             rememberMeDuration: s.rememberMeDuration,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
@@ -117,6 +122,7 @@ export const useSettingsStore = create(
         weeklySummary: s.weeklySummary,
         showInLeaderboards: s.showInLeaderboards,
         allowFriendRequests: s.allowFriendRequests,
+        coachCanAddToCalendar: s.coachCanAddToCalendar,
         rememberMeDuration: s.rememberMeDuration,
       }),
     }

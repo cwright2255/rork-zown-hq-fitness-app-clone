@@ -17,10 +17,12 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useNutritionStore } from '../store/nutritionStore';
 import { useScheduleStore } from '../store/scheduleStore';
 import { useGoalsStore } from '../store/goalsStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { askForReminderPermission, reconcileReminders } from './calendarReminders';
 import { buildEventRecords } from '../lib/scheduleUtils';
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const CALENDAR_LEFT_ALONE = 'I left your calendar alone because "Let the coach add to my calendar" is off in Settings.';
 
 async function saveWorkouts(action, user, created) {
   const baseId = Date.now();
@@ -64,6 +66,10 @@ export async function executeCoachActions(actions, user) {
   const failures = [];
   const created = [];
   let remindersBlocked = false;
+  // Settings > "Let the coach add to my calendar". Checked here as well as when the proposal was made, so a proposal that was already on
+  // screen when the switch was turned off still cannot put anything on the calendar.
+  const calendarOn = useSettingsStore.getState().coachCanAddToCalendar !== false;
+  let calendarSkipped = false;
 
   // Workouts first so calendar events in the same plan can link to them.
   const ordered = [...actions].sort((a, b) => (a.type === 'workout_plan' ? -1 : 0) - (b.type === 'workout_plan' ? -1 : 0));
@@ -74,6 +80,10 @@ export async function executeCoachActions(actions, user) {
         done.push(await saveWorkouts(action, user, created));
         links.push({ label: 'Open My Workouts', route: '/workouts' });
       } else if (action.type === 'schedule') {
+        if (!calendarOn) {
+          calendarSkipped = true;
+          continue;
+        }
         const byName = Object.fromEntries(created.map((c) => [c.name.toLowerCase(), c.id]));
         const result = await addToCalendar(action.events, byName);
         remindersBlocked = remindersBlocked || result.remindersBlocked;
@@ -96,7 +106,9 @@ export async function executeCoachActions(actions, user) {
           done.push('updated your daily nutrition targets');
           links.push({ label: 'Open Nutrition', route: '/nutrition' });
         }
-        if (action.meals && action.meals.length > 0) {
+        if (action.meals && action.meals.length > 0 && !calendarOn) {
+          calendarSkipped = true;
+        } else if (action.meals && action.meals.length > 0) {
           const byName = {};
           const result = await addToCalendar(action.meals, byName);
           done.push(`added ${plural(result.count, 'meal')} to your calendar`);
@@ -113,12 +125,15 @@ export async function executeCoachActions(actions, user) {
   if (done.length > 0) {
     const joined = done.length > 1 ? `${done.slice(0, -1).join(', ')} and ${done[done.length - 1]}` : done[0];
     message = `Done - I ${joined}.`;
+    if (calendarSkipped) message += ` ${CALENDAR_LEFT_ALONE}`;
     if (remindersBlocked) {
       message += ' Notifications are off for ZOWN, so there will be no reminder pings; turn them on in your phone settings if you want them.';
     }
     if (failures.length > 0) {
       message += ` Something went wrong with ${failures.length === 1 ? 'one part' : 'some parts'}, so that part was not saved.`;
     }
+  } else if (calendarSkipped && failures.length === 0) {
+    message = `I didn't add anything. ${CALENDAR_LEFT_ALONE} You can turn it on there and ask me again.`;
   } else {
     message = "Sorry, I couldn't save that. Nothing was changed - please try again.";
   }

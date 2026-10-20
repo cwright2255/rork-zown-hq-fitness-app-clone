@@ -33,6 +33,7 @@ jest.mock('@/services/coachSnapshotService', () => ({
   buildSnapshotFromStores: jest.fn(() => ({ role: 'system', content: 'SNAPSHOT WITH TODAY\'S READINGS' })),
 }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__user }) }));
+jest.mock('@/store/settingsStore', () => ({ useSettingsStore: { getState: () => ({ coachCanAddToCalendar: true }) } }));
 jest.mock('@/store/workoutStore', () => ({
   useWorkoutStore: () => ({ completedWorkouts: [], loadWorkouts: async () => {}, getExerciseHistory: async () => [] }),
 }));

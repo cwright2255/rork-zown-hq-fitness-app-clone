@@ -10,7 +10,7 @@ import { Spacing as spacing, Radius as radius } from '@/src/constants/tokens';
 import { chatAI } from '@/services/aiService';
 import { logAICoachUsed } from '@/src/services/analytics';
 import {
-  extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply,
+  extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply, CALENDAR_OFF_NOTE,
 } from '@/lib/coachActions';
 import { executeCoachActions } from '@/services/coachActionService';
 import { loadSnapshotSources, loadHabitSources, buildSnapshotFromStores } from '@/services/coachSnapshotService';
@@ -19,6 +19,7 @@ import {
   summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext,
 } from '@/services/coachService';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
@@ -254,7 +255,9 @@ export default function CoachScreen() {
     }
 
     try {
-      const systemMsg = buildCoachSystemPrompt(user);
+      // Settings > "Let the coach add to my calendar", read fresh on every send so a change made since the last message counts.
+      const calendar = useSettingsStore.getState().coachCanAddToCalendar !== false;
+      const systemMsg = buildCoachSystemPrompt(user, new Date(), { calendar });
       // Real, new: rebuilt fresh on every send, same as systemMsg itself -
       // reflects whatever's actually been loaded so far rather than a
       // stale snapshot from when the screen first mounted. Omitted
@@ -280,8 +283,11 @@ export default function CoachScreen() {
       // validate it, and attach it as a Yes / No proposal.
       const { text: replyText, actions: rawActions } = extractCoachAction(response);
       let proposal = null;
+      let calendarBlocked = 0;
       if (rawActions) {
-        const { actions } = normalizeActions(rawActions, { user });
+        const normalized = normalizeActions(rawActions, { user, calendar });
+        const { actions } = normalized;
+        calendarBlocked = normalized.calendarBlocked;
         const lines = describeActions(actions);
         if (actions.length > 0 && lines.length > 0) proposal = { status: 'pending', actions, lines, links: [] };
       }
@@ -293,9 +299,11 @@ export default function CoachScreen() {
       if (proposal) {
         if (!content) content = "Here's what I put together.";
         if (!endsWithQuestion(content)) content = `${content}\n\n${buildQuestion(proposal.actions)}`;
-      } else if (!content) {
+      } else if (!content && calendarBlocked === 0) {
         content = "I couldn't put that together cleanly. Tell me the days and times you'd like and I'll try again.";
       }
+      // Calendar items the coach sent anyway are left off the card; say so, so the answer above is not read as an offer to add them.
+      if (calendarBlocked > 0) content = content ? `${content}\n\n${CALENDAR_OFF_NOTE}` : CALENDAR_OFF_NOTE;
 
       const assistantMsg = {
         id: (Date.now() + 1).toString(),
