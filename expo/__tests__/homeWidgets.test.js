@@ -18,7 +18,7 @@ describe('the Home widget list', () => {
       expect(typeof w.label).toBe('string');
       expect(w.label.length).toBeGreaterThan(0);
       expect(w.icon).toMatch(/-outline$/);
-      expect(['card', 'workoutHistory', 'runningLog', 'carousel', 'banner']).toContain(w.kind);
+      expect(['card', 'workoutHistory', 'runningLog', 'rankChallenge', 'carousel', 'banner']).toContain(w.kind);
     });
   });
 
@@ -43,8 +43,12 @@ describe('the Home widget list', () => {
     expect(getWidgetDefinition('muscles')).toMatchObject({ label: 'Muscles', kind: 'card' });
   });
 
+  it('draws Challenges & Rank as a full-width section after the grid, not as a grid card', () => {
+    expect(getWidgetDefinition('rankChallenge')).toMatchObject({ label: 'Challenges & Rank', icon: 'podium-outline', kind: 'rankChallenge' });
+  });
+
   it('adds the newer widgets after the ones before them, in the order they were added', () => {
-    expect(ids.slice(15)).toEqual(['streak', 'nextUp', 'battlePass', 'trainingLoad', 'muscles']);
+    expect(ids.slice(15)).toEqual(['streak', 'nextUp', 'battlePass', 'trainingLoad', 'muscles', 'rankChallenge']);
   });
 
   it('keeps the widgets people already have where they were, before the newer ones', () => {

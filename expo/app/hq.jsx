@@ -62,6 +62,7 @@ import TrainingLoadWidget from '@/components/TrainingLoadWidget';
 import MusclesWidget from '@/components/MusclesWidget';
 import WorkoutHistoryWidget from '@/components/WorkoutHistoryWidget';
 import RunningLogWidget from '@/components/RunningLogWidget';
+import RankChallengeWidget from '@/components/RankChallengeWidget';
 import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
@@ -144,6 +145,7 @@ function WorkoutItem({ item, onPress }) {
 export default function HQScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0); // goes up on each pull-to-refresh, for cards that load their own data
   const { loadProfile } = useUserStore();
   const { loadXP } = useExpStore();
   const { loadWorkouts } = useWorkoutStore();
@@ -154,6 +156,7 @@ export default function HQScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     setIsLoading(true);
+    setRefreshTick((t) => t + 1);
     try {
       if (user?.uid) {
         await Promise.all([
@@ -680,6 +683,7 @@ export default function HQScreen() {
     muscles: () => isWidgetEnabled('muscles') && <MusclesWidget />,
     workoutHistory: () => isWidgetEnabled('workoutHistory') && <WorkoutHistoryWidget />,
     runningLog: () => isWidgetEnabled('runningLog') && <RunningLogWidget />,
+    rankChallenge: () => isWidgetEnabled('rankChallenge') && <RankChallengeWidget refreshTick={refreshTick} />,
   };
 
   const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {

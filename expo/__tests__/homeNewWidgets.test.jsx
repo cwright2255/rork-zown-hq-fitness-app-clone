@@ -1,13 +1,25 @@
-// The Home screen shows the newer widgets (Workout Streak, Next Up, Battle Pass, Training Load, Muscles, Workout History, Running Log) with
-// the others, and the layout switches them on and off.
+// The Home screen shows the newer widgets (Workout Streak, Next Up, Battle Pass, Training Load, Muscles, Workout History, Running Log,
+// Challenges & Rank) with the others, and the layout switches them on and off.
 // jest.global-setup.js pins the zone to America/New_York; 9:30 PM on Wed 14 Oct there is 01:30Z on the 15th.
 import React from 'react';
+import { RefreshControl } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('../src/config/firebase', () => ({ db: {}, functions: {} }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
+}));
+jest.mock('firebase/firestore', () => ({
+  ...jest.requireActual('firebase/firestore'),
+  collection: jest.fn((db, ...path) => ({ path: path.join('/') })),
+  doc: jest.fn((db, ...path) => ({ path: path.join('/') })),
+  query: jest.fn((...parts) => ({ query: parts })),
+  orderBy: jest.fn((field, dir) => ({ orderBy: field, dir })),
+  limit: jest.fn((n) => ({ limit: n })),
+  where: jest.fn((field, op, value) => ({ where: field, op, value })),
+  documentId: jest.fn(() => '__name__'),
+  getDocs: jest.fn(),
 }));
 jest.mock('../services/rookService', () => ({ rookService: {} }));
 jest.mock('../services/appleHealthService', () => ({ appleHealthService: {} }));
@@ -33,12 +45,16 @@ jest.mock('@/components/MusicWidget', () => () => null);
 jest.mock('@/components/WidgetEditorModal', () => () => null);
 
 import { router } from 'expo-router';
+import { getDocs } from 'firebase/firestore';
 import Hq from '../app/hq';
 import { useUserStore } from '../store/userStore';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useRunningStore } from '../store/runningStore';
 import { useScheduleStore } from '../store/scheduleStore';
 import { useHomeWidgetsStore } from '../store/homeWidgetsStore';
+import { useSocialGraphStore } from '../store/socialGraphStore';
+import { useChallengeStore } from '../store/challengeStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { getDefaultWidgetLayout } from '../lib/homeWidgets';
 
 const EVENING = new Date('2026-10-15T01:30:00Z'); // 9:30 PM on Wed 14 Oct in New Jersey
@@ -48,8 +64,26 @@ const NEXT = {
   remindMinutes: null, doneDates: [], skipDates: [], source: 'user', inviteId: null, host: null, updatedAt: '2026-10-01T00:00:00.000Z',
 };
 
+// What the "server" holds for the Challenges & Rank card, which reads who you follow, their leaderboard entries and the challenges.
+const docs = (list) => ({ docs: list.map(({ id, ...data }) => ({ id, data: () => data })) });
+let server;
+const answer = async (q) => {
+  if (q.path === 'users/u1/following') return docs(server.following);
+  if (q.query && q.query[0].path === 'leaderboard') return docs(server.leaderboard.filter((e) => q.query[1].value.includes(e.id)));
+  return docs([]); // challenges, challenge joins and anything else: nothing
+};
+const readsOf = (path) => getDocs.mock.calls.filter(([q]) => (q.query ? q.query[0].path : q.path) === path);
+
 // The user store finishes loading on a timer once it is imported; let that happen before the clock is moved.
 beforeAll(() => new Promise((resolve) => setTimeout(resolve, 20)));
+beforeEach(() => {
+  server = { following: [], leaderboard: [] };
+  getDocs.mockReset();
+  getDocs.mockImplementation(answer);
+  useSocialGraphStore.setState({ following: [], isLoaded: false, isLoading: false });
+  useChallengeStore.setState({ challenges: [], joinedChallengeIds: new Set() });
+  useSettingsStore.setState({ showInLeaderboards: true });
+});
 afterEach(() => { jest.useRealTimers(); });
 
 const openHome = async ({ layout = getDefaultWidgetLayout() } = {}) => {
@@ -253,5 +287,123 @@ describe('home screen: Workout History and Running Log', () => {
     const rest = getDefaultWidgetLayout().filter((w) => w.id !== 'runningLog');
     const utils = await open({ layout: [{ id: 'runningLog', enabled: true }, ...rest] });
     expect(treeOrder(utils, TEST_IDS)).toEqual(['home-widget-runninglog', 'home-widget-workouthistory']);
+  });
+});
+
+
+describe('home screen: Challenges & Rank', () => {
+  const CARD = 'home-widget-rankchallenge';
+  const treeOrder = (utils, ids) => utils.UNSAFE_root
+    .findAll((n) => n.type === 'View' && ids.includes(n.props?.testID))
+    .map((n) => n.props.testID)
+    .filter((t, i, all) => all.indexOf(t) === i);
+  const open = async (opts) => {
+    useRunningStore.setState({ runs: [] });
+    return openHome(opts);
+  };
+  const followTwo = () => {
+    server.following = [{ id: 'ana', name: 'Ana' }, { id: 'ben', name: 'Ben' }];
+    server.leaderboard = [{ id: 'ana', name: 'Ana', xp: 100 }, { id: 'ben', name: 'Ben', xp: 900 }, { id: 'u1', name: 'Cj', xp: 500 }];
+  };
+
+  it('shows with the others on the default layout, and says to follow friends when you follow nobody', async () => {
+    const utils = await open();
+    expect(utils.getByTestId(CARD)).toBeTruthy();
+    expect(utils.getByText('Friends rank')).toBeTruthy();
+    expect(utils.getByText('Follow friends to compare')).toBeTruthy();
+    expect(utils.getByText('Heart')).toBeTruthy(); // the older cards are still there
+    expect(utils.getByTestId('home-widget-muscles')).toBeTruthy(); // and the newer ones
+  });
+
+  it('shows your place among the people you follow, by XP', async () => {
+    followTwo();
+    const utils = await open();
+    expect(utils.getByTestId('home-rank-value').props.children).toBe('#2');
+    expect(utils.getByText('of 3 by XP')).toBeTruthy();
+  });
+
+  it('draws it full width after the grid of cards and after Workout History and Running Log', async () => {
+    const utils = await open();
+    expect(treeOrder(utils, ['home-widget-muscles', 'home-widget-workouthistory', 'home-widget-runninglog', CARD])).toEqual([
+      'home-widget-muscles', 'home-widget-workouthistory', 'home-widget-runninglog', CARD,
+    ]);
+  });
+
+  it('opens Friends from the left half when you follow nobody, and the Leaderboard once you follow someone', async () => {
+    const utils = await open();
+    fireEvent.press(utils.getByTestId(`${CARD}-friends`));
+    expect(router.push).toHaveBeenLastCalledWith('/friends');
+    utils.unmount();
+    followTwo();
+    const again = await open();
+    fireEvent.press(again.getByTestId(`${CARD}-friends`));
+    expect(router.push).toHaveBeenLastCalledWith('/leaderboard');
+  });
+
+  it('opens Challenges from the right half', async () => {
+    const utils = await open();
+    fireEvent.press(utils.getByTestId(`${CARD}-challenge`));
+    expect(router.push).toHaveBeenLastCalledWith('/challenges');
+  });
+
+  it('shows it to someone who saved a layout before it existed, switched on', async () => {
+    const saved = getDefaultWidgetLayout().filter((w) => w.id !== 'rankChallenge');
+    const utils = await open({ layout: saved });
+    expect(utils.getByTestId(CARD)).toBeTruthy();
+  });
+
+  it('hides it when it is switched off, and leaves the rest', async () => {
+    const layout = getDefaultWidgetLayout().map((w) => (w.id === 'rankChallenge' ? { ...w, enabled: false } : w));
+    const utils = await open({ layout });
+    expect(utils.queryByTestId(CARD)).toBeNull();
+    expect(utils.getByTestId('home-widget-runninglog')).toBeTruthy();
+    expect(utils.getByTestId('home-widget-streak')).toBeTruthy();
+  });
+
+  it('does not look anything up for the card while it is switched off', async () => {
+    const layout = getDefaultWidgetLayout().map((w) => (w.id === 'rankChallenge' ? { ...w, enabled: false } : w));
+    await open({ layout });
+    expect(readsOf('users/u1/following')).toHaveLength(0);
+    expect(readsOf('leaderboard')).toHaveLength(0);
+  });
+
+  it('starts looking things up when it is switched on, and hides when it is switched off again', async () => {
+    const off = getDefaultWidgetLayout().map((w) => (w.id === 'rankChallenge' ? { ...w, enabled: false } : w));
+    const utils = await open({ layout: off });
+    followTwo();
+    await act(async () => { useHomeWidgetsStore.setState({ layout: getDefaultWidgetLayout() }); });
+    expect(utils.getByTestId('home-rank-value').props.children).toBe('#2');
+    await act(async () => { useHomeWidgetsStore.setState({ layout: off }); });
+    expect(utils.queryByTestId(CARD)).toBeNull();
+  });
+
+  it('lets it be moved: a layout with it first draws it before Workout History', async () => {
+    const rest = getDefaultWidgetLayout().filter((w) => w.id !== 'rankChallenge');
+    const utils = await open({ layout: [{ id: 'rankChallenge', enabled: true }, ...rest] });
+    expect(treeOrder(utils, [CARD, 'home-widget-workouthistory', 'home-widget-runninglog'])).toEqual([
+      CARD, 'home-widget-workouthistory', 'home-widget-runninglog',
+    ]);
+  });
+
+  it('looks again when Home is pulled down to refresh', async () => {
+    const utils = await open();
+    expect(utils.getByText('Follow friends to compare')).toBeTruthy();
+    expect(readsOf('users/u1/following')).toHaveLength(1);
+    followTwo(); // they followed two people on another phone since
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await act(async () => { await utils.UNSAFE_getByType(RefreshControl).props.onRefresh(); });
+    console.error.mockRestore();
+    console.warn.mockRestore();
+    expect(readsOf('users/u1/following')).toHaveLength(2);
+    expect(utils.getByTestId('home-rank-value').props.children).toBe('#2');
+  });
+
+  it('shows no place while "Show in Leaderboards" is off, and does not read the leaderboard', async () => {
+    followTwo();
+    useSettingsStore.setState({ showInLeaderboards: false });
+    const utils = await open();
+    expect(utils.getByText('Hidden from leaderboards')).toBeTruthy();
+    expect(readsOf('leaderboard')).toHaveLength(0);
   });
 });

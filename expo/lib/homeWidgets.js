@@ -11,6 +11,8 @@
 //  - 'workoutHistory' / 'runningLog': new widget types with swipeable
 //    metric pages and a "View Full Log" button (see components/
 //    WorkoutHistoryWidget.jsx and RunningLogWidget.jsx).
+//  - 'rankChallenge': a wide card in two halves, your place among the people you follow and your live challenge (see
+//    components/RankChallengeWidget.jsx).
 //  - 'carousel' / 'banner': existing page sections (Recommended
 //    Workouts, Invite banner), wrapped into the same enable/reorder
 //    system rather than rebuilt.
@@ -43,6 +45,8 @@ export const WIDGET_REGISTRY = [
   { id: 'battlePass', label: 'Battle Pass', icon: 'ribbon-outline', kind: 'card' },
   { id: 'trainingLoad', label: 'Training Load', icon: 'speedometer-outline', kind: 'card' },
   { id: 'muscles', label: 'Muscles', icon: 'body-outline', kind: 'card' },
+  // Wide, like Workout History and Running Log: two halves, your place among friends and your live challenge.
+  { id: 'rankChallenge', label: 'Challenges & Rank', icon: 'podium-outline', kind: 'rankChallenge' },
 ];
 
 // Default layout for a user who has never customized their home screen -

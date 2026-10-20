@@ -94,6 +94,30 @@ Running Log). To hide or move them: the menu at the top of Home, then Edit Home 
 - [ ] With no workouts or no runs saved, the card says so in a line ("No workouts yet", "No runs yet") and the button still opens the
       full log.
 
+## Home widgets: Challenges & Rank (once, on the first update with it)
+
+On Home, scroll down past the cards. It is one wide card with two halves, after Workout History and Running Log. If you had saved
+your own Home layout before this update, it comes last, under the "Invite your friends" banner. To move or hide it: the menu at the
+top of Home, then Edit Home Screen ("Challenges & Rank"). It only reads. It never joins you to a challenge or changes anything.
+
+- [ ] The left half, "Friends rank", shows a place like "#3" and "of 8 by XP". Open the Leaderboard (`app/leaderboard.jsx`), pick
+      the XP board and the Following filter: your row is that place, and the number of rows is the "of" number.
+- [ ] Tap the left half. The Leaderboard opens.
+- [ ] Follow someone who is on the leaderboard, on Friends (`app/friends.jsx`), and go back to Home. The "of" number goes up by
+      one without pulling down to refresh.
+- [ ] With an account that follows nobody, the left half says "Follow friends to compare", and tapping it opens Friends.
+- [ ] Settings, then turn off Show in Leaderboards, and go back to Home. The left half says "Hidden from leaderboards". Turn it
+      back on: the place comes back.
+- [ ] The right half shows the challenge you have joined that is on now (daily, weekly, monthly or seasonal), like "3/5" with a bar,
+      its title and "4 days left". Open Challenges (`app/challenges.jsx`): the same challenge shows the same count and days left.
+- [ ] Do a workout that counts toward a challenge you joined, and go back to Home. The count goes up and the bar grows. When it reaches
+      the goal, the right half says "Complete" and the bar turns green.
+- [ ] With nothing joined, the right half says "Join" and "Tap to join" with a challenge's name. Tap it: Challenges opens, and you are
+      not joined until you press Join Challenge there.
+- [ ] With no live challenge at all, the right half says "Open Challenges", and tapping it opens that screen.
+- [ ] Join a challenge on the Challenges screen and go back to Home. The right half shows it.
+- [ ] Pull down on Home. Both halves stay filled in and do not flash empty or show an error.
+
 ## The Coach
 
 Profile, then AI Coach. Ask "What do you know about my day?"

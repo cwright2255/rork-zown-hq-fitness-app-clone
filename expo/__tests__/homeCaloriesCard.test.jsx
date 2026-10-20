@@ -37,6 +37,7 @@ jest.mock('@/components/TrainingLoadWidget', () => () => null);
 jest.mock('@/components/MusclesWidget', () => () => null);
 jest.mock('@/components/WorkoutHistoryWidget', () => () => null);
 jest.mock('@/components/RunningLogWidget', () => () => null);
+jest.mock('@/components/RankChallengeWidget', () => () => null);
 jest.mock('@/components/WidgetEditorModal', () => () => null);
 
 import Hq from '../app/hq';
