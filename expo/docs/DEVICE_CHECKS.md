@@ -260,6 +260,10 @@ JavaScript only: no rules, no functions and no new build. After CI is green, `ea
 - [ ] Water and XP: add glasses until you pass a reward step (the XP shows), remove one, add it again: the XP is not paid a second
       time that day, and removing a glass does not take XP away.
 - [ ] Remove a glass, force-close the app and open it again: the count is the lower one.
+- [ ] Home, Hydration: tap +250ml, then in the Firebase console open Firestore, `users`, your uid, `data`, `health`: `hydration.glasses`
+      matches the number on the card (before this change Home's buttons only saved it on the phone). +500ml adds two.
+- [ ] Health page with Apple Health allowed: open it, then check the same `health` document: `steps` and `stepsDate` are today's, and
+      the steps XP shows in your XP total (the Health page used to read the steps without saving them to your account).
 
 ## After changing a key or a Cloud Function
 

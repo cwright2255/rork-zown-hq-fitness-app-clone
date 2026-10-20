@@ -607,7 +607,7 @@ export default function HQScreen() {
                       <TouchableOpacity
                         style={styles.quickAddBtn}
                         onPress={() => {
-                          addGlass();
+                          addGlass(user?.uid);
                           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                         }}
                       >
@@ -617,8 +617,8 @@ export default function HQScreen() {
                       <TouchableOpacity
                         style={styles.quickAddBtn}
                         onPress={() => {
-                          addGlass();
-                          addGlass();
+                          addGlass(user?.uid);
+                          addGlass(user?.uid);
                           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                         }}
                       >

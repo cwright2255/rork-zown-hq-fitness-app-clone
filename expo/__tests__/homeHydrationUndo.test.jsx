@@ -44,6 +44,7 @@ jest.mock('@/components/WidgetEditorModal', () => () => null);
 import Hq from '../app/hq';
 import { useUserStore } from '../store/userStore';
 import { useHealthStore } from '../store/healthStore';
+import { useExpStore } from '../store/expStore';
 import { useHikingStore } from '../store/hikingStore';
 
 const NOON = new Date('2026-10-14T16:00:00Z');
@@ -79,6 +80,29 @@ describe('home screen: Hydration card', () => {
     expect(glasses()).toBe(4);
     fireEvent.press(utils.getByText('+500ml'));
     expect(glasses()).toBe(6);
+  });
+
+  it('saves a glass added with +250ml for the signed-in person, so it is in their account and not only on this phone', async () => {
+    const persist = jest.fn();
+    const utils = await openHydration(3);
+    act(() => { useHealthStore.setState({ _persist: persist }); });
+    fireEvent.press(utils.getByText('+250ml'));
+    expect(persist.mock.calls).toEqual([['u1']]);
+  });
+
+  it('saves both glasses added with +500ml for the signed-in person', async () => {
+    const persist = jest.fn();
+    const utils = await openHydration(3);
+    act(() => { useHealthStore.setState({ _persist: persist }); });
+    fireEvent.press(utils.getByText('+500ml'));
+    expect(persist.mock.calls).toEqual([['u1'], ['u1']]);
+  });
+
+  it('files the water reward for the signed-in person, as the Nutrition tab does, and not on this phone alone', async () => {
+    const utils = await openHydration(3);
+    const award = jest.spyOn(useExpStore.getState(), 'awardHydrationXp').mockImplementation(() => {});
+    fireEvent.press(utils.getByText('+250ml'));
+    expect(award).toHaveBeenCalledWith(4, 8, 'u1');
   });
 
   it('takes a glass back off with -250ml, for one added by mistake', async () => {

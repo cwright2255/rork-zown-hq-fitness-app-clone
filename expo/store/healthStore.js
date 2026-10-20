@@ -153,11 +153,11 @@ export const useHealthStore = create(
       // requestAuthorization is called and awaited before any
       // get/query call - appleHealthService's own docs are explicit
       // that skipping this exact ordering is what crashes this
-      // library. uid is optional (hq.jsx's current call site doesn't
-      // pass one) - setSteps/awardStepsXp already handle a missing uid
-      // safely (no Firestore sync, no crash), so this works either
-      // way, but passing the real uid lets Apple-Health-sourced steps
-      // sync and award XP through the same path manually-set steps do.
+      // library. uid is optional - setSteps/awardStepsXp already handle
+      // a missing uid safely (no Firestore sync, no crash) - but both
+      // screens that call this (Home and Health) pass the real uid, which
+      // lets Apple-Health-sourced steps sync and award XP through the
+      // same path manually-set steps do.
       loadAppleHealthActivity: async (uid) => {
         try {
           const available = await appleHealthService.isAvailable();

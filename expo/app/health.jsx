@@ -58,7 +58,7 @@ export default function HealthScreen() {
   useEffect(() => {
     if (user?.uid) {
       loadAllHealth(user.uid);
-      loadAppleHealthActivity();
+      loadAppleHealthActivity(user.uid);
       loadRookRecovery();
       loadScans(user.uid);
       loadWorkouts(user.uid);

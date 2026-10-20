@@ -67,6 +67,8 @@ beforeEach(() => {
   mockRuns.runs = [];
   mockHikes.completedHikes = [];
   mockPush.mockClear();
+  mockHealth.loadAppleHealthActivity.mockClear();
+  mockHealth.loadAllHealth.mockClear();
   mockGetInsight.mockReset();
   mockGetInsight.mockResolvedValue('A steady week.');
 });
@@ -84,6 +86,21 @@ const pressWithoutBubbling = (node) => {
   fireEvent.press(node, { stopPropagation });
   expect(stopPropagation).toHaveBeenCalledTimes(1);
 };
+
+describe('what the screen loads when it opens', () => {
+  it('syncs the steps from Apple Health for the signed-in person, so they are saved to their account and earn their XP', async () => {
+    await open();
+    expect(mockHealth.loadAppleHealthActivity).toHaveBeenCalledTimes(1);
+    expect(mockHealth.loadAppleHealthActivity).toHaveBeenCalledWith('u1');
+  });
+
+  it('loads nothing without a signed-in person', async () => {
+    mockUser.user = null;
+    await open();
+    expect(mockHealth.loadAppleHealthActivity).not.toHaveBeenCalled();
+    expect(mockHealth.loadAllHealth).not.toHaveBeenCalled();
+  });
+});
 
 describe('the readings', () => {
   it('has none of the numbers and words it used to show without measuring anything', async () => {
