@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, TouchableOpacity, Platform, Modal } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, Plus, Star, Droplet, Copy, Clock, CalendarDays, ClipboardList } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, Minus, Star, Droplet, Copy, Clock, CalendarDays, ClipboardList } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -165,7 +165,7 @@ export default function NutritionScreen() {
   // the current day (resets whenever the date changes), so this is
   // only shown when viewing "Today" below - not shown for past dates,
   // rather than implying past-date editing works when it doesn't.
-  const { hydration, addGlass } = useHealthStore();
+  const { hydration, addGlass, removeGlass } = useHealthStore();
 
   useEffect(() => {
     if (user?.uid) {
@@ -395,9 +395,22 @@ export default function NutritionScreen() {
               <Text style={styles.glassesLabel}>
                 {hydration?.glasses || 0} of {hydration?.target || 8} glasses
               </Text>
-              <TouchableOpacity style={styles.addGlassBtn} onPress={() => addGlass(user?.uid)}>
-                <Text style={styles.addGlassBtnText}>Add Glass</Text>
-              </TouchableOpacity>
+              <View style={styles.glassBtnRow}>
+                <TouchableOpacity
+                  testID="hydration-remove"
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove a glass of water"
+                  disabled={(hydration?.glasses || 0) <= 0}
+                  style={[styles.removeGlassBtn, (hydration?.glasses || 0) <= 0 && styles.removeGlassBtnOff]}
+                  onPress={() => removeGlass(user?.uid)}
+                >
+                  <Minus size={14} color="#000" />
+                  <Text style={styles.removeGlassBtnText}>Remove Glass</Text>
+                </TouchableOpacity>
+                <TouchableOpacity testID="hydration-add" style={styles.addGlassBtn} onPress={() => addGlass(user?.uid)}>
+                  <Text style={styles.addGlassBtnText}>Add Glass</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </>
         )}
@@ -577,6 +590,10 @@ const styles = StyleSheet.create({
   glassesLabel: { fontSize: 14, fontWeight: '600', color: '#000', marginBottom: 12 },
   addGlassBtn: { backgroundColor: '#000', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16 },
   addGlassBtnText: { fontSize: 13, fontWeight: '700', color: '#FFF' },
+  glassBtnRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  removeGlassBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#000', paddingHorizontal: 16, paddingVertical: 7, borderRadius: 16 },
+  removeGlassBtnOff: { opacity: 0.35 },
+  removeGlassBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
   mealCard: {
     backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: 16,

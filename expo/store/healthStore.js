@@ -234,6 +234,17 @@ export const useHealthStore = create(
         useExpStore.getState().awardHydrationXp(hydration.glasses, hydration.target, uid);
         get()._persist(uid);
       },
+      // Takes one glass back off today's count, for a glass added by mistake. It never goes below 0. The XP is left alone on purpose:
+      // a tier that was reached is already paid (the ledger pays each tier of each day once, by its own claim id), and nothing here
+      // takes it back, so adding the glass again cannot pay it twice either.
+      removeGlass: (uid) => {
+        const today = todayStr();
+        set((s) => {
+          const h = s.hydration.date === today ? s.hydration : { glasses: 0, target: 8, date: today };
+          return { hydration: { ...h, glasses: Math.max(0, h.glasses - 1) } };
+        });
+        get()._persist(uid);
+      },
       resetHydration: (uid) => {
         set({ hydration: { glasses: 0, target: 8, date: todayStr() } });
         get()._persist(uid);

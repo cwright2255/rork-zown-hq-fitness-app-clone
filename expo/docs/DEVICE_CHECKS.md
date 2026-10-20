@@ -233,6 +233,34 @@ document within a few seconds, with no restart. See `lib/entitlements.js` for wh
       hold `coach`, `assist` and `insight` counts; deleting today's resets that person's count (you cannot do this from the app).
 - [ ] Sign out and sign in as someone else: they see their own plan, not the first person's.
 
+## Health page, the training-load comment and removing a glass of water (once, on the first update with them)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`.
+
+- [ ] Health: the "Your Health Score" circle, "Updated today at 9:15 AM", the Heart Rate / Blood Oxygen / Stress Level tiles and the
+      "AI Coach" tip about a 10-minute stretch are gone. Nothing on the page is a number the app did not read or work out.
+- [ ] Health, Recovery: with Apple Health allowed (or a device connected under Wearable Sync) the tiles show your real resting heart
+      rate (bpm) and HRV (ms), and the line under them says "Latest readings from Apple Health" (or the device). Apple Health tiles say
+      "HRV (SDNN)", a connected device says "HRV (RMSSD)": they are different measures, so do not compare them with each other.
+- [ ] Health, Recovery: with no reading yet, the tiles show a dash and the line says "No readings yet. Connect a device under
+      Wearable Sync below." (Delete the app's Health permission in iOS Settings to see this.)
+- [ ] Health, Training Load (needs about a week of workouts, runs or hikes): a one or two sentence comment appears under the bar a
+      moment after the page opens. Leave the page and come back, force-close the app and open it again: the same comment is there
+      straight away, and the Coach's daily count is not used (the comment has its own allowance). In Firebase, `aiUsage`, today's
+      `<uid>_<day>` document has `insight` at 1, not more, however many times you opened the page.
+- [ ] Health, Training Load: log a workout, then open Health. The numbers change, so a new comment is asked for (`insight` goes to 2).
+      If you are offline the card still shows its numbers, with no comment.
+- [ ] Health, Body Composition: on Free or Pro the card says "Legend" next to its title, "Body scan is part of Legend" under it
+      (or the last scan, if you have one), and the green button says "See plans" and opens Plans with the body scan at the top. On
+      Legend there is no label, and the button says "Scan now" or "New scan". A scan taken earlier still opens from the card on any plan.
+      Set your own account to Free (see Plans above) to see the label, then back to Legend.
+- [ ] Home, Hydration: open the Hydration card. Under +250ml and +500ml there is a "-250ml" button. Tap +250ml twice, then -250ml: the
+      glass count goes down by one (the bar and the number). At 0 the button is greyed out and does nothing.
+- [ ] Nutrition tab, water card: "Remove Glass" sits next to "Add Glass" and works the same way; it is greyed out at 0.
+- [ ] Water and XP: add glasses until you pass a reward step (the XP shows), remove one, add it again: the XP is not paid a second
+      time that day, and removing a glass does not take XP away.
+- [ ] Remove a glass, force-close the app and open it again: the count is the lower one.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

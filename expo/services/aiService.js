@@ -495,10 +495,16 @@ export const generateTrainingLoadInsight = async ({ trainingLoad }) => {
   try {
     // Asked for by the Health screen on its own, so it has an allowance of its own and never uses up the person's messages.
     const data = await postLLM([sys, usr], 15000, 1, 'insight');
-    const text = data?.choices?.[0]?.message?.content ?? data?.content ?? '';
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
-    return parsed.comment || null;
+    // A request the scope check turned away comes back as a polite refusal, which is not a comment on anyone's training.
+    if (data?.refused) return null;
+    // postLLM resolves to { completion }: the reply text. (This used to read an OpenAI-shaped reply that never arrives here, so the
+    // comment was always empty.)
+    // The reply is asked to be JSON only; if the model adds a few words or a code fence around it, the JSON is still found.
+    // A reply with no pair of braces in it is not a comment, and has nothing to parse (the slice is empty, which throws).
+    const text = data.completion;
+    const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+    const comment = typeof parsed?.comment === 'string' ? parsed.comment.trim() : '';
+    return comment || null;
   } catch (error) {
     console.error('Error generating training load insight', error);
     return null;

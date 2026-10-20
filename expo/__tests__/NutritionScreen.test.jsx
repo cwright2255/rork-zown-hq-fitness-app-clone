@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, within } from '@testing-library/react-native';
 
 jest.mock('lucide-react-native', () => new Proxy({}, { get: (_, name) => (name === '__esModule' ? false : name) }), { virtual: true });
@@ -45,9 +46,13 @@ jest.mock('@/store/nutritionStore', () => {
   hook.getState = () => global.__nutrition;
   return { useNutritionStore: hook };
 });
-jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: null }) }));
+jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__user ?? null }) }));
 jest.mock('@/store/healthStore', () => ({
-  useHealthStore: () => ({ hydration: { glasses: 2, target: 8 }, addGlass: jest.fn() }),
+  useHealthStore: () => ({
+    hydration: { glasses: global.__glasses ?? 2, target: 8 },
+    addGlass: (...a) => global.__addGlass(...a),
+    removeGlass: (...a) => global.__removeGlass(...a),
+  }),
 }));
 jest.mock('@/store/workoutStore', () => {
   const hook = () => ({});
@@ -69,8 +74,13 @@ afterAll(() => { if (original === undefined) delete process.env.TZ; else process
 
 // 9:30 PM on Oct 8 in New Jersey is already Oct 9 in UTC.
 const EVENING = new Date('2026-10-09T01:30:00Z');
-beforeEach(() => { jest.useFakeTimers({ now: EVENING, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] }); });
-afterEach(() => { jest.useRealTimers(); });
+beforeEach(() => {
+  jest.useFakeTimers({ now: EVENING, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+  global.__glasses = 2;
+  global.__addGlass = jest.fn();
+  global.__removeGlass = jest.fn();
+});
+afterEach(() => { jest.useRealTimers(); delete global.__glasses; delete global.__addGlass; delete global.__removeGlass; delete global.__user; });
 
 const open = (meals = [], extra = {}, params = {}) => {
   global.__params = params;
@@ -113,6 +123,58 @@ describe('which day the diary shows', () => {
     expect(utils.getByText('Yesterday')).toBeTruthy();
     expect(global.__nutrition.getMealsByDate).toHaveBeenLastCalledWith('2026-10-07');
     expect(utils.queryByText('Hydration')).toBeNull();
+  });
+});
+
+describe('the water card', () => {
+  it('adds a glass from the Add Glass button, and takes nothing off', () => {
+    const utils = open([]);
+    fireEvent.press(utils.getByTestId('hydration-add'));
+    expect(global.__addGlass).toHaveBeenCalledTimes(1);
+    expect(global.__removeGlass).not.toHaveBeenCalled();
+  });
+
+  it('takes a glass off, for one added by mistake, from the Remove Glass button', () => {
+    const utils = open([]);
+    expect(utils.getByText('Remove Glass')).toBeTruthy();
+    fireEvent.press(utils.getByTestId('hydration-remove'));
+    expect(global.__removeGlass).toHaveBeenCalledTimes(1);
+    expect(global.__addGlass).not.toHaveBeenCalled();
+  });
+
+  it('switches Remove Glass off when there is nothing to take off', () => {
+    global.__glasses = 0;
+    const utils = open([]);
+    expect(utils.getByTestId('hydration-remove').props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(utils.getByTestId('hydration-remove'));
+    expect(global.__removeGlass).not.toHaveBeenCalled();
+  });
+
+  it('leaves Remove Glass on while there is at least one glass', () => {
+    global.__glasses = 1;
+    const utils = open([]);
+    expect(utils.getByTestId('hydration-remove').props.accessibilityState.disabled).toBe(false);
+  });
+
+  it('labels the Remove Glass button for screen readers', () => {
+    expect(open([]).getByLabelText('Remove a glass of water')).toBeTruthy();
+  });
+
+  it('greys the Remove Glass button out at 0 and not otherwise', () => {
+    const opacityOf = (utils) => StyleSheet.flatten(utils.UNSAFE_getAllByProps({ testID: 'hydration-remove' })[0].props.style).opacity;
+    global.__glasses = 0;
+    expect(opacityOf(open([]))).toBe(0.35);
+    global.__glasses = 2;
+    expect(opacityOf(open([]))).toBeUndefined();
+  });
+
+  it('saves for the signed-in person, whichever way the count goes', () => {
+    global.__user = { uid: 'u1' };
+    const utils = open([]);
+    fireEvent.press(utils.getByTestId('hydration-add'));
+    fireEvent.press(utils.getByTestId('hydration-remove'));
+    expect(global.__addGlass).toHaveBeenCalledWith('u1');
+    expect(global.__removeGlass).toHaveBeenCalledWith('u1');
   });
 });
 

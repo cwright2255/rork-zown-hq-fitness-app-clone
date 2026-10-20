@@ -4,6 +4,8 @@
 //   - Math.random() standing in for a measurement (a heart rate, a step count, a number of viewers, a GPS position)
 //   - a short list of made-up foods, places or notifications shown when the real thing could not be loaded
 //   - files that exist only to produce that kind of data and are used by nothing
+//   - a health reading written into the screen as text (a heart rate, a blood oxygen level, a health score and the time it was
+//     "updated"), which looked like a measurement and was not one
 // Math.random() is fine for an id, a React key, a shuffle or a pick of one song, so the places that do that are listed below
 // with their reason. A new use anywhere else fails this test: either it is not a measurement, and gets added to the list with
 // its reason, or it is, and should not be there.
@@ -45,8 +47,14 @@ const DELETED = [
   'services/mapboxService.js', // a copy of radarService with made-up locations
 ];
 
+// Words and numbers the Health screen once showed with nothing behind them: a health score "updated today at 9:15 AM", blood oxygen,
+// a stress level, a heart rate typed in as "72 bpm", and a canned tip dressed up as the AI's advice. A heart rate that is measured is
+// built from the reading, so its number never sits in the same piece of text as "bpm".
+const FABRICATED_TEXT = 'Blood Oxygen|Stress Level|Your Health Score|Updated today at|SpO2|\\d\\s*bpm|consider adding a 10-minute stretch';
+
 const RANDOM = 'Math.random() used as a source of numbers';
 const MOCK_NAME = 'a name that says it is mock, fake or dummy data';
+const FABRICATED = 'a health reading, or a sentence about one, written in as text instead of measured';
 const linter = new Linter({ configType: 'flat', cwd: expoDir });
 const detector = [{
   files: ['**/*.js', '**/*.jsx'],
@@ -57,6 +65,9 @@ const detector = [{
     'no-restricted-syntax': ['error',
       { selector: "MemberExpression[object.name='Math'][property.name='random']", message: RANDOM },
       { selector: 'Identifier[name=/mock|fake|dummy/i]', message: MOCK_NAME },
+      { selector: `Literal[value=/${FABRICATED_TEXT}/i]`, message: FABRICATED },
+      { selector: `JSXText[value=/${FABRICATED_TEXT}/i]`, message: FABRICATED },
+      { selector: `TemplateElement[value.raw=/${FABRICATED_TEXT}/i]`, message: FABRICATED },
     ],
   },
 }];
@@ -117,6 +128,10 @@ describe('the app does not make up data', () => {
     expect(Object.keys(MOCK_NAMES_ALLOWED).filter((file) => count(file, MOCK_NAME) === 0)).toEqual([]);
   });
 
+  it('has no health reading written in as text', () => {
+    expect(Object.keys(scanned).filter((file) => scanned[file].includes(FABRICATED))).toEqual([]);
+  });
+
   it('no longer has the files that only made data up', () => {
     expect(DELETED.filter((file) => fs.existsSync(path.join(expoDir, file)))).toEqual([]);
   });
@@ -155,6 +170,26 @@ describe('the check itself', () => {
     expect(findings('export const getMockFallback = () => [];')).toEqual([MOCK_NAME]);
     expect(findings('const FAKE_VIEWERS = 5; export default FAKE_VIEWERS;')).toEqual([MOCK_NAME, MOCK_NAME]);
     expect(findings('export const dummyUser = {};')).toEqual([MOCK_NAME]);
+  });
+
+  it('finds a health reading written in as text, in a string, in JSX or in a template', () => {
+    expect(findings("export const tile = { val: '72', unit: 'bpm', label: 'Blood Oxygen' };")).toEqual([FABRICATED]);
+    expect(findings("export const label = 'Stress Level';")).toEqual([FABRICATED]);
+    expect(findings('export default () => <Text>Your Health Score</Text>;', 'probe.jsx')).toEqual([FABRICATED]);
+    expect(findings('export default () => <Text>Updated today at 9:15 AM</Text>;', 'probe.jsx')).toEqual([FABRICATED]);
+    expect(findings('export default () => <Text>72 bpm</Text>;', 'probe.jsx')).toEqual([FABRICATED]);
+    expect(findings('export const line = `Resting 72 bpm`;')).toEqual([FABRICATED]);
+    expect(findings("export const tip = 'Based on your activity, consider adding a 10-minute stretch.';")).toEqual([FABRICATED]);
+    expect(findings("export const o2 = 'SpO2 98';")).toEqual([FABRICATED]);
+    expect(findings("export const shout = 'BLOOD OXYGEN';")).toEqual([FABRICATED]);
+  });
+
+  it('leaves a heart rate that is built from a reading alone', () => {
+    expect(findings('export const line = (hr) => `resting heart rate ${Math.round(hr)} bpm`;')).toEqual([]);
+    expect(findings('export default ({ hr }) => <Text>{Math.round(hr)} bpm</Text>;', 'probe.jsx')).toEqual([]);
+    expect(findings("export const unit = 'bpm';")).toEqual([]);
+    expect(findings('// 72 bpm, Blood Oxygen and Stress Level are not measured here\nexport const a = 1;')).toEqual([]);
+    expect(findings('export const n = 98;')).toEqual([]);
   });
 
   it('is not fooled by an eslint-disable comment', () => {

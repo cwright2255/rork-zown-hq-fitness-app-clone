@@ -14,7 +14,10 @@ import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
 import { calculateMuscleFatigue } from '@/lib/muscleFatigue';
 import { getLiftInsight, PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
 import { rookService } from '@/services/rookService';
-import { generateTrainingLoadInsight } from '@/services/aiService';
+import { getTrainingLoadInsight } from '@/services/insightService';
+import { INSIGHT_SETTLE_MS } from '@/lib/insightCache';
+import { recoveryTiles, recoveryCaption, bodyScanCard } from '@/lib/healthDisplay';
+import { useEntitlement } from '@/hooks/useEntitlement';
 import TrainingLoadCard from '@/components/TrainingLoadCard';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 
@@ -33,6 +36,10 @@ export default function HealthScreen() {
   const [liftInsights, setLiftInsights] = useState([]);
 
   const latestScan = scans && scans.length ? scans[scans.length - 1] : null;
+
+  // Body scan is part of a higher plan. Until the phone knows the plan nothing is marked, so a person who has it never sees the label flash up.
+  const { can, ready } = useEntitlement();
+  const bodyCard = bodyScanCard({ latestScan, locked: ready && !can('bodyScan') });
 
   // Real fix: previously read sleep?.hours - store/healthStore.js's
   // standalone sleep field, confirmed dead (logSleep, its only setter,
@@ -60,17 +67,24 @@ export default function HealthScreen() {
     }
   }, [user?.uid]);
 
+  // The AI's comment on the training numbers. It is asked for once the numbers have stopped changing (the lists load one after the
+  // other), at most once a day for each set of numbers, and kept on the phone (services/insightService.js), so opening this
+  // screen again does not spend another request.
   useEffect(() => {
     const dailyLoad = aggregateDailyLoad({ completedWorkouts, runs, completedHikes });
     const result = calculateTrainingLoad(dailyLoad);
     setTrainingLoad(result);
+    setTrainingLoadInsight(null);
+    if (!user?.uid || result.zone === 'insufficient_data') return undefined;
 
-    if (result.zone !== 'insufficient_data') {
-      generateTrainingLoadInsight({ trainingLoad: result }).then(setTrainingLoadInsight);
-    } else {
-      setTrainingLoadInsight(null);
-    }
-  }, [completedWorkouts, runs, completedHikes]);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      getTrainingLoadInsight({ uid: user.uid, trainingLoad: result }).then((text) => {
+        if (!cancelled) setTrainingLoadInsight(text);
+      });
+    }, INSIGHT_SETTLE_MS);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [completedWorkouts, runs, completedHikes, user?.uid]);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,30 +165,17 @@ return (
         <View style={s.logoRow}><Image source={require('@/assets/branding/zown-logo-512.png')} style={s.logo} resizeMode="contain" /></View>
         <Text style={s.pageTitle}>Health</Text>
 
-        <View style={s.card}>
-          <Text style={s.cardHeader}>Your Health Score</Text>
-          <View style={s.scoreCircle}><Text style={s.scoreNum}>82</Text></View>
-          <Text style={s.scoreLabel}>Good</Text>
-          <Text style={s.scoreUpdated}>Updated today at 9:15 AM</Text>
-        </View>
-
+        <Text style={s.sectionTitle}>Recovery</Text>
         <View style={s.statsRow}>
-          {[{icon:'heart-outline',val:'72',unit:'bpm',label:'Heart Rate'},{icon:'pulse-outline',val:'98',unit:'%',label:'Blood Oxygen'},{icon:'happy-outline',val:'Low',unit:'',label:'Stress Level'}].map(st=>(
-            <View key={st.label} style={s.statCard}>
-              <Ionicons name={st.icon} size={20} color="#000" />
-              <Text style={s.statVal}>{st.val}{st.unit ? ' '+st.unit : ''}</Text>
-              <Text style={s.statLabel}>{st.label}</Text>
+          {recoveryTiles(rookRecovery).map((tile) => (
+            <View key={tile.key} testID={`recovery-${tile.key}`} style={s.statCard}>
+              <Ionicons name={tile.icon} size={20} color="#000" />
+              <Text style={s.statVal}>{tile.unit ? `${tile.value} ${tile.unit}` : tile.value}</Text>
+              <Text style={s.statLabel}>{tile.label}</Text>
             </View>
           ))}
         </View>
-
-        <View style={s.insightCard}>
-          <View style={s.insightBadge}><Ionicons name="sparkles" size={14} color="#FFD700" /><Text style={s.insightBadgeText}>AI Coach</Text></View>
-          <Text style={s.insightText}>Based on your activity, consider adding a 10-minute stretch before your evening workout to improve recovery.</Text>
-          <Pressable onPress={() => router.push(latestScan ? `/body-scan/${latestScan.id}` : '/body-scan/capture')}>
-            <Text style={s.insightLink}>{latestScan ? 'Get More Insights' : 'Get Your First Insight'}</Text>
-          </Pressable>
-        </View>
+        <Text testID="recovery-caption" style={s.recoveryCaption}>{recoveryCaption(rookRecovery)}</Text>
 
         <TrainingLoadCard trainingLoad={trainingLoad} aiInsight={trainingLoadInsight} />
 
@@ -203,54 +204,38 @@ return (
         )}
 
         <TouchableOpacity
-          style={{
-            backgroundColor: '#F5F5F5',
-            borderRadius: 16,
-            padding: 20,
-            marginBottom: 18,
-            marginHorizontal: 20
-          }}
-          onPress={() => router.push(latestScan ? `/body-scan/${latestScan.id}` : '/body-scan/capture')}
+          testID="body-composition-card"
+          style={s.bodyCard}
+          onPress={() => router.push(bodyCard.cardRoute)}
           activeOpacity={0.7}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <View style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: '#E8F5E9',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 12,
-            }}>
+          <View style={s.bodyCardTop}>
+            <View style={s.bodyCardIcon}>
               <Ionicons name="body-outline" size={24} color="#4CAF50" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A1A2E', marginBottom: 2 }}>
-                Body Composition
-              </Text>
-              <Text style={{ fontSize: 13, color: '#666', lineHeight: 18 }}>
-                {latestScan
-                  ? `Last scan: ${latestScan.bodyFatPercent != null ? latestScan.bodyFatPercent + '% body fat' : 'saved'}`
-                  : 'AI-powered body analysis using your camera'}
-              </Text>
+              <View style={s.bodyCardTitleRow}>
+                <Text style={s.bodyCardTitle}>Body Composition</Text>
+                {bodyCard.pill ? (
+                  <View testID="body-composition-plan" style={s.planPill}><Text style={s.planPillText}>{bodyCard.pill}</Text></View>
+                ) : null}
+              </View>
+              <Text style={s.bodyCardSubtitle}>{bodyCard.subtitle}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            {latestScan && (
-              <View style={{
-                flex: 1, backgroundColor: '#FFF', borderRadius: 10, paddingVertical: 10,
-                alignItems: 'center', borderWidth: 1, borderColor: '#4CAF50',
-              }}>
-                <Text style={{ color: '#4CAF50', fontSize: 14, fontWeight: '600' }}>View progress</Text>
+            {bodyCard.showViewProgress && (
+              <View style={s.bodyCardSecondary}>
+                <Text style={s.bodyCardSecondaryText}>View progress</Text>
               </View>
             )}
             <Pressable
-              onPress={(e) => { e.stopPropagation(); router.push('/body-scan/capture'); }}
-              style={{ flex: 1, backgroundColor: '#4CAF50', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+              testID="body-composition-primary"
+              onPress={(e) => { e.stopPropagation(); router.push(bodyCard.primaryRoute); }}
+              style={s.bodyCardPrimary}
             >
-              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '600' }}>{latestScan ? 'New scan' : 'Scan now'}</Text>
+              <Text style={s.bodyCardPrimaryText}>{bodyCard.primaryLabel}</Text>
             </Pressable>
           </View>
         </TouchableOpacity>
@@ -286,13 +271,8 @@ const s = StyleSheet.create({
   safe:{flex:1,backgroundColor:'#FFFFFF'}, scroll:{flex:1}, scrollContent:{paddingBottom:100},
   logoRow:{alignItems:'center',marginTop:8,marginBottom:12}, logo:{width:120,height:36},
   pageTitle:{fontSize:24,fontWeight:'800',color:'#000',paddingHorizontal:20,marginBottom:16},
-  card:{backgroundColor:'#FFF',borderRadius:16,padding:20,marginHorizontal:20,marginBottom:20,alignItems:'center',...Platform.select({ios:{shadowColor:'#000',shadowOpacity:0.06,shadowRadius:8,shadowOffset:{width:0,height:2}},android:{elevation:3},default:{shadowColor:'#000',shadowOpacity:0.06,shadowRadius:8,shadowOffset:{width:0,height:2}}})},
-  cardHeader:{fontSize:16,fontWeight:'700',color:'#000',marginBottom:16},
-  scoreCircle:{width:120,height:120,borderRadius:60,borderWidth:6,borderColor:'#000',justifyContent:'center',alignItems:'center'},
-  scoreNum:{fontSize:36,fontWeight:'800',color:'#000'},
-  scoreLabel:{fontSize:16,fontWeight:'700',color:'#22C55E',marginTop:8},
-  scoreUpdated:{fontSize:11,color:'#999',marginTop:4},
-  statsRow:{flexDirection:'row',gap:10,paddingHorizontal:20,marginBottom:20},
+  statsRow:{flexDirection:'row',gap:10,paddingHorizontal:20,marginBottom:8},
+  recoveryCaption:{fontSize:12,color:'#777',paddingHorizontal:20,marginBottom:20},
   statCard:{flex:1,backgroundColor:'#FFF',borderRadius:14,padding:14,alignItems:'center',...Platform.select({ios:{shadowColor:'#000',shadowOpacity:0.06,shadowRadius:8,shadowOffset:{width:0,height:2}},android:{elevation:3},default:{shadowColor:'#000',shadowOpacity:0.06,shadowRadius:8,shadowOffset:{width:0,height:2}}})},
   statVal:{fontSize:18,fontWeight:'800',color:'#000',marginTop:4},
   statLabel:{fontSize:10,color:'#999',marginTop:2},
@@ -313,4 +293,16 @@ const s = StyleSheet.create({
   syncSubtitle:{fontSize:13,color:'#666',lineHeight:18,marginBottom:16},
   syncBtn:{backgroundColor:'#000',height:44,borderRadius:22,justifyContent:'center',alignItems:'center'},
   syncBtnText:{fontSize:14,fontWeight:'700',color:'#FFF'},
+  bodyCard:{backgroundColor:'#F5F5F5',borderRadius:16,padding:20,marginBottom:18,marginHorizontal:20},
+  bodyCardTop:{flexDirection:'row',alignItems:'center',marginBottom:10},
+  bodyCardIcon:{width:44,height:44,borderRadius:12,backgroundColor:'#E8F5E9',justifyContent:'center',alignItems:'center',marginRight:12},
+  bodyCardTitleRow:{flexDirection:'row',alignItems:'center',gap:8,marginBottom:2},
+  bodyCardTitle:{fontSize:16,fontWeight:'700',color:'#1A1A2E'},
+  bodyCardSubtitle:{fontSize:13,color:'#666',lineHeight:18},
+  planPill:{backgroundColor:'#000',borderRadius:8,paddingHorizontal:8,paddingVertical:2},
+  planPillText:{fontSize:11,fontWeight:'700',color:'#FFD700'},
+  bodyCardSecondary:{flex:1,backgroundColor:'#FFF',borderRadius:10,paddingVertical:10,alignItems:'center',borderWidth:1,borderColor:'#4CAF50'},
+  bodyCardSecondaryText:{color:'#4CAF50',fontSize:14,fontWeight:'600'},
+  bodyCardPrimary:{flex:1,backgroundColor:'#4CAF50',borderRadius:10,paddingVertical:10,alignItems:'center'},
+  bodyCardPrimaryText:{color:'#FFF',fontSize:14,fontWeight:'600'},
 });

@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
+  Minus,
   TrendingUp,
   Star,
 } from 'lucide-react-native';
@@ -182,7 +183,7 @@ export default function HQScreen() {
   const { user, updateUser, saveProfile } = useUserStore();
   const { getDailyExp, getLevel, getExpToNextLevel, xpHistory } = useExpStore();
   const { completedWorkouts } = useWorkoutStore();
-  const { hydration, sleep, steps: storeSteps, stepsHistory, addGlass, flightsClimbed } = useHealthStore();
+  const { hydration, sleep, steps: storeSteps, stepsHistory, addGlass, removeGlass, flightsClimbed } = useHealthStore();
   const { rookRecovery, loadRookRecovery, loadAppleHealthActivity } = useHealthStore();
   useEffect(() => {
     if (user?.uid) {
@@ -625,6 +626,20 @@ export default function HQScreen() {
                         <Text style={styles.quickAddBtnText}>+500ml</Text>
                       </TouchableOpacity>
                     </View>
+                    <TouchableOpacity
+                      testID="hydration-remove"
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove a glass of water"
+                      disabled={hydrationVal <= 0}
+                      style={[styles.quickRemoveBtn, hydrationVal <= 0 && styles.quickRemoveBtnOff]}
+                      onPress={() => {
+                        removeGlass(user?.uid);
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      }}
+                    >
+                      <Minus size={14} color="#000" />
+                      <Text style={styles.quickRemoveBtnText}>-250ml</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -1056,6 +1071,25 @@ const styles = StyleSheet.create({
   },
   quickAddBtnText: {
     color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  quickRemoveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#000',
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  quickRemoveBtnOff: {
+    opacity: 0.35,
+  },
+  quickRemoveBtnText: {
+    color: '#000',
     fontSize: 11,
     fontWeight: '700',
   },
