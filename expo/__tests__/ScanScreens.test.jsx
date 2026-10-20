@@ -289,6 +289,52 @@ describe('photo scanner', () => {
     expect(utils.getByTestId('scan-capture')).toBeTruthy();
   });
 
+  describe('when today\'s AI requests are used up', () => {
+    const used = (tier, limit) => Object.assign(new Error('used up'), {
+      code: 'functions/resource-exhausted',
+      details: { reason: 'ai_limit', bucket: 'assist', tier, limit },
+    });
+    const limitAlert = () => alertSpy.mock.calls.find((c) => c[0] === 'Daily limit reached');
+
+    it('says so, instead of blaming the connection, and offers the plans to a free person', async () => {
+      setup();
+      mockNetwork(() => { throw used('free', 5); });
+      const utils = render(<FoodScanScreen />);
+      await capture(utils);
+      await waitFor(() => expect(limitAlert()).toBeTruthy());
+      const [, message, buttons] = limitAlert();
+      expect(message).toContain('You have used your 5 free AI requests for today.');
+      expect(message).toContain('Upgrade to Pro for 100 a day');
+      expect(alertSpy).not.toHaveBeenCalledWith('Analysis Failed', expect.any(String));
+      expect(buttons.map((b) => b.text)).toEqual(['Not now', 'See plans']);
+      expect(buttons[0].style).toBe('cancel');
+      expect(global.__router.push).not.toHaveBeenCalled();
+      buttons[1].onPress();
+      expect(global.__router.push).toHaveBeenCalledWith('/paywall');
+      expect(utils.getByTestId('scan-capture')).toBeTruthy();
+    });
+
+    it('offers Legend to a Pro person', async () => {
+      setup();
+      mockNetwork(() => { throw used('pro', 100); });
+      const utils = render(<FoodScanScreen />);
+      await capture(utils);
+      await waitFor(() => expect(limitAlert()).toBeTruthy());
+      expect(limitAlert()[1]).toContain('Upgrade to Legend for 300 a day');
+      expect(limitAlert()[2].map((b) => b.text)).toEqual(['Not now', 'See plans']);
+    });
+
+    it('offers no plans to a Legend person, who has none higher to go to', async () => {
+      setup();
+      mockNetwork(() => { throw used('legend', 300); });
+      const utils = render(<FoodScanScreen />);
+      await capture(utils);
+      await waitFor(() => expect(limitAlert()).toBeTruthy());
+      expect(limitAlert()[1]).toContain('They come back at midnight Eastern.');
+      expect(limitAlert()[2]).toEqual([{ text: 'OK' }]);
+    });
+  });
+
   it('tells the person when the picture cannot be read', async () => {
     setup();
     mockPhoto();

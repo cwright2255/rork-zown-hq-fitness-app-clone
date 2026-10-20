@@ -21,6 +21,6 @@ describe('root layout and calendar invitations', () => {
   });
 
   it('stops listening, and forgets the invites, when nobody is signed in', () => {
-    expect(authBlock).toMatch(/\} else \{\s*stopXpSync\(\);\s*useCalendarInviteStore\.getState\(\)\.unsubscribe\(\);\s*\}/);
+    expect(authBlock).toMatch(/\} else \{\s*stopXpSync\(\);\s*useEntitlementStore\.getState\(\)\.stopListening\(\);\s*useCalendarInviteStore\.getState\(\)\.unsubscribe\(\);\s*\}/);
   });
 });

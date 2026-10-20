@@ -10,6 +10,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => false } }), { virtual: true });
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react');
   const mockRn = require('react-native');
@@ -28,6 +29,7 @@ jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => mockHiking }));
 
 import AnalysisScreen from '../app/analytics';
 import { useSettingsStore } from '../store/settingsStore';
+import { useEntitlementStore } from '../store/entitlementStore';
 
 // One run today: 5.2 km in 26:00, 5:00 per km.
 const RUN = { id: 'r1', distance: 5.2, duration: 1560, pace: 300, calories: 320 };
@@ -45,7 +47,11 @@ const valueNextTo = (utils, label, which = 0) => {
 };
 
 describe('Analysis screen distances', () => {
-  beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
+  beforeEach(() => {
+    useSettingsStore.setState({ units: 'metric' });
+    // Analytics is part of Pro (lib/entitlements.js); these tests are about what the screen shows once it is open.
+    useEntitlementStore.setState({ plan: { tier: 'pro', status: 'active', expiresAt: null, source: 'manual' }, isLoaded: true });
+  });
 
   it('gives the running stats, the longest-run record and the recent run in kilometres', () => {
     const utils = open();

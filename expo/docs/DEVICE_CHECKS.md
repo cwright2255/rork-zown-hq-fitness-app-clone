@@ -194,6 +194,45 @@ way: B can only invite A if B follows A as well. Order matters: first `firebase 
 - [ ] Delete B's test account (or a spare one that was invited): its invitations are gone from A's event, and A's own account is
       unaffected. (This one needs the functions deploy.)
 
+## Plans: Free, Pro and Legend (once, after the rules and the functions are deployed, then the update)
+
+Order matters. First `firebase deploy --only firestore:rules`, then
+`firebase deploy --only functions:postLLM,functions:generateWorkoutPlan,functions:generateBodyCompositionInsight,functions:deleteMyAccount`,
+then `eas update`. Without the rules, the phone cannot read its plan and shows the locks to everyone. Without the functions, nothing
+is limited, because the old ones do not count messages or look at the plan.
+
+The moment this is live, everyone is on Free, you included (Analytics and the body scan lock, the Coach stops at 5 a day). So before
+the functions go out, give your own account Legend as described next. Anyone else you want to keep on a paid plan while buying is
+not open (a tester, a friend) needs the same document.
+
+Nobody can buy a plan yet (the buttons say "Coming soon"). To try a plan, set it by hand: in the Firebase console, Firestore, the
+`entitlements` collection, add a document whose id is the account's uid (it is the id of the account's document in `users`) with
+`tier` (text: `pro` or `legend`) and `status` (text: `active`). Leave `expiresAt` out, or set a date in the future as text, such
+as `2027-01-01T00:00:00.000Z`. Change `tier` to switch plans and delete the document to go back to Free. The phone follows the
+document within a few seconds, with no restart. See `lib/entitlements.js` for what each plan includes and the daily limits.
+
+- [ ] Free: Settings, Account has a "Your plan" row that says "Free. See what each plan includes". Tap it: Plans shows Free, Pro
+      and Legend, "Your plan" on Free, and "Coming soon" (greyed out) on the Pro and Legend buttons. The back arrow works.
+- [ ] Free: Home, tap the calendar icon at the top right (it opens Analytics, `app/analytics.jsx`). The screen says "Analytics is
+      part of Pro" with "See plans" and "Not now". "See plans" opens Plans with "Analytics is part of Pro." at the top. "Not now"
+      goes back to Home.
+- [ ] Free: Health or Progress, start a body scan. It says "Body scan and 3D body is part of Legend". An old scan that was saved
+      before is still open to view from the scan list.
+- [ ] Free: the Coach. Send 5 messages. The sixth gets an answer from the coach saying you have used your 5 free messages for today
+      and that Pro gives 100 a day, with a "See plans" button under it. Close and reopen the Coach: that message is not in the history.
+- [ ] Free: Workouts, tap to get a recommendation (or Quick Workout, Generate Workout). It opens Plans with "AI workout plans is part
+      of Pro." at the top, and does not say something went wrong.
+- [ ] Free: the AI Help chat and the meal photo scan share 5 requests a day. After the 5th, Help falls back to its built-in FAQ
+      answers, and a meal photo says "Daily limit reached" with "See plans".
+- [ ] Set `tier` to `pro`: within seconds Settings says "Pro", Analytics opens, the Coach answers past the 5th message, and
+      Workouts, Generate makes a plan. The body scan is still locked ("part of Legend"). Plans shows "Your plan" on Pro and only a
+      Legend button.
+- [ ] Set `tier` to `legend`: the body scan opens (camera permission as before) and Plans has no upgrade buttons.
+- [ ] Set `status` to `expired` (or `expiresAt` to a past date): within seconds Settings says "Free" again and the locks are back.
+- [ ] Day reset: the count starts over at midnight Eastern. In the console, the `aiUsage` documents are named `<uid>_<day>` and
+      hold `coach`, `assist` and `insight` counts; deleting today's resets that person's count (you cannot do this from the app).
+- [ ] Sign out and sign in as someone else: they see their own plan, not the first person's.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

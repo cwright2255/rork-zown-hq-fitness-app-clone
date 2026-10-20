@@ -12,11 +12,14 @@ import { functions } from '../src/config/firebase';
 /**
  * Sends chat `messages` (OpenAI format, so an image goes in as
  * { type: 'image_url', image_url: { url } }) and resolves to the reply text.
- * Rejects when the call fails or the reply is not text.
+ * Rejects when the call fails or the reply is not text. `kind` is which daily
+ * AI allowance it uses (lib/entitlements.js): the one-off helpers that come
+ * through here (the meal photo scanner, recipe import) are 'assist'. When the
+ * allowance is used up the error carries the reason (lib/upgradePrompt.js).
  */
-export async function askLLM(messages, { timeoutMs = 60000 } = {}) {
+export async function askLLM(messages, { timeoutMs = 60000, kind = 'assist' } = {}) {
   const call = httpsCallable(functions, 'postLLM', { timeout: timeoutMs });
-  const result = await call({ messages });
+  const result = await call({ messages, kind });
   const completion = result?.data?.completion;
   if (typeof completion !== 'string') {
     throw new Error('The AI did not send back a reply');

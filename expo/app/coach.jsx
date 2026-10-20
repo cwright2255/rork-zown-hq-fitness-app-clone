@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing as spacing, Radius as radius } from '@/src/constants/tokens';
 import { chatAI } from '@/services/aiService';
+import { upgradeFromError } from '@/lib/upgradePrompt';
 import { logAICoachUsed } from '@/src/services/analytics';
 import {
   extractCoachAction, normalizeActions, describeActions, buildQuestion, endsWithQuestion, classifyReply, CALENDAR_OFF_NOTE,
@@ -320,12 +321,15 @@ export default function CoachScreen() {
       }
     } catch (e) {
       console.error('[Coach] chatAI failed:', e?.message);
+      // Today's messages are used up: say so, and offer the plans when there is a higher one (the reply is not saved to the history).
+      const limit = upgradeFromError(e);
       setChatHistory((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "Sorry, I couldn't respond just now. Please try again in a moment.",
+          content: limit ? limit.message : "Sorry, I couldn't respond just now. Please try again in a moment.",
+          ...(limit && limit.needs ? { upgrade: limit.needs } : {}),
         },
       ]);
     } finally {
@@ -381,6 +385,12 @@ export default function CoachScreen() {
                   <Text style={[s.chatText, msg.role === 'user' ? s.chatTextUser : s.chatTextAssistant]}>
                     {msg.content}
                   </Text>
+
+                  {msg.upgrade && (
+                    <Pressable testID="coach-see-plans" accessibilityRole="button" style={s.upgradeButton} onPress={() => router.push('/paywall')}>
+                      <Text style={s.upgradeButtonText}>See plans</Text>
+                    </Pressable>
+                  )}
 
                   {msg.action && (
                     <View style={s.actionCard}>
@@ -559,6 +569,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   noButtonText: { color: '#000000', fontSize: 14, fontWeight: '600' },
+  upgradeButton: { marginTop: spacing.sm, backgroundColor: '#000000', borderRadius: radius.xl, paddingVertical: 10, alignItems: 'center' },
+  upgradeButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   actionStatusRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
   actionStatusText: { fontSize: 12, color: '#666666', marginLeft: spacing.xs, marginTop: 2 },
   actionLinkRow: { marginTop: spacing.xs, paddingVertical: 4 },

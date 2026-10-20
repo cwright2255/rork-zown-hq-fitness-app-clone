@@ -12,7 +12,22 @@ describe('askLLM', () => {
     const messages = [{ role: 'user', content: 'hi' }];
     await expect(askLLM(messages)).resolves.toBe('hello');
     expect(global.__httpsCallable).toHaveBeenCalledWith({ fake: true }, 'postLLM', { timeout: 60000 });
-    expect(call).toHaveBeenCalledWith({ messages });
+    expect(call).toHaveBeenCalledWith({ messages, kind: 'assist' });
+  });
+
+  it('says which daily AI allowance the request uses, that of the AI helpers unless told otherwise', async () => {
+    const call = jest.fn(async () => ({ data: { completion: 'hi' } }));
+    global.__httpsCallable = jest.fn(() => call);
+    await askLLM([], { kind: 'coach' });
+    expect(call).toHaveBeenLastCalledWith({ messages: [], kind: 'coach' });
+    await askLLM([]);
+    expect(call).toHaveBeenLastCalledWith({ messages: [], kind: 'assist' });
+  });
+
+  it('passes a daily-limit error on as it is, with its reason, so the screen can say why', async () => {
+    const error = Object.assign(new Error('limit'), { code: 'functions/resource-exhausted', details: { reason: 'ai_limit', bucket: 'assist', limit: 5, tier: 'free' } });
+    global.__httpsCallable = jest.fn(() => jest.fn(async () => { throw error; }));
+    await expect(askLLM([])).rejects.toBe(error);
   });
 
   it('lets the caller choose how long to wait', async () => {

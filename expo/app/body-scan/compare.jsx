@@ -15,12 +15,22 @@ import ScanMeshViewer from '@/components/ScanMeshViewer';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
+import PaywallGate from '@/components/PaywallGate';
 
 function daysBetween(a, b) {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
 }
 
-export default function CompareScansScreen() {
+// Comparing scans is part of Legend: the screen below is shown to anyone whose plan includes it, and everyone else gets the lock.
+export default function CompareScansGate() {
+  return (
+    <PaywallGate feature="bodyScan">
+      <CompareScansScreen />
+    </PaywallGate>
+  );
+}
+
+function CompareScansScreen() {
   const params = useLocalSearchParams();
   const idA = typeof params.a === 'string' ? params.a : '';
   const idB = typeof params.b === 'string' ? params.b : '';

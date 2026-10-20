@@ -11,6 +11,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { getGoalLabels, profileForWorkouts } from '@/lib/userProfileData';
 import { getProfileFromStores } from '@/services/coachSnapshotService';
+import { planRedirect } from '@/lib/upgradePrompt';
 import { getFeaturedProgram } from '@/data/workoutPrograms';
 
 function SectionHeader({ title, onViewAll }) {
@@ -111,8 +112,10 @@ export default function WorkoutsScreen() {
         profile: profileForWorkouts(getProfileFromStores(user)),
       });
     } catch (e) {
-      // Errors are already logged in the store; a real, visible failure
-      // state renders below via isLoadingRecommendation/workoutRecommendation.
+      // AI workout plans are part of Pro: a Free person is taken to the plans. Any other error is already logged in the
+      // store; a real, visible failure state renders below via isLoadingRecommendation/workoutRecommendation.
+      const toPlans = planRedirect(e);
+      if (toPlans) router.push(toPlans);
     }
   };
 

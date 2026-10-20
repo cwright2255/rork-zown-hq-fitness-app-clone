@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUserStore } from '@/store/userStore';
+import { useEntitlement } from '@/hooks/useEntitlement';
+import { TIER_NAMES } from '@/lib/entitlements';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
@@ -99,6 +101,7 @@ export default function SettingsScreen() {
   const { isConnected: spotifyConnected, disconnectSpotify } = useSpotifyStore();
   const { isConnected: appleMusicConnected, connectAppleMusic, disconnectAppleMusic } = useAppleMusicStore();
   const uid = user?.uid;
+  const { tier } = useEntitlement();
 
   // Real, new: explicit, visible check for OTA updates rather than relying
   // on the implicit default behavior (check + download in the background
@@ -398,6 +401,12 @@ export default function SettingsScreen() {
             label="Email"
             subLabel={user?.email || 'Not logged in'}
             onPress={() => Alert.alert('Account Email', "Your account is verified under " + (user?.email || 'no email') + ".")}
+          />
+          <SettingRow
+            icon="ribbon-outline"
+            label="Your plan"
+            subLabel={`${TIER_NAMES[tier]}. See what each plan includes`}
+            onPress={() => router.push('/paywall')}
           />
           <SettingRow
             icon="lock-closed-outline"

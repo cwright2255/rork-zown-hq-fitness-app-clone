@@ -268,7 +268,8 @@ export default function HelpSupportScreen() {
         .concat(userMsg)
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await chatAI(messagesPayload);
+      // The help chat is one of the AI helpers, not the Coach: it has its own daily allowance (lib/entitlements.js).
+      const response = await chatAI(messagesPayload, undefined, 'assist');
       
       const assistantMsg = {
         id: (Date.now() + 1).toString(),

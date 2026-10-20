@@ -149,6 +149,11 @@ const seed = () => ({
   'raceEntries/local-5k-week-2026-10-12_u1': { uid: 'u1', raceId: 'local-5k-week-2026-10-12', timeSec: 1500 },
   'raceEntries/world-10k-month-2026-10_u1': { uid: 'u1', raceId: 'world-10k-month-2026-10', timeSec: 3100 },
   'raceEntries/local-5k-week-2026-10-12_u2': { uid: 'u2', raceId: 'local-5k-week-2026-10-12', timeSec: 1600 },
+  'entitlements/u1': { tier: 'pro', status: 'active', expiresAt: null, source: 'manual' },
+  'entitlements/u2': { tier: 'legend', status: 'active', expiresAt: null, source: 'manual' },
+  'aiUsage/u1_2026-10-11': { uid: 'u1', day: '2026-10-11', coach: 4 },
+  'aiUsage/u1_2026-10-12': { uid: 'u1', day: '2026-10-12', coach: 1, assist: 2 },
+  'aiUsage/u2_2026-10-12': { uid: 'u2', day: '2026-10-12', coach: 3 },
   'communityGroups/g1': { memberCount: 5 },
 });
 
@@ -233,6 +238,16 @@ describe('erasing an account', () => {
     expect(has(db, 'calendarInvites/i23')).toBe(true);
   });
 
+  it('removes their plan and their AI message counts, and only theirs', async () => {
+    const { db, promise } = run();
+    await promise;
+    expect(has(db, 'entitlements/u1')).toBe(false);
+    expect(has(db, 'aiUsage/u1_2026-10-11')).toBe(false);
+    expect(has(db, 'aiUsage/u1_2026-10-12')).toBe(false);
+    expect(has(db, 'entitlements/u2')).toBe(true);
+    expect(has(db, 'aiUsage/u2_2026-10-12')).toBe(true);
+  });
+
   it('removes their times from the virtual race boards, and only theirs', async () => {
     const { db, promise } = run();
     await promise;
@@ -269,6 +284,7 @@ describe('erasing an account', () => {
       'workouts/w2', 'loggedSets/l2', 'coachMessages/m2', 'goals/g2', 'aiRecommendations/r2',
       'leaderboard/u2', 'communityPosts/p2', 'communityPosts/p2/likes/u3',
       'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'calendarInvites/i23', 'challengeEntries/ch1_u2', 'raceEntries/local-5k-week-2026-10-12_u2',
+      'entitlements/u2', 'aiUsage/u2_2026-10-12',
     ];
     for (const p of keep) expect(db.docs.get(p)).toEqual(p === 'communityPosts/p2' ? { authorId: 'u2', likeCount: 2, commentCount: 2 } : before.docs.get(p));
   });
@@ -315,6 +331,30 @@ describe('when something goes wrong', () => {
     expect(auth.deleteUser).not.toHaveBeenCalled();
     const failure = [...db.docs.entries()].find(([p]) => p.startsWith('accountDeletions/'))[1];
     expect(failure).toMatchObject({ ok: false, uid: 'u1', failedSteps: ['userData'] });
+  });
+
+  it('names the plan step, and keeps the sign-in account, when the plan cannot be removed', async () => {
+    const db = makeDb(seed());
+    const realBulkWriter = db.bulkWriter;
+    db.bulkWriter = () => {
+      const writer = realBulkWriter();
+      return {
+        ...writer,
+        delete: (r) => {
+          if (r.path !== 'entitlements/u1') return writer.delete(r);
+          const failed = Promise.reject(new Error('delete failed for ' + r.path));
+          failed.catch(() => {});
+          return failed;
+        },
+      };
+    };
+    const { auth, promise } = run({ db });
+    const result = await promise;
+    expect(result.ok).toBe(false);
+    expect(result.steps.find((x) => x.name === 'plan')).toMatchObject({ ok: false });
+    expect(auth.deleteUser).not.toHaveBeenCalled();
+    const failure = [...db.docs.entries()].find(([path]) => path.startsWith('accountDeletions/'))[1];
+    expect(failure).toMatchObject({ ok: false, uid: 'u1', failedSteps: ['plan'] });
   });
 
   it('still does every other step when one fails', async () => {

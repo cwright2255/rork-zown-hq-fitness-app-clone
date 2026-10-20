@@ -15,6 +15,8 @@ import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
 import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
+import { checkFeature, takeAiQuota, giveBackAiQuota } from './aiQuota.js';
+import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
 
 initializeApp();
 
@@ -68,6 +70,23 @@ function requireAuth(auth) {
   return auth.uid;
 }
 
+// The plans (lib/entitlements.js). The app reads `details` to show the right upgrade screen; the message is for the logs.
+//   permission-denied  the feature is on a higher plan than the person has
+//   resource-exhausted the person has used today's AI messages
+async function requireFeature(uid, feature) {
+  const gate = await checkFeature({ db: getFirestore(), uid, feature });
+  if (gate.ok) return;
+  throw new HttpsError('permission-denied', `${FEATURE_NAMES[feature]} needs ${TIER_NAMES[gate.needs]}`, {
+    reason: 'plan_required', feature, needs: gate.needs, tier: gate.tier,
+  });
+}
+
+function aiLimitReached(quota) {
+  return new HttpsError('resource-exhausted', `Today's ${quota.bucket} AI messages are used up`, {
+    reason: 'ai_limit', bucket: quota.bucket, limit: quota.limit, tier: quota.tier,
+  });
+}
+
 async function saveRecommendation(data)
 
 
@@ -87,6 +106,7 @@ export const generateWorkoutPlan = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
+    await requireFeature(uid, 'aiWorkoutPlan');
     const { fitnessLevel, goals, history, profile } = req.data;
 
     // Real profile details (older app versions send none, so every line is optional).
@@ -199,21 +219,34 @@ export const getProgressSummary = onCall(
 export const postLLM = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
-    requireAuth(req.auth);
-    const { messages } = req.data;
+    const uid = requireAuth(req.auth);
+    const { messages, kind } = req.data;
     if (!Array.isArray(messages) || messages.length === 0) {
       throw new HttpsError('invalid-argument', 'messages must be a non-empty array');
     }
 
-    const openai = getOpenAI();
-    const answer = await askWithinScope(openai, { model: 'gpt-4o', messages });
-    if (answer.refused) {
-      console.info('[postLLM] declined a request outside fitness and health');
-      return { completion: REFUSAL, refused: true };
-    }
+    // One message from today's allowance for the person's plan (lib/entitlements.js). `kind` says which allowance: 'coach' for the Coach
+    // chat, 'assist' for the other helpers; a request that says nothing, or something else, is taken as 'coach'. A request the model
+    // declines as off-topic still counts; one that fails before the person gets anything is given back.
+    const db = getFirestore();
+    const quota = await takeAiQuota({ db, uid, kind });
+    if (!quota.ok) throw aiLimitReached(quota);
 
-    const content = answer.completion.choices[0]?.message?.content ?? '';
-    return { completion: content };
+    try {
+      const openai = getOpenAI();
+      const answer = await askWithinScope(openai, { model: 'gpt-4o', messages });
+      if (answer.refused) {
+        console.info('[postLLM] declined a request outside fitness and health');
+        return { completion: REFUSAL, refused: true };
+      }
+
+      const content = answer.completion.choices[0]?.message?.content ?? '';
+      return { completion: content };
+    } catch (err) {
+      await giveBackAiQuota({ db, uid, bucket: quota.bucket, day: quota.day })
+        .catch((e) => console.error('[postLLM] could not give the message back:', e?.message || e));
+      throw err;
+    }
   }
 );
 
@@ -221,6 +254,7 @@ export const generateBodyCompositionInsight = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
+    await requireFeature(uid, 'bodyScan');
     const { goal, age, scans } = req.data;
 
     if (!scans || scans.length === 0) {

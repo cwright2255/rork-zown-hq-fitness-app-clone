@@ -300,6 +300,20 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // A person's plan: Free, Pro or Legend (lib/entitlements.js). The person can read their own and nobody can write it from the app,
+    // an admin included, so nobody can give themselves a plan. It is written from the Firebase console and, once purchases are
+    // connected, by the function that hears from RevenueCat.
+    match /entitlements/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // How many AI messages each person has used today (functions/src/aiQuota.js), one document per person per day. Only the
+    // functions read and write it, so the count cannot be reset or read from a phone.
+    match /aiUsage/{usageId} {
+      allow read, write: if false;
+    }
+
     match /challenges/{challengeId} {
       allow read: if request.auth != null;
       allow write: if false;

@@ -10,6 +10,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined) },
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => false } }), { virtual: true });
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react');
   const mockRn = require('react-native');
@@ -32,6 +33,7 @@ jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => mockHiking }));
 
 import AnalysisScreen from '../app/analytics';
 import { useSettingsStore } from '../store/settingsStore';
+import { useEntitlementStore } from '../store/entitlementStore';
 
 const NOW = new Date('2026-10-15T01:30:00Z'); // 9:30 PM on Wed 14 Oct in New Jersey
 const HIKE = {
@@ -45,6 +47,8 @@ beforeEach(() => {
   mockHiking.completedHikes = [];
   mockHiking.loadCompletedHikes.mockClear();
   useSettingsStore.setState({ units: 'metric' });
+  // Analytics is part of Pro (lib/entitlements.js); these tests are about what the screen shows once it is open.
+  useEntitlementStore.setState({ plan: { tier: 'pro', status: 'active', expiresAt: null, source: 'manual' }, isLoaded: true });
   jest.useFakeTimers({ now: NOW, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
 });
 afterEach(() => { jest.useRealTimers(); });

@@ -26,6 +26,7 @@ import { useUserStore } from '@/store/userStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { toQuickWorkoutGoals, profileForWorkouts } from '@/lib/userProfileData';
 import { getProfileFromStores } from '@/services/coachSnapshotService';
+import { planRedirect } from '@/lib/upgradePrompt';
 
 const GOALS = ['weight_loss', 'build_muscle', 'increase_strength', 'improve_endurance', 'improve_flexibility', 'general_fitness'];
 const GOAL_LABELS = {
@@ -115,7 +116,10 @@ export default function QuickWorkoutScreen() {
       router.replace(`/workout/${saved.id}`);
     } catch (e) {
       console.error('[QuickWorkout] generation failed:', e?.message);
-      setError("Couldn't generate a workout right now. Please try again.");
+      // AI workouts are part of Pro: a Free person is taken to the plans rather than told something went wrong.
+      const toPlans = planRedirect(e);
+      if (toPlans) router.push(toPlans);
+      else setError("Couldn't generate a workout right now. Please try again.");
     } finally {
       setIsGenerating(false);
     }

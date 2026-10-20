@@ -35,6 +35,7 @@ import '@/services/runTracking';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { useCalendarInviteStore } from '@/store/calendarInviteStore';
+import { useEntitlementStore } from '@/store/entitlementStore';
 import { reconcileReminders } from '@/services/calendarReminders';
 import { startXpSync, stopXpSync } from '@/services/xpSync';
 import { publishMyProfile } from '@/services/leaderboardVisibility';
@@ -262,6 +263,8 @@ function RootLayoutInner() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const uid = firebaseUser.uid;
+        // The person's plan (Free, Pro or Legend) is followed from the start, so locks and limits are right as soon as a screen opens.
+        useEntitlementStore.getState().startListening(uid);
         try {
           await Promise.all([
             loadProfile(uid),
@@ -287,6 +290,7 @@ function RootLayoutInner() {
         useCalendarInviteStore.getState().subscribe(uid);
       } else {
         stopXpSync();
+        useEntitlementStore.getState().stopListening();
         useCalendarInviteStore.getState().unsubscribe();
       }
       setStoresReady(true);
@@ -363,6 +367,7 @@ function RootLayoutInner() {
         <Stack.Screen name="profile" />
         <Stack.Screen name="community" />
         <Stack.Screen name="analytics" />
+        <Stack.Screen name="paywall" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="messaging" />
         <Stack.Screen name="messages" />
@@ -419,7 +424,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && !pathname.startsWith('/paywall') && <BottomNavigation />}
     </View>
   );
 }

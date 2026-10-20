@@ -9,6 +9,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ScreenHeader from '@/components/ScreenHeader';
 import { askLLM, parseJsonObject } from '@/services/llmClient';
+import { upgradeFromError } from '@/lib/upgradePrompt';
 
 // Resolves to the file as a data URL (data:...;base64,...).
 const readAsDataUrl = (blob) =>
@@ -66,7 +67,19 @@ export default function FoodScanScreen() {
       }
     } catch (error) {
       console.error('Food photo analysis failed:', error);
-      Alert.alert('Analysis Failed', 'Failed to analyze the image. Please check your connection and try again.');
+      // Today's AI requests are used up: say so, and offer the plans when there is a higher one.
+      const limit = upgradeFromError(error);
+      if (limit) {
+        Alert.alert(
+          'Daily limit reached',
+          limit.message,
+          limit.needs
+            ? [{ text: 'Not now', style: 'cancel' }, { text: 'See plans', onPress: () => router.push('/paywall') }]
+            : [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Analysis Failed', 'Failed to analyze the image. Please check your connection and try again.');
+      }
     } finally {
       setIsAnalyzing(false);
     }

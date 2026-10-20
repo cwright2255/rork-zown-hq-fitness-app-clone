@@ -18,6 +18,7 @@
 //   calendarInvites (participantIds)       calendar invites they sent or were sent, removed for both people (they hold both names)
 //   challengeEntries (uid)                 their progress on challenges
 //   raceEntries (uid)                      their times on the virtual race boards
+//   entitlements/{uid}, aiUsage (uid)      their plan (Free, Pro or Legend) and the days' AI message counts
 //   users/*/groupMemberships               their group memberships (the onGroupLeft function lowers each group's member count)
 //   Storage users/{uid}/ and posts/{uid}/  profile picture, uploads, post media
 //   ROOK                                   connected wearable sources are revoked
@@ -164,6 +165,13 @@ export async function eraseUserAccount({ uid, db, bucket, auth, increment, revok
   await run('calendarInvites', () => deleteQuery(db, () => db.collection('calendarInvites').where('participantIds', 'array-contains', uid)));
   await run('challengeEntries', () => deleteQuery(db, () => db.collection('challengeEntries').where('uid', '==', uid)));
   await run('raceEntries', () => deleteQuery(db, () => db.collection('raceEntries').where('uid', '==', uid)));
+
+  // Their plan and AI message counts. A subscription bought through the App Store is not cancelled by this: that is done in the
+  // person's Apple account, and the app says so before the account is deleted.
+  await run('plan', async () => {
+    await deleteQuery(db, () => db.collection('aiUsage').where('uid', '==', uid));
+    await writeAll(db, (w) => w.delete(db.doc(`entitlements/${uid}`)));
+  });
 
   for (const name of USER_KEYED_COLLECTIONS) {
     await run(name, () => deleteQuery(db, () => db.collection(name).where('userId', '==', uid)));

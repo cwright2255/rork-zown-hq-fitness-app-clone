@@ -11,6 +11,7 @@ import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistance, paceIn, paceUnitLabel } from '@/lib/distanceUnits';
 import { activityStreak, sessionsOf } from '@/lib/activity';
+import PaywallGate from '@/components/PaywallGate';
 
 /* -- Real calendar boundaries, same logic already proven correct in
    store/challengeStore.js / functions/src/index.js's generateChallenges
@@ -124,7 +125,16 @@ function Pill({ label, active, onPress, small }) {
 
 /* -- Main screen -- */
 
-export default function AnalysisScreen() {
+// Analytics is part of Pro: the screen below is shown to anyone whose plan includes it, and everyone else gets the lock.
+export default function AnalyticsScreen() {
+  return (
+    <PaywallGate feature="analytics">
+      <AnalysisScreen />
+    </PaywallGate>
+  );
+}
+
+function AnalysisScreen() {
   const [timeFilter, setTimeFilter] = useState('Week');
   const [activityFilter, setActivityFilter] = useState('All');
   const [refreshing, setRefreshing] = useState(false);

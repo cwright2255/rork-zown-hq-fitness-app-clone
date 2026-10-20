@@ -23,6 +23,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import PaywallGate from '@/components/PaywallGate';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
@@ -254,7 +255,16 @@ const STEP_CAPTIONS = {
   done: 'All done!',
 };
 
-export default function BodyScanCaptureScreen() {
+// Scanning is part of Legend: the screen below is shown to anyone whose plan includes it, and everyone else gets the lock.
+export default function BodyScanCaptureGate() {
+  return (
+    <PaywallGate feature="bodyScan">
+      <BodyScanCaptureScreen />
+    </PaywallGate>
+  );
+}
+
+function BodyScanCaptureScreen() {
   const router = useRouter();
   const { user, updateUser, saveProfile } = useUserStore();
   const { runScan, isScanning, error } = useBodyCompositionStore();

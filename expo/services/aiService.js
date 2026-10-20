@@ -7,6 +7,7 @@ import { getGoalLabels, INJURY_LABELS } from '@/lib/userProfileData';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
 import { localDateKey } from '@/lib/localDate';
+import { upgradeFromError } from '@/lib/upgradePrompt';
 
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {
@@ -30,17 +31,21 @@ const withTimeout = async (p, ms, signal) => {
 // Now calls the real postLLM Cloud Function (functions/src/index.js),
 // added alongside this fix specifically to be its real backend. Retry/
 // timeout/validation behavior is otherwise unchanged.
-const postLLM = async (messages, timeoutMs = 30000, retries = 1) => {
+// `kind` says which daily AI allowance the request uses ('coach', 'assist' or 'insight', lib/entitlements.js); a request that does not
+// say is counted as the Coach on the server.
+const postLLM = async (messages, timeoutMs = 30000, retries = 1, kind) => {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const fn = httpsCallable(functions, 'postLLM');
-      const result = await withTimeout(fn({ messages }), timeoutMs);
+      const result = await withTimeout(fn(kind ? { messages, kind } : { messages }), timeoutMs);
       const data = result?.data;
       if (!data || typeof data.completion !== 'string') throw new Error('Invalid LLM response');
       return data;
     } catch (e) {
       lastErr = e;
+      // A daily limit or a plan that is too low is not a glitch: asking again gets the same answer.
+      if (upgradeFromError(e)) break;
       if (attempt === retries) break;
       await new Promise((r) => setTimeout(r, 400));
     }
@@ -128,8 +133,8 @@ const getUserDietaryContext = () => {
   }
 };
 
-export const chatAI = async (messages, timeoutMs = 30000) => {
-  const data = await postLLM(messages, timeoutMs, 1);
+export const chatAI = async (messages, timeoutMs = 30000, kind = 'coach') => {
+  const data = await postLLM(messages, timeoutMs, 1, kind);
   return data.completion;
 };
 
@@ -488,7 +493,8 @@ export const generateTrainingLoadInsight = async ({ trainingLoad }) => {
   const usr = { role: 'user', content: JSON.stringify(trainingLoad) };
 
   try {
-    const data = await postLLM([sys, usr], 15000, 1);
+    // Asked for by the Health screen on its own, so it has an allowance of its own and never uses up the person's messages.
+    const data = await postLLM([sys, usr], 15000, 1, 'insight');
     const text = data?.choices?.[0]?.message?.content ?? data?.content ?? '';
     const cleaned = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);

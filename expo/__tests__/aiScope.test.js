@@ -40,11 +40,19 @@ const fakeModels = ({ allowed = true, answer = 'Here you go.' } = {}) => {
 const gateCalls = () => global.__create.mock.calls.map((c) => c[0]).filter(isGateCall);
 const mainCalls = () => global.__create.mock.calls.map((c) => c[0]).filter((a) => !isGateCall(a));
 
-// Enough of Firestore for the functions that read or write it.
+// Enough of Firestore for the functions that read or write it. The person (u1) is on the Legend plan, so what these tests check is
+// the topic limit, not the plan limits (those are in aiPlanLimits.test.js).
 const fakeDb = () => {
   const query = { where: () => query, limit: () => query, get: async () => ({ empty: true, docs: [], size: 0 }) };
+  const docs = new Map([['entitlements/u1', { tier: 'legend', status: 'active', expiresAt: null }]]);
+  const docRef = (path) => ({ path, get: async () => ({ exists: docs.has(path), data: () => docs.get(path) }) });
   global.__db = {
     collection: () => ({ ...query, add: async () => ({ id: 'rec1' }), doc: () => ({ id: 'doc1' }) }),
+    doc: docRef,
+    runTransaction: async (fn) => fn({
+      get: async (ref) => ref.get(),
+      set: (ref, data, opts) => docs.set(ref.path, opts && opts.merge ? { ...docs.get(ref.path), ...data } : data),
+    }),
     batch: () => ({ set: () => {}, commit: async () => {} }),
   };
 };
