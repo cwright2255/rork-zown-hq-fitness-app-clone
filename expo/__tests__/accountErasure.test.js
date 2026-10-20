@@ -141,6 +141,9 @@ const seed = () => ({
   'conversations/c23/messages/m1': { senderId: 'u2', text: 'unrelated' },
   'duels/d12': { participantIds: ['u1', 'u2'], status: 'active' },
   'duels/d23': { participantIds: ['u2', 'u3'], status: 'active' },
+  'calendarInvites/i12': { participantIds: ['u1', 'u2'], fromUid: 'u1', toUid: 'u2', fromName: 'One', toName: 'Two', status: 'pending' },
+  'calendarInvites/i21': { participantIds: ['u1', 'u2'], fromUid: 'u2', toUid: 'u1', fromName: 'Two', toName: 'One', status: 'accepted' },
+  'calendarInvites/i23': { participantIds: ['u2', 'u3'], fromUid: 'u2', toUid: 'u3', fromName: 'Two', toName: 'Three', status: 'pending' },
   'challengeEntries/ch1_u1': { uid: 'u1', challengeId: 'ch1' },
   'challengeEntries/ch1_u2': { uid: 'u2', challengeId: 'ch1' },
   'raceEntries/local-5k-week-2026-10-12_u1': { uid: 'u1', raceId: 'local-5k-week-2026-10-12', timeSec: 1500 },
@@ -222,6 +225,14 @@ describe('erasing an account', () => {
     expect(has(db, 'challengeEntries/ch1_u1')).toBe(false);
   });
 
+  it('removes the calendar invites they sent and were sent, for the other person too, and only theirs', async () => {
+    const { db, promise } = run();
+    await promise;
+    expect(has(db, 'calendarInvites/i12')).toBe(false);
+    expect(has(db, 'calendarInvites/i21')).toBe(false);
+    expect(has(db, 'calendarInvites/i23')).toBe(true);
+  });
+
   it('removes their times from the virtual race boards, and only theirs', async () => {
     const { db, promise } = run();
     await promise;
@@ -257,7 +268,7 @@ describe('erasing an account', () => {
       'users/u2', 'users/u2/bodyScans/s9', 'users/u2/following/u3', 'users/u3',
       'workouts/w2', 'loggedSets/l2', 'coachMessages/m2', 'goals/g2', 'aiRecommendations/r2',
       'leaderboard/u2', 'communityPosts/p2', 'communityPosts/p2/likes/u3',
-      'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'challengeEntries/ch1_u2', 'raceEntries/local-5k-week-2026-10-12_u2',
+      'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'calendarInvites/i23', 'challengeEntries/ch1_u2', 'raceEntries/local-5k-week-2026-10-12_u2',
     ];
     for (const p of keep) expect(db.docs.get(p)).toEqual(p === 'communityPosts/p2' ? { authorId: 'u2', likeCount: 2, commentCount: 2 } : before.docs.get(p));
   });

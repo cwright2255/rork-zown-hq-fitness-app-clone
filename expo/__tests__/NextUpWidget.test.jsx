@@ -14,6 +14,7 @@ jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: tru
 import { router } from 'expo-router';
 import NextUpWidget from '../components/NextUpWidget';
 import { useScheduleStore } from '../store/scheduleStore';
+import { useCalendarInviteStore } from '../store/calendarInviteStore';
 
 // Mon 19 Oct 2026, 8:00 AM in New York.
 const NOW = new Date(2026, 9, 19, 8, 0);
@@ -27,6 +28,7 @@ const setEvents = (events) => act(() => { useScheduleStore.setState({ events });
 beforeEach(() => {
   jest.useFakeTimers({ now: NOW, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
   useScheduleStore.setState({ events: [] });
+  useCalendarInviteStore.setState({ uid: null, invites: [] });
   router.push.mockClear();
 });
 afterEach(() => { jest.useRealTimers(); });
@@ -110,5 +112,76 @@ describe('Home > Next Up', () => {
   it('keeps a long title to two lines', () => {
     useScheduleStore.setState({ events: [ev({ title: 'Upper body strength with the long warm-up and the mobility finisher' })] });
     expect(render(<NextUpWidget />).getByTestId('home-nextup-title').props.numberOfLines).toBe(2);
+  });
+});
+
+describe('Home > Next Up > invitations waiting', () => {
+  const invite = (o = {}) => ({
+    id: 'i1', fromUid: 'amy', toUid: 'me', fromName: 'Amy', toName: 'Cj', status: 'pending', eventId: 'x1', title: 'Park run', kind: 'run',
+    start: local(2026, 10, 21, 7, 0), notes: '', repeat: null, createdAt: local(2026, 10, 19, 7, 0), respondedAt: null, ...o,
+  });
+  const setInvites = (invites, uid = 'me') => act(() => { useCalendarInviteStore.setState({ uid, invites }); });
+
+  it('says nothing when none are waiting', () => {
+    const utils = render(<NextUpWidget />);
+    expect(utils.queryByTestId('home-nextup-invites')).toBeNull();
+    expect(utils.getByLabelText('Next up: nothing planned. Opens the calendar.')).toBeTruthy();
+  });
+
+  it('says one invite is waiting, under the next event, and in what a screen reader hears', () => {
+    useScheduleStore.setState({ events: [ev()] });
+    setInvites([invite()]);
+    const utils = render(<NextUpWidget />);
+    expect(utils.getByTestId('home-nextup-invites').props.children).toBe('1 invite waiting');
+    expect(utils.getByTestId('home-nextup-title').props.children).toBe('Leg day');
+    expect(utils.getByLabelText('Next up: Leg day, Today \u00B7 6:30 PM. 1 invite waiting. Opens the calendar.')).toBeTruthy();
+  });
+
+  it('says how many when there are several, also with nothing else planned', () => {
+    setInvites([invite(), invite({ id: 'i2', title: 'Lift' }), invite({ id: 'i3', title: 'Swim' })]);
+    const utils = render(<NextUpWidget />);
+    expect(utils.getByTestId('home-nextup-invites').props.children).toBe('3 invites waiting');
+    expect(utils.getByLabelText('Next up: nothing planned. 3 invites waiting. Opens the calendar.')).toBeTruthy();
+  });
+
+  it('does not count ones sent by the person, answered ones, ones for somebody else, or ones for events that are over', () => {
+    setInvites([
+      invite({ id: 'a', fromUid: 'me', toUid: 'amy' }),
+      invite({ id: 'b', status: 'accepted' }),
+      invite({ id: 'c', status: 'declined' }),
+      invite({ id: 'd', status: 'cancelled' }),
+      invite({ id: 'e', toUid: 'bo' }),
+      invite({ id: 'f', start: local(2026, 10, 18, 7, 0) }),
+    ]);
+    expect(render(<NextUpWidget />).queryByTestId('home-nextup-invites')).toBeNull();
+  });
+
+  it('says nothing when nobody is signed in to the invites', () => {
+    setInvites([invite()], null);
+    expect(render(<NextUpWidget />).queryByTestId('home-nextup-invites')).toBeNull();
+  });
+
+  it('follows the invites as they arrive and are answered', () => {
+    const utils = render(<NextUpWidget />);
+    expect(utils.queryByTestId('home-nextup-invites')).toBeNull();
+    setInvites([invite()]);
+    expect(utils.getByTestId('home-nextup-invites').props.children).toBe('1 invite waiting');
+    setInvites([invite({ status: 'accepted' })]);
+    expect(utils.queryByTestId('home-nextup-invites')).toBeNull();
+  });
+
+  it('drops one once its event is over, while the screen stays open', () => {
+    setInvites([invite({ start: local(2026, 10, 19, 9, 0) })]);
+    const utils = render(<NextUpWidget />);
+    expect(utils.getByTestId('home-nextup-invites')).toBeTruthy();
+    act(() => { jest.setSystemTime(new Date(2026, 9, 19, 10, 30)); jest.advanceTimersByTime(60 * 1000); });
+    expect(utils.queryByTestId('home-nextup-invites')).toBeNull();
+  });
+
+  it('still opens the Calendar the same way', () => {
+    setInvites([invite()]);
+    const utils = render(<NextUpWidget />);
+    fireEvent.press(utils.getByTestId('home-widget-nextup'));
+    expect(router.push).toHaveBeenCalledWith('/calendar');
   });
 });

@@ -302,3 +302,125 @@ describe('changing an event', () => {
     expect(open({ event: event({ workoutId: 'w1' }), onOpenWorkout: undefined }).queryByTestId('event-open-workout')).toBeNull();
   });
 });
+
+describe('inviting friends to an event', () => {
+  const sent = (o = {}) => ({
+    id: 'i1', fromUid: 'me', toUid: 'amy', fromName: 'Cj', toName: 'Amy', status: 'pending', eventId: 'e1', title: 'Leg day',
+    kind: 'workout', start: at(22), notes: '', repeat: null, createdAt: at(19, 9), respondedAt: null, ...o,
+  });
+  let onInvite;
+  let onCancelInvite;
+  beforeEach(() => {
+    onInvite = jest.fn();
+    onCancelInvite = jest.fn();
+  });
+  const openInvites = (props = {}) => open({ event: event(), onInvite, onCancelInvite, invites: [], ...props });
+
+  it('offers Invite a friend on an event the person made, and hands the event over', () => {
+    const e = event();
+    const utils = open({ event: e, onInvite, onCancelInvite, invites: [] });
+    expect(utils.getByText('Invites')).toBeTruthy();
+    press(utils, 'event-invite-friend');
+    expect(onInvite).toHaveBeenCalledTimes(1);
+    expect(onInvite).toHaveBeenCalledWith(e);
+  });
+
+  it('offers it on a coach event too', () => {
+    expect(openInvites({ event: event({ source: 'coach' }) }).getByTestId('event-invite-friend')).toBeTruthy();
+  });
+
+  it('works when the screen has no invites to show', () => {
+    const utils = open({ event: event(), onInvite });
+    expect(utils.getByTestId('event-invite-friend')).toBeTruthy();
+  });
+
+  it('shows nobody asked yet as no rows at all', () => {
+    expect(openInvites().queryByTestId('event-invite-i1')).toBeNull();
+  });
+
+  it('is not there for a new event, which has nothing to share yet', () => {
+    const utils = open({ onInvite, onCancelInvite, invites: [] });
+    expect(utils.queryByTestId('event-invite-friend')).toBeNull();
+    expect(utils.queryByText('Invites')).toBeNull();
+  });
+
+  it('is not there when the screen does not offer it', () => {
+    const utils = open({ event: event(), onInvite: undefined });
+    expect(utils.queryByTestId('event-invite-friend')).toBeNull();
+    expect(utils.queryByText('Invites')).toBeNull();
+  });
+
+  it('is not there for an invitation from somebody else', () => {
+    const utils = openInvites({ event: event({ source: 'invite', inviteId: 'x1', host: { uid: 'amy', name: 'Amy' } }) });
+    expect(utils.queryByTestId('event-invite-friend')).toBeNull();
+    expect(utils.queryByText('Invites')).toBeNull();
+  });
+
+  it('shows who was asked and what they said', () => {
+    const utils = openInvites({
+      invites: [
+        sent(),
+        sent({ id: 'i2', toUid: 'bo', toName: 'Bo', status: 'accepted' }),
+        sent({ id: 'i3', toUid: 'cat', toName: 'Cat', status: 'declined' }),
+      ],
+    });
+    const row = (id) => utils.getByTestId(`event-invite-${id}`);
+    expect(row('i1').findAll((n) => n.type === 'Text').map((n) => n.props.children)).toEqual(['Amy', 'Waiting', 'Cancel invite']);
+    expect(row('i2').findAll((n) => n.type === 'Text').map((n) => n.props.children)).toEqual(['Bo', 'Going']);
+    expect(row('i3').findAll((n) => n.type === 'Text').map((n) => n.props.children)).toEqual(['Cat', 'Declined']);
+  });
+
+  it('shows Expired for a waiting invite whose event has passed', () => {
+    const utils = openInvites({ invites: [sent({ start: at(10) })] });
+    expect(utils.getByText('Expired')).toBeTruthy();
+  });
+
+  it('lets the person take back an invite nobody has answered, and only that one', () => {
+    const utils = openInvites({ invites: [sent(), sent({ id: 'i2', toUid: 'bo', toName: 'Bo', status: 'accepted' })] });
+    expect(utils.queryByTestId('event-invite-cancel-i2')).toBeNull();
+    expect(utils.getByLabelText('Cancel the invite to Amy')).toBeTruthy();
+    press(utils, 'event-invite-cancel-i1');
+    expect(onCancelInvite).toHaveBeenCalledTimes(1);
+    expect(onCancelInvite).toHaveBeenCalledWith('i1');
+    expect(onInvite).not.toHaveBeenCalled();
+  });
+
+  it('has no Cancel invite button when the screen cannot cancel', () => {
+    expect(openInvites({ invites: [sent()], onCancelInvite: undefined }).queryByTestId('event-invite-cancel-i1')).toBeNull();
+  });
+
+  it('does not close the sheet or save anything when inviting', () => {
+    const utils = openInvites({ invites: [sent()] });
+    press(utils, 'event-invite-friend');
+    press(utils, 'event-invite-cancel-i1');
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe('an invitation from a friend', () => {
+  const invited = (o = {}) => event({ id: 'invite-i9', source: 'invite', inviteId: 'i9', host: { uid: 'amy', name: 'Amy' }, ...o });
+
+  it('says who invited the person, at the top', () => {
+    const utils = open({ event: invited() });
+    expect(utils.getByTestId('event-host').props.children).toEqual(['Invited by ', 'Amy']);
+  });
+
+  it('says "a friend" when the name is missing', () => {
+    expect(open({ event: invited({ host: { uid: 'amy', name: '' } }) }).getByTestId('event-host').props.children).toEqual(['Invited by ', 'a friend']);
+  });
+
+  it('says nothing about an invitation on an event the person made, or on a new one', () => {
+    expect(open({ event: event({ host: { uid: 'amy', name: 'Amy' } }) }).queryByTestId('event-host')).toBeNull();
+    expect(open({ event: event() }).queryByTestId('event-host')).toBeNull();
+    expect(open().queryByTestId('event-host')).toBeNull();
+  });
+
+  it('can still be edited, moved or deleted like any other event', () => {
+    const utils = open({ event: invited() });
+    expect(utils.getByText('Edit event')).toBeTruthy();
+    fireEvent.changeText(utils.getByTestId('event-title'), 'Leg day, later');
+    press(utils, 'event-save');
+    expect(saved().title).toBe('Leg day, later');
+  });
+});

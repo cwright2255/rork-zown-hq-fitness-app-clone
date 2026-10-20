@@ -34,6 +34,7 @@ import { useHikingStore } from '@/store/hikingStore';
 import '@/services/runTracking';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useScheduleStore } from '@/store/scheduleStore';
+import { useCalendarInviteStore } from '@/store/calendarInviteStore';
 import { reconcileReminders } from '@/services/calendarReminders';
 import { startXpSync, stopXpSync } from '@/services/xpSync';
 import { publishMyProfile } from '@/services/leaderboardVisibility';
@@ -282,8 +283,11 @@ function RootLayoutInner() {
         // The calendar is merged with its cloud copy, then the phone's reminders are set from it (the next ones come due as
         // days pass, so this is done each time the app opens). The app does not wait for either.
         useScheduleStore.getState().startSync(uid).then(() => reconcileReminders()).catch(() => undefined);
+        // Calendar invitations other people send arrive through this listener (the Calendar and the Next Up card read them).
+        useCalendarInviteStore.getState().subscribe(uid);
       } else {
         stopXpSync();
+        useCalendarInviteStore.getState().unsubscribe();
       }
       setStoresReady(true);
     });

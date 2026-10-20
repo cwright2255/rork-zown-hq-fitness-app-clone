@@ -15,6 +15,7 @@
 //   communityPosts/*/comments (authorId)   their comments on other people's posts
 //   users/*/following/{uid}                other people's follow of them (holds their name and avatar)
 //   conversations, duels (participantIds)  threads and duels they were in, removed for both people
+//   calendarInvites (participantIds)       calendar invites they sent or were sent, removed for both people (they hold both names)
 //   challengeEntries (uid)                 their progress on challenges
 //   raceEntries (uid)                      their times on the virtual race boards
 //   users/*/groupMemberships               their group memberships (the onGroupLeft function lowers each group's member count)
@@ -160,6 +161,7 @@ export async function eraseUserAccount({ uid, db, bucket, auth, increment, revok
 
   await run('conversations', () => deleteQuery(db, () => db.collection('conversations').where('participantIds', 'array-contains', uid), { recursive: true }));
   await run('duels', () => deleteQuery(db, () => db.collection('duels').where('participantIds', 'array-contains', uid), { recursive: true }));
+  await run('calendarInvites', () => deleteQuery(db, () => db.collection('calendarInvites').where('participantIds', 'array-contains', uid)));
   await run('challengeEntries', () => deleteQuery(db, () => db.collection('challengeEntries').where('uid', '==', uid)));
   await run('raceEntries', () => deleteQuery(db, () => db.collection('raceEntries').where('uid', '==', uid)));
 

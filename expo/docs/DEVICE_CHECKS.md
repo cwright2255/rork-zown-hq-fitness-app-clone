@@ -166,6 +166,34 @@ put on the Calendar. Your own events, and the Calendar itself, are not touched b
       The workout saves and the Calendar stays empty, and the Coach says it left the calendar alone.
 - [ ] Turn the switch back on and the Coach can use the Calendar on the next message, without closing the app.
 
+## Calendar invitations (once, after the rules and the function are deployed, then the update)
+
+Needs two accounts, A and B, on two phones (or one phone and Expo Go), and A follows B (Friends, `app/friends.jsx`). Following is one
+way: B can only invite A if B follows A as well. Order matters: first `firebase deploy --only firestore:rules` and the functions deploy
+(it holds the account-erasure change), then `eas update`. Without the rules deployed, every invite says "You can only invite people you follow".
+
+- [ ] A: Calendar, add an event for tomorrow ("Park run", Run, 7:00 AM) and open it. There is an Invites section with "Invite a
+      friend". On a brand new event that is not saved yet, there is no Invites section.
+- [ ] A: tap "Invite a friend". The list shows the people A follows, close friends first. Tap Invite beside B. It says Sending...,
+      then Waiting. Done closes the list. Opening the event again shows B with Waiting and "Cancel invite".
+- [ ] B (within a few seconds, with the app open, no refresh needed): Calendar shows an Invitations card: "A invited you",
+      Park run, Run, tomorrow at 7:00 AM. On Home, Next Up says "1 invite waiting".
+- [ ] B: tap Accept. The Calendar opens on tomorrow, Park run is on that day with "Invited by A", the Invitations card is gone,
+      and Next Up on Home no longer says an invite is waiting. B's phone asks for notification permission the first time.
+- [ ] A: open the event. B now says Going and there is no Cancel invite for B any more.
+- [ ] A: invite B again to the same event. B shows Going in the list, with no Invite button.
+- [ ] A: add another event, invite B, then tap "Cancel invite" before B answers. B's Invitations card goes away, and Next Up stops
+      saying it is waiting. A's event shows no row for B.
+- [ ] A: invite B to a third event. B taps Decline. Nothing is added to B's Calendar. A's event shows B as Declined, and A can tap
+      Invite for B again.
+- [ ] B: open Park run from the Calendar. The sheet says "Invited by A" and there is no Invites section (it is A's event to share).
+      B can still change its time or remove it, and that does not change A's.
+- [ ] B has the reminder on: Park run buzzes B's phone at 7:00 AM the day of the run.
+- [ ] A cannot invite someone A does not follow: there is no way to type a name. A person A has unfollowed disappears from the list.
+- [ ] With airplane mode on, A taps Invite: it says "That did not go through. Check your connection and try again." and B gets nothing.
+- [ ] Delete B's test account (or a spare one that was invited): its invitations are gone from A's event, and A's own account is
+      unaffected. (This one needs the functions deploy.)
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

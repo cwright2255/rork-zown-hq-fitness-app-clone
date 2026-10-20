@@ -6,6 +6,7 @@ import {
   KIND_CHOICES, REMINDER_CHOICES, REPEAT_END_CHOICES, WEEKDAY_SHORT, MAX_TITLE, MAX_NOTES,
   clockLabel, dateLabel, endsWeeksOf, formFromEvent, moveFormDate, repeatEndKey, shiftTime,
 } from '@/lib/calendarEvents';
+import { inviteStatusLabel } from '@/lib/calendarInvites';
 
 const DEFAULT_TIME = '07:00';
 const MAX_WORKOUT_CHIPS = 20;
@@ -23,10 +24,16 @@ const blankForm = (date) => ({
 //   workouts      the person's saved workouts, [{ id, name }], to link a workout to the event
 //   onSave(form)  makes the change and says how it went: { ok: true } or { ok: false, error }
 //   onOpenWorkout(id)  opens a linked workout
+//   onInvite(event)    opens the list of friends to invite to this event (the button shows only when this is given)
+//   invites            the invites sent for this event: [{ id, toName, status, ... }], shown with their answers
+//   onCancelInvite(id) takes back an invite nobody has answered
 //   onClose()
-export default function CalendarEventSheet({ event, initialDate, workouts = [], onSave, onOpenWorkout, onClose }) {
+export default function CalendarEventSheet({ event, initialDate, workouts = [], invites = [], onSave, onOpenWorkout, onInvite, onCancelInvite, onClose }) {
   const insets = useSafeAreaInsets();
   const editing = !!event;
+  // Only an event the person made themselves can be shared; one they were invited to is someone else's.
+  const invitedBy = editing && event.source === 'invite' && event.host ? event.host : null;
+  const canInvite = editing && !!onInvite && event.source !== 'invite';
   const [form, setForm] = React.useState(() => (event ? formFromEvent(event) : blankForm(initialDate)));
   // A person who has picked a reminder keeps it when they change the kind; until then a meal has none and anything else is at its time.
   const [remindChosen, setRemindChosen] = React.useState(editing);
@@ -94,6 +101,7 @@ export default function CalendarEventSheet({ event, initialDate, workouts = [], 
       <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View testID="event-sheet" style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
           <Text style={styles.title}>{editing ? 'Edit event' : 'New event'}</Text>
+          {invitedBy ? <Text testID="event-host" style={styles.host}>Invited by {invitedBy.name || 'a friend'}</Text> : null}
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.label}>Title</Text>
             <TextInput
@@ -196,6 +204,31 @@ export default function CalendarEventSheet({ event, initialDate, workouts = [], 
               </TouchableOpacity>
             ) : null}
 
+            {canInvite ? (
+              <>
+                <Text style={styles.label}>Invites</Text>
+                {invites.map((i) => (
+                  <View key={i.id} testID={`event-invite-${i.id}`} style={styles.inviteRow}>
+                    <Text style={styles.inviteName} numberOfLines={1}>{i.toName}</Text>
+                    <Text style={styles.inviteStatus}>{inviteStatusLabel(i)}</Text>
+                    {i.status === 'pending' && onCancelInvite ? (
+                      <TouchableOpacity
+                        testID={`event-invite-cancel-${i.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Cancel the invite to ${i.toName}`}
+                        onPress={() => onCancelInvite(i.id)}
+                        hitSlop={8}>
+                        <Text style={styles.inviteCancel}>Cancel invite</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ))}
+                <TouchableOpacity testID="event-invite-friend" accessibilityRole="button" style={styles.linkBtn} onPress={() => onInvite(event)}>
+                  <Text style={styles.linkText}>Invite a friend</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+
             {error ? <Text testID="event-error" accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
           </ScrollView>
 
@@ -217,6 +250,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%' },
   title: { fontSize: 18, fontWeight: '700', color: '#000000' },
+  host: { fontSize: 13, color: '#666666', marginTop: 4 },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', color: '#999999', marginTop: 16, marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: '#000000' },
   notes: { minHeight: 64, textAlignVertical: 'top' },
@@ -235,6 +269,10 @@ const styles = StyleSheet.create({
   stepValue: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: '#000000' },
   linkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#000000', alignItems: 'center' },
   linkText: { fontSize: 14, fontWeight: '600', color: '#000000' },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  inviteName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#000000' },
+  inviteStatus: { fontSize: 13, fontWeight: '600', color: '#666666' },
+  inviteCancel: { fontSize: 13, fontWeight: '600', color: '#C62828' },
   error: { marginTop: 14, fontSize: 14, color: '#C62828' },
   buttons: { flexDirection: 'row', gap: 12, marginTop: 20 },
   button: { flex: 1, paddingVertical: 14, borderRadius: 999, alignItems: 'center' },

@@ -6,7 +6,10 @@ import {
 } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import CalendarEventSheet from '@/components/CalendarEventSheet';
+import CalendarInvites from '@/components/CalendarInvites';
+import InviteFriendSheet from '@/components/InviteFriendSheet';
 import { useScheduleStore } from '@/store/scheduleStore';
+import { useCalendarInviteStore } from '@/store/calendarInviteStore';
 import { useMealPlanStore } from '@/store/mealPlanStore';
 import { useGoalsStore } from '@/store/goalsStore';
 import { useWorkoutStore } from '@/store/workoutStore';
@@ -17,6 +20,7 @@ import { MEAL_SLOTS } from '@/lib/foodLog';
 import { formatTime, formatShortDate } from '@/lib/scheduleUtils';
 import { localDateKey, parseDateKey } from '@/lib/localDate';
 import { weekLabel } from '@/lib/mealPlan';
+import { invitesForEvent } from '@/lib/calendarInvites';
 import {
   dayMarks, describeReminder, describeRepeat, goalMarkers, kindLabel, monthDay, occurrenceStatus, occurrencesOn, upcomingOccurrences, weekSummary,
 } from '@/lib/calendarEvents';
@@ -40,6 +44,8 @@ export default function CalendarScreen() {
   const [selected, setSelected] = useState(() => (parseDateKey(requested) ? requested : todayKey));
   // The sheet: null (closed), { event: null } for a new event, { event } for changing one.
   const [sheet, setSheet] = useState(null);
+  // The event whose "invite a friend" list is open, or null.
+  const [inviteFor, setInviteFor] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const user = useUserStore((s) => s.user);
@@ -49,6 +55,8 @@ export default function CalendarScreen() {
   const skipOccurrence = useScheduleStore((s) => s.skipOccurrence);
   const removeEvent = useScheduleStore((s) => s.removeEvent);
   const setOccurrenceDone = useScheduleStore((s) => s.setOccurrenceDone);
+  const allInvites = useCalendarInviteStore((s) => s.invites);
+  const cancelInvite = useCalendarInviteStore((s) => s.cancelInvite);
   const mealEntries = useMealPlanStore((s) => s.entries);
   const goals = useGoalsStore((s) => s.goals);
   const workouts = useWorkoutStore((s) => s.workouts);
@@ -62,6 +70,12 @@ export default function CalendarScreen() {
     useMealPlanStore.getState().startSync(uid);
     if (useGoalsStore.getState().goals.length === 0) useGoalsStore.getState().loadGoals(uid);
   }, [uid]);
+
+  // The invites the person sent for the event in the sheet, with their answers.
+  const sentInvites = useMemo(
+    () => (sheet && sheet.event ? invitesForEvent(allInvites, uid, sheet.event.id) : []),
+    [allInvites, uid, sheet]
+  );
 
   const view = parseDateKey(selected);
   const year = view.getFullYear();
@@ -119,8 +133,14 @@ export default function CalendarScreen() {
     const editing = sheet && sheet.event;
     const result = editing ? updateEvent(sheet.event.id, form) : addEvent(form);
     if (!result.ok) return result;
-    setSelected(localDateKey(new Date(result.event.start)));
-    const wantsReminder = result.event.remindMinutes !== null;
+    showAndRemind(result.event);
+    return result;
+  };
+
+  // After an event is added (from the form, or by accepting an invitation): show its day, and set the phone's reminder for it.
+  const showAndRemind = (event) => {
+    setSelected(localDateKey(new Date(event.start)));
+    const wantsReminder = event.remindMinutes !== null;
     (async () => {
       if (wantsReminder) await askForReminderPermission();
       const { blocked } = await reconcileReminders();
@@ -128,7 +148,11 @@ export default function CalendarScreen() {
         Alert.alert('Reminders are off', 'Notifications are turned off for ZOWN, so there will be no reminder. You can turn them on in your phone\'s Settings.');
       }
     })();
-    return result;
+  };
+
+  const cancelSentInvite = async (id) => {
+    const result = await cancelInvite(id);
+    if (!result.ok) Alert.alert('Could not cancel the invite', result.error);
   };
 
   const tick = (o, status) => {
@@ -187,6 +211,8 @@ export default function CalendarScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />}>
+        <CalendarInvites onAccepted={showAndRemind} />
+
         <View style={styles.monthRow}>
           <TouchableOpacity testID="month-prev" accessibilityLabel="Previous month" onPress={() => goToMonth(-1)} hitSlop={10}>
             <ChevronLeft size={22} color="#000" />
@@ -287,6 +313,7 @@ export default function CalendarScreen() {
                   {status.tracked && status.done && !o.done ? ' · Logged' : ''}
                   {status.missed ? ' · Missed' : ''}
                 </Text>
+                {o.source === 'invite' && o.host ? <Text testID={`occ-host-${o.key}`} style={styles.occDetail}>Invited by {o.host.name || 'a friend'}</Text> : null}
                 {detail ? (
                   <View style={styles.detailRow}>
                     {o.recurring ? <Repeat size={11} color="#999" /> : <Bell size={11} color="#999" />}
@@ -377,11 +404,16 @@ export default function CalendarScreen() {
           event={sheet.event}
           initialDate={selected}
           workouts={workoutChoices}
+          invites={sentInvites}
           onSave={save}
           onOpenWorkout={(id) => { setSheet(null); router.push(`/workout/${id}`); }}
+          onInvite={(event) => { setSheet(null); setInviteFor(event); }}
+          onCancelInvite={cancelSentInvite}
           onClose={() => setSheet(null)}
         />
       ) : null}
+
+      {inviteFor ? <InviteFriendSheet event={inviteFor} onClose={() => setInviteFor(null)} /> : null}
     </View>
   );
 }
