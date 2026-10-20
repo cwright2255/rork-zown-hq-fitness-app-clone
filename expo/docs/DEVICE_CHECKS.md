@@ -118,6 +118,28 @@ top of Home, then Edit Home Screen ("Challenges & Rank"). It only reads. It neve
 - [ ] Join a challenge on the Challenges screen and go back to Home. The right half shows it.
 - [ ] Pull down on Home. Both halves stay filled in and do not flash empty or show an error.
 
+## Home widgets: Macros and Weight (once, on the first update with them)
+
+On Home, they are two more cards in the grid, right after Muscles and before the wide cards. If you saved your own Home layout before
+this update, they come at the end of the cards (not at the very bottom). To move or hide them: the menu at the top of Home, then Edit
+Home Screen ("Macros", "Weight"). They only read. They never log a food or a weight.
+
+- [ ] Macros lists Protein, Carbs and Fat, each as grams out of your goal ("75/150g") with a small bar (blue, orange, purple). Open
+      Nutrition (`app/nutrition.jsx`) on today: the Protein, Carbs and Fat boxes there are the first numbers on Home.
+- [ ] Log a food in Nutrition and go back to Home. The grams and bars have gone up, without pulling down.
+- [ ] With nothing logged today, Macros says "Nothing logged yet" and shows 0 of each goal. Food logged on another day does not count.
+- [ ] Tap Macros. Nutrition opens.
+- [ ] Weight shows your latest weight ("172 lbs"). Open Progress (`app/progress.jsx`): the big number under Weight there is the same,
+      and so is the "from start" line under it ("4 lbs from start", with an arrow down or up).
+- [ ] Tap Log Weight on Progress, enter a weight and go back to Home. The new weight is there, without pulling down. The first time,
+      Progress also asks for a target weight: set one, and the bottom line of the Weight card says how far you are ("7 lbs to target").
+- [ ] Settings, then Weight Units: switch to kg and go back to Home. Weight shows kg with a tenth ("78.4 kg"). Progress still shows
+      pounds whatever this says. Switch it back.
+- [ ] After a body scan, a "Body fat" line shows the latest scan's figure, the same as Body Fat on Progress. With two or more scans it
+      ends in an arrow and how far it moved since the scan before.
+- [ ] With no weight logged, Weight shows a dash and "Log your weight", and tapping it opens Progress.
+- [ ] Pull down on Home. Both cards stay filled in and do not flash empty or show an error.
+
 ## The Coach
 
 Profile, then AI Coach. Ask "What do you know about my day?"

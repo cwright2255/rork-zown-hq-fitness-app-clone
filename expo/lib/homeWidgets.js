@@ -47,6 +47,9 @@ export const WIDGET_REGISTRY = [
   { id: 'muscles', label: 'Muscles', icon: 'body-outline', kind: 'card' },
   // Wide, like Workout History and Running Log: two halves, your place among friends and your live challenge.
   { id: 'rankChallenge', label: 'Challenges & Rank', icon: 'podium-outline', kind: 'rankChallenge' },
+  // Two more grid cards: today's macros against the goals, and the weight and body scan figures.
+  { id: 'macros', label: 'Macros', icon: 'nutrition-outline', kind: 'card' },
+  { id: 'weight', label: 'Weight', icon: 'scale-outline', kind: 'card' },
 ];
 
 // Default layout for a user who has never customized their home screen -

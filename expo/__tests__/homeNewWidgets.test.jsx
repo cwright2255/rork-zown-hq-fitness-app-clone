@@ -1,5 +1,5 @@
 // The Home screen shows the newer widgets (Workout Streak, Next Up, Battle Pass, Training Load, Muscles, Workout History, Running Log,
-// Challenges & Rank) with the others, and the layout switches them on and off.
+// Challenges & Rank, Macros, Weight) with the others, and the layout switches them on and off.
 // jest.global-setup.js pins the zone to America/New_York; 9:30 PM on Wed 14 Oct there is 01:30Z on the 15th.
 import React from 'react';
 import { RefreshControl } from 'react-native';
@@ -54,6 +54,9 @@ import { useScheduleStore } from '../store/scheduleStore';
 import { useHomeWidgetsStore } from '../store/homeWidgetsStore';
 import { useSocialGraphStore } from '../store/socialGraphStore';
 import { useChallengeStore } from '../store/challengeStore';
+import { useNutritionStore } from '../store/nutritionStore';
+import { useWeightLogStore } from '../store/weightLogStore';
+import { useBodyCompositionStore } from '../store/bodyCompositionStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { getDefaultWidgetLayout } from '../lib/homeWidgets';
 
@@ -69,6 +72,8 @@ const docs = (list) => ({ docs: list.map(({ id, ...data }) => ({ id, data: () =>
 let server;
 const answer = async (q) => {
   if (q.path === 'users/u1/following') return docs(server.following);
+  if (q.query && q.query[0].path === 'users/u1/weightLogs') return docs(server.weightLogs);
+  if (q.query && q.query[0].path === 'users/u1/bodyScans') return docs(server.scans);
   if (q.query && q.query[0].path === 'leaderboard') return docs(server.leaderboard.filter((e) => q.query[1].value.includes(e.id)));
   return docs([]); // challenges, challenge joins and anything else: nothing
 };
@@ -77,12 +82,15 @@ const readsOf = (path) => getDocs.mock.calls.filter(([q]) => (q.query ? q.query[
 // The user store finishes loading on a timer once it is imported; let that happen before the clock is moved.
 beforeAll(() => new Promise((resolve) => setTimeout(resolve, 20)));
 beforeEach(() => {
-  server = { following: [], leaderboard: [] };
+  server = { following: [], leaderboard: [], weightLogs: [], scans: [] };
   getDocs.mockReset();
   getDocs.mockImplementation(answer);
   useSocialGraphStore.setState({ following: [], isLoaded: false, isLoading: false });
   useChallengeStore.setState({ challenges: [], joinedChallengeIds: new Set() });
-  useSettingsStore.setState({ showInLeaderboards: true });
+  useSettingsStore.setState({ showInLeaderboards: true, weightUnits: 'imperial' });
+  useNutritionStore.setState({ meals: [], dailyGoals: { calories: 2000, protein: 150, carbs: 200, fat: 65, water: 2000 } });
+  useWeightLogStore.setState({ logs: [], isLoading: false, error: null });
+  useBodyCompositionStore.setState({ scans: [], isLoading: false, error: null });
 });
 afterEach(() => { jest.useRealTimers(); });
 
@@ -405,5 +413,120 @@ describe('home screen: Challenges & Rank', () => {
     const utils = await open();
     expect(utils.getByText('Hidden from leaderboards')).toBeTruthy();
     expect(readsOf('leaderboard')).toHaveLength(0);
+  });
+});
+
+
+describe('home screen: Macros and Weight', () => {
+  const GRID_IDS = ['home-widget-macros', 'home-widget-weight'];
+  const treeOrder = (utils, ids) => utils.UNSAFE_root
+    .findAll((n) => n.type === 'View' && ids.includes(n.props?.testID))
+    .map((n) => n.props.testID)
+    .filter((t, i, all) => all.indexOf(t) === i);
+  const open = async (opts) => {
+    useRunningStore.setState({ runs: [] });
+    return openHome(opts);
+  };
+  const lbsToKg = (n) => n / 2.20462;
+  const eatSomething = () => useNutritionStore.setState({
+    meals: [{ id: 'b', date: '2026-10-14', foods: [{ name: 'Eggs', calories: 300, protein: 75, carbs: 50, fat: 13 }] }],
+  });
+  const logWeights = () => {
+    server.weightLogs = [{ id: 'b', weightKg: lbsToKg(172) }, { id: 'a', weightKg: lbsToKg(176) }];
+  };
+
+  it('shows both with the others on the default layout', async () => {
+    const utils = await open();
+    GRID_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+    expect(utils.getByText('Macros')).toBeTruthy();
+    expect(utils.getByText('Weight')).toBeTruthy();
+    expect(utils.getByText('Heart')).toBeTruthy(); // the older cards are still there
+    expect(utils.getByTestId('home-widget-rankchallenge')).toBeTruthy(); // and the newer ones
+  });
+
+  it('draws them in the grid, after Muscles and before the wide cards', async () => {
+    const utils = await open();
+    expect(treeOrder(utils, ['home-widget-muscles', ...GRID_IDS, 'home-widget-workouthistory', 'home-widget-rankchallenge'])).toEqual([
+      'home-widget-muscles', 'home-widget-macros', 'home-widget-weight', 'home-widget-workouthistory', 'home-widget-rankchallenge',
+    ]);
+  });
+
+  it('shows what was eaten today against the goals', async () => {
+    eatSomething();
+    const utils = await open();
+    expect(utils.getByTestId('home-macro-protein-text').props.children).toBe('75/150g');
+    expect(utils.getByTestId('home-macro-carbs-text').props.children).toBe('50/200g');
+    expect(utils.getByTestId('home-macro-fat-text').props.children).toBe('13/65g');
+  });
+
+  it('shows the latest weight and how far it has moved', async () => {
+    logWeights();
+    const utils = await open();
+    expect(utils.getByText('172 lbs')).toBeTruthy();
+    expect(utils.getByTestId('home-weight-change').props.children).toBe('\u2193 4 lbs from start');
+  });
+
+  it('shows the weight in kilograms when Weight Units is kg', async () => {
+    logWeights();
+    useSettingsStore.setState({ weightUnits: 'metric' });
+    const utils = await open();
+    expect(utils.getByText('78 kg')).toBeTruthy();
+  });
+
+  it('opens Nutrition from Macros and Progress from Weight', async () => {
+    const utils = await open();
+    fireEvent.press(utils.getByTestId('home-widget-macros'));
+    expect(router.push).toHaveBeenLastCalledWith('/nutrition');
+    fireEvent.press(utils.getByTestId('home-widget-weight'));
+    expect(router.push).toHaveBeenLastCalledWith('/progress');
+    expect(router.push).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows them to someone who saved a layout before they existed, switched on', async () => {
+    const saved = getDefaultWidgetLayout().filter((w) => !['macros', 'weight'].includes(w.id));
+    const utils = await open({ layout: saved });
+    GRID_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+    // still in the grid, ahead of the wide cards, though they were added after them
+    expect(treeOrder(utils, ['home-widget-macros', 'home-widget-workouthistory'])).toEqual(['home-widget-macros', 'home-widget-workouthistory']);
+  });
+
+  it.each([
+    ['macros', 'home-widget-macros', 'home-widget-weight'],
+    ['weight', 'home-widget-weight', 'home-widget-macros'],
+  ])('hides %s when it is switched off, and only that one', async (offId, offTestId, stillTestId) => {
+    const layout = getDefaultWidgetLayout().map((w) => (w.id === offId ? { ...w, enabled: false } : w));
+    const utils = await open({ layout });
+    expect(utils.queryByTestId(offTestId)).toBeNull();
+    expect(utils.getByTestId(stillTestId)).toBeTruthy();
+    expect(utils.getByTestId('home-widget-muscles')).toBeTruthy();
+  });
+
+  it('does not read the weight log or the scans while Weight is switched off', async () => {
+    const layout = getDefaultWidgetLayout().map((w) => (w.id === 'weight' ? { ...w, enabled: false } : w));
+    await open({ layout });
+    expect(readsOf('users/u1/weightLogs')).toHaveLength(0);
+    expect(readsOf('users/u1/bodyScans')).toHaveLength(0);
+  });
+
+  it('lets them be moved: a layout with Weight first draws it before Macros', async () => {
+    const rest = getDefaultWidgetLayout().filter((w) => w.id !== 'weight');
+    const utils = await open({ layout: [{ id: 'weight', enabled: true }, ...rest] });
+    expect(treeOrder(utils, GRID_IDS)).toEqual(['home-widget-weight', 'home-widget-macros']);
+  });
+
+  it('reads the weight log and the scans again when Home is pulled down to refresh', async () => {
+    const utils = await open();
+    expect(utils.getByText('Log your weight')).toBeTruthy();
+    expect(readsOf('users/u1/weightLogs')).toHaveLength(1);
+    expect(readsOf('users/u1/bodyScans')).toHaveLength(1);
+    logWeights(); // logged on another phone since
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await act(async () => { await utils.UNSAFE_getByType(RefreshControl).props.onRefresh(); });
+    console.error.mockRestore();
+    console.warn.mockRestore();
+    expect(readsOf('users/u1/weightLogs')).toHaveLength(2);
+    expect(readsOf('users/u1/bodyScans')).toHaveLength(2);
+    expect(utils.getByText('172 lbs')).toBeTruthy();
   });
 });

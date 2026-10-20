@@ -41,6 +41,8 @@ describe('the Home widget list', () => {
     expect(getWidgetDefinition('battlePass')).toMatchObject({ label: 'Battle Pass', kind: 'card' });
     expect(getWidgetDefinition('trainingLoad')).toMatchObject({ label: 'Training Load', kind: 'card' });
     expect(getWidgetDefinition('muscles')).toMatchObject({ label: 'Muscles', kind: 'card' });
+    expect(getWidgetDefinition('macros')).toMatchObject({ label: 'Macros', icon: 'nutrition-outline', kind: 'card' });
+    expect(getWidgetDefinition('weight')).toMatchObject({ label: 'Weight', icon: 'scale-outline', kind: 'card' });
   });
 
   it('draws Challenges & Rank as a full-width section after the grid, not as a grid card', () => {
@@ -48,7 +50,7 @@ describe('the Home widget list', () => {
   });
 
   it('adds the newer widgets after the ones before them, in the order they were added', () => {
-    expect(ids.slice(15)).toEqual(['streak', 'nextUp', 'battlePass', 'trainingLoad', 'muscles', 'rankChallenge']);
+    expect(ids.slice(15)).toEqual(['streak', 'nextUp', 'battlePass', 'trainingLoad', 'muscles', 'rankChallenge', 'macros', 'weight']);
   });
 
   it('keeps the widgets people already have where they were, before the newer ones', () => {

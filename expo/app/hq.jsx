@@ -63,6 +63,8 @@ import MusclesWidget from '@/components/MusclesWidget';
 import WorkoutHistoryWidget from '@/components/WorkoutHistoryWidget';
 import RunningLogWidget from '@/components/RunningLogWidget';
 import RankChallengeWidget from '@/components/RankChallengeWidget';
+import MacrosWidget from '@/components/MacrosWidget';
+import WeightWidget from '@/components/WeightWidget';
 import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
@@ -684,6 +686,8 @@ export default function HQScreen() {
     workoutHistory: () => isWidgetEnabled('workoutHistory') && <WorkoutHistoryWidget />,
     runningLog: () => isWidgetEnabled('runningLog') && <RunningLogWidget />,
     rankChallenge: () => isWidgetEnabled('rankChallenge') && <RankChallengeWidget refreshTick={refreshTick} />,
+    macros: () => isWidgetEnabled('macros') && <MacrosWidget />,
+    weight: () => isWidgetEnabled('weight') && <WeightWidget refreshTick={refreshTick} />,
   };
 
   const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {
