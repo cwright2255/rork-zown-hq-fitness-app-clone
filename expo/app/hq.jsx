@@ -60,6 +60,8 @@ import NextUpWidget from '@/components/NextUpWidget';
 import BattlePassWidget from '@/components/BattlePassWidget';
 import TrainingLoadWidget from '@/components/TrainingLoadWidget';
 import MusclesWidget from '@/components/MusclesWidget';
+import WorkoutHistoryWidget from '@/components/WorkoutHistoryWidget';
+import RunningLogWidget from '@/components/RunningLogWidget';
 import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
@@ -676,6 +678,8 @@ export default function HQScreen() {
     battlePass: () => isWidgetEnabled('battlePass') && <BattlePassWidget />,
     trainingLoad: () => isWidgetEnabled('trainingLoad') && <TrainingLoadWidget />,
     muscles: () => isWidgetEnabled('muscles') && <MusclesWidget />,
+    workoutHistory: () => isWidgetEnabled('workoutHistory') && <WorkoutHistoryWidget />,
+    runningLog: () => isWidgetEnabled('runningLog') && <RunningLogWidget />,
   };
 
   const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {

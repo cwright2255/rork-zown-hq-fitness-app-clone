@@ -75,6 +75,25 @@ On Home, scroll to the end of the cards. They come after Next Up. To hide or mov
       leg workout the legs are at the top. Tap it: the Health screen opens, and its Muscle Fatigue heatmap has those muscles as the
       hottest. With nothing in the last five days it says "No recent load".
 
+## Home widgets: Workout History and Running Log (once, on the first update with them)
+
+On Home, scroll down past the cards. They are wide cards that come after the last card, one under the other (Workout History, then
+Running Log). To hide or move them: the menu at the top of Home, then Edit Home Screen. Their switches there did nothing before.
+
+- [ ] Workout History shows three numbers (Workouts, Calories, Time) under "Last 7 days". Swipe sideways: "This month", then "All
+      logged", and the dots under the card follow. The card does not change height as you swipe.
+- [ ] Tap View Full Log. Workout History (`app/profile/workout-history.jsx`) opens. The Workouts, Calories and Total Time at its
+      top are the "All logged" page on Home. Set its filter to Week, then Month: the number of workouts listed is the Workouts
+      number on the "Last 7 days" and "This month" pages.
+- [ ] "Latest:" under the dots is the workout you did last, with "Today", "Yesterday" or the day.
+- [ ] Running Log shows Distance, Time and Avg pace, and "2 runs" (or "activities" once you have saved a walk) at the right of each
+      page. Open it with View Full Log (`app/profile/running-log.jsx`): its top numbers are the "All logged" page, and its Week and
+      Month filters list the number of runs on the other two pages.
+- [ ] Settings, then Distance Units: switch between miles and kilometres and go back to Home. Distance and pace on the Running Log card
+      change with it (mi and /mi, or km and /km).
+- [ ] With no workouts or no runs saved, the card says so in a line ("No workouts yet", "No runs yet") and the button still opens the
+      full log.
+
 ## The Coach
 
 Profile, then AI Coach. Ask "What do you know about my day?"

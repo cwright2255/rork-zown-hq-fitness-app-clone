@@ -1,5 +1,5 @@
-// The Home screen shows the newer widgets (Workout Streak, Next Up, Battle Pass, Training Load, Muscles) with the others, and the layout
-// switches them on and off.
+// The Home screen shows the newer widgets (Workout Streak, Next Up, Battle Pass, Training Load, Muscles, Workout History, Running Log) with
+// the others, and the layout switches them on and off.
 // jest.global-setup.js pins the zone to America/New_York; 9:30 PM on Wed 14 Oct there is 01:30Z on the 15th.
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
@@ -36,6 +36,7 @@ import { router } from 'expo-router';
 import Hq from '../app/hq';
 import { useUserStore } from '../store/userStore';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useRunningStore } from '../store/runningStore';
 import { useScheduleStore } from '../store/scheduleStore';
 import { useHomeWidgetsStore } from '../store/homeWidgetsStore';
 import { getDefaultWidgetLayout } from '../lib/homeWidgets';
@@ -68,7 +69,7 @@ describe('home screen: newer widgets', () => {
     const utils = await openHome();
     expect(utils.getByText('Workout Streak')).toBeTruthy();
     expect(utils.getByText('Next Up')).toBeTruthy();
-    expect(utils.getByText('Calories')).toBeTruthy(); // the older cards are still there
+    expect(utils.getByText('Heart')).toBeTruthy(); // the older cards are still there
     expect(utils.getByTestId('home-nextup-title').props.children).toBe('Leg day');
     expect(utils.getByText('Tomorrow \u00B7 7:00 AM')).toBeTruthy();
     expect(utils.getByText('day in a row')).toBeTruthy(); // the 14th had a workout, and the 14th is today here
@@ -114,7 +115,7 @@ describe('home screen: Battle Pass, Training Load and Muscles', () => {
     expect(utils.getByText('Lv 1')).toBeTruthy();
     expect(utils.getByText('Needs more history')).toBeTruthy(); // one workout is not enough history for a training load
     expect(utils.getByText('Last 5 days')).toBeTruthy();
-    expect(utils.getByText('Calories')).toBeTruthy(); // the older cards are still there
+    expect(utils.getByText('Heart')).toBeTruthy(); // the older cards are still there
     expect(utils.getByText('Workout Streak')).toBeTruthy(); // and the ones from before
   });
 
@@ -178,3 +179,79 @@ describe('home screen: Battle Pass, Training Load and Muscles', () => {
   });
 });
 
+
+describe('home screen: Workout History and Running Log', () => {
+  const SECTION_IDS = ['workoutHistory', 'runningLog'];
+  const TEST_IDS = ['home-widget-workouthistory', 'home-widget-runninglog'];
+  const treeOrder = (utils, ids) => utils.UNSAFE_root
+    .findAll((n) => n.type === 'View' && ids.includes(n.props?.testID))
+    .map((n) => n.props.testID)
+    .filter((t, i, all) => all.indexOf(t) === i);
+  const open = async (opts) => {
+    useRunningStore.setState({ runs: [] });
+    return openHome(opts);
+  };
+
+  it('shows both with the others on the default layout', async () => {
+    const utils = await open();
+    TEST_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+    expect(utils.getByText('Workout History')).toBeTruthy();
+    expect(utils.getByText('Running Log')).toBeTruthy();
+    expect(utils.getByText('Heart')).toBeTruthy(); // the older cards are still there
+    expect(utils.getByTestId('home-widget-muscles')).toBeTruthy(); // and the newer ones
+  });
+
+  it('draws them full width after the grid of cards, Workout History first', async () => {
+    const utils = await open();
+    expect(treeOrder(utils, ['home-widget-muscles', 'home-widget-streak', ...TEST_IDS])).toEqual([
+      'home-widget-streak', 'home-widget-muscles', 'home-widget-workouthistory', 'home-widget-runninglog',
+    ]);
+  });
+
+  it('shows the workout the person did today, and says there is no run yet', async () => {
+    const utils = await open();
+    expect(utils.getByTestId('home-widget-workouthistory-latest').props.children).toBe('Latest: Workout \u00B7 Today');
+    expect(utils.getByTestId('home-widget-runninglog-empty')).toBeTruthy();
+    expect(utils.queryByTestId('home-widget-workouthistory-empty')).toBeNull();
+  });
+
+  it('opens Workout History and the Running Log from their buttons', async () => {
+    const utils = await open();
+    fireEvent.press(utils.getByTestId('home-widget-workouthistory-open'));
+    expect(router.push).toHaveBeenLastCalledWith('/profile/workout-history');
+    fireEvent.press(utils.getByTestId('home-widget-runninglog-open'));
+    expect(router.push).toHaveBeenLastCalledWith('/profile/running-log');
+  });
+
+  it('shows them to someone who saved a layout before they existed, switched on', async () => {
+    const saved = getDefaultWidgetLayout().filter((w) => !SECTION_IDS.includes(w.id));
+    const utils = await open({ layout: saved });
+    TEST_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+  });
+
+  it.each([
+    ['workoutHistory', 'home-widget-workouthistory', 'home-widget-runninglog'],
+    ['runningLog', 'home-widget-runninglog', 'home-widget-workouthistory'],
+  ])('hides %s when it is switched off, and only that one', async (offId, offTestId, stillTestId) => {
+    const layout = getDefaultWidgetLayout().map((w) => (w.id === offId ? { ...w, enabled: false } : w));
+    const utils = await open({ layout });
+    expect(utils.queryByTestId(offTestId)).toBeNull();
+    expect(utils.getByTestId(stillTestId)).toBeTruthy();
+    expect(utils.getByTestId('home-widget-streak')).toBeTruthy();
+  });
+
+  it('hides both together, and leaves the cards', async () => {
+    const utils = await open();
+    const off = getDefaultWidgetLayout().map((w) => (SECTION_IDS.includes(w.id) ? { ...w, enabled: false } : w));
+    await act(async () => { useHomeWidgetsStore.setState({ layout: off }); });
+    TEST_IDS.forEach((id) => expect(utils.queryByTestId(id)).toBeNull());
+    expect(utils.getByTestId('home-widget-streak')).toBeTruthy();
+    expect(utils.getByText('Heart')).toBeTruthy();
+  });
+
+  it('lets them be moved: a layout with Running Log first draws it before Workout History', async () => {
+    const rest = getDefaultWidgetLayout().filter((w) => w.id !== 'runningLog');
+    const utils = await open({ layout: [{ id: 'runningLog', enabled: true }, ...rest] });
+    expect(treeOrder(utils, TEST_IDS)).toEqual(['home-widget-runninglog', 'home-widget-workouthistory']);
+  });
+});

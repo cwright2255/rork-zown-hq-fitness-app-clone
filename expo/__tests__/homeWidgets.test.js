@@ -22,12 +22,17 @@ describe('the Home widget list', () => {
     });
   });
 
-  it('is drawn by the Home screen, apart from the two it lists that nothing draws yet, and nothing unlisted is drawn', () => {
+  it('is drawn by the Home screen in full: every widget in the list has a renderer, and nothing unlisted is drawn', () => {
     expect(rendererIds.length).toBeGreaterThan(0);
     expect(rendererIds.filter((id) => !ids.includes(id))).toEqual([]);
-    // Workout History and Running Log are in the list (so in the editor) but the components that were to draw them,
-    // WorkoutHistoryWidget and RunningLogWidget, were never written. This pins that, so a new widget cannot be added the same way.
-    expect(ids.filter((id) => !rendererIds.includes(id)).sort()).toEqual(['runningLog', 'workoutHistory']);
+    // A widget in the list with nothing drawing it is a switch that does nothing (Workout History and Running Log were like that
+    // until their cards were written). This keeps a new widget from being added the same way.
+    expect(ids.filter((id) => !rendererIds.includes(id))).toEqual([]);
+  });
+
+  it('draws Workout History and Running Log as full-width sections after the grid, not as grid cards', () => {
+    expect(getWidgetDefinition('workoutHistory')).toMatchObject({ label: 'Workout History', kind: 'workoutHistory' });
+    expect(getWidgetDefinition('runningLog')).toMatchObject({ label: 'Running Log', kind: 'runningLog' });
   });
 
   it('has the newer widgets, as cards in the grid', () => {
