@@ -60,6 +60,21 @@ On Home, scroll to the end of the cards. They come after Music. To hide or move 
       on that day. With nothing planned it says "Nothing planned" and opens the Calendar.
 - [ ] Ask the Coach to add a workout to your calendar and say yes. Back on Home, Next Up shows it if it is the next one.
 
+## Home widgets: Battle Pass, Training Load and Muscles (once, on the first update with them)
+
+On Home, scroll to the end of the cards. They come after Next Up. To hide or move them: the menu at the top of Home, then Edit Home Screen.
+
+- [ ] Battle Pass shows your level (Lv and a number) with a thin bar under it, and "0/3 missions today" up to "All missions done".
+      Open the Battle Pass screen (`app/battlepass.jsx`) from the card: the level is the same, and the number of daily missions that
+      show full progress there is the number on the card.
+- [ ] Log a meal on the Nutrition screen, or finish a short workout, and go back to Home. The mission count went up without
+      pulling down to refresh. (Three meals with foods in them make the meals mission.)
+- [ ] Training Load shows one number with a few words under it, and a small dot on a bar. With under about a week of training it
+      says "Needs more history". Tap it: the Health screen (`app/health.jsx`) opens, and its Training Load card shows the same number.
+- [ ] Muscles lists up to three muscles, the most worked first, each with a coloured dot, and "Last 5 days" under them. After a
+      leg workout the legs are at the top. Tap it: the Health screen opens, and its Muscle Fatigue heatmap has those muscles as the
+      hottest. With nothing in the last five days it says "No recent load".
+
 ## The Coach
 
 Profile, then AI Coach. Ask "What do you know about my day?"

@@ -57,6 +57,9 @@ import FastingWidget from '@/components/FastingWidget';
 import MusicWidget from '@/components/MusicWidget';
 import StreakWidget from '@/components/StreakWidget';
 import NextUpWidget from '@/components/NextUpWidget';
+import BattlePassWidget from '@/components/BattlePassWidget';
+import TrainingLoadWidget from '@/components/TrainingLoadWidget';
+import MusclesWidget from '@/components/MusclesWidget';
 import WidgetEditorModal from '@/components/WidgetEditorModal';
 
 // Enable LayoutAnimation for Android
@@ -670,6 +673,9 @@ export default function HQScreen() {
     music: () => isWidgetEnabled('music') && <MusicWidget />,
     streak: () => isWidgetEnabled('streak') && <StreakWidget />,
     nextUp: () => isWidgetEnabled('nextUp') && <NextUpWidget />,
+    battlePass: () => isWidgetEnabled('battlePass') && <BattlePassWidget />,
+    trainingLoad: () => isWidgetEnabled('trainingLoad') && <TrainingLoadWidget />,
+    muscles: () => isWidgetEnabled('muscles') && <MusclesWidget />,
   };
 
   const { gridWidgetIds, sectionWidgetIds } = useMemo(() => {

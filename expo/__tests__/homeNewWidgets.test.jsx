@@ -1,4 +1,5 @@
-// The Home screen shows the newer widgets (Workout Streak, Next Up) with the others, and the layout switches them on and off.
+// The Home screen shows the newer widgets (Workout Streak, Next Up, Battle Pass, Training Load, Muscles) with the others, and the layout
+// switches them on and off.
 // jest.global-setup.js pins the zone to America/New_York; 9:30 PM on Wed 14 Oct there is 01:30Z on the 15th.
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
@@ -102,3 +103,78 @@ describe('home screen: newer widgets', () => {
     expect(utils.queryByText('Next Up')).toBeNull();
   });
 });
+
+describe('home screen: Battle Pass, Training Load and Muscles', () => {
+  const NEW_IDS = ['battlePass', 'trainingLoad', 'muscles'];
+  const TEST_IDS = ['home-widget-battlepass', 'home-widget-trainingload', 'home-widget-muscles'];
+
+  it('shows all three with the others on the default layout', async () => {
+    const utils = await openHome();
+    TEST_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+    expect(utils.getByText('Lv 1')).toBeTruthy();
+    expect(utils.getByText('Needs more history')).toBeTruthy(); // one workout is not enough history for a training load
+    expect(utils.getByText('Last 5 days')).toBeTruthy();
+    expect(utils.getByText('Calories')).toBeTruthy(); // the older cards are still there
+    expect(utils.getByText('Workout Streak')).toBeTruthy(); // and the ones from before
+  });
+
+  it('opens the Battle Pass from the Battle Pass card', async () => {
+    const utils = await openHome();
+    fireEvent.press(utils.getByTestId('home-widget-battlepass'));
+    expect(router.push).toHaveBeenCalledWith('/battlepass');
+  });
+
+  it('opens Health from the Training Load card and from the Muscles card', async () => {
+    const utils = await openHome();
+    fireEvent.press(utils.getByTestId('home-widget-trainingload'));
+    expect(router.push).toHaveBeenLastCalledWith('/health');
+    fireEvent.press(utils.getByTestId('home-widget-muscles'));
+    expect(router.push).toHaveBeenLastCalledWith('/health');
+    expect(router.push).toHaveBeenCalledTimes(2);
+  });
+
+  it('counts today\'s workout toward the missions on the Battle Pass card', async () => {
+    const utils = await openHome(); // the 14th had a workout, and the 14th is today here
+    expect(utils.getByText('1/3 missions today')).toBeTruthy();
+  });
+
+  it('shows them to someone who saved a layout before they existed, switched on', async () => {
+    const saved = getDefaultWidgetLayout().filter((w) => !NEW_IDS.includes(w.id));
+    const utils = await openHome({ layout: saved });
+    TEST_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+  });
+
+  it.each([
+    ['battlePass', 'home-widget-battlepass'],
+    ['trainingLoad', 'home-widget-trainingload'],
+    ['muscles', 'home-widget-muscles'],
+  ])('hides %s when it is switched off, and only that one', async (offId, offTestId) => {
+    const layout = getDefaultWidgetLayout().map((w) => (w.id === offId ? { ...w, enabled: false } : w));
+    const utils = await openHome({ layout });
+    expect(utils.queryByTestId(offTestId)).toBeNull();
+    TEST_IDS.filter((id) => id !== offTestId).forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
+    expect(utils.getByTestId('home-widget-streak')).toBeTruthy();
+    expect(utils.getByTestId('home-widget-nextup')).toBeTruthy();
+  });
+
+  it('hides all three together, and leaves the others', async () => {
+    const utils = await openHome();
+    const all = getDefaultWidgetLayout().map((w) => (NEW_IDS.includes(w.id) ? { ...w, enabled: false } : w));
+    await act(async () => { useHomeWidgetsStore.setState({ layout: all }); });
+    TEST_IDS.forEach((id) => expect(utils.queryByTestId(id)).toBeNull());
+    expect(utils.getByTestId('home-widget-streak')).toBeTruthy();
+    expect(utils.getByTestId('home-widget-nextup')).toBeTruthy();
+  });
+
+  it('lets them be moved: a layout with Muscles first draws it before Battle Pass', async () => {
+    const rest = getDefaultWidgetLayout().filter((w) => w.id !== 'muscles');
+    const utils = await openHome({ layout: [{ id: 'muscles', enabled: true }, ...rest] });
+    const order = utils.UNSAFE_root
+      .findAll((n) => n.type === 'View' && TEST_IDS.includes(n.props?.testID))
+      .map((n) => n.props.testID)
+      .filter((t, i, all) => all.indexOf(t) === i);
+    expect(order[0]).toBe('home-widget-muscles');
+    expect(order.indexOf('home-widget-muscles')).toBeLessThan(order.indexOf('home-widget-battlepass'));
+  });
+});
+

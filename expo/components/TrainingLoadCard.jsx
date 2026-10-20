@@ -11,7 +11,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 
-const ZONE_COLOR = {
+export const ZONE_COLOR = {
   detraining: '#3B82F6',
   sweet_spot: '#22C55E',
   elevated: '#D97706',

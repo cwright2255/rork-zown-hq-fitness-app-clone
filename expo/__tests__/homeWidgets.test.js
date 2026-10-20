@@ -33,6 +33,13 @@ describe('the Home widget list', () => {
   it('has the newer widgets, as cards in the grid', () => {
     expect(getWidgetDefinition('streak')).toMatchObject({ label: 'Workout Streak', kind: 'card' });
     expect(getWidgetDefinition('nextUp')).toMatchObject({ label: 'Next Up', kind: 'card' });
+    expect(getWidgetDefinition('battlePass')).toMatchObject({ label: 'Battle Pass', kind: 'card' });
+    expect(getWidgetDefinition('trainingLoad')).toMatchObject({ label: 'Training Load', kind: 'card' });
+    expect(getWidgetDefinition('muscles')).toMatchObject({ label: 'Muscles', kind: 'card' });
+  });
+
+  it('adds the newer widgets after the ones before them, in the order they were added', () => {
+    expect(ids.slice(15)).toEqual(['streak', 'nextUp', 'battlePass', 'trainingLoad', 'muscles']);
   });
 
   it('keeps the widgets people already have where they were, before the newer ones', () => {

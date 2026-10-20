@@ -40,6 +40,9 @@ export const WIDGET_REGISTRY = [
   // move them in edit mode like any other.
   { id: 'streak', label: 'Workout Streak', icon: 'flash-outline', kind: 'card' },
   { id: 'nextUp', label: 'Next Up', icon: 'calendar-outline', kind: 'card' },
+  { id: 'battlePass', label: 'Battle Pass', icon: 'ribbon-outline', kind: 'card' },
+  { id: 'trainingLoad', label: 'Training Load', icon: 'speedometer-outline', kind: 'card' },
+  { id: 'muscles', label: 'Muscles', icon: 'body-outline', kind: 'card' },
 ];
 
 // Default layout for a user who has never customized their home screen -

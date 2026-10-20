@@ -16,6 +16,9 @@ const mockState = {
   runs: [],
   hikes: [],
   achievements: [],
+  meals: [],
+  steps: 0,
+  stepsDate: null,
   loadHikes: jest.fn(),
 };
 const noop = () => {};
@@ -31,9 +34,13 @@ jest.mock('@/store/workoutStore', () => ({ useWorkoutStore: () => ({ completedWo
 jest.mock('@/store/runningStore', () => ({ useRunningStore: () => ({ runs: mockState.runs, loadRuns: () => {} }) }));
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => ({ completedHikes: mockState.hikes, loadCompletedHikes: (...args) => mockState.loadHikes(...args) }) }));
 // A function that stays the same between renders, like the real store's, so the missions only recalculate when their data changes.
-const mockGetMealsByDate = () => [];
-jest.mock('@/store/nutritionStore', () => ({ useNutritionStore: () => ({ getMealsByDate: mockGetMealsByDate, loadNutritionData: () => {} }) }));
-jest.mock('@/store/healthStore', () => ({ useHealthStore: () => ({ steps: 0, loadAllHealth: () => {} }) }));
+const mockGetMealsByDate = (day) => mockState.meals.filter((m) => m.date === day);
+jest.mock('@/store/nutritionStore', () => ({
+  useNutritionStore: () => ({ getMealsByDate: mockGetMealsByDate, loadNutritionData: () => {}, meals: mockState.meals }),
+}));
+jest.mock('@/store/healthStore', () => ({
+  useHealthStore: () => ({ steps: mockState.steps, stepsDate: mockState.stepsDate, loadAllHealth: () => {} }),
+}));
 jest.mock('@/store/achievementStore', () => ({
   useAchievementStore: () => ({
     achievements: mockState.achievements, getUnlockedAchievements: () => [], getLockedAchievements: () => mockState.achievements, loadAchievements: () => {},
@@ -46,12 +53,16 @@ const NOW = new Date('2026-10-15T01:30:00Z'); // 9:30 PM on Wed 14 Oct in New Je
 const workout = (completedAt) => ({ id: `w-${completedAt}`, completedAt });
 const run = (at, distance = 5) => ({ id: `r-${at}`, startTime: at, endTime: at, distance });
 const hike = (at) => ({ id: `h-${at}`, startTime: at, completedAt: at, distanceKm: 6 });
+const meal = (foods = [{ name: 'Eggs' }]) => ({ id: `m-${Math.random()}`, date: '2026-10-14', foods });
 
 beforeEach(() => {
   mockState.workouts = [];
   mockState.runs = [];
   mockState.hikes = [];
   mockState.achievements = [];
+  mockState.meals = [];
+  mockState.steps = 0;
+  mockState.stepsDate = null;
   mockState.loadHikes.mockClear();
   jest.useFakeTimers({ now: NOW, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
 });
@@ -115,6 +126,75 @@ describe('battle pass missions', () => {
     utils.rerender(<BattlePassScreen />);
     expect(progressOf(utils, 'Complete 1 workout')).toBe('1/1');
     expect(progressOf(utils, 'Complete 5 workouts')).toBe('1/5');
+  });
+
+  it('counts the meals logged today, and not one with no foods in it', () => {
+    mockState.meals = [meal(), meal(), meal([])];
+    expect(progressOf(render(<BattlePassScreen />), 'Log 3 meals')).toBe('2/3');
+  });
+
+  it('moves the meals mission when a meal is logged while the screen is open', () => {
+    mockState.meals = [meal()];
+    const utils = render(<BattlePassScreen />);
+    expect(progressOf(utils, 'Log 3 meals')).toBe('1/3');
+    mockState.meals = [...mockState.meals, meal()];
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Log 3 meals')).toBe('2/3');
+  });
+
+  it('counts the steps counted today, and not a count from another day', () => {
+    mockState.steps = 3200;
+    mockState.stepsDate = '2026-10-14';
+    const today = render(<BattlePassScreen />);
+    expect(progressOf(today, 'Walk 5,000 steps')).toBe('3200/5000');
+    today.unmount();
+    mockState.stepsDate = '2026-10-13';
+    expect(progressOf(render(<BattlePassScreen />), 'Walk 5,000 steps')).toBe('0/5000');
+  });
+
+  it('moves the steps mission when the count comes in while the screen is open', () => {
+    mockState.steps = 100;
+    mockState.stepsDate = '2026-10-13'; // yesterday's, from before the sync
+    const utils = render(<BattlePassScreen />);
+    expect(progressOf(utils, 'Walk 5,000 steps')).toBe('0/5000');
+    mockState.steps = 4200;
+    mockState.stepsDate = '2026-10-14';
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Walk 5,000 steps')).toBe('4200/5000');
+  });
+
+  it('moves the missions when a workout arrives while the screen is open', () => {
+    const utils = render(<BattlePassScreen />);
+    expect(progressOf(utils, 'Complete 1 workout')).toBe('0/1');
+    mockState.workouts = [workout('2026-10-14T15:00:00Z')];
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Complete 1 workout')).toBe('1/1');
+    expect(progressOf(utils, 'Complete 5 workouts')).toBe('1/5');
+  });
+
+  it('moves the missions when a run arrives while the screen is open', () => {
+    const utils = render(<BattlePassScreen />);
+    expect(progressOf(utils, 'Run 10km this week')).toBe('0km/10km');
+    mockState.runs = [run('2026-10-14T15:00:00Z', 5)];
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Run 10km this week')).toBe('5km/10km');
+    expect(progressOf(utils, 'Complete 1 workout')).toBe('1/1');
+  });
+
+  it('moves the steps mission when only the count changes, or only the day it was counted on', () => {
+    mockState.steps = 100;
+    mockState.stepsDate = '2026-10-14';
+    const utils = render(<BattlePassScreen />);
+    expect(progressOf(utils, 'Walk 5,000 steps')).toBe('100/5000');
+    mockState.steps = 4200;
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Walk 5,000 steps')).toBe('4200/5000');
+    mockState.stepsDate = '2026-10-13';
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Walk 5,000 steps')).toBe('0/5000');
+    mockState.stepsDate = '2026-10-14';
+    utils.rerender(<BattlePassScreen />);
+    expect(progressOf(utils, 'Walk 5,000 steps')).toBe('4200/5000');
   });
 
   it('keeps the 10 km mission about runs: a hike does not add to it', () => {

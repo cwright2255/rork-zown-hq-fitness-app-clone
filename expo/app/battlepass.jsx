@@ -12,7 +12,8 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useAchievementStore } from '@/store/achievementStore';
 import { localDateKey } from '@/lib/localDate';
-import { sessionsOf, countOnDay, countSince, activityStreak } from '@/lib/activity';
+import { sessionsOf, activityStreak } from '@/lib/activity';
+import { buildMissions } from '@/lib/battlePassMissions';
 
 const TIER_REWARDS = [
   {t:1,icon:'trophy',name:'Profile Badge'},
@@ -39,14 +40,6 @@ const TIER_REWARDS = [
 
 const SEASON_START = new Date('2026-06-01T00:00:00');
 const SEASON_LENGTH_DAYS = 90;
-
-function getMonday(date) {
-  const d = new Date(date);
-  const dayNum = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - dayNum);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 const ACH_W = (Dimensions.get('window').width - 52) / 2;
 
@@ -96,8 +89,8 @@ export default function BattlePassScreen(){
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
   const { completedHikes, loadCompletedHikes } = useHikingStore();
-  const { getMealsByDate, loadNutritionData } = useNutritionStore();
-  const { steps, loadAllHealth } = useHealthStore();
+  const { getMealsByDate, loadNutritionData, meals } = useNutritionStore();
+  const { steps, stepsDate, loadAllHealth } = useHealthStore();
   const { achievements, getUnlockedAchievements, getLockedAchievements, loadAchievements } = useAchievementStore();
 
   useEffect(() => {
@@ -148,31 +141,20 @@ export default function BattlePassScreen(){
     claimTier(tierNum, uid);
   };
 
+  // The missions are worked out in lib/battlePassMissions.js, which the Battle Pass card on Home uses too. `meals` is in the list
+  // so the meals mission moves when a meal is logged (getMealsByDate is the same function every time, so it never would).
   const missions = useMemo(() => {
     const now = new Date();
-    const todayKey = localDateKey(now);
-    const monday = getMonday(now);
-    const isThisWeek = (d) => d && new Date(d) >= monday;
-
-    // A workout, a run or a hike each counts as a workout for these two missions.
-    const sessions = sessionsOf({ workouts: completedWorkouts, runs, hikes: completedHikes });
-    const todayWorkouts = countOnDay(sessions, todayKey);
-    const todayMealsLogged = (getMealsByDate ? getMealsByDate(localDateKey(now)) : []).filter(m => m.foods?.length > 0).length;
-    const weekRunKm = (runs || []).filter(r => isThisWeek(r.startTime)).reduce((s, r) => s + (r.distance || 0), 0);
-    const weekWorkouts = countSince(sessions, monday.getTime());
-
-    return {
-      daily: [
-        { title: 'Complete 1 workout', xp: 50, current: todayWorkouts, target: 1 },
-        { title: 'Log 3 meals', xp: 30, current: todayMealsLogged, target: 3 },
-        { title: 'Walk 5,000 steps', xp: 40, current: steps || 0, target: 5000 },
-      ],
-      weekly: [
-        { title: 'Run 10km this week', xp: 200, current: Math.round(weekRunKm * 10) / 10, target: 10, unit: 'km' },
-        { title: 'Complete 5 workouts', xp: 300, current: weekWorkouts, target: 5 },
-      ],
-    };
-  }, [completedWorkouts, runs, completedHikes, steps, getMealsByDate]);
+    return buildMissions({
+      completedWorkouts,
+      runs,
+      completedHikes,
+      steps,
+      stepsDate,
+      mealsToday: getMealsByDate ? getMealsByDate(localDateKey(now)) : [],
+      now,
+    });
+  }, [completedWorkouts, runs, completedHikes, steps, stepsDate, getMealsByDate, meals]);
 
   const hoursUntilMidnight = useMemo(() => {
     const now = new Date();
