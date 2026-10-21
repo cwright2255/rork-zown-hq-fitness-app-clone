@@ -53,6 +53,14 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/A daily record of these readings is saved to your account/);
   });
 
+  it('says the coach keeps notes about you, where to see and delete them, and where they go', () => {
+    const text = policy();
+    expect(text).toContain('calendar and body-scan records, AI coach chats and the coach\'s notes about you, posts,');
+    expect(text).toMatch(/The coach also keeps a short list of notes about you from your chats, such as how many days a week you can train/);
+    expect(text).toContain('Settings, then AI Coach, then What your Coach remembers, where you can read it, remove a note, forget everything or pause it');
+    expect(text).toMatch(/the list is saved to your account, sent to the AI with your messages, and used in the chats and in the Today brief\./);
+  });
+
   it('says the daily Today brief is an AI feature, and what it is written from', () => {
     const text = policy();
     expect(text).toContain('The AI coach, the daily Today brief, workout and challenge generation');

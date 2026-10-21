@@ -14,6 +14,10 @@ jest.mock('@/services/coachSnapshotService', () => ({
   loadHabitSources: (...a) => global.__s.loadHabitSources(...a),
   buildSnapshotFromStores: (...a) => global.__s.buildSnapshot(...a),
 }));
+jest.mock('@/services/coachMemoryService', () => ({
+  loadCoachMemory: (...a) => global.__s.loadMemory(...a),
+  getCachedCoachMemory: (...a) => global.__s.cachedMemory(...a),
+}));
 jest.mock('@/store/workoutStore', () => ({ useWorkoutStore: { getState: () => global.__s.workout } }));
 jest.mock('@/store/runningStore', () => ({ useRunningStore: { getState: () => global.__s.running } }));
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: { getState: () => global.__s.hiking } }));
@@ -49,6 +53,8 @@ beforeEach(() => {
     loadSnapshotSources: jest.fn(async () => undefined),
     loadHabitSources: jest.fn(async () => undefined),
     buildSnapshot: jest.fn(() => ({ role: 'system', content: 'SNAPSHOT: calendar and food.' })),
+    loadMemory: jest.fn(async () => undefined),
+    cachedMemory: jest.fn(() => ({ facts: [], paused: false, upTo: 0, updatedAt: 0 })),
     workout: { completedWorkouts: [], loadWorkouts: jest.fn(async () => undefined), getExerciseHistory: jest.fn(async () => []) },
     running: { runs: [], loadRuns: jest.fn(async () => undefined) },
     hiking: { completedHikes: [], loadCompletedHikes: jest.fn(async () => undefined) },
@@ -217,6 +223,7 @@ describe('bringing the stores up to date', () => {
     expect(global.__s.hiking.loadCompletedHikes).toHaveBeenCalledWith('u1');
     expect(global.__s.loadSnapshotSources).toHaveBeenCalledWith('u1');
     expect(global.__s.loadHabitSources).toHaveBeenCalledWith('u1');
+    expect(global.__s.loadMemory).toHaveBeenCalledWith('u1');
     expect(global.__s.health.loadAllHealth).toHaveBeenCalledWith('u1');
     expect(global.__s.health.loadRookRecovery).toHaveBeenCalledTimes(1);
     expect(global.__s.health.syncReadings).toHaveBeenCalledWith('u1');
@@ -252,6 +259,7 @@ describe('bringing the stores up to date', () => {
     global.__s.health.loadAllHealth = jest.fn(async () => { throw new Error('y'); });
     global.__s.health.syncReadings = jest.fn(async () => { throw new Error('z'); });
     global.__s.workout.getExerciseHistory = jest.fn(async () => { throw new Error('h'); });
+    global.__s.loadMemory = jest.fn(() => Promise.reject(new Error('m')));
     expect(await loadBriefSources('u1')).toEqual([]);
     expect(global.__s.hiking.loadCompletedHikes).toHaveBeenCalledTimes(1);
     expect(global.__s.health.loadRookRecovery).toHaveBeenCalledTimes(1);
@@ -339,6 +347,21 @@ describe('what the AI is told', () => {
     expect((await loadBriefMessages({ user: USER, now: NOW }))[1].content).toContain('weight 176.4 lb on average over 1 of 7 days');
     global.__s.settings = { weightUnits: 'metric' };
     expect((await loadBriefMessages({ user: USER, now: NOW }))[1].content).toContain('weight 80.0 kg on average over 1 of 7 days');
+  });
+
+  it('includes what the Coach has noted about the person, as it does for the Coach', async () => {
+    global.__s.cachedMemory = jest.fn(() => ({ facts: ['Can train 3 days a week', 'Trains at home'], paused: false }));
+    const facts = (await loadBriefMessages({ user: USER, now: NOW }))[1].content;
+    expect(global.__s.cachedMemory).toHaveBeenCalledWith('u1');
+    expect(facts).toContain('Can train 3 days a week; Trains at home.');
+    expect(facts.indexOf('Fitness level: intermediate.')).toBeLessThan(facts.indexOf('Can train 3 days a week'));
+  });
+
+  it('leaves the notes out when there are none or the person has paused them', async () => {
+    for (const memory of [{ facts: [], paused: false }, { facts: ['A note'], paused: true }]) {
+      global.__s.cachedMemory = jest.fn(() => memory);
+      expect((await loadBriefMessages({ user: USER, now: NOW }))[1].content).not.toMatch(/earlier chats|A note/);
+    }
   });
 
   it('leaves out what it has no readings for, rather than inventing it', async () => {

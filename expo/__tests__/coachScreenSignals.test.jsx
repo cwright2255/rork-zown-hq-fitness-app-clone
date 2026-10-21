@@ -32,6 +32,11 @@ jest.mock('@/services/coachSnapshotService', () => ({
   loadHabitSources: jest.fn(async () => undefined),
   buildSnapshotFromStores: jest.fn(() => ({ role: 'system', content: 'SNAPSHOT WITH TODAY\'S READINGS' })),
 }));
+jest.mock('@/services/coachMemoryService', () => ({
+  refreshCoachMemory: jest.fn(async () => undefined),
+  loadCoachMemory: jest.fn(async () => undefined),
+  getCachedCoachMemory: jest.fn(() => ({ facts: [], paused: false, upTo: 0, updatedAt: 0 })),
+}));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__user }) }));
 jest.mock('@/store/settingsStore', () => ({ useSettingsStore: { getState: () => ({ coachCanAddToCalendar: true }) } }));
 jest.mock('@/store/workoutStore', () => ({

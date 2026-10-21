@@ -335,6 +335,31 @@ account for the second.
 - [ ] Upgrade the Free account to Pro (or switch its plan in Firestore under `entitlements`): within a moment the lock gives way to the
       brief.
 
+## Coach memory (Settings, AI Coach)
+
+Needs the `postLLM` function deployed first (`cd expo && firebase deploy --only functions:postLLM`), then `eas update`. An older
+`postLLM` counts the notes request as a Coach message instead of an "insight". Any account works; Free is fine.
+
+- [ ] Settings, AI Coach: a "What your Coach remembers" row under the calendar switch. It opens a screen that says what the notes are
+      for, an empty list ("Nothing yet...") on a new account, a "Remember things from our chats" switch that is on, and a note that the
+      list is saved to your account and sent to the AI with your messages.
+- [ ] In the Coach, send two messages such as "I can only train 3 days a week" and "I train at home with dumbbells". Leave the Coach and
+      open it again, wait a few seconds, then open the row: short notes like "Can train 3 days a week" and "Trains at home with
+      dumbbells" are listed. (The Coach looks at new messages when it opens, not while you chat.)
+- [ ] Firebase console, Firestore, `aiUsage`: that day's `insight` count went up by one for the update, and `coach` only by the messages you sent.
+      Firestore, `users`, your id, `data`, `coachMemory`: the notes, `paused: false`, and two times.
+- [ ] Ask the Coach for a plan for the week: it works within 3 days and uses the dumbbells, without listing the notes back at you.
+- [ ] Tell the Coach something health related, such as a diagnosis or a medication, in two messages. It does not show up in the list.
+- [ ] Remove one note with the x: it goes at once. Close the screen and open it again: still gone.
+- [ ] Switch "Remember things from our chats" off, chat two messages about something new, open the Coach again: the list is unchanged and the
+      screen says "Paused". The Coach does not act on the notes. Switch it on again: what you said while it was off is not added later.
+- [ ] "Forget everything" asks first. After you confirm the list is empty. Open the Coach again: it stays empty (it does not re-learn from
+      your old chats). After two new messages and another open, it starts a new list.
+- [ ] With airplane mode on, remove a note: "Not saved", and the list shows what is really saved.
+- [ ] The Today brief (Pro or Legend account) can use a note, for example it suggests a plan that fits "3 days a week". It does not repeat
+      your notes back.
+- [ ] Delete a test account (Settings, Danger Zone): `users/{its id}/data/coachMemory` is gone from Firestore with the rest.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

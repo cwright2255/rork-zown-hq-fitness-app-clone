@@ -19,6 +19,7 @@ import {
   buildCoachSystemPrompt, getCoachHistory, saveCoachMessage,
   summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext,
 } from '@/services/coachService';
+import { refreshCoachMemory, loadCoachMemory, getCachedCoachMemory } from '@/services/coachMemoryService';
 import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkoutStore } from '@/store/workoutStore';
@@ -89,8 +90,12 @@ export default function CoachScreen() {
         if (!cancelled && history.length > 0) {
           setChatHistory(history);
         }
+        // The Coach's notes about this person (Settings > AI Coach > What your Coach remembers): look at what was said since the last
+        // look and keep what is worth remembering. Never throws or holds anything up; the notes are put to the Coach on each send below.
+        refreshCoachMemory({ uid: user.uid, history });
       } catch (e) {
         console.warn('[Coach] failed to load history:', e?.message);
+        loadCoachMemory(user.uid);
       } finally {
         if (!cancelled) setIsLoadingHistory(false);
       }
@@ -258,7 +263,7 @@ export default function CoachScreen() {
     try {
       // Settings > "Let the coach add to my calendar", read fresh on every send so a change made since the last message counts.
       const calendar = useSettingsStore.getState().coachCanAddToCalendar !== false;
-      const systemMsg = buildCoachSystemPrompt(user, new Date(), { calendar });
+      const systemMsg = buildCoachSystemPrompt(user, new Date(), { calendar, memory: getCachedCoachMemory(user.uid) });
       // Real, new: rebuilt fresh on every send, same as systemMsg itself -
       // reflects whatever's actually been loaded so far rather than a
       // stale snapshot from when the screen first mounted. Omitted

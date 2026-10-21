@@ -614,6 +614,12 @@ export default function SettingsScreen() {
               />
             }
           />
+          <SettingRow
+            icon="bulb-outline"
+            label="What your Coach remembers"
+            subLabel="See, remove or forget the notes your coach keeps about you"
+            onPress={() => router.push('/profile/coach-memory')}
+          />
         </View>
 
         {/* 5. CONNECTED SERVICES */}

@@ -6,6 +6,7 @@ import { groupSetsBySession, estimateOneRepMax } from './progressiveOverloadServ
 import { getDietProfile, describeDietForAI } from '../lib/dietProfile';
 import { ALCOHOL_COACH_NOTE } from '../lib/alcoholGuidance';
 import { buildActionInstructions } from '../lib/coachActions';
+import { memoryLine } from '../lib/coachMemory';
 
 // Real, new: readable labels for the raw ids app/profile/edit.jsx's
 // GOALS/INJURIES constants store on the user, so the system prompt below
@@ -60,12 +61,14 @@ export function coachProfileLines(user) {
   ].filter(Boolean);
 }
 
-export function buildCoachSystemPrompt(user, now = new Date(), { calendar = true } = {}) {
+export function buildCoachSystemPrompt(user, now = new Date(), { calendar = true, memory = null } = {}) {
   const name = user?.name?.trim() || 'there';
 
   const lines = [
     `You are ZOWN's AI fitness coach, in an ongoing coaching conversation with ${name}.`,
     ...coachProfileLines(user),
+    // The short notes the Coach has kept from earlier chats (lib/coachMemory.js), unless there are none or the person has paused them.
+    memoryLine(memory),
     'Be encouraging, specific, and concise. Reference their real goals and injuries naturally when relevant, not every message.',
     // Nutrition honesty: the diet notes above carry the evidence for the diet this person chose.
     'For food and diet questions, give evidence-based guidance and say plainly when the evidence for a diet is limited or mixed. Never claim a diet treats or cures a disease. For medical conditions, medications, pregnancy or a history of eating disorders, suggest a doctor or registered dietitian.',

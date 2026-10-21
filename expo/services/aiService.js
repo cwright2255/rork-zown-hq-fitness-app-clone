@@ -9,6 +9,7 @@ import { functions } from '../src/config/firebase';
 import { localDateKey } from '@/lib/localDate';
 import { upgradeFromError } from '@/lib/upgradePrompt';
 import { parseBrief } from '@/lib/todayBrief';
+import { parseFacts } from '@/lib/coachMemory';
 
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {
@@ -529,6 +530,28 @@ export const generateTodayBrief = async ({ messages }) => {
   } catch (error) {
     // A plan that does not include the brief is not a fault worth logging; anything else is.
     if (!upgradeFromError(error)) console.error('Error generating the Today brief', error);
+    return null;
+  }
+};
+
+/**
+ * The Coach's notes about a person, updated from the latest chat: `messages` is built by lib/coachMemory.js buildMemoryMessages and
+ * `current` is the list of notes the person has now. Resolves to the new list of notes, or null when the AI gave nothing usable (or an
+ * empty list for a person who has notes: lib/coachMemory.js parseFacts), the scope check turned the request away, the allowance is used up
+ * or the call failed. Counted with the comments the app asks for by itself ('memory' on the server), so it never uses up the messages a
+ * person sends. Never throws.
+ * @param {{ messages: { role: string, content: string }[], current?: string[] }} params
+ */
+export const generateCoachMemory = async ({ messages, current }) => {
+  if (!Array.isArray(messages) || !messages.length) return null;
+  try {
+    // One try: the chat is looked at again the next time the Coach opens, so a retry here would only double the cost of a failure.
+    const data = await postLLM(messages, 30000, 0, 'memory');
+    if (data?.refused) return null;
+    return parseFacts(data.completion, current);
+  } catch (error) {
+    // A daily limit used up is not a fault worth logging; anything else is.
+    if (!upgradeFromError(error)) console.error('Error updating the Coach notes', error);
     return null;
   }
 };

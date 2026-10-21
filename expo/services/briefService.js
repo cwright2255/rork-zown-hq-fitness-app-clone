@@ -10,6 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generateTodayBrief } from '@/services/aiService';
 import { loadSnapshotSources, loadHabitSources, buildSnapshotFromStores } from '@/services/coachSnapshotService';
 import { coachProfileLines, summarizeLiftPRs, summarizeCardioVolume, buildUserDataContext } from '@/services/coachService';
+import { loadCoachMemory, getCachedCoachMemory } from '@/services/coachMemoryService';
+import { memoryLine } from '@/lib/coachMemory';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
@@ -71,6 +73,7 @@ export async function loadBriefSources(uid, { patience = BRIEF_LOAD_PATIENCE_MS 
       settle(() => loadHabitSources(uid)),
       settle(() => health.loadAllHealth(uid)),
       settle(() => health.loadRookRecovery()),
+      settle(() => loadCoachMemory(uid)),
     ]);
     // After the saved record is in, so a reading from this phone is added to it and not the other way round.
     await settle(() => useHealthStore.getState().syncReadings(uid));
@@ -115,7 +118,7 @@ export async function loadBriefMessages({ user, now = new Date(), patience } = {
   return buildBriefMessages({
     now,
     name: user.name,
-    profileLines: coachProfileLines(user),
+    profileLines: [...coachProfileLines(user), memoryLine(getCachedCoachMemory(user.uid))], // buildBriefMessages leaves out a line that is null
     readiness: computeReadiness({ history: health.readingsHistory, today, trainingLoad, hrvLabel }),
     trends: trendFacts({ history: health.readingsHistory, weightLogs: useWeightLogStore.getState().logs, pounds, today, hrvLabel }),
     snapshot,

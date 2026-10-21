@@ -34,6 +34,11 @@ jest.mock('@/services/coachSnapshotService', () => ({
   loadHabitSources: jest.fn(async () => undefined),
   buildSnapshotFromStores: jest.fn(() => ({ role: 'system', content: 'SNAPSHOT' })),
 }));
+jest.mock('@/services/coachMemoryService', () => ({
+  refreshCoachMemory: jest.fn(async () => undefined),
+  loadCoachMemory: jest.fn(async () => undefined),
+  getCachedCoachMemory: jest.fn(() => ({ facts: [], paused: false, upTo: 0, updatedAt: 0 })),
+}));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1', name: 'Cj' } }) }));
 jest.mock('@/store/settingsStore', () => ({
   useSettingsStore: { getState: () => ({ coachCanAddToCalendar: global.__calendarSwitch }) },
@@ -84,21 +89,21 @@ describe('the instructions the coach is given', () => {
     chatAI.mockResolvedValue('Okay.');
     await say('Hi');
     expect(buildCoachSystemPrompt).toHaveBeenCalledTimes(1);
-    expect(buildCoachSystemPrompt).toHaveBeenCalledWith({ uid: 'u1', name: 'Cj' }, expect.any(Date), { calendar: true });
+    expect(buildCoachSystemPrompt).toHaveBeenCalledWith({ uid: 'u1', name: 'Cj' }, expect.any(Date), expect.objectContaining({ calendar: true }));
   });
 
   it('say it is not when the switch is off', async () => {
     global.__calendarSwitch = false;
     chatAI.mockResolvedValue('Okay.');
     await say('Hi');
-    expect(buildCoachSystemPrompt).toHaveBeenCalledWith({ uid: 'u1', name: 'Cj' }, expect.any(Date), { calendar: false });
+    expect(buildCoachSystemPrompt).toHaveBeenCalledWith({ uid: 'u1', name: 'Cj' }, expect.any(Date), expect.objectContaining({ calendar: false }));
   });
 
   it('count a switch that has never been set as on', async () => {
     global.__calendarSwitch = undefined;
     chatAI.mockResolvedValue('Okay.');
     await say('Hi');
-    expect(buildCoachSystemPrompt).toHaveBeenCalledWith({ uid: 'u1', name: 'Cj' }, expect.any(Date), { calendar: true });
+    expect(buildCoachSystemPrompt).toHaveBeenCalledWith({ uid: 'u1', name: 'Cj' }, expect.any(Date), expect.objectContaining({ calendar: true }));
   });
 
   it('follow the switch from one message to the next', async () => {

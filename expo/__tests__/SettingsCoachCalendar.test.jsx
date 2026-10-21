@@ -127,3 +127,26 @@ describe('Settings > AI Coach', () => {
     expect(updateSetting.mock.calls.map((c) => c[0])).toEqual(['coachCanAddToCalendar']);
   });
 });
+
+describe('Settings > AI Coach > What your Coach remembers', () => {
+  const ROW = 'What your Coach remembers';
+
+  it('is in the AI Coach section, with the notes icon and what it opens', () => {
+    const utils = render(<SettingsScreen />);
+    const texts = utils.UNSAFE_root.findAll((n) => n.type === 'Text').map((n) => n.props.children).filter((c) => typeof c === 'string');
+    const coach = texts.findIndex((t) => /^ai coach$/i.test(t));
+    const services = coach + 1 + texts.slice(coach + 1).findIndex((t) => /^connected services$/i.test(t));
+    expect(texts.slice(coach + 1, services)).toContain(ROW);
+    expect(texts.slice(coach + 1, services)).toContain('See, remove or forget the notes your coach keeps about you');
+    let row = utils.getByText(ROW).parent;
+    while (row && row.findAll((n) => n.props && n.props.children === 'icon:bulb-outline').length === 0) row = row.parent;
+    expect(row).toBeTruthy();
+  });
+
+  it('opens the screen where the notes can be seen, removed and forgotten', () => {
+    const { router } = require('expo-router');
+    const utils = render(<SettingsScreen />);
+    fireEvent.press(utils.getByText(ROW));
+    expect(router.push).toHaveBeenCalledWith('/profile/coach-memory');
+  });
+});
