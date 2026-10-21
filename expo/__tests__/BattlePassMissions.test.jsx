@@ -30,6 +30,8 @@ jest.mock('@/store/expStore', () => ({
   }),
 }));
 jest.mock('@/store/battlePassStore', () => ({ useBattlePassStore: () => ({ claimedTiers: [], claimTier: () => {}, loadBattlePass: () => {} }) }));
+// The server's lifetime count: none here, so the screen goes by the workouts held (this file is about missions, not totals).
+jest.mock('@/store/lifetimeStore', () => ({ useLifetimeStore: (select) => select({ totals: null }) }));
 jest.mock('@/store/workoutStore', () => ({ useWorkoutStore: () => ({ completedWorkouts: mockState.workouts, loadWorkouts: () => {} }) }));
 jest.mock('@/store/runningStore', () => ({ useRunningStore: () => ({ runs: mockState.runs, loadRuns: () => {} }) }));
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => ({ completedHikes: mockState.hikes, loadCompletedHikes: (...args) => mockState.loadHikes(...args) }) }));
