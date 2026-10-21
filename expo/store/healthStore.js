@@ -7,6 +7,7 @@ import { useExpStore } from './expStore';
 import { rookService } from '@/services/rookService';
 import { appleHealthService } from '@/services/appleHealthService';
 import { localDateKey, parseDateKey } from '../lib/localDate';
+import { mergeReadings, withReadingsOn } from '../lib/dailyReadings';
 
 // Today as the person lives it (their own calendar day), not the UTC date, which turns over at 8 PM in New Jersey.
 const todayStr = () => localDateKey();
@@ -42,6 +43,11 @@ export function withStepsOn(history, day, count) {
   if (!parseDateKey(day) || !Number.isFinite(count) || count < 0) return base;
   return normalizeStepsHistory({ ...base, [day]: count });
 }
+
+// The daily record of sleep, HRV and resting heart rate (lib/dailyReadings.js) is filled from the last READINGS_SYNC_DAYS days of
+// Apple Health, at most once every READINGS_SYNC_EVERY_MS while the app stays open.
+export const READINGS_SYNC_DAYS = 28;
+export const READINGS_SYNC_EVERY_MS = 10 * 60 * 1000;
 
 export const useHealthStore = create(
   persist(
@@ -79,6 +85,10 @@ export const useHealthStore = create(
       rookRecovery: null,
       stepsHistory: {},
       flightsClimbed: 0,
+      // One entry per day: { "YYYY-MM-DD": { restingHeartRate?, hrv?, sleepHours? } }. The Health page draws its trends from it.
+      readingsHistory: {},
+      // When it was last filled from Apple Health (this launch only: not saved, so every launch fills it once).
+      readingsSyncedAt: 0,
 
       /* ── Firestore sync ── */
       loadAllHealth: async (uid) => {
@@ -108,6 +118,8 @@ export const useHealthStore = create(
                 mergeStepsHistory(get().stepsHistory, d.stepsHistory),
                 d.stepsDate ? { [d.stepsDate]: d.steps } : {},
               ),
+              // What is saved with what this phone has read since: this phone's own reading of a day wins.
+              readingsHistory: mergeReadings(d.readingsHistory, get().readingsHistory),
             });
           }
         } catch (e) {
@@ -141,10 +153,44 @@ export const useHealthStore = create(
         try {
           const rookData = await rookService.getTodayRecovery();
           set({ rookRecovery: rookData || null });
+          // ROOK gives today's readings (Apple Health gives the latest ones, whatever day they are from), so these are today's.
+          if (rookData) {
+            get().recordReadings(todayStr(), {
+              restingHeartRate: rookData.restingHeartRate, hrv: rookData.hrv, sleepHours: rookData.sleepHours,
+            });
+          }
           return rookData || null;
         } catch (e) {
           console.warn('[healthStore] rookService.getTodayRecovery failed:', e?.message);
           set({ rookRecovery: null });
+          return null;
+        }
+      },
+
+      // Files one day's readings in the daily record (readings that are not believable are left out). Saved to the account when there is one.
+      recordReadings: (day, values, uid) => {
+        set((s) => ({ readingsHistory: withReadingsOn(s.readingsHistory, day, values) }));
+        get()._persist(uid);
+      },
+
+      // Fills the daily record from the last READINGS_SYNC_DAYS days of Apple Health, so the trends have history from the first day.
+      // Does nothing if it already did in the last READINGS_SYNC_EVERY_MS. Never throws: with no Health access the record stays as it was.
+      syncReadings: async (uid) => {
+        const now = Date.now();
+        if (now - get().readingsSyncedAt < READINGS_SYNC_EVERY_MS) return null;
+        set({ readingsSyncedAt: now });
+        try {
+          const found = await appleHealthService.getDailyReadings({ days: READINGS_SYNC_DAYS });
+          if (!found?.ok) {
+            set({ readingsSyncedAt: 0 });
+            return null;
+          }
+          set((s) => ({ readingsHistory: mergeReadings(s.readingsHistory, found.days) }));
+          get()._persist(uid);
+          return found.days;
+        } catch (e) {
+          console.warn('[healthStore] syncReadings failed:', e?.message);
+          set({ readingsSyncedAt: 0 });
           return null;
         }
       },
@@ -191,6 +237,7 @@ export const useHealthStore = create(
             steps: s.steps,
             stepsDate: s.stepsDate,
             stepsHistory: s.stepsHistory,
+            readingsHistory: s.readingsHistory,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
@@ -291,6 +338,7 @@ export const useHealthStore = create(
         steps: s.steps,
         stepsDate: s.stepsDate,
         stepsHistory: s.stepsHistory,
+        readingsHistory: s.readingsHistory,
       }),
       // The saved days and any already counted in memory go together. A phone that saved its steps before the history
       // existed gets that count, with its day, as the first entry.
@@ -303,6 +351,7 @@ export const useHealthStore = create(
             mergeStepsHistory(current.stepsHistory, saved.stepsHistory),
             saved.stepsDate ? { [saved.stepsDate]: saved.steps } : {},
           ),
+          readingsHistory: mergeReadings(current.readingsHistory, saved.readingsHistory),
         };
       },
     }

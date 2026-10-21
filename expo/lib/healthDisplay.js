@@ -19,6 +19,14 @@ const sourceOf = (recovery) => (
   typeof recovery?.source === 'string' && recovery.source.trim() ? recovery.source.trim() : 'a connected device'
 );
 
+/** SDNN for Apple Health, RMSSD for the wearables behind ROOK: they are different measures of HRV and cannot be compared. */
+const hrvKindOf = (recovery) => (/apple/i.test(sourceOf(recovery)) ? 'SDNN' : 'RMSSD');
+
+/** "HRV (SDNN)" or "HRV (RMSSD)" once the source is known, plain "HRV" before. */
+export function hrvTitle(recovery) {
+  return typeof recovery?.source === 'string' && recovery.source.trim() ? `HRV (${hrvKindOf(recovery)})` : 'HRV';
+}
+
 /**
  * The recovery tiles from healthStore.rookRecovery: resting heart rate and HRV. Apple Health reports HRV as SDNN and the
  * wearables behind ROOK as RMSSD, which are different measures, so the tile says which one it is showing. Sleep is not here: the
@@ -28,7 +36,7 @@ const sourceOf = (recovery) => (
 export function recoveryTiles(recovery) {
   const hr = positive(recovery?.restingHeartRate);
   const hrv = positive(recovery?.hrv);
-  const hrvKind = /apple/i.test(sourceOf(recovery)) ? 'SDNN' : 'RMSSD';
+  const hrvKind = hrvKindOf(recovery);
   return [
     { key: 'restingHeartRate', icon: 'heart-outline', label: 'Resting HR', value: hr !== null ? String(Math.round(hr)) : NO_READING, unit: hr !== null ? 'bpm' : '' },
     { key: 'hrv', icon: 'pulse-outline', label: hrv !== null ? `HRV (${hrvKind})` : 'HRV', value: hrv !== null ? String(Math.round(hrv)) : NO_READING, unit: hrv !== null ? 'ms' : '' },

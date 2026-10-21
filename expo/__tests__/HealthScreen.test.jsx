@@ -1,7 +1,9 @@
-// The Health screen: only real readings (a dash or a prompt to connect a device when there are none), the Body Composition card
-// marked with the plan it needs, and the AI comment on the training load asked for once the numbers settle, only for someone signed in.
+// The Health screen: only real readings (a dash or a prompt to connect a device when there are none), the Trends charts drawn from the
+// daily record, the Body Composition card marked with the plan it needs, and the AI comment on the training load asked for once the
+// numbers settle, only for someone signed in.
 import React from 'react';
-import { act, render, fireEvent } from '@testing-library/react-native';
+import { Text } from 'react-native';
+import { act, render, fireEvent, within } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 const mockPush = jest.fn();
@@ -13,11 +15,12 @@ jest.mock('react-native-safe-area-context', () => {
   return { SafeAreaView: (props) => mockReact.createElement(mockRn.View, null, props.children) };
 }, { virtual: true });
 jest.mock('@/components/MuscleHeatmapCard', () => () => null);
+jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'Path' }), { virtual: true });
 jest.mock('@/services/rookService', () => ({ rookService: { getTodayRecovery: jest.fn(async () => null) } }));
 
 const mockHealth = {
-  loadAllHealth: jest.fn(), loadAppleHealthActivity: jest.fn(), loadRookRecovery: jest.fn(),
-  steps: 4200, sleep: { hours: 0, quality: null }, hydration: { glasses: 3, target: 8 }, rookRecovery: null,
+  loadAllHealth: jest.fn(), loadAppleHealthActivity: jest.fn(), loadRookRecovery: jest.fn(), syncReadings: jest.fn(),
+  steps: 4200, sleep: { hours: 0, quality: null }, hydration: { glasses: 3, target: 8 }, rookRecovery: null, readingsHistory: {},
 };
 jest.mock('@/store/healthStore', () => ({ useHealthStore: () => mockHealth }));
 const mockUser = { user: { uid: 'u1', name: 'Cj' } };
@@ -30,6 +33,10 @@ const mockRuns = { runs: [], loadRuns: jest.fn() };
 jest.mock('@/store/runningStore', () => ({ useRunningStore: () => mockRuns }));
 const mockHikes = { completedHikes: [], loadCompletedHikes: jest.fn() };
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: () => mockHikes }));
+const mockWeight = { logs: [], loadLogs: jest.fn() };
+jest.mock('@/store/weightLogStore', () => ({ useWeightLogStore: () => mockWeight }));
+const mockSettings = { weightUnits: 'imperial' };
+jest.mock('@/store/settingsStore', () => ({ useSettingsStore: (select) => select(mockSettings) }));
 
 // The training numbers are decided here, so a test can say what they are and when they change.
 let mockLoad;
@@ -50,6 +57,7 @@ const TOO_EARLY = { zone: 'insufficient_data', zoneLabel: 'Not enough history ye
 const APPLE = { restingHeartRate: 58, hrv: 42, sleepEfficiency: null, sleepHours: null, source: 'Apple Health' };
 const PLANS = { pathname: '/paywall', params: { feature: 'bodyScan' } };
 const DASH = String.fromCharCode(8212);
+const pickStyle = (node, key) => [...[].concat(...[].concat(node.props.style).map((st) => (Array.isArray(st) ? st : [st]))).filter(Boolean)].reverse().find((st) => st[key] !== undefined)?.[key];
 
 // Legend has the body scan and, as far as these tests go, nothing else: a screen that asks about a different feature is told no.
 const LEGEND = { ready: true, can: (feature) => feature === 'bodyScan' };
@@ -61,6 +69,11 @@ beforeEach(() => {
   mockLoad = STEADY;
   mockPlan = LEGEND;
   mockHealth.rookRecovery = null;
+  mockHealth.readingsHistory = {};
+  mockHealth.syncReadings.mockClear();
+  mockWeight.logs = [];
+  mockWeight.loadLogs.mockClear();
+  mockSettings.weightUnits = 'imperial';
   mockUser.user = { uid: 'u1', name: 'Cj' };
   mockBody.scans = [];
   mockWorkouts.completedWorkouts = [];
@@ -94,11 +107,124 @@ describe('what the screen loads when it opens', () => {
     expect(mockHealth.loadAppleHealthActivity).toHaveBeenCalledWith('u1');
   });
 
+  it('keeps the daily record of sleep, HRV and resting heart rate up to date, and loads the weight log, for the signed-in person', async () => {
+    await open();
+    expect(mockHealth.syncReadings).toHaveBeenCalledTimes(1);
+    expect(mockHealth.syncReadings).toHaveBeenCalledWith('u1');
+    expect(mockWeight.loadLogs).toHaveBeenCalledTimes(1);
+    expect(mockWeight.loadLogs).toHaveBeenCalledWith('u1');
+  });
+
   it('loads nothing without a signed-in person', async () => {
     mockUser.user = null;
     await open();
     expect(mockHealth.loadAppleHealthActivity).not.toHaveBeenCalled();
     expect(mockHealth.loadAllHealth).not.toHaveBeenCalled();
+    expect(mockHealth.syncReadings).not.toHaveBeenCalled();
+    expect(mockWeight.loadLogs).not.toHaveBeenCalled();
+  });
+});
+
+describe('the Trends section', () => {
+  // Tuesday 20 October 2026, 3 PM in the person's own time.
+  beforeEach(() => { jest.setSystemTime(new Date(2026, 9, 20, 15, 0)); });
+  const RECORD = {
+    '2026-10-20': { restingHeartRate: 60, hrv: 46, sleepHours: 6.8 },
+    '2026-10-19': { restingHeartRate: 58, hrv: 44, sleepHours: 7.2 },
+  };
+
+  it('comes after Health Metrics and before Wearable Sync, with the four readings', async () => {
+    const { getByText, getByTestId, UNSAFE_getAllByType } = await open();
+    const texts = UNSAFE_getAllByType(Text).map((node) => node.props.children).filter((c) => typeof c === 'string'); // top to bottom
+    const at = (title) => texts.indexOf(title);
+    expect(at('Health Metrics')).toBeGreaterThan(-1);
+    expect(at('Health Metrics')).toBeLessThan(at('Trends'));
+    expect(at('Trends')).toBeLessThan(at('Wearable Sync'));
+    for (const id of ['sleep', 'hrv', 'restingHeartRate', 'weight']) expect(getByTestId(`trend-${id}`)).toBeTruthy();
+    expect(getByText('7 days')).toBeTruthy();
+    expect(getByText('28 days')).toBeTruthy();
+  });
+
+  it('draws the daily record the phone has kept', async () => {
+    mockHealth.readingsHistory = RECORD;
+    const { getByTestId } = await open();
+    expect(getByTestId('trend-sleep-average').props.children).toBe('7.0 h');
+    expect(getByTestId('trend-hrv-average').props.children).toBe('45 ms');
+    expect(getByTestId('trend-restingHeartRate-average').props.children).toBe('59 bpm');
+    expect(getByTestId('trend-restingHeartRate-coverage').props.children).toBe('2 of 7 days');
+  });
+
+  it('shows the weight log in pounds, or in kilograms when Settings says so', async () => {
+    mockWeight.logs = [{ id: 'w1', weightKg: 80, createdAtLocal: new Date(2026, 9, 19, 8).toISOString() }];
+    const pounds = await open();
+    expect(pounds.getByTestId('trend-weight-average').props.children).toBe('176.4 lb');
+    pounds.unmount();
+    mockSettings.weightUnits = 'metric';
+    const kilos = await open();
+    expect(kilos.getByTestId('trend-weight-average').props.children).toBe('80.0 kg');
+  });
+
+  it('says which kind of HRV it is once the source is known', async () => {
+    const before = await open();
+    expect(within(before.getByTestId('trend-hrv')).getByText('HRV')).toBeTruthy();
+    before.unmount();
+    mockHealth.rookRecovery = APPLE;
+    const apple = await open();
+    expect(apple.getAllByText('HRV (SDNN)')).toHaveLength(2); // the Recovery tile and the chart
+    apple.unmount();
+    mockHealth.rookRecovery = { ...APPLE, source: 'WHOOP' };
+    const whoop = await open();
+    expect(whoop.getAllByText('HRV (RMSSD)')).toHaveLength(2);
+  });
+
+  it('says there is nothing, rather than drawing something, when nothing has been recorded', async () => {
+    const { getByTestId } = await open();
+    for (const id of ['sleep', 'hrv', 'restingHeartRate']) expect(getByTestId(`trend-${id}-empty`).props.children).toBe('No readings in the last 7 days');
+    expect(getByTestId('trend-weight-empty').props.children).toBe('No weigh-ins in the last 7 days');
+  });
+
+  it('counts the days from today, in the person\'s own time', async () => {
+    jest.setSystemTime(new Date(2026, 9, 20, 23, 59));
+    mockHealth.readingsHistory = RECORD;
+    const late = await open();
+    expect(late.getByTestId('trend-sleep-readout').props.children).toBe('Latest, Oct 20: 6.8 h');
+    late.unmount();
+    jest.setSystemTime(new Date(2026, 9, 21, 0, 1));
+    const next = await open();
+    expect(next.getByTestId('trend-sleep-readout').props.children).toBe('Latest, Oct 20: 6.8 h');
+    expect(next.getByTestId('trend-sleep-coverage').props.children).toBe('2 of 7 days');
+  });
+});
+
+describe('the Sleep row under Health Metrics', () => {
+  beforeEach(() => { jest.setSystemTime(new Date(2026, 9, 20, 15, 0)); });
+
+  it('is a dash when no sleep has been read', async () => {
+    const { getByTestId } = await open();
+    expect(getByTestId('metric-sleep').props.children).toBe(DASH);
+  });
+
+  it('shows last night\'s sleep from the daily record when the wearable has none, which is the case for Apple Health', async () => {
+    mockHealth.rookRecovery = APPLE;
+    mockHealth.readingsHistory = { '2026-10-20': { sleepHours: 7.44 }, '2026-10-19': { sleepHours: 5 } };
+    const { getByTestId } = await open();
+    expect(getByTestId('metric-sleep').props.children).toBe('7.4h');
+    expect(pickStyle(getByTestId('metric-bar-sleep'), 'width')).toBe('93%'); // 7.44 of 8 hours
+  });
+
+  it('shows the wearable\'s sleep when it has one', async () => {
+    mockHealth.rookRecovery = { sleepHours: 8.26, source: 'WHOOP' };
+    mockHealth.readingsHistory = { '2026-10-20': { sleepHours: 7.44 } };
+    const { getByTestId } = await open();
+    expect(getByTestId('metric-sleep').props.children).toBe('8.3h');
+    expect(pickStyle(getByTestId('metric-bar-sleep'), 'width')).toBe('100%'); // a full night fills the bar and no more
+  });
+
+  it('does not show an earlier day\'s sleep as today\'s', async () => {
+    mockHealth.readingsHistory = { '2026-10-19': { sleepHours: 6.5 } };
+    const { getByTestId } = await open();
+    expect(getByTestId('metric-sleep').props.children).toBe(DASH);
+    expect(pickStyle(getByTestId('metric-bar-sleep'), 'width')).toBe('0%');
   });
 });
 
@@ -119,7 +245,7 @@ describe('the readings', () => {
     expect(getByText('58 bpm')).toBeTruthy();
     expect(getByText('Resting HR')).toBeTruthy();
     expect(getByText('42 ms')).toBeTruthy();
-    expect(getByText('HRV (SDNN)')).toBeTruthy();
+    expect(within(getByTestId('recovery-hrv')).getByText('HRV (SDNN)')).toBeTruthy();
     expect(getByTestId('recovery-caption').props.children).toBe('Latest readings from Apple Health');
   });
 

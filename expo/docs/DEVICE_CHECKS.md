@@ -265,6 +265,31 @@ JavaScript only: no rules, no functions and no new build. After CI is green, `ea
 - [ ] Health page with Apple Health allowed: open it, then check the same `health` document: `steps` and `stepsDate` are today's, and
       the steps XP shows in your XP total (the Health page used to read the steps without saving them to your account).
 
+## Trend charts and the daily record (once, on the first update with them)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`.
+Needs a phone with Apple Health allowed and a few weeks of Apple Watch (or phone) readings, and ideally a weight logged on Progress.
+
+- [ ] First open of Health after the update: iOS asks once for permission to read sleep (the other readings were allowed already).
+      Allow it. If you decline, the Sleep chart says "No readings" and the other charts still work.
+- [ ] Health, Trends (below Health Metrics): four cards in this order: Sleep, HRV (SDNN), Resting heart rate, Weight. A switch above
+      them reads "7 days" and "28 days"; 7 days is picked first. Tapping 28 days changes all four cards at once.
+- [ ] Right after the first open, the 28 days already show the readings Apple Health had (the phone reads the last 28 days at once).
+- [ ] Sleep: pick a recent night. The chart's reading for that day (tap the chart near its dot) matches the total in the Health app
+      for that night, within a few minutes. Naps are not counted as a night, and a night is filed under the day you woke up.
+- [ ] Tap the chart near a dot: the line under the average reads that day, for example "Oct 17: 62 bpm", and the dot grows and is
+      ringed in black. Tap the same dot again: it goes back to "Latest, ...". A tap between two dots picks the nearer one.
+- [ ] A day with no reading is a gap in the line, never a dot at zero. A card with no readings at all says "No readings in the last 7
+      days" ("No weigh-ins" for Weight) and draws nothing.
+- [ ] Weight follows Settings > Weight Units (lb or kg). Log a weight on Progress, come back to Health: it shows in the chart.
+- [ ] A line like "-4 bpm vs the 7 days before" appears under a card only once both periods have at least 3 readings.
+- [ ] Health Metrics, Sleep row: shows last night's sleep (for example "7.4h") with Apple Health, not a dash.
+- [ ] A connected device (WHOOP, Oura and so on): the HRV card says "HRV (RMSSD)", and its readings start building from the day it is
+      first opened (nothing before that: there is no history to fetch). Do not compare it with Apple's SDNN.
+- [ ] In Firebase, `users`, your uid, `data`, `health` now has `readingsHistory`: one entry per day with `restingHeartRate`, `hrv`
+      and `sleepHours`. It holds at most the last 400 days.
+- [ ] Privacy Policy (Profile > Privacy Policy), "Information We Collect", Fitness activity: mentions sleep and the daily record.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

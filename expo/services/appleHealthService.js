@@ -28,12 +28,17 @@ import { Platform } from 'react-native';
 import {
   HK_RUNNING, HK_WALKING, MAX_IMPORT_WORKOUTS, buildImportedRun, fromHealthKitRoutes, fromHealthKitWorkout, importedRunId,
 } from '../lib/runImport';
+import { readingsFromHealthKit } from '../lib/dailyReadings';
+import { localDateKey } from '../lib/localDate';
 
 const RESTING_HR_TYPE = 'HKQuantityTypeIdentifierRestingHeartRate';
 const HRV_TYPE = 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN';
 const STEP_COUNT_TYPE = 'HKQuantityTypeIdentifierStepCount';
 const DISTANCE_TYPE = 'HKQuantityTypeIdentifierDistanceWalkingRunning';
 const FLIGHTS_CLIMBED_TYPE = 'HKQuantityTypeIdentifierFlightsClimbed';
+const SLEEP_TYPE = 'HKCategoryTypeIdentifierSleepAnalysis';
+// What the app reads about the body and its day, asked for together (workouts and their routes are asked for separately, below).
+const READ_TYPES = [RESTING_HR_TYPE, HRV_TYPE, STEP_COUNT_TYPE, DISTANCE_TYPE, FLIGHTS_CLIMBED_TYPE, SLEEP_TYPE];
 const WORKOUT_TYPE = 'HKWorkoutTypeIdentifier';
 const WORKOUT_ROUTE_TYPE = 'HKWorkoutRouteTypeIdentifier';
 
@@ -79,7 +84,7 @@ class AppleHealthService {
     if (Platform.OS !== 'ios') return false;
     try {
       const { requestAuthorization } = await import('@kingstinct/react-native-healthkit');
-      await requestAuthorization({ toRead: [RESTING_HR_TYPE, HRV_TYPE, STEP_COUNT_TYPE, DISTANCE_TYPE, FLIGHTS_CLIMBED_TYPE] });
+      await requestAuthorization({ toRead: READ_TYPES });
       return true;
     } catch (e) {
       console.warn('[appleHealthService] requestAuthorization failed:', e?.message);
@@ -197,6 +202,45 @@ class AppleHealthService {
     } catch (e) {
       console.warn('[appleHealthService] getTodayActivity failed:', e?.message);
       return null;
+    }
+  }
+
+  /**
+   * One reading a day for the last `days` days (default 28): the latest resting heart rate, the average HRV and the time asleep,
+   * for the person's own calendar days (a night is filed under the morning they woke up). The sums and averages are
+   * lib/dailyReadings.js readingsFromHealthKit, which is unit tested on HealthKit-shaped samples. Access is asked for here first,
+   * as this library requires. Resolves to { ok, days } where days is { "YYYY-MM-DD": { restingHeartRate?, hrv?, sleepHours? } },
+   * or { ok: false, reason, days: {} } when Health could not be read; never throws.
+   */
+  async getDailyReadings({ days = 28, now = new Date() } = {}) {
+    if (Platform.OS !== 'ios') return { ok: false, reason: 'unsupported', days: {} };
+    try {
+      const HK = loadHealthKit();
+      try {
+        await HK.requestAuthorization({ toRead: READ_TYPES });
+      } catch (e) {
+        console.warn('[appleHealthService] getDailyReadings could not ask for access:', e?.message);
+        return { ok: false, reason: 'not-authorized', days: {} };
+      }
+      // From midnight the day before the first day, so the night that ends on the first morning is whole.
+      const since = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
+      const options = { filter: { date: { startDate: since } }, limit: 3000, ascending: false };
+      let failed = 0;
+      const ask = (query) => query.catch((e) => {
+        failed += 1;
+        console.warn('[appleHealthService] getDailyReadings query failed:', e?.message);
+        return [];
+      });
+      const [restingHr, hrv, sleep] = await Promise.all([
+        ask(HK.queryQuantitySamples(RESTING_HR_TYPE, options)),
+        ask(HK.queryQuantitySamples(HRV_TYPE, options)),
+        ask(HK.queryCategorySamples(SLEEP_TYPE, options)),
+      ]);
+      if (failed === 3) return { ok: false, reason: 'error', days: {} };
+      return { ok: true, days: readingsFromHealthKit({ restingHr, hrv, sleep }, localDateKey(now), days) };
+    } catch (e) {
+      console.warn('[appleHealthService] getDailyReadings failed:', e?.message);
+      return { ok: false, reason: 'error', days: {} };
     }
   }
 

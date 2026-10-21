@@ -47,6 +47,12 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/the map point of a trail you open, to find its marked paths\. Not your own location\./);
   });
 
+  it('says that sleep, resting heart rate and heart-rate variability are collected, and kept as a daily record', () => {
+    const text = policy();
+    expect(text).toContain('recovery data (sleep, resting heart rate and heart-rate variability) if you connect Apple Health or a wearable');
+    expect(text).toMatch(/A daily record of these readings is saved to your account/);
+  });
+
   it('does not name services the app no longer uses', () => {
     const text = policy();
     for (const gone of ['Passio', 'Open Food Facts', 'ExerciseDB', 'Meshy']) expect(text).not.toContain(gone);

@@ -10,26 +10,34 @@ import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
+import { useWeightLogStore } from '@/store/weightLogStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
 import { calculateMuscleFatigue } from '@/lib/muscleFatigue';
 import { getLiftInsight, PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
 import { rookService } from '@/services/rookService';
 import { getTrainingLoadInsight } from '@/services/insightService';
 import { INSIGHT_SETTLE_MS } from '@/lib/insightCache';
-import { recoveryTiles, recoveryCaption, bodyScanCard } from '@/lib/healthDisplay';
+import { recoveryTiles, recoveryCaption, bodyScanCard, hrvTitle } from '@/lib/healthDisplay';
+import { localDateKey } from '@/lib/localDate';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import TrainingLoadCard from '@/components/TrainingLoadCard';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
+import HealthTrends from '@/components/HealthTrends';
 
 export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { loadAllHealth, loadAppleHealthActivity, steps, sleep, hydration, rookRecovery, loadRookRecovery } = useHealthStore();
+  const {
+    loadAllHealth, loadAppleHealthActivity, steps, sleep, hydration, rookRecovery, loadRookRecovery, readingsHistory, syncReadings,
+  } = useHealthStore();
   const { user } = useUserStore();
   const { scans, loadScans } = useBodyCompositionStore();
   const { completedWorkouts, loadWorkouts, getExerciseHistory } = useWorkoutStore();
   const { runs, loadRuns } = useRunningStore();
   const { completedHikes, loadCompletedHikes } = useHikingStore();
+  const { logs: weightLogs, loadLogs: loadWeightLogs } = useWeightLogStore();
+  const pounds = useSettingsStore((st) => st.weightUnits) !== 'metric';
   const [trainingLoad, setTrainingLoad] = useState(null);
   const [trainingLoadInsight, setTrainingLoadInsight] = useState(null);
   const [muscleFatigue, setMuscleFatigue] = useState({});
@@ -49,9 +57,11 @@ export default function HealthScreen() {
   // correctly) - this just wasn't wired to it. '\u2014' for genuinely
   // no data yet, matching that same card's convention, rather than a
   // fixed "0.0h" that looked like a real, if low, reading.
+  // Apple Health has no sleep field on rookRecovery, so last night's sleep comes from the daily record the phone keeps (see Trends below).
+  const sleepHours = rookRecovery?.sleepHours ?? readingsHistory?.[localDateKey(new Date())]?.sleepHours ?? null;
   const METRICS_LIVE = [
     { icon: 'walk-outline', label: 'Steps', value: `${steps ?? 0}`, current: steps ?? 0, target: 10000 },
-    { icon: 'moon-outline', label: 'Sleep', value: rookRecovery?.sleepHours != null ? `${rookRecovery.sleepHours.toFixed(1)}h` : '\u2014', current: rookRecovery?.sleepHours ?? 0, target: 8 },
+    { icon: 'moon-outline', label: 'Sleep', value: sleepHours != null ? `${sleepHours.toFixed(1)}h` : '\u2014', current: sleepHours ?? 0, target: 8 },
     { icon: 'water-outline', label: 'Hydration', value: `${hydration?.glasses ?? 0}/${hydration?.target ?? 8}`, current: hydration?.glasses ?? 0, target: hydration?.target ?? 8 },
   ];
 
@@ -60,6 +70,8 @@ export default function HealthScreen() {
       loadAllHealth(user.uid);
       loadAppleHealthActivity(user.uid);
       loadRookRecovery();
+      syncReadings(user.uid);
+      loadWeightLogs(user.uid);
       loadScans(user.uid);
       loadWorkouts(user.uid);
       loadRuns(user.uid);
@@ -246,11 +258,14 @@ return (
             <View key={m.label} style={[s.metricRow, i === METRICS_LIVE.length-1 && {borderBottomWidth:0}]}>
               <Ionicons name={m.icon} size={20} color="#000" style={{width:30}} />
               <Text style={s.metricLabel}>{m.label}</Text>
-              <Text style={s.metricValue}>{m.value}</Text>
-              <View style={s.metricBarBg}><View style={[s.metricBarFill,{width:Math.min(100,Math.round(m.current/m.target*100))+'%'}]} /></View>
+              <Text testID={`metric-${m.label.toLowerCase()}`} style={s.metricValue}>{m.value}</Text>
+              <View style={s.metricBarBg}><View testID={`metric-bar-${m.label.toLowerCase()}`} style={[s.metricBarFill,{width:Math.min(100,Math.round(m.current/m.target*100))+'%'}]} /></View>
             </View>
           ))}
         </View>
+
+        <Text style={s.sectionTitle}>Trends</Text>
+        <HealthTrends history={readingsHistory} weightLogs={weightLogs} pounds={pounds} hrvLabel={hrvTitle(rookRecovery)} />
 
         <Text style={s.sectionTitle}>Wearable Sync</Text>
         <View style={s.syncCard}>

@@ -1,5 +1,5 @@
 // What the Health screen shows for recovery readings and the Body Composition card (lib/healthDisplay.js).
-import { NO_READING, recoveryTiles, recoveryCaption, bodyScanCard } from '../lib/healthDisplay';
+import { NO_READING, recoveryTiles, recoveryCaption, bodyScanCard, hrvTitle } from '../lib/healthDisplay';
 
 const APPLE = { restingHeartRate: 58.4, hrv: 41.6, sleepEfficiency: null, sleepHours: null, source: 'Apple Health' };
 const WHOOP = { restingHeartRate: 52, hrv: 88, sleepHours: 7.4, source: 'WHOOP' };
@@ -56,6 +56,23 @@ describe('recoveryTiles', () => {
 
   it('reads a number that came in as text', () => {
     expect(recoveryTiles({ restingHeartRate: '64', hrv: '45.4' }).map((t) => t.value)).toEqual(['64', '45']);
+  });
+});
+
+describe('hrvTitle', () => {
+  it('says which kind of HRV once it knows where the reading is from', () => {
+    expect(hrvTitle(APPLE)).toBe('HRV (SDNN)');
+    expect(hrvTitle({ source: 'apple health' })).toBe('HRV (SDNN)');
+    expect(hrvTitle(WHOOP)).toBe('HRV (RMSSD)');
+  });
+
+  it('is plain HRV before it knows', () => {
+    for (const recovery of [null, undefined, {}, { hrv: 50 }, { source: '   ' }, { source: 7 }]) expect(hrvTitle(recovery)).toBe('HRV');
+  });
+
+  it('is the same words as the Recovery tile', () => {
+    expect(hrvTitle(APPLE)).toBe(recoveryTiles(APPLE)[1].label);
+    expect(hrvTitle(WHOOP)).toBe(recoveryTiles(WHOOP)[1].label);
   });
 });
 
