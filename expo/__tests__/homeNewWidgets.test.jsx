@@ -43,6 +43,7 @@ jest.mock('@/components/StrengthScoreWidget', () => () => null);
 jest.mock('@/components/FastingWidget', () => () => null);
 jest.mock('@/components/MusicWidget', () => () => null);
 jest.mock('@/components/WidgetEditorModal', () => () => null);
+jest.mock('@/components/TodayBriefCard', () => () => null); // the daily Today brief has its own tests (TodayBriefCard.test.jsx)
 
 import { router } from 'expo-router';
 import { getDocs } from 'firebase/firestore';

@@ -29,11 +29,19 @@ describe('the plans', () => {
 });
 
 describe('which plan a feature needs', () => {
-  it('puts AI workout plans and analytics on Pro and the body scan on Legend', () => {
-    expect(FEATURES).toEqual({ aiWorkoutPlan: 'pro', analytics: 'pro', bodyScan: 'legend' });
+  it('puts AI workout plans, analytics and the daily Today brief on Pro and the body scan on Legend', () => {
+    expect(FEATURES).toEqual({ aiWorkoutPlan: 'pro', analytics: 'pro', todayBrief: 'pro', bodyScan: 'legend' });
     expect(featureTier('aiWorkoutPlan')).toBe('pro');
     expect(featureTier('analytics')).toBe('pro');
+    expect(featureTier('todayBrief')).toBe('pro');
     expect(featureTier('bodyScan')).toBe('legend');
+  });
+
+  it('opens the daily Today brief to Pro and Legend and not to Free', () => {
+    expect(canUseFeature('free', 'todayBrief')).toBe(false);
+    expect(canUseFeature('pro', 'todayBrief')).toBe(true);
+    expect(canUseFeature('legend', 'todayBrief')).toBe(true);
+    expect(FEATURE_NAMES.todayBrief).toBe('Daily Today brief');
   });
 
   it('names every locked feature, for the upgrade screens', () => {

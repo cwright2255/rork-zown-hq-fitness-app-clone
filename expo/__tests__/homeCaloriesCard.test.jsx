@@ -41,6 +41,7 @@ jest.mock('@/components/RankChallengeWidget', () => () => null);
 jest.mock('@/components/MacrosWidget', () => () => null);
 jest.mock('@/components/WeightWidget', () => () => null);
 jest.mock('@/components/WidgetEditorModal', () => () => null);
+jest.mock('@/components/TodayBriefCard', () => () => null); // the daily Today brief has its own tests (TodayBriefCard.test.jsx)
 
 import Hq from '../app/hq';
 import { useNutritionStore } from '../store/nutritionStore';

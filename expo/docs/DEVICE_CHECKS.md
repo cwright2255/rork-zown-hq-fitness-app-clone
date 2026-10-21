@@ -311,6 +311,30 @@ Needs Apple Health with a few weeks of readings (or a connected device that has 
       card says what it is waiting for and how many earlier readings it has ("6 of 10 so far") and shows no number.
 - [ ] The card never shows a number made from fewer than two of HRV, resting heart rate and sleep.
 
+## Today brief (Home)
+
+Needs the `postLLM` function deployed first (`cd expo && firebase deploy --only functions:postLLM`), then `eas update`. An older
+`postLLM` has no Pro gate for the brief and counts it as a Coach message. Use a Pro or Legend account for the first block, a Free
+account for the second.
+
+- [ ] On Home, under the greeting and above "Today's Information", a "Today brief" card shows a "Writing your brief" line and then a
+      headline with two to four short points, and "From your Coach, once a day. Training and nutrition guidance, not medical advice."
+- [ ] The points only use things you can find in the app (your sleep, readiness, weight, workouts, food, calendar). Nothing about a
+      reading or a workout you do not have. If you have an injury or an allergy set in your profile, the brief respects it.
+- [ ] Close the app and open it again, or go to another tab and back: the same brief shows at once, with no "Writing your brief". It
+      changes the next day, not before.
+- [ ] Firebase console, Firestore, `aiUsage`: today's `insight` count for your account went up by one for the brief, and the `coach`
+      count did not move.
+- [ ] Turn on airplane mode, kill the app, open it: no card at all (not an error). Turn it off and open Home after half an hour: the
+      brief is written then. Within the half hour, opening Home does not try again.
+- [ ] If your readiness is low or your training load is high, the headline says to ease off. If both are good, a harder day is fine.
+- [ ] On the first open on an iPhone that never opened the Health page, iOS may ask for Health access once (the brief reads the same
+      sleep, heart rate and HRV as the Health page). It does not ask again.
+- [ ] A Free account sees a locked "Today brief" card with a Pro label and a "See plans" button that opens the plans page for the
+      Daily Today brief. No brief is written for it: `aiUsage` for that account does not change.
+- [ ] Upgrade the Free account to Pro (or switch its plan in Firestore under `entitlements`): within a moment the lock gives way to the
+      brief.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

@@ -8,6 +8,7 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../src/config/firebase';
 import { localDateKey } from '@/lib/localDate';
 import { upgradeFromError } from '@/lib/upgradePrompt';
+import { parseBrief } from '@/lib/todayBrief';
 
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {
@@ -507,6 +508,27 @@ export const generateTrainingLoadInsight = async ({ trainingLoad }) => {
     return comment || null;
   } catch (error) {
     console.error('Error generating training load insight', error);
+    return null;
+  }
+};
+
+/**
+ * The daily Today brief: the AI's note for today from `messages` (lib/todayBrief.js buildBriefMessages). Resolves to { headline, points },
+ * or null when the AI gave nothing usable, the scope check turned the request away, the plan does not include the brief or the call
+ * failed. Counted with the comments the app asks for by itself ('brief' on the server is a Pro feature that uses that allowance), so it
+ * never uses up the messages a person sends. Never throws.
+ * @param {{ messages: { role: string, content: string }[] }} params
+ */
+export const generateTodayBrief = async ({ messages }) => {
+  if (!Array.isArray(messages) || !messages.length) return null;
+  try {
+    // One try: the answer is kept for the day (or its absence for half an hour), so a retry here would only double the cost of a failure.
+    const data = await postLLM(messages, 30000, 0, 'brief');
+    if (data?.refused) return null;
+    return parseBrief(data.completion);
+  } catch (error) {
+    // A plan that does not include the brief is not a fault worth logging; anything else is.
+    if (!upgradeFromError(error)) console.error('Error generating the Today brief', error);
     return null;
   }
 };

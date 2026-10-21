@@ -15,7 +15,7 @@ import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
 import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
-import { checkFeature, takeAiQuota, giveBackAiQuota } from './aiQuota.js';
+import { checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan } from './aiQuota.js';
 import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
 
 initializeApp();
@@ -228,8 +228,11 @@ export const postLLM = onCall(
     // One message from today's allowance for the person's plan (lib/entitlements.js). `kind` says which allowance: 'coach' for the Coach
     // chat, 'assist' for the other helpers; a request that says nothing, or something else, is taken as 'coach'. A request the model
     // declines as off-topic still counts; one that fails before the person gets anything is given back.
+    // The daily Today brief ('brief') is part of Pro: a Free person is turned away before anything is counted or sent.
+    const { bucket, feature } = aiRequestPlan(kind);
+    if (feature) await requireFeature(uid, feature);
     const db = getFirestore();
-    const quota = await takeAiQuota({ db, uid, kind });
+    const quota = await takeAiQuota({ db, uid, kind: bucket });
     if (!quota.ok) throw aiLimitReached(quota);
 
     try {

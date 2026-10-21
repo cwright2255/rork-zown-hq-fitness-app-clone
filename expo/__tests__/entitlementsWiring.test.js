@@ -143,6 +143,15 @@ describe('the functions that enforce the plan', () => {
     expect(post).toMatch(/if \(!quota\.ok\) throw aiLimitReached\(quota\);/);
   });
 
+  it('turn a Free person away from the daily Today brief before anything is counted or sent', () => {
+    const post = index.slice(index.indexOf('export const postLLM'), index.indexOf('export const generateBodyCompositionInsight'));
+    expect(post).toMatch(/const \{ bucket, feature \} = aiRequestPlan\(kind\);\s*if \(feature\) await requireFeature\(uid, feature\);/);
+    expect(post).toMatch(/takeAiQuota\(\{ db, uid, kind: bucket \}\)/);
+    expect(post.indexOf('requireFeature(uid, feature)')).toBeLessThan(post.indexOf('takeAiQuota('));
+    expect(post.indexOf("'messages must be a non-empty array'")).toBeLessThan(post.indexOf('requireFeature(uid, feature)'));
+    expect(index).toMatch(/import \{ checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan \} from '\.\/aiQuota\.js';/);
+  });
+
   it('check the plan before doing any work in the workout-plan and body-scan functions', () => {
     const plan = index.slice(index.indexOf('export const generateWorkoutPlan'), index.indexOf('export const getProgressSummary'));
     expect(plan).toMatch(/requireAuth\(req\.auth\);\s*await requireFeature\(uid, 'aiWorkoutPlan'\);/);

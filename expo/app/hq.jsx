@@ -58,6 +58,7 @@ import FastingWidget from '@/components/FastingWidget';
 import MusicWidget from '@/components/MusicWidget';
 import StreakWidget from '@/components/StreakWidget';
 import NextUpWidget from '@/components/NextUpWidget';
+import TodayBriefCard from '@/components/TodayBriefCard';
 import BattlePassWidget from '@/components/BattlePassWidget';
 import TrainingLoadWidget from '@/components/TrainingLoadWidget';
 import MusclesWidget from '@/components/MusclesWidget';
@@ -769,6 +770,9 @@ export default function HQScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* The Coach's note for today (Pro; the card shows a lock to anyone else and nothing while there is nothing to show) */}
+        <TodayBriefCard />
 
         {/* Section title */}
         <View style={styles.sectionRow}>

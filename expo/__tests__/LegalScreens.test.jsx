@@ -53,6 +53,12 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/A daily record of these readings is saved to your account/);
   });
 
+  it('says the daily Today brief is an AI feature, and what it is written from', () => {
+    const text = policy();
+    expect(text).toContain('The AI coach, the daily Today brief, workout and challenge generation');
+    expect(text).toMatch(/The Today brief is written once a day from what the coach already knows about you: your recent sleep, heart rate, heart-rate variability and weight, your training, your food log and your upcoming calendar items\./);
+  });
+
   it('does not name services the app no longer uses', () => {
     const text = policy();
     for (const gone of ['Passio', 'Open Food Facts', 'ExerciseDB', 'Meshy']) expect(text).not.toContain(gone);

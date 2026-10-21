@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
 
         <Text style={styles.sectionTitle}>3. AI Features</Text>
         <Text style={styles.bodyText}>
-          The AI coach, workout and challenge generation, nutrition suggestions, progress summaries, body-composition insights, and the photo food scanner send the information they need (for example your goals, age, measurements, the text you type, or the meal photo you take) through our servers to OpenAI, which generates the response. We do not store meal photos you send for scanning. AI output can be wrong and is not medical advice.
+          The AI coach, the daily Today brief, workout and challenge generation, nutrition suggestions, progress summaries, body-composition insights, and the photo food scanner send the information they need (for example your goals, age, measurements, the text you type, or the meal photo you take) through our servers to OpenAI, which generates the response. The Today brief is written once a day from what the coach already knows about you: your recent sleep, heart rate, heart-rate variability and weight, your training, your food log and your upcoming calendar items. We do not store meal photos you send for scanning. AI output can be wrong and is not medical advice.
         </Text>
 
         <Text style={styles.sectionTitle}>4. Services That Receive Your Data</Text>

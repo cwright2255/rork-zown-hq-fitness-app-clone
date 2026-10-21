@@ -21,6 +21,16 @@ export async function checkFeature({ db, uid, feature, now = new Date() }) {
 }
 
 /**
+ * What a postLLM request of this `kind` needs: the allowance it is counted in, and the feature the person's plan must include (null when
+ * none). The daily Today brief ('brief') is a Pro feature and is counted with the comments the app asks for by itself ('insight'), so it
+ * cannot use up the messages a person chooses to send. Any other kind is counted as bucketOf() says and needs no feature.
+ */
+export function aiRequestPlan(kind) {
+  if (kind === 'brief') return { bucket: 'insight', feature: 'todayBrief' };
+  return { bucket: bucketOf(kind), feature: null };
+}
+
+/**
  * Uses up one AI message from today's allowance, in a transaction so two messages sent at once cannot both take the last one.
  * Resolves to { ok, tier, bucket, limit, used, day }; when ok is false the allowance was already spent and nothing was changed.
  */

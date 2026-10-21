@@ -41,21 +41,31 @@ const INJURY_LABELS = {
 // given message. Every field degrades gracefully when unset - a brand
 // new profile with nothing filled in still produces a clean, sensible
 // prompt, not an awkward "Goals: ." fragment.
-export function buildCoachSystemPrompt(user, now = new Date(), { calendar = true } = {}) {
-  const name = user?.name?.trim() || 'there';
+/**
+ * What the Coach knows about the person from their profile, as sentences: fitness level, goals, injuries, and the diet, allergies and
+ * foods they avoid. Shared by the Coach's prompt below and the daily Today brief (lib/todayBrief.js), so both are told the same thing.
+ */
+export function coachProfileLines(user) {
   const goals = (user?.fitnessMetrics?.targetGoals || []).map((id) => GOAL_LABELS[id] || id);
   const injuries = (user?.fitnessMetrics?.injuries || []).map((id) => INJURY_LABELS[id] || id);
   const level = user?.fitnessLevel || 'unspecified';
   const dietLines = describeDietForAI(getDietProfile(user));
-
-  const lines = [
-    `You are ZOWN's AI fitness coach, in an ongoing coaching conversation with ${name}.`,
+  return [
     `Fitness level: ${level}.`,
     goals.length ? `Goals: ${goals.join(', ')}.` : null,
     injuries.length
       ? `Reported injuries/areas to be careful with: ${injuries.join(', ')}. Take these seriously when suggesting exercises.`
       : null,
     ...dietLines,
+  ].filter(Boolean);
+}
+
+export function buildCoachSystemPrompt(user, now = new Date(), { calendar = true } = {}) {
+  const name = user?.name?.trim() || 'there';
+
+  const lines = [
+    `You are ZOWN's AI fitness coach, in an ongoing coaching conversation with ${name}.`,
+    ...coachProfileLines(user),
     'Be encouraging, specific, and concise. Reference their real goals and injuries naturally when relevant, not every message.',
     // Nutrition honesty: the diet notes above carry the evidence for the diet this person chose.
     'For food and diet questions, give evidence-based guidance and say plainly when the evidence for a diet is limited or mixed. Never claim a diet treats or cures a disease. For medical conditions, medications, pregnancy or a history of eating disorders, suggest a doctor or registered dietitian.',

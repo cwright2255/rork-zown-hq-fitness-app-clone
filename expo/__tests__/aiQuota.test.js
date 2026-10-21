@@ -1,4 +1,4 @@
-import { tierOf, checkFeature, takeAiQuota, giveBackAiQuota } from '../functions/src/aiQuota';
+import { tierOf, checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan } from '../functions/src/aiQuota';
 
 // A small stand-in for Firestore: documents in a map, doc(path).get(), and runTransaction(fn) with tx.get / tx.set (merge). Transactions
 // run one at a time, as in the real database, where a transaction whose document changed under it is run again.
@@ -56,15 +56,43 @@ describe('checkFeature', () => {
     expect(await checkFeature({ db, uid: 'u1', feature: 'bodyScan', now: NOW })).toEqual({ ok: false, tier: 'pro', needs: 'legend' });
   });
 
+  it('lets Free into nothing that is locked: the daily Today brief is Pro', async () => {
+    expect(await checkFeature({ db: makeDb(), uid: 'u1', feature: 'todayBrief', now: NOW })).toEqual({ ok: false, tier: 'free', needs: 'pro' });
+    expect(await checkFeature({ db: makeDb({ 'entitlements/u1': pro }), uid: 'u1', feature: 'todayBrief', now: NOW })).toEqual({ ok: true, tier: 'pro', needs: 'pro' });
+  });
+
   it('lets Legend into everything', async () => {
     const db = makeDb({ 'entitlements/u1': legend });
-    for (const feature of ['aiWorkoutPlan', 'analytics', 'bodyScan']) {
+    for (const feature of ['aiWorkoutPlan', 'analytics', 'todayBrief', 'bodyScan']) {
       expect((await checkFeature({ db, uid: 'u1', feature, now: NOW })).ok).toBe(true);
     }
   });
 
   it('lets anyone into a feature that is not locked', async () => {
     expect((await checkFeature({ db: makeDb(), uid: 'u1', feature: 'logWorkout', now: NOW })).ok).toBe(true);
+  });
+});
+
+describe('aiRequestPlan', () => {
+  it('counts the daily Today brief with the comments the app asks for by itself, and says it needs the Today brief feature', () => {
+    expect(aiRequestPlan('brief')).toEqual({ bucket: 'insight', feature: 'todayBrief' });
+  });
+
+  it('counts every other kind where bucketOf says, and needs no feature', () => {
+    expect(aiRequestPlan('coach')).toEqual({ bucket: 'coach', feature: null });
+    expect(aiRequestPlan('assist')).toEqual({ bucket: 'assist', feature: null });
+    expect(aiRequestPlan('insight')).toEqual({ bucket: 'insight', feature: null });
+  });
+
+  it('counts a request that says nothing, or something unknown, as the Coach\'s, the strictest, with no feature', () => {
+    for (const kind of [undefined, null, '', 'whatever', 'Brief', 'briefs', 7]) expect(aiRequestPlan(kind)).toEqual({ bucket: 'coach', feature: null });
+  });
+
+  it('is taken from the Free allowance of insight comments when a Free person somehow gets as far as the count', async () => {
+    const db = makeDb();
+    const first = await take(db, aiRequestPlan('brief').bucket);
+    expect(first).toMatchObject({ ok: true, bucket: 'insight', limit: 9, used: 1 });
+    expect(db.docs.get('aiUsage/u1_2026-10-20')).toEqual({ uid: 'u1', day: '2026-10-20', insight: 1 });
   });
 });
 
