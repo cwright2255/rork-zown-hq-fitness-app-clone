@@ -149,3 +149,11 @@ export function scoreFood(food = {}) {
 
 // The grade alone: 'A' to 'E', or null when there is no energy figure.
 export const rateFood = (food) => scoreFood(food).grade;
+
+// The rating as the app keeps it on a food: { score: 'A'..'E' }, with partial: true added when a figure the food is judged on
+// was missing, so the grade is held back (see above). null when there is no energy figure, so the food shows no stars.
+export function ratingFor(food) {
+  const { grade, missing } = scoreFood(food);
+  if (!grade) return null;
+  return missing ? { score: grade, partial: true } : { score: grade };
+}

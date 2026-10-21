@@ -296,3 +296,74 @@ describe('a custom food', () => {
     await waitFor(() => expect(utils.getByTestId('food-load-failed')).toBeTruthy());
   });
 });
+
+describe('the rating', () => {
+  const stars = (utils) => utils.UNSAFE_queryAllByType('Star').filter((star) => star.props.fill !== 'transparent').length;
+  const scannedRated = (rating) => ({
+    name: 'Tikka Masala', calories: 140, protein: 8, carbs: 12, fat: 6, servingSize: '100g', barcode: '555', nutritionalScore: rating,
+  });
+
+  it('shows the stars of a scanned food, and logs the rating with it, so the meal gets its stars', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'B' })), mealId: 'lunch' } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(stars(utils)).toBe(4);
+    fireEvent.press(utils.getByText('Add to Log'));
+    expect(global.__nutrition.addFoodToMeal.mock.calls[0][2].nutritionalScore).toEqual({ score: 'B' });
+  });
+
+  it('says the rating is limited when a figure the food is judged on is not listed', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'C', partial: true })) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(stars(utils)).toBe(3);
+    expect(utils.getByTestId('food-rating-partial')).toBeTruthy();
+    expect(utils.getByText('Some nutrition figures are not listed for this food, so its rating is limited.')).toBeTruthy();
+  });
+
+  it('does not say so for a rating worked out from every figure', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'C' })) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(utils.queryByTestId('food-rating-partial')).toBeNull();
+  });
+
+  it('does not say so for a food with no rating', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated(undefined)) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(stars(utils)).toBe(0);
+    expect(utils.queryByTestId('food-rating-partial')).toBeNull();
+  });
+});
+
+// The Add / Update bar floats 100 pt above the bottom of the screen, over the end of the page. The page has to scroll far enough
+// that its last part (the servings) comes to rest above the bar, however tall the bar is: with two buttons it covered the servings.
+describe('room under the page for the Add / Update bar', () => {
+  const { ScrollView, StyleSheet } = require('react-native');
+  const bottomOf = (utils) => StyleSheet.flatten(utils.UNSAFE_getByType(ScrollView).props.contentContainerStyle).paddingBottom;
+  const layout = (utils, height) => act(() => {
+    fireEvent(utils.getByTestId('food-bottom-bar'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 300, height } } });
+  });
+
+  it('floats the bar 100 pt up, clear of the bottom bar', async () => {
+    const utils = open();
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(StyleSheet.flatten(utils.getByTestId('food-bottom-bar').props.style).bottom).toBe(100);
+  });
+
+  it('keeps clear of a taller bar than it guessed, and of a shorter one', async () => {
+    const utils = open();
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    await layout(utils, 70);
+    expect(bottomOf(utils)).toBe(100 + 70 + 24);
+    await layout(utils, 150);
+    expect(bottomOf(utils)).toBe(100 + 150 + 24);
+  });
+
+  it('allows for the two buttons of a logged food before the bar has been measured', async () => {
+    // Update Serving (about 56 pt) and Remove from Log (about 44 pt), with the gap between: roughly 112 pt.
+    const utils = open({
+      params: { id: 'a1-abc' },
+      nutrition: { findLoggedFood: jest.fn(() => ({ meal: { id: 'lunch', date: '2026-10-08', foods: [] }, food: { id: 'a1', logId: 'a1-abc', name: 'Apple', calories: 52, protein: 0, carbs: 0, fat: 0, servingSize: '1x 100g', quantity: 1, base: { calories: 52, protein: 0, carbs: 0, fat: 0, servingSize: '100g' } } })) },
+    });
+    await waitFor(() => expect(utils.getByText('Update Serving')).toBeTruthy());
+    expect(bottomOf(utils)).toBeGreaterThanOrEqual(100 + 112 + 24);
+  });
+});

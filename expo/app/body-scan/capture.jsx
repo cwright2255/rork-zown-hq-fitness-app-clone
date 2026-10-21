@@ -23,6 +23,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import OverlayColumn from '@/components/OverlayColumn';
 import PaywallGate from '@/components/PaywallGate';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useUserStore } from '@/store/userStore';
@@ -767,44 +768,50 @@ function BodyScanCaptureScreen() {
           <View style={[styles.guideSilhouette, tracking && styles.guideSilhouetteDetected]} />
         </View>
 
-        {/* Temporary diagnostics - remove once tracking is confirmed working */}
-        <View pointerEvents="none" style={styles.debugOverlay}>
-          <Text style={styles.debugText}>frames: {framesSeen}  results: {resultsReceived}  poses: {posesFound}</Text>
-          <Text style={styles.debugText}>pixelFormat: {actualPixelFormat ?? '...'}</Text>
-          <Text style={styles.debugText}>
-            step: {step}  ratio: {trackerDebug.ratio != null ? trackerDebug.ratio.toFixed(2) : '...'}  noseVis: {trackerDebug.noseVisibility != null ? trackerDebug.noseVisibility.toFixed(2) : '...'}
-          </Text>
-          <Text style={styles.debugText}>
-            captured: front={capturedStatus.front ? '✓' : '✗'} right={capturedStatus.right ? '✓' : '✗'} back={capturedStatus.back ? '✓' : '✗'} left={capturedStatus.left ? '✓' : '✗'}
-          </Text>
-          <Text style={styles.debugText}>
-            upright: {uprightDebug.reason ?? '...'}  dev: {uprightDebug.maxDeviation != null ? uprightDebug.maxDeviation.toFixed(3) : '...'}  ratio: {uprightDebug.torsoToLegRatio != null ? uprightDebug.torsoToLegRatio.toFixed(2) : '...'}
-          </Text>
-          <Text style={styles.debugText}>
-            frameFill: span={frameFillDebug.span != null ? frameFillDebug.span.toFixed(3) : '...'} (need ≥{MIN_FRAME_FILL_RATIO})  nose={frameFillDebug.noseY != null ? frameFillDebug.noseY.toFixed(3) : '...'}  ankle={frameFillDebug.ankleY != null ? frameFillDebug.ankleY.toFixed(3) : '...'}
-          </Text>
-          {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
-        </View>
+        {/* The ring and the diagnostics take turns down the top edge, so neither sits on the other. */}
+        <OverlayColumn edge="top" testID="scan-top-overlays">
+          {/* Segmented circular progress ring — one arc per step */}
+          <View style={styles.ringWrap} pointerEvents="none">
+            <RotationRing overallProgress={overallProgress} currentStepProgress={ringProgress} step={step} />
+          </View>
 
-        {/* Segmented circular progress ring — one arc per step */}
-        <View style={styles.ringWrap} pointerEvents="none">
-          <RotationRing overallProgress={overallProgress} currentStepProgress={ringProgress} step={step} />
-        </View>
-
-        <View style={[styles.captionBox, captionOverride && styles.captionBoxAlert]}>
-          <Text style={[styles.captionText, captionOverride && styles.captionTextAlert]}>{captionOverride ?? STEP_CAPTIONS[step]}</Text>
-          {!captionOverride && !tracking && step !== 'done' && (
-            <Text style={styles.captionSubtext}>
-              {tooFarAway ? 'Move closer so your body fills more of the frame' : "Step back until your full body is visible"}
+          {/* Temporary diagnostics - remove once tracking is confirmed working */}
+          <View pointerEvents="none" style={styles.debugOverlay}>
+            <Text style={styles.debugText}>frames: {framesSeen}  results: {resultsReceived}  poses: {posesFound}</Text>
+            <Text style={styles.debugText}>pixelFormat: {actualPixelFormat ?? '...'}</Text>
+            <Text style={styles.debugText}>
+              step: {step}  ratio: {trackerDebug.ratio != null ? trackerDebug.ratio.toFixed(2) : '...'}  noseVis: {trackerDebug.noseVisibility != null ? trackerDebug.noseVisibility.toFixed(2) : '...'}
             </Text>
-          )}
-        </View>
+            <Text style={styles.debugText}>
+              captured: front={capturedStatus.front ? '✓' : '✗'} right={capturedStatus.right ? '✓' : '✗'} back={capturedStatus.back ? '✓' : '✗'} left={capturedStatus.left ? '✓' : '✗'}
+            </Text>
+            <Text style={styles.debugText}>
+              upright: {uprightDebug.reason ?? '...'}  dev: {uprightDebug.maxDeviation != null ? uprightDebug.maxDeviation.toFixed(3) : '...'}  ratio: {uprightDebug.torsoToLegRatio != null ? uprightDebug.torsoToLegRatio.toFixed(2) : '...'}
+            </Text>
+            <Text style={styles.debugText}>
+              frameFill: span={frameFillDebug.span != null ? frameFillDebug.span.toFixed(3) : '...'} (need ≥{MIN_FRAME_FILL_RATIO})  nose={frameFillDebug.noseY != null ? frameFillDebug.noseY.toFixed(3) : '...'}  ankle={frameFillDebug.ankleY != null ? frameFillDebug.ankleY.toFixed(3) : '...'}
+            </Text>
+            {lastError && <Text style={styles.debugTextError}>error: {lastError}</Text>}
+          </View>
+        </OverlayColumn>
 
-        {stuckFallbackVisible && (
-          <Pressable style={styles.stuckButton} onPress={handleManualAdvance}>
-            <Text style={styles.stuckButtonText}>Trouble detecting your turn? Tap to continue</Text>
-          </Pressable>
-        )}
+        {/* The tap-to-continue button sits above the caption, not on it. */}
+        <OverlayColumn edge="bottom" testID="scan-bottom-overlays">
+          {stuckFallbackVisible && (
+            <Pressable style={styles.stuckButton} onPress={handleManualAdvance}>
+              <Text style={styles.stuckButtonText}>Trouble detecting your turn? Tap to continue</Text>
+            </Pressable>
+          )}
+
+          <View style={[styles.captionBox, captionOverride && styles.captionBoxAlert]}>
+            <Text style={[styles.captionText, captionOverride && styles.captionTextAlert]}>{captionOverride ?? STEP_CAPTIONS[step]}</Text>
+            {!captionOverride && !tracking && step !== 'done' && (
+              <Text style={styles.captionSubtext}>
+                {tooFarAway ? 'Move closer so your body fills more of the frame' : "Step back until your full body is visible"}
+              </Text>
+            )}
+          </View>
+        </OverlayColumn>
       </View>
 
       {error && (
@@ -906,7 +913,6 @@ const styles = StyleSheet.create({
   cameraWrap: { flex: 1, marginHorizontal: spacing.base, marginTop: spacing.xs, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card },
   guideOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   debugOverlay: {
-    position: 'absolute', top: spacing.base, left: spacing.base, right: spacing.base,
     backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.sm, padding: spacing.xs,
   },
   debugText: { color: '#FFFFFF', fontSize: 12 },
@@ -916,18 +922,17 @@ const styles = StyleSheet.create({
     borderRadius: 200, borderStyle: 'dashed',
   },
   guideSilhouetteDetected: { borderColor: colors.green, borderStyle: 'solid' },
-  ringWrap: { position: 'absolute', top: spacing.base, right: spacing.base },
+  ringWrap: { alignSelf: 'flex-end' },
   captionBox: {
-    position: 'absolute', bottom: spacing.base, left: spacing.base, right: spacing.base,
     backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.md,
     paddingVertical: spacing.sm, paddingHorizontal: spacing.md, alignItems: 'center',
   },
   captionBoxAlert: { backgroundColor: colors.orange },
-  captionText: { ...typography.h4, color: colors.text, textAlign: 'center' },
+  // White: the box behind it is dark, and the theme's own text colour is black.
+  captionText: { ...typography.h4, color: '#FFFFFF', textAlign: 'center' },
   captionTextAlert: { color: colors.bg },
-  captionSubtext: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center' },
+  captionSubtext: { ...typography.caption, color: 'rgba(255,255,255,0.8)', marginTop: spacing.xs, textAlign: 'center' },
   stuckButton: {
-    position: 'absolute', bottom: spacing.base + 64, left: spacing.base, right: spacing.base,
     backgroundColor: colors.orange, borderRadius: radius.md,
     paddingVertical: spacing.sm, paddingHorizontal: spacing.md, alignItems: 'center',
   },

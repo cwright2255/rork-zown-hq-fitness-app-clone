@@ -110,6 +110,46 @@ describe('barcode scanner', () => {
     });
   });
 
+  // A scanned food used to go to the log with no rating, so a meal made of it (a ready-meal chicken tikka masala) had no stars.
+  it('gives the scanned food its rating and its fibre, sugar and sodium for the log screen', async () => {
+    setup();
+    const tikka = {
+      data: {
+        found: true, barcode: '4056489123456', product: { name: 'Chicken Tikka Masala', brand: 'Lidl' },
+        nutrition_per_100g: {
+          energy_kcal: 140, protein_g: 8, carbohydrates_g: 12, fat_g: 6, fiber_g: 1.2, sugars_g: 3.5, saturated_fat_g: 1.7, salt_g: 0.9,
+        },
+      },
+    };
+    global.__httpsCallable = jest.fn(() => jest.fn(async () => tikka));
+    const utils = render(<BarcodeScanScreen />);
+    await scan();
+    fireEvent.press(utils.getByText('Add to Log'));
+    const food = JSON.parse(global.__router.replace.mock.calls[0][0].params.scannedFood);
+    expect(food).toMatchObject({ name: 'Chicken Tikka Masala', nutritionalScore: { score: 'C' }, fiber: 1.2, sugar: 3.5, sodium: 360 });
+    expect(food.nutritionalScore).not.toHaveProperty('partial');
+  });
+
+  it('uses the barcode that was scanned when the answer does not repeat it', async () => {
+    setup();
+    const { barcode, ...noBarcode } = found.data;
+    global.__httpsCallable = jest.fn(() => jest.fn(async () => ({ data: noBarcode })));
+    const utils = render(<BarcodeScanScreen />);
+    await scan('9780201379624');
+    fireEvent.press(utils.getByText('Add to Log'));
+    expect(JSON.parse(global.__router.replace.mock.calls[0][0].params.scannedFood).barcode).toBe('9780201379624');
+  });
+
+  it('marks the rating as limited when the product does not list everything it is judged on', async () => {
+    setup();
+    global.__httpsCallable = jest.fn(() => jest.fn(async () => found));
+    const utils = render(<BarcodeScanScreen />);
+    await scan();
+    fireEvent.press(utils.getByText('Add to Log'));
+    const food = JSON.parse(global.__router.replace.mock.calls[0][0].params.scannedFood);
+    expect(food.nutritionalScore).toEqual({ score: 'C', partial: true });
+  });
+
   it('carries the chosen meal through to the log screen', async () => {
     setup({ mealId: 'dinner' });
     global.__httpsCallable = jest.fn(() => jest.fn(async () => found));

@@ -23,6 +23,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { formatDistanceTight, formatDistanceValue, distanceUnitLabel } from '@/lib/distanceUnits';
 import { journeyById } from '@/lib/virtualJourneys';
 import JourneyFinishedCard from '@/components/JourneyFinishedCard';
+import { newestOf } from '@/lib/workoutOrder';
 
 function StatCard({ icon, number, label }) {
   return (
@@ -124,7 +125,8 @@ export default function WorkoutCompleteScreen() {
     }
   }, [user?.uid]);
 
-  const lastWorkout = completedWorkouts.length > 0 ? completedWorkouts[completedWorkouts.length - 1] : null;
+  // The workout that finished last, by time: the list is not always oldest first (the server sends it newest first), so the last item is not always the one just finished.
+  const lastWorkout = newestOf(completedWorkouts);
   // runs is newest first (runs[0] is the latest; the old code read the LAST
   // entry, which is the oldest run). The run screen passes the id of the run
   // it just saved; if that run was too short to save, no run is shown rather

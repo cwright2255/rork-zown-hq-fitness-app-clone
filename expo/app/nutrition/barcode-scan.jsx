@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ScanLine } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import { foodFromBarcode } from '@/lib/barcodeFood';
 
 export default function BarcodeScanScreen() {
   // The meal the food was being added to (if any), carried through to the log screen.
@@ -45,18 +46,7 @@ export default function BarcodeScanScreen() {
         return;
       }
 
-      const n = data.nutrition_per_100g || {};
-      setScanResult({
-        name: data.product?.name || 'Unknown Product',
-        brand: data.product?.brand || undefined,
-        calories: Math.round(n.energy_kcal || 0),
-        protein: Math.round((n.protein_g || 0) * 10) / 10,
-        carbs: Math.round((n.carbohydrates_g || 0) * 10) / 10,
-        fat: Math.round((n.fat_g || 0) * 10) / 10,
-        // The numbers above are per 100 g, so that is what the serving is called.
-        servingSize: '100g',
-        barcode: data.barcode || barcode,
-      });
+      setScanResult(foodFromBarcode(data, barcode));
     } catch (e) {
       Alert.alert('Lookup Failed', 'Please check connection and try again.', [
         { text: 'Try Again', onPress: () => setIsScanning(true) },

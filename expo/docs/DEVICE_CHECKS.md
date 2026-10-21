@@ -375,6 +375,58 @@ deploy the topic check and the answer run side by side, so a normal reply should
 - [ ] Home: the Today brief (Pro or Legend account) still shows.
 - [ ] In your Codespace: `cd expo/functions && npm install && node safety/run.js` ends with `RESULT: PASSED` (docs/SAFETY_TESTS.md).
 
+## Finishing a workout and Workout History (once, on the first update with the fix)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
+the app completely and open it twice. A workout you finished BEFORE this update and that only reached the phone (it never reached the
+server) is not brought back by it; finish one new workout for these checks.
+
+- [ ] Workouts: note "Total Workouts". Start any workout and finish it all the way. The Workout Complete screen shows THAT workout's
+      time, calories and exercises (not an older one).
+- [ ] Workouts: "Total Workouts" is now one more than before, never lower. (It used to fall to 20 or fewer after a finish.)
+- [ ] Profile, then Workout History: the workout you just finished is the first card, with today's date and the time you finished.
+      "Workouts" at the top is one more, and "Day Streak" counts today.
+- [ ] Pull down on Workout History to refresh, or close the app completely and open it twice: the workout is still the first card, the
+      cards are still newest first, and "Workouts" has not changed. (It used to move to the bottom after a refresh.)
+- [ ] Week, Month and Year each list the workout, still newest first.
+- [ ] Start a session from a program day (not from a workout card) and finish it. It shows in Workout History too, and after a refresh.
+      Firebase console, Firestore, `workouts`: a document for it with your user id, `completed: true` and a `date`. It may have no
+      `category` or `difficulty`; that is fine.
+- [ ] Start a workout, do one exercise and choose Save and Exit. It is listed in Workout History, and its Firestore document says
+      `completed: false`.
+- [ ] If you have more than 20 workouts, none of the older ones drop out of Workout History or the totals when you finish a new one.
+      (The app holds your newest 240; only once you have more than that does the oldest one make room.)
+- [ ] Home, Workout History card, and the streak: they count the new workout the same way as the full Workout History does.
+
+## Food star ratings and the Nutrition, Search Food and Body Scan layouts (once, on the first update with them)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
+the app completely and open it twice. Foods you logged BEFORE this update keep the stars they were logged with (a food logged from the
+search shows 3 stars, a scanned one none); log them again to get the new ones.
+
+- [ ] Nutrition, add a food to a meal, Scan a barcode (a packaged meal, for example a ready-meal chicken tikka masala). On "Add to
+      Log" the page shows stars under the calories. Log it: the meal on the Nutrition tab shows stars too (it had none before).
+- [ ] That page lists Fiber, Sugar and Sodium when the product lists them. If the product leaves out a figure the rating needs, a grey
+      line under the stars says "Some nutrition figures are not listed for this food, so its rating is limited."
+- [ ] Search Food, type "chicken". The list no longer shows the same 3 stars on every row: rows whose rating would only be held back by
+      missing figures show no stars at all.
+- [ ] From a meal (Nutrition, "+" on Lunch), search "chicken breast", tap it. A moment's wait (a spinner over the list), then it is in
+      the meal. Open it from the meal: stars that now differ from food to food (plain chicken breast high, fried wings or chicken fat
+      low), no longer all 3. If plain chicken breast still shows exactly 3 stars with the grey "limited" line, the Calorie API's own record
+      for that food has no sodium or saturated fat; that is the data, not the app.
+- [ ] With airplane mode on, tap a food in a search list that was already on screen: it is still logged (it falls back to what the
+      search listed) within about 4 seconds, and the list is usable again afterwards.
+- [ ] Search Food: scroll to the bottom of a long list. The last food stops clear above the bottom bar (it used to sit behind it).
+      Same with an empty search box and a long Recent Foods list.
+- [ ] Open a food you logged (tap it in a meal). Scroll to the bottom: "Servings" and its plus and minus buttons stop clear above
+      "Update Serving" and "Remove from Log"; nothing is hidden behind the buttons. Do the same with large text turned on (Settings,
+      Display, Text Size).
+- [ ] Open a food from search to add it: the "Meal" buttons stop clear above "Add to Log".
+- [ ] Body Scan, the camera screen: the progress ring (top right) and the grey diagnostics box no longer overlap; the ring is above the box.
+- [ ] Body Scan: the caption at the bottom ("Hold still, facing forward") is white on its dark box and fully inside it. After a turn has
+      stalled for about 15 seconds, "Trouble detecting your turn? Tap to continue" shows ABOVE the caption, not on it.
+      (The "Missing or insufficient permissions." line under the camera, if you still see it, is a separate matter.)
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

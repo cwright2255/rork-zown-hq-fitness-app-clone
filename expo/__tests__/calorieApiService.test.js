@@ -3,7 +3,7 @@ const mockFunctionsCalled = [];
 jest.mock('firebase/functions', () => ({ httpsCallable: (_functions, name) => { mockFunctionsCalled.push(name); return mockCall; } }), { virtual: true });
 jest.mock('../src/config/firebase', () => ({ functions: {} }));
 
-import { searchFoodsDetailed, searchFoods, getFoodById, calculateNutritionalScore, gradeToStars, gradeToMealStars } from '../services/calorieApiService';
+import { searchFoodsDetailed, searchFoods, getFoodById, withFullRating, calculateNutritionalScore, gradeToStars, gradeToMealStars } from '../services/calorieApiService';
 
 const apiFood = (extra = {}) => ({
   id: 77, name: 'Chicken Soup', calories_100g: 40, protein_100g: 3, carbs_100g: 4, fat_100g: 1.2,
@@ -152,14 +152,14 @@ describe('the rating on a food', () => {
   it('uses the carbohydrate to fill in a missing sugar figure', async () => {
     const lean = { calories_100g: 30, protein_100g: 5, fiber_100g: 4, sodium_100g: 10, saturated_fat_100g: 0, sugar_100g: undefined };
     // 20 g of carbohydrate could be mostly sugar: one figure missing, B at best.
-    expect(await rating('rating carbs high', { ...lean, id: 904, carbs_100g: 20 }, 904)).toEqual({ score: 'B' });
+    expect(await rating('rating carbs high', { ...lean, id: 904, carbs_100g: 20 }, 904)).toEqual({ score: 'B', partial: true });
     // 2 g of carbohydrate cannot hold more than 3.4 g of sugar: nothing missing.
     expect(await rating('rating carbs low', { ...lean, id: 905, carbs_100g: 2 }, 905)).toEqual({ score: 'A' });
   });
 
   it('uses the fat to fill in a missing saturated fat figure', async () => {
     const lean = { calories_100g: 30, protein_100g: 5, fiber_100g: 4, sodium_100g: 10, sugar_100g: 1, carbs_100g: 6, saturated_fat_100g: undefined };
-    expect(await rating('rating fat high', { ...lean, fat_100g: 5 }, 906)).toEqual({ score: 'B' });
+    expect(await rating('rating fat high', { ...lean, fat_100g: 5 }, 906)).toEqual({ score: 'B', partial: true });
     expect(await rating('rating fat low', { ...lean, fat_100g: 0.5 }, 907)).toEqual({ score: 'A' });
   });
 
@@ -170,6 +170,40 @@ describe('the rating on a food', () => {
     // With the figures: 900 mg of sodium and 6 g of saturated fat count against it. Without them: C at best.
     expect(withList.score).toBe('D');
     expect(without.score).toBe('C');
+  });
+});
+
+// Why nearly every chicken food was 3 stars: a search row lists no sodium and no saturated fat, and a food missing two figures it is
+// judged on is held to C. The rating says so (partial) so the screens can tell a held-back grade from a real one.
+describe('a rating held back by missing figures', () => {
+  const breast = {
+    id: 1501, name: 'Chicken Breast', calories_100g: 165, protein_100g: 31, carbs_100g: 0, fat_100g: 3.6, fiber_100g: 0, sugar_100g: 0,
+  };
+  const ratingOf = async (query, food) => {
+    mockCall.mockResolvedValueOnce({ data: { data: [food] } });
+    return (await searchFoodsDetailed(query)).results[0].nutritionalScore;
+  };
+
+  it('is marked partial, and is C, for chicken breast listed without sodium and saturated fat', async () => {
+    expect(await ratingOf('partial breast', breast)).toEqual({ score: 'C', partial: true });
+  });
+
+  it('is the real grade, and not marked partial, once sodium and saturated fat are listed', async () => {
+    const rated = await ratingOf('complete breast', { ...breast, id: 1502, sodium_100g: 74, saturated_fat_100g: 1 });
+    expect(rated).toEqual({ score: 'A' });
+    expect(rated).not.toHaveProperty('partial');
+  });
+
+  it('is marked partial with one figure missing as well', async () => {
+    expect(await ratingOf('one missing', { ...breast, id: 1503, saturated_fat_100g: 1 })).toEqual({ score: 'B', partial: true });
+  });
+
+  it('gives the foods that the chicken search finds their own grades once the figures are there', async () => {
+    const grade = async (id, food) => (await ratingOf(`spread ${id}`, { ...food, id })).score;
+    const listed = { sodium_100g: 74, saturated_fat_100g: 1 };
+    expect(await grade(1510, { ...breast, ...listed })).toBe('A');
+    expect(await grade(1511, { name: 'Chicken wing, fried', calories_100g: 290, protein_100g: 27, carbs_100g: 3, fat_100g: 19, fiber_100g: 0, sugar_100g: 0, sodium_100g: 600, saturated_fat_100g: 5.3 })).toBe('D');
+    expect(await grade(1512, { name: 'Chicken fat', calories_100g: 900, protein_100g: 0, carbs_100g: 0, fat_100g: 100, fiber_100g: 0, sugar_100g: 0, sodium_100g: 0, saturated_fat_100g: 30 })).toBe('E');
   });
 });
 
@@ -262,5 +296,90 @@ describe('looking up one food', () => {
     expect((await getFoodById('11')).name).toBe('Chicken Soup');
     mockCall.mockResolvedValueOnce({ data: { data: apiFood({ id: '100' }) } });
     expect((await getFoodById('100')).name).toBe('Chicken Soup');
+  });
+});
+
+// A search row is completed with the food's own record before it is logged: the record lists what the row cannot.
+describe('withFullRating', () => {
+  const row = {
+    id: 'wf-1', name: 'Chicken Breast', servingSize: '170g', calories: 165, protein: 31, carbs: 0, fat: 3.6,
+    fiber: 0, sugar: 0, nutritionalScore: { score: 'C', partial: true }, nutritionalDetails: { saturatedFat: 0, sugar: 0, fiber: 0, sodium: 0 },
+  };
+  const record = (extra = {}) => ({
+    id: 'wf-1', name: 'Chicken breast, roasted', calories_100g: 165, protein_100g: 31, carbs_100g: 0, fat_100g: 3.6, fiber_100g: 0, sugar_100g: 0,
+    sodium_100g: 74, saturated_fat_100g: 1, ...extra,
+  });
+
+  it('gives back the row with the rating and nutrition figures of the food\'s own record', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: record() } });
+    const out = await withFullRating(row);
+    expect(mockCall).toHaveBeenCalledWith({ id: 'wf-1' });
+    expect(out.nutritionalScore).toEqual({ score: 'A' });
+    expect(out.sodium).toBe(74);
+    expect(out.nutritionalDetails).toEqual({ saturatedFat: 1, sugar: 0, fiber: 0, sodium: 74 });
+  });
+
+  it('keeps everything else about the row as it was, the name and the serving the person picked above all', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-2' }) } });
+    const out = await withFullRating({ ...row, id: 'wf-2' });
+    expect(out).toMatchObject({ id: 'wf-2', name: 'Chicken Breast', servingSize: '170g', calories: 165, protein: 31 });
+  });
+
+  it('takes the fibre and sugar from the record when it lists them, since the row may not', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-3b', fiber_100g: 2.5, sugar_100g: 1.5 }) } });
+    const out = await withFullRating({ ...row, id: 'wf-3b', fiber: 0, sugar: 0 });
+    expect(out).toMatchObject({ fiber: 2.5, sugar: 1.5 });
+  });
+
+  it('keeps a figure of the row that the record does not list', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-3', fiber_100g: undefined, sugar_100g: undefined, sodium_100g: undefined }) } });
+    const out = await withFullRating({ ...row, id: 'wf-3', fiber: 1.5, sugar: 2.5, sodium: 40 });
+    expect(out).toMatchObject({ fiber: 1.5, sugar: 2.5, sodium: 40 });
+  });
+
+  it('gives back the row as it was when the record cannot be loaded', async () => {
+    mockCall.mockRejectedValueOnce(new Error('offline'));
+    expect(await withFullRating({ ...row, id: 'wf-4' })).toEqual({ ...row, id: 'wf-4' });
+  });
+
+  it('gives back the row as it was when the record comes with no rating (no energy figure)', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-5', calories_100g: undefined }) } });
+    expect(await withFullRating({ ...row, id: 'wf-5' })).toEqual({ ...row, id: 'wf-5' });
+  });
+
+  it('does not look up the ids the old built-in foods had', async () => {
+    const old = { ...row, id: '3' };
+    expect(await withFullRating(old)).toBe(old);
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it('uses a record already loaded, without asking again', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-6' }) } });
+    await getFoodById('wf-6');
+    const out = await withFullRating({ ...row, id: 'wf-6' });
+    expect(mockCall).toHaveBeenCalledTimes(1);
+    expect(out.nutritionalScore).toEqual({ score: 'A' });
+  });
+
+  describe('when the record is slow', () => {
+    beforeEach(() => { jest.useFakeTimers(); });
+    afterEach(() => { jest.useRealTimers(); });
+
+    it('gives back the row as it was after 4 seconds, and not before', async () => {
+      mockCall.mockReturnValueOnce(new Promise(() => {}));
+      let out;
+      const waiting = withFullRating({ ...row, id: 'wf-7' }).then((food) => { out = food; });
+      await jest.advanceTimersByTimeAsync(3999);
+      expect(out).toBeUndefined();
+      await jest.advanceTimersByTimeAsync(1);
+      await waiting;
+      expect(out).toEqual({ ...row, id: 'wf-7' });
+    });
+
+    it('does not leave its timer running once the record has come', async () => {
+      mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-8' }) } });
+      await withFullRating({ ...row, id: 'wf-8' });
+      expect(jest.getTimerCount()).toBe(0);
+    });
   });
 });

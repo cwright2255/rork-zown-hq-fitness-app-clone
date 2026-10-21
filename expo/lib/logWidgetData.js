@@ -6,7 +6,7 @@
 //
 // The three pages follow the filters on the full screens they open (app/profile/workout-history.jsx and running-log.jsx): "Last 7 days"
 // is the Week filter (the 7 days up to now), "This month" is the Month filter (the calendar month) and "All logged" is All (every record
-// the app holds, which is the most recent 100 at most). A page counts the records the full log lists after the same filter, and the
+// the app holds, which is the most recent 240 at most). A page counts the records the full log lists after the same filter, and the
 // "All logged" page is the same set of totals as the stats at the top of the full log.
 import { dateLabel } from './calendarEvents';
 import { dayKeyOf, localDateKey, shiftDateKey } from './localDate';

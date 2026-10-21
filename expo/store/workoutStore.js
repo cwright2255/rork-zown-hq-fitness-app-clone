@@ -8,6 +8,13 @@ import {
 } from 'firebase/firestore';
 import { optimizeArrayForPerformance } from '@/utils/storeOptimizations';
 import { localDateKey, shiftDateKey, dayKeyOf } from '@/lib/localDate';
+import { newestFirst } from '@/lib/workoutOrder';
+import { withoutUndefined } from '@/lib/firestoreSafe';
+
+// How many finished workouts the app holds: the most recent 240 (about a year at five a week), the same as loadWorkouts asks the server for. The phone keeps the
+// newest 20 of them in its own storage, to show something before the server answers.
+export const WORKOUTS_HELD = 240;
+export const WORKOUTS_KEPT_ON_PHONE = 20;
 
 
 
@@ -53,7 +60,7 @@ export const useWorkoutStore = create(
             collection(db, 'workouts'),
             where('userId', '==', uid),
             orderBy('date', 'desc'),
-            limit(100)
+            limit(WORKOUTS_HELD)
           );
           const snap = await getDocs(q);
           const completedWorkouts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -203,8 +210,10 @@ export const useWorkoutStore = create(
       // first so the UI never blocks on network.
       addCompletedWorkout: async (workout, uid) => {
         const localRecord = { ...workout, id: workout.id ?? `local-${Date.now()}` };
+        // Newest first, trimmed by time: the list loaded from the server is newest first, and trimming it from the end (as this
+        // used to) threw away the most recent workouts and kept the oldest, so Total Workouts, the streak and History came up short.
         set((state) => ({
-          completedWorkouts: optimizeArrayForPerformance([...state.completedWorkouts, localRecord], 20)
+          completedWorkouts: newestFirst([localRecord, ...state.completedWorkouts]).slice(0, WORKOUTS_HELD)
         }));
 
         if (!uid) {
@@ -213,7 +222,9 @@ export const useWorkoutStore = create(
         }
 
         try {
-          const ref = await addDoc(collection(db, 'workouts'), {
+          // withoutUndefined: Firestore refuses a document with an undefined field (a program-day session has no template, so
+          // its category and difficulty are undefined), and the workout was then kept on the phone only.
+          const ref = await addDoc(collection(db, 'workouts'), withoutUndefined({
             ...workout,
             userId: uid,
             // Real fix: was hardcoded to true unconditionally, which is
@@ -226,7 +237,7 @@ export const useWorkoutStore = create(
             // existing behavior unchanged (it never passes this field).
             completed: workout.completed ?? true,
             date: serverTimestamp(),
-          });
+          }));
           const saved = { ...localRecord, id: ref.id };
           set((state) => ({
             completedWorkouts: state.completedWorkouts.map((w) => w.id === localRecord.id ? saved : w)
@@ -572,7 +583,7 @@ export const useWorkoutStore = create(
       partialize: (state) => ({
         workouts: state.workouts.slice(0, 10), // Limit workouts for performance
         customWorkouts: state.customWorkouts.slice(0, 5),
-        completedWorkouts: state.completedWorkouts.slice(-20), // Keep last 20 completed workouts
+        completedWorkouts: newestFirst(state.completedWorkouts).slice(0, WORKOUTS_KEPT_ON_PHONE), // Keep the newest 20 completed workouts
         favoriteWorkoutIds: state.favoriteWorkoutIds.slice(0, 10),
         inProgress: state.inProgress,
         runningPrograms: state.runningPrograms.slice(0, 5),

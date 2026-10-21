@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
+import { newestFirst, workoutMs } from '@/lib/workoutOrder';
 
 export default function WorkoutHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -15,13 +16,13 @@ export default function WorkoutHistoryScreen() {
   const [filter, setFilter] = useState('All');
 
   const filteredWorkouts = useMemo(() => {
-    const list = [...(completedWorkouts || [])].reverse();
+    // Newest first by the time each one finished. The list is not in a fixed order (the server sends it newest first, a workout just
+    // finished is added to it), so reversing it put the latest workout at the bottom after a refresh.
+    const list = newestFirst(completedWorkouts);
     if (filter === 'All') return list;
     const now = new Date();
     return list.filter((w) => {
-      const dateStr = w.completedAt || w.timestamp;
-      if (!dateStr) return false;
-      const d = new Date(dateStr);
+      const d = new Date(workoutMs(w)); // a record with no time is an invalid date, which none of the filters below match
       if (filter === 'Week') return d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       if (filter === 'Month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
       if (filter === 'Year') return d.getFullYear() === now.getFullYear();
@@ -122,12 +123,13 @@ export default function WorkoutHistoryScreen() {
           </View>
         ) : (
           filteredWorkouts.map((workout) => {
-            const dateStr = workout.completedAt ? new Date(workout.completedAt).toLocaleDateString('en-US', {
+            const ms = workoutMs(workout);
+            const dateStr = Number.isFinite(ms) ? new Date(ms).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
             }) : 'Unknown Date';
-            const timeStr = workout.completedAt ? new Date(workout.completedAt).toLocaleTimeString('en-US', {
+            const timeStr = Number.isFinite(ms) ? new Date(ms).toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',
             }) : '';

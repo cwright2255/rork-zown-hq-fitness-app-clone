@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Star, ScanLine, Camera, Plus, Zap } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useMealPlanStore } from '@/store/mealPlanStore';
-import { searchFoodsDetailed, gradeToStars } from '@/services/calorieApiService';
+import { searchFoodsDetailed, withFullRating, gradeToStars } from '@/services/calorieApiService';
 import { localDateKey } from '@/lib/localDate';
 import { matchesFoodQuery } from '@/lib/customFood';
 import { MEAL_SLOTS } from '@/lib/foodLog';
@@ -25,6 +25,14 @@ function StarRating({ stars, size = 12 }) {
   );
 }
 
+// The floating bottom bar sits about 100 pt up from the bottom of the screen; the last row of a list stops this far above the
+// bottom so it can be scrolled clear of the bar. (The other Nutrition screens use the same 140.)
+const NAV_CLEARANCE = 140;
+
+// A row from the search only lists some of a food's nutrition, and a rating worked out from that is held back (partial): every
+// chicken food came up at 3 stars. No stars at all is truer than a held-back grade; the real ones come with the food's own record.
+const listStars = (food) => (food.nutritionalScore?.score && !food.nutritionalScore.partial ? gradeToStars(food.nutritionalScore.score) : null);
+
 export default function SearchFoodScreen() {
   const { mealId, planDate: planParam } = useLocalSearchParams();
   // Opened from the meal plan: a tapped food goes on the plan for that day, not into the diary.
@@ -39,6 +47,10 @@ export default function SearchFoodScreen() {
   const [loading, setLoading] = useState(false);
   // True when the search could not be reached. The list is then empty (the app has no foods of its own to show instead).
   const [failed, setFailed] = useState(false);
+  // True while a tapped search row is being completed with the food's own record, so a second tap cannot log it twice.
+  const [picking, setPicking] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
 
   useEffect(() => {
     if (!query || query.length < 2) {
@@ -67,7 +79,20 @@ export default function SearchFoodScreen() {
     return () => { cancelled = true; clearTimeout(t); };
   }, [query]);
 
-  const handleSelect = (food) => {
+  const handleSelect = async (picked, { fromSearch = false } = {}) => {
+    if (picking) return;
+    let food = picked;
+    // A search row lists no sodium or saturated fat, so it is logged (or planned) with the food's own record, which has them and
+    // gives the real rating. Opening the food's page needs no help: that page loads the record itself.
+    if (fromSearch && (planning || (mealId && addFoodToMeal))) {
+      setPicking(true);
+      try {
+        food = await withFullRating(picked);
+      } finally {
+        setPicking(false);
+      }
+      if (!alive.current) return;
+    }
     if (planning) {
       const result = useMealPlanStore.getState().addFood(food, { date: planDate, slot: mealId ? mealId.toString() : undefined });
       if (!result.ok) {
@@ -197,7 +222,7 @@ export default function SearchFoodScreen() {
       ) : null}
 
       {!query ? (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: NAV_CLEARANCE }} keyboardShouldPersistTaps="handled">
           {myFoods.length ? (
             <>
               <Text style={styles.sectionLabel}>My Foods</Text>
@@ -217,7 +242,7 @@ export default function SearchFoodScreen() {
                     <Text style={styles.foodServing}>{item.servingSize}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <StarRating stars={item.nutritionalScore?.score ? gradeToStars(item.nutritionalScore.score) : null} />
+                    <StarRating stars={listStars(item)} />
                     <View style={styles.calBadge}>
                       <Text style={styles.calBadgeText}>{item.calories} kcal</Text>
                     </View>
@@ -243,7 +268,7 @@ export default function SearchFoodScreen() {
         <FlatList
           data={results}
           keyExtractor={(i, idx) => i.id?.toString() || idx.toString()}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: NAV_CLEARANCE }}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
             customMatches.length ? (
@@ -255,13 +280,13 @@ export default function SearchFoodScreen() {
             ) : null
           }
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.foodCard} onPress={() => handleSelect(item)}>
+            <TouchableOpacity style={styles.foodCard} onPress={() => handleSelect(item, { fromSearch: true })}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.foodName}>{item.name}</Text>
                 <Text style={styles.foodServing}>{item.servingSize || '100g'}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <StarRating stars={item.nutritionalScore?.score ? gradeToStars(item.nutritionalScore.score) : null} />
+                <StarRating stars={listStars(item)} />
                 <View style={styles.calBadge}>
                   <Text style={styles.calBadgeText}>{item.calories} kcal</Text>
                 </View>
@@ -274,6 +299,12 @@ export default function SearchFoodScreen() {
           }
         />
       )}
+
+      {picking ? (
+        <View testID="search-picking" pointerEvents="none" style={styles.pickingOverlay}>
+          <ActivityIndicator color="#000000" />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -325,4 +356,8 @@ const styles = StyleSheet.create({
   calBadgeText: { color: '#22C55E', fontSize: 12, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { color: '#999999', textAlign: 'center', marginTop: 40 },
+  pickingOverlay: {
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.6)',
+  },
 });

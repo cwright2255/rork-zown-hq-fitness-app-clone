@@ -12,7 +12,7 @@
 // app/nutrition/search.jsx and app/nutrition/food/[id].jsx need no
 // further changes.
 
-import { rateFood } from '../lib/foodRating';
+import { rateFood, ratingFor } from '../lib/foodRating';
 
 // Cache for API responses
 let searchCache = new Map();
@@ -51,8 +51,9 @@ const convertCalorieApiToFoodItem = (item) => {
   const servingSize = item.serving_size && item.serving_unit
     ? `${item.serving_size}${item.serving_unit}`
     : (item.serving_size || '100g');
-  // A food with no energy figure has nothing to be rated from, so it carries no rating (no stars).
-  const grade = calculateNutritionalScore({
+  // A food with no energy figure has nothing to be rated from, so it carries no rating (no stars). A food missing
+  // sodium or saturated fat (a search row never lists them) is rated from what there is, and marked partial.
+  const rating = ratingFor({
     calories: item.calories_100g,
     protein: item.protein_100g,
     carbs: item.carbs_100g,
@@ -79,7 +80,7 @@ const convertCalorieApiToFoodItem = (item) => {
     sugar: tenthOrUndefined(item.sugar_100g),
     sodium: tenthOrUndefined(sodium),
     imageUrl: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
-    ...(grade ? { nutritionalScore: { score: grade } } : {}),
+    ...(rating ? { nutritionalScore: rating } : {}),
     nutritionalDetails: {
       saturatedFat: Math.round((saturatedFat || 0) * 10) / 10,
       sugar: Math.round((item.sugar_100g || 0) * 10) / 10,
@@ -182,5 +183,32 @@ export const getFoodById = async (id) => {
   } catch (error) {
     console.error('Get food by ID failed:', error);
     return null;
+  }
+};
+
+// How long a tap on a search row waits for the food's own record before the row is logged as it is.
+const FULL_RECORD_WAIT_MS = 4000;
+
+// A search row lists no sodium or saturated fat, so its rating is held to 3 stars at best, which is why nearly every chicken
+// food came up at 3. The food's own record lists them. This gives back the row with that record's rating and nutrition figures,
+// which is what the food's page shows. When the record cannot be loaded in time, or comes with no rating, the row comes back as it was.
+export const withFullRating = async (food) => {
+  let timer;
+  try {
+    const full = await Promise.race([
+      getFoodById(food.id),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(null), FULL_RECORD_WAIT_MS); }),
+    ]);
+    if (!full || !full.nutritionalScore) return food;
+    return {
+      ...food,
+      nutritionalScore: full.nutritionalScore,
+      nutritionalDetails: full.nutritionalDetails,
+      fiber: full.fiber ?? food.fiber,
+      sugar: full.sugar ?? food.sugar,
+      sodium: full.sodium ?? food.sodium,
+    };
+  } finally {
+    clearTimeout(timer);
   }
 };

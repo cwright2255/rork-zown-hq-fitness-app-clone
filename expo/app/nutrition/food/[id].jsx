@@ -22,6 +22,13 @@ function StarRating({ stars, size = 16 }) {
   );
 }
 
+// The Add / Update bar floats this far above the bottom of the screen, clear of the floating bottom bar; it is about this tall until
+// it has been measured. The list scrolls far enough to bring its last item clear of the bar, whatever the bar's height (one button
+// when adding, two when changing a logged food, taller again with large text).
+const BAR_BOTTOM = 100;
+const BAR_HEIGHT_GUESS = 140;
+const BAR_GAP = 24;
+
 export default function FoodDetailScreen() {
   const { id, mealId, scannedFood } = useLocalSearchParams();
   const foodId = typeof id === 'string' ? id : '';
@@ -35,6 +42,7 @@ export default function FoodDetailScreen() {
   const [logged, setLogged] = useState(null);
   const [failed, setFailed] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [barHeight, setBarHeight] = useState(BAR_HEIGHT_GUESS);
   const [selectedMealId, setSelectedMealId] = useState(
     mealId ? mealId.toString() : slotForHour(new Date().getHours())
   );
@@ -200,7 +208,7 @@ export default function FoodDetailScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 160 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: BAR_BOTTOM + barHeight + BAR_GAP }}>
         <Text style={styles.name}>{food.name}</Text>
         {food.brand ? <Text style={styles.serving}>{food.brand}</Text> : null}
         {food.servingSize ? <Text style={styles.serving}>{logged && food.base ? scaled.servingSize : food.servingSize}</Text> : null}
@@ -211,6 +219,11 @@ export default function FoodDetailScreen() {
           <View style={{ marginTop: 8 }}>
             <StarRating stars={food.nutritionalScore?.score ? gradeToStars(food.nutritionalScore.score) : null} />
           </View>
+          {food.nutritionalScore?.partial ? (
+            <Text testID="food-rating-partial" style={styles.partialNote}>
+              Some nutrition figures are not listed for this food, so its rating is limited.
+            </Text>
+          ) : null}
         </View>
 
         <Text style={styles.sectionLabel}>Macros</Text>
@@ -292,7 +305,7 @@ export default function FoodDetailScreen() {
         ) : null}
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      <View testID="food-bottom-bar" style={styles.bottomBar} onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}>
         {logged ? (
           <>
             {canEdit ? (
@@ -319,6 +332,7 @@ const styles = StyleSheet.create({
   calWrap: { alignItems: 'center', marginVertical: 24 },
   calNumber: { fontSize: 48, fontWeight: '800', color: '#000000', letterSpacing: -1 },
   calLabel: { fontSize: 14, color: '#999999', marginTop: 4 },
+  partialNote: { fontSize: 12, color: '#999999', textAlign: 'center', marginTop: 8, paddingHorizontal: 24 },
   sectionLabel: {
     fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', color: '#999999', marginBottom: 8, marginTop: 12,
@@ -355,7 +369,7 @@ const styles = StyleSheet.create({
   // on this screen (my earlier comment here assuming it wasn't was
   // wrong), so this needs the same proven 100 value app/wearables.jsx
   // and the fixed app/nutrition.jsx both already use.
-  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: 100 },
+  bottomBar: { position: 'absolute', left: 16, right: 16, bottom: BAR_BOTTOM },
   removeBtn: { alignItems: 'center', paddingVertical: 12 },
   removeText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
 });

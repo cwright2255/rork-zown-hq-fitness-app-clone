@@ -24,6 +24,7 @@ jest.mock('@/store/nutritionStore', () => ({ useNutritionStore: () => global.__n
 jest.mock('@/store/mealPlanStore', () => ({ useMealPlanStore: { getState: () => global.__plan } }));
 jest.mock('@/services/calorieApiService', () => ({
   searchFoodsDetailed: (...a) => global.__search(...a),
+  withFullRating: (...a) => global.__withFull(...a),
   gradeToStars: () => 4,
 }));
 
@@ -35,6 +36,8 @@ const open = ({ params = {}, search, recentFoods = [], customFoods = [] } = {}) 
   global.__params = params;
   global.__router = { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) };
   global.__search = jest.fn(search || (async () => ({ results: [chicken], failed: false })));
+  // The food's own record: by default the row comes back as it was.
+  global.__withFull = jest.fn(async (food) => food);
   global.__nutrition = { addFoodToMeal: jest.fn(), recentFoods, customFoods, removeCustomFood: jest.fn() };
   global.__plan = { addFood: jest.fn(() => ({ ok: true })) };
   return render(<SearchFoodScreen />);
@@ -139,7 +142,7 @@ describe('search results', () => {
     jest.setSystemTime(new Date('2026-10-09T01:30:00Z')); // 9:30 PM on Oct 8 in New Jersey
     const utils = open({ params: { mealId: 'snack' } });
     await typeQuery(utils, 'chicken');
-    fireEvent.press(utils.getByText('Chicken Breast'));
+    await act(async () => { fireEvent.press(utils.getByText('Chicken Breast')); });
     expect(global.__nutrition.addFoodToMeal).toHaveBeenCalledWith('2026-10-08', 'snack', chicken);
     expect(global.__router.back).toHaveBeenCalled();
   });
@@ -307,7 +310,7 @@ describe('planning a food (opened from the meal plan)', () => {
   it('puts a tapped search result on the plan for that day and meal, not in the diary', async () => {
     const utils = open({ params: PLAN });
     await typeQuery(utils, 'chicken');
-    fireEvent.press(utils.getByText('Chicken Breast'));
+    await act(async () => { fireEvent.press(utils.getByText('Chicken Breast')); });
     expect(global.__plan.addFood).toHaveBeenCalledTimes(1);
     expect(global.__plan.addFood).toHaveBeenCalledWith(chicken, { date: '2026-10-07', slot: 'dinner' });
     expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
@@ -380,5 +383,137 @@ describe('planning a food (opened from the meal plan)', () => {
     await typeQuery(utils, 'chili');
     fireEvent.press(utils.getByTestId('search-create-food'));
     expect(global.__router.push).toHaveBeenCalledWith({ pathname: '/nutrition/custom-food', params: { name: 'chili' } });
+  });
+});
+
+// A search row lists no sodium or saturated fat, so the rating on it is held back (partial) and was the same 3 stars for nearly
+// every chicken food. A food logged (or planned) from the search takes its rating from the food's own record instead.
+describe('logging a search result with the food\'s own record', () => {
+  const full = { ...chicken, nutritionalScore: { score: 'A' }, sodium: 74, fiber: 0, sugar: 0, nutritionalDetails: { saturatedFat: 1 } };
+  const press = async (utils, text = 'Chicken Breast') => { await act(async () => { fireEvent.press(utils.getByText(text)); }); };
+
+  it('logs the completed food to the chosen meal, and asks for the record of the row that was tapped', async () => {
+    const utils = open({ params: { mealId: 'lunch' } });
+    global.__withFull.mockImplementation(async () => full);
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    expect(global.__withFull).toHaveBeenCalledTimes(1);
+    expect(global.__withFull).toHaveBeenCalledWith(chicken);
+    expect(global.__nutrition.addFoodToMeal).toHaveBeenCalledTimes(1);
+    expect(global.__nutrition.addFoodToMeal.mock.calls[0][2]).toBe(full);
+    expect(global.__router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('plans the completed food too', async () => {
+    const utils = open({ params: { mealId: 'dinner', planDate: '2026-10-07' } });
+    global.__withFull.mockImplementation(async () => full);
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    expect(global.__plan.addFood).toHaveBeenCalledWith(full, { date: '2026-10-07', slot: 'dinner' });
+  });
+
+  it('plans the completed food when no meal slot was chosen either', async () => {
+    const utils = open({ params: { planDate: '2026-10-07' } });
+    global.__withFull.mockImplementation(async () => full);
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    expect(global.__plan.addFood).toHaveBeenCalledWith(full, { date: '2026-10-07', slot: undefined });
+  });
+
+  it('leaves the record to the food page when no meal was chosen', async () => {
+    const utils = open();
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    expect(global.__withFull).not.toHaveBeenCalled();
+    expect(global.__router.push).toHaveBeenCalledWith('/nutrition/food/c1');
+  });
+
+  it('does not look anything up for a recent food or one of My Foods, which are logged as they are', () => {
+    const shake = { id: 'custom-1', name: 'Protein shake', servingSize: '1 bottle', calories: 200 };
+    const utils = open({ params: { mealId: 'snack' }, recentFoods: [chicken], customFoods: [shake] });
+    fireEvent.press(utils.getByText('Protein shake'));
+    fireEvent.press(utils.getByText('Chicken Breast'));
+    expect(global.__withFull).not.toHaveBeenCalled();
+    expect(global.__nutrition.addFoodToMeal).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows it is working while the record loads, and a second tap in that time does not log it twice', async () => {
+    const utils = open({ params: { mealId: 'lunch' } });
+    let finish;
+    global.__withFull.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    expect(utils.getByTestId('search-picking')).toBeTruthy();
+    expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
+    await press(utils);
+    expect(global.__withFull).toHaveBeenCalledTimes(1);
+    await act(async () => { finish(full); });
+    expect(global.__nutrition.addFoodToMeal).toHaveBeenCalledTimes(1);
+    expect(utils.queryByTestId('search-picking')).toBeNull();
+  });
+
+  it('can be tapped again once the first one has finished', async () => {
+    const utils = open({ params: { mealId: 'lunch' } });
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    await press(utils);
+    expect(global.__nutrition.addFoodToMeal).toHaveBeenCalledTimes(2);
+  });
+
+  it('logs nothing, and goes nowhere, when the screen was left while the record loaded', async () => {
+    const utils = open({ params: { mealId: 'lunch' } });
+    let finish;
+    global.__withFull.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    await typeQuery(utils, 'chicken');
+    await press(utils);
+    utils.unmount();
+    await act(async () => { finish(full); });
+    expect(global.__nutrition.addFoodToMeal).not.toHaveBeenCalled();
+    expect(global.__router.back).not.toHaveBeenCalled();
+  });
+});
+
+describe('stars on the list', () => {
+  const stars = (utils) => utils.UNSAFE_queryAllByType('Star').length;
+  const row = (name, nutritionalScore) => ({ id: name, name, servingSize: '100g', calories: 165, ...(nutritionalScore ? { nutritionalScore } : {}) });
+
+  it('are shown for a rating worked out from every figure', async () => {
+    const utils = open({ search: async () => ({ results: [row('Breast', { score: 'A' })], failed: false }) });
+    await typeQuery(utils, 'chicken');
+    expect(stars(utils)).toBe(5);
+  });
+
+  it('are not shown for a rating held back by figures the search does not list', async () => {
+    const utils = open({ search: async () => ({ results: [row('Breast', { score: 'C', partial: true })], failed: false }) });
+    await typeQuery(utils, 'chicken');
+    expect(utils.getByText('Breast')).toBeTruthy();
+    expect(stars(utils)).toBe(0);
+  });
+
+  it('are not shown for a food with no rating', async () => {
+    const utils = open({ search: async () => ({ results: [row('Breast')], failed: false }) });
+    await typeQuery(utils, 'chicken');
+    expect(stars(utils)).toBe(0);
+  });
+
+  it('are not shown on a recent food whose rating is held back either', () => {
+    const utils = open({ recentFoods: [row('Breast', { score: 'C', partial: true }), row('Oats', { score: 'A' })] });
+    expect(stars(utils)).toBe(5);
+  });
+});
+
+describe('room under the list for the bottom bar', () => {
+  const { FlatList, ScrollView, StyleSheet } = require('react-native');
+  const bottomOf = (node) => StyleSheet.flatten(node.props.contentContainerStyle).paddingBottom;
+
+  it('lets the last search result scroll clear of the bar', async () => {
+    const utils = open();
+    await typeQuery(utils, 'chicken');
+    expect(bottomOf(utils.UNSAFE_getByType(FlatList))).toBe(140);
+  });
+
+  it('lets the last recent food scroll clear of the bar', () => {
+    const utils = open({ recentFoods: [chicken] });
+    expect(bottomOf(utils.UNSAFE_getByType(ScrollView))).toBe(140);
   });
 });

@@ -1,4 +1,4 @@
-import { scoreFood, rateFood } from '../lib/foodRating';
+import { scoreFood, rateFood, ratingFor } from '../lib/foodRating';
 
 // A food with every figure given, all at zero: nothing against it, nothing for it.
 const base = { calories: 0, sugar: 0, saturatedFat: 0, sodium: 0 };
@@ -444,5 +444,36 @@ describe('real foods', () => {
   it('puts a vegetable above a processed snack, and a whole fruit above its juice', () => {
     expect(starsOf(named(['Broccoli'])[0])).toBeGreaterThan(starsOf(named(['Potato chips'])[0]));
     expect(starsOf(named(['Orange'])[0])).toBeGreaterThan(starsOf(named(['Orange juice'])[0]));
+  });
+});
+
+// The rating as it is kept on a food: the grade, and partial: true when a missing figure held it back.
+describe('ratingFor', () => {
+  const chickenBreast = { calories: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, sugar: 0 };
+
+  it('is just the grade when every figure the food is judged on is there', () => {
+    const rating = ratingFor({ ...chickenBreast, saturatedFat: 1, sodium: 74 });
+    expect(rating).toEqual({ score: 'A' });
+    expect(rating).not.toHaveProperty('partial');
+  });
+
+  it('is marked partial when sodium and saturated fat are missing, which also holds chicken breast to C', () => {
+    expect(ratingFor(chickenBreast)).toEqual({ score: 'C', partial: true });
+  });
+
+  it('is marked partial when only one figure is missing', () => {
+    expect(ratingFor({ ...chickenBreast, saturatedFat: 1 })).toEqual({ score: 'B', partial: true });
+  });
+
+  it('is nothing, so no stars, when there is no energy figure', () => {
+    expect(ratingFor({ protein: 31 })).toBeNull();
+    expect(ratingFor({})).toBeNull();
+    expect(ratingFor()).toBeNull();
+  });
+
+  it('carries the same grade as rateFood', () => {
+    for (const row of [{ ...chickenBreast, sodium: 600, saturatedFat: 5 }, { calories: 900, fat: 100, sugar: 0, saturatedFat: 30, sodium: 0 }, chickenBreast]) {
+      expect(ratingFor(row).score).toBe(rateFood(row));
+    }
   });
 });
