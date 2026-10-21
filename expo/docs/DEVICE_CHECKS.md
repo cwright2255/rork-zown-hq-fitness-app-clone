@@ -290,6 +290,27 @@ Needs a phone with Apple Health allowed and a few weeks of Apple Watch (or phone
       and `sleepHours`. It holds at most the last 400 days.
 - [ ] Privacy Policy (Profile > Privacy Policy), "Information We Collect", Fitness activity: mentions sleep and the daily record.
 
+## Readiness score (once, on the first update with it)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`.
+Needs Apple Health with a few weeks of readings (or a connected device that has been read for about two weeks).
+
+- [ ] Health, between Recovery and Training Load: a Readiness card with a number out of 100, a word (High, Moderate or Low) with a
+      coloured dot, and "Out of 100, made from N of 4 readings".
+- [ ] Under the number there are four rows: HRV, Resting heart rate, Sleep, Training load. Each says what was read ("55 ms today,
+      50 ms usual (+10%)"), its own score on the right and its weight under it (x35, x25, x25, x15). The formula in words is at the bottom.
+- [ ] Check the sum by hand: multiply each row's score by its weight, add them up, divide by the weights of the rows that have a score.
+      It matches the number on the card (rounded).
+- [ ] "Usual" is your own average of the last 4 weeks, not including today. Open the Trends chart for HRV or resting heart rate over
+      28 days: the "usual" in the row is close to that average.
+- [ ] A row with no reading yet today says "Waiting for today's reading" (resting heart rate often arrives later in the day than HRV and
+      sleep) and shows a dash; the number is worked out from the other rows and changes when the reading arrives.
+- [ ] Sleep: 8 hours or more scores 100; 7 scores 75; 6 scores 50.
+- [ ] After a hard training week the Training load row scores lower (above 1.3 it starts to fall) and the Readiness number goes down with it.
+- [ ] With nothing read at all (no Apple Health permission, no device) there is no Readiness card. With some readings but not enough, the
+      card says what it is waiting for and how many earlier readings it has ("6 of 10 so far") and shows no number.
+- [ ] The card never shows a number made from fewer than two of HRV, resting heart rate and sleep.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

@@ -50,6 +50,7 @@ jest.mock('@/services/insightService', () => ({ getTrainingLoadInsight: (...args
 
 import HealthScreen from '../app/health';
 import { INSIGHT_SETTLE_MS } from '../lib/insightCache';
+import { shiftDateKey } from '../lib/localDate';
 
 const STEADY = { zone: 'sweet_spot', zoneLabel: 'In your typical training range', ratio: 1.1, acuteLoad: 2100, chronicWeeklyAvg: 1900 };
 const HARDER = { zone: 'elevated', zoneLabel: 'Higher than usual', ratio: 1.4, acuteLoad: 2800, chronicWeeklyAvg: 2000 };
@@ -193,6 +194,81 @@ describe('the Trends section', () => {
     const next = await open();
     expect(next.getByTestId('trend-sleep-readout').props.children).toBe('Latest, Oct 20: 6.8 h');
     expect(next.getByTestId('trend-sleep-coverage').props.children).toBe('2 of 7 days');
+  });
+});
+
+describe('the Readiness card', () => {
+  beforeEach(() => { jest.setSystemTime(new Date(2026, 9, 20, 15, 0)); });
+  // 28 days of HRV 50 and resting heart rate 60 before today: as usual.
+  const usual = () => {
+    const out = {};
+    for (let i = 1; i <= 28; i += 1) out[shiftDateKey('2026-10-20', -i)] = { hrv: 50, restingHeartRate: 60 };
+    return out;
+  };
+
+  it('shows the score, worked out from the daily record and the training load, when there is enough to go on', async () => {
+    mockHealth.readingsHistory = { ...usual(), '2026-10-20': { hrv: 55, restingHeartRate: 57, sleepHours: 7 } };
+    const { getByTestId } = await open();
+    expect(getByTestId('readiness-score').props.children).toBe('94'); // HRV 100 x 35, resting HR 100 x 25, sleep 75 x 25, load 100 x 15
+    expect(getByTestId('readiness-label').props.children).toBe('High');
+    expect(getByTestId('readiness-detail-load').props.children).toBe('1.10 this week against your usual week');
+    expect(getByTestId('readiness-detail-hrv').props.children).toBe('55 ms today, 50 ms usual (+10%)');
+  });
+
+  it('leaves the training load out until there is enough history to work it out', async () => {
+    mockLoad = TOO_EARLY;
+    mockHealth.readingsHistory = { ...usual(), '2026-10-20': { hrv: 55, restingHeartRate: 57, sleepHours: 7 } };
+    const { getByTestId } = await open();
+    expect(getByTestId('readiness-score').props.children).toBe('93');
+    expect(getByTestId('readiness-detail-load').props.children).toBe('Needs about a week of workouts, runs or hikes');
+  });
+
+  it('follows the training load when it changes', async () => {
+    mockHealth.readingsHistory = { ...usual(), '2026-10-20': { hrv: 50, restingHeartRate: 60, sleepHours: 8 } };
+    const utils = await open();
+    expect(utils.getByTestId('readiness-score').props.children).toBe('85'); // (35 x 75 + 25 x 75 + 25 x 100 + 15 x 100) / 100
+    mockLoad = HARDER; // 1.4
+    mockWorkouts.completedWorkouts = [{ id: 'w1' }];
+    utils.rerender(<HealthScreen />);
+    await act(async () => {});
+    expect(utils.getByTestId('readiness-detail-load').props.children).toBe('1.40 this week against your usual week');
+    expect(utils.getByTestId('readiness-score').props.children).toBe('81'); // load now 75: (35 x 75 + 25 x 75 + 25 x 100 + 15 x 75) / 100 = 81.25
+  });
+
+  it('uses the name of the HRV the connected source gives', async () => {
+    mockHealth.rookRecovery = APPLE;
+    mockHealth.readingsHistory = { ...usual(), '2026-10-20': { hrv: 50, sleepHours: 8 } };
+    const { getByTestId } = await open();
+    expect(within(getByTestId('readiness-row-hrv')).getByText('HRV (SDNN)')).toBeTruthy();
+  });
+
+  it('says what it is waiting for, with no number, before there is enough history', async () => {
+    mockHealth.readingsHistory = { '2026-10-20': { sleepHours: 7 }, '2026-10-19': { hrv: 48 } };
+    const { getByTestId, queryByTestId } = await open();
+    expect(getByTestId('readiness-not-ready')).toBeTruthy();
+    expect(queryByTestId('readiness-score')).toBeNull();
+  });
+
+  it('is not on the page at all with no readings', async () => {
+    const { queryByTestId } = await open();
+    expect(queryByTestId('readiness-card')).toBeNull();
+  });
+
+  it('sits between Recovery and Training Load', async () => {
+    mockHealth.readingsHistory = { ...usual(), '2026-10-20': { hrv: 55, restingHeartRate: 57, sleepHours: 7 } };
+    const { UNSAFE_getAllByType } = await open();
+    const texts = UNSAFE_getAllByType(Text).map((node) => node.props.children).filter((c) => typeof c === 'string');
+    const at = (title) => texts.indexOf(title);
+    expect(at('Recovery')).toBeGreaterThan(-1);
+    expect(at('Recovery')).toBeLessThan(at('Readiness'));
+    expect(at('Readiness')).toBeLessThan(at('Training Load'));
+  });
+
+  it('counts today in the person\'s own time', async () => {
+    jest.setSystemTime(new Date(2026, 9, 21, 0, 5));
+    mockHealth.readingsHistory = { ...usual(), '2026-10-20': { hrv: 55, restingHeartRate: 57, sleepHours: 7 } };
+    const { queryByTestId } = await open();
+    expect(queryByTestId('readiness-score')).toBeNull(); // 21 October has no readings yet
   });
 });
 

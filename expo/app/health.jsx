@@ -20,8 +20,10 @@ import { getTrainingLoadInsight } from '@/services/insightService';
 import { INSIGHT_SETTLE_MS } from '@/lib/insightCache';
 import { recoveryTiles, recoveryCaption, bodyScanCard, hrvTitle } from '@/lib/healthDisplay';
 import { localDateKey } from '@/lib/localDate';
+import { computeReadiness } from '@/lib/readiness';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import TrainingLoadCard from '@/components/TrainingLoadCard';
+import ReadinessCard from '@/components/ReadinessCard';
 import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
 import HealthTrends from '@/components/HealthTrends';
 
@@ -64,6 +66,11 @@ export default function HealthScreen() {
     { icon: 'moon-outline', label: 'Sleep', value: sleepHours != null ? `${sleepHours.toFixed(1)}h` : '\u2014', current: sleepHours ?? 0, target: 8 },
     { icon: 'water-outline', label: 'Hydration', value: `${hydration?.glasses ?? 0}/${hydration?.target ?? 8}`, current: hydration?.glasses ?? 0, target: hydration?.target ?? 8 },
   ];
+
+  // Today's readiness: the daily record of HRV, resting heart rate and sleep, and the training load worked out below.
+  const readiness = computeReadiness({
+    history: readingsHistory, today: localDateKey(new Date()), trainingLoad, hrvLabel: hrvTitle(rookRecovery),
+  });
 
   useEffect(() => {
     if (user?.uid) {
@@ -188,6 +195,8 @@ return (
           ))}
         </View>
         <Text testID="recovery-caption" style={s.recoveryCaption}>{recoveryCaption(rookRecovery)}</Text>
+
+        <ReadinessCard readiness={readiness} />
 
         <TrainingLoadCard trainingLoad={trainingLoad} aiInsight={trainingLoadInsight} />
 
