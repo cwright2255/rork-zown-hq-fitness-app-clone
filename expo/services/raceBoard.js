@@ -5,7 +5,7 @@
 // the store, so the rules are in one place:
 //
 //   - the time must be a run's, inside the race's dates
-//   - XP (once) and the Race Day badge come with your first finish of a race
+//   - XP (once) comes with your first finish of a race (the Race Day badge is the server's to give, once it has accepted that XP)
 //   - a result goes on the board only while "Show in Leaderboards" is on; turning
 //     it off takes your results off the boards, turning it on puts them back
 //
@@ -14,14 +14,10 @@
 import { useVirtualRaceStore } from '../store/virtualRaceStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useExpStore, baseExpValues } from '../store/expStore';
-import { useBadgeStore } from '../store/badgeStore';
 import {
   raceTimeSec, isPlausibleTime, isRaceOpen, areaOf, raceEntryId,
 } from '../lib/virtualRaces';
 import { localDateKey } from '../lib/localDate';
-
-/** The badge for finishing a virtual race (see store/badgeStore.js). */
-export const RACE_BADGE_ID = 'badge-14';
 
 // "Show in Leaderboards" in Settings, on unless the person turned it off.
 const shownOnBoards = () => useSettingsStore.getState().showInLeaderboards !== false;
@@ -39,11 +35,6 @@ function reward(race, uid, now) {
     }, uid);
   } catch (e) {
     console.warn('[raceBoard] XP failed:', e?.message);
-  }
-  try {
-    useBadgeStore.getState().unlockBadge(RACE_BADGE_ID, uid);
-  } catch (e) {
-    console.warn('[raceBoard] badge failed:', e?.message);
   }
 }
 

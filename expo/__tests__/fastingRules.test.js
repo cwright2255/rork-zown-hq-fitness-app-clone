@@ -41,6 +41,8 @@ describe('the rules for the Fasting widget', () => {
 
   it('leaves the running fast to the existing data rule, which only the owner can use', () => {
     const data = block(users, 'match /data/{docId}');
-    expect(data).toMatch(/allow read, write: if request\.auth != null && request\.auth\.uid == userId/);
+    expect(data).toMatch(/allow read: if request\.auth != null && request\.auth\.uid == userId;/);
+    expect(data).toMatch(/allow write: if request\.auth != null && request\.auth\.uid == userId &&/);
+    expect(data).not.toMatch(/'fasting'/); // the running fast is not one of the documents the server writes
   });
 });

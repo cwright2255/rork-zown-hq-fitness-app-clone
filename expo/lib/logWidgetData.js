@@ -7,12 +7,14 @@
 // The three pages follow the filters on the full screens they open (app/profile/workout-history.jsx and running-log.jsx): "Last 7 days"
 // is the Week filter (the 7 days up to now), "This month" is the Month filter (the calendar month) and "All logged" is All (every record
 // the app holds, which is the most recent 240 at most). A page counts the records the full log lists after the same filter, and the
-// "All logged" page is the same set of totals as the stats at the top of the full log.
+// "All logged" page is the same set of totals as the stats at the top of the full log. Those totals are over every workout ever saved:
+// the server's count (lib/lifetimeTotals.js) when it is more than the records the app holds.
 import { dateLabel } from './calendarEvents';
 import { dayKeyOf, localDateKey, shiftDateKey } from './localDate';
 import { formatDistance } from './distanceUnits';
 import { activityOf, paceLabel, runTime, summarizeRuns } from './runStats';
 import { runTitle } from './runDetail';
+import { lifetimeOf } from './lifetimeTotals';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -74,21 +76,26 @@ const plural = (n, one, many) => (n === 1 ? one : many);
  *  latest   the newest workout, { title, when, line } ("Full Body", "Today", "Full Body, a middle dot, Today"), or null
  *  sentence the whole card in words, for a screen reader
  * `workouts` is the workout store's completedWorkouts in any order (the server list is newest first, the local one oldest first).
+ * `lifetime` is the server's count of everything ever saved (store/lifetimeStore.js `totals`), when there is one: the "All logged" page
+ *  shows it, or the records the app holds if those are more.
  */
-export function workoutHistorySummary({ workouts, now = new Date() } = {}) {
+export function workoutHistorySummary({ workouts, lifetime, now = new Date() } = {}) {
   const list = (Array.isArray(workouts) ? workouts : []).filter((w) => w && typeof w === 'object');
   const dated = list.map((w) => ({ item: w, ms: workoutMs(w) }));
+  const everything = lifetime && typeof lifetime === 'object' ? lifetimeOf({ held: list, server: lifetime }) : null;
+  const empty = list.length === 0 && !(everything && everything.totalWorkouts > 0);
 
   const pages = LOG_PERIODS.map(({ key, title }) => {
     const inside = dated.filter((e) => inPeriod(e.ms, key, now)).map((e) => e.item);
-    const calories = Math.round(inside.reduce((sum, w) => sum + num(w.caloriesBurned), 0)).toLocaleString();
-    const time = hoursMinutes(inside.reduce((sum, w) => sum + num(w.duration), 0));
+    const all = key === 'all' ? everything : null;
+    const calories = Math.round(all ? all.totalCalories : inside.reduce((sum, w) => sum + num(w.caloriesBurned), 0)).toLocaleString();
+    const time = hoursMinutes(all ? all.totalSeconds : inside.reduce((sum, w) => sum + num(w.duration), 0));
     return {
       key,
       title,
       right: '',
       stats: [
-        { value: String(inside.length), label: 'Workouts' },
+        { value: String(all ? all.totalWorkouts : inside.length), label: 'Workouts' },
         { value: calories, label: 'Calories' },
         { value: time, label: 'Time' },
       ],
@@ -106,11 +113,11 @@ export function workoutHistorySummary({ workouts, now = new Date() } = {}) {
   const words = pages
     .map((p) => `${p.title}: ${p.stats[0].value} ${plural(Number(p.stats[0].value), 'workout', 'workouts')}, ${p.stats[1].value} calories, ${p.stats[2].value}`)
     .join('. ');
-  const sentence = list.length === 0
+  const sentence = empty
     ? 'Workout history: no workouts yet'
     : `Workout history. ${words}${latest ? `. Latest: ${latest.line}` : ''}`;
 
-  return { empty: list.length === 0, total: list.length, pages, latest, sentence };
+  return { empty, total: everything ? everything.totalWorkouts : list.length, pages, latest, sentence };
 }
 
 /**

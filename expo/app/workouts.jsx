@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExerciseStore } from '@/store/exerciseStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
+import { useLifetimeStore } from '@/store/lifetimeStore';
+import { lifetimeOf } from '@/lib/lifetimeTotals';
 import { getGoalLabels, profileForWorkouts } from '@/lib/userProfileData';
 import { getProfileFromStores } from '@/services/coachSnapshotService';
 import { planRedirect } from '@/lib/upgradePrompt';
@@ -120,6 +122,9 @@ export default function WorkoutsScreen() {
   };
 
   const streak = getWorkoutStreak();
+  // Total Workouts is every workout ever saved (the server's count), not just the newest 240 the phone holds.
+  const serverTotals = useLifetimeStore((s) => s.totals);
+  const totalWorkouts = lifetimeOf({ held: completedWorkouts, server: serverTotals }).totalWorkouts;
   const thisWeekCount = (completedWorkouts || []).filter((w) => {
     const d = new Date(w.completedAt || w.timestamp);
     const now = new Date();
@@ -153,7 +158,7 @@ export default function WorkoutsScreen() {
 
         <SectionHeader title="Your Stats" />
         <View style={styles.statsRow}>
-          <StatBox value={completedWorkouts?.length ?? 0} label="Total Workouts" />
+          <StatBox value={totalWorkouts} label="Total Workouts" />
           <StatBox value={streak.current} label="Day Streak" />
           <StatBox value={thisWeekCount} label="This Week" />
         </View>

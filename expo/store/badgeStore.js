@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Default badges
 const defaultBadges = [
@@ -151,57 +151,41 @@ const defaultBadges = [
 }];
 
 
+// Which badges are unlocked is decided on the server (functions/src/unlockRules.js, run by functions/src/unlocks.js after every workout
+// and XP claim) and written to users/{uid}/data/badges, which the phone can read and never write. This store holds the catalog above
+// (the names, pictures and rarities are the same for everyone) and shows what the server has unlocked: services/progressSync.js hands it
+// each change, and loadBadges fetches it once. Nothing here decides an unlock or writes one.
 export const useBadgeStore = create(
   persist(
     (set, get) => ({
       badges: [],
       isLoading: false,
 
-      // Only unlock state needs to sync (name/description/imageUrl/rarity
-      // is the same fixed catalog for every user) — stores just the set of
-      // unlocked badge ids + timestamps, applied on top of the local catalog.
+      // `unlocked` is the `unlocked` map of the server's document, { badgeId: time it was unlocked }. What the server says replaces
+      // what the phone held, so one person's badges are never left on screen for another.
+      applyServerUnlocks: (unlocked) => {
+        const map = unlocked && typeof unlocked === 'object' && !Array.isArray(unlocked) ? unlocked : {};
+        get().initializeDefaultBadges();
+        set((state) => ({
+          badges: state.badges.map((b) =>
+            map[b.id]
+              ? { ...b, isUnlocked: true, unlockedAt: map[b.id] }
+              : { ...b, isUnlocked: false, unlockedAt: null }
+          ),
+        }));
+      },
+
+      // Back to nothing unlocked, when the person signs out.
+      clearServerUnlocks: () => get().applyServerUnlocks({}),
+
       loadBadges: async (uid) => {
         if (!uid) return;
         get().initializeDefaultBadges();
         try {
           const snap = await getDoc(doc(db, 'users', uid, 'data', 'badges'));
-          if (snap.exists()) {
-            const unlocked = snap.data().unlocked || {};
-            set((state) => ({
-              badges: state.badges.map((b) =>
-                unlocked[b.id]
-                  ? { ...b, isUnlocked: true, unlockedAt: unlocked[b.id] }
-                  : b
-              ),
-            }));
-          }
+          if (snap.exists()) get().applyServerUnlocks(snap.data().unlocked);
         } catch (e) {
           console.warn('[badgeStore] loadBadges error:', e?.message);
-        }
-      },
-
-      unlockBadge: (id, uid) => {
-        const { badges } = get();
-        const badgeIndex = badges.findIndex((badge) => badge.id === id);
-
-        if (badgeIndex >= 0 && !badges[badgeIndex].isUnlocked) {
-          const unlockedAt = new Date().toISOString();
-          const updatedBadges = [...badges];
-          updatedBadges[badgeIndex] = {
-            ...updatedBadges[badgeIndex],
-            isUnlocked: true,
-            unlockedAt,
-          };
-
-          set({ badges: updatedBadges });
-
-          if (uid) {
-            setDoc(doc(db, 'users', uid, 'data', 'badges'), {
-              unlocked: { [id]: unlockedAt },
-            }, { merge: true }).catch((e) =>
-              console.warn('[badgeStore] unlock sync failed:', e?.message)
-            );
-          }
         }
       },
 

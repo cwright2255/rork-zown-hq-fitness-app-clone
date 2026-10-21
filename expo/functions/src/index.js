@@ -5,11 +5,15 @@ import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated, onDocumentDeleted } from 'firebase-functions/v2/firestore';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
 import { changeMemberCount } from './groupMemberCount.js';
 import { handleClaim, fillLeaderboardEntry } from './xpLedger.js';
+import { refreshTotals } from './lifetimeTotals.js';
+import { runUnlocks, claimTier } from './unlocks.js';
+import { settleExpiredDuels, countsNow } from './duelSettle.js';
 import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
@@ -1007,20 +1011,29 @@ export const onWorkoutComplete = onDocumentCreated(
   async (event) => {
     const data = event.data?.data();
     if (!data) return;
-    if (!data.completed) return;
 
     const userId = data.userId;
     const db = getFirestore();
 
-    const statsRef = db.collection('users').doc(userId).collection('stats').doc('totals');
-    await statsRef.set(
-      {
-        totalWorkouts: FieldValue.increment(1),
-        totalMinutes: FieldValue.increment(data.duration ?? 0),
-        lastWorkoutAt: FieldValue.serverTimestamp()
-      },
-      { merge: true }
-    );
+    // The lifetime totals (users/{uid}/stats/totals) and the unlocks follow every saved workout record, one saved part way as well as a
+    // finished one: Workout History lists both. Counted again from the records each time (lifetimeTotals.js). A failure here must not
+    // stop the goals, duels and notification below, so it is logged; the next workout counts again and puts it right.
+    try {
+      const stillThere = await db.doc(`workouts/${event.params.workoutId}`).get();
+      // A person who erased their account while this waited has nothing left to count, and must not get a totals document back.
+      if (stillThere.exists && userId) {
+        await refreshTotals({
+          db,
+          uid: userId,
+          extra: data.completed ? { lastWorkoutAt: FieldValue.serverTimestamp() } : {}
+        });
+        await runUnlocks({ db, uid: userId });
+      }
+    } catch (e) {
+      console.error('[onWorkoutComplete] totals or unlocks failed', e);
+    }
+
+    if (!data.completed) return;
 
     const goalsSnap = await db.
     collection('goals').
@@ -1050,15 +1063,18 @@ export const onWorkoutComplete = onDocumentCreated(
     // first_to_target duels settle the instant someone reaches the
     // target, right here. most_by_deadline duels are deliberately NOT
     // settled here - "most by a date" has no single completion event to
-    // hook, so that mode is settled by real deadline comparison
-    // client-side instead (see app/social.jsx).
+    // hook, so the settleDuels schedule settles them once the date has
+    // passed (see duelSettle.js); until then the phone shows who is ahead.
     const duelsSnap = await db.collection('duels')
       .where('participantIds', 'array-contains', userId)
       .where('status', '==', 'active')
       .get();
 
+    const nowMs = Date.now();
     duelsSnap.docs.forEach((docSnap) => {
       const duel = docSnap.data();
+      // A duel that runs to a date stops counting at that date: work done after it is not in the result (settleDuels settles it).
+      if (!countsNow(duel, nowMs)) return;
       let delta = 0;
       if (duel.type === 'workout_count') delta = 1;
       else if (duel.type === 'calories') delta = data.caloriesBurned || 0;
@@ -1730,12 +1746,61 @@ async function accountCreatedMs(uid) {
 
 export const onXpClaim = onDocumentCreated(
   { document: 'users/{uid}/xpClaims/{claimId}', region: 'us-central1', retry: true },
-  (event) => handleClaim({
-    db: getFirestore(),
-    uid: event.params.uid,
-    claimId: event.params.claimId,
-    accountCreatedMs: () => accountCreatedMs(event.params.uid),
-  })
+  async (event) => {
+    const db = getFirestore();
+    const outcome = await handleClaim({
+      db,
+      uid: event.params.uid,
+      claimId: event.params.claimId,
+      accountCreatedMs: () => accountCreatedMs(event.params.uid),
+    });
+    // The ledger's XP, level and streak may have just moved, and a race, journey or hike may have just been accepted: see what that
+    // unlocks (unlocks.js). A failure is logged, not thrown, so it does not make the claim run again; the next claim, workout or
+    // sign-in works the unlocks out again.
+    if (outcome !== 'gone' && outcome !== 'ignored') {
+      try {
+        await runUnlocks({ db, uid: event.params.uid });
+      } catch (e) {
+        console.error('[onXpClaim] unlocks failed', e);
+      }
+    }
+    return outcome;
+  }
+);
+
+// What the person's records add up to, for the app to catch up when it opens: counts the lifetime workout totals if they are not
+// there yet (or are from before the totals were counted on the server), and works out every achievement and badge earned so far.
+// What comes of it reaches the phone through the documents it follows (services/progressSync.js); the totals are returned too.
+export const syncMyProgress = onCall(
+  { region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const { totals } = await runUnlocks({ db: getFirestore(), uid });
+    return { totals };
+  }
+);
+
+// A Battle Pass tier is claimed here, not on the phone: it is recorded (users/{uid}/data/battlePass) only once the level in the XP
+// ledger has reached the tier. See unlocks.js.
+export const claimBattlePassTier = onCall(
+  { region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const tier = req.data && req.data.tier;
+    const result = await claimTier({ db: getFirestore(), uid, tier });
+    if (result.status === 'invalid') throw new HttpsError('invalid-argument', 'tier must be a whole number from 1 to 20');
+    return result;
+  }
+);
+
+// Duels that run to a date are settled once the date has passed (duelSettle.js). Hourly, so a duel is settled within the hour.
+// The settle is safe to run twice: a duel already settled is skipped.
+export const settleDuels = onSchedule(
+  { schedule: 'every 60 minutes', region: 'us-central1', timeZone: 'UTC' },
+  async () => {
+    const result = await settleExpiredDuels({ db: getFirestore() });
+    if (result.settled > 0) console.log('[settleDuels] settled', result);
+  }
 );
 
 // The app cannot write XP on a leaderboard entry, so an entry it has just created (the first one, or one put back after the person

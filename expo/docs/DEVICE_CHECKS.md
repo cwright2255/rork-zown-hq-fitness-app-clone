@@ -427,6 +427,53 @@ search shows 3 stars, a scanned one none); log them again to get the new ones.
       stalled for about 15 seconds, "Trouble detecting your turn? Tap to continue" shows ABOVE the caption, not on it.
       (The "Missing or insufficient permissions." line under the camera, if you still see it, is a separate matter.)
 
+## Lifetime totals, unlocks, Battle Pass claims and duel results (once, after the functions are deployed, then the update, then the rules)
+
+The server now counts your lifetime workout totals, decides every achievement, badge and Battle Pass claim, and settles duels that run
+to a date. The phone only shows what the server wrote. The order matters. The three documents the phone used to write
+(`data/achievements`, `data/badges`, `data/battlePass`) become read-only for it when the rules go out, and an older copy of the app would
+still try to write them, so the rules go last:
+
+1. `firebase deploy --only functions:onWorkoutComplete,functions:onXpClaim,functions:syncMyProgress,functions:claimBattlePassTier,functions:settleDuels`
+2. `eas update --branch main --environment production` (from inside `expo/`), then close the app completely and open it twice.
+3. `firebase deploy --only firestore:rules`
+
+`settleDuels` is the first scheduled function. The first deploy may ask to turn on the Cloud Scheduler API for the project (say yes);
+it needs the Blaze plan, which the project already has for the other functions.
+
+- [ ] Firebase console, Functions: `onWorkoutComplete`, `onXpClaim`, `syncMyProgress`, `claimBattlePassTier` and `settleDuels` are
+      listed. `settleDuels` shows a schedule of every 60 minutes. Google Cloud console, Cloud Scheduler: a job for `settleDuels`.
+- [ ] After opening the app twice, Firestore, `users`, your id, `stats`, `totals`: a document with `v` 2, `totalWorkouts`,
+      `finishedWorkouts`, `totalSeconds`, `totalCalories`, `bestCalories` and `updatedAt`.
+- [ ] Workouts: "Total Workouts" matches `totalWorkouts` in that document. If you have saved more than 240 workouts it shows more than
+      240 (it used to stop there). Profile, Workout History: "Workouts", "Calories" and "Time" at the top show the same lifetime figures,
+      and so does the "All logged" page of the Workout History card on Home. The Last 7 days and This month pages are unchanged.
+- [ ] Finish a workout all the way. Within a few seconds "Total Workouts" is one more and `totals` has changed, without leaving the app.
+- [ ] Firestore, `users`, your id, `data`, `achievements` and `badges`: each has an `unlocked` map with a time for what you have earned
+      (for example `first-workout`, and `badge-1` once you have a finished workout). Battle Pass, Achievements shows the same ones as
+      unlocked, and Profile, Badges shows the same badges.
+- [ ] Finish a workout that earns something new (your first, or your tenth finished workout). The achievement appears within a few
+      seconds without restarting the app. It was written by a function, not by the phone.
+- [ ] Battle Pass: the tier at your level shows CLAIM. Tap it: the button dims for a moment, then the tier shows CLAIMED, and
+      `data/battlePass` has `claimedTiers` with that tier in it. Close the app completely and open it twice: it is still CLAIMED.
+- [ ] Battle Pass with airplane mode on: tap CLAIM. "Could Not Claim" shows and the tier is not marked CLAIMED. Turn airplane mode
+      off and tap again: it claims.
+- [ ] If CLAIM ever says "Not Yet" for a tier you can see you have reached, your XP claim has not reached the server yet (the phone shows
+      the level a little ahead). Wait a minute and tap again.
+- [ ] Airplane mode on, then open Battle Pass, Achievements and Workouts: what you had stays on screen; nothing falls back to zero.
+- [ ] Sign out, then sign in as a different person: Total Workouts, achievements, badges and claimed tiers are that person's, not the
+      first person's.
+- [ ] Duels: make a "most by deadline" duel with a friend that ends soon (the earliest date the screen allows), and finish a workout each.
+      As soon as the date passes, the card says "Final result soon". Within the hour (or at once, with Force run on the `settleDuels`
+      job in Cloud Scheduler) it says "You won!", "You lost" or "Draw", and Firestore, `duels`, that duel has `status` completed,
+      `winnerId`, `tied` and `settledBy` "deadline". A workout finished after the date does not change the score.
+- [ ] A "first to target" duel still ends the moment someone reaches the target, as before.
+
+Things that are the same as before, on purpose: Weight Warrior, Nutrition Ninja, Social Butterfly and Early Bird have never unlocked
+(the app never measured weight lost, days of nutrition logged, social interactions or morning workouts) and still do not. The
+workout-count achievements count finished workouts only, while "Total Workouts" counts every saved workout. The server takes your own
+workout and hike records as they are; it cannot know whether a workout really happened.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

@@ -2,31 +2,39 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { callProxy } from '../services/callProxy';
 
-// Real, persisted record of which tiers the user has actually claimed -
-// distinct from "eligible to claim" (real level reached that tier's
-// threshold, see app/battlepass.jsx), since claiming is a genuine user
-// action, not something that should happen automatically the instant
-// XP crosses a threshold. Previously app/battlepass.jsx had no claim
-// tracking at all - every tier's status ('claimed'/'current'/'locked')
-// was a hardcoded string in a static array, and the CLAIM button had no
-// onPress handler whatsoever.
+// Which Battle Pass tiers the person has claimed - distinct from "eligible to claim" (their level has reached that tier, see
+// app/battlepass.jsx), since claiming is a genuine action, not something that happens the instant XP crosses a threshold.
+//
+// A tier is claimed on the server (the claimBattlePassTier function, functions/src/unlocks.js): it records the claim at
+// users/{uid}/data/battlePass, which the phone can read and never write, and only when the level in the person's XP ledger has reached
+// the tier. This store asks it to, and shows what it says: services/progressSync.js hands it each change to that document, and
+// loadBattlePass fetches it once.
 export const useBattlePassStore = create(
   persist(
     (set, get) => ({
       claimedTiers: [],
       isLoading: false,
+      // The tier whose claim is on its way to the server, or null. A second tap on the same tier while it is waits for the first.
+      claiming: null,
+
+      // `tiers` is the `claimedTiers` list of the server's document. What the server says replaces what the phone held.
+      applyServerClaims: (tiers) => {
+        const list = Array.isArray(tiers) ? tiers.filter((t) => Number.isInteger(t)) : [];
+        set({ claimedTiers: [...new Set(list)].sort((a, b) => a - b) });
+      },
+
+      // Back to nothing claimed, when the person signs out.
+      clearServerClaims: () => set({ claimedTiers: [], claiming: null }),
 
       loadBattlePass: async (uid) => {
         if (!uid) return;
         set({ isLoading: true });
         try {
           const snap = await getDoc(doc(db, 'users', uid, 'data', 'battlePass'));
-          if (snap.exists()) {
-            const d = snap.data();
-            set({ claimedTiers: d.claimedTiers || [] });
-          }
+          if (snap.exists()) get().applyServerClaims(snap.data().claimedTiers);
         } catch (e) {
           console.warn('[battlePassStore] loadBattlePass error:', e?.message);
         } finally {
@@ -34,28 +42,26 @@ export const useBattlePassStore = create(
         }
       },
 
-      _persist: async (uid) => {
-        if (!uid) return;
+      // Asks the server to claim a tier. Resolves to what came of it:
+      //   'claimed'  it is claimed now
+      //   'already'  it was claimed before (the list is brought up to date)
+      //   'locked'   the person's level has not reached the tier yet
+      //   'busy'     this tier's claim is already on its way
+      //   'failed'   the server could not be reached or turned the request away; nothing is changed
+      claimTier: async (tierNum) => {
+        if (get().claiming === tierNum) return 'busy';
+        set({ claiming: tierNum });
         try {
-          await setDoc(doc(db, 'users', uid, 'data', 'battlePass'), {
-            claimedTiers: get().claimedTiers,
-            updatedAt: new Date().toISOString(),
-          }, { merge: true });
+          const result = await callProxy('claimBattlePassTier', { tier: tierNum });
+          if (result && Array.isArray(result.claimedTiers)) get().applyServerClaims(result.claimedTiers);
+          if (result && (result.status === 'claimed' || result.status === 'already' || result.status === 'locked')) return result.status;
+          return 'failed';
         } catch (e) {
-          console.warn('[battlePassStore] _persist error:', e?.message);
+          console.warn('[battlePassStore] claimTier error:', e?.message);
+          return 'failed';
+        } finally {
+          if (get().claiming === tierNum) set({ claiming: null });
         }
-      },
-
-      // Real claim action - a no-op if already claimed (never double-
-      // claims), and the caller (app/battlepass.jsx) is responsible for
-      // only allowing this when the user's real level has actually
-      // reached that tier, since this store has no independent way to
-      // verify XP/level on its own.
-      claimTier: (tierNum, uid) => {
-        const { claimedTiers } = get();
-        if (claimedTiers.includes(tierNum)) return;
-        set({ claimedTiers: [...claimedTiers, tierNum] });
-        get()._persist(uid);
       },
     }),
     {

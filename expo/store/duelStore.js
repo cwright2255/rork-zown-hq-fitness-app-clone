@@ -8,7 +8,9 @@
 // is owner-only read). What this store does client-side is limited to
 // what firestore.rules actually allows a client to do: propose a duel
 // (always starts pending), accept or decline one aimed at you, and
-// read duels you're actually in.
+// read duels you're actually in. A client never decides a winner either:
+// a duel that runs to a date is completed by the settleDuels schedule
+// (functions/src/duelSettle.js) once the date has passed.
 //
 // Running/distance duels are deliberately not supported yet — see the
 // module comment in functions/src/index.js's onWorkoutComplete for why
@@ -127,11 +129,14 @@ export const useDuelStore = create((set, get) => ({
     }
   },
 
-  // Real, live-updating progress from Firestore -- never estimated.
-  // most_by_deadline duels have no single server-settled winner (see
-  // the module header), so "who's ahead" / "who won" for that mode is
-  // computed here, purely for display, by comparing the same real
-  // progress numbers the server wrote.
+  // Real, live-updating progress from Firestore -- never estimated. Who won
+  // is the server's to say, never worked out here: a duel that ends at a
+  // target is completed by onWorkoutComplete, and one that runs to a date is
+  // completed by the settleDuels schedule (functions/src/duelSettle.js)
+  // once the date has passed, with the winner on it (`winnerId`, or
+  // `tied: true` and no winner for equal progress). A deadline duel whose
+  // date has passed and that the server has not settled yet (it does so
+  // hourly) is `ended` with `pending: true`: the result is not known here.
   getDisplayStatus: (duel, myUid) => {
     const opponentId = duel.participantIds.find((id) => id !== myUid);
     const mine = duel.progress?.[myUid] || 0;
@@ -139,11 +144,12 @@ export const useDuelStore = create((set, get) => ({
     const opponentName = duel.participantNames?.[opponentId] || 'Opponent';
 
     if (duel.status === 'completed') {
-      return { opponentName, mine, theirs, ended: true, won: duel.winnerId === myUid };
+      const tied = duel.tied === true;
+      return { opponentName, mine, theirs, ended: true, pending: false, tied, won: !tied && duel.winnerId === myUid };
     }
     if (duel.mode === 'most_by_deadline' && duel.endDate && new Date(duel.endDate) < new Date()) {
-      return { opponentName, mine, theirs, ended: true, won: mine > theirs };
+      return { opponentName, mine, theirs, ended: true, pending: true, tied: false, won: null };
     }
-    return { opponentName, mine, theirs, ended: false, won: null };
+    return { opponentName, mine, theirs, ended: false, pending: false, tied: false, won: null };
   },
 }));

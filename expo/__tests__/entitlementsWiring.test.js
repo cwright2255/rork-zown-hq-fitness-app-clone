@@ -34,7 +34,7 @@ describe('root layout and the plan', () => {
   });
 
   it('stops following, and forgets the plan, when nobody is signed in', () => {
-    expect(authBlock).toMatch(/\} else \{\s*stopXpSync\(\);\s*useEntitlementStore\.getState\(\)\.stopListening\(\);/);
+    expect(authBlock).toMatch(/\} else \{\s*stopXpSync\(\);\s*stopProgressSync\(\);\s*useEntitlementStore\.getState\(\)\.stopListening\(\);/);
   });
 
   it('knows the plans screen, and keeps the bottom bar off it', () => {

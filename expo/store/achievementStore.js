@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../src/config/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 const defaultAchievements = [
 {
@@ -202,162 +202,36 @@ const defaultAchievements = [
 }];
 
 
+// Which achievements are unlocked is decided on the server (functions/src/unlockRules.js, run by functions/src/unlocks.js after every
+// workout and XP claim) and written to users/{uid}/data/achievements, which the phone can read and never write. This store holds the
+// catalog above (the names, icons and targets are the same for everyone) and shows what the server has unlocked: services/progressSync.js
+// hands it each change, and loadAchievements fetches it once. Nothing here decides an unlock or writes one.
 export const useAchievementStore = create(
   persist(
     (set, get) => ({
       achievements: defaultAchievements,
       unlockedAchievements: [],
 
-      // Same pattern as badgeStore: the achievement catalog (name/icon/
-      // condition) is fixed app content, identical for every user — only
-      // which ones are unlocked, and when, needs to sync.
+      // `unlocked` is the `unlocked` map of the server's document, { achievementId: time it was unlocked }. What the server says
+      // replaces what the phone held, so one person's unlocks are never left on screen for another.
+      applyServerUnlocks: (unlocked) => {
+        const map = unlocked && typeof unlocked === 'object' && !Array.isArray(unlocked) ? unlocked : {};
+        set((state) => ({
+          unlockedAchievements: Object.keys(map).filter((id) => map[id]),
+          achievements: state.achievements.map((a) => ({ ...a, unlockedAt: map[a.id] || undefined })),
+        }));
+      },
+
+      // Back to nothing unlocked, when the person signs out.
+      clearServerUnlocks: () => get().applyServerUnlocks({}),
+
       loadAchievements: async (uid) => {
         if (!uid) return;
         try {
           const snap = await getDoc(doc(db, 'users', uid, 'data', 'achievements'));
-          if (snap.exists()) {
-            const unlocked = snap.data().unlocked || {};
-            const ids = Object.keys(unlocked);
-            set((state) => ({
-              unlockedAchievements: ids,
-              achievements: state.achievements.map((a) =>
-                unlocked[a.id] ? { ...a, unlockedAt: unlocked[a.id] } : a
-              ),
-            }));
-          }
+          if (snap.exists()) get().applyServerUnlocks(snap.data().unlocked);
         } catch (e) {
           console.warn('[achievementStore] loadAchievements error:', e?.message);
-        }
-      },
-
-      _syncUnlocksToFirestore: (newlyUnlocked, uid) => {
-        if (!uid || newlyUnlocked.length === 0) return;
-        const unlockedMap = {};
-        newlyUnlocked.forEach((a) => { unlockedMap[a.id] = a.unlockedAt; });
-        setDoc(doc(db, 'users', uid, 'data', 'achievements'), {
-          unlocked: unlockedMap,
-        }, { merge: true }).catch((e) =>
-          console.warn('[achievementStore] sync error:', e?.message)
-        );
-      },
-
-      checkAchievements: (data, uid) => {
-        const { achievements, unlockedAchievements } = get();
-        const newlyUnlocked = [];
-
-        achievements.forEach((achievement) => {
-          // Skip if already unlocked
-          if (unlockedAchievements.includes(achievement.id)) {
-            return;
-          }
-
-          const { condition } = achievement;
-          let shouldUnlock = false;
-
-          // Check condition based on type
-          switch (condition.type) {
-            case 'workout_count':
-              shouldUnlock = (data.workoutsCompleted || data.totalWorkouts || 0) >= (condition.target || 0);
-              break;
-            case 'streak':
-              shouldUnlock = (data.streak || 0) >= (condition.target || 0);
-              break;
-            case 'calories_burned':
-              shouldUnlock = (data.caloriesBurned || 0) >= (condition.target || 0);
-              break;
-            case 'weight_lost':
-              shouldUnlock = (data.weightLost || 0) >= (condition.target || 0);
-              break;
-            case 'nutrition_logged':
-              shouldUnlock = (data.nutritionLogged || 0) >= (condition.target || 0);
-              break;
-            case 'social_interactions':
-              shouldUnlock = (data.socialInteractions || 0) >= (condition.target || 0);
-              break;
-            case 'level':
-              shouldUnlock = (data.level || 0) >= (condition.target || 0);
-              break;
-            case 'xp':
-              shouldUnlock = (data.xp || 0) >= (condition.target || 0);
-              break;
-            case 'morning_workouts':
-              // This would need additional tracking in the future
-              shouldUnlock = false;
-              break;
-          }
-
-          if (shouldUnlock) {
-            const unlockedAchievement = {
-              ...achievement,
-              unlockedAt: new Date().toISOString()
-            };
-            newlyUnlocked.push(unlockedAchievement);
-          }
-        });
-
-        // Update store with newly unlocked achievements
-        if (newlyUnlocked.length > 0) {
-          set((state) => ({
-            unlockedAchievements: [
-            ...state.unlockedAchievements,
-            ...newlyUnlocked.map((a) => a.id)],
-
-            achievements: state.achievements.map((achievement) => {
-              const unlocked = newlyUnlocked.find((u) => u.id === achievement.id);
-              return unlocked ? unlocked : achievement;
-            })
-          }));
-          get()._syncUnlocksToFirestore(newlyUnlocked, uid);
-        }
-
-        return newlyUnlocked;
-      },
-
-      unlockAchievement: (achievementId, uid) => {
-        const { achievements, unlockedAchievements } = get();
-
-        if (unlockedAchievements.includes(achievementId)) {
-          return;
-        }
-
-        const unlockedAt = new Date().toISOString();
-        set((state) => ({
-          unlockedAchievements: [...state.unlockedAchievements, achievementId],
-          achievements: state.achievements.map((achievement) =>
-          achievement.id === achievementId ?
-          { ...achievement, unlockedAt } :
-          achievement
-          )
-        }));
-
-        if (uid) {
-          setDoc(doc(db, 'users', uid, 'data', 'achievements'), {
-            unlocked: { [achievementId]: unlockedAt },
-          }, { merge: true }).catch((e) =>
-            console.warn('[achievementStore] sync error:', e?.message)
-          );
-        }
-      },
-
-      updateAchievementProgress: (achievementId, progress) => {
-        const { achievements, unlockedAchievements } = get();
-
-        if (unlockedAchievements.includes(achievementId)) {
-          return;
-        }
-
-        const achievement = achievements.find((a) => a.id === achievementId);
-        if (achievement && achievement.condition.target) {
-          if (progress >= achievement.condition.target) {
-            set((state) => ({
-              unlockedAchievements: [...state.unlockedAchievements, achievementId],
-              achievements: state.achievements.map((a) =>
-              a.id === achievementId ?
-              { ...a, unlockedAt: new Date().toISOString() } :
-              a
-              )
-            }));
-          }
         }
       },
 

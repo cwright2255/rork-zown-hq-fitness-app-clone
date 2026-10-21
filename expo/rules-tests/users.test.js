@@ -111,6 +111,43 @@ describe('/users/{userId}/stats/{docId}', () => {
   });
 });
 
+// Which achievements and badges are unlocked and which Battle Pass tiers are claimed are written by Cloud Functions only
+// (functions/src/unlocks.js). The person can read them; nothing they send can change them. The other documents in the same folder stay theirs.
+describe.each(['achievements', 'badges', 'battlePass'])('/users/{userId}/data/%s, written only by the server', (name) => {
+  const docPath = `users/alice/data/${name}`;
+  const seeded = name === 'battlePass' ? { claimedTiers: [1] } : { unlocked: { x: '2026-10-21T12:00:00.000Z' } };
+
+  it('can be read by its owner', async () => {
+    await env.seed({ [docPath]: seeded });
+    await ok(env.as('alice').doc(docPath).get());
+  });
+
+  it('cannot be created, changed, merged into or deleted by its owner', async () => {
+    const mine = env.as('alice').doc(docPath);
+    await no(mine.set(seeded));
+    await no(mine.set(seeded, { merge: true }));
+    await env.seed({ [docPath]: seeded });
+    await no(mine.set({ claimedTiers: [1, 2, 3, 4, 5], unlocked: { y: 'now' } }));
+    await no(mine.set({ claimedTiers: [1, 2, 3, 4, 5], unlocked: { y: 'now' } }, { merge: true }));
+    await no(mine.update({ claimedTiers: [1, 2, 3, 4, 5] }));
+    await no(mine.delete());
+  });
+
+  it('cannot be read by another person or a visitor, or written by them', async () => {
+    await env.seed({ [docPath]: seeded });
+    await no(env.as('bob').doc(docPath).get());
+    await no(env.anon().doc(docPath).get());
+    await no(env.as('bob').doc(docPath).set(seeded));
+    await no(env.anon().doc(docPath).set(seeded));
+  });
+
+  it('leaves the owner free to write their other documents in the same folder', async () => {
+    await ok(env.as('alice').doc('users/alice/data/settings').set({ n: 1 }));
+    await ok(env.as('alice').doc('users/alice/data/hikes').set({ hikes: [] }));
+    await ok(env.as('alice').doc(`users/alice/data/${name}s`).set({ n: 1 })); // a name that only starts like it
+  });
+});
+
 describe('who can list people', () => {
   it('nobody can list every profile, only open their own', async () => {
     await env.seed({ 'users/alice': { name: 'Alice' }, 'users/bob': { name: 'Bob' } });

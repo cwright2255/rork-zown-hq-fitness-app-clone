@@ -29,6 +29,12 @@ jest.mock('@react-native-firebase/analytics', () => ({
   setUserId: jest.fn(() => Promise.resolve()),
 }), { virtual: true });
 
+// functions/src/index.js, which the Cloud Function tests load, schedules a function with firebase-functions' scheduler: a package the
+// app does not install, so it is a stand-in here (the schedule is kept on the function as __opts, for a test that looks at it).
+jest.mock('firebase-functions/v2/scheduler', () => ({
+  onSchedule: (opts, handler) => Object.assign(handler, { __opts: opts }),
+}), { virtual: true });
+
 // The firebase mocks are registered as virtual (the package is installed all the same). A test that mocks one of these
 // names with { virtual: true } would otherwise be ignored by any module an earlier test file had already loaded, and
 // get the stand-in below instead of its own mock, on some runs and not others. __tests__/jestFirebaseMockOrder.test.js.

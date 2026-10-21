@@ -402,3 +402,61 @@ describe('runningLogSummary', () => {
     });
   });
 });
+
+describe('workoutHistorySummary with the server\'s lifetime count', () => {
+  const list = [
+    workout({ id: 'a', completedAt: at(2026, 10, 18), caloriesBurned: 300, duration: 1800 }),
+    workout({ id: 'b', completedAt: at(2026, 10, 14), caloriesBurned: 600, duration: 3600 }),
+  ];
+  const lifetime = (o = {}) => ({ totalWorkouts: 500, finishedWorkouts: 480, totalSeconds: 360000, totalCalories: 80000, bestCalories: 900, ...o });
+
+  it('shows the server\'s count on the all logged page, which is over every workout ever saved, not just the newest 240', () => {
+    const s = workoutHistorySummary({ workouts: list, lifetime: lifetime(), now: NOW });
+    expect(statsOf(s, 'all')).toEqual(['500', (80000).toLocaleString(), '100h 0m']);
+    expect(s.total).toBe(500);
+  });
+
+  it('leaves the last 7 days and this month to the records the app holds, which cover them', () => {
+    const s = workoutHistorySummary({ workouts: list, lifetime: lifetime(), now: NOW });
+    expect(statsOf(s, 'week')).toEqual(['2', '900', '1h 30m']);
+    expect(statsOf(s, 'month')).toEqual(['2', '900', '1h 30m']);
+  });
+
+  it('shows the records the app holds when they are more than the server has counted so far', () => {
+    const s = workoutHistorySummary({ workouts: list, lifetime: lifetime({ totalWorkouts: 1, totalSeconds: 10, totalCalories: 5 }), now: NOW });
+    expect(statsOf(s, 'all')).toEqual(['2', '900', '1h 30m']);
+  });
+
+  it('is the same as before when there is no lifetime count', () => {
+    const without = workoutHistorySummary({ workouts: list, now: NOW });
+    expect(workoutHistorySummary({ workouts: list, lifetime: null, now: NOW })).toEqual(without);
+    expect(workoutHistorySummary({ workouts: list, lifetime: undefined, now: NOW })).toEqual(without);
+    expect(statsOf(without, 'all')).toEqual(['2', '900', '1h 30m']);
+  });
+
+  it('adds up the records the app holds the way it always did when there is no lifetime count', () => {
+    const odd = [
+      workout({ id: 'a', completedAt: at(2026, 10, 18), caloriesBurned: 300, duration: 1800 }),
+      workout({ id: 'b', completedAt: at(2026, 10, 14), caloriesBurned: -100, duration: 1800 }),
+    ];
+    expect(statsOf(workoutHistorySummary({ workouts: odd, now: NOW }), 'all')).toEqual(['2', '200', '1h 0m']);
+  });
+
+  it('is not empty when the server has counted workouts the app has not loaded yet, and has no latest workout to name', () => {
+    const s = workoutHistorySummary({ workouts: [], lifetime: lifetime(), now: NOW });
+    expect(s.empty).toBe(false);
+    expect(statsOf(s, 'all')[0]).toBe('500');
+    expect(s.latest).toBeNull();
+    expect(s.sentence).toMatch(/^Workout history\. /);
+  });
+
+  it('is empty when there is nothing on the phone and nothing counted', () => {
+    expect(workoutHistorySummary({ workouts: [], lifetime: lifetime({ totalWorkouts: 0 }), now: NOW }).empty).toBe(true);
+    expect(workoutHistorySummary({ workouts: [], lifetime: null, now: NOW }).empty).toBe(true);
+  });
+
+  it('reads the lifetime count in the sentence for a screen reader', () => {
+    const s = workoutHistorySummary({ workouts: list, lifetime: lifetime(), now: NOW });
+    expect(s.sentence).toContain('All logged: 500 workouts, 80,000 calories, 100h 0m');
+  });
+});

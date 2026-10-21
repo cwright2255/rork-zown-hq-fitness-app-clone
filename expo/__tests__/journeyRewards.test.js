@@ -1,11 +1,9 @@
 jest.mock('../store/expStore', () => ({
   useExpStore: { getState: () => global.__exp },
 }));
-jest.mock('../store/badgeStore', () => ({
-  useBadgeStore: { getState: () => global.__badges },
-}));
-
-import { rewardJourney, JOURNEY_BADGE_ID } from '../services/journeyRewards';
+import fs from 'fs';
+import path from 'path';
+import { rewardJourney } from '../services/journeyRewards';
 import { journeyById } from '../lib/virtualJourneys';
 
 const canyon = journeyById('grand-canyon-rim'); // 34 km: 500 XP
@@ -16,16 +14,11 @@ let warn;
 beforeEach(() => {
   warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   global.__exp = { addExpActivity: jest.fn() };
-  global.__badges = { unlockBadge: jest.fn() };
 });
 afterEach(() => warn.mockRestore());
 
 describe('rewardJourney', () => {
-  it('uses the Trailblazer badge', () => {
-    expect(JOURNEY_BADGE_ID).toBe('badge-15');
-  });
-
-  it('pays XP for the journey, once under its own id, and unlocks the badge', () => {
+  it('pays XP for the journey, once under its own id', () => {
     rewardJourney(canyon, 'u1', NOW);
     expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);
     expect(global.__exp.addExpActivity).toHaveBeenCalledWith({
@@ -37,8 +30,11 @@ describe('rewardJourney', () => {
       description: 'Finished the Grand Canyon Rim Trail journey',
       completed: true,
     }, 'u1');
-    expect(global.__badges.unlockBadge).toHaveBeenCalledTimes(1);
-    expect(global.__badges.unlockBadge).toHaveBeenCalledWith('badge-15', 'u1');
+  });
+
+  it('leaves the Trailblazer badge to the server, which gives it once it has accepted that XP claim: nothing here unlocks a badge', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'services', 'journeyRewards.js'), 'utf8');
+    expect(source).not.toMatch(/badgeStore|useBadgeStore|unlockBadge/);
   });
 
   it('pays more for a longer route', () => {
@@ -66,18 +62,10 @@ describe('rewardJourney', () => {
     }
   });
 
-  it('still unlocks the badge when the XP fails, and says so', () => {
+  it('does not throw when the XP fails, and says so', () => {
     global.__exp.addExpActivity.mockImplementation(() => { throw new Error('exp down'); });
     expect(() => rewardJourney(canyon, 'u1', NOW)).not.toThrow();
-    expect(global.__badges.unlockBadge).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith('[journeyRewards] XP failed:', 'exp down');
-  });
-
-  it('still pays the XP when the badge fails, and says so', () => {
-    global.__badges.unlockBadge.mockImplementation(() => { throw new Error('badge down'); });
-    expect(() => rewardJourney(canyon, 'u1', NOW)).not.toThrow();
-    expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith('[journeyRewards] badge failed:', 'badge down');
   });
 
   it('pays nothing without a route or a person', () => {
@@ -86,6 +74,5 @@ describe('rewardJourney', () => {
     rewardJourney(canyon, '', NOW);
     rewardJourney(canyon, undefined, NOW);
     expect(global.__exp.addExpActivity).not.toHaveBeenCalled();
-    expect(global.__badges.unlockBadge).not.toHaveBeenCalled();
   });
 });

@@ -19,16 +19,15 @@ jest.mock('../store/expStore', () => ({
   useExpStore: { getState: () => global.__exp },
   baseExpValues: { virtualRace: 750 },
 }));
-jest.mock('../store/badgeStore', () => ({
-  useBadgeStore: { getState: () => global.__badges },
-}));
 jest.mock('../store/settingsStore', () => ({
   useSettingsStore: { getState: () => global.__settings },
 }));
 
 import { getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useVirtualRaceStore } from '../store/virtualRaceStore';
-import { finishRace, publishMyRaces, withdrawMyRaces, RACE_BADGE_ID } from '../services/raceBoard';
+import fs from 'fs';
+import path from 'path';
+import { finishRace, publishMyRaces, withdrawMyRaces } from '../services/raceBoard';
 import { currentRace, areaOf, raceEntryId } from '../lib/virtualRaces';
 
 const localRace = currentRace('local', new Date(2026, 9, 14, 10));
@@ -48,7 +47,6 @@ beforeEach(() => {
   setDoc.mockResolvedValue(undefined);
   deleteDoc.mockResolvedValue(undefined);
   global.__exp = { addExpActivity: jest.fn() };
-  global.__badges = { unlockBadge: jest.fn() };
   global.__settings = { showInLeaderboards: true };
   useVirtualRaceStore.setState({ joined: {}, finished: {}, boards: {} });
 });
@@ -127,7 +125,7 @@ describe('finishRace: the reward for a first finish', () => {
     expect(global.__exp.addExpActivity.mock.calls[0][0].date).toBe('2026-10-14');
   });
 
-  it('gives the race XP and the Race Day badge, once, to the person who finished', async () => {
+  it('gives the race XP, once, to the person who finished', async () => {
     await finishLocal();
     expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);
     expect(global.__exp.addExpActivity).toHaveBeenCalledWith({
@@ -139,8 +137,11 @@ describe('finishRace: the reward for a first finish', () => {
       description: 'Finished the Local 5K',
       completed: true,
     }, 'u1');
-    expect(RACE_BADGE_ID).toBe('badge-14');
-    expect(global.__badges.unlockBadge).toHaveBeenCalledWith('badge-14', 'u1');
+  });
+
+  it('leaves the Race Day badge to the server, which gives it once it has accepted that XP claim: nothing here unlocks a badge', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'services', 'raceBoard.js'), 'utf8');
+    expect(source).not.toMatch(/badgeStore|useBadgeStore|unlockBadge/);
   });
 
   it('names the worldwide race in the XP entry', async () => {
@@ -154,7 +155,6 @@ describe('finishRace: the reward for a first finish', () => {
     await finishLocal({ splits: [300, 300, 300, 300, 300] });
     await finishLocal({ splits: [290, 290, 290, 290, 290] });
     expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);
-    expect(global.__badges.unlockBadge).toHaveBeenCalledTimes(1);
   });
 
   it('gives it again for the next race, which is a first finish of that race', async () => {
@@ -167,21 +167,14 @@ describe('finishRace: the reward for a first finish', () => {
     global.__settings.showInLeaderboards = false;
     await finishLocal();
     expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);
-    expect(global.__badges.unlockBadge).toHaveBeenCalledTimes(1);
   });
 
-  it('still gives the badge when the XP fails, and still finishes when either fails', async () => {
+  it('still finishes, and posts, when the XP fails', async () => {
     global.__exp.addExpActivity = jest.fn(() => { throw new Error('xp down'); });
     const result = await finishLocal();
-    expect(global.__badges.unlockBadge).toHaveBeenCalledTimes(1);
     expect(result.status).toBe('finished');
+    expect(result.posted).toBe('posted');
     expect(warn).toHaveBeenCalledTimes(1);
-    global.__exp.addExpActivity = jest.fn();
-    global.__badges.unlockBadge = jest.fn(() => { throw new Error('badge down'); });
-    useVirtualRaceStore.setState({ finished: {} });
-    expect((await finishLocal()).posted).toBe('posted');
-    expect(global.__exp.addExpActivity).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -252,7 +245,6 @@ describe('finishRace: a finish that does not count', () => {
     expect(setDoc).not.toHaveBeenCalled();
     expect(store().finished).toEqual({});
     expect(global.__exp.addExpActivity).not.toHaveBeenCalled();
-    expect(global.__badges.unlockBadge).not.toHaveBeenCalled();
   };
 
   it('is unfinished before the distance is done, or with nothing to go on', async () => {

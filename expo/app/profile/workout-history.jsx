@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 import { newestFirst, workoutMs } from '@/lib/workoutOrder';
+import { useLifetimeStore } from '@/store/lifetimeStore';
+import { lifetimeOf } from '@/lib/lifetimeTotals';
 
 export default function WorkoutHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -37,9 +39,12 @@ export default function WorkoutHistoryScreen() {
   };
 
   const rawStreak = getWorkoutStreak ? getWorkoutStreak() : { current: 0, longest: 0 };
-  const totalWorkouts = (completedWorkouts || []).length;
-  const totalCalories = (completedWorkouts || []).reduce((sum, w) => sum + (w.caloriesBurned || 0), 0);
-  const totalDurationSecs = (completedWorkouts || []).reduce((sum, w) => sum + (w.duration || 0), 0);
+  // The totals are over every workout ever saved (the server's count), not just the newest 240 the list holds.
+  const serverTotals = useLifetimeStore((s) => s.totals);
+  const lifetime = lifetimeOf({ held: completedWorkouts, server: serverTotals });
+  const totalWorkouts = lifetime.totalWorkouts;
+  const totalCalories = lifetime.totalCalories;
+  const totalDurationSecs = lifetime.totalSeconds;
   const stats = {
     totalWorkouts,
     totalCalories: totalCalories.toLocaleString(),

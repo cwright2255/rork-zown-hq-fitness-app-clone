@@ -11,6 +11,8 @@ import { useHikingStore } from '@/store/hikingStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useAchievementStore } from '@/store/achievementStore';
+import { useLifetimeStore } from '@/store/lifetimeStore';
+import { lifetimeOf } from '@/lib/lifetimeTotals';
 import { localDateKey } from '@/lib/localDate';
 import { sessionsOf, activityStreak } from '@/lib/activity';
 import { buildMissions } from '@/lib/battlePassMissions';
@@ -43,7 +45,7 @@ const SEASON_LENGTH_DAYS = 90;
 
 const ACH_W = (Dimensions.get('window').width - 52) / 2;
 
-function TierCard({tier, onClaim}){
+function TierCard({tier, onClaim, busy}){
   const {claimed, current, locked} = tier;
   const bg = claimed ? '#000' : current ? '#FFF' : '#F5F5F5';
   const border = claimed ? '#FFD700' : current ? '#FFD700' : '#E5E5E5';
@@ -55,7 +57,7 @@ function TierCard({tier, onClaim}){
         <Ionicons name={tier.icon} size={32} color={iconColor} />
         <Text style={[s.tierName,{color:claimed?'#FFF':current?'#000':'#999'}]} numberOfLines={2}>{tier.name}</Text>
         {claimed && <Text style={s.tierClaimed}>CLAIMED</Text>}
-        {current && <Pressable style={s.claimBtn} onPress={onClaim}><Text style={s.claimBtnText}>CLAIM</Text></Pressable>}
+        {current && <Pressable style={[s.claimBtn, busy && {opacity:0.5}]} onPress={onClaim} disabled={busy}><Text style={s.claimBtnText}>CLAIM</Text></Pressable>}
         {locked && <Text style={s.tierXpNeed}>{tier.xpNeeded} XP</Text>}
       </View>
     </View>
@@ -85,8 +87,9 @@ export default function BattlePassScreen(){
   // directly from useExpStore() was always undefined, since that
   // top-level property never existed on the store.
   const totalExp = getTotalExp ? getTotalExp() : 0;
-  const { claimedTiers, claimTier, loadBattlePass } = useBattlePassStore();
+  const { claimedTiers, claimTier, claiming, loadBattlePass } = useBattlePassStore();
   const { completedWorkouts, loadWorkouts } = useWorkoutStore();
+  const serverTotals = useLifetimeStore((st) => st.totals);
   const { runs, loadRuns } = useRunningStore();
   const { completedHikes, loadCompletedHikes } = useHikingStore();
   const { getMealsByDate, loadNutritionData, meals } = useNutritionStore();
@@ -137,8 +140,15 @@ export default function BattlePassScreen(){
     });
   }, [xpLevel, claimedTiers]);
 
-  const handleClaim = (tierNum) => {
-    claimTier(tierNum, uid);
+  // A tier is claimed on the server, which checks the level in the person's XP ledger has reached it. The tier shows as claimed once the
+  // server has recorded it, so a claim that fails or is turned away is said so here and the tier stays to be claimed.
+  const handleClaim = async (tierNum) => {
+    const status = await claimTier(tierNum);
+    if (status === 'locked') {
+      Alert.alert('Not Yet', 'Your level has not reached this tier yet.');
+    } else if (status === 'failed') {
+      Alert.alert('Could Not Claim', 'The tier could not be claimed. Check your connection and try again.');
+    }
   };
 
   // The missions are worked out in lib/battlePassMissions.js, which the Battle Pass card on Home uses too. `meals` is in the list
@@ -175,13 +185,16 @@ export default function BattlePassScreen(){
     [completedWorkouts, runs, completedHikes, today],
   );
 
+  // The workouts achievements count every finished workout there has ever been (the server's count), not just the newest 240 the phone holds.
+  const lifetime = useMemo(() => lifetimeOf({ held: completedWorkouts, server: serverTotals }), [completedWorkouts, serverTotals]);
+
   const achProgress = useMemo(() => {
     const progress = {};
     achievements.forEach((a) => {
       const { type, target } = a.condition || {};
       switch (type) {
         case 'workout_count':
-          progress[a.id] = { current: (completedWorkouts || []).length, target };
+          progress[a.id] = { current: lifetime.finishedWorkouts, target };
           break;
         case 'streak':
           progress[a.id] = { current: currentStreak, target };
@@ -193,17 +206,14 @@ export default function BattlePassScreen(){
           progress[a.id] = { current: totalExp || 0, target };
           break;
         case 'calories_burned':
-          progress[a.id] = {
-            current: (completedWorkouts || []).reduce((max, w) => Math.max(max, w.caloriesBurned || 0), 0),
-            target,
-          };
+          progress[a.id] = { current: lifetime.bestCalories, target };
           break;
         default:
           progress[a.id] = null;
       }
     });
     return progress;
-  }, [achievements, completedWorkouts, currentStreak, xpLevel, totalExp]);
+  }, [achievements, lifetime, currentStreak, xpLevel, totalExp]);
 
   const filteredAch = useMemo(() => {
     const allEarned = getUnlockedAchievements();
@@ -230,7 +240,7 @@ export default function BattlePassScreen(){
         <View style={s.xpRow}><Text style={s.xpLabel}>Current XP: <Text style={s.xpBold}>{(totalExp||0).toLocaleString()}</Text></Text><Text style={s.xpLabel}>Next Tier: <Text style={s.xpBold}>{xpRemaining.toLocaleString()} XP</Text></Text></View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tierScroll}>
-          {TIERS.map(t=><TierCard key={t.t} tier={t} onClaim={() => handleClaim(t.t)} />)}
+          {TIERS.map(t=><TierCard key={t.t} tier={t} busy={claiming === t.t} onClaim={() => handleClaim(t.t)} />)}
         </ScrollView>
 
         <View style={s.trackRow}>

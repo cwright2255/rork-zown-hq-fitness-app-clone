@@ -462,7 +462,13 @@ export default function SocialScreen() {
               <Text style={s.duelSub}>First to {duel.goalTarget} wins</Text>
             )}
             {!status.ended && duel.endDate && <Text style={s.duelDays}>{daysLeftLabel(duel.endDate)}</Text>}
-            {status.ended && (
+            {status.ended && status.pending && (
+              <Text style={[s.duelResult, { color: '#6B7280' }]}>Final result soon</Text>
+            )}
+            {status.ended && !status.pending && status.tied && (
+              <Text style={[s.duelResult, { color: '#6B7280' }]}>Draw</Text>
+            )}
+            {status.ended && !status.pending && !status.tied && (
               <Text style={[s.duelResult, { color: status.won ? '#22C55E' : '#DC2626' }]}>
                 {status.won ? 'You won!' : 'You lost'}
               </Text>

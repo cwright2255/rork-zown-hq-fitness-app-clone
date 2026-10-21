@@ -17,9 +17,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
-import { useBadgeStore } from '@/store/badgeStore';
-import { useAchievementStore } from '@/store/achievementStore';
-import { getActivityStreak } from '@/services/streakService';
 import { useUserStore } from '@/store/userStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
@@ -164,11 +161,7 @@ export default function ActiveWorkoutScreen() {
   const programDay = isProgramSession ? getProgramWeek(programId, programWeekParam)?.days[programDayIndexParam] : null;
 
   const { workouts, customWorkouts, addCompletedWorkout, logSet, getExerciseHistory } = useWorkoutStore();
-  const { addExpActivity, expSystem } = useExpStore();
-  const totalExp = expSystem.totalExp;
-  const level = expSystem.level;
-  const { unlockBadge } = useBadgeStore();
-  const { checkAchievements } = useAchievementStore();
+  const { addExpActivity } = useExpStore();
   const { user } = useUserStore();
   const workoutStartRef = useRef(new Date().toISOString());
   const { isConnected: musicConnected, trackName, artistName, isPlaying: isMusicPlaying, playTrack, pauseTrack, nextTrack, previousTrack } = useActiveMusicPlayer();
@@ -631,17 +624,7 @@ export default function ActiveWorkoutScreen() {
         completed: false,
       }, user?.uid);
 
-      if ((useWorkoutStore.getState().completedWorkouts || []).length <= 1) {
-        unlockBadge?.('badge-1', user?.uid);
-      }
-
-      checkAchievements?.({
-        workoutsCompleted: (useWorkoutStore.getState().completedWorkouts || []).length,
-        streak: getActivityStreak().current,
-        caloriesBurned,
-        level,
-        xp: totalExp,
-      }, user?.uid);
+      // Which badges and achievements this earns is the server's to decide (functions/src/unlocks.js, after the workout is saved).
 
       addExpActivity?.({
         id: Date.now().toString(),
@@ -966,30 +949,8 @@ export default function ActiveWorkoutScreen() {
               // Only a workout finished all the way is "completed" for analytics; saving and leaving early is not.
               logWorkoutCompleted(analyticsWorkoutId, Math.round(elapsedSeconds / 60), caloriesBurned);
 
-              // Real trigger for the "First Workout" badge — checks the
-              // actual completed-workout count rather than assuming.
-              // Previously this badge (and "Nutrition Novice") were simply
-              // hardcoded to isUnlocked:true for every user regardless of
-              // whether they'd done anything; unlockBadge is never called
-              // from anywhere else in the app for it, so simply removing
-              // the fabrication would have left it permanently unearnable.
-              if ((useWorkoutStore.getState().completedWorkouts || []).length <= 1) {
-                unlockBadge?.('badge-1', user?.uid);
-              }
-
-              // Real trigger for store/achievementStore.js — a well-designed
-              // condition-evaluation engine (checks workout_count, streak,
-              // calories_burned, level, xp, etc.) that, like the badge
-              // unlock above, was built but never actually called from
-              // anywhere in the app. Feeds it genuine stats rather than
-              // assuming any of these condition types are met.
-              checkAchievements?.({
-                workoutsCompleted: (useWorkoutStore.getState().completedWorkouts || []).length,
-                streak: getActivityStreak().current,
-                caloriesBurned,
-                level,
-                xp: totalExp,
-              }, user?.uid);
+              // Which badges and achievements this earns (First Workout, the workout counts, streaks, calories, level, XP) is the
+              // server's to decide (functions/src/unlocks.js, after the workout is saved); the phone only shows what it unlocked.
 
               addExpActivity?.({
                 id: Date.now().toString(),

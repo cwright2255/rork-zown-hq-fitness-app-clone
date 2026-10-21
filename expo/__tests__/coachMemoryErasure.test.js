@@ -23,6 +23,9 @@ describe('the Coach\'s notes and the rest of the account', () => {
     const start = rules.indexOf('match /data/{docId} {');
     expect(start).toBeGreaterThan(-1);
     const block = rules.slice(start, rules.indexOf('\n      }', start)); // up to this rule's closing brace
-    expect(block).toContain('allow read, write: if request.auth != null && request.auth.uid == userId;');
+    // Read: the owner. Write: the owner too, except for the three documents only the server writes (achievements, badges, battlePass).
+    expect(block).toContain('allow read: if request.auth != null && request.auth.uid == userId;');
+    expect(block).toContain('allow write: if request.auth != null && request.auth.uid == userId &&');
+    expect(block).not.toMatch(/if\s+true/);
   });
 });

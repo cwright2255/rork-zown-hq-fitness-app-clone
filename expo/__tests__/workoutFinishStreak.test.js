@@ -1,7 +1,8 @@
-// When a workout is finished (app/workout/active.jsx, in two places: finishing early and finishing all the way), the
-// achievements check is given the streak worked out from the person's workouts, runs and hikes (services/streakService.js).
-// It used to be given user.streak, a counter nothing ever updated, so a streak achievement could never unlock. (The leaderboard
-// used to be handed it too, by the phone; the leaderboard's XP and streak are the server's now, so the phone hands it nothing.)
+// When a workout is finished (app/workout/active.jsx, in two places: finishing early and finishing all the way), the phone saves the
+// workout and files its XP claim, and that is all. Which achievements and badges the workout earns, the streak ones included, is the
+// server's to decide (functions/src/unlocks.js, from the saved workouts and the XP ledger), so the screen no longer works out a streak
+// to hand to an achievements check: there is no check on the phone. (It used to be given user.streak, a counter nothing ever updated,
+// and later the streak worked out from the person's workouts, runs and hikes. The leaderboard's XP and streak are the server's too.)
 // The screen is too big to render in a test, so this reads its source, the way signInLoadsHikes does for the sign-in code.
 const fs = require('fs');
 const path = require('path');
@@ -10,13 +11,14 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'app', 'workout', 'act
 const count = (re) => (source.match(re) || []).length;
 
 describe('finishing a workout', () => {
-  it('imports the streak from the streak service', () => {
-    expect(source).toContain("import { getActivityStreak } from '@/services/streakService';");
+  it('saves the workout in both ways of finishing', () => {
+    expect(count(/await addCompletedWorkout\(/g)).toBe(2);
   });
 
-  it('hands the achievements check the real streak, both ways of finishing', () => {
-    expect(count(/checkAchievements\?\.\(\{/g)).toBe(2);
-    expect(count(/streak: getActivityStreak\(\)\.current,/g)).toBe(2);
+  it('does not decide achievements or badges itself: no achievement or badge store, no unlock call, no streak handed over', () => {
+    expect(source).not.toMatch(/achievementStore|useAchievementStore|checkAchievements/);
+    expect(source).not.toMatch(/badgeStore|useBadgeStore|unlockBadge/);
+    expect(source).not.toMatch(/getActivityStreak|streakService/);
   });
 
   it('does not put a score on the leaderboard itself: the XP it files is what the server turns into one', () => {
@@ -29,11 +31,8 @@ describe('finishing a workout', () => {
     expect(source).not.toMatch(/user\??\.streak/);
   });
 
-  it('works the streak out after the workout is saved, so it includes that workout', () => {
-    const saved = source.match(/await addCompletedWorkout\([\s\S]*?checkAchievements\?\.\(\{[\s\S]*?\}, user\?\.uid\);/g) || [];
+  it('files the XP claim after the workout is saved, in both ways of finishing', () => {
+    const saved = source.match(/await addCompletedWorkout\([\s\S]*?addExpActivity\?\.\(\{/g) || [];
     expect(saved.length).toBe(2);
-    for (const chunk of saved) {
-      expect(chunk.indexOf('getActivityStreak().current')).toBeGreaterThan(chunk.indexOf('await addCompletedWorkout('));
-    }
   });
 });

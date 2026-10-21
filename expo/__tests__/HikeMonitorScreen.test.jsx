@@ -71,7 +71,6 @@ jest.mock('@/store/hikingStore', () => ({
 jest.mock('@/store/offlineTrailStore', () => ({ useOfflineTrailStore: () => global.__offline }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1' } }) }));
 jest.mock('@/store/expStore', () => ({ useExpStore: () => ({ addExpActivity: global.__addExp }) }));
-jest.mock('@/store/badgeStore', () => ({ useBadgeStore: () => ({ unlockBadge: global.__unlockBadge }) }));
 jest.mock('@/store/bodyCompositionStore', () => ({ useBodyCompositionStore: () => ({ scans: global.__scans }) }));
 jest.mock('@/services/weatherService', () => ({ getWeatherSnapshot: jest.fn() }));
 jest.mock('@/services/hikingService', () => ({ fetchRouteForMap: jest.fn(), fetchOsmPaths: jest.fn() }));
@@ -147,7 +146,6 @@ describe('HikeMonitorScreen', () => {
     global.__watches = [];
     watchOffRoute.mockClear();
     global.__addExp = jest.fn();
-    global.__unlockBadge = jest.fn();
     global.__scans = [];
     global.__offline = { trails: {}, keepTrail: jest.fn(), removeTrail: jest.fn() };
     global.__hiking = {
@@ -425,13 +423,17 @@ describe('HikeMonitorScreen', () => {
       expect(global.__addExp.mock.calls[0][0].description).toMatch(new RegExp(`^Completed a easy hike \u2014 ${miles}mi, \\d+ft gain$`));
     });
 
-    it('gives the XP, and the First Trail badge for the first hike', async () => {
+    it('gives the XP, with the hike saved first', async () => {
       const utils = await goFar(await mount());
       fireEvent.press(utils.getByText(/^Complete Hike/));
       expect(global.__addExp).toHaveBeenCalledTimes(1);
       expect(global.__addExp.mock.calls[0][0]).toMatchObject({ type: 'hiking', completed: true });
-      expect(global.__unlockBadge).toHaveBeenCalledWith('badge-11', 'u1');
-      expect(global.__unlockBadge).not.toHaveBeenCalledWith('badge-12', 'u1');
+      expect(global.__hiking.addCompletedHike.mock.invocationCallOrder[0]).toBeLessThan(global.__addExp.mock.invocationCallOrder[0]);
+    });
+
+    it('leaves the hiking badges to the server, which works them out from the saved hike and the XP claim: nothing here unlocks a badge', () => {
+      const source = require('fs').readFileSync(require('path').join(__dirname, '..', 'app', 'running', 'hiking', 'monitor.jsx'), 'utf8');
+      expect(source).not.toMatch(/badgeStore|useBadgeStore|unlockBadge/);
     });
 
     it('saves only once when Complete is tapped twice', async () => {

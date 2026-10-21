@@ -38,6 +38,7 @@ import { useCalendarInviteStore } from '@/store/calendarInviteStore';
 import { useEntitlementStore } from '@/store/entitlementStore';
 import { reconcileReminders } from '@/services/calendarReminders';
 import { startXpSync, stopXpSync } from '@/services/xpSync';
+import { startProgressSync, stopProgressSync } from '@/services/progressSync';
 import { publishMyProfile } from '@/services/leaderboardVisibility';
 import { useShopStore } from '@/store/shopStore';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -282,6 +283,8 @@ function RootLayoutInner() {
         // XP is the server's (functions/src/xpLedger.js): follow its ledger, and put the person's name and picture on their leaderboard
         // entry. After the stores load, because the workout, run and hike records give the days that carry a streak over.
         startXpSync(uid);
+        // The lifetime workout totals, the achievements and badges earned and the Battle Pass tiers claimed are the server's too: follow them.
+        startProgressSync(uid);
         publishMyProfile({ user: useUserStore.getState().user });
         // The calendar is merged with its cloud copy, then the phone's reminders are set from it (the next ones come due as
         // days pass, so this is done each time the app opens). The app does not wait for either.
@@ -290,6 +293,7 @@ function RootLayoutInner() {
         useCalendarInviteStore.getState().subscribe(uid);
       } else {
         stopXpSync();
+        stopProgressSync();
         useEntitlementStore.getState().stopListening();
         useCalendarInviteStore.getState().unsubscribe();
       }

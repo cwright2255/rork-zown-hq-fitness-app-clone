@@ -27,6 +27,12 @@ jest.mock('../functions/src/xpLedger.js', () => ({
   fillLeaderboardEntry: (...a) => global.__fill(...a),
 }));
 
+// What a claim unlocks (unlocks.js, tested in unlocks.test.js and, for when onXpClaim asks for it, progressTriggers.test.js) is a recorder here too.
+jest.mock('../functions/src/unlocks.js', () => ({
+  runUnlocks: (...a) => global.__unlocks(...a),
+  claimTier: (...a) => global.__claimTier(...a),
+}));
+
 const load = () => require('../functions/src/index.js');
 
 beforeEach(() => {
@@ -35,6 +41,8 @@ beforeEach(() => {
   global.__auth = { getUser: jest.fn(async () => ({ metadata: { creationTime: 'Mon, 05 Oct 2026 12:00:00 GMT' } })) };
   global.__handle = jest.fn(async () => 'published');
   global.__fill = jest.fn(async () => 'published');
+  global.__unlocks = jest.fn(async () => ({ achievements: [], badges: [] }));
+  global.__claimTier = jest.fn(async () => ({ status: 'claimed' }));
 });
 
 describe('onXpClaim', () => {

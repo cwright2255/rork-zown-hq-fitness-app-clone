@@ -14,6 +14,7 @@ jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: tru
 import { router } from 'expo-router';
 import WorkoutHistoryWidget from '../components/WorkoutHistoryWidget';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useLifetimeStore } from '../store/lifetimeStore';
 
 const EVENING = new Date('2026-10-15T01:30:00Z'); // 9:30 PM on Wed 14 Oct in New Jersey
 const dayNoon = (back) => new Date(2026, 9, 14 - back, 12, 0).toISOString(); // `back` days before the 14th, at noon
@@ -25,6 +26,7 @@ const pageValues = (utils, key) => utils.getByTestId(`home-widget-workouthistory
 beforeEach(() => {
   jest.useFakeTimers({ now: EVENING, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
   useWorkoutStore.setState({ completedWorkouts: [] });
+  useLifetimeStore.setState({ totals: null });
   router.push.mockClear();
 });
 afterEach(() => { jest.useRealTimers(); });
@@ -85,5 +87,19 @@ describe('Home > Workout History', () => {
     expect(utils.queryByTestId('home-widget-workouthistory-empty')).toBeNull();
     expect(pageValues(utils, 'week').slice(0, 3)).toEqual(['Last 7 days', '1', 'Workouts']);
     expect(utils.getByTestId('home-widget-workouthistory-latest').props.children).toBe('Latest: Full Body \u00B7 Today');
+  });
+  it('shows the server\'s count of every workout ever saved on the all logged page', () => {
+    useWorkoutStore.setState({ completedWorkouts: [lift(0)] });
+    useLifetimeStore.setState({ totals: { totalWorkouts: 500, finishedWorkouts: 480, totalSeconds: 360000, totalCalories: 80000, bestCalories: 900 } });
+    const utils = render(<WorkoutHistoryWidget />);
+    expect(pageValues(utils, 'all')).toEqual(['All logged', '500', 'Workouts', (80000).toLocaleString(), 'Calories', '100h 0m', 'Time']);
+    expect(pageValues(utils, 'week').slice(0, 3)).toEqual(['Last 7 days', '1', 'Workouts']);
+  });
+
+  it('follows the server\'s count as it changes', () => {
+    useWorkoutStore.setState({ completedWorkouts: [lift(0)] });
+    const utils = render(<WorkoutHistoryWidget />);
+    act(() => { useLifetimeStore.setState({ totals: { totalWorkouts: 300, finishedWorkouts: 300, totalSeconds: 60, totalCalories: 10, bestCalories: 10 } }); });
+    expect(pageValues(utils, 'all').slice(0, 3)).toEqual(['All logged', '300', 'Workouts']);
   });
 });

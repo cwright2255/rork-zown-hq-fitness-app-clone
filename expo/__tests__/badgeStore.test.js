@@ -9,7 +9,7 @@ jest.mock('firebase/firestore', () => ({
   setDoc: jest.fn(async () => undefined),
 }));
 
-import { getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useBadgeStore } from '../store/badgeStore';
 
 const store = () => useBadgeStore.getState();
@@ -104,23 +104,84 @@ describe('the badge list', () => {
   });
 });
 
-describe('unlockBadge', () => {
-  it('unlocks Race Day once and saves it for the person', () => {
-    store().initializeDefaultBadges();
-    store().unlockBadge('badge-14', 'u1');
-    expect(byId('badge-14').isUnlocked).toBe(true);
-    expect(Number.isNaN(Date.parse(byId('badge-14').unlockedAt))).toBe(false);
-    expect(setDoc).toHaveBeenCalledTimes(1);
-    expect(setDoc.mock.calls[0][0]).toEqual({ path: 'users/u1/data/badges' });
-    expect(setDoc.mock.calls[0][1]).toEqual({ unlocked: { 'badge-14': byId('badge-14').unlockedAt } });
-    expect(setDoc.mock.calls[0][2]).toEqual({ merge: true });
-    store().unlockBadge('badge-14', 'u1');
-    expect(setDoc).toHaveBeenCalledTimes(1);
+describe('badges unlocked on the server', () => {
+  const UNLOCKED = { 'badge-1': '2026-09-01T00:00:00Z', 'badge-14': '2026-10-14T10:00:00Z' };
+
+  it('has no way to unlock a badge on the phone: the server decides, and the store only shows', () => {
+    expect(store().unlockBadge).toBeUndefined();
   });
 
-  it('does nothing for a badge that does not exist', () => {
-    store().initializeDefaultBadges();
-    store().unlockBadge('badge-99', 'u1');
+  it('shows what the server says is unlocked, with the time, and the rest as locked', () => {
+    store().applyServerUnlocks(UNLOCKED);
+    expect(byId('badge-1')).toMatchObject({ isUnlocked: true, unlockedAt: '2026-09-01T00:00:00Z' });
+    expect(byId('badge-14')).toMatchObject({ isUnlocked: true, unlockedAt: '2026-10-14T10:00:00Z' });
+    expect(byId('badge-11')).toMatchObject({ isUnlocked: false, unlockedAt: null });
+    expect(store().getUnlockedBadges().map((b) => b.id)).toEqual(['badge-1', 'badge-14']);
+  });
+
+  it('sets the badge list up first when it is empty', () => {
+    store().applyServerUnlocks(UNLOCKED);
+    expect(store().badges).toHaveLength(15);
+  });
+
+  it('puts what the server says in place of what the phone held, so a badge it does not list is locked again', () => {
+    store().applyServerUnlocks(UNLOCKED);
+    store().applyServerUnlocks({ 'badge-14': '2026-10-14T10:00:00Z' });
+    expect(byId('badge-1')).toMatchObject({ isUnlocked: false, unlockedAt: null });
+    expect(byId('badge-14').isUnlocked).toBe(true);
+  });
+
+  it('unlocks none for a missing, empty or wrong sort of answer', () => {
+    store().applyServerUnlocks(UNLOCKED);
+    [undefined, null, {}, [], 'x', 7].forEach((value) => {
+      store().applyServerUnlocks(value);
+      expect(store().getUnlockedBadges()).toEqual([]);
+    });
+  });
+
+  it('ignores an entry with no time, and one for a badge that does not exist', () => {
+    store().applyServerUnlocks({ 'badge-1': '', 'badge-99': '2026-10-01T00:00:00Z' });
+    expect(byId('badge-1').isUnlocked).toBe(false);
+    expect(byId('badge-99')).toBeUndefined();
+    expect(store().badges).toHaveLength(15);
+  });
+
+  it('is cleared when the person signs out, and the list stays whole', () => {
+    store().applyServerUnlocks(UNLOCKED);
+    store().clearServerUnlocks();
+    expect(store().getUnlockedBadges()).toEqual([]);
+    expect(store().badges).toHaveLength(15);
+  });
+
+  it('reads the person\'s own badges document when loaded, and shows it', async () => {
+    getDoc.mockResolvedValue({ exists: () => true, data: () => ({ unlocked: UNLOCKED }) });
+    await store().loadBadges('u1');
+    expect(doc).toHaveBeenCalledWith({ name: 'db' }, 'users', 'u1', 'data', 'badges');
+    expect(byId('badge-14').isUnlocked).toBe(true);
+  });
+
+  it('puts what the server says in place of what the phone held when loaded', async () => {
+    store().applyServerUnlocks(UNLOCKED);
+    getDoc.mockResolvedValue({ exists: () => true, data: () => ({ unlocked: { 'badge-11': '2026-10-20T00:00:00Z' } }) });
+    await store().loadBadges('u1');
+    expect(store().getUnlockedBadges().map((b) => b.id)).toEqual(['badge-11']);
+  });
+
+  it('leaves what is shown alone when the document is missing or cannot be read, and says so for the second', async () => {
+    store().applyServerUnlocks(UNLOCKED);
+    getDoc.mockResolvedValue({ exists: () => false });
+    await store().loadBadges('u1');
+    expect(store().getUnlockedBadges()).toHaveLength(2);
+    expect(warn).not.toHaveBeenCalled(); // a missing document is not an error
+    getDoc.mockRejectedValue(new Error('offline'));
+    await store().loadBadges('u1');
+    expect(store().getUnlockedBadges()).toHaveLength(2);
+    expect(warn).toHaveBeenCalledWith('[badgeStore] loadBadges error:', 'offline');
+  });
+
+  it('never writes a badge: nothing on the phone can', () => {
+    store().applyServerUnlocks(UNLOCKED);
+    store().clearServerUnlocks();
     expect(setDoc).not.toHaveBeenCalled();
   });
 });

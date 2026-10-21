@@ -43,7 +43,6 @@ import { useHikingStore } from '@/store/hikingStore';
 import { useOfflineTrailStore } from '@/store/offlineTrailStore';
 import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
-import { useBadgeStore } from '@/store/badgeStore';
 import { useRunTrackerStore } from '@/store/runTrackerStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getWeatherSnapshot } from '@/services/weatherService';
@@ -117,7 +116,6 @@ export default function HikeWeatherMonitorScreen() {
   const { scans: bodyScans } = useBodyCompositionStore();
   const { user } = useUserStore();
   const { addExpActivity } = useExpStore();
-  const { unlockBadge } = useBadgeStore();
   // The copy kept on the phone covers a trail that is not in the last search (no
   // signal, or the app was restarted), so the hike is still saved under its name.
   const record = offlineTrails[trailId] || null;
@@ -522,21 +520,8 @@ export default function HikeWeatherMonitorScreen() {
         completed: true,
       }, user?.uid);
 
-      // Real badge conditions, checked against actual tracked data — not
-      // instant-unlocked the way badge-1/badge-2 used to be before that
-      // was fixed earlier in this app's audit.
-      const { completedHikes } = useHikingStore.getState();
-      const totalHikingMiles = completedHikes.reduce((sum, h) => sum + (h.distanceKm || 0), 0) * 0.621371;
-
-      if (completedHikes.length === 1) {
-        unlockBadge?.('badge-11', user?.uid); // First Trail
-      }
-      if (['Strenuous', 'Very Strenuous'].includes(difficulty.tier)) {
-        unlockBadge?.('badge-12', user?.uid); // Strenuous Summit
-      }
-      if (totalHikingMiles >= 10) {
-        unlockBadge?.('badge-13', user?.uid); // Trail Blazer
-      }
+      // The hiking badges (First Trail, Strenuous Summit, Trail Blazer) are the server's to decide: it works them out from the hikes
+      // saved above and the XP claim just filed (functions/src/unlocks.js), and the phone shows what it unlocked.
 
       router.replace({
         pathname: '/workout/complete',
