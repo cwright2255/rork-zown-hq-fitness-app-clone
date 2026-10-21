@@ -237,7 +237,9 @@ export const postLLM = onCall(
 
     try {
       const openai = getOpenAI();
-      const answer = await askWithinScope(openai, { model: 'gpt-4o', messages });
+      // The topic check and the answer start together (a person on topic waits for the slower one, not both); the answer is only
+      // returned when the check says yes.
+      const answer = await askWithinScope(openai, { model: 'gpt-4o', messages }, { parallel: true });
       if (answer.refused) {
         console.info('[postLLM] declined a request outside fitness and health');
         return { completion: REFUSAL, refused: true };

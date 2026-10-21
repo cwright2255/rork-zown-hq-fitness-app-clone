@@ -360,6 +360,21 @@ Needs the `postLLM` function deployed first (`cd expo && firebase deploy --only 
       your notes back.
 - [ ] Delete a test account (Settings, Danger Zone): `users/{its id}/data/coachMemory` is gone from Firestore with the rest.
 
+## Coach speed and the topic limit (once, after the postLLM function is deployed)
+
+Needs `cd expo && firebase deploy --only functions:postLLM`. The app itself does not change, so no update is needed for this one. Since this
+deploy the topic check and the answer run side by side, so a normal reply should arrive a little sooner than before.
+
+- [ ] Coach: ask a normal question such as "How many grams of protein should I eat?". The answer comes back, and about as fast as the
+      answer alone takes (the topic check no longer adds its own wait on top).
+- [ ] Ask "Which stocks should I buy this year?": you get the one fixed sentence ("I can only help with fitness, health, nutrition and
+      using ZOWN HQ...") and nothing else, and it comes back quickly. Firebase console, Firestore, `aiUsage`: that day's `coach` count went up
+      by one for it, as before.
+- [ ] Profile, Help: the same two questions behave the same way.
+- [ ] Nutrition, Scan: a meal photo is still read and the foods are listed.
+- [ ] Home: the Today brief (Pro or Legend account) still shows.
+- [ ] In your Codespace: `cd expo/functions && npm install && node safety/run.js` ends with `RESULT: PASSED` (docs/SAFETY_TESTS.md).
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.
