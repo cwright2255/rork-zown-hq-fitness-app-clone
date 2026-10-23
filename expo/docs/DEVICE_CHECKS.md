@@ -550,6 +550,45 @@ Deploy the function first, then the update:
 - [ ] Coach: ask "What should I train tomorrow?" It favours muscles that are not on the Home list, and says if everything is recovered.
 - [ ] An old phone that has not updated yet still gets a plan (it just does not send the muscle figures until it updates).
 
+## Load rules (once, on the first update with them)
+
+The "Today's target" card on the workout screen now follows rules instead of one fixed 8-12 reps and +5 lb. Starting values from common
+training guidance, not measurements; they will be adjusted as you use them (all of them are in one table, `LOAD_RULES` in `lib/loadRules.js`).
+
+- The rep range comes from your goal: Build Muscle 6-8 reps on a heavy day and 10-15 on a light one, anything else 8-10 and 12-15. Exercises
+  that are not a barbell or dumbbell compound lift (curls, machines, cables, lunges) use one range: 8-12 for Build Muscle, 12-15 otherwise.
+- Squats, deadlifts, presses and rows alternate a heavy day and a light day, counting your sessions of that exercise.
+- The weight is set from your estimated 1-rep max when there is nothing earlier of the same kind to build on (the first heavy day, or after
+  you did the exercise at very different reps), leaving 3 reps in the tank for a beginner, 2 for intermediate, 1 for advanced. Otherwise
+  the reps climb, and when every set reaches the top the weight goes up 2.5% (upper body) or 5% (lower body), in whole 5 lb jumps, never
+  more than 10%. A set rated Hard, low readiness today, or more than three weeks away keeps the weight where it was.
+- A deload (about 10% lighter, about half the sets) comes after 8 weeks of steady training for a beginner, 6 for intermediate, 4 for advanced;
+  sooner after two sessions in a row with most sets below the bottom of the range, and after three low-readiness days in a week.
+- Push-ups, pull-ups and the other exercises on a ladder (Step 2's list) show reps only. When every set reaches the top of the range
+  (20 for general fitness) the card names the next harder version. Planks and other holds show no target.
+- A weight far above what you have lifted lately (more than 1.5 times) is treated as a typing slip: it is logged, but it is not celebrated as
+  a record and does not move the next target.
+- The three buttons still say Easy / OK / Hard and are saved the same way; a line above the sets says what they mean in reps left
+  (Easy = 3+ left, OK = 1-2 left, Hard = 0-1 left).
+
+Weights are in pounds, as the workout screen has always logged them.
+
+- [ ] Open a workout with a lift you have logged before (Bench Press, Squat or Deadlift). Under "Log Your Sets" the card shows
+      "Today's target: <weight> lb x <reps> reps", a second line that starts with "Heavy day" or "Light day" and gives the rep range, "stop
+      with about 2 reps left" and a percentage of your 1-rep max, and a third line saying why.
+- [ ] The line "Rate each set by the reps you had left: Easy = 3+ left, OK = 1-2 left, Hard = 0-1 left." is under the card, and the buttons
+      still say Easy, OK and Hard and still log a set when tapped (Firestore, `loggedSets`: `rpe` is `easy`, `moderate` or `hard`).
+- [ ] Do the same lift in your next workout: the card says the other kind of day (heavy, then light), with the other rep range.
+- [ ] A curl, a lat pulldown or a lunge: the second line has the rep range and "stop with about 2 reps left" but no "Heavy day" or "Light day".
+- [ ] Log every set of a lift at the top of its range (8 reps for a Build Muscle heavy day) and press OK. The next time that kind of day comes
+      round, the weight is 5 lb higher and the reps are back at the bottom of the range. Press Hard on any set instead: the weight stays.
+- [ ] A push-up or pull-up: the card shows "Today's target: <n> reps" with the range and no weight. Log every set at the top of the range:
+      the next card says "ready for a harder version" and names it.
+- [ ] A plank: no target card.
+- [ ] A new lift with no history: no target card, as before. After one workout with it the card appears.
+- [ ] On a lift you have done at least three times, log one set with an impossible weight (say 1000 lb) and press OK. No record celebration
+      appears. The next target is built on your earlier sessions, not on the 1000.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

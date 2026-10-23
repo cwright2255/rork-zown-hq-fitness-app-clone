@@ -24,7 +24,9 @@ import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
 import { getNextPrescription, estimateOneRepMax } from '@/services/progressiveOverloadService';
 import { getCurrentReadiness } from '@/services/wearableService';
-import { localDateKey } from '@/lib/localDate';
+import { localDateKey, shiftDateKey } from '@/lib/localDate';
+import { getGoalIds } from '@/lib/userProfileData';
+import { goalForLoad, countLowReadinessDays, trustedSets, isOutlierOneRepMax, effortLegend, prescriptionText } from '@/lib/loadRules';
 import { logWorkoutStarted, logWorkoutCompleted } from '@/src/services/analytics';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
@@ -49,6 +51,16 @@ function parseNumericReps(reps) {
   }
   return null;
 }
+
+// The daily readings the Health screen keeps, for counting low-readiness days (lib/loadRules.js). The Health store opens the phone's storage
+// the moment it loads, so it is taken here, when a prescription needs it, and one that cannot be had counts as no readings.
+const dailyReadings = () => {
+  try {
+    return require('@/store/healthStore').useHealthStore.getState().readingsHistory;
+  } catch {
+    return undefined;
+  }
+};
 
 // Real, new: for "Log Your Sets"'s reps placeholder specifically - a
 // single, real starting number ("8"), not the range string itself
@@ -340,7 +352,15 @@ export default function ActiveWorkoutScreen() {
           getCurrentReadiness(),
         ]);
         if (cancelled) return;
-        const prescription = getNextPrescription(history, { readiness });
+        const prescription = getNextPrescription(history, {
+          readiness,
+          exerciseName: currentExercise.name,
+          bodyweight: isBodyweightExercise(currentExercise.name),
+          goal: goalForLoad(getGoalIds(user)),
+          level: user?.fitnessLevel,
+          unit: 'lb',
+          lowReadinessDays: countLowReadinessDays(dailyReadings()),
+        });
         setPrescriptions((prev) => ({ ...prev, [currentExercise.id]: prescription }));
 
         // Real, new: same history, for PR detection rather than
@@ -350,7 +370,9 @@ export default function ActiveWorkoutScreen() {
         // celebrates.
         let bestOneRepMax = null;
         let bestReps = null;
-        history.forEach((s) => {
+        // Without a set far above what the person has recently done (a mistyped weight), through today so a restart mid-workout still
+        // remembers what was done earlier today (lib/loadRules.js's outlier guard).
+        trustedSets(history, shiftDateKey(localDateKey(), 1)).forEach((s) => {
           const oneRm = estimateOneRepMax(s.weight, s.reps);
           if (oneRm && (bestOneRepMax === null || oneRm > bestOneRepMax)) bestOneRepMax = oneRm;
           if (typeof s.reps === 'number' && (bestReps === null || s.reps > bestReps)) bestReps = s.reps;
@@ -540,7 +562,9 @@ export default function ActiveWorkoutScreen() {
           }
         } else {
           const oneRm = estimateOneRepMax(weight, reps);
-          if (oneRm && prior.bestOneRepMax != null && oneRm > prior.bestOneRepMax) {
+          // A set more than 1.5 times the best so far is far likelier a typing slip than a lift: it is logged, but not celebrated, and
+          // the best stays where it was.
+          if (oneRm && prior.bestOneRepMax != null && oneRm > prior.bestOneRepMax && !isOutlierOneRepMax(oneRm, prior.bestOneRepMax)) {
             setPriorBests((prev) => ({ ...prev, [exercise.id]: { ...prev[exercise.id], bestOneRepMax: oneRm } }));
             setPrCelebration({
               exerciseName: exercise.name,
@@ -768,16 +792,17 @@ export default function ActiveWorkoutScreen() {
         {currentExercise?.sets && currentExercise?.reps && (
           <View style={styles.setLogSection}>
             <Text style={styles.setLogTitle}>Log Your Sets</Text>
-            {prescriptions[currentExercise.id] && (
-              <View style={styles.prescriptionCard}>
-                <Text style={styles.prescriptionTarget}>
-                  {isBodyweightExercise(currentExercise.name)
-                    ? `Today's target: ${prescriptions[currentExercise.id].targetReps} reps`
-                    : `Today's target: ${prescriptions[currentExercise.id].weight} lb x ${prescriptions[currentExercise.id].targetReps} reps`}
-                </Text>
-                <Text style={styles.prescriptionReason}>{prescriptions[currentExercise.id].reason}</Text>
-              </View>
-            )}
+            {prescriptions[currentExercise.id] && (() => {
+              const text = prescriptionText(prescriptions[currentExercise.id], { bodyweight: isBodyweightExercise(currentExercise.name) });
+              return (
+                <View style={styles.prescriptionCard}>
+                  <Text style={styles.prescriptionTarget}>{text.target}</Text>
+                  {!!text.detail && <Text style={styles.prescriptionDetail}>{text.detail}</Text>}
+                  <Text style={styles.prescriptionReason}>{text.reason}</Text>
+                </View>
+              );
+            })()}
+            <Text style={styles.effortLegend}>{effortLegend()}</Text>
             {(() => {
               const isBodyweight = isBodyweightExercise(currentExercise.name);
               // Real, new: the actual live pre-fill, not just a
@@ -1367,10 +1392,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
+  prescriptionDetail: {
+    fontSize: 12,
+    color: '#333',
+    marginTop: 4,
+  },
   prescriptionReason: {
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+  },
+  effortLegend: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 8,
   },
   setRow: {
     flexDirection: 'row',
