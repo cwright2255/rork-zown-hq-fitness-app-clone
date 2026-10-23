@@ -259,6 +259,28 @@ describe('sanitizeTrainingState', () => {
     expect(out.lifts).toHaveLength(1);
   });
 
+  describe('the weight unit', () => {
+    it('keeps kg or lb, in its place before readiness', () => {
+      for (const unit of ['kg', 'lb']) {
+        const out = sanitizeTrainingState({ ...VALID, weightUnit: unit });
+        expect(out.weightUnit).toBe(unit);
+        expect(Object.keys(out)).toEqual(['v', 'recentWorkouts', 'musclesWorked', 'muscleRecovery', 'lifts', 'weightUnit', 'readiness', 'trainingLoad']);
+      }
+    });
+
+    it('leaves it out for anything else, and leaves the rest as it was', () => {
+      for (const bad of [undefined, null, '', 'KG', 'kgs', 'pounds', 'metric', ' kg', 7, true, ['kg'], { kg: 1 }]) {
+        const out = sanitizeTrainingState({ ...VALID, weightUnit: bad });
+        expect('weightUnit' in out).toBe(false);
+        expect(out).toEqual(VALID);
+      }
+    });
+
+    it('does not make a state out of a unit alone', () => {
+      expect(sanitizeTrainingState({ v: 3, weightUnit: 'kg' })).toBeNull();
+    });
+  });
+
   it('returns only the fields it knows, whatever else was sent', () => {
     const out = sanitizeTrainingState({ ...VALID, name: 'Cj', email: 'cj@example.com', history: [1, 2, 3], __proto__: { polluted: true } });
     expect(Object.keys(out).sort()).toEqual(['lifts', 'muscleRecovery', 'musclesWorked', 'readiness', 'recentWorkouts', 'trainingLoad', 'v']);
@@ -305,6 +327,16 @@ describe('trainingStateText', () => {
 
   it('names no unit, since the server does not know which one the person logs in', () => {
     expect(text(VALID)).not.toMatch(UNITS);
+  });
+
+  it('names the unit the app sent, and says not to convert it', () => {
+    expect(text({ ...VALID, weightUnit: 'kg' })).toContain('Main lifts (weights are in kg; do not convert them): Bench Press best set 185 x 5');
+    expect(text({ ...VALID, weightUnit: 'lb' })).toContain('Main lifts (weights are in lb; do not convert them): Bench Press best set 185 x 5');
+  });
+
+  it('keeps to the old words for a unit that is not kg or lb, so the prompt is the one it always was', () => {
+    expect(text({ ...VALID, weightUnit: 'stone' })).toBe(text(VALID));
+    expect(text({ ...VALID, weightUnit: 'stone' })).toContain('weights are in the unit the user logs');
   });
 
   it('says 0 workouts, no muscles worked and no muscle still recovering, when those are the known answers', () => {

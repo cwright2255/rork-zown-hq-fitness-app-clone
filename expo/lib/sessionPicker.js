@@ -371,9 +371,11 @@ export function pickSession(options = {}) {
     return 0;
   };
 
-  // The line that says why: the muscle the exercise is picked for (the one that most needs it, by what matters), how rested it is, and how far
-  // it still is from this week's aim counting what this session has already given it.
-  const reasonFor = (e) => {
+  // The line that says why, and the figures it is made from: the muscle the exercise is picked for (the one that most needs it, by what
+  // matters), how rested it is, and how far it still is from this week's aim counting what this session has already given it. The figures
+  // ({ muscle, recovered, done, short, aim }) are kept on the pick, so whatever words the reason later gets (the AI's, in Step 6) can be
+  // checked against the numbers the engine used.
+  const whyFor = (e) => {
     const main = e.primary.reduce((best, m) => (weightOf(m) * needOf(m) > weightOf(best) * needOf(best) + 1e-9 ? m : best), e.primary[0]);
     const recovered = Math.round(recoveryOf(main));
     const done = Math.round(num(thisWeek, main));
@@ -384,7 +386,7 @@ export function pickSession(options = {}) {
       : short >= 1
         ? `${short} ${short === 1 ? 'set' : 'sets'} short of this week's ${aim}-set aim`
         : `at this week's ${aim}-set aim, a top-up`;
-    return `${muscleLabel(main)}: ${restText}, ${volumeText}.`;
+    return { reason: `${muscleLabel(main)}: ${restText}, ${volumeText}.`, facts: { muscle: main, recovered, done, short, aim } };
   };
 
   const picks = [];
@@ -416,6 +418,7 @@ export function pickSession(options = {}) {
     });
     const sets = fitted.get(best.id);
     const pace = paceOf(best);
+    const why = whyFor(best);
     picks.push({
       id: best.id,
       name: best.name,
@@ -427,7 +430,8 @@ export function pickSession(options = {}) {
       timed: isTimed(best),
       workSeconds: pace.work,
       restSeconds: pace.rest,
-      reason: reasonFor(best),
+      reason: why.reason,
+      facts: why.facts,
     });
     Object.entries(shares(best)).forEach(([m, share]) => { planned[m] = plannedOf(m) + sets * share; });
     best.primary.forEach((m) => {
@@ -466,7 +470,13 @@ export function pickSession(options = {}) {
     };
   });
 
-  return finishSession({ status: 'ok', message: null, name: nameFor(plannedMain), goal, level, exercises, leftOutFor: leftOut });
+  // The muscles still under the readiness line, least recovered first: what the words around the session may mention. Not a pick.
+  const tired = Object.keys(recovery)
+    .filter((m) => recoveryOf(m) < rules.readyRecovery) // a figure that is not a number counts as fully recovered
+    .map((m) => ({ muscle: m, recovered: Math.round(recoveryOf(m)) }))
+    .sort((a, b) => a.recovered - b.recovered || (a.muscle < b.muscle ? -1 : 1));
+
+  return finishSession({ status: 'ok', message: null, name: nameFor(plannedMain), goal, level, exercises, leftOutFor: leftOut, tired });
 }
 
 // The totals that depend on the exercises, worked out in one place so attachTargets can redo them when it changes the sets.

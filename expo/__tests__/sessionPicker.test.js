@@ -7,6 +7,7 @@ import {
 } from '../lib/sessionPicker';
 import { LIBRARY, LEVELS, EQUIPMENT, getExercise } from '../lib/exerciseLibrary';
 import { MUSCLES } from '../lib/muscleVocabulary';
+import { muscleLabel } from '../lib/homeWidgetData';
 import { blockedBy } from '../lib/injuryRules';
 import { repRangeFor, describeLift } from '../lib/loadRules';
 import { calculateXpReward } from '../lib/coachActions';
@@ -404,6 +405,74 @@ describe('what is missing this week', () => {
   it('aims for 10 sets a week for a beginner and 18 for an advanced lifter', () => {
     expect(pickSession({ ...base, level: 'beginner', recovery: tiredExcept('chest') }).exercises[0].reason).toMatch(/\(aim 10\)\.$/);
     expect(pickSession({ ...base, level: 'advanced', recovery: tiredExcept('chest') }).exercises[0].reason).toMatch(/\(aim 18\)\.$/);
+  });
+});
+
+describe('the figures behind each reason, and the tired muscles', () => {
+  const chestAt = (chest, rested = 100) => pickSession({
+    ...base, recovery: { ...tiredExcept('chest'), chest: rested }, volume: { thisWeek: { chest }, lastWeek: { chest: 14 }, sessions: {} },
+  });
+
+  it('keeps on every pick the muscle, how recovered it is, the sets done, the sets short and the aim that its reason was written from', () => {
+    expect(chestAt(8, 92).exercises[0].facts).toEqual({ muscle: 'chest', recovered: 92, done: 8, short: 6, aim: 14 });
+    expect(chestAt(8, 92).exercises[0].reason).toBe("Chest: about 92% recovered, 6 sets short of this week's 14-set aim.");
+    expect(chestAt(0).exercises[0].facts).toEqual({ muscle: 'chest', recovered: 100, done: 0, short: 14, aim: 14 });
+    expect(chestAt(14).exercises[0].facts).toEqual({ muscle: 'chest', recovered: 100, done: 14, short: 0, aim: 14 });
+  });
+
+  it('counts the sets the session has already given the muscle, as the reason does', () => {
+    const s = pickSession({ ...base, minutes: 60 });
+    expect(s.exercises.find((x) => x.id === 'barbell-back-squat').facts).toEqual({ muscle: 'quadriceps', recovered: 100, done: 0, short: 13, aim: 14 });
+  });
+
+  it('has every figure in the reason of every pick, in the facts of that pick, across a whole session', () => {
+    const s = pickSession({ ...base, minutes: 60, level: 'advanced', recovery: { chest: 85, lats: 91 }, volume: { thisWeek: { chest: 7, lats: 3.4 }, lastWeek: {}, sessions: {} } });
+    expect(s.exercises.length).toBeGreaterThan(3);
+    s.exercises.forEach((x) => {
+      const numbers = (x.reason.match(/\d+/g) || []).map(Number);
+      const known = [x.facts.recovered, x.facts.short, x.facts.aim];
+      numbers.forEach((n) => expect(known).toContain(n));
+    });
+  });
+
+  it('names, in the facts, the muscle the reason is about, for every pick of every kind of session', () => {
+    let picks = 0;
+    ['beginner', 'intermediate', 'advanced'].forEach((level) => ['strength', 'muscle', 'general'].forEach((goal) => [15, 30, 45, 60].forEach((minutes) => {
+      pickSession({ level, goal, minutes }).exercises.forEach((x) => {
+        expect(x.primary).toContain(x.facts.muscle);
+        expect(x.reason.startsWith(`${muscleLabel(x.facts.muscle)}:`)).toBe(true);
+        picks += 1;
+      });
+    })));
+    expect(picks).toBeGreaterThan(100);
+    // a deadlift is picked for the glutes, not for the first muscle it lists
+    const s = pickSession({
+      ...base, recovery: tiredExcept('glutes', 'hamstrings', 'lower_back'),
+      volume: { thisWeek: { glutes: 6, hamstrings: 6, lower_back: 4 }, lastWeek: { glutes: 14, hamstrings: 14, lower_back: 14 }, sessions: { glutes: 2, hamstrings: 2, lower_back: 2 } },
+    });
+    expect(s.exercises[0].facts).toEqual({ muscle: 'glutes', recovered: 100, done: 6, short: 8, aim: 14 });
+  });
+
+  it('lists the muscles under the readiness line, least recovered first, equal ones alphabetically, rounded and kept between 0 and 100', () => {
+    const s = pickSession({
+      ...base, recovery: { chest: 95, triceps: 40, biceps: 40, glutes: 12, calves: 55.4, lats: 70, shoulders: 250, neck: -20 },
+    });
+    expect(s.status).toBe('ok');
+    expect(s.tired).toEqual([
+      { muscle: 'neck', recovered: 0 }, { muscle: 'glutes', recovered: 12 }, { muscle: 'biceps', recovered: 40 },
+      { muscle: 'triceps', recovered: 40 }, { muscle: 'calves', recovered: 55 },
+    ]);
+  });
+
+  it('has no tired muscles when every muscle is ready, or no recovery is known', () => {
+    expect(pickSession({ ...base }).tired).toEqual([]);
+    expect(pickSession({ ...base, recovery: { chest: 95, lats: 70 } }).tired).toEqual([]);
+    expect(pickSession({ ...base, recovery: { chest: NaN, lats: 'x', glutes: null } }).tired).toEqual([]);
+  });
+
+  it('is only on a session that was picked', () => {
+    expect('tired' in pickSession({ ...base, recovery: tiredExcept() })).toBe(false);
+    expect('tired' in pickSession({ ...base, equipment: [], level: 'beginner', excluded: LIBRARY.map((e) => e.id) })).toBe(false);
   });
 });
 

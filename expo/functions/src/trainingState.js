@@ -9,7 +9,9 @@
 // phone's own text. This keeps bad data out; it is not a defence against a person editing their own request, since the goals and
 // injuries they send already reach the prompt as free text.
 //
-// Weights are in whatever unit the person logs. The server does not know which, never converts, and tells the AI not to either.
+// Weights are in the unit the phone says ('kg' or 'lb': Settings > Weight Units on the phone, which has already put the weights in it). An older
+// phone says nothing: the weights are then in whatever unit the person logs, the server does not know which, and the AI is told not to convert.
+// The server never converts.
 //
 // Injuries do not come in the state. The plan request already carries them in the profile (index.js writes them into the prompt as
 // "Injuries / areas to protect"), so whether there are any is read from there and the text below says they come before everything else.
@@ -93,6 +95,8 @@ export function sanitizeTrainingState(input) {
     }
   }
 
+  const weightUnit = input.weightUnit === 'kg' || input.weightUnit === 'lb' ? input.weightUnit : null;
+
   const score = input.readiness ? within(input.readiness.score, 0, 100) : null;
   const readiness = score === null ? null : { score: Math.round(score), label: readinessWord(score) };
 
@@ -102,7 +106,9 @@ export function sanitizeTrainingState(input) {
     ? { zone, ratio: Math.round(ratio * 100) / 100 }
     : null;
 
-  const state = { v: TRAINING_STATE_VERSION, recentWorkouts, musclesWorked, muscleRecovery, lifts, readiness, trainingLoad };
+  const state = {
+    v: TRAINING_STATE_VERSION, recentWorkouts, musclesWorked, muscleRecovery, lifts, ...(weightUnit ? { weightUnit } : {}), readiness, trainingLoad,
+  };
   const empty = recentWorkouts === null && musclesWorked === null && muscleRecovery === null && lifts.length === 0 && !readiness && !trainingLoad;
   return empty ? null : state;
 }
@@ -142,7 +148,8 @@ export function trainingStateText(state, { hasInjuries = false } = {}) {
       `${l.name} best set ${l.bestWeight} x ${l.bestReps}, estimated one-rep max about ${l.e1rm}` +
       `${l.lastSessionDate ? `, last trained ${l.lastSessionDate}` : ''}${l.sessions ? `, ${l.sessions} sessions logged` : ''}`
     ));
-    parts.push(`Main lifts (weights are in the unit the user logs; do not convert them): ${lifts.join('; ')}.`);
+    const unitWords = state.weightUnit ? `weights are in ${state.weightUnit}` : 'weights are in the unit the user logs';
+    parts.push(`Main lifts (${unitWords}; do not convert them): ${lifts.join('; ')}.`);
   }
 
   if (state.readiness) {

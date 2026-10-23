@@ -127,6 +127,7 @@ export async function loadBriefMessages({ user, now = new Date(), patience } = {
       cardioVolume: summarizeCardioVolume({ runs, completedHikes: hikes, days: 7 }),
       monthlyWorkoutCount: monthlyCount(workouts, now),
       trainingLoad,
+      weightUnit: pounds ? 'lb' : 'kg',
     }),
   });
 }

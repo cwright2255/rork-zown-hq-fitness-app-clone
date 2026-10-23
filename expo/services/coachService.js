@@ -8,6 +8,7 @@ import { ALCOHOL_COACH_NOTE } from '../lib/alcoholGuidance';
 import { buildActionInstructions } from '../lib/coachActions';
 import { memoryLine } from '../lib/coachMemory';
 import { coachTrainingFacts } from '../lib/trainingState';
+import { fromPounds, weightNumber } from '../lib/weightUnits';
 
 // Real, new: readable labels for the raw ids app/profile/edit.jsx's
 // GOALS/INJURIES constants store on the user, so the system prompt below
@@ -176,9 +177,14 @@ export function summarizeCardioVolume({ runs = [], completedHikes = [], days = 7
  * `trainingState` (lib/trainingState.js) is optional; it adds the workouts in the last 14 days and the muscles they worked, the muscle
  * load still carried from the last 5 days, readiness and, when an injury was reported, that it comes before those figures. A caller that
  * does not pass it gets exactly the message it always did.
- * @param {{ liftPRs?: object[], cardioVolume?: object|null, monthlyWorkoutCount?: number|null, trainingLoad?: object|null, trainingState?: object|null }} params
+ * `weightUnit` is the unit the lift weights are written in: 'kg' for a person whose Settings > Weight Units is metric, so the Coach quotes
+ * the unit they use. The lift records are in pounds (that is how every set is saved); 'kg' turns them into kilograms to one decimal, and
+ * anything else, or no unit, is the pounds message exactly as it always was.
+ * @param {{ liftPRs?: object[], cardioVolume?: object|null, monthlyWorkoutCount?: number|null, trainingLoad?: object|null, trainingState?: object|null, weightUnit?: 'kg'|'lb' }} params
  */
-export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthlyWorkoutCount = null, trainingLoad = null, trainingState = null } = {}) {
+export function buildUserDataContext({
+  liftPRs = [], cardioVolume = null, monthlyWorkoutCount = null, trainingLoad = null, trainingState = null, weightUnit = 'lb',
+} = {}) {
   const lines = [
     "Here is this user's real, current logged data. Only cite specific numbers or dates from this message - " +
       "if asked about something not covered here, say you don't have that logged rather than guessing or estimating.",
@@ -192,8 +198,10 @@ export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthl
   if (facts.recent) lines.push(facts.recent);
 
   if (liftPRs.length > 0) {
+    const unit = weightUnit === 'kg' ? 'kg' : 'lb';
+    const shown = (pounds) => (unit === 'kg' ? weightNumber(fromPounds(pounds, 'kg')) : pounds);
     const liftLines = liftPRs
-      .map((p) => `${p.name} - best ${p.bestWeight} lb x ${p.bestReps} (est. 1RM ~${p.bestE1RM} lb) on ${p.bestDate}, most recent session ${p.lastSessionDate}, ${p.sessionCount} sessions logged.`)
+      .map((p) => `${p.name} - best ${shown(p.bestWeight)} ${unit} x ${p.bestReps} (est. 1RM ~${shown(p.bestE1RM)} ${unit}) on ${p.bestDate}, most recent session ${p.lastSessionDate}, ${p.sessionCount} sessions logged.`)
       .join(' ');
     lines.push(`Primary lift history: ${liftLines}`);
   } else {

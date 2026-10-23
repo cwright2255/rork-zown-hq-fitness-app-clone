@@ -500,7 +500,8 @@ the app: the AI is told your reported injuries override the muscle figures and w
       muscle map, the least recovered (hottest) first; each lift in "Main lifts" has the same best set and estimated one-rep max the
       Coach quotes; "Readiness today" is the score on the Health page (it is missing when that page shows none); "Training
       load" is the ratio on the Health page.
-- [ ] The prompt names no unit for a weight. Your weights are in whatever you logged them in.
+- [ ] The "Main lifts" sentence names the unit your weights are in ("weights are in kg; do not convert them" if Settings, Weight Units is
+      Metric, "in lb" if it is Imperial) and the weights in it are in that unit (see "Weight units" below for the full check).
 - [ ] Injuries: with an injury ticked under Injuries in Edit Profile, the same `prompt` also contains "Injuries / areas to
       protect" and, after the training sentences, "The injuries and areas to protect listed above come before all of this". Generate a
       plan with the injured area's muscles showing as recovered: no exercise in the plan loads that area. With no injury reported,
@@ -571,7 +572,7 @@ training guidance, not measurements; they will be adjusted as you use them (all 
 - The three buttons still say Easy / OK / Hard and are saved the same way; a line above the sets says what they mean in reps left
   (Easy = 3+ left, OK = 1-2 left, Hard = 0-1 left).
 
-Weights are in pounds, as the workout screen has always logged them.
+Weights are in the unit chosen in Settings, Weight Units (pounds if it is Imperial, kilograms if it is Metric); see "Weight units" below.
 
 - [ ] Open a workout with a lift you have logged before (Bench Press, Squat or Deadlift). Under "Log Your Sets" the card shows
       "Today's target: <weight> lb x <reps> reps", a second line that starts with "Heavy day" or "Light day" and gives the rep range, "stop
@@ -589,9 +590,35 @@ Weights are in pounds, as the workout screen has always logged them.
 - [ ] On a lift you have done at least three times, log one set with an impossible weight (say 1000 lb) and press OK. No record celebration
       appears. The next target is built on your earlier sessions, not on the 1000.
 
+## Weight units: kilograms or pounds (once, after the function is deployed, then the update)
+
+The workout screen, Today's Session, the Coach's lift text and the AI plan prompt now follow Settings, Weight Units. Every weight you have
+saved stays in pounds (the logged sets, your history and your records are not changed); the setting only decides which unit is typed and
+shown. In kilograms a weight you type is turned into pounds before it is saved, and a saved weight is turned into kilograms to show it
+(factor 2.20462, the same one the Progress screen uses for body weight). Kilogram targets are rounded to the nearest half kilogram, so they can be loaded.
+Other screens that print a lift in pounds (the workout summary, volume totals, strength standards and similar) are not part of this change and still show pounds.
+
+Deploy the function first (the plan prompt names the unit), then the update:
+
+1. `firebase deploy --only functions:generateWorkoutPlan`
+2. `eas update --branch main --environment production` (from inside `expo/`), then close the app completely and open it once.
+
+If you typed weights in kilograms into the pounds box before this update, those saved sets are read as pounds. Nothing here can tell them apart.
+
+- [ ] Settings, Weight Units: Imperial. Open a workout with a lift you have logged. The target card says "lb", the weight box says "lb", and a
+      logged set reads "Set 1: 135 lb x 8 reps", as before.
+- [ ] Settings, Weight Units: Metric. The same workout: the target card is in kg ("Today's target: 60 kg x 8 reps"), a whole or half kilogram,
+      and about 45% of the pound figure; the weight box says "kg".
+- [ ] In Metric, log a set of 60 kg x 8. The row reads "Set 1: 60 kg x 8 reps". Firestore, `loggedSets`, the new set: `weight` is
+      132.28 (pounds). Switch Settings back to Imperial: the same set reads "132.3 lb".
+- [ ] In Metric, finish a lift with a new best. The record message and the estimated 1-rep max are in kg.
+- [ ] Metric: Today's Session. Every "Start at" weight is in kg, whole or half kilograms, and matches the target card when you open that lift.
+- [ ] Metric: Coach, ask "What are my best lifts?" The weights it quotes are in kg and match the same lift's best set in pounds divided by 2.2. Imperial: in lb.
+- [ ] Metric: Firestore, `aiRecommendations`, the newest `workout_plan` document, `prompt`: "Main lifts (weights are in kg; do not convert them)". Imperial: "weights are in lb".
+
 ## Today's Session (once, on the first update with it)
 
-Workouts has a new "Today's Session" button under Quick Workout. It picks the day's exercises on the phone, with no AI and nothing to pay: it
+Workouts has a new "Today's Session" button under Quick Workout. It picks the day's exercises on the phone, with no AI and nothing to pay (a moment later the AI may reword the name and the reasons; see the checks at the end of this section): it
 scores the exercise library on how rested each muscle is, how many sets each muscle has had this week against a weekly aim (10 for a beginner,
 14 intermediate, 18 advanced; a muscle's weekly limit is 10% over last week's sets, but never under 10 or over 20), your goal, your equipment and your injuries, then
 fills the time you choose. Starting values from common training guidance, not measurements; every number is in one table, `SESSION_RULES` in
@@ -629,6 +656,33 @@ Needs some logged workouts to show anything interesting; a person with none gets
       advice.
 - [ ] The workout screen for a bodyweight lift that reached the top of its range (the "ready for a harder version" hint) still shows the hint;
       Today's Session keeps offering the version you last logged until you do the harder one.
+
+### The AI's words on the session (Step 6)
+
+After the session settles (about a second), the AI is asked to put words on it: a name for the session and a plain reason for each pick,
+using only the numbers the engine used, and a line about an injury area that was left out or a muscle that is still tired. Its answer is
+checked against the engine's own session before you see it. A name, reason or line that fails any check is dropped and the engine's own
+words stay. The exercises, sets, reps and weights are never the AI's. Only the training state goes to the AI: the goal, level, time,
+equipment, unit, the injury areas left out, up to three tired muscles, and each pick's sets, reps, rest, weight and recovery figures. No name,
+email, history or one-rep max. It uses one of the day's "insight" requests (9 a day on Free, 60 on Pro, 120 on Legend), the same allowance as
+the Health comment and the Coach's notes, and it works on every plan. When the allowance is used up, or the AI fails, the session just stays in the engine's words.
+
+- [ ] Open Today's Session. The session appears at once in the engine's words ("Chest: about 92% recovered, 6 sets short of this week's
+      14-set aim."). About a second later the name and the reasons change to plainer sentences and a small grey line under the title says the
+      name and reasons are worded by AI and that the exercises, sets, reps and weights are the engine's.
+- [ ] Every number in an AI reason is one of that exercise's own: its sets, reps, rest, weight, how recovered the muscle is, the sets done this
+      week, the sets short, the weekly aim. None is a number you cannot find in the card or its reason line before the swap.
+- [ ] The exercises, their order, the sets and reps, and the "Start at" weights did not change when the words swapped in.
+- [ ] Tap through 15, 30, 45 and 60 quickly: nothing is asked while you tap; a second after you stop, the last session gets its words. Go back to
+      one you already had: its words show at once.
+- [ ] Metric: the AI's weights are in kg. Imperial: in lb. It never mentions the other unit.
+- [ ] With a shoulder (or another) injury reported: a line under the cards from the AI mentions the left-out area, next to the engine's own
+      "Left out because of the injuries you reported" line, which is unchanged. With no injury and no tired muscle there is no AI line.
+- [ ] Start Workout while the AI's name is showing: the saved workout is called by that name, with the same exercises.
+- [ ] Airplane mode, then open Today's Session: the session shows in the engine's words and stays that way, with no error and no caption.
+- [ ] No claims: no reason says the session is safe, proven, optimal, guaranteed, medical advice, or that it treats or prevents anything. (Any that did would have been dropped.)
+- [ ] Firestore, `aiUsage/<uid>_<day>`: `insight` goes up by 1 for each session that was worded, and not at all for a session shown again from memory.
+- [ ] Workouts, Get recommendation, and Quick Workout, Generate (the AI plans) work exactly as before.
 
 ## After changing a key or a Cloud Function
 

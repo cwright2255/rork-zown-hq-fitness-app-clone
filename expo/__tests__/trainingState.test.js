@@ -263,6 +263,49 @@ describe('buildTrainingState', () => {
     expect(JSON.stringify(lifts)).not.toMatch(/\b(lb|lbs|kg|pounds|kilograms)\b/i);
   });
 
+  describe('the weight unit', () => {
+    const pounds = { ...bench, bestWeight: 225, bestE1RM: 248 };
+
+    it('names the unit and gives the lifts as they were saved, for pounds', () => {
+      const state = buildTrainingState({ now: NOW, liftPRs: [pounds], weightUnit: 'lb' });
+      expect(state.weightUnit).toBe('lb');
+      expect(state.lifts[0]).toEqual({ name: 'Bench Press', e1rm: 248, bestWeight: 225, bestReps: 5, lastSessionDate: '2026-10-20', sessions: 12 });
+    });
+
+    it('names the unit and turns the lifts into kilograms, the one-rep max to a whole number and the best set to two decimals', () => {
+      const state = buildTrainingState({ now: NOW, liftPRs: [pounds], weightUnit: 'kg' });
+      expect(state.weightUnit).toBe('kg');
+      expect(state.lifts[0].e1rm).toBe(112); // 248 lb is 112.49 kg
+      expect(state.lifts[0].bestWeight).toBe(102.06); // 225 lb
+      expect(state.lifts[0].bestReps).toBe(5);
+    });
+
+    it('leaves the unit out, and the weights as they were, when none is given or it is not kg or lb', () => {
+      [undefined, null, '', 'KG', 'pounds', 'metric', 7].forEach((weightUnit) => {
+        const state = buildTrainingState({ now: NOW, liftPRs: [pounds], weightUnit });
+        expect('weightUnit' in state).toBe(false);
+        expect(state.lifts[0].bestWeight).toBe(225);
+        expect(state.lifts[0].e1rm).toBe(248);
+      });
+    });
+
+    it('still says nothing when there is nothing to say, with a unit', () => {
+      const state = buildTrainingState({ now: NOW, weightUnit: 'kg' });
+      expect(state.lifts).toEqual([]);
+      expect(state.weightUnit).toBe('kg');
+    });
+
+    it('does not count as something to tell the AI', () => {
+      expect(isEmptyTrainingState(buildTrainingState({ now: NOW, weightUnit: 'kg' }))).toBe(true);
+    });
+
+    it('does not change the lift records it was given', () => {
+      const before = JSON.stringify(pounds);
+      buildTrainingState({ now: NOW, liftPRs: [pounds], weightUnit: 'kg' });
+      expect(JSON.stringify(pounds)).toBe(before);
+    });
+  });
+
   describe('injuries', () => {
     const has = (injuries) => buildTrainingState({ now: NOW, injuries }).hasInjuries;
 

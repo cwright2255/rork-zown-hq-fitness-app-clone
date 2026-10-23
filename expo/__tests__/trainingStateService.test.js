@@ -8,6 +8,9 @@ jest.mock('@/store/workoutStore', () => ({ useWorkoutStore: { getState: () => gl
 jest.mock('@/store/runningStore', () => ({ useRunningStore: { getState: () => global.__stores.running } }));
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: { getState: () => global.__stores.hiking } }));
 jest.mock('@/store/healthStore', () => ({ useHealthStore: { getState: () => global.__stores.health } }));
+jest.mock('@/store/settingsStore', () => ({
+  useSettingsStore: { getState: () => { if (global.__stores.settings === 'throw') throw new Error('not ready'); return global.__stores.settings; } },
+}));
 
 import { readTrainingState, loadTrainingSources, getTrainingState } from '../services/trainingStateService';
 import { localDateKey, shiftDateKey } from '../lib/localDate';
@@ -41,6 +44,7 @@ const stores = (over = {}) => ({
   health: {
     rookRecovery: null, sleep: null, readingsHistory: {}, loadAllHealth: jest.fn(async () => {}), loadRookRecovery: jest.fn(async () => {}), ...over.health,
   },
+  settings: over.settings === 'throw' ? 'throw' : { weightUnits: 'imperial', ...over.settings },
 });
 
 beforeEach(() => {
@@ -181,7 +185,40 @@ describe('readTrainingState', () => {
 
   it('is empty for an account with nothing logged', () => {
     expect(readTrainingState({ now: NOW })).toEqual({
-      v: 3, recentWorkouts: null, musclesWorked: null, muscleRecovery: null, lifts: [], readiness: null, trainingLoad: null, hasInjuries: false,
+      v: 3, recentWorkouts: null, musclesWorked: null, muscleRecovery: null, lifts: [], weightUnit: 'lb', readiness: null, trainingLoad: null, hasInjuries: false,
+    });
+  });
+
+  describe('the weight unit', () => {
+    const liftPRs = [{ name: 'Squat', bestWeight: 225, bestReps: 3, bestE1RM: 248, bestDate: '2026-10-01', lastSessionDate: '2026-10-18', sessionCount: 9 }];
+
+    it('is pounds, with the lifts as they were saved, when Settings says imperial', () => {
+      const state = readTrainingState({ liftPRs, now: NOW });
+      expect(state.weightUnit).toBe('lb');
+      expect(state.lifts[0]).toEqual(expect.objectContaining({ e1rm: 248, bestWeight: 225 }));
+    });
+
+    it('is kilograms, with the lifts turned into kilograms, when Settings says metric', () => {
+      global.__stores = stores({ settings: { weightUnits: 'metric' } });
+      const state = readTrainingState({ liftPRs, now: NOW });
+      expect(state.weightUnit).toBe('kg');
+      expect(state.lifts).toEqual([{ name: 'Squat', e1rm: 112, bestWeight: 102.06, bestReps: 3, lastSessionDate: '2026-10-18', sessions: 9 }]);
+    });
+
+    it('follows the unit it is given over the setting', () => {
+      expect(readTrainingState({ liftPRs, now: NOW, weightUnit: 'kg' }).weightUnit).toBe('kg');
+      global.__stores = stores({ settings: { weightUnits: 'metric' } });
+      expect(readTrainingState({ liftPRs, now: NOW, weightUnit: 'lb' }).lifts[0].bestWeight).toBe(225);
+    });
+
+    it('counts a setting that cannot be read as pounds', () => {
+      global.__stores = stores({ settings: 'throw' });
+      expect(readTrainingState({ liftPRs, now: NOW }).weightUnit).toBe('lb');
+    });
+
+    it('does not make a brand-new account look like one with something to tell', async () => {
+      global.__stores = stores({ settings: { weightUnits: 'metric' } });
+      expect(await getTrainingState('u1', { now: NOW })).toBeNull();
     });
   });
 });

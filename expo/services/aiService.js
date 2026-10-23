@@ -10,6 +10,7 @@ import { localDateKey } from '@/lib/localDate';
 import { upgradeFromError } from '@/lib/upgradePrompt';
 import { parseBrief } from '@/lib/todayBrief';
 import { parseFacts } from '@/lib/coachMemory';
+import { parseWordingReply } from '@/lib/sessionWording';
 
 const withTimeout = async (p, ms, signal) => {
   return new Promise((resolve, reject) => {
@@ -530,6 +531,27 @@ export const generateTodayBrief = async ({ messages }) => {
   } catch (error) {
     // A plan that does not include the brief is not a fault worth logging; anything else is.
     if (!upgradeFromError(error)) console.error('Error generating the Today brief', error);
+    return null;
+  }
+};
+
+/**
+ * The words around Today's Session: the AI's reply to `messages` (lib/sessionWording.js wordingMessages), read as the JSON object it was asked
+ * for. Resolves to that object, or null when the reply holds none, the scope check turned the request away, the allowance for the day is used
+ * up or the call failed. Counted with the comments the app asks for by itself ('insight', open to every plan), so it never uses up the messages
+ * a person sends. What the object says is not trusted here: lib/sessionWording.js checkWording checks it against the engine's session. One
+ * try, and it never throws: the session is complete without these words.
+ * @param {{ messages: { role: string, content: string }[] }} params
+ */
+export const generateSessionWording = async ({ messages }) => {
+  if (!Array.isArray(messages) || !messages.length) return null;
+  try {
+    const data = await postLLM(messages, 25000, 0, 'insight');
+    if (data?.refused) return null;
+    return parseWordingReply(data.completion);
+  } catch (error) {
+    // A daily limit used up is not a fault worth logging; anything else is.
+    if (!upgradeFromError(error)) console.error('Error wording Today\'s Session', error);
     return null;
   }
 };

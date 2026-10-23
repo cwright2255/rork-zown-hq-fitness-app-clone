@@ -18,6 +18,7 @@ import { recoveryInputs } from '@/lib/homeWidgetData';
 import { hrvTitle } from '@/lib/healthDisplay';
 import { localDateKey } from '@/lib/localDate';
 import { buildTrainingState, isEmptyTrainingState } from '@/lib/trainingState';
+import { unitFromSetting } from '@/lib/weightUnits';
 
 /** How long the plan call waits for the stores before it goes ahead with what it has. */
 export const TRAINING_STATE_PATIENCE_MS = 4000;
@@ -30,6 +31,16 @@ const healthStore = () => {
     return require('@/store/healthStore').useHealthStore.getState();
   } catch {
     return {};
+  }
+};
+
+// The weight unit the person chose in Settings, taken when it is needed for the same reason (the settings store opens the phone's storage as
+// it loads). A store that cannot be had counts as pounds.
+const currentUnit = () => {
+  try {
+    return unitFromSetting(require('@/store/settingsStore').useSettingsStore.getState().weightUnits);
+  } catch {
+    return 'lb';
   }
 };
 
@@ -69,11 +80,11 @@ export async function loadTrainingSources(uid, { patience = TRAINING_STATE_PATIE
 /**
  * The training state from what the stores hold at this moment (nothing is loaded here). `liftPRs` is summarizeLiftPRs' answer and
  * `injuries` the injuries the person reported (the state keeps only whether there are any, for the Coach; the plan function reads them
- * from the profile it is sent).
+ * from the profile it is sent). The lifts' weights are given in `weightUnit` ('kg' or 'lb'; by default the person's Settings > Weight Units).
  * Muscle recovery is worked out by lib/muscleRecovery.js with the rule the Health screen uses for how rested the person is
  * (recoveryInputs), so the two never disagree.
  */
-export function readTrainingState({ liftPRs = [], now = new Date(), injuries } = {}) {
+export function readTrainingState({ liftPRs = [], now = new Date(), injuries, weightUnit = currentUnit() } = {}) {
   const workouts = useWorkoutStore.getState().completedWorkouts || [];
   const runs = useRunningStore.getState().runs || [];
   const hikes = useHikingStore.getState().completedHikes || [];
@@ -86,7 +97,7 @@ export function readTrainingState({ liftPRs = [], now = new Date(), injuries } =
   const readiness = computeReadiness({
     history: health.readingsHistory, today: localDateKey(now), trainingLoad, hrvLabel: hrvTitle(health.rookRecovery),
   });
-  return buildTrainingState({ now, workouts, runs, hikes, recovery, liftPRs, readiness, trainingLoad, injuries });
+  return buildTrainingState({ now, workouts, runs, hikes, recovery, liftPRs, readiness, trainingLoad, injuries, weightUnit });
 }
 
 /**

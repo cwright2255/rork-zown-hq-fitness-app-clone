@@ -28,6 +28,7 @@ import { useHikingStore } from '@/store/hikingStore';
 import { PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
 import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
 import { readTrainingState } from '@/services/trainingStateService';
+import { unitFromSetting } from '@/lib/weightUnits';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -277,7 +278,8 @@ export default function CoachScreen() {
       // entirely (not sent as an empty/placeholder message) until the
       // real fetch above finishes, so the model is never told "here is
       // the user's data" with nothing actually in it yet.
-      const dataMsg = dataContext ? buildUserDataContext(dataContext) : null;
+      // The lift weights are written in the unit chosen in Settings > Weight Units, read fresh like the calendar setting above.
+      const dataMsg = dataContext ? buildUserDataContext({ ...dataContext, weightUnit: unitFromSetting(useSettingsStore.getState().weightUnits) }) : null;
       // Profile, weight trend, goals, nutrition and calendar, read fresh.
       let snapshotMsg = null;
       try { snapshotMsg = buildSnapshotFromStores(user); } catch (e) { console.warn('[Coach] snapshot skipped:', e?.message); }

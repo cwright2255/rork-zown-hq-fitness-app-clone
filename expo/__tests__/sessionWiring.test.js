@@ -46,17 +46,17 @@ describe('the session service', () => {
   });
 
   it('asks the load rules the way the workout screen does: the same options, with the same values', () => {
-    const fromScreen = optionNames(active, 'getNextPrescription(history, {', 'setPrescriptions((prev)');
-    const fromService = optionNames(service, 'getNextPrescription(history, {', 'return out;');
+    const fromScreen = optionNames(active, 'getNextPrescription(historyIn(history, weightUnit), {', 'setPrescriptions((prev)');
+    const fromService = optionNames(service, 'getNextPrescription(historyIn(history, unit), {', 'return out;');
     expect(fromService).toEqual(fromScreen);
     expect(fromService).toEqual(['bodyweight', 'exerciseName', 'goal', 'level', 'lowReadinessDays', 'readiness', 'unit']);
-    const start = service.indexOf('getNextPrescription(history, {');
+    const start = service.indexOf('getNextPrescription(historyIn(history, unit), {');
     const call = service.slice(start, service.indexOf('return out;', start));
     expect(call).toMatch(/exerciseName: x\.name,/);
     expect(call).toMatch(/bodyweight: isBodyweightExercise\(x\.name\),/);
     expect(call).toMatch(/goal: goalForLoad\(getGoalIds\(user\)\),/);
     expect(call).toMatch(/level: user \? user\.fitnessLevel : undefined,/);
-    expect(call).toMatch(/unit: 'lb',/);
+    expect(call).toMatch(/unit,/);
     expect(call).toMatch(/lowReadinessDays,/);
     expect(service).toMatch(/const lowReadinessDays = countLowReadinessDays\(healthStore\(\)\.readingsHistory\);/);
     expect(service).toMatch(/getCurrentReadiness\(\)/);
@@ -109,7 +109,7 @@ describe('the Today\'s Session screen', () => {
   });
 
   it('saves the session the way Quick Workout does and opens it on the workout screen, where the usual Start button and target card work', () => {
-    expect(screen).toMatch(/const workout = sessionToWorkout\(session\);/);
+    expect(screen).toMatch(/const workout = sessionToWorkout\(shown\);/);
     expect(screen).toMatch(/useWorkoutStore\.getState\(\)\.addWorkout\(workout, uid\)/);
     expect(screen).toMatch(/router\.replace\(`\/workout\/\$\{saved\.id\}`\)/);
     expect(screen).toMatch(/if \(!workout \|\| !uid \|\| saving\) return;/);

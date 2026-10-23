@@ -18,6 +18,7 @@ import { pickSession, weeklyVolume, currentRungs, attachTargets } from '@/lib/se
 import { getNextPrescription } from '@/services/progressiveOverloadService';
 import { getCurrentReadiness } from '@/services/wearableService';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
+import { unitFromSetting, historyIn, targetIn } from '@/lib/weightUnits';
 
 /** How long the stores and the lift histories are waited for before the session goes ahead with what it has. */
 export const SESSION_PATIENCE_MS = 4000;
@@ -29,6 +30,16 @@ const healthStore = () => {
     return require('@/store/healthStore').useHealthStore.getState();
   } catch {
     return {};
+  }
+};
+
+// The weight unit the person chose in Settings, taken when it is needed for the same reason. Saved weights are pounds; this is the unit the
+// targets are worked out and shown in. A store that cannot be had counts as pounds.
+const currentUnit = () => {
+  try {
+    return unitFromSetting(require('@/store/settingsStore').useSettingsStore.getState().weightUnits);
+  } catch {
+    return 'lb';
   }
 };
 
@@ -82,9 +93,11 @@ export function readSessionInputs({ user, now = new Date() } = {}) {
 /**
  * The target the workout screen would show for each exercise: { exerciseId: prescription | null }, from each lift's logged sets (a lift with
  * none, or one whose history does not arrive in time, is null). The same options the workout screen passes, so the two agree.
+ * Weights come out in `unit` ('kg' or 'lb', by default the person's Settings > Weight Units): the saved sets are pounds and are turned into
+ * that unit first, so a target in kilograms steps in kilogram plates.
  * `cache` keeps the histories already fetched ({ exerciseName: promise }), so changing the time or the equipment does not fetch them again.
  */
-export async function loadPrescriptions(exercises, { uid, user, cache = new Map(), patience = SESSION_PATIENCE_MS } = {}) {
+export async function loadPrescriptions(exercises, { uid, user, cache = new Map(), patience = SESSION_PATIENCE_MS, unit = currentUnit() } = {}) {
   const out = {};
   const list = (Array.isArray(exercises) ? exercises : []).filter((x) => x && !x.timed);
   if (!uid || list.length === 0) return out;
@@ -95,30 +108,30 @@ export async function loadPrescriptions(exercises, { uid, user, cache = new Map(
     if (!cache.has(x.name)) cache.set(x.name, Promise.resolve().then(() => store.getExerciseHistory(x.name, uid)));
     const history = await within(cache.get(x.name), patience);
     if (!Array.isArray(history)) { cache.delete(x.name); out[x.id] = null; return; }
-    out[x.id] = getNextPrescription(history, {
+    out[x.id] = targetIn(getNextPrescription(historyIn(history, unit), {
       readiness,
       exerciseName: x.name,
       bodyweight: isBodyweightExercise(x.name),
       goal: goalForLoad(getGoalIds(user)),
       level: user ? user.fitnessLevel : undefined,
-      unit: 'lb',
+      unit,
       lowReadinessDays,
-    });
+    }), unit);
   }));
   return out;
 }
 
 /**
- * Today's session for `minutes` and `equipment` ('gym', 'dumbbells' or 'bodyweight'), with targets from the load rules. Resolves to the session
- * (lib/sessionPicker.js pickSession; its `status` says when there is nothing to pick), or null when it could not be built. Call
- * refreshSessionSources first so the stores are current.
+ * Today's session for `minutes` and `equipment` ('gym', 'dumbbells' or 'bodyweight'), with targets from the load rules in `unit` (by default
+ * the person's Settings > Weight Units). Resolves to the session (lib/sessionPicker.js pickSession; its `status` says when there is nothing to
+ * pick), or null when it could not be built. Call refreshSessionSources first so the stores are current.
  */
-export async function buildTodaySession({ uid, user, minutes, equipment, now = new Date(), cache, patience } = {}) {
+export async function buildTodaySession({ uid, user, minutes, equipment, now = new Date(), cache, patience, unit = currentUnit() } = {}) {
   try {
     const session = pickSession({ ...readSessionInputs({ user, now }), minutes, equipment });
     if (session.status !== 'ok') return session;
-    const prescriptions = await loadPrescriptions(session.exercises, { uid, user, cache, patience });
-    return attachTargets(session, prescriptions);
+    const prescriptions = await loadPrescriptions(session.exercises, { uid, user, cache, patience, unit });
+    return attachTargets(session, prescriptions, { unit });
   } catch {
     return null;
   }

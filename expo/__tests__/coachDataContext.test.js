@@ -33,6 +33,43 @@ const READINESS = "Readiness today: 71 of 100 (Moderate), a guide made from this
 
 const text = (params) => buildUserDataContext(params).content;
 
+describe('buildUserDataContext with a weight unit', () => {
+  const LB = 'Primary lift history: Bench Press - best 185 lb x 5 (est. 1RM ~216 lb) on 2026-09-30, most recent session 2026-10-20, 12 sessions logged.';
+  const KG = 'Primary lift history: Bench Press - best 83.9 kg x 5 (est. 1RM ~98 kg) on 2026-09-30, most recent session 2026-10-20, 12 sessions logged.';
+
+  it('is the pounds message, word for word, with no unit, with lb, and with anything that is not kg', () => {
+    const plain = text(base);
+    expect(plain).toContain(LB);
+    expect(text({ ...base, weightUnit: 'lb' })).toBe(plain);
+    [undefined, null, '', 'KG', 'metric', 'kgs', 7].forEach((weightUnit) => expect(text({ ...base, weightUnit })).toBe(plain));
+  });
+
+  it('writes the saved pounds as kilograms to one decimal, with the unit, for kg', () => {
+    expect(text({ ...base, weightUnit: 'kg' })).toContain(KG);
+  });
+
+  it('changes nothing else in the message', () => {
+    expect(text({ ...base, weightUnit: 'kg' }).replace(KG, LB)).toBe(text(base));
+    expect(text({ ...base, trainingState, weightUnit: 'kg' }).replace(KG, LB)).toBe(text({ ...base, trainingState }));
+  });
+
+  it('rounds to one decimal and drops a trailing .0', () => {
+    const lift = (bestWeight, bestE1RM) => [{ ...liftPRs[0], bestWeight, bestE1RM }];
+    expect(text({ ...base, liftPRs: lift(225, 248), weightUnit: 'kg' })).toContain('best 102.1 kg x 5 (est. 1RM ~112.5 kg)');
+    expect(text({ ...base, liftPRs: lift(220.46, 220.46), weightUnit: 'kg' })).toContain('best 100 kg x 5 (est. 1RM ~100 kg)');
+  });
+
+  it('does not change the records it was given', () => {
+    const before = JSON.stringify(liftPRs);
+    text({ ...base, weightUnit: 'kg' });
+    expect(JSON.stringify(liftPRs)).toBe(before);
+  });
+
+  it('says what it always did when there is no lift history, whatever the unit', () => {
+    expect(text({ ...base, liftPRs: [], weightUnit: 'kg' })).toBe(text({ ...base, liftPRs: [] }));
+  });
+});
+
 describe('buildUserDataContext with no training state', () => {
   it('is the same message the Coach has always been given', () => {
     expect(buildUserDataContext(base)).toEqual({

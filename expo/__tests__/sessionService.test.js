@@ -9,6 +9,7 @@ jest.mock('@/store/workoutStore', () => ({ useWorkoutStore: { getState: () => { 
 jest.mock('@/store/runningStore', () => ({ useRunningStore: { getState: () => global.__stores.running } }));
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: { getState: () => global.__stores.hiking } }));
 jest.mock('@/store/healthStore', () => ({ useHealthStore: { getState: () => { if (global.__stores.health === 'throw') throw new Error('store failed'); return global.__stores.health; } } }));
+jest.mock('@/store/settingsStore', () => ({ useSettingsStore: { getState: () => { if (global.__stores.settings === 'throw') throw new Error('store failed'); return global.__stores.settings; } } }));
 jest.mock('@/services/wearableService', () => ({ getCurrentReadiness: jest.fn(async () => 'medium') }));
 
 import {
@@ -23,6 +24,7 @@ import { countLowReadinessDays } from '../lib/loadRules';
 import { MUSCLES } from '../lib/muscleVocabulary';
 import { getExercise } from '../lib/exerciseLibrary';
 import { localDateKey, shiftDateKey } from '../lib/localDate';
+import { historyIn, targetIn } from '../lib/weightUnits';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date('2026-10-23T12:00:00Z');
@@ -34,6 +36,7 @@ const logged = (weight, reps, days, rpe = 'moderate') => reps.map((r) => ({ weig
 const user = { uid: 'u1', fitnessLevel: 'intermediate', fitnessMetrics: { targetGoals: ['build_muscle'], injuries: ['knee'] } };
 
 const stores = (over = {}) => ({
+  settings: { weightUnits: 'imperial', ...over.settings },
   workout: { completedWorkouts: [], loadWorkouts: jest.fn(async () => {}), getExerciseHistory: jest.fn(async () => []), ...over.workout },
   running: { runs: [], loadRuns: jest.fn(async () => {}), ...over.running },
   hiking: { completedHikes: [], loadCompletedHikes: jest.fn(async () => {}), ...over.hiking },
@@ -388,5 +391,106 @@ describe('buildTodaySession', () => {
     expect(Number(process.hrtime.bigint() - realStart) / 1e6).toBeLessThan(1500);
     expect(session.status).toBe('ok');
     session.exercises.forEach((x) => { expect(x.weight).toBeNull(); expect(x.target).toBeNull(); });
+  });
+});
+
+describe('the weight unit', () => {
+  const pushdown = { id: 'triceps-pushdown', name: 'Tricep Pushdown' };
+  const top = logged(50, [12, 12, 12], 3); // saved in pounds: every set at the top of the range, so a normal day raises the weight
+  const withUnit = (weightUnits, history = top) => stores({ settings: { weightUnits }, workout: { getExerciseHistory: jest.fn(async () => history) } });
+
+  it('works in pounds when Settings > Weight Units is imperial', async () => {
+    global.__stores = withUnit('imperial');
+    const out = await loadPrescriptions([pushdown], { uid: 'u1', user });
+    expect(out['triceps-pushdown'].weight).toBe(55);
+  });
+
+  it('works in kilograms when it is metric: the saved pounds are turned into kilograms, and the weight goes up one 2.5 kg jump', async () => {
+    global.__stores = withUnit('metric');
+    const out = await loadPrescriptions([pushdown], { uid: 'u1', user });
+    const p = out['triceps-pushdown'];
+    // 50 lb is 22.68 kg; every set reached the top of the range, so it goes up one 2.5 kg jump to 25.18, which is loaded as 25 kg (not 55: that is pounds)
+    expect(p.weight).toBe(25);
+    expect(p).toEqual(targetIn(getNextPrescription(historyIn(top, 'kg'), {
+      readiness: 'medium', exerciseName: 'Tricep Pushdown', bodyweight: false, goal: 'muscle', level: 'intermediate', unit: 'kg', lowReadinessDays: 0,
+    }), 'kg'));
+  });
+
+  it('keeps a saved history of pounds as pounds, whatever the setting is', async () => {
+    global.__stores = withUnit('metric');
+    const before = JSON.stringify(top);
+    await loadPrescriptions([pushdown], { uid: 'u1', user });
+    expect(JSON.stringify(top)).toBe(before);
+    expect(top[0].weight).toBe(50);
+  });
+
+  it('is the unit given to it, whatever the setting says', async () => {
+    global.__stores = withUnit('metric');
+    const inPounds = await loadPrescriptions([pushdown], { uid: 'u1', user, unit: 'lb' });
+    expect(inPounds['triceps-pushdown'].weight).toBe(55);
+    global.__stores = withUnit('imperial');
+    const inKilos = await loadPrescriptions([pushdown], { uid: 'u1', user, unit: 'kg' });
+    expect(inKilos['triceps-pushdown'].weight).toBe(25);
+  });
+
+  it('counts as pounds when the setting cannot be read, or says anything but metric', async () => {
+    global.__stores = withUnit('imperial');
+    global.__stores.settings = 'throw';
+    expect((await loadPrescriptions([pushdown], { uid: 'u1', user }))['triceps-pushdown'].weight).toBe(55);
+    global.__stores.settings = { weightUnits: undefined };
+    expect((await loadPrescriptions([pushdown], { uid: 'u1', user }))['triceps-pushdown'].weight).toBe(55);
+    global.__stores.settings = { weightUnits: 'kg' };
+    expect((await loadPrescriptions([pushdown], { uid: 'u1', user }))['triceps-pushdown'].weight).toBe(55);
+  });
+
+  describe('in a session', () => {
+    const ask = (extra = {}) => buildTodaySession({ uid: 'u1', user: { ...user, fitnessMetrics: { targetGoals: ['build_muscle'], injuries: [] } }, minutes: 60, equipment: 'gym', now: NOW, ...extra });
+    const everyLiftHistory = () => stores({ settings: { weightUnits: 'metric' }, workout: { getExerciseHistory: jest.fn(async () => logged(100, [10, 10, 10], 3)) } });
+
+    it('shows every target in kilograms, in loadable weights, when the person chose metric', async () => {
+      global.__stores = everyLiftHistory();
+      const session = await ask();
+      const weighted = session.exercises.filter((x) => x.weight !== null);
+      expect(weighted.length).toBeGreaterThan(0);
+      weighted.forEach((x) => {
+        expect(x.unit).toBe('kg');
+        expect(x.target).toMatch(/^\d+(\.5)? kg x \d+ reps$/);
+        expect((x.weight * 2) % 1).toBe(0); // a weight somebody can load: whole or half kilograms
+        expect(x.weight).toBeLessThan(80); // a 100 lb history is about 45 kg; a pound figure would be over 100
+      });
+    });
+
+    it('shows pounds when the person chose imperial', async () => {
+      global.__stores = everyLiftHistory();
+      global.__stores.settings = { weightUnits: 'imperial' };
+      const session = await ask();
+      const weighted = session.exercises.filter((x) => x.weight !== null);
+      expect(weighted.length).toBeGreaterThan(0);
+      weighted.forEach((x) => {
+        expect(x.unit).toBe('lb');
+        expect(x.target).toMatch(/^\d+ lb x \d+ reps$/);
+        expect(x.weight % 5).toBe(0);
+      });
+    });
+
+    it('follows the unit it is given over the setting, for the figures and not only for the label', async () => {
+      global.__stores = everyLiftHistory(); // metric
+      const inPounds = (await ask({ unit: 'lb' })).exercises.filter((x) => x.weight !== null);
+      expect(inPounds.length).toBeGreaterThan(0);
+      inPounds.forEach((x) => {
+        expect(x.unit).toBe('lb');
+        expect(x.target).toMatch(/^\d+ lb x \d+ reps$/);
+        expect(x.weight % 5).toBe(0);
+        expect(x.weight).toBeGreaterThan(80); // a 100 lb history; a kilogram figure would be about 45
+      });
+      global.__stores.settings = { weightUnits: 'imperial' };
+      const inKilos = (await ask({ unit: 'kg' })).exercises.filter((x) => x.weight !== null);
+      expect(inKilos.length).toBeGreaterThan(0);
+      inKilos.forEach((x) => {
+        expect(x.unit).toBe('kg');
+        expect((x.weight * 2) % 1).toBe(0);
+        expect(x.weight).toBeLessThan(80);
+      });
+    });
   });
 });

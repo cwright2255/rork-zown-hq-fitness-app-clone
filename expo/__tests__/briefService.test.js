@@ -349,6 +349,21 @@ describe('what the AI is told', () => {
     expect((await loadBriefMessages({ user: USER, now: NOW }))[1].content).toContain('weight 80.0 kg on average over 1 of 7 days');
   });
 
+  it('gives the lifts in the unit they use too, from the same saved pounds', async () => {
+    global.__s.workout.getExerciseHistory = jest.fn(async (name) => (
+      name === 'Bench Press' ? [{ weight: 225, reps: 3, date: new Date(2026, 9, 12, 8) }] : []
+    ));
+    const lifts = async () => (await loadBriefMessages({ user: USER, now: NOW }))[3].content;
+    const pounds = await lifts();
+    expect(pounds).toMatch(/Bench Press - best 225 lb x 3 \(est\. 1RM ~\d+ lb\)/);
+    expect(pounds).not.toMatch(/\bkg\b.*Bench|Bench.*\d kg x/);
+    global.__s.settings = { weightUnits: 'metric' };
+    const kilograms = await lifts();
+    expect(kilograms).toMatch(/Bench Press - best 102\.1 kg x 3 \(est\. 1RM ~\d+(\.\d)? kg\)/);
+    expect(kilograms).not.toMatch(/Bench Press - best [\d.]+ lb/);
+    expect(kilograms).not.toMatch(/est\. 1RM ~[\d.]+ lb/);
+  });
+
   it('includes what the Coach has noted about the person, as it does for the Coach', async () => {
     global.__s.cachedMemory = jest.fn(() => ({ facts: ['Can train 3 days a week', 'Trains at home'], paused: false }));
     const facts = (await loadBriefMessages({ user: USER, now: NOW }))[1].content;

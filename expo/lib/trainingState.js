@@ -14,7 +14,9 @@
 //   - A piece that is missing is left out, never filled with a zero. An empty list of workouts is what a person who never trains has and
 //     also what a phone that has not finished loading has, so "0 workouts" and "no muscles worked" are only said when there is some
 //     history to count from.
-//   - Weights are in whatever unit the person logs. This file never converts and never adds a unit.
+//   - Weights: the app saves every logged weight in pounds. When the caller says which unit the person chose (Settings > Weight Units: 'kg' or
+//     'lb') the lifts are given in that unit and the state names it (`weightUnit`), so the AI quotes the unit the person uses. Without one,
+//     the weights are left as they were and no unit is named.
 //   - Injuries are not matched to muscles here: the app's injury list is joints (knee, shoulder, lower back) and its muscle names are free
 //     text, so a match would be a guess. The state only says whether any injury was reported, so the Coach and the plan are told that the
 //     reported injuries come before any of these figures.
@@ -23,6 +25,7 @@
 import { muscleLabel } from './homeWidgetData';
 import { RUNNING_MUSCLES, HIKING_MUSCLES } from './muscleFatigue';
 import { workoutLoads, timeOf, workoutTime } from './muscleRecovery';
+import { fromPounds } from './weightUnits';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -85,7 +88,7 @@ const leastRecovered = (recovery, count) => {
     .map(([muscle, value]) => ({ muscle, recovery: value }));
 };
 
-const liftFrom = (p) => {
+const liftFrom = (p, unit) => {
   if (!p || typeof p !== 'object') return null;
   const name = typeof p.name === 'string' ? p.name.trim() : '';
   const e1rm = positive(p.bestE1RM);
@@ -94,8 +97,8 @@ const liftFrom = (p) => {
   if (!name || !e1rm || !bestWeight || !bestReps) return null;
   return {
     name,
-    e1rm: whole(e1rm),
-    bestWeight,
+    e1rm: whole(unit === 'kg' ? fromPounds(e1rm, unit) : e1rm),
+    bestWeight: unit === 'kg' ? fromPounds(bestWeight, unit) : bestWeight,
     bestReps: whole(bestReps),
     lastSessionDate: typeof p.lastSessionDate === 'string' ? p.lastSessionDate : null,
     sessions: positive(p.sessionCount) ? whole(p.sessionCount) : null,
@@ -115,6 +118,8 @@ const liftFrom = (p) => {
  * @param {object} [p.readiness]     computeReadiness' answer
  * @param {object} [p.trainingLoad]  calculateTrainingLoad's answer
  * @param {string[]} [p.injuries]    the injuries the person reported (only whether there are any is kept)
+ * @param {'kg'|'lb'} [p.weightUnit] the unit the person chose; the lifts are given in it and the state names it. Anything else: the weights
+ *                                   are left as the app saved them (pounds) and no unit is named.
  * @returns {{
  *   v: number,
  *   recentWorkouts: number | null,             workouts in the last 14 days; null when there are no workouts to count from
@@ -123,20 +128,22 @@ const liftFrom = (p) => {
  *   muscleRecovery: { muscle: string, recovery: number }[] | null,   how recovered each muscle still recovering is, 0 to 99, the least
  *                                              recovered first; [] when everything has recovered, null when there is no history at all
  *   lifts: { name: string, e1rm: number, bestWeight: number, bestReps: number, lastSessionDate: string | null, sessions: number | null }[],
+ *   weightUnit?: 'kg' | 'lb',                 only when a unit was given: the unit of the lifts' weights
  *   readiness: { score: number, label: string | null } | null,
  *   trainingLoad: { zone: string, ratio: number } | null,
  *   hasInjuries: boolean,
  * }}
  */
 export function buildTrainingState({
-  now = new Date(), workouts, runs, hikes, recovery, liftPRs, readiness, trainingLoad, injuries,
+  now = new Date(), workouts, runs, hikes, recovery, liftPRs, readiness, trainingLoad, injuries, weightUnit,
 } = {}) {
+  const unit = weightUnit === 'kg' || weightUnit === 'lb' ? weightUnit : null;
   const workoutList = Array.isArray(workouts) ? workouts : [];
   const hasHistory = workoutList.length > 0
     || (Array.isArray(runs) && runs.length > 0)
     || (Array.isArray(hikes) && hikes.length > 0);
 
-  const lifts = (Array.isArray(liftPRs) ? liftPRs : []).map(liftFrom).filter(Boolean).slice(0, MAX_LIFTS);
+  const lifts = (Array.isArray(liftPRs) ? liftPRs : []).map((p) => liftFrom(p, unit)).filter(Boolean).slice(0, MAX_LIFTS);
 
   return {
     v: TRAINING_STATE_VERSION,
@@ -146,6 +153,7 @@ export function buildTrainingState({
       : null,
     muscleRecovery: hasHistory ? leastRecovered(recovery, MAX_MUSCLES) : null,
     lifts,
+    ...(unit ? { weightUnit: unit } : {}),
     readiness: readiness && readiness.ready === true && finite(readiness.score)
       ? { score: Math.min(100, Math.max(0, whole(readiness.score))), label: typeof readiness.label === 'string' ? readiness.label : null }
       : null,

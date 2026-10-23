@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
@@ -27,6 +28,7 @@ import { getCurrentReadiness } from '@/services/wearableService';
 import { localDateKey, shiftDateKey } from '@/lib/localDate';
 import { getGoalIds } from '@/lib/userProfileData';
 import { goalForLoad, countLowReadinessDays, trustedSets, isOutlierOneRepMax, effortLegend, prescriptionText } from '@/lib/loadRules';
+import { unitFromSetting, historyIn, targetIn, toPounds, fromPounds, weightText } from '@/lib/weightUnits';
 import { logWorkoutStarted, logWorkoutCompleted } from '@/src/services/analytics';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
@@ -175,6 +177,9 @@ export default function ActiveWorkoutScreen() {
   const { workouts, customWorkouts, addCompletedWorkout, logSet, getExerciseHistory } = useWorkoutStore();
   const { addExpActivity } = useExpStore();
   const { user } = useUserStore();
+  // Settings > Weight Units. What is saved is always pounds (lib/weightUnits.js): the unit chosen is how a weight is typed and shown here, and the
+  // target is worked out in it.
+  const weightUnit = useSettingsStore((s) => unitFromSetting(s.weightUnits));
   const workoutStartRef = useRef(new Date().toISOString());
   const { isConnected: musicConnected, trackName, artistName, isPlaying: isMusicPlaying, playTrack, pauseTrack, nextTrack, previousTrack } = useActiveMusicPlayer();
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -352,15 +357,15 @@ export default function ActiveWorkoutScreen() {
           getCurrentReadiness(),
         ]);
         if (cancelled) return;
-        const prescription = getNextPrescription(history, {
+        const prescription = targetIn(getNextPrescription(historyIn(history, weightUnit), {
           readiness,
           exerciseName: currentExercise.name,
           bodyweight: isBodyweightExercise(currentExercise.name),
           goal: goalForLoad(getGoalIds(user)),
           level: user?.fitnessLevel,
-          unit: 'lb',
+          unit: weightUnit,
           lowReadinessDays: countLowReadinessDays(dailyReadings()),
-        });
+        }), weightUnit);
         setPrescriptions((prev) => ({ ...prev, [currentExercise.id]: prescription }));
 
         // Real, new: same history, for PR detection rather than
@@ -532,7 +537,8 @@ export default function ActiveWorkoutScreen() {
     const prescription = prescriptions[exercise.id];
     const weightSource = input?.weight ?? (prescription ? String(prescription.weight) : undefined);
     const repsSource = input?.reps ?? (prescription ? String(prescription.targetReps) : undefined);
-    const weight = isBodyweight ? 0 : parseFloat(weightSource);
+    // Typed (or pre-filled) in the unit on screen, saved and compared in pounds.
+    const weight = isBodyweight ? 0 : toPounds(parseFloat(weightSource), weightUnit);
     const reps = parseInt(repsSource, 10);
     if ((!isBodyweight && (!weight || weight <= 0)) || !reps || reps <= 0) return;
 
@@ -793,7 +799,7 @@ export default function ActiveWorkoutScreen() {
           <View style={styles.setLogSection}>
             <Text style={styles.setLogTitle}>Log Your Sets</Text>
             {prescriptions[currentExercise.id] && (() => {
-              const text = prescriptionText(prescriptions[currentExercise.id], { bodyweight: isBodyweightExercise(currentExercise.name) });
+              const text = prescriptionText(prescriptions[currentExercise.id], { bodyweight: isBodyweightExercise(currentExercise.name), unit: weightUnit });
               return (
                 <View style={styles.prescriptionCard}>
                   <Text style={styles.prescriptionTarget}>{text.target}</Text>
@@ -836,7 +842,7 @@ export default function ActiveWorkoutScreen() {
                     <Text style={styles.setRowDoneText}>
                       {logged.isBodyweight
                         ? `Set ${setIndex + 1}: ${logged.reps} reps`
-                        : `Set ${setIndex + 1}: ${logged.weight} lb x ${logged.reps} reps`}
+                        : `Set ${setIndex + 1}: ${weightText(logged.weight, weightUnit)} x ${logged.reps} reps`}
                     </Text>
                   </View>
                 );
@@ -849,7 +855,7 @@ export default function ActiveWorkoutScreen() {
                     <>
                       <TextInput
                         style={styles.setInput}
-                        placeholder="lb"
+                        placeholder={weightUnit}
                         placeholderTextColor="#666"
                         keyboardType="numeric"
                         value={input.weight ?? (prescription ? String(prescription.weight) : '')}
@@ -1148,11 +1154,11 @@ export default function ActiveWorkoutScreen() {
             ) : (
               <>
                 <Text style={styles.prStat}>
-                  {prCelebration?.weight} lb × {prCelebration?.reps} reps
+                  {weightText(prCelebration?.weight, weightUnit)} × {prCelebration?.reps} reps
                 </Text>
                 <Text style={styles.prSubtext}>
-                  Estimated 1-rep max: ~{Math.round(prCelebration?.oneRepMax || 0)} lb, up from ~
-                  {Math.round(prCelebration?.previousOneRepMax || 0)} lb.
+                  Estimated 1-rep max: ~{Math.round(fromPounds(prCelebration?.oneRepMax, weightUnit) || 0)} {weightUnit}, up from ~
+                  {Math.round(fromPounds(prCelebration?.previousOneRepMax, weightUnit) || 0)} {weightUnit}.
                 </Text>
               </>
             )}

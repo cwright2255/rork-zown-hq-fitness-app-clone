@@ -1,9 +1,12 @@
 // app/workout/session.jsx
 //
 // Today's Session: the training engine's pick for today (lib/sessionPicker.js), built on the phone from how rested each muscle is, what has been
-// done this week, the goal, the equipment and the injuries on the profile. Each exercise says why it was picked. No AI is used and nothing here
-// costs anything to run. Start Workout saves the session the way Quick Workout saves one (store/workoutStore.js addWorkout) and opens it on the
-// workout detail screen, where the usual Start button, the target card and the Easy / OK / Hard buttons work as for any workout.
+// done this week, the goal, the equipment and the injuries on the profile. Each exercise says why it was picked, in the engine's words. The
+// engine's session is shown at once and costs nothing; a moment later the AI may put its own words on the name and the reasons
+// (services/sessionWordingService.js), and they replace the engine's only when they pass lib/sessionWording.js's checks against the engine's own
+// numbers, with a line under the title saying so. The exercises, sets, reps and weights are always the engine's. Start Workout saves the session
+// the way Quick Workout saves one (store/workoutStore.js addWorkout) and opens it on the workout detail screen, where the usual Start button,
+// the target card and the Easy / OK / Hard buttons work as for any workout.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -11,11 +14,15 @@ import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { INJURY_LABELS } from '@/lib/userProfileData';
 import {
   SESSION_RULES, EQUIPMENT_LABELS, SESSION_DISCLAIMER, minutesFromPreference, sessionToWorkout,
 } from '@/lib/sessionPicker';
 import { refreshSessionSources, buildTodaySession } from '@/services/sessionService';
+import { WORDING_RULES, WORDING_CAPTION, applyWording } from '@/lib/sessionWording';
+import { wordSession, peekWording } from '@/services/sessionWordingService';
+import { unitFromSetting } from '@/lib/weightUnits';
 
 const EQUIPMENT_CHOICES = ['gym', 'dumbbells', 'bodyweight'];
 
@@ -27,12 +34,15 @@ function repsText(x) {
 export default function TodaySessionScreen() {
   const router = useRouter();
   const uid = useUserStore((s) => s.user?.uid);
+  const weightUnit = useSettingsStore((s) => unitFromSetting(s.weightUnits));
   const [minutes, setMinutes] = useState(() => minutesFromPreference(useUserStore.getState().user?.preferences?.preferredDuration));
   const [equipment, setEquipment] = useState('gym');
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  // The AI's checked wording, with the session it was made for: it is only put on that session, never on the next one.
+  const [worded, setWorded] = useState({ session: null, wording: null });
   const latest = useRef(0);
   const refreshed = useRef(null);
   const histories = useRef(new Map());
@@ -59,8 +69,29 @@ export default function TodaySessionScreen() {
 
   useEffect(() => { build(); }, [build]);
 
+  const ok = !loading && session && session.status === 'ok';
+  const wording = ok && worded.session === session ? worded.wording : null;
+  const shown = ok ? applyWording(session, wording) : null;
+
+  // Once the session has settled, the AI is asked for the words (an answer already kept for the same session is used at once). The session is
+  // on the screen meanwhile, in the engine's words, and stays so if nothing usable comes back.
+  useEffect(() => {
+    if (!ok) return undefined;
+    const known = peekWording(session, { unit: weightUnit, equipment });
+    if (known !== undefined) {
+      setWorded({ session, wording: known });
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const found = await wordSession(session, { unit: weightUnit, equipment });
+      if (!cancelled) setWorded({ session, wording: found });
+    }, WORDING_RULES.delayMs);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [ok, session, weightUnit, equipment]);
+
   const handleStart = async () => {
-    const workout = sessionToWorkout(session);
+    const workout = sessionToWorkout(shown);
     if (!workout || !uid || saving) return;
     setSaving(true);
     try {
@@ -73,7 +104,6 @@ export default function TodaySessionScreen() {
     }
   };
 
-  const ok = !loading && session && session.status === 'ok';
   const leftOut = ok ? session.leftOutFor.map((id) => INJURY_LABELS[id] || id.replace(/_/g, ' ')) : [];
 
   return (
@@ -131,11 +161,12 @@ export default function TodaySessionScreen() {
 
         {ok && (
           <>
-            <Text style={styles.sessionTitle}>{session.name}</Text>
+            <Text style={styles.sessionTitle}>{shown.name}</Text>
             <Text style={styles.sessionMeta}>
-              {session.exercises.length} exercises · {session.totalSets} sets · about {session.minutes} min
+              {shown.exercises.length} exercises · {shown.totalSets} sets · about {shown.minutes} min
             </Text>
-            {session.exercises.map((x) => (
+            {shown.worded && <Text style={styles.wordedCaption}>{WORDING_CAPTION}</Text>}
+            {shown.exercises.map((x) => (
               <View key={x.id} style={styles.card}>
                 <Text style={styles.cardName}>{x.name}</Text>
                 <Text style={styles.cardSets}>{repsText(x)}</Text>
@@ -144,6 +175,7 @@ export default function TodaySessionScreen() {
                 <Text style={styles.cardReason}>{x.reason}</Text>
               </View>
             ))}
+            {!!shown.note && <Text style={styles.note}>{shown.note}</Text>}
             {leftOut.length > 0 && (
               <Text style={styles.note}>
                 Left out because of the injuries you reported: {leftOut.join(', ')}. Exercises that load those areas are never picked.
@@ -181,6 +213,7 @@ const styles = StyleSheet.create({
   noticeText: { fontSize: 14, color: '#333', lineHeight: 21 },
   sessionTitle: { fontSize: 22, fontWeight: '800', color: '#000', marginTop: 28 },
   sessionMeta: { fontSize: 13, color: '#666', marginTop: 4, marginBottom: 14 },
+  wordedCaption: { fontSize: 11, color: '#999', lineHeight: 16, marginTop: -8, marginBottom: 14 },
   card: { padding: 14, borderRadius: 14, backgroundColor: '#F6F6F6', marginBottom: 10 },
   cardName: { fontSize: 16, fontWeight: '700', color: '#000' },
   cardSets: { fontSize: 14, color: '#333', marginTop: 2 },

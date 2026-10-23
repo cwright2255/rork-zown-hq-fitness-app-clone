@@ -54,13 +54,13 @@ describe('the rules module', () => {
 
 describe('the workout screen', () => {
   it('asks for the prescription with the exercise, the goal, the level, the unit and the low-readiness days', () => {
-    const call = active.slice(active.indexOf('getNextPrescription(history, {'), active.indexOf('setPrescriptions((prev)'));
+    const call = active.slice(active.indexOf('getNextPrescription(historyIn(history, weightUnit), {'), active.indexOf('setPrescriptions((prev)'));
     expect(call).toMatch(/readiness,/);
     expect(call).toMatch(/exerciseName: currentExercise\.name,/);
     expect(call).toMatch(/bodyweight: isBodyweightExercise\(currentExercise\.name\),/);
     expect(call).toMatch(/goal: goalForLoad\(getGoalIds\(user\)\),/);
     expect(call).toMatch(/level: user\?\.fitnessLevel,/);
-    expect(call).toMatch(/unit: 'lb',/);
+    expect(call).toMatch(/unit: weightUnit,/);
     expect(call).toMatch(/lowReadinessDays: countLowReadinessDays\(dailyReadings\(\)\),/);
   });
 
@@ -93,7 +93,7 @@ describe('the workout screen', () => {
 
   it('shows the target, the detail and the reason from the rules, and the line about the three buttons', () => {
     const card = active.slice(active.indexOf('{prescriptions[currentExercise.id] && (() => {'), active.indexOf('{(() => {\n              const isBodyweight'));
-    expect(card).toMatch(/prescriptionText\(prescriptions\[currentExercise\.id\], \{ bodyweight: isBodyweightExercise\(currentExercise\.name\) \}\)/);
+    expect(card).toMatch(/prescriptionText\(prescriptions\[currentExercise\.id\], \{ bodyweight: isBodyweightExercise\(currentExercise\.name\), unit: weightUnit \}\)/);
     expect(card).toMatch(/\{text\.target\}/);
     expect(card).toMatch(/\{!!text\.detail && <Text style=\{styles\.prescriptionDetail\}>\{text\.detail\}<\/Text>\}/);
     expect(card).toMatch(/\{text\.reason\}/);
@@ -109,7 +109,8 @@ describe('the workout screen', () => {
     expect(active).toMatch(/<Text style=\{styles\.rpeBtnText\}>Hard<\/Text>/);
   });
 
-  it('still logs in pounds, as it always has', () => {
-    expect(active).toMatch(/placeholder="lb"/);
+  it('asks for the weight in the unit chosen in Settings (weightUnitWiring.test.js has the rest)', () => {
+    expect(active).toMatch(/placeholder=\{weightUnit\}/);
+    expect(active).not.toMatch(/placeholder="lb"/);
   });
 });
