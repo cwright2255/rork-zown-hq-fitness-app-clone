@@ -9,7 +9,7 @@
 // and to work out everything earned so far. What comes of that reaches the phone through the listeners, so it needs no answer.
 //
 // It never throws; a listener that fails to start leaves what is on screen as it was, and starts again the next time the app opens.
-import { onSnapshot, doc } from 'firebase/firestore';
+import { onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { db } from '../src/config/firebase';
 import { useLifetimeStore } from '../store/lifetimeStore';
 import { useAchievementStore } from '../store/achievementStore';
@@ -62,6 +62,40 @@ function follow(uid, path, name, apply) {
   }
 }
 
+// TEMPORARY CHECK (to be removed once the first catch-up has been seen working). The catch-up call is silent on the server when it works
+// and the phone only warns when it fails, so neither side shows whether the phone is running this code or why the call did not
+// complete. Each start writes users/{uid}/data/progressSyncDebug: which build of the app is running, when the call was made, and how it
+// ended. It is read in the Firebase console. It never throws and nothing waits for it.
+function bundleInfo() {
+  try {
+    const Updates = require('expo-updates');
+    return {
+      updateId: Updates.updateId || null,
+      embeddedLaunch: Updates.isEmbeddedLaunch === undefined ? null : !!Updates.isEmbeddedLaunch,
+      channel: Updates.channel || null,
+      runtimeVersion: Updates.runtimeVersion || null,
+    };
+  } catch (e) {
+    return { updateId: null, embeddedLaunch: null, channel: null, runtimeVersion: null };
+  }
+}
+
+function noteCheck(uid, fields) {
+  try {
+    Promise.resolve(setDoc(doc(db, 'users', uid, 'data', 'progressSyncDebug'), fields, { merge: true }))
+      .catch((e) => console.warn('[progressSync] check note failed:', e?.message));
+  } catch (e) {
+    console.warn('[progressSync] check note failed:', e?.message);
+  }
+}
+
+const failureFields = (e) => ({
+  finishedAt: new Date().toISOString(),
+  outcome: 'failed',
+  errorCode: (e && e.code) || null,
+  errorMessage: String((e && e.message) || e).slice(0, 300),
+});
+
 /** Starts following this person's progress, in place of any earlier start. */
 export function startProgressSync(uid) {
   if (!uid) return;
@@ -71,9 +105,17 @@ export function startProgressSync(uid) {
   follow(uid, ['data', 'badges'], 'badges', (data) => useBadgeStore.getState().applyServerUnlocks(data && data.unlocked));
   follow(uid, ['data', 'battlePass'], 'battle pass', (data) => useBattlePassStore.getState().applyServerClaims(data && data.claimedTiers));
   // Ask the server to catch up. Not waited for, and a failure (offline, signed out) only means the next start asks again.
+  noteCheck(uid, { ...bundleInfo(), startedAt: new Date().toISOString(), finishedAt: null, outcome: 'asking', errorCode: null, errorMessage: null });
   try {
-    Promise.resolve(callProxy('syncMyProgress', {})).catch((e) => console.warn('[progressSync] catch-up failed:', e?.message));
+    Promise.resolve(callProxy('syncMyProgress', {})).then(
+      () => noteCheck(uid, { finishedAt: new Date().toISOString(), outcome: 'ok', errorCode: null, errorMessage: null }),
+      (e) => {
+        console.warn('[progressSync] catch-up failed:', e?.message);
+        noteCheck(uid, failureFields(e));
+      }
+    );
   } catch (e) {
     console.warn('[progressSync] catch-up failed:', e?.message);
+    noteCheck(uid, failureFields(e));
   }
 }

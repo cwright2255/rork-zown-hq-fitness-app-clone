@@ -6,8 +6,14 @@ jest.mock('../store/achievementStore', () => ({ useAchievementStore: { getState:
 jest.mock('../store/badgeStore', () => ({ useBadgeStore: { getState: () => global.__badge } }));
 jest.mock('../store/battlePassStore', () => ({ useBattlePassStore: { getState: () => global.__pass } }));
 jest.mock('../services/callProxy', () => ({ callProxy: (...a) => global.__call(...a) }));
+jest.mock('expo-updates', () => ({
+  get updateId() { return global.__upd.updateId; },
+  get isEmbeddedLaunch() { return global.__upd.isEmbeddedLaunch; },
+  get channel() { return global.__upd.channel; },
+  get runtimeVersion() { return global.__upd.runtimeVersion; },
+}), { virtual: true });
 
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { startProgressSync, stopProgressSync } from '../services/progressSync';
 
 let warn;
@@ -24,8 +30,11 @@ beforeEach(() => {
   global.__badge = { applyServerUnlocks: jest.fn(), clearServerUnlocks: jest.fn() };
   global.__pass = { applyServerClaims: jest.fn(), clearServerClaims: jest.fn() };
   global.__call = jest.fn(async () => ({ totals: {} }));
+  global.__upd = { updateId: 'upd-1', isEmbeddedLaunch: false, channel: 'production', runtimeVersion: '1.0.0' };
   doc.mockReset();
   doc.mockImplementation((_db, ...parts) => ({ path: parts.join('/') }));
+  setDoc.mockReset();
+  setDoc.mockImplementation(async () => undefined);
   stops = [];
   listeners = [];
   onSnapshot.mockReset();
@@ -212,5 +221,106 @@ describe('stopProgressSync', () => {
     global.__life.clearTotals = jest.fn(() => { throw new Error('store down'); });
     expect(() => stopProgressSync()).not.toThrow();
     expect(warn).toHaveBeenCalledWith('[progressSync] clear failed:', 'store down');
+  });
+});
+
+// The temporary check: users/{uid}/data/progressSyncDebug says which build is running and how the catch-up call ended.
+describe('the progress sync check note', () => {
+  const CHECK = 'users/u1/data/progressSyncDebug';
+  const notes = () => setDoc.mock.calls.filter((c) => c[0].path === CHECK);
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('writes nothing without a person', () => {
+    startProgressSync(null);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('writes, before the call is answered, which build is running and that the call was made, merging into the one document', () => {
+    global.__call = jest.fn(() => new Promise(() => undefined));
+    startProgressSync('u1');
+    expect(notes()).toHaveLength(1);
+    const [ref, fields, options] = notes()[0];
+    expect(ref).toEqual({ path: CHECK });
+    expect(options).toEqual({ merge: true });
+    expect(fields).toMatchObject({
+      updateId: 'upd-1', embeddedLaunch: false, channel: 'production', runtimeVersion: '1.0.0',
+      finishedAt: null, outcome: 'asking', errorCode: null, errorMessage: null,
+    });
+    expect(typeof fields.startedAt).toBe('string');
+    expect(Number.isNaN(Date.parse(fields.startedAt))).toBe(false);
+  });
+
+  it('says ok once the server has answered', async () => {
+    startProgressSync('u1');
+    await settle();
+    expect(notes()).toHaveLength(2);
+    const [, fields, options] = notes()[1];
+    expect(options).toEqual({ merge: true });
+    expect(fields).toMatchObject({ outcome: 'ok', errorCode: null, errorMessage: null });
+    expect(Number.isNaN(Date.parse(fields.finishedAt))).toBe(false);
+    expect(fields).not.toHaveProperty('startedAt');
+  });
+
+  it('says why when the call fails: its code and its message, cut to 300 characters', async () => {
+    const e = Object.assign(new Error('x'.repeat(500)), { code: 'functions/unauthenticated' });
+    global.__call = jest.fn(async () => { throw e; });
+    startProgressSync('u1');
+    await settle();
+    const [, fields] = notes()[1];
+    expect(fields).toMatchObject({ outcome: 'failed', errorCode: 'functions/unauthenticated' });
+    expect(fields.errorMessage).toBe('x'.repeat(300));
+    expect(Number.isNaN(Date.parse(fields.finishedAt))).toBe(false);
+  });
+
+  it('says why when the call cannot start, and when the failure has no code', () => {
+    global.__call = jest.fn(() => { throw new Error('no network layer'); });
+    startProgressSync('u1');
+    expect(notes()).toHaveLength(2);
+    expect(notes()[1][1]).toMatchObject({ outcome: 'failed', errorCode: null, errorMessage: 'no network layer' });
+  });
+
+  it('copes with a failure that is not an Error', async () => {
+    global.__call = jest.fn(async () => { throw 'plain text'; }); // eslint-disable-line no-throw-literal
+    startProgressSync('u1');
+    await settle();
+    expect(notes()[1][1]).toMatchObject({ outcome: 'failed', errorCode: null, errorMessage: 'plain text' });
+  });
+
+  it('records the build as unknown when expo-updates cannot say', () => {
+    global.__upd = { get updateId() { throw new Error('no native module'); } };
+    global.__call = jest.fn(() => new Promise(() => undefined));
+    startProgressSync('u1');
+    expect(notes()[0][1]).toMatchObject({ updateId: null, embeddedLaunch: null, channel: null, runtimeVersion: null, outcome: 'asking' });
+  });
+
+  it('records a build with no update (the one inside the app) as embedded, with no id', () => {
+    global.__upd = { updateId: null, isEmbeddedLaunch: true, channel: null, runtimeVersion: '1.0.0' };
+    global.__call = jest.fn(() => new Promise(() => undefined));
+    startProgressSync('u1');
+    expect(notes()[0][1]).toMatchObject({ updateId: null, embeddedLaunch: true, channel: null, runtimeVersion: '1.0.0' });
+  });
+
+  it('records embeddedLaunch as unknown when expo-updates does not say', () => {
+    global.__upd = { updateId: 'u' };
+    global.__call = jest.fn(() => new Promise(() => undefined));
+    startProgressSync('u1');
+    expect(notes()[0][1]).toMatchObject({ updateId: 'u', embeddedLaunch: null });
+  });
+
+  it('only warns when a note cannot be written, and still asks the server and listens', async () => {
+    setDoc.mockImplementation(async () => { throw new Error('write refused'); });
+    expect(() => startProgressSync('u1')).not.toThrow();
+    await settle();
+    expect(warn).toHaveBeenCalledWith('[progressSync] check note failed:', 'write refused');
+    expect(global.__call).toHaveBeenCalledWith('syncMyProgress', {});
+    expect(onSnapshot).toHaveBeenCalledTimes(4);
+  });
+
+  it('only warns when a note throws before it can be written', () => {
+    setDoc.mockImplementation(() => { throw new Error('no network layer'); });
+    expect(() => startProgressSync('u1')).not.toThrow();
+    expect(warn).toHaveBeenCalledWith('[progressSync] check note failed:', 'no network layer');
+    expect(global.__call).toHaveBeenCalledWith('syncMyProgress', {});
+    expect(onSnapshot).toHaveBeenCalledTimes(4);
   });
 });
