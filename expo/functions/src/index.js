@@ -18,6 +18,7 @@ import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
+import { sanitizeTrainingState, trainingStateText } from './trainingState.js';
 import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
 import { checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan } from './aiQuota.js';
 import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
@@ -111,7 +112,7 @@ export const generateWorkoutPlan = onCall(
   async (req) => {
     const uid = requireAuth(req.auth);
     await requireFeature(uid, 'aiWorkoutPlan');
-    const { fitnessLevel, goals, history, profile } = req.data;
+    const { fitnessLevel, goals, history, profile, trainingState } = req.data;
 
     // Real profile details (older app versions send none, so every line is optional).
     const p = profile && typeof profile === 'object' ? profile : {};
@@ -129,9 +130,16 @@ export const generateWorkoutPlan = onCall(
     if (p.bodyFatPercent) profileLines.push(`Latest scan body fat: ${p.bodyFatPercent}%`);
     const profileText = profileLines.length ? ` About the user: ${profileLines.join('. ')}.` : '';
 
+    // What the app knows about how they are training right now (the last 14 days' workouts and the muscles they worked, muscle load, lift
+        // records, readiness, training load), checked and cut
+    // down to known shapes (trainingState.js) because it comes from a phone. An older app sends none and gets the same prompt as before.
+    const stateText = trainingStateText(sanitizeTrainingState(trainingState), {
+      hasInjuries: Array.isArray(p.injuries) && p.injuries.length > 0,
+    });
+
     const prompt = `Create a personalized 7-day workout plan for a ${fitnessLevel} user with goals: ${(Array.isArray(goals) ? goals : []).join(
       ', '
-    ) || 'general fitness'}.${profileText} Recent workout history: ${JSON.stringify(history ?? [])}. Return strict JSON with shape { "days": [{ "day": string, "focus": string, "exercises": [{ "name": string, "sets": number, "reps": number, "restSeconds": number }] }] }.`;
+    ) || 'general fitness'}.${profileText}${stateText} Recent workout history: ${JSON.stringify(history ?? [])}. Return strict JSON with shape { "days": [{ "day": string, "focus": string, "exercises": [{ "name": string, "sets": number, "reps": number, "restSeconds": number }] }] }.`;
 
     const openai = getOpenAI();
     const completion = await openai.chat.completions.create({

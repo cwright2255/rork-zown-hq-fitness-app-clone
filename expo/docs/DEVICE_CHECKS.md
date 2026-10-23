@@ -474,6 +474,45 @@ Things that are the same as before, on purpose: Weight Warrior, Nutrition Ninja,
 workout-count achievements count finished workouts only, while "Total Workouts" counts every saved workout. The server takes your own
 workout and hike records as they are; it cannot know whether a workout really happened.
 
+## Training state in AI workout plans and the Coach (once, after the function is deployed, then the update)
+
+The AI workout plan and the Coach are now told how you are training right now: the workouts in the last 14 days, which muscles those
+(and your runs and hikes) worked in the last 14 days and how many times each, the muscle load still carried from the last 5 days (the
+same ranking the Health page's muscle map uses), the best set and estimated one-rep max of each main lift, today's readiness and the
+training load. If you have reported injuries, both are told they come before all of those figures. The plan function checks and cuts
+down what the phone sends, so deploy it first:
+
+1. `firebase deploy --only functions:generateWorkoutPlan`
+2. `eas update --branch main --environment production` (from inside `expo/`), then close the app completely and open it once.
+
+These are the app's own figures from common training guidance and your own logs. They are not clinically validated, and the muscle
+load numbers are relative: 100 means the most worked muscle of the last 5 days, not a limit. Injuries are not matched to muscles by
+the app: the AI is told your reported injuries override the muscle figures and works out the rest.
+
+- [ ] On Pro or Legend, Workouts, Get recommendation (or Quick Workout, generate). A plan comes back as before. On Free, you are still
+      taken to the plans.
+- [ ] Firestore, `aiRecommendations`, the newest document with `type` workout_plan: the `prompt` field contains "Their training right
+      now, from their own logs and worked out on their phone", followed by the sentences below. Each should match the app:
+      "Workouts logged in the last 14 days" is the number of workouts dated in the last 14 days in Workout History (count them in the
+      "All logged" list); "Muscles worked in the last 14 days" lists the muscles with how many workouts, runs or hikes worked each (pick
+      one muscle and count its sessions); the names in "Muscle load still being carried from the last 5 days" are the darkest ones on
+      the Health page's muscle map, most worked first; each lift in "Main lifts" has the same best set and estimated one-rep max the
+      Coach quotes; "Readiness today" is the score on the Health page (it is missing when that page shows none); "Training
+      load" is the ratio on the Health page.
+- [ ] The prompt names no unit for a weight. Your weights are in whatever you logged them in.
+- [ ] Injuries: with an injury ticked under Injuries in Edit Profile, the same `prompt` also contains "Injuries / areas to
+      protect" and, after the training sentences, "The injuries and areas to protect listed above come before all of this". Generate a
+      plan with the injured area's muscles showing little recent work: no exercise in the plan loads that area. With no injury reported,
+      the "come before all of this" sentence is not in the prompt.
+- [ ] An account with nothing logged (or a new test account): the prompt has no "Their training right now" part at all, and the plan
+      still comes back.
+- [ ] Coach: ask "How many workouts did I do in the last two weeks?" It gives the number from Workout History. Ask "Which muscles have
+      I worked the most lately?" It names the same ones as the Health page's muscle map or "Muscles worked in the last 14 days" above.
+      With an injury reported, ask "What should I train tomorrow?" It does not point you at the injured area, and it does not give
+      advice on the injury beyond suggesting you see a professional. Ask "How ready am I to train today?" It gives the score
+      from the Health page and says it is a guide, or says it has no readiness reading when the Health page shows none.
+- [ ] The Today brief on Home is unchanged by this update.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

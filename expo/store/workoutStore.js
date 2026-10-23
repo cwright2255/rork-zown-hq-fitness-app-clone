@@ -10,6 +10,7 @@ import { optimizeArrayForPerformance } from '@/utils/storeOptimizations';
 import { localDateKey, shiftDateKey, dayKeyOf } from '@/lib/localDate';
 import { newestFirst } from '@/lib/workoutOrder';
 import { withoutUndefined } from '@/lib/firestoreSafe';
+import { workoutPlanRequest } from '@/lib/trainingState';
 
 // How many finished workouts the app holds: the most recent 240 (about a year at five a week), the same as loadWorkouts asks the server for. The phone keeps the
 // newest 20 of them in its own storage, to show something before the server answers.
@@ -436,11 +437,21 @@ export const useWorkoutStore = create(
         try {
           const { httpsCallable } = await import('firebase/functions');
           const { functions } = await import('../src/config/firebase');
+          // What the app already knows about how this person is training right now (muscle load, lift records, the week's workouts,
+          // readiness, training load), so the plan is written from it. Asked for lazily because the service reads the other stores;
+          // a state that cannot be had just leaves the request as it always was.
+          let trainingState = null;
+          try {
+            const { getTrainingState } = await import('../services/trainingStateService');
+            trainingState = await getTrainingState(uid);
+          } catch {
+            trainingState = null;
+          }
           const history = get().completedWorkouts.slice(0, 10).map((w) => ({
             name: w.name, category: w.category, completedAt: w.completedAt,
           }));
           const fn = httpsCallable(functions, 'generateWorkoutPlan');
-          const result = await fn({ fitnessLevel: fitnessLevel || 'beginner', goals: goals || [], history, profile: profile || {} });
+          const result = await fn(workoutPlanRequest({ fitnessLevel, goals, history, profile, trainingState }));
           if (uid) await get().loadWorkoutRecommendation(uid);
           return result.data;
         } catch (e) {

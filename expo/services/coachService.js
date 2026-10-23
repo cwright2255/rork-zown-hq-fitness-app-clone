@@ -7,6 +7,7 @@ import { getDietProfile, describeDietForAI } from '../lib/dietProfile';
 import { ALCOHOL_COACH_NOTE } from '../lib/alcoholGuidance';
 import { buildActionInstructions } from '../lib/coachActions';
 import { memoryLine } from '../lib/coachMemory';
+import { coachTrainingFacts } from '../lib/trainingState';
 
 // Real, new: readable labels for the raw ids app/profile/edit.jsx's
 // GOALS/INJURIES constants store on the user, so the system prompt below
@@ -172,9 +173,12 @@ export function summarizeCardioVolume({ runs = [], completedHikes = [], days = 7
  * with generic advice dressed up as a real number - same "don't invent
  * what the data doesn't show" principle services/aiService.js's
  * generateTrainingLoadInsight prompt already states for its own signal.
- * @param {{ liftPRs?: object[], cardioVolume?: object|null, monthlyWorkoutCount?: number|null, trainingLoad?: object|null }} params
+ * `trainingState` (lib/trainingState.js) is optional; it adds the workouts in the last 14 days and the muscles they worked, the muscle
+ * load still carried from the last 5 days, readiness and, when an injury was reported, that it comes before those figures. A caller that
+ * does not pass it gets exactly the message it always did.
+ * @param {{ liftPRs?: object[], cardioVolume?: object|null, monthlyWorkoutCount?: number|null, trainingLoad?: object|null, trainingState?: object|null }} params
  */
-export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthlyWorkoutCount = null, trainingLoad = null } = {}) {
+export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthlyWorkoutCount = null, trainingLoad = null, trainingState = null } = {}) {
   const lines = [
     "Here is this user's real, current logged data. Only cite specific numbers or dates from this message - " +
       "if asked about something not covered here, say you don't have that logged rather than guessing or estimating.",
@@ -183,6 +187,9 @@ export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthl
   if (monthlyWorkoutCount != null) {
     lines.push(`Workouts logged in the last 30 days: ${monthlyWorkoutCount}.`);
   }
+
+  const facts = coachTrainingFacts(trainingState);
+  if (facts.recent) lines.push(facts.recent);
 
   if (liftPRs.length > 0) {
     const liftLines = liftPRs
@@ -203,6 +210,11 @@ export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthl
   if (trainingLoad && trainingLoad.zone !== 'insufficient_data') {
     lines.push(`Current training load: ${trainingLoad.zoneLabel} (acute:chronic ratio ${trainingLoad.ratio}).`);
   }
+
+  if (facts.worked) lines.push(facts.worked);
+  if (facts.load) lines.push(facts.load);
+  if (facts.readiness) lines.push(facts.readiness);
+  if (facts.injuries) lines.push(facts.injuries);
 
   return { role: 'system', content: lines.join(' ') };
 }

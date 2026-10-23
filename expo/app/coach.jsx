@@ -27,6 +27,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
 import { PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
 import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
+import { readTrainingState } from '@/services/trainingStateService';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -145,6 +146,7 @@ export default function CoachScreen() {
     return () => { cancelled = true; };
   }, [user?.uid]);
 
+  const injuries = user?.fitnessMetrics?.injuries;
   const dataContext = useMemo(() => {
     if (liftPRs === null) return null;
     try {
@@ -154,6 +156,10 @@ export default function CoachScreen() {
         const d = w.date?.toDate ? w.date.toDate() : new Date(w.date);
         return !Number.isNaN(d.getTime()) && d.getTime() >= thirtyDaysAgo;
       }).length;
+      // The last 14 days' workouts and the muscles they worked, the muscle load and readiness, worked out the way the Health screen
+      // does. Read on its own, so a reading that cannot be had leaves out only these lines and not the rest of what the Coach is told.
+      let trainingState = null;
+      try { trainingState = readTrainingState({ liftPRs, injuries }); } catch { trainingState = null; }
       return {
         liftPRs,
         cardioVolume: summarizeCardioVolume({ runs: runs || [], completedHikes: completedHikes || [], days: 7 }),
@@ -161,6 +167,7 @@ export default function CoachScreen() {
         trainingLoad: calculateTrainingLoad(
           aggregateDailyLoad({ completedWorkouts: workouts, runs: runs || [], completedHikes: completedHikes || [] })
         ),
+        trainingState,
       };
     } catch (e) {
       // A problem summarizing the data must never take down the chat; the
@@ -168,7 +175,7 @@ export default function CoachScreen() {
       console.warn('[Coach] failed to build data context:', e?.message);
       return null;
     }
-  }, [liftPRs, runs, completedHikes, completedWorkouts]);
+  }, [liftPRs, runs, completedHikes, completedWorkouts, injuries]);
 
   // ---- Chat helpers -------------------------------------------------------
 
