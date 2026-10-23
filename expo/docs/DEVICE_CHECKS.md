@@ -71,9 +71,9 @@ On Home, scroll to the end of the cards. They come after Next Up. To hide or mov
       pulling down to refresh. (Three meals with foods in them make the meals mission.)
 - [ ] Training Load shows one number with a few words under it, and a small dot on a bar. With under about a week of training it
       says "Needs more history". Tap it: the Health screen (`app/health.jsx`) opens, and its Training Load card shows the same number.
-- [ ] Muscles lists up to three muscles, the most worked first, each with a coloured dot, and "Last 5 days" under them. After a
+- [ ] Muscles lists up to three muscles, the least recovered first, each with a coloured dot, and "Still recovering" under them. After a
       leg workout the legs are at the top. Tap it: the Health screen opens, and its Muscle Fatigue heatmap has those muscles as the
-      hottest. With nothing in the last five days it says "No recent load".
+      hottest. When every muscle has recovered it says "No recent load". (How the numbers are worked out: the section "Muscle recovery" below.)
 
 ## Home widgets: Workout History and Running Log (once, on the first update with them)
 
@@ -477,8 +477,8 @@ workout and hike records as they are; it cannot know whether a workout really ha
 ## Training state in AI workout plans and the Coach (once, after the function is deployed, then the update)
 
 The AI workout plan and the Coach are now told how you are training right now: the workouts in the last 14 days, which muscles those
-(and your runs and hikes) worked in the last 14 days and how many times each, the muscle load still carried from the last 5 days (the
-same ranking the Health page's muscle map uses), the best set and estimated one-rep max of each main lift, today's readiness and the
+(and your runs and hikes) worked in the last 14 days and how many times each, how recovered each muscle that is still recovering is
+(the same numbers the Health page's muscle map and the Home Muscles card use), the best set and estimated one-rep max of each main lift, today's readiness and the
 training load. If you have reported injuries, both are told they come before all of those figures. The plan function checks and cuts
 down what the phone sends, so deploy it first:
 
@@ -486,7 +486,8 @@ down what the phone sends, so deploy it first:
 2. `eas update --branch main --environment production` (from inside `expo/`), then close the app completely and open it once.
 
 These are the app's own figures from common training guidance and your own logs. They are not clinically validated, and the muscle
-load numbers are relative: 100 means the most worked muscle of the last 5 days, not a limit. Injuries are not matched to muscles by
+recovery numbers come from a simple model: 100 is fully recovered, lower is more tired, and a muscle not listed has no logged work still
+being recovered from. Injuries are not matched to muscles by
 the app: the AI is told your reported injuries override the muscle figures and works out the rest.
 
 - [ ] On Pro or Legend, Workouts, Get recommendation (or Quick Workout, generate). A plan comes back as before. On Free, you are still
@@ -495,23 +496,59 @@ the app: the AI is told your reported injuries override the muscle figures and w
       now, from their own logs and worked out on their phone", followed by the sentences below. Each should match the app:
       "Workouts logged in the last 14 days" is the number of workouts dated in the last 14 days in Workout History (count them in the
       "All logged" list); "Muscles worked in the last 14 days" lists the muscles with how many workouts, runs or hikes worked each (pick
-      one muscle and count its sessions); the names in "Muscle load still being carried from the last 5 days" are the darkest ones on
-      the Health page's muscle map, most worked first; each lift in "Main lifts" has the same best set and estimated one-rep max the
+      one muscle and count its sessions); the names in "Estimated muscle recovery right now" are the coloured ones on the Health page's
+      muscle map, the least recovered (hottest) first; each lift in "Main lifts" has the same best set and estimated one-rep max the
       Coach quotes; "Readiness today" is the score on the Health page (it is missing when that page shows none); "Training
       load" is the ratio on the Health page.
 - [ ] The prompt names no unit for a weight. Your weights are in whatever you logged them in.
 - [ ] Injuries: with an injury ticked under Injuries in Edit Profile, the same `prompt` also contains "Injuries / areas to
       protect" and, after the training sentences, "The injuries and areas to protect listed above come before all of this". Generate a
-      plan with the injured area's muscles showing little recent work: no exercise in the plan loads that area. With no injury reported,
+      plan with the injured area's muscles showing as recovered: no exercise in the plan loads that area. With no injury reported,
       the "come before all of this" sentence is not in the prompt.
 - [ ] An account with nothing logged (or a new test account): the prompt has no "Their training right now" part at all, and the plan
       still comes back.
 - [ ] Coach: ask "How many workouts did I do in the last two weeks?" It gives the number from Workout History. Ask "Which muscles have
-      I worked the most lately?" It names the same ones as the Health page's muscle map or "Muscles worked in the last 14 days" above.
+      I worked the most lately?" It names the same ones as "Muscles worked in the last 14 days" above, and can say which are still recovering.
       With an injury reported, ask "What should I train tomorrow?" It does not point you at the injured area, and it does not give
       advice on the injury beyond suggesting you see a professional. Ask "How ready am I to train today?" It gives the score
       from the Health page and says it is a guide, or says it has no readiness reading when the Health page shows none.
 - [ ] The Today brief on Home is unchanged by this update.
+
+## Muscle recovery (once, after the function is deployed, then the update)
+
+How tired a muscle is now comes from the sets you did, not from calories. Each hard set counts 1, a moderate set 0.6, an easy set 0.3 (the
+Easy / Moderate / Hard buttons). A muscle the exercise mainly works gets the full count and the helper muscles half (the bench press tires the
+chest, and the shoulders and triceps at half). Twelve effective sets in one session is "fully tired" for that muscle. A light session clears in
+about 48 to 72 hours and a very hard one in up to 7 days; small muscles clear faster than big ones, and good sleep or heart-rate variability
+speeds it up while poor sleep slows it. A run or hike counts 1 set per 20 minutes, spread over the legs. These numbers are starting values from
+common training guidance, not measurements: they will be adjusted as you use them. The Health heatmap, the Home Muscles card, the AI plan and the
+Coach all read the same figure ("fatigue" is 100 minus recovery).
+
+From this update, a finished workout also saves what you did on each exercise: whether you finished it and the sets you logged. Workouts saved
+before this update are read from their planned sets, counted as moderate.
+
+Deploy the function first, then the update:
+
+1. `firebase deploy --only functions:generateWorkoutPlan`
+2. `eas update --branch main --environment production` (from inside `expo/`), then close the app completely and open it twice.
+
+- [ ] Do a short lift: five hard sets of one exercise (say the bench press), finish the workout. Go to Home: Muscles lists the chest first, then
+      the shoulders and triceps, with "Still recovering" under them. Open the Health page: the muscle map has the same muscles hot, chest most.
+- [ ] Do the same exercise but tap only Easy on the sets. The same muscles show, but cooler than after the hard sets.
+- [ ] Start a workout from a program day (not a generated plan), finish one exercise, leave the others, and Save and Exit. Only the finished
+      exercise's muscles show; the ones you skipped do not.
+- [ ] Firestore, `workouts`, the newest document: each item in `exercises` has `done` (true or false) and `performed` (a list of `weight`,
+      `reps` and `rpe`, one per logged set).
+- [ ] Come back the next day: the same muscles are cooler than the day before. After the five hard sets the shoulders and triceps are gone
+      from the list after about two days and the chest after about four. A very hard session (a dozen or more hard sets for one muscle) is
+      still on the list after three days.
+- [ ] Do a run or a hike of an hour or more: the quads, glutes and hamstrings show (the legs, for both). A run with no time recorded shows
+      nothing.
+- [ ] Firestore, `aiRecommendations`, the newest `workout_plan`: the `prompt` contains "Estimated muscle recovery right now (100 is fully
+      recovered" followed by the least recovered muscles first. They are the hottest muscles on the Health map. The old "Muscle load still being
+      carried" sentence is gone. With nothing recovering it says "No muscle is still recovering".
+- [ ] Coach: ask "What should I train tomorrow?" It favours muscles that are not on the Home list, and says if everything is recovered.
+- [ ] An old phone that has not updated yet still gets a plan (it just does not send the muscle figures until it updates).
 
 ## After changing a key or a Cloud Function
 

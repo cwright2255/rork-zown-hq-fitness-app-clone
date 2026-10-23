@@ -13,7 +13,7 @@ import { useHikingStore } from '@/store/hikingStore';
 import { useWeightLogStore } from '@/store/weightLogStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
-import { calculateMuscleFatigue } from '@/lib/muscleFatigue';
+import { calculateMuscleRecovery, fatigueFromRecovery } from '@/lib/muscleRecovery';
 import { getLiftInsight, PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
 import { rookService } from '@/services/rookService';
 import { getTrainingLoadInsight } from '@/services/insightService';
@@ -123,7 +123,7 @@ export default function HealthScreen() {
       }
 
       if (cancelled) return;
-      const fatigue = calculateMuscleFatigue({ completedWorkouts, runs, completedHikes, recovery });
+      const fatigue = fatigueFromRecovery(calculateMuscleRecovery({ completedWorkouts, runs, completedHikes, recovery }));
       setMuscleFatigue(fatigue);
     })();
     return () => { cancelled = true; };

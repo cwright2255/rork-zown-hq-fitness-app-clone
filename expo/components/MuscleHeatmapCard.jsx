@@ -55,8 +55,8 @@ export default function MuscleHeatmapCard({
   // always fell through to the 2D diagram service even when a real scan
   // existed - the exact gap this file's own header comment used to flag
   // as a separate follow-up, not built in that pass. Fatigue intensities
-  // (lib/muscleFatigue.js's calculateMuscleFatigue, already 0-100
-  // normalized) feed the identical computeVertexColors path target mode
+  // (lib/muscleRecovery.js's fatigueFromRecovery: 100 minus how
+  // recovered the muscle is, so already 0-100) feed the identical computeVertexColors path target mode
   // already uses - just with fatigueByMuscle's own muscle names and
   // intensities instead of targetMuscles/muscleIntensities.
   const use3D = !!scan && (activeMode === 'target' || activeMode === 'fatigue');

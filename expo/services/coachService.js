@@ -212,7 +212,7 @@ export function buildUserDataContext({ liftPRs = [], cardioVolume = null, monthl
   }
 
   if (facts.worked) lines.push(facts.worked);
-  if (facts.load) lines.push(facts.load);
+  if (facts.recovery) lines.push(facts.recovery);
   if (facts.readiness) lines.push(facts.readiness);
   if (facts.injuries) lines.push(facts.injuries);
 

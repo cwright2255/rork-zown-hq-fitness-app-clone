@@ -1,14 +1,15 @@
 // lib/trainingState.js
 //
 // What the app already knows about how someone is training right now, gathered into one small plain object so the AI plan generator and
-// the Coach are told the same things: how many workouts in the last 14 days, which muscles those workouts, runs and hikes worked, which
-// muscles are still carrying load from the last 5 days, the best set and estimated one-rep max for each main lift, today's readiness
-// and the training load. Every piece comes from a calculation the app already runs for its own screens (muscleFatigue, readiness,
-// trainingLoad, summarizeLiftPRs) or a plain count of the same records; nothing else is worked out here.
+// the Coach are told the same things: how many workouts in the last 14 days, which muscles those workouts, runs and hikes worked, how
+// recovered each muscle that is still recovering is right now, the best set and estimated one-rep max for each main lift, today's
+// readiness and the training load. Every piece comes from a calculation the app already runs for its own screens (muscleRecovery,
+// readiness, trainingLoad, summarizeLiftPRs) or a plain count of the same records; nothing else is worked out here.
 //
 // Honest about what the numbers are:
-//   - Muscle load is relative. calculateMuscleFatigue scales every muscle to the busiest one, so 100 means "the most worked muscle in the
-//     last 5 days", not "worked to the limit", and it is described that way. It fades over 5 days, which is why it cannot cover 14.
+//   - Muscle recovery is an estimate on an absolute scale: 100 is fully recovered, lower is more tired. lib/muscleRecovery.js works it out
+//     from the sets that were logged with a simple model whose rules are starting values, not measurements, and it is described that way.
+//     Only muscles still below 100 are listed, the least recovered first. A muscle left out has no logged work still being recovered from.
 //   - Muscles worked is a count of how many workouts, runs or hikes in the last 14 days worked each muscle. It says how often, not how hard.
 //   - A piece that is missing is left out, never filled with a zero. An empty list of workouts is what a person who never trains has and
 //     also what a phone that has not finished loading has, so "0 workouts" and "no muscles worked" are only said when there is some
@@ -19,35 +20,22 @@
 //     reported injuries come before any of these figures.
 //
 // Pure functions: the stores are read by services/trainingStateService.js, which passes the values in.
-import { topMuscles, muscleLabel } from './homeWidgetData';
-import { RUNNING_MUSCLES, HIKING_MUSCLES, canonicalizeMuscle } from './muscleFatigue';
+import { muscleLabel } from './homeWidgetData';
+import { RUNNING_MUSCLES, HIKING_MUSCLES } from './muscleFatigue';
+import { workoutLoads, timeOf, workoutTime } from './muscleRecovery';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Bumped if the shape changes, so the server can ignore a shape it does not know. */
-export const TRAINING_STATE_VERSION = 2;
+export const TRAINING_STATE_VERSION = 3;
 export const MAX_MUSCLES = 8;
 export const MAX_LIFTS = 6;
 /** The days the workout count and the muscles worked look back over. */
 export const RECENT_DAYS = 14;
-/** The days muscle load looks back over (lib/muscleFatigue.js fades it out over this window). */
-export const MUSCLE_WINDOW_DAYS = 5;
 
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
 const positive = (v) => (finite(v) && v > 0 ? v : null);
 const whole = (v) => Math.round(v);
-
-// A date field that is a Firestore timestamp, a Date, a number or a date string, as a number of milliseconds; null for anything else.
-// `new Date(null)` is the start of 1970 and `new Date(true)` is a millisecond after it, so those are turned away first.
-const timeOf = (value) => {
-  if (value === null || value === undefined || typeof value === 'boolean') return null;
-  const d = value && typeof value.toDate === 'function' ? value.toDate() : new Date(value);
-  const t = d instanceof Date ? d.getTime() : NaN;
-  return Number.isNaN(t) ? null : t;
-};
-
-// The moment a workout finished, read the way Workout History reads it (completedAt, then date, then timestamp), so the two agree.
-const workoutTime = (w) => (w && typeof w === 'object' ? timeOf(w.completedAt || w.date || w.timestamp) : null);
 
 const inWindow = (t, now, days) => t !== null && t >= now.getTime() - days * DAY_MS && t <= now.getTime();
 
@@ -58,9 +46,10 @@ export function countWorkoutsSince(workouts, now = new Date(), days = RECENT_DAY
 
 /**
  * Which muscles the last `days` days of workouts, runs and hikes worked, and in how many of them: [{ muscle, sessions }], the most
- * often first, equal ones in alphabetical order. A muscle counts once for a workout however many of its exercises used it. Runs and
- * hikes count for the muscles lib/muscleFatigue.js gives them. Names are the app's own (a muscle called "quads" in one workout and
- * "quadriceps" in another is one muscle, by the same synonyms the muscle map uses).
+ * often first, equal ones in alphabetical order. A muscle counts once for a workout however many of its exercises used it. A workout
+ * worked the muscles lib/muscleRecovery.js finds for it (the exercise library first, then the exercise's own muscle tags; an exercise
+ * marked not done adds none), so this list and the recovery figures always agree. Runs and hikes count for the muscles
+ * lib/muscleFatigue.js gives them. Names are the 17 of lib/muscleVocabulary.js ("quads" and "quadriceps" are one muscle).
  */
 export function musclesWorkedSince({ workouts, runs, hikes, now = new Date(), days = RECENT_DAYS } = {}) {
   const sessions = new Map();
@@ -70,10 +59,7 @@ export function musclesWorkedSince({ workouts, runs, hikes, now = new Date(), da
 
   (Array.isArray(workouts) ? workouts : []).forEach((w) => {
     if (!inWindow(workoutTime(w), now, days)) return;
-    const exercises = Array.isArray(w.exercises) ? w.exercises : [];
-    add(exercises.flatMap((ex) => (ex && Array.isArray(ex.muscleGroups) ? ex.muscleGroups : []))
-      .filter((m) => typeof m === 'string')
-      .map(canonicalizeMuscle));
+    add(Object.keys(workoutLoads(w))); // only muscles that got some work are in the answer
   });
   (Array.isArray(runs) ? runs : []).forEach((r) => {
     if (r && inWindow(timeOf(r.endTime || r.startTime), now, days)) add(Object.keys(RUNNING_MUSCLES));
@@ -86,6 +72,18 @@ export function musclesWorkedSince({ workouts, runs, hikes, now = new Date(), da
     .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
     .map(([muscle, count]) => ({ muscle, sessions: count }));
 }
+
+// The muscles still recovering from calculateMuscleRecovery's answer ({ muscle: 0 to 99 }), the least recovered first, equal ones in
+// alphabetical order: [{ muscle, recovery }]. A muscle at 100 or more has nothing left to recover from and is left out.
+const leastRecovered = (recovery, count) => {
+  if (!recovery || typeof recovery !== 'object') return [];
+  return Object.entries(recovery)
+    .filter(([name, v]) => name && finite(v) && v < 100)
+    .map(([name, v]) => [name, Math.min(99, Math.max(0, whole(v)))])
+    .sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .slice(0, count)
+    .map(([muscle, value]) => ({ muscle, recovery: value }));
+};
 
 const liftFrom = (p) => {
   if (!p || typeof p !== 'object') return null;
@@ -112,7 +110,7 @@ const liftFrom = (p) => {
  * @param {object[]} [p.workouts]    completed workouts (workoutStore.completedWorkouts)
  * @param {object[]} [p.runs]
  * @param {object[]} [p.hikes]
- * @param {Record<string, number>} [p.fatigue]   calculateMuscleFatigue's answer, { muscle: 0 to 100 }
+ * @param {Record<string, number>} [p.recovery]  calculateMuscleRecovery's answer, { muscle: 0 to 99 } (muscles still below 100 only)
  * @param {object[]} [p.liftPRs]     summarizeLiftPRs' answer
  * @param {object} [p.readiness]     computeReadiness' answer
  * @param {object} [p.trainingLoad]  calculateTrainingLoad's answer
@@ -122,7 +120,8 @@ const liftFrom = (p) => {
  *   recentWorkouts: number | null,             workouts in the last 14 days; null when there are no workouts to count from
  *   musclesWorked: { muscle: string, sessions: number }[] | null,   how many workouts, runs or hikes in the last 14 days worked each muscle,
  *                                              most often first; [] when none did, null when there is no history at all
- *   muscleLoad: { muscle: string, load: number }[] | null,   load still carried from the last 5 days, most first; same empty and null rules
+ *   muscleRecovery: { muscle: string, recovery: number }[] | null,   how recovered each muscle still recovering is, 0 to 99, the least
+ *                                              recovered first; [] when everything has recovered, null when there is no history at all
  *   lifts: { name: string, e1rm: number, bestWeight: number, bestReps: number, lastSessionDate: string | null, sessions: number | null }[],
  *   readiness: { score: number, label: string | null } | null,
  *   trainingLoad: { zone: string, ratio: number } | null,
@@ -130,7 +129,7 @@ const liftFrom = (p) => {
  * }}
  */
 export function buildTrainingState({
-  now = new Date(), workouts, runs, hikes, fatigue, liftPRs, readiness, trainingLoad, injuries,
+  now = new Date(), workouts, runs, hikes, recovery, liftPRs, readiness, trainingLoad, injuries,
 } = {}) {
   const workoutList = Array.isArray(workouts) ? workouts : [];
   const hasHistory = workoutList.length > 0
@@ -145,9 +144,7 @@ export function buildTrainingState({
     musclesWorked: hasHistory
       ? musclesWorkedSince({ workouts: workoutList, runs, hikes, now, days: RECENT_DAYS }).slice(0, MAX_MUSCLES)
       : null,
-    muscleLoad: hasHistory
-      ? topMuscles(fatigue, MAX_MUSCLES).map(({ muscle, intensity }) => ({ muscle, load: Math.min(100, Math.max(1, whole(intensity))) }))
-      : null,
+    muscleRecovery: hasHistory ? leastRecovered(recovery, MAX_MUSCLES) : null,
     lifts,
     readiness: readiness && readiness.ready === true && finite(readiness.score)
       ? { score: Math.min(100, Math.max(0, whole(readiness.score))), label: typeof readiness.label === 'string' ? readiness.label : null }
@@ -167,7 +164,7 @@ export function isEmptyTrainingState(state) {
   if (!state || typeof state !== 'object') return true;
   return state.recentWorkouts == null
     && state.musclesWorked == null
-    && state.muscleLoad == null
+    && state.muscleRecovery == null
     && !(Array.isArray(state.lifts) && state.lifts.length > 0)
     && !state.readiness
     && !state.trainingLoad;
@@ -177,13 +174,13 @@ const namedWith = (list, key) => list.filter((m) => m && typeof m.muscle === 'st
 
 /**
  * The Coach's sentences for the parts of the state its data message does not already carry (it already has the lift history and the
- * training load from their own summaries): the workouts in the last 14 days, the muscles those worked, the muscle load still carried,
- * readiness, and, when an injury was reported, that it comes before all of these. A part that is missing, or not the shape it should
- * be, is null.
- * @returns {{ recent: string | null, worked: string | null, load: string | null, readiness: string | null, injuries: string | null }}
+ * training load from their own summaries): the workouts in the last 14 days, the muscles those worked, how recovered the muscles still
+ * recovering are, readiness, and, when an injury was reported, that it comes before all of these. A part that is missing, or not the
+ * shape it should be, is null.
+ * @returns {{ recent: string | null, worked: string | null, recovery: string | null, readiness: string | null, injuries: string | null }}
  */
 export function coachTrainingFacts(state) {
-  const none = { recent: null, worked: null, load: null, readiness: null, injuries: null };
+  const none = { recent: null, worked: null, recovery: null, readiness: null, injuries: null };
   if (!state || typeof state !== 'object') return none;
 
   const recent = Number.isInteger(state.recentWorkouts) && state.recentWorkouts >= 0
@@ -199,13 +196,13 @@ export function coachTrainingFacts(state) {
       : `No muscles worked by logged workouts, runs or hikes in the last ${RECENT_DAYS} days.`;
   }
 
-  let load = null;
-  if (Array.isArray(state.muscleLoad)) {
-    const list = namedWith(state.muscleLoad, 'load');
-    load = list.length > 0
-      ? `Muscle load still being carried from the last ${MUSCLE_WINDOW_DAYS} days, as a share of the most worked muscle (100 is the most worked of them, not a maximum): ` +
-        `${list.map((m) => `${muscleLabel(m.muscle)} ${whole(m.load)}`).join(', ')}.`
-      : `No muscle load from logged workouts, runs or hikes in the last ${MUSCLE_WINDOW_DAYS} days.`;
+  let recovery = null;
+  if (Array.isArray(state.muscleRecovery)) {
+    const list = namedWith(state.muscleRecovery, 'recovery');
+    recovery = list.length > 0
+      ? 'Estimated muscle recovery right now (100 is fully recovered; worked out from logged sets with a simple model, not a measurement), ' +
+        `lowest first, muscles not listed have no logged work still being recovered from: ${list.map((m) => `${muscleLabel(m.muscle)} ${whole(m.recovery)}`).join(', ')}.`
+      : 'No muscle is still recovering from logged workouts, runs or hikes, by a simple estimate made from the logged sets.';
   }
 
   const r = state.readiness;
@@ -215,12 +212,12 @@ export function coachTrainingFacts(state) {
     : null;
 
   // Only worth saying beside figures that could be read as "this area is fresh, so train it".
-  const injuries = state.hasInjuries === true && (worked || load)
-    ? 'The injuries this person reported come before the muscle figures above: never suggest training an injured area because it shows little recent load, ' +
+  const injuries = state.hasInjuries === true && (worked || recovery)
+    ? 'The injuries this person reported come before the muscle figures above: never suggest training an injured area because it shows as recovered, ' +
       'and do not advise on an injury beyond suggesting they see a professional.'
     : null;
 
-  return { recent, worked, load, readiness, injuries };
+  return { recent, worked, recovery, readiness, injuries };
 }
 
 /**

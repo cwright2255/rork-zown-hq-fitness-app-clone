@@ -1,4 +1,4 @@
-// Reading the training state from the app's stores (services/trainingStateService.js): the same muscle load, readiness and training load
+// Reading the training state from the app's stores (services/trainingStateService.js): the same muscle recovery, readiness and training load
 // the Health screen works out, the lift records from the logged sets, and a state that can always be had without it ever throwing.
 jest.mock('../src/config/firebase', () => ({ db: { name: 'db' } }));
 jest.mock('firebase/firestore', () => ({
@@ -19,6 +19,10 @@ const workout = (days, muscles, extra = {}) => ({
   date: ago(days), caloriesBurned: 300, exercises: [{ muscleGroups: muscles }], ...extra,
 });
 const sets = (weight, reps, days) => [{ weight, reps, date: ago(days), exerciseName: 'x' }];
+// A hard day for one muscle: an exercise the library does not know, tagged with the muscle, with k hard sets logged.
+const hardDay = (days, muscle, k) => workout(days, [muscle], {
+  exercises: [{ name: 'Custom move', muscleGroups: [muscle], sets: k, done: true, performed: Array.from({ length: k }, () => ({ weight: 100, reps: 5, rpe: 'hard' })) }],
+});
 
 // A quiet fortnight of readings and a good morning, so readiness has its own usual to compare with.
 const readings = () => {
@@ -53,7 +57,7 @@ afterEach(() => {
 });
 
 describe('readTrainingState', () => {
-  it('counts the last 14 days\' workouts, ranks the muscles they worked, and ranks the load still carried', () => {
+  it('counts the last 14 days\' workouts, ranks the muscles they worked, and ranks how recovered the tired ones are', () => {
     global.__stores = stores({
       workout: {
         completedWorkouts: [
@@ -68,8 +72,10 @@ describe('readTrainingState', () => {
     expect(state.musclesWorked).toEqual([
       { muscle: 'chest', sessions: 2 }, { muscle: 'quadriceps', sessions: 1 }, { muscle: 'triceps', sessions: 1 },
     ]);
-    // chest: 225 of the 300 calories, triceps: 75, each 0.8 left after a day; the leg day 10 days ago and the back day have worn off.
-    expect(state.muscleLoad).toEqual([{ muscle: 'chest', load: 100 }, { muscle: 'triceps', load: 33 }]);
+    // Yesterday's two chest exercises are 3.6 effective sets for the chest (three planned sets each, counted as moderate: 1.8) and 0.9 for the
+    // triceps, a day ago: the chest is 79% recovered, the triceps 97%. The leg day 10 days ago and the back day have cleared.
+    expect(state.muscleRecovery).toEqual([{ muscle: 'chest', recovery: 79 }, { muscle: 'triceps', recovery: 97 }]);
+    expect('muscleLoad' in state).toBe(false);
   });
 
   it('keeps only whether an injury was reported', () => {
@@ -80,33 +86,48 @@ describe('readTrainingState', () => {
     expect(JSON.stringify(readTrainingState({ now: NOW, injuries: ['shoulder', 'knee'] }))).not.toMatch(/shoulder|knee/);
   });
 
-  it('works the muscle load out with how rested the person is, the way the Health screen does', () => {
-    const legsFourDaysAfterChest = [workout(1, ['chest']), workout(4, ['quadriceps'])];
-    global.__stores = stores({ workout: { completedWorkouts: legsFourDaysAfterChest } });
-    const neutral = readTrainingState({ now: NOW }).muscleLoad.find((m) => m.muscle === 'quadriceps').load;
+  it('works the muscle recovery out with how rested the person is, the way the Health screen does', () => {
+    const chestThenLegs = [workout(1, ['chest']), hardDay(4, 'quadriceps', 12)];
+    const quads = () => readTrainingState({ now: NOW }).muscleRecovery.find((m) => m.muscle === 'quadriceps').recovery;
+    global.__stores = stores({ workout: { completedWorkouts: chestThenLegs } });
+    const neutral = quads();
 
-    global.__stores = stores({ workout: { completedWorkouts: legsFourDaysAfterChest }, health: { sleep: { hours: 5, quality: 'poor' } } });
-    const poorSleep = readTrainingState({ now: NOW }).muscleLoad.find((m) => m.muscle === 'quadriceps').load;
+    global.__stores = stores({ workout: { completedWorkouts: chestThenLegs }, health: { sleep: { hours: 5, quality: 'poor' } } });
+    const poorSleep = quads();
 
-    global.__stores = stores({ workout: { completedWorkouts: legsFourDaysAfterChest }, health: { sleep: { hours: 8, quality: 'good' } } });
-    const goodSleep = readTrainingState({ now: NOW }).muscleLoad.find((m) => m.muscle === 'quadriceps').load;
+    global.__stores = stores({ workout: { completedWorkouts: chestThenLegs }, health: { sleep: { hours: 8, quality: 'good' } } });
+    const goodSleep = quads();
 
-    expect(neutral).toBe(25); // 4 of the 5 days gone: 0.2 against chest's 0.8
-    expect(poorSleep).toBeGreaterThan(neutral);
-    expect(goodSleep).toBeLessThan(neutral);
+    // Twelve hard sets clear in 168 hours; four days (96 hours) in, 57% recovered. Poor sleep stretches the 168 hours to 224, good sleep shrinks it to 146.
+    expect(neutral).toBe(57);
+    expect(poorSleep).toBe(43);
+    expect(goodSleep).toBe(66);
   });
 
   it('uses the wearable\'s recovery before the logged sleep', () => {
-    const list = [workout(1, ['chest']), workout(4, ['quadriceps'])];
+    const list = [workout(1, ['chest']), hardDay(4, 'quadriceps', 12)];
     global.__stores = stores({ workout: { completedWorkouts: list }, health: { sleep: { hours: 8, quality: 'good' }, rookRecovery: { sleepHours: 5, sleepEfficiency: 40 } } });
-    const quads = readTrainingState({ now: NOW }).muscleLoad.find((m) => m.muscle === 'quadriceps').load;
-    expect(quads).toBeGreaterThan(25); // the wearable's poor night wins over the logged good one
+    const quads = readTrainingState({ now: NOW }).muscleRecovery.find((m) => m.muscle === 'quadriceps').recovery;
+    expect(quads).toBe(43); // the wearable's poor night wins over the logged good one, which would have given 66
   });
 
-  it('includes runs and hikes in the muscle load', () => {
+  it('works the recovery out as of the time it is asked for, not the clock', () => {
+    global.__stores = stores({ workout: { completedWorkouts: [workout(1, ['chest'])] } });
+    expect(readTrainingState({ now: NOW }).muscleRecovery).toEqual([{ muscle: 'chest', recovery: 91 }]);
+    expect(readTrainingState({ now: new Date(NOW.getTime() + 2 * DAY) }).muscleRecovery).toEqual([]); // three days on, the three sets have cleared
+  });
+
+  it('lists a muscle only while it is still recovering: nothing at all once everything has cleared', () => {
+    global.__stores = stores({ workout: { completedWorkouts: [hardDay(9, 'chest', 12), workout(30, ['back'])] } });
+    const state = readTrainingState({ now: NOW });
+    expect(state.recentWorkouts).toBe(1);
+    expect(state.muscleRecovery).toEqual([]);
+  });
+
+  it('includes runs and hikes in the muscle recovery, by how long they lasted', () => {
     global.__stores = stores({
-      running: { runs: [{ endTime: ago(1).toISOString(), calories: 400 }] },
-      hiking: { completedHikes: [{ completedAt: ago(2).toISOString(), calories: 500 }] },
+      running: { runs: [{ endTime: ago(1).toISOString(), duration: 3600, calories: 400 }] },
+      hiking: { completedHikes: [{ completedAt: ago(2).toISOString(), durationSeconds: 3600, calories: 500 }] },
     });
     const state = readTrainingState({ now: NOW });
     expect(state.recentWorkouts).toBeNull(); // no gym workouts to count from
@@ -114,8 +135,18 @@ describe('readTrainingState', () => {
       { muscle: 'calves', sessions: 2 }, { muscle: 'core', sessions: 2 }, { muscle: 'glutes', sessions: 2 },
       { muscle: 'hamstrings', sessions: 2 }, { muscle: 'quadriceps', sessions: 2 },
     ]);
-    expect(state.muscleLoad.map((m) => m.muscle).sort()).toEqual(['calves', 'core', 'glutes', 'hamstrings', 'quadriceps']);
-    expect(Math.max(...state.muscleLoad.map((m) => m.load))).toBe(100);
+    // An hour is three effective sets, spread over the legs by the running and hiking weights.
+    expect(state.muscleRecovery).toEqual([
+      { muscle: 'quadriceps', recovery: 75 }, { muscle: 'glutes', recovery: 79 }, { muscle: 'hamstrings', recovery: 82 },
+      { muscle: 'calves', recovery: 91 }, { muscle: 'core', recovery: 96 },
+    ]);
+  });
+
+  it('counts a run or hike with no duration as worked, but adds no recovery figure for it', () => {
+    global.__stores = stores({ running: { runs: [{ endTime: ago(1).toISOString(), calories: 400 }] } });
+    const state = readTrainingState({ now: NOW });
+    expect(state.musclesWorked).toHaveLength(5);
+    expect(state.muscleRecovery).toEqual([]);
   });
 
   it('gives readiness once the daily record can score it, and leaves it out before', () => {
@@ -150,7 +181,7 @@ describe('readTrainingState', () => {
 
   it('is empty for an account with nothing logged', () => {
     expect(readTrainingState({ now: NOW })).toEqual({
-      v: 2, recentWorkouts: null, musclesWorked: null, muscleLoad: null, lifts: [], readiness: null, trainingLoad: null, hasInjuries: false,
+      v: 3, recentWorkouts: null, musclesWorked: null, muscleRecovery: null, lifts: [], readiness: null, trainingLoad: null, hasInjuries: false,
     });
   });
 });
@@ -203,16 +234,16 @@ describe('getTrainingState', () => {
   it('is the state, with the lifts, for a person who has trained', async () => {
     global.__stores = stores({
       workout: {
-        completedWorkouts: [workout(1, ['chest']), workout(3, ['quadriceps'])],
+        completedWorkouts: [workout(1, ['chest']), workout(2, ['quadriceps'])],
         getExerciseHistory: jest.fn(async (name) => (name === 'Squat' ? sets(225, 3, 3) : [])),
       },
       health: { readingsHistory: readings() },
     });
     const state = await getTrainingState('u1', { now: NOW });
-    expect(state.v).toBe(2);
+    expect(state.v).toBe(3);
     expect(state.recentWorkouts).toBe(2);
     expect(state.musclesWorked.map((m) => m.muscle)).toEqual(['chest', 'quadriceps']);
-    expect(state.muscleLoad.map((m) => m.muscle)).toEqual(['chest', 'quadriceps']);
+    expect(state.muscleRecovery).toEqual([{ muscle: 'chest', recovery: 91 }, { muscle: 'quadriceps', recovery: 97 }]);
     expect(state.lifts).toEqual([expect.objectContaining({ name: 'Squat', bestWeight: 225, bestReps: 3, sessions: 1 })]);
     expect(state.readiness).not.toBeNull();
   });

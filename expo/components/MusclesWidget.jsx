@@ -6,13 +6,14 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
 import { useHealthStore } from '@/store/healthStore';
-import { calculateMuscleFatigue, fatigueToColor } from '@/lib/muscleFatigue';
+import { fatigueToColor } from '@/lib/muscleFatigue';
+import { calculateMuscleRecovery, fatigueFromRecovery } from '@/lib/muscleRecovery';
 import { musclesSentence, recoveryInputs, topMuscles } from '@/lib/homeWidgetData';
 import { localDateKey } from '@/lib/localDate';
 
-// Home > Muscles: the three muscles worked most in the last five days, each with the colour the Health screen's Muscle Fatigue
-// heatmap gives it. It is a ranking: the most worked muscle is always the top of the scale, however little was done. A tap opens
-// the Health screen, where the full heatmap is.
+// Home > Muscles: the three muscles that are least recovered (lib/muscleRecovery.js), each with the colour the Health screen's Muscle
+// Fatigue heatmap gives it. The scale is absolute: nothing shows when every muscle is recovered. A tap opens the Health screen, where
+// the full heatmap is.
 export default function MusclesWidget() {
   const workouts = useWorkoutStore((s) => s.completedWorkouts);
   const runs = useRunningStore((s) => s.runs);
@@ -22,13 +23,13 @@ export default function MusclesWidget() {
   const today = localDateKey();
 
   const top = useMemo(() => {
-    const fatigue = calculateMuscleFatigue({
+    const recovery = calculateMuscleRecovery({
       completedWorkouts: workouts,
       runs,
       completedHikes: hikes,
       recovery: recoveryInputs(rookRecovery, sleep),
     });
-    return topMuscles(fatigue, 3);
+    return topMuscles(fatigueFromRecovery(recovery), 3);
   }, [workouts, runs, hikes, rookRecovery, sleep, today]);
 
   return (
@@ -36,7 +37,7 @@ export default function MusclesWidget() {
       testID="home-widget-muscles"
       label="Muscles"
       icon="body-outline"
-      caption="Last 5 days"
+      caption="Still recovering"
       accessibilityLabel={`${musclesSentence(top)}. Opens Health.`}
       onPress={() => router.push('/health')}
     >

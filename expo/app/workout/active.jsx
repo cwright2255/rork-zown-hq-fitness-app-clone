@@ -382,6 +382,18 @@ export default function ActiveWorkoutScreen() {
   /* Ã¢ÂÂÃ¢ÂÂ Progress tracking Ã¢ÂÂÃ¢ÂÂ */
   const completedCount = completedSet.size;
 
+  // What is saved for each exercise of this workout: the plan (sets, reps, muscle tags) and what was actually done: whether the exercise
+  // was finished and the sets that were logged (weight, reps and the Easy / Moderate / Hard button pressed). lib/muscleRecovery.js reads
+  // these to work out how recovered each muscle is; a workout saved without them is read from its planned sets.
+  const exercisesToSave = () => exercises.map((e) => ({
+    name: e.name,
+    sets: e.sets,
+    reps: e.reps,
+    muscleGroups: e.muscleGroups || [],
+    done: completedSet.has(e.id),
+    performed: (loggedSetsByExercise[e.id] || []).map(({ weight, reps, rpe }) => ({ weight, reps, rpe })),
+  }));
+
   /* Ã¢ÂÂÃ¢ÂÂ Timer Ã¢ÂÂÃ¢ÂÂ */
   useEffect(() => {
     if (isPlaying && timeLeft > 0) {
@@ -603,7 +615,7 @@ export default function ActiveWorkoutScreen() {
         name: workoutDisplayName,
         category: selectedWorkout?.category,
         difficulty: selectedWorkout?.difficulty,
-        exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, muscleGroups: e.muscleGroups || [] })),
+        exercises: exercisesToSave(),
         duration: elapsedSeconds,
         exercisesCompleted: completedCount,
         totalExercises,
@@ -936,7 +948,7 @@ export default function ActiveWorkoutScreen() {
                 name: workoutDisplayName,
                 category: selectedWorkout?.category,
                 difficulty: selectedWorkout?.difficulty,
-                exercises: exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, muscleGroups: e.muscleGroups || [] })),
+                exercises: exercisesToSave(),
                 duration: elapsedSeconds,
                 exercisesCompleted: completedCount,
                 totalExercises,

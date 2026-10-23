@@ -361,15 +361,15 @@ describe('topMuscles', () => {
 });
 
 describe('musclesSentence', () => {
-  it('names the most worked muscles', () => {
-    const top = topMuscles({ quadriceps: 100, glutes: 82, calves: 45 });
-    expect(musclesSentence(top)).toBe('Muscles, last 5 days: most worked are Quadriceps, Glutes, Calves');
-    expect(musclesSentence(topMuscles({ chest: 9 }))).toBe('Muscles, last 5 days: most worked are Chest');
+  it('names the muscles still recovering, the least recovered first', () => {
+    const top = topMuscles({ quadriceps: 100, glutes: 82, calves: 45 }); // tiredness, from fatigueFromRecovery
+    expect(musclesSentence(top)).toBe('Muscles still recovering, least recovered first: Quadriceps, Glutes, Calves');
+    expect(musclesSentence(topMuscles({ chest: 9 }))).toBe('Muscles still recovering, least recovered first: Chest');
   });
 
   it('says there is nothing when there is nothing', () => {
-    expect(musclesSentence([])).toBe('Muscles: no recent load in the last 5 days');
-    expect(musclesSentence(undefined)).toBe('Muscles: no recent load in the last 5 days');
-    expect(musclesSentence(null)).toBe('Muscles: no recent load in the last 5 days');
+    expect(musclesSentence([])).toBe('Muscles: none still recovering');
+    expect(musclesSentence(undefined)).toBe('Muscles: none still recovering');
+    expect(musclesSentence(null)).toBe('Muscles: none still recovering');
   });
 });

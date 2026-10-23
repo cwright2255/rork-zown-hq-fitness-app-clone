@@ -13,6 +13,10 @@
 // window, rather than modeling the full biphasic peak-then-fade curve,
 // which would need more precision than a glanceable heatmap can usefully
 // convey anyway.
+//
+// The screens no longer use calculateMuscleFatigue: the Health heatmap, the Home Muscles card and the training state read lib/muscleRecovery.js,
+// which works from hard sets on an absolute scale. What is still used from here is getRecoveryModifier (how rested the person is),
+// RUNNING_MUSCLES and HIKING_MUSCLES (which muscles a run or hike works), canonicalizeMuscle, getTargetMuscles and fatigueToColor.
 
 const DECAY_DAYS = 5;
 

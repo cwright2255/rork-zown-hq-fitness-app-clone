@@ -1,5 +1,5 @@
 // The health store opens the phone's storage as soon as it loads. If that fails, the training state is still read from the rest, with
-// the muscle load worked out without sleep and readiness left out (services/trainingStateService.js takes the store only when it needs it).
+// the muscle recovery worked out without sleep and readiness left out (services/trainingStateService.js takes the store only when it needs it).
 jest.mock('../src/config/firebase', () => ({ db: { name: 'db' } }));
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(), addDoc: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: jest.fn(), serverTimestamp: jest.fn(),
@@ -34,10 +34,10 @@ afterEach(() => {
 });
 
 describe('with no health store', () => {
-  it('still gives the 14 days and the muscle load, and leaves readiness out', () => {
+  it('still gives the 14 days and the muscle recovery, and leaves readiness out', () => {
     const state = readTrainingState({ now: NOW });
     expect(state.recentWorkouts).toBe(1);
-    expect(state.muscleLoad).toEqual([{ muscle: 'chest', load: 100 }]);
+    expect(state.muscleRecovery).toEqual([{ muscle: 'chest', recovery: 91 }]); // three planned sets, a day ago
     expect(state.readiness).toBeNull();
   });
 

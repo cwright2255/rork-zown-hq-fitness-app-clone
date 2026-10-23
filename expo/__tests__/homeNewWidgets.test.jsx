@@ -157,7 +157,7 @@ describe('home screen: Battle Pass, Training Load and Muscles', () => {
     TEST_IDS.forEach((id) => expect(utils.getByTestId(id)).toBeTruthy());
     expect(utils.getByText('Lv 1')).toBeTruthy();
     expect(utils.getByText('Needs more history')).toBeTruthy(); // one workout is not enough history for a training load
-    expect(utils.getByText('Last 5 days')).toBeTruthy();
+    expect(utils.getByText('Still recovering')).toBeTruthy();
     expect(utils.getByText('Heart')).toBeTruthy(); // the older cards are still there
     expect(utils.getByText('Workout Streak')).toBeTruthy(); // and the ones from before
   });

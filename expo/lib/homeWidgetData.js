@@ -88,7 +88,7 @@ export function trainingLoadSummary(load) {
 }
 
 /**
- * What muscle fatigue (lib/muscleFatigue.js) is told about how rested the person is, from what the health store holds: the wearable's
+ * What muscle recovery (lib/muscleRecovery.js) is told about how rested the person is, from what the health store holds: the wearable's
  * recovery when it has a heart-rate-variability or sleep reading, otherwise the sleep the person logged, otherwise nothing (undefined).
  * It is the rule the Health screen uses, so the card on Home ranks the muscles the way the Health screen's heatmap does.
  */
@@ -112,7 +112,7 @@ export function muscleLabel(key) {
 }
 
 /**
- * The most worked muscles, most first, from calculateMuscleFatigue's answer ({ muscle: 0 to 100 }): [{ muscle, label, intensity }].
+ * The most tired muscles, most first, from fatigueFromRecovery's answer ({ muscle: 1 to 100 }, lib/muscleRecovery.js): [{ muscle, label, intensity }].
  * A muscle with nothing on it is left out. Equal ones come in alphabetical order, so the card does not reshuffle between draws.
  */
 export function topMuscles(fatigue, count = 3) {
@@ -124,8 +124,8 @@ export function topMuscles(fatigue, count = 3) {
     .map(([name, v]) => ({ muscle: name, label: muscleLabel(name), intensity: v }));
 }
 
-/** The most worked muscles as a sentence, for a screen reader. */
+/** The least recovered muscles as a sentence, for a screen reader. */
 export function musclesSentence(top) {
   const list = Array.isArray(top) ? top : [];
-  return list.length ? `Muscles, last 5 days: most worked are ${list.map((m) => m.label).join(', ')}` : 'Muscles: no recent load in the last 5 days';
+  return list.length ? `Muscles still recovering, least recovered first: ${list.map((m) => m.label).join(', ')}` : 'Muscles: none still recovering';
 }

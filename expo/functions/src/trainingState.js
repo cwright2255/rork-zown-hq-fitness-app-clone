@@ -1,6 +1,6 @@
 // The training state the app sends with a workout-plan request (the app builds it in lib/trainingState.js): how many workouts in the last
-// 14 days, which muscles those worked, the muscle load still carried from the last 5 days, the main lifts' best sets, readiness and the
-// training load.
+// 14 days, which muscles those worked, how recovered each muscle still recovering is right now (an estimate on a 0 to 100 scale, 100 being
+// fully recovered), the main lifts' best sets, readiness and the training load.
 //
 // It arrives from a phone, so it is not trusted to be well formed. Every piece is checked and cut to a known shape and size before any of
 // it reaches the AI: numbers must be numbers inside a sensible range, names must be short plain words, the load zone must be one the app
@@ -14,11 +14,10 @@
 // Injuries do not come in the state. The plan request already carries them in the profile (index.js writes them into the prompt as
 // "Injuries / areas to protect"), so whether there are any is read from there and the text below says they come before everything else.
 
-export const TRAINING_STATE_VERSION = 2;
+export const TRAINING_STATE_VERSION = 3;
 const MAX_MUSCLES = 8;
 const MAX_LIFTS = 6;
 const RECENT_DAYS = 14;
-const MUSCLE_WINDOW_DAYS = 5;
 
 // What each training-load zone the app reports means, in words (the app's own words are not sent).
 const ZONE_WORDS = {
@@ -55,22 +54,23 @@ export function sanitizeTrainingState(input) {
 
   // [{ muscle, <key> }] with each muscle once, at most MAX_MUSCLES. An empty list the phone sent stays empty (nothing was worked); null
   // when it is not a list, or when it had entries and none passed (that is bad data, not "nothing was worked").
-  const muscleList = (list, key, high) => {
+  const muscleList = (list, key, low, high) => {
     if (!Array.isArray(list)) return null;
     const seen = new Set();
     const out = [];
     for (const m of list) {
       if (out.length >= MAX_MUSCLES) break;
       const name = clean(m && m.muscle).toLowerCase();
-      const value = within(m && m[key], 1, high);
+      const value = within(m && m[key], low, high);
       if (!MUSCLE_NAME.test(name) || value === null || seen.has(name)) continue;
       seen.add(name);
       out.push({ muscle: name, [key]: Math.round(value) });
     }
     return out.length === 0 && list.length > 0 ? null : out;
   };
-  const musclesWorked = muscleList(input.musclesWorked, 'sessions', 100);
-  const muscleLoad = muscleList(input.muscleLoad, 'load', 100);
+  const musclesWorked = muscleList(input.musclesWorked, 'sessions', 1, 100);
+  // Recovery is 0 to 99: a muscle that is fully recovered is not listed, and one that cannot move yet is 0.
+  const muscleRecovery = muscleList(input.muscleRecovery, 'recovery', 0, 99);
 
   const lifts = [];
   if (Array.isArray(input.lifts)) {
@@ -102,8 +102,8 @@ export function sanitizeTrainingState(input) {
     ? { zone, ratio: Math.round(ratio * 100) / 100 }
     : null;
 
-  const state = { v: TRAINING_STATE_VERSION, recentWorkouts, musclesWorked, muscleLoad, lifts, readiness, trainingLoad };
-  const empty = recentWorkouts === null && musclesWorked === null && muscleLoad === null && lifts.length === 0 && !readiness && !trainingLoad;
+  const state = { v: TRAINING_STATE_VERSION, recentWorkouts, musclesWorked, muscleRecovery, lifts, readiness, trainingLoad };
+  const empty = recentWorkouts === null && musclesWorked === null && muscleRecovery === null && lifts.length === 0 && !readiness && !trainingLoad;
   return empty ? null : state;
 }
 
@@ -130,11 +130,11 @@ export function trainingStateText(state, { hasInjuries = false } = {}) {
       : `No muscles worked by logged workouts, runs or hikes in the last ${RECENT_DAYS} days.`);
   }
 
-  if (state.muscleLoad !== null) {
-    parts.push(state.muscleLoad.length > 0
-      ? `Muscle load still being carried from the last ${MUSCLE_WINDOW_DAYS} days, as a share of the most worked muscle (100 is the most worked of them, not a maximum): ` +
-        `${state.muscleLoad.map((m) => `${muscleWord(m.muscle)} ${m.load}`).join(', ')}.`
-      : `No muscle load from logged workouts, runs or hikes in the last ${MUSCLE_WINDOW_DAYS} days.`);
+  if (state.muscleRecovery !== null) {
+    parts.push(state.muscleRecovery.length > 0
+      ? 'Estimated muscle recovery right now (100 is fully recovered; worked out from logged sets with a simple model, not a measurement), ' +
+        `lowest first, muscles not listed have no logged work still being recovered from: ${state.muscleRecovery.map((m) => `${muscleWord(m.muscle)} ${m.recovery}`).join(', ')}.`
+      : 'No muscle is still recovering from logged workouts, runs or hikes, by a simple estimate made from the logged sets.');
   }
 
   if (state.lifts.length > 0) {
@@ -155,12 +155,12 @@ export function trainingStateText(state, { hasInjuries = false } = {}) {
 
   if (parts.length === 0) return '';
   return ' Their training right now, from their own logs and worked out on their phone - the only facts you have about it, so quote no ' +
-    `number that is not listed here: ${parts.join(' ')} Use it to decide emphasis: give heavily loaded muscles a rest day or lighter work, ` +
-    'favour muscles that were not worked much recently, and keep the total volume level or lower when readiness is Low or the training load is ' +
+    `number that is not listed here: ${parts.join(' ')} Use it to decide emphasis: give muscles with low recovery a rest day or lighter work, ` +
+    'favour muscles that are fully recovered or were not worked much recently, and keep the total volume level or lower when readiness is Low or the training load is ' +
     'higher than usual.' +
     (hasInjuries
       ? ' The injuries and areas to protect listed above come before all of this: never programme an exercise that loads an injured area, ' +
-        'even when its muscles show little recent work, and do not advise on an injury beyond suggesting they see a professional.'
+        'even when its muscles show as recovered, and do not advise on an injury beyond suggesting they see a professional.'
       : '') +
     ' Do not diagnose anything.';
 }

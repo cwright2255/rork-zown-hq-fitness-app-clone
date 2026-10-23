@@ -1,7 +1,7 @@
 // services/trainingStateService.js
 //
-// Reads the app's stores and gives back the training state (lib/trainingState.js) as it is right now: the muscle load worked out the way
-// the Health screen does it, the lift records, the week's workout count, readiness and the training load. The AI plan call and the Coach
+// Reads the app's stores and gives back the training state (lib/trainingState.js) as it is right now: the muscle recovery worked out the
+// way the Health screen does it, the lift records, the week's workout count, readiness and the training load. The AI plan call and the Coach
 // both use it, so they are told the same things.
 //
 // Asking for it never throws: a state that cannot be had is null, and the caller carries on without it, exactly as it did before this
@@ -11,7 +11,7 @@ import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
 import { summarizeLiftPRs } from '@/services/coachService';
 import { PRIMARY_LIFT_MUSCLES } from '@/lib/crossDomainInsights';
-import { calculateMuscleFatigue } from '@/lib/muscleFatigue';
+import { calculateMuscleRecovery } from '@/lib/muscleRecovery';
 import { aggregateDailyLoad, calculateTrainingLoad } from '@/lib/trainingLoad';
 import { computeReadiness } from '@/lib/readiness';
 import { recoveryInputs } from '@/lib/homeWidgetData';
@@ -24,7 +24,7 @@ export const TRAINING_STATE_PATIENCE_MS = 4000;
 
 // The health store is taken when it is first needed and not at the top of the file: it opens the phone's storage the moment it loads,
 // and the Coach screen (which only reads the state, inside a try) should not fail to open because of that. A store that cannot be
-// had is the same as one with nothing in it: the muscle load then ignores sleep and the readiness is left out.
+// had is the same as one with nothing in it: the muscle recovery then ignores sleep and the readiness is left out.
 const healthStore = () => {
   try {
     return require('@/store/healthStore').useHealthStore.getState();
@@ -70,7 +70,8 @@ export async function loadTrainingSources(uid, { patience = TRAINING_STATE_PATIE
  * The training state from what the stores hold at this moment (nothing is loaded here). `liftPRs` is summarizeLiftPRs' answer and
  * `injuries` the injuries the person reported (the state keeps only whether there are any, for the Coach; the plan function reads them
  * from the profile it is sent).
- * Muscle load uses the rule the Health screen uses for how rested the person is (recoveryInputs), so the two never disagree.
+ * Muscle recovery is worked out by lib/muscleRecovery.js with the rule the Health screen uses for how rested the person is
+ * (recoveryInputs), so the two never disagree.
  */
 export function readTrainingState({ liftPRs = [], now = new Date(), injuries } = {}) {
   const workouts = useWorkoutStore.getState().completedWorkouts || [];
@@ -79,13 +80,13 @@ export function readTrainingState({ liftPRs = [], now = new Date(), injuries } =
   const health = healthStore();
 
   const trainingLoad = calculateTrainingLoad(aggregateDailyLoad({ completedWorkouts: workouts, runs, completedHikes: hikes }));
-  const fatigue = calculateMuscleFatigue({
-    completedWorkouts: workouts, runs, completedHikes: hikes, recovery: recoveryInputs(health.rookRecovery, health.sleep),
+  const recovery = calculateMuscleRecovery({
+    completedWorkouts: workouts, runs, completedHikes: hikes, recovery: recoveryInputs(health.rookRecovery, health.sleep), now,
   });
   const readiness = computeReadiness({
     history: health.readingsHistory, today: localDateKey(now), trainingLoad, hrvLabel: hrvTitle(health.rookRecovery),
   });
-  return buildTrainingState({ now, workouts, runs, hikes, fatigue, liftPRs, readiness, trainingLoad, injuries });
+  return buildTrainingState({ now, workouts, runs, hikes, recovery, liftPRs, readiness, trainingLoad, injuries });
 }
 
 /**
