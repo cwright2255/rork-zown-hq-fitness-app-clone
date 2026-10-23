@@ -589,6 +589,47 @@ Weights are in pounds, as the workout screen has always logged them.
 - [ ] On a lift you have done at least three times, log one set with an impossible weight (say 1000 lb) and press OK. No record celebration
       appears. The next target is built on your earlier sessions, not on the 1000.
 
+## Today's Session (once, on the first update with it)
+
+Workouts has a new "Today's Session" button under Quick Workout. It picks the day's exercises on the phone, with no AI and nothing to pay: it
+scores the exercise library on how rested each muscle is, how many sets each muscle has had this week against a weekly aim (10 for a beginner,
+14 intermediate, 18 advanced; a muscle's weekly limit is 10% over last week's sets, but never under 10 or over 20), your goal, your equipment and your injuries, then
+fills the time you choose. Starting values from common training guidance, not measurements; every number is in one table, `SESSION_RULES` in
+`lib/sessionPicker.js`, and the injury list is `lib/injuryRules.js`. The injury list is conservative and has not been reviewed by a professional.
+
+Needs some logged workouts to show anything interesting; a person with none gets a fresh full-body session.
+
+- [ ] Workouts, under Quick Workout: a lighter grey button "Today's Session". Tap it: a screen with Time chips (15, 30, 45, 60 min) and
+      Equipment chips (Full gym, Dumbbells and a bench, No equipment). The time chip that matches your profile's preferred length is selected
+      (30 min when it is none of those). "Choosing your exercises..." shows for a moment, then a session.
+- [ ] The session has a name ("Chest and Lats", "Full Body"), a line such as "4 exercises · 12 sets · about 28 min", and a card per exercise: the
+      name, "3 x 10-15 reps" (a plank or wall sit: "3 x 30s hold"), and a small grey line saying why, for example "Chest: about 92% recovered,
+      6 sets short of this week's 14-set aim." or "Glutes: fully rested, no sets logged this week (aim 14)."
+- [ ] Heavy compound lifts come first, then the smaller ones. No burpees, jumps or other cardio moves.
+- [ ] A lift you have logged before shows "Start at <weight> lb x <reps> reps" and a line with the kind of day and the rep range, the same
+      numbers the target card shows when you open that lift. A lift you never logged shows no weight.
+- [ ] Do a hard legs day (or a long run or hike) and open Today's Session the next day: no pick has a leg muscle as its first-named muscle
+      (the reason line starts with the muscle the exercise is picked for), and the upper body is trained.
+- [ ] Tap a longer time: more exercises and sets, never more than 8 exercises. Tap 15 min: one or two exercises. The "about N min" is never
+      more than the chip.
+- [ ] Tap "No equipment": every exercise is bodyweight (wall push-up or push-up, squats, lunges, bridges, planks); nothing needs a bar,
+      dumbbells or a bench. Tap "Dumbbells and a bench": nothing needs a barbell, cable or machine. There is no pulling exercise without
+      equipment (no pull-up bar is assumed); that is expected.
+- [ ] Add an injury in Edit Profile (say Shoulder) and open the screen again: a note under the cards, "Left out because of the injuries you
+      reported: Shoulder...", and no press, row, pull-up, pulldown, raise or plank among the picks. Remove it again afterwards.
+- [ ] If every muscle is still tired (log very hard sets for the whole body and open it straight away), the screen shows a message about a
+      rest day instead of a session and no Start Workout button. If you have already had your sets for the week, it says every muscle has
+      reached this week's limit.
+- [ ] "Start Workout" saves the session and opens it as a workout (Firestore, `users/<your uid>/workoutTemplates`, as Quick Workout saves its workouts: `source` is `engine_session`). On that screen the
+      usual Start button, the target card and the Easy / OK / Hard buttons work as for any workout. The name is the session name and the
+      exercises, sets and reps are the ones you saw.
+- [ ] After you finish it and open Today's Session again, the picks have moved on to the muscles that are rested and short of their weekly
+      aim, and the "sets short" figures in the reason lines are smaller for the muscles you just trained.
+- [ ] The grey line at the bottom says the session is built on common strength-training guidelines and is not clinically validated or medical
+      advice.
+- [ ] The workout screen for a bodyweight lift that reached the top of its range (the "ready for a harder version" hint) still shows the hint;
+      Today's Session keeps offering the version you last logged until you do the harder one.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

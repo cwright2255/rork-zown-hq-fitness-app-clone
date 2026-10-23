@@ -282,6 +282,11 @@ export default function WorkoutsScreen() {
           <Ionicons name="flash" size={20} color="#FFF" />
           <Text style={styles.createBtnText}>Quick Workout</Text>
         </Pressable>
+
+        <Pressable style={[styles.createBtn, styles.sessionBtn]} onPress={() => router.push('/workout/session')}>
+          <Ionicons name="barbell" size={20} color="#000" />
+          <Text style={[styles.createBtnText, styles.sessionBtnText]}>Today's Session</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -367,4 +372,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 20, marginTop: 4,
   },
   createBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+  sessionBtn: { backgroundColor: '#F0F0F0', marginTop: 10 },
+  sessionBtnText: { color: '#000' },
 });
