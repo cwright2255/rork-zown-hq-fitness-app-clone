@@ -78,7 +78,7 @@ describe('the Today brief request', () => {
     expect(await generateTodayBrief({ messages: MESSAGES })).toBeNull();
   });
 
-  it('is nothing, without a fuss, when the plan does not include the brief', async () => {
+  it('is nothing, without a fuss, when a server that still locks the brief turns the request away', async () => {
     fail(Object.assign(new Error('plan'), { code: 'functions/permission-denied', details: { reason: 'plan_required', feature: 'todayBrief', needs: 'pro', tier: 'free' } }));
     expect(await generateTodayBrief({ messages: MESSAGES })).toBeNull();
     expect(call).toHaveBeenCalledTimes(1);

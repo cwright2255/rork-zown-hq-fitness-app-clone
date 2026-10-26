@@ -27,13 +27,11 @@ export const ENTITLED_STATUSES = ['active', 'trialing', 'grace', 'cancelled'];
 export const FEATURES = {
   aiWorkoutPlan: 'pro',
   analytics: 'pro',
-  todayBrief: 'pro',
   bodyScan: 'legend',
 };
 export const FEATURE_NAMES = {
   aiWorkoutPlan: 'AI workout plans',
   analytics: 'Analytics',
-  todayBrief: 'Daily Today brief',
   bodyScan: 'Body scan and 3D body',
 };
 

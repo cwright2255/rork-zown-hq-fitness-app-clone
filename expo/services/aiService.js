@@ -516,8 +516,8 @@ export const generateTrainingLoadInsight = async ({ trainingLoad }) => {
 
 /**
  * The daily Today brief: the AI's note for today from `messages` (lib/todayBrief.js buildBriefMessages). Resolves to { headline, points },
- * or null when the AI gave nothing usable, the scope check turned the request away, the plan does not include the brief or the call
- * failed. Counted with the comments the app asks for by itself ('brief' on the server is a Pro feature that uses that allowance), so it
+ * or null when the AI gave nothing usable, the scope check turned the request away, the allowance for the day is used up or the call
+ * failed. Open to every plan, and counted with the comments the app asks for by itself ('brief' on the server uses that allowance), so it
  * never uses up the messages a person sends. Never throws.
  * @param {{ messages: { role: string, content: string }[] }} params
  */
@@ -529,7 +529,7 @@ export const generateTodayBrief = async ({ messages }) => {
     if (data?.refused) return null;
     return parseBrief(data.completion);
   } catch (error) {
-    // A plan that does not include the brief is not a fault worth logging; anything else is.
+    // A used-up allowance is not a fault worth logging; anything else is.
     if (!upgradeFromError(error)) console.error('Error generating the Today brief', error);
     return null;
   }

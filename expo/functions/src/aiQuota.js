@@ -22,12 +22,12 @@ export async function checkFeature({ db, uid, feature, now = new Date() }) {
 
 /**
  * What a postLLM request of this `kind` needs: the allowance it is counted in, and the feature the person's plan must include (null when
- * none). The daily Today brief ('brief') is a Pro feature and is counted with the comments the app asks for by itself ('insight'), so it
- * cannot use up the messages a person chooses to send. The Coach's notes about a person ('memory', written from their chats when they open
- * the Coach) are counted there too, and open to every plan. Any other kind is counted as bucketOf() says and needs no feature.
+ * none). The daily Today brief ('brief') and the Coach's notes about a person ('memory', written from their chats when they open the
+ * Coach) are counted with the comments the app asks for by itself ('insight'), so they cannot use up the messages a person chooses to
+ * send, and both are open to every plan. Any other kind is counted as bucketOf() says and needs no feature.
  */
 export function aiRequestPlan(kind) {
-  if (kind === 'brief') return { bucket: 'insight', feature: 'todayBrief' };
+  if (kind === 'brief') return { bucket: 'insight', feature: null };
   if (kind === 'memory') return { bucket: 'insight', feature: null };
   return { bucket: bucketOf(kind), feature: null };
 }

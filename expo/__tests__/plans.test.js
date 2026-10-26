@@ -11,7 +11,7 @@ describe('what each plan lists', () => {
   });
 
   it('gives Pro everything in Free, its own messages, and what it unlocks', () => {
-    expect(planFeatures('pro')).toEqual(['Everything in Free', '100 Coach messages a day', 'AI workout plans', 'Analytics', 'Daily Today brief']);
+    expect(planFeatures('pro')).toEqual(['Everything in Free', '100 Coach messages a day', 'AI workout plans', 'Analytics']);
   });
 
   it('gives Legend everything in Pro, its own messages, and what only it unlocks', () => {

@@ -314,26 +314,37 @@ Needs Apple Health with a few weeks of readings (or a connected device that has 
 ## Today brief (Home)
 
 Needs the `postLLM` function deployed first (`cd expo && firebase deploy --only functions:postLLM`), then `eas update`. An older
-`postLLM` has no Pro gate for the brief and counts it as a Coach message. Use a Pro or Legend account for the first block, a Free
-account for the second.
+`postLLM` still turns a Free account away from the brief, so deploy it before you check a Free account. The brief is open to Free, Pro
+and Legend, and the card is always on Home: check it on a Free account and on a Pro or Legend one.
 
 - [ ] On Home, under the greeting and above "Today's Information", a "Today brief" card shows a "Writing your brief" line and then a
       headline with two to four short points, and "From your Coach, once a day. Training and nutrition guidance, not medical advice."
+      A Free account sees exactly this too: no lock, no Pro label, no "See plans" button.
 - [ ] The points only use things you can find in the app (your sleep, readiness, weight, workouts, food, calendar). Nothing about a
       reading or a workout you do not have. If you have an injury or an allergy set in your profile, the brief respects it.
-- [ ] Close the app and open it again, or go to another tab and back: the same brief shows at once, with no "Writing your brief". It
-      changes the next day, not before.
+- [ ] Close the app and open it again, or go to another tab and back: the same brief shows at once, with no "Writing your brief" and no
+      blink. It changes the next day, not before.
 - [ ] Firebase console, Firestore, `aiUsage`: today's `insight` count for your account went up by one for the brief, and the `coach`
-      count did not move.
-- [ ] Turn on airplane mode, kill the app, open it: no card at all (not an error). Turn it off and open Home after half an hour: the
-      brief is written then. Within the half hour, opening Home does not try again.
+      count did not move. This is the same on a Free account.
+- [ ] Switch your plan in Firestore under `entitlements` between Free, Pro and Legend (or delete the document): the brief card stays and
+      shows the same brief on each.
+- [ ] Plans (Settings, Account, "Your plan"): the Pro card no longer lists "Daily Today brief".
+- [ ] Turn on airplane mode, kill the app, and open it on a day when today's brief is not written yet, with a brief from an earlier
+      day on the phone: the card is still there. It shows that earlier brief with "From" and its day (for example "From Sun, Oct 25") at the
+      top, the line "Today's brief is not ready yet. This is the last one your Coach wrote." and a "Try again" button.
+- [ ] Turn airplane mode off and tap "Try again": the button shows a spinner, then today's brief takes the place of the earlier one, and
+      the day, the line and the button go away. Tapping "Try again" right after a failed try asks again at once; it does not wait.
+- [ ] On a phone with no earlier brief (a new account, or after deleting and reinstalling the app), airplane mode on, first open of the
+      day: the card says "Your Coach has not written today's brief yet. It is written from your sleep, recovery, training and what you
+      have logged. Check your connection and try again." with a "Try again" button. It is never an empty space. Airplane mode off, "Try
+      again": the brief shows.
+- [ ] Opening Home again without tapping "Try again" does not try again within the half hour. The card stays as it was.
+- [ ] Firebase console, Firestore, `aiUsage/<your id>_<today>`: set `insight` to 9 on a Free account (Pro 60, Legend 120) on a day when
+      today's brief is not written yet, then open Home: the card still shows (the last brief, or the "not ready" card), with "Try again".
+      Put the count back afterwards.
 - [ ] If your readiness is low or your training load is high, the headline says to ease off. If both are good, a harder day is fine.
 - [ ] On the first open on an iPhone that never opened the Health page, iOS may ask for Health access once (the brief reads the same
       sleep, heart rate and HRV as the Health page). It does not ask again.
-- [ ] A Free account sees a locked "Today brief" card with a Pro label and a "See plans" button that opens the plans page for the
-      Daily Today brief. No brief is written for it: `aiUsage` for that account does not change.
-- [ ] Upgrade the Free account to Pro (or switch its plan in Firestore under `entitlements`): within a moment the lock gives way to the
-      brief.
 
 ## Coach memory (Settings, AI Coach)
 
@@ -356,7 +367,7 @@ Needs the `postLLM` function deployed first (`cd expo && firebase deploy --only 
 - [ ] "Forget everything" asks first. After you confirm the list is empty. Open the Coach again: it stays empty (it does not re-learn from
       your old chats). After two new messages and another open, it starts a new list.
 - [ ] With airplane mode on, remove a note: "Not saved", and the list shows what is really saved.
-- [ ] The Today brief (Pro or Legend account) can use a note, for example it suggests a plan that fits "3 days a week". It does not repeat
+- [ ] The Today brief can use a note, for example it suggests a plan that fits "3 days a week". It does not repeat
       your notes back.
 - [ ] Delete a test account (Settings, Danger Zone): `users/{its id}/data/coachMemory` is gone from Firestore with the rest.
 
@@ -372,7 +383,7 @@ deploy the topic check and the answer run side by side, so a normal reply should
       by one for it, as before.
 - [ ] Profile, Help: the same two questions behave the same way.
 - [ ] Nutrition, Scan: a meal photo is still read and the foods are listed.
-- [ ] Home: the Today brief (Pro or Legend account) still shows.
+- [ ] Home: the Today brief still shows.
 - [ ] In your Codespace: `cd expo/functions && npm install && node safety/run.js` ends with `RESULT: PASSED` (docs/SAFETY_TESTS.md).
 
 ## Finishing a workout and Workout History (once, on the first update with the fix)

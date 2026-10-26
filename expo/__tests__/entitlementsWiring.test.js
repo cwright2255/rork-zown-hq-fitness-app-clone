@@ -143,7 +143,7 @@ describe('the functions that enforce the plan', () => {
     expect(post).toMatch(/if \(!quota\.ok\) throw aiLimitReached\(quota\);/);
   });
 
-  it('turn a Free person away from the daily Today brief before anything is counted or sent', () => {
+  it('check the plan a kind of request needs before anything is counted or sent', () => {
     const post = index.slice(index.indexOf('export const postLLM'), index.indexOf('export const generateBodyCompositionInsight'));
     expect(post).toMatch(/const \{ bucket, feature \} = aiRequestPlan\(kind\);\s*if \(feature\) await requireFeature\(uid, feature\);/);
     expect(post).toMatch(/takeAiQuota\(\{ db, uid, kind: bucket \}\)/);

@@ -56,14 +56,14 @@ describe('checkFeature', () => {
     expect(await checkFeature({ db, uid: 'u1', feature: 'bodyScan', now: NOW })).toEqual({ ok: false, tier: 'pro', needs: 'legend' });
   });
 
-  it('lets Free into nothing that is locked: the daily Today brief is Pro', async () => {
-    expect(await checkFeature({ db: makeDb(), uid: 'u1', feature: 'todayBrief', now: NOW })).toEqual({ ok: false, tier: 'free', needs: 'pro' });
-    expect(await checkFeature({ db: makeDb({ 'entitlements/u1': pro }), uid: 'u1', feature: 'todayBrief', now: NOW })).toEqual({ ok: true, tier: 'pro', needs: 'pro' });
+  it('lets Free into nothing that is locked, and still into the daily Today brief, which is not', async () => {
+    expect(await checkFeature({ db: makeDb(), uid: 'u1', feature: 'aiWorkoutPlan', now: NOW })).toEqual({ ok: false, tier: 'free', needs: 'pro' });
+    expect((await checkFeature({ db: makeDb(), uid: 'u1', feature: 'todayBrief', now: NOW })).ok).toBe(true);
   });
 
   it('lets Legend into everything', async () => {
     const db = makeDb({ 'entitlements/u1': legend });
-    for (const feature of ['aiWorkoutPlan', 'analytics', 'todayBrief', 'bodyScan']) {
+    for (const feature of ['aiWorkoutPlan', 'analytics', 'bodyScan']) {
       expect((await checkFeature({ db, uid: 'u1', feature, now: NOW })).ok).toBe(true);
     }
   });
@@ -74,8 +74,8 @@ describe('checkFeature', () => {
 });
 
 describe('aiRequestPlan', () => {
-  it('counts the daily Today brief with the comments the app asks for by itself, and says it needs the Today brief feature', () => {
-    expect(aiRequestPlan('brief')).toEqual({ bucket: 'insight', feature: 'todayBrief' });
+  it('counts the daily Today brief with the comments the app asks for by itself, for every plan', () => {
+    expect(aiRequestPlan('brief')).toEqual({ bucket: 'insight', feature: null });
   });
 
   it('counts the Coach\'s notes about a person with those comments too, for every plan', () => {
