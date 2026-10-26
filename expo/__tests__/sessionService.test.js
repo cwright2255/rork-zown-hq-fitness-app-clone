@@ -10,15 +10,17 @@ jest.mock('@/store/runningStore', () => ({ useRunningStore: { getState: () => gl
 jest.mock('@/store/hikingStore', () => ({ useHikingStore: { getState: () => global.__stores.hiking } }));
 jest.mock('@/store/healthStore', () => ({ useHealthStore: { getState: () => { if (global.__stores.health === 'throw') throw new Error('store failed'); return global.__stores.health; } } }));
 jest.mock('@/store/settingsStore', () => ({ useSettingsStore: { getState: () => { if (global.__stores.settings === 'throw') throw new Error('store failed'); return global.__stores.settings; } } }));
+jest.mock('@/store/trainingFeedbackStore', () => ({ useTrainingFeedbackStore: { getState: () => { if (global.__stores.trainingFeedback === 'throw') throw new Error('store failed'); return global.__stores.trainingFeedback; } } }));
 jest.mock('@/services/wearableService', () => ({ getCurrentReadiness: jest.fn(async () => 'medium') }));
 
 import {
-  SESSION_PATIENCE_MS, refreshSessionSources, readSessionInputs, loadPrescriptions, buildTodaySession,
+  SESSION_PATIENCE_MS, refreshSessionSources, readSessionInputs, loadPrescriptions, buildTodaySession, getSwapOptions, swapInExercise,
 } from '../services/sessionService';
+import { emptyFeedback, excludeExercise, setVote, recordSwap, recordSkip } from '../lib/trainingFeedback';
 import { getCurrentReadiness } from '@/services/wearableService';
 import { calculateMuscleRecovery } from '../lib/muscleRecovery';
 import { recoveryInputs } from '../lib/homeWidgetData';
-import { weeklyVolume, currentRungs, pickSession, attachTargets } from '../lib/sessionPicker';
+import { weeklyVolume, currentRungs, pickSession, attachTargets, swapOptions, replaceExercise } from '../lib/sessionPicker';
 import { getNextPrescription } from '../services/progressiveOverloadService';
 import { countLowReadinessDays } from '../lib/loadRules';
 import { MUSCLES } from '../lib/muscleVocabulary';
@@ -43,6 +45,7 @@ const stores = (over = {}) => ({
   health: {
     rookRecovery: null, sleep: null, readingsHistory: {}, loadAllHealth: jest.fn(async () => {}), loadRookRecovery: jest.fn(async () => {}), ...over.health,
   },
+  trainingFeedback: { feedback: emptyFeedback(), ...over.trainingFeedback },
 });
 
 beforeEach(() => {
@@ -492,5 +495,235 @@ describe('the weight unit', () => {
         expect(x.weight).toBeLessThan(80);
       });
     });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// The person's feedback (store/trainingFeedbackStore.js, lib/trainingFeedback.js)
+
+const feedbackStore = (feedback) => ({ trainingFeedback: { feedback } });
+const chestOnly = { ...user, fitnessMetrics: { targetGoals: ['build_muscle'], injuries: [] } };
+// Every muscle but the chest is tired (5 hard sets each, a few hours ago, and well under the weekly limit): the session is a chest session, which makes
+// the effect of the feedback easy to see.
+const chestWorkout = workout(0.1, MUSCLES.filter((m) => m !== 'chest').map((m) => ({ name: 'Custom move', muscleGroups: [m], sets: 5, done: true, performed: Array.from({ length: 5 }, () => ({ weight: 100, reps: 5, rpe: 'hard' })) })));
+const chestStores = (extra = {}) => stores({ ...extra, workout: { completedWorkouts: [chestWorkout], ...extra.workout } });
+
+describe('the feedback the picker is given', () => {
+  it('is nothing at all, with nothing said: no weights and nothing excluded', () => {
+    const inputs = readSessionInputs({ user, now: NOW });
+    expect(inputs.weights).toEqual({});
+    expect(inputs.excluded).toEqual([]);
+  });
+
+  it('is the weights More, Less, swaps and skips make, and the exercises and progressions excluded', () => {
+    let fb = emptyFeedback();
+    fb = setVote(fb, 'barbell-bench-press', 'more', NOW);
+    fb = setVote(fb, 'ladder:push', 'less', NOW);
+    fb = recordSwap(fb, 'deadlift', ago(2).getTime());
+    fb = recordSkip(fb, 'deadlift', ago(3).getTime());
+    fb = recordSwap(fb, 'leg-press', ago(40).getTime()); // too long ago to count
+    fb = excludeExercise(fb, 'pull-up', { name: 'Pull-Up' }, NOW);
+    fb = excludeExercise(fb, 'ladder:plank', { name: 'Plank', ladder: true }, NOW);
+    global.__stores = stores(feedbackStore(fb));
+    const inputs = readSessionInputs({ user, now: NOW });
+    expect(inputs.weights).toEqual({ 'barbell-bench-press': 1.3, 'ladder:push': 0.7, deadlift: 0.81 });
+    expect(inputs.excluded.sort()).toEqual(['ladder:plank', 'pull-up']);
+  });
+
+  it('counts the swaps and skips of the last 28 days up to the time it is given, not the clock', () => {
+    const fb = recordSwap(emptyFeedback(), 'deadlift', ago(2).getTime());
+    global.__stores = stores(feedbackStore(fb));
+    expect(readSessionInputs({ user, now: NOW }).weights).toEqual({ deadlift: 0.9 });
+    expect(readSessionInputs({ user, now: new Date(NOW.getTime() + 30 * DAY) }).weights).toEqual({});
+  });
+
+  it('takes the feedback it is handed rather than the store\'s, when it is handed some', () => {
+    global.__stores = stores(feedbackStore(excludeExercise(emptyFeedback(), 'pull-up', { name: 'Pull-Up' }, NOW)));
+    expect(readSessionInputs({ user, now: NOW, feedback: emptyFeedback() }).excluded).toEqual([]);
+    expect(readSessionInputs({ user, now: NOW, feedback: setVote(emptyFeedback(), 'deadlift', 'less', NOW) }).weights).toEqual({ deadlift: 0.7 });
+  });
+
+  it('is nothing when the store cannot be had, or holds nothing yet', () => {
+    global.__stores.trainingFeedback = 'throw';
+    expect(() => readSessionInputs({ user, now: NOW })).not.toThrow();
+    expect(readSessionInputs({ user, now: NOW })).toEqual(expect.objectContaining({ weights: {}, excluded: [] }));
+    global.__stores = { workout: {}, running: {}, hiking: {}, health: {} };
+    expect(readSessionInputs({ user, now: NOW })).toEqual(expect.objectContaining({ weights: {}, excluded: [] }));
+    global.__stores.trainingFeedback = { feedback: 'not feedback' };
+    expect(readSessionInputs({ user, now: NOW })).toEqual(expect.objectContaining({ weights: {}, excluded: [] }));
+  });
+
+  it('is read when it is needed, not when the file loads (the store opens the phone\'s storage the moment it loads)', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync(require('path').join(__dirname, '..', 'services', 'sessionService.js'), 'utf8');
+    expect(src).not.toMatch(/^import .*trainingFeedbackStore/m);
+    expect(src).toMatch(/require\('@\/store\/trainingFeedbackStore'\)\.useTrainingFeedbackStore\.getState\(\)\.feedback/);
+  });
+
+  it('changes the session that is built: an exercise excluded is not in it, and Less moves one down', async () => {
+    global.__stores = chestStores();
+    const plain = await buildTodaySession({ uid: 'u1', user: chestOnly, minutes: 45, equipment: 'gym', now: NOW });
+    expect(plain.exercises.map((x) => x.id)).toEqual(['dumbbell-bench-press', 'dumbbell-pullover']);
+    global.__stores = chestStores(feedbackStore(excludeExercise(emptyFeedback(), 'dumbbell-bench-press', { name: 'Dumbbell Bench Press' }, NOW)));
+    const without = await buildTodaySession({ uid: 'u1', user: chestOnly, minutes: 45, equipment: 'gym', now: NOW });
+    expect(without.exercises.map((x) => x.id)).not.toContain('dumbbell-bench-press');
+    global.__stores = chestStores(feedbackStore(setVote(emptyFeedback(), 'dumbbell-bench-press', 'less', NOW)));
+    const less = await buildTodaySession({ uid: 'u1', user: chestOnly, minutes: 45, equipment: 'gym', now: NOW });
+    expect(less.exercises.map((x) => x.id)).toEqual(['barbell-bench-press', 'dumbbell-pullover']);
+  });
+});
+
+describe('getSwapOptions', () => {
+  const ask = async (extra = {}) => {
+    const session = await buildTodaySession({ uid: 'u1', user: chestOnly, minutes: 45, equipment: 'gym', now: NOW });
+    return { session, options: getSwapOptions({ user: chestOnly, minutes: 45, equipment: 'gym', session, exerciseId: 'dumbbell-bench-press', now: NOW, ...extra }) };
+  };
+
+  it('is what the picker offers for the session as it stands, with the person\'s feedback', async () => {
+    global.__stores = chestStores();
+    const { session, options } = await ask();
+    expect(options.map((x) => x.id)).toEqual(['barbell-bench-press', 'dumbbell-floor-press', 'machine-chest-press']);
+    expect(options).toEqual(swapOptions({ ...readSessionInputs({ user: chestOnly, now: NOW }), minutes: 45, equipment: 'gym' }, session, 'dumbbell-bench-press'));
+  });
+
+  it('does not offer what has been excluded since, and favours what has had More', async () => {
+    global.__stores = chestStores();
+    const { session } = await ask();
+    global.__stores = chestStores(feedbackStore(excludeExercise(setVote(emptyFeedback(), 'machine-chest-press', 'more', NOW), 'barbell-bench-press', { name: 'Barbell Bench Press' }, NOW)));
+    const options = getSwapOptions({ user: chestOnly, minutes: 45, equipment: 'gym', session, exerciseId: 'dumbbell-bench-press', now: NOW });
+    expect(options.map((x) => x.id)).not.toContain('barbell-bench-press');
+    expect(options[0].id).toBe('machine-chest-press');
+  });
+
+  it('gives as many as it is asked for', async () => {
+    global.__stores = chestStores();
+    expect((await ask({ limit: 1 })).options.map((x) => x.id)).toEqual(['barbell-bench-press']);
+    expect((await ask({ limit: 6 })).options).toHaveLength(6);
+  });
+
+  it('is empty, and never throws, when it cannot be worked out', async () => {
+    global.__stores = chestStores();
+    const { session } = await ask();
+    global.__stores.workout = 'throw';
+    expect(getSwapOptions({ user: chestOnly, minutes: 45, equipment: 'gym', session, exerciseId: 'dumbbell-bench-press', now: NOW })).toEqual([]);
+    expect(getSwapOptions()).toEqual([]);
+    expect(getSwapOptions({ session: null })).toEqual([]);
+    global.__stores = chestStores();
+    expect(getSwapOptions({ user: chestOnly, minutes: 45, equipment: 'gym', session, exerciseId: 'no-such-exercise', now: NOW })).toEqual([]);
+  });
+});
+
+describe('swapInExercise', () => {
+  const bench = { id: 'barbell-bench-press', name: 'Barbell Bench Press' };
+  const sessionAndPick = async (storeExtra = {}) => {
+    global.__stores = chestStores(storeExtra);
+    const session = await buildTodaySession({ uid: 'u1', user: chestOnly, minutes: 45, equipment: 'gym', now: NOW });
+    const pick = getSwapOptions({ user: chestOnly, minutes: 45, equipment: 'gym', session, exerciseId: 'dumbbell-bench-press', now: NOW })[0];
+    return { session, pick };
+  };
+
+  it('puts the exercise in the place of the other, with its own target from the load rules, and the rest of the session as it was', async () => {
+    const history = logged(100, [10, 10, 10], 3);
+    const { session, pick } = await sessionAndPick({ workout: { getExerciseHistory: jest.fn(async (name) => (name === 'Barbell Bench Press' ? history : [])) } });
+    expect(pick.id).toBe('barbell-bench-press');
+    const out = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly, unit: 'lb' });
+    const prescription = getNextPrescription(history, { ...{ readiness: 'medium', bodyweight: false, goal: 'muscle', level: 'intermediate', unit: 'lb', lowReadinessDays: 0 }, exerciseName: 'Barbell Bench Press' });
+    expect(out.exercises.map((x) => x.id)).toEqual(['barbell-bench-press', 'dumbbell-pullover']);
+    expect(out.exercises[0].weight).toBe(prescription.weight);
+    expect(out.exercises[0].unit).toBe('lb');
+    expect(out.exercises[0].target).toMatch(/^\d+ lb x \d+ reps$/);
+    expect(out.exercises[1]).toBe(session.exercises[1]);
+    expect(out.edited).toBe(true);
+    expect(session.edited).toBeUndefined();
+    expect(out).toEqual(replaceExercise(session, 'dumbbell-bench-press', attachTargets({ exercises: [pick] }, { 'barbell-bench-press': prescription }, { unit: 'lb' }).exercises[0]));
+  });
+
+  it('asks about the one exercise it brings in and no other', async () => {
+    const fetch = jest.fn(async () => logged(100, [10, 10, 10], 3));
+    const { session, pick } = await sessionAndPick({ workout: { getExerciseHistory: fetch } });
+    fetch.mockClear();
+    await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly });
+    expect(fetch.mock.calls.map(([name]) => name)).toEqual(['Barbell Bench Press']);
+  });
+
+  it('uses the histories already fetched when it is given the cache', async () => {
+    const fetch = jest.fn(async () => logged(100, [10, 10, 10], 3));
+    const { pick, session } = await sessionAndPick({ workout: { getExerciseHistory: fetch } });
+    const cache = new Map([['Barbell Bench Press', Promise.resolve(logged(100, [10, 10, 10], 3))]]);
+    fetch.mockClear();
+    await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly, cache });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('works the target out in the unit it is given, kilograms stepping in kilogram plates', async () => {
+    const history = logged(100, [10, 10, 10], 3);
+    const { session, pick } = await sessionAndPick({ workout: { getExerciseHistory: jest.fn(async () => history) } });
+    const kg = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly, unit: 'kg' });
+    expect(kg.exercises[0].unit).toBe('kg');
+    expect(kg.exercises[0].target).toMatch(/^\d+(\.5)? kg x \d+ reps$/);
+    const byDefault = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly });
+    expect(byDefault.exercises[0].unit).toBe('lb'); // Settings > Weight Units is imperial in these tests
+    global.__stores.settings = { weightUnits: 'metric' };
+    const bySetting = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly });
+    expect(bySetting.exercises[0].unit).toBe('kg'); // with no unit given, the one chosen in Settings > Weight Units
+    expect(bySetting.exercises[0].target).toMatch(/^\d+(\.5)? kg x \d+ reps$/);
+  });
+
+  it('leaves the others\' sets alone in a deload week: the swapped-in exercise has the lighter week, and the rest are not lightened twice', async () => {
+    const readings = {};
+    for (let i = 1; i <= 28; i += 1) readings[shiftDateKey(TODAY, -i)] = { hrv: 50, restingHeartRate: 60, sleepHours: 8 };
+    const rough = { hrv: 25, restingHeartRate: 80, sleepHours: 4 };
+    const history = { ...readings, [TODAY]: rough, [shiftDateKey(TODAY, -2)]: rough, [shiftDateKey(TODAY, -5)]: rough };
+    const lifts = logged(50, [10, 10, 10], 3);
+    const { session, pick } = await sessionAndPick({
+      workout: { getExerciseHistory: jest.fn(async () => lifts) },
+      health: { readingsHistory: history },
+    });
+    expect(session.exercises.every((x) => x.deload)).toBe(true);
+    const out = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly });
+    expect(out.exercises[0].deload).toBe(true);
+    expect(out.exercises[1]).toBe(session.exercises[1]);
+    expect(out.exercises[1].sets).toBe(session.exercises[1].sets);
+    expect(out.exercises[0].sets).toBeLessThan(pick.sets);
+  });
+
+  it('puts a timed hold in without a target, and asks about nothing', async () => {
+    const fetch = jest.fn(async () => []);
+    global.__stores = stores({ workout: { getExerciseHistory: fetch } });
+    // only the core is rested, with no equipment: a session of holds and floor work
+    const rested = { ...readSessionInputs({ user, now: NOW }), recovery: Object.fromEntries(MUSCLES.filter((m) => m !== 'core').map((m) => [m, 20])), minutes: 30, equipment: 'bodyweight' };
+    const session = pickSession(rested);
+    const core = session.exercises.find((x) => x.timed);
+    const other = swapOptions(rested, session, core.id, { limit: 20 }).find((x) => x.timed);
+    expect(core).toBeDefined();
+    expect(other).toBeDefined();
+    const out = await swapInExercise(session, core.id, other, { uid: 'u1', user });
+    expect(out.exercises.find((x) => x.id === other.id)).toMatchObject({ timed: true, weight: null, target: null });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('puts the exercise in without a target when the history is late, fails, or cannot be had, and never throws', async () => {
+    const { session, pick } = await sessionAndPick();
+    for (const getExerciseHistory of [jest.fn(never), jest.fn(async () => { throw new Error('offline'); }), jest.fn(async () => 'x')]) {
+      global.__stores = chestStores({ workout: { getExerciseHistory } });
+      const out = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly, patience: 30 });
+      expect(out.exercises.map((x) => x.id)).toEqual(['barbell-bench-press', 'dumbbell-pullover']);
+      expect(out.exercises[0]).toMatchObject({ weight: null, unit: null, target: null });
+      expect(out.edited).toBe(true);
+    }
+    global.__stores.workout = 'throw';
+    const out = await swapInExercise(session, 'dumbbell-bench-press', pick, { uid: 'u1', user: chestOnly });
+    expect(out.exercises.map((x) => x.id)).toEqual(['barbell-bench-press', 'dumbbell-pullover']);
+  });
+
+  it('puts the exercise in without a target when there is no person to ask for', async () => {
+    const { session, pick } = await sessionAndPick();
+    const out = await swapInExercise(session, 'dumbbell-bench-press', pick, { user: chestOnly });
+    expect(out.exercises[0]).toMatchObject({ id: 'barbell-bench-press', weight: null, target: null });
+  });
+
+  it('is the same session when the exercise is not in it', async () => {
+    const { session, pick } = await sessionAndPick();
+    expect(await swapInExercise(session, 'deadlift', pick, { uid: 'u1', user: chestOnly })).toBe(session);
   });
 });

@@ -4,6 +4,9 @@
 // do it, the sets of the last two weeks, the bodyweight rungs the person is on, their goal, level and injuries, and the target weight and reps
 // the workout screen will show for each pick (the same load rules, asked the same way). The Today's Session screen uses it.
 //
+// What the person has told the engine (More, Less, Exclude, the swaps and skips: store/trainingFeedbackStore.js) goes to the picker with the rest, and
+// getSwapOptions and swapInExercise are how the screen swaps one exercise of the session for another (the new one gets its own target; nothing else changes).
+//
 // Asking for a session never throws: one that cannot be built is null, and the screen says so. Nothing here waits long: the stores are brought
 // up to date, and each pick's lift history is fetched, for at most `patience` milliseconds; a history that does not arrive just leaves that pick
 // without a weight (the card in the workout still works it out when the exercise is opened).
@@ -14,7 +17,10 @@ import { calculateMuscleRecovery } from '@/lib/muscleRecovery';
 import { recoveryInputs } from '@/lib/homeWidgetData';
 import { getGoalIds } from '@/lib/userProfileData';
 import { goalForLoad, countLowReadinessDays } from '@/lib/loadRules';
-import { pickSession, weeklyVolume, currentRungs, attachTargets } from '@/lib/sessionPicker';
+import {
+  pickSession, weeklyVolume, currentRungs, attachTargets, swapOptions, replaceExercise,
+} from '@/lib/sessionPicker';
+import { emptyFeedback, weightsFor, excludedKeys } from '@/lib/trainingFeedback';
 import { getNextPrescription } from '@/services/progressiveOverloadService';
 import { getCurrentReadiness } from '@/services/wearableService';
 import { isBodyweightExercise } from '@/services/exerciseDbService';
@@ -40,6 +46,16 @@ const currentUnit = () => {
     return unitFromSetting(require('@/store/settingsStore').useSettingsStore.getState().weightUnits);
   } catch {
     return 'lb';
+  }
+};
+
+// What the person has told the engine about its picks (More, Less, Exclude, swaps, skips), taken when it is needed for the same reason. A store that
+// cannot be had is the same as no feedback.
+const currentFeedback = () => {
+  try {
+    return require('@/store/trainingFeedbackStore').useTrainingFeedbackStore.getState().feedback || emptyFeedback();
+  } catch {
+    return emptyFeedback();
   }
 };
 
@@ -72,7 +88,7 @@ export async function refreshSessionSources(uid, { patience = SESSION_PATIENCE_M
 }
 
 /** What the picker needs from the stores and the profile, at this moment (nothing is loaded here). */
-export function readSessionInputs({ user, now = new Date() } = {}) {
+export function readSessionInputs({ user, now = new Date(), feedback = currentFeedback() } = {}) {
   const workouts = useWorkoutStore.getState().completedWorkouts || [];
   const runs = useRunningStore.getState().runs || [];
   const hikes = useHikingStore.getState().completedHikes || [];
@@ -87,6 +103,9 @@ export function readSessionInputs({ user, now = new Date() } = {}) {
     goal: goalForLoad(getGoalIds(user)),
     level: user ? user.fitnessLevel : undefined,
     injuries,
+    // The person's feedback, as the two things the picker reads: how much to favour or avoid an exercise, and what never to pick.
+    weights: weightsFor(feedback, now),
+    excluded: excludedKeys(feedback),
   };
 }
 
@@ -135,4 +154,34 @@ export async function buildTodaySession({ uid, user, minutes, equipment, now = n
   } catch {
     return null;
   }
+}
+
+/**
+ * Up to three exercises that could take the place of one in `session` (lib/sessionPicker.js swapOptions), best first, picked with what the person
+ * has told the engine since (excluded exercises are never offered). `minutes` and `equipment` are the ones the session was built for. Never throws:
+ * an empty list when there is nothing to offer.
+ */
+export function getSwapOptions({ user, minutes, equipment, session, exerciseId, now = new Date(), limit = 3 } = {}) {
+  try {
+    return swapOptions({ ...readSessionInputs({ user, now }), minutes, equipment }, session, exerciseId, { limit });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * `session` with `replacement` (one of getSwapOptions') in the place of the exercise `exerciseId`. The replacement gets its own target from the load
+ * rules (the same way the rest of the session's were worked out); nothing else in the session is touched, so a deload week is not applied twice.
+ * A target that cannot be worked out in time leaves the replacement without a weight, as it is for any exercise with no history. Never throws.
+ */
+export async function swapInExercise(session, exerciseId, replacement, { uid, user, cache, patience, unit = currentUnit() } = {}) {
+  let placed = replacement;
+  try {
+    const prescriptions = await loadPrescriptions([replacement], { uid, user, cache, patience, unit });
+    const withTarget = attachTargets({ exercises: [replacement] }, prescriptions, { unit });
+    if (withTarget && Array.isArray(withTarget.exercises) && withTarget.exercises[0]) placed = withTarget.exercises[0];
+  } catch {
+    placed = replacement;
+  }
+  return replaceExercise(session, exerciseId, placed);
 }

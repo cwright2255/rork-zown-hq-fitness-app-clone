@@ -684,6 +684,66 @@ the Health comment and the Coach's notes, and it works on every plan. When the a
 - [ ] Firestore, `aiUsage/<uid>_<day>`: `insight` goes up by 1 for each session that was worded, and not at all for a session shown again from memory.
 - [ ] Workouts, Get recommendation, and Quick Workout, Generate (the AI plans) work exactly as before.
 
+### More, Less, Swap and Exclude, and what is counted (Step 7)
+
+Each exercise card has four small buttons. They are how you tell the engine what it got right and wrong. Starting values, not measurements: nobody
+has checked that these are the right sizes; they are all in one table, `FEEDBACK_RULES` in `lib/trainingFeedback.js`. More multiplies that exercise's score by
+1.3 and Less by 0.7 (the same button again clears it). Each swap away from an exercise, and each time it was skipped, multiplies it by 0.9 for 28
+days (never below half, all together). Exclude takes it out until you restore it. A score only changes the order among exercises that are
+already allowed and ready: nothing here lets through an exercise the equipment, your level, your injuries or the recovery rules left out, lifts a
+weekly set limit, or changes a weight or a rep.
+
+- **More and Less** count at once and change what is picked the next time the session is built (change the time or the equipment, or open the
+  screen again). The session on the screen is not reshuffled under you.
+- **Swap** works before you start only. It opens up to three other exercises for the same muscle, each with its reason; tapping one puts it in
+  the place of that exercise and nothing else in the session changes. It gets its own "Start at" weight from your history. Once you have swapped
+  or excluded something the AI no longer words that session (its words were written for the session as it was picked).
+- **Exclude** asks first. The exercise is never picked again until you restore it from "Show excluded exercises" at the bottom of the screen. A
+  bodyweight progression (push-ups from wall to single-arm, planks, pull-ups and so on) is excluded whole, with its easier and harder versions,
+  because otherwise the engine would hand you the next rung down. The exercise's place is taken by the first alternative that fits, or the
+  place is dropped when none does.
+
+What is counted (flat counters kept on the phone and in your cloud copy, `users/<your uid>/data/trainingFeedback`; they hold whole numbers and
+the day counting began, nothing about what you lifted):
+
+- how often a prescribed weight and reps were completed: each set logged on a lift that had a target counts as a set with a target, and as a hit when
+  the weight (in the unit on screen) and the reps reached it; a bodyweight move is judged on its reps alone;
+- how often a workout is cut short, and how often an exercise is swapped or skipped, for workouts started from Today's Session. Cut short means
+  Save and exit part way. A workout saved part way and finished later counts at both endings.
+
+Not counted here: how many people are still training after four weeks. That needs more than one person, so it is read from the workouts that are
+already saved (their dates), not from these counters. Nothing is added up across people yet: each person's counters are their own document.
+A skip is an exercise marked done with no set logged, other than a timed hold (a plank is done without logging a set). An exercise you did but did not log
+counts as a skip; that is a known limit of the definition.
+
+- [ ] Open Today's Session. Every card has More, Less, Swap and Exclude, and a line above the cards says what they do.
+- [ ] Tap More on one card: it turns black. Tap Less on it: Less is black and More is not. Tap Less again: neither is. The session does not change.
+      Firestore, `users/<your uid>/data/trainingFeedback`, about three seconds later: `feedback.votes` has that exercise (nothing when both are clear).
+- [ ] Tap Less on the first exercise, then change the time chip and back: it is usually replaced by another exercise for the same muscle (Less only
+      lowers its score by 30%, so a clear favourite can stay; that is expected). Tap Less again to clear it and change the chip: it is back.
+- [ ] Tap Swap on a card: up to three other exercises for the same muscle appear, each with its reason line. Tap one: it replaces that card, the
+      other cards are exactly as they were, the title and the totals update, and the AI caption (if it was showing) goes. The swapped-in lift shows a "Start at"
+      weight if you have logged it before. Tap Swap again on a card with nothing else that fits: a line says no other exercise fits right now.
+- [ ] Swap, then Start Workout: the saved workout (and the workout screen) has the swapped-in exercise, not the one you swapped away.
+- [ ] Tap Exclude on a card, then Cancel: nothing changes. Tap Exclude, then Exclude: the card is replaced (or removed if nothing fits) and
+      "Show excluded exercises (1)" appears at the bottom. Open it: the exercise is there with a Restore button. Close the app, open it again: it is still
+      excluded and still not picked, whatever the time and equipment. Tap Restore: it is gone from the list and can be picked again the next time the session is built.
+- [ ] Exclude a push-up, a plank or another bodyweight lift on "No equipment": the list says "<name> and its easier and harder versions", and no
+      easier or harder version of it is offered or picked.
+- [ ] Exclude the only exercise on a short session: another that fits takes its place; if none does, the session is built again (with other exercises,
+      or a message when nothing fits). The excluded list is still there to restore from.
+- [ ] Start a workout from Today's Session, log a few sets, and finish it. Firestore, the same document, `measures`: `sessionsStarted` is up by 1,
+      `exercisesOffered` is the number of exercises you started with, `sessionsFinished` is up by 1, `setsWithTarget` is up by the sets you logged on lifts that had a
+      target, and `setsHitTarget` by those that reached it. Do it again and Save and exit part way: `sessionsCutShort` goes up by 1.
+- [ ] Mark an exercise done without logging a set (tap through it): `exercisesSkipped` goes up by 1 when the workout ends, and `feedback.skips` has that exercise with
+      today's time. Do the same on a plank: nothing is counted.
+- [ ] Save and exit part way, then continue and finish: the exercises you did the first time are not counted as skipped the second time.
+- [ ] Switch accounts on the same phone: the second account starts with none of the first's feedback, and nothing of the first's is written to the second's document.
+- [ ] A workout that was not built by Today's Session (Quick Workout, a program day, an AI plan) adds nothing to `sessionsFinished`, `sessionsCutShort` or
+      `exercisesSkipped`; its sets that have a target do count towards `setsWithTarget`.
+- [ ] Airplane mode: everything above works, and the cloud copy catches up when you are back online and open Today's Session or a workout.
+- [ ] Today's Session, Quick Workout, the AI plans, the workout screen's target card and the Easy / OK / Hard buttons work exactly as before.
+
 ## After changing a key or a Cloud Function
 
 One of each. A message like "request failed", or nothing at all, means that key or function is not working.

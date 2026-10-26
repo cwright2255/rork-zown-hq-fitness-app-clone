@@ -24,18 +24,23 @@
 //      to someone who has weights and wants strength or size, and the classic lifts (bench press, squat, deadlift, row...) are worth a little more
 //      than their lookalikes. Conditioning moves (burpees, jumps) are cardio and are never picked here, and a session never has more than one
 //      compound lift of the same movement pattern (one squat, one hinge, one horizontal press...), nor more than two isolation moves.
+//      The person's feedback (lib/trainingFeedback.js: More, Less, a swap away, a skip) multiplies an exercise's score and nothing else: it only changes
+//      the order among exercises that are already allowed and ready, lets none through that the rules above left out, and changes no weight, rep or limit.
 //   5. Fill the time. The best exercise is taken, what it adds is counted against the muscles it works (so the next one is worth less to them),
 //      and so on until the minutes run out, 8 exercises are in, or nothing worthwhile still fits. If the last one does not fit at full sets it
 //      is taken at fewer (never fewer than 2).
 //   6. Say why. Each pick carries one line made only from the figures above ("Chest: about 92% recovered, 6 sets short of this week's 14-set aim.").
 //
+// A person can also swap one exercise of the session for another (swapOptions, replaceExercise, dropExercise): the rest of the session stays as it is.
+//
 // Pure functions, no stores: services/sessionService.js reads the stores and passes the records in.
-import { LIBRARY, LEVELS, EQUIPMENT, getLadder, findExercise } from './exerciseLibrary';
+import { LIBRARY, LEVELS, EQUIPMENT, getLadder, getExercise, findExercise } from './exerciseLibrary';
 import { workoutLoads, workoutTime } from './muscleRecovery';
 import { GOALS, levelKey, repRangeFor, describeLift, prescriptionText } from './loadRules';
 import { blockedBy } from './injuryRules';
 import { muscleLabel } from './homeWidgetData';
 import { calculateXpReward } from './coachActions';
+import { FEEDBACK_RULES, feedbackKey } from './trainingFeedback';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -228,26 +233,11 @@ function nameFor(planned) {
 }
 
 /**
- * Today's session.
- *
- * @param {object} p
- * @param {Record<string, number>} [p.recovery]  lib/muscleRecovery.js calculateMuscleRecovery's answer ({ muscle: 0 to 99 }); a muscle missing is fully recovered
- * @param {{ thisWeek: object, lastWeek: object, sessions: object }} [p.volume]  weeklyVolume's answer
- * @param {string} [p.goal]           'strength', 'muscle' or 'general' (lib/loadRules.js goalForLoad); anything else is general
- * @param {string} [p.level]          beginner, intermediate or advanced; anything else is a beginner
- * @param {string|string[]} [p.equipment]  a preset ('gym', 'dumbbells', 'bodyweight') or a list of equipment words; no value is 'gym'
- * @param {string[]} [p.injuries]     injury ids (lib/injuryRules.js)
- * @param {string[]} [p.excluded]     exercise ids never to pick
- * @param {number} [p.minutes]        the time available
- * @param {Record<string, number>} [p.ladderRungs]  currentRungs' answer
- * @returns {{
- *   status: 'ok'|'rest'|'limited'|'full', message: string|null, name: string, goal: string, level: string, minutes: number, totalSets: number,
- *   exercises: object[], leftOutFor: string[],
- * }}
- *   status 'rest': everything the equipment and injuries allow is still recovering; 'limited': nothing in the library fits the equipment, level and
- *   injuries; 'full': every muscle that is ready has reached its weekly limit.
+ * Everything pickSession and swapOptions share: which exercises are allowed and ready, and the working of value, pace, fit and reason that depends on
+ * what has been planned so far (`commit` adds a pick to that). The answer is { done } when no session can be built (done is the answer to give),
+ * else { ctx }.
  */
-export function pickSession(options = {}) {
+function prepare(options) {
   const o = options && typeof options === 'object' ? options : {};
   const rules = SESSION_RULES;
   const level = levelKey(o.level);
@@ -262,6 +252,7 @@ export function pickSession(options = {}) {
   const lastWeek = volume.lastWeek && typeof volume.lastWeek === 'object' ? volume.lastWeek : {};
   const weekSessions = volume.sessions && typeof volume.sessions === 'object' ? volume.sessions : {};
   const rungs = o.ladderRungs && typeof o.ladderRungs === 'object' ? o.ladderRungs : {};
+  const weights = o.weights && typeof o.weights === 'object' ? o.weights : {};
   const aim = rules.weeklySets.aim[level];
 
   const num = (map, m) => (finite(map[m]) && map[m] > 0 ? map[m] : 0);
@@ -276,7 +267,7 @@ export function pickSession(options = {}) {
   const leftOut = [];
   const allowed = [];
   LIBRARY.forEach((e) => {
-    if (excluded.has(e.id) || e.pattern === 'conditioning') return;
+    if (excluded.has(e.id) || excluded.has(feedbackKey(e)) || e.pattern === 'conditioning') return;
     if (!e.equipment.every((q) => q === 'bodyweight' || have.has(q))) return;
     if (!e.ladder && rankOf(e.difficulty) > rankOf(level)) return;
     const hit = blockedBy(e, injuries);
@@ -306,13 +297,14 @@ export function pickSession(options = {}) {
   const pool = allowed.filter((e) => !e.ladder || chosenRung.get(e.ladder.name) === e);
 
   if (pool.length === 0) {
-    return result('limited', 'Nothing in the exercise library fits your equipment, your level and the injuries you reported.', { leftOutFor: leftOut });
+    const because = excluded.size > 0 ? 'your equipment, your level, the injuries you reported and the exercises you excluded' : 'your equipment, your level and the injuries you reported';
+    return { done: result('limited', `Nothing in the exercise library fits ${because}.`, { leftOutFor: leftOut }) };
   }
 
   // 2. Who is ready
   const ready = pool.filter((e) => e.primary.every((m) => recoveryOf(m) >= rules.readyRecovery));
   if (ready.length === 0) {
-    return result('rest', 'The muscles you can train with your equipment are still recovering. A rest day, or an easy walk, is the better choice today.', { leftOutFor: leftOut });
+    return { done: result('rest', 'The muscles you can train with your equipment are still recovering. A rest day, or an easy walk, is the better choice today.', { leftOutFor: leftOut }) };
   }
 
   // 3-5. What is missing, goal, and filling the time
@@ -336,6 +328,12 @@ export function pickSession(options = {}) {
     return out;
   };
   const weightOf = (m) => (finite(rules.muscleWeight[m]) ? rules.muscleWeight[m] : 0);
+  // What the person's feedback makes the exercise's score (lib/trainingFeedback.js weightsFor); 1 for no feedback. Kept inside the range the feedback
+  // rules can produce, so a wrong number handed in can never swamp everything else.
+  const feedbackOf = (e) => {
+    const w = weights[feedbackKey(e)];
+    return finite(w) && w > 0 ? clamp(w, FEEDBACK_RULES.less * FEEDBACK_RULES.floor, FEEDBACK_RULES.more) : 1;
+  };
   // How much an exercise is worth now: what it would give each muscle it mainly works (and, less, each it helps), by how much that muscle needs
   // it, matters and is rested.
   const valueOf = (e) => {
@@ -345,7 +343,7 @@ export function pickSession(options = {}) {
     const bonus = rules.goalBonus[goal][compoundOf(e) ? 'compound' : 'other'];
     const discount = e.bodyweight && goal !== 'general' ? rules.bodyweightShare : 1;
     const staple = rules.staples.includes(e.id) ? 1 + rules.stapleBonus : 1;
-    return total * (1 + bonus) * discount * staple;
+    return total * (1 + bonus) * discount * staple * feedbackOf(e);
   };
   const paceOf = (e) => {
     const kind = compoundOf(e) ? 'compound' : 'other';
@@ -371,6 +369,13 @@ export function pickSession(options = {}) {
     return 0;
   };
 
+  // The sets the exercise would get if it were added now: 0 when a muscle or a pattern already has its share, or there is no time or room left.
+  const fitFor = (e) => {
+    if (e.primary.some((m) => (pickedPrimary[m] || 0) >= rules.perMuscleMax)) return 0;
+    if ((pickedPattern[e.pattern] || 0) >= patternMax(e.pattern)) return 0;
+    return setsThatFit(e);
+  };
+
   // The line that says why, and the figures it is made from: the muscle the exercise is picked for (the one that most needs it, by what
   // matters), how rested it is, and how far it still is from this week's aim counting what this session has already given it. The figures
   // ({ muscle, recovered, done, short, aim }) are kept on the pick, so whatever words the reason later gets (the AI's, in Step 6) can be
@@ -389,6 +394,94 @@ export function pickSession(options = {}) {
     return { reason: `${muscleLabel(main)}: ${restText}, ${volumeText}.`, facts: { muscle: main, recovered, done, short, aim } };
   };
 
+  // The exercise as a pick: what it is, how many sets, and why, worked out from what has been planned so far (so before it is committed).
+  const makePick = (e, sets) => {
+    const pace = paceOf(e);
+    const why = whyFor(e);
+    return {
+      id: e.id,
+      name: e.name,
+      sets,
+      role: compoundOf(e) ? 'compound' : 'accessory',
+      primary: [...e.primary],
+      secondary: [...e.secondary],
+      bodyweight: e.bodyweight,
+      timed: isTimed(e),
+      workSeconds: pace.work,
+      restSeconds: pace.rest,
+      reason: why.reason,
+      facts: why.facts,
+    };
+  };
+
+  // Counts the exercise, at `sets`, against what is planned: the muscles it works (so the next one is worth less to them), its pattern and the time.
+  const commit = (e, sets, workSeconds, restSeconds) => {
+    Object.entries(shares(e)).forEach(([m, share]) => { planned[m] = plannedOf(m) + sets * share; });
+    e.primary.forEach((m) => {
+      pickedPrimary[m] = (pickedPrimary[m] || 0) + 1;
+      plannedMain[m] = (plannedMain[m] || 0) + sets;
+    });
+    pickedPattern[e.pattern] = (pickedPattern[e.pattern] || 0) + 1;
+    remaining -= minutesOf(workSeconds, restSeconds, sets);
+  };
+
+  return {
+    ctx: {
+      goal, level, ready, leftOut, plannedMain, recovery, recoveryOf, result, valueOf, compoundOf, fitFor, makePick, commit,
+    },
+  };
+}
+
+// The exercise as the session shows it: the pick plus the reps (or hold) from the goal and the fields the load rules fill in later.
+function toExercise(p, goal) {
+  const lib = findExercise(p.name);
+  // With no history the exercise is its first session, which the load rules make a light day for a main lift.
+  const range = repRangeFor(goal, describeLift(p.name).main ? 'light' : null, { bodyweight: p.bodyweight });
+  return {
+    ...p,
+    repRange: p.timed ? null : range,
+    reps: p.timed ? null : `${range.min}-${range.max}`,
+    holdSeconds: p.timed ? p.workSeconds : null,
+    weight: null,
+    unit: null,
+    dayType: null,
+    deload: false,
+    target: null,
+    detail: null,
+    muscleGroups: lib ? [...lib.primary, ...lib.secondary] : [],
+  };
+}
+
+/**
+ * Today's session.
+ *
+ * @param {object} p
+ * @param {Record<string, number>} [p.recovery]  lib/muscleRecovery.js calculateMuscleRecovery's answer ({ muscle: 0 to 99 }); a muscle missing is fully recovered
+ * @param {{ thisWeek: object, lastWeek: object, sessions: object }} [p.volume]  weeklyVolume's answer
+ * @param {string} [p.goal]           'strength', 'muscle' or 'general' (lib/loadRules.js goalForLoad); anything else is general
+ * @param {string} [p.level]          beginner, intermediate or advanced; anything else is a beginner
+ * @param {string|string[]} [p.equipment]  a preset ('gym', 'dumbbells', 'bodyweight') or a list of equipment words; no value is 'gym'
+ * @param {string[]} [p.injuries]     injury ids (lib/injuryRules.js)
+ * @param {string[]} [p.excluded]     exercise ids never to pick; "ladder:<name>" (lib/trainingFeedback.js feedbackKey) leaves a whole bodyweight ladder out
+ * @param {Record<string, number>} [p.weights]  what the person's feedback multiplies an exercise's score by ({ key: multiplier }, lib/trainingFeedback.js weightsFor);
+ *                                    an exercise missing counts 1. It only changes the order of what is allowed and ready; it lets nothing through and changes no number
+ * @param {number} [p.minutes]        the time available
+ * @param {Record<string, number>} [p.ladderRungs]  currentRungs' answer
+ * @returns {{
+ *   status: 'ok'|'rest'|'limited'|'full', message: string|null, name: string, goal: string, level: string, minutes: number, totalSets: number,
+ *   exercises: object[], leftOutFor: string[],
+ * }}
+ *   status 'rest': everything the equipment and injuries allow is still recovering; 'limited': nothing in the library fits the equipment, level and
+ *   injuries; 'full': every muscle that is ready has reached its weekly limit.
+ */
+export function pickSession(options = {}) {
+  const prepared = prepare(options);
+  if (prepared.done) return prepared.done;
+  const {
+    goal, level, ready, leftOut, plannedMain, recovery, recoveryOf, result, compoundOf, fitFor, valueOf, makePick, commit,
+  } = prepared.ctx;
+  const rules = SESSION_RULES;
+
   const picks = [];
   let live = ready.slice();
   while (picks.length < rules.maxExercises && live.length > 0) {
@@ -396,9 +489,7 @@ export function pickSession(options = {}) {
     const next = [];
     const fitted = new Map();
     live.forEach((e) => {
-      if (e.primary.some((m) => (pickedPrimary[m] || 0) >= rules.perMuscleMax)) return;
-      if ((pickedPattern[e.pattern] || 0) >= patternMax(e.pattern)) return;
-      const sets = setsThatFit(e);
+      const sets = fitFor(e);
       if (sets === 0) return;
       fitted.set(e.id, sets);
       next.push(e);
@@ -416,30 +507,9 @@ export function pickSession(options = {}) {
         : e.equipment.length !== best.equipment.length ? e.equipment.length < best.equipment.length : e.id < best.id);
       if (best === null || (!tie && v > bestValue) || beatsOnTie) { best = e; bestValue = v; }
     });
-    const sets = fitted.get(best.id);
-    const pace = paceOf(best);
-    const why = whyFor(best);
-    picks.push({
-      id: best.id,
-      name: best.name,
-      sets,
-      role: compoundOf(best) ? 'compound' : 'accessory',
-      primary: [...best.primary],
-      secondary: [...best.secondary],
-      bodyweight: best.bodyweight,
-      timed: isTimed(best),
-      workSeconds: pace.work,
-      restSeconds: pace.rest,
-      reason: why.reason,
-      facts: why.facts,
-    });
-    Object.entries(shares(best)).forEach(([m, share]) => { planned[m] = plannedOf(m) + sets * share; });
-    best.primary.forEach((m) => {
-      pickedPrimary[m] = (pickedPrimary[m] || 0) + 1;
-      plannedMain[m] = (plannedMain[m] || 0) + sets;
-    });
-    pickedPattern[best.pattern] = (pickedPattern[best.pattern] || 0) + 1;
-    remaining -= minutesOf(pace.work, pace.rest, sets);
+    const pick = makePick(best, fitted.get(best.id));
+    picks.push(pick);
+    commit(best, pick.sets, pick.workSeconds, pick.restSeconds);
     live = live.filter((e) => e.id !== best.id);
   }
 
@@ -451,24 +521,7 @@ export function pickSession(options = {}) {
 
   // Compound lifts first, in the order they were picked, then the rest.
   const ordered = [...picks.filter((p) => p.role === 'compound'), ...picks.filter((p) => p.role !== 'compound')];
-  const exercises = ordered.map((p) => {
-    const lib = findExercise(p.name);
-    // With no history the exercise is its first session, which the load rules make a light day for a main lift.
-    const range = repRangeFor(goal, describeLift(p.name).main ? 'light' : null, { bodyweight: p.bodyweight });
-    return {
-      ...p,
-      repRange: p.timed ? null : range,
-      reps: p.timed ? null : `${range.min}-${range.max}`,
-      holdSeconds: p.timed ? p.workSeconds : null,
-      weight: null,
-      unit: null,
-      dayType: null,
-      deload: false,
-      target: null,
-      detail: null,
-      muscleGroups: lib ? [...lib.primary, ...lib.secondary] : [],
-    };
-  });
+  const exercises = ordered.map((p) => toExercise(p, goal));
 
   // The muscles still under the readiness line, least recovered first: what the words around the session may mention. Not a pick.
   const tired = Object.keys(recovery)
@@ -477,6 +530,72 @@ export function pickSession(options = {}) {
     .sort((a, b) => a.recovered - b.recovered || (a.muscle < b.muscle ? -1 : 1));
 
   return finishSession({ status: 'ok', message: null, name: nameFor(plannedMain), goal, level, exercises, leftOutFor: leftOut, tired });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Swapping one exercise
+
+/**
+ * The exercises the engine would put in the place of one in the session: up to `limit` (3 by default), best first. Everything else in the session
+ * stays exactly as it is and is counted against the muscles, the patterns and the time, so what is offered fits the session as it now stands. An
+ * alternative has to train one of the muscles the exercise mainly works, be allowed (equipment, level, injuries, exercises excluded), be ready, not
+ * already be in the session, and fit the time and the weekly limits; the exercise being replaced is never offered back. Each is a full exercise as
+ * pickSession gives them (sets, reps, the reason worked out for its place), without a weight; services/sessionService.js adds the target.
+ * Pass the same options the session was picked with. An empty list when there is nothing to offer, or the exercise is not in the session.
+ */
+export function swapOptions(options, session, exerciseId, { limit = 3 } = {}) {
+  if (!session || session.status !== 'ok' || !Array.isArray(session.exercises)) return [];
+  const target = session.exercises.find((x) => x && x.id === exerciseId);
+  if (!target) return [];
+  const prepared = prepare(options);
+  if (prepared.done) return [];
+  const {
+    goal, ready, valueOf, compoundOf, fitFor, makePick, commit,
+  } = prepared.ctx;
+  const inSession = new Set(session.exercises.map((x) => x && x.id));
+  session.exercises.forEach((x) => {
+    const lib = x && x.id !== exerciseId ? getExercise(x.id) : null;
+    if (lib) commit(lib, x.sets, x.workSeconds, x.restSeconds);
+  });
+  const muscles = new Set(Array.isArray(target.primary) ? target.primary : []);
+  const compare = (a, b) => {
+    const va = valueOf(a);
+    const vb = valueOf(b);
+    if (Math.abs(va - vb) > 1e-9) return vb - va;
+    if (compoundOf(a) !== compoundOf(b)) return compoundOf(a) ? -1 : 1;
+    if (a.equipment.length !== b.equipment.length) return a.equipment.length - b.equipment.length;
+    return a.id < b.id ? -1 : 1;
+  };
+  const wanted = finite(limit) ? Math.max(0, Math.floor(limit)) : 3;
+  return ready
+    .filter((e) => !inSession.has(e.id) && e.primary.some((m) => muscles.has(m)) && fitFor(e) > 0)
+    .sort(compare)
+    .slice(0, wanted)
+    .map((e) => toExercise(makePick(e, fitFor(e)), goal));
+}
+
+// The session with the person's change in it: compound lifts first again, the name and the totals worked out again from what is in it, and marked
+// `edited`, so nothing that was said about the session as it was picked (the AI's words on it) is taken for what it now is.
+function reshape(session, list) {
+  const plannedMain = {};
+  list.forEach((x) => (Array.isArray(x.primary) ? x.primary : []).forEach((m) => { plannedMain[m] = (plannedMain[m] || 0) + x.sets; }));
+  const exercises = [...list.filter((x) => x.role === 'compound'), ...list.filter((x) => x.role !== 'compound')];
+  return finishSession({ ...session, name: nameFor(plannedMain), exercises, edited: true });
+}
+
+/** A new session with `replacement` (an exercise from swapOptions) in place of the one with `exerciseId`; the same session when that is not in it. */
+export function replaceExercise(session, exerciseId, replacement) {
+  if (!session || session.status !== 'ok' || !Array.isArray(session.exercises) || !replacement || typeof replacement !== 'object') return session;
+  if (!session.exercises.some((x) => x && x.id === exerciseId)) return session;
+  return reshape(session, session.exercises.map((x) => (x && x.id === exerciseId ? replacement : x)));
+}
+
+/** A new session without the exercise with `exerciseId`; null when that leaves nothing, and the same session when it is not in it. */
+export function dropExercise(session, exerciseId) {
+  if (!session || session.status !== 'ok' || !Array.isArray(session.exercises)) return session;
+  if (!session.exercises.some((x) => x && x.id === exerciseId)) return session;
+  const rest = session.exercises.filter((x) => x && x.id !== exerciseId);
+  return rest.length === 0 ? null : reshape(session, rest);
 }
 
 // The totals that depend on the exercises, worked out in one place so attachTargets can redo them when it changes the sets.

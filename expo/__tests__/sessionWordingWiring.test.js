@@ -66,7 +66,8 @@ describe('the Today\'s Session screen', () => {
 
   it('asks only for a session that is on the screen, never while it is loading or when there is nothing to pick', () => {
     expect(screen).toMatch(/const ok = !loading && session && session\.status === 'ok';/);
-    expect(screen).toMatch(/if \(!ok\) return undefined;/);
+    // ... and not for one the person has swapped or excluded something in: the words were written for the session as it was picked
+    expect(screen).toMatch(/if \(!ok \|\| session\.edited\) return undefined;/);
   });
 
   it('puts the words only on the session they were made for', () => {
@@ -76,7 +77,7 @@ describe('the Today\'s Session screen', () => {
 
   it('shows and saves the worded session, with the caption only when words are on it', () => {
     expect(screen).toMatch(/\{shown\.worded && <Text style=\{styles\.wordedCaption\}>\{WORDING_CAPTION\}<\/Text>\}/);
-    expect(screen).toMatch(/\{shown\.exercises\.map\(\(x\) => \(/);
+    expect(screen).toMatch(/\{shown\.exercises\.map\(\(x\) => \{/);
     expect(screen).toMatch(/<Text style=\{styles\.sessionTitle\}>\{shown\.name\}<\/Text>/);
     expect(screen).toMatch(/<Text style=\{styles\.cardReason\}>\{x\.reason\}<\/Text>/);
     expect(screen).toMatch(/\{!!shown\.note && <Text style=\{styles\.note\}>\{shown\.note\}<\/Text>\}/);

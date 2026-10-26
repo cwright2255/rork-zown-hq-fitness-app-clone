@@ -19,6 +19,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { useExpStore } from '@/store/expStore';
 import { useUserStore } from '@/store/userStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useTrainingFeedbackStore } from '@/store/trainingFeedbackStore';
 import { useActiveMusicPlayer } from '@/store/useActiveMusicPlayer';
 import { searchAscendExercise, extractExerciseMediaUrl } from '@/services/exerciseDbService';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
@@ -29,6 +30,7 @@ import { localDateKey, shiftDateKey } from '@/lib/localDate';
 import { getGoalIds } from '@/lib/userProfileData';
 import { goalForLoad, countLowReadinessDays, trustedSets, isOutlierOneRepMax, effortLegend, prescriptionText } from '@/lib/loadRules';
 import { unitFromSetting, historyIn, targetIn, toPounds, fromPounds, weightText } from '@/lib/weightUnits';
+import { setHitTarget, sessionOutcome } from '@/lib/trainingMeasures';
 import { logWorkoutStarted, logWorkoutCompleted } from '@/src/services/analytics';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
@@ -222,6 +224,11 @@ export default function ActiveWorkoutScreen() {
 
   // What the analytics events call this workout: its id, or the program's id for a program day.
   const analyticsWorkoutId = selectedWorkout?.id ?? (isProgramSession ? programId : null);
+  // The cloud copy of what the person has told the training engine (store/trainingFeedbackStore.js) is brought in once the person is known, so the
+  // counts below are added to the right copy.
+  useEffect(() => {
+    if (user?.uid) useTrainingFeedbackStore.getState().startSync(user.uid);
+  }, [user?.uid]);
   // One "workout started" each time this screen opens (continuing a saved workout opens it again, and is a new session).
   const startLoggedRef = useRef(false);
   useEffect(() => {
@@ -239,6 +246,9 @@ export default function ActiveWorkoutScreen() {
   // getState() rather than the reactive hook, since this only needs to
   // run at mount time for these lazy initializers.
   const savedIndices = useWorkoutStore.getState().inProgress?.[workoutId]?.completedIndices || [];
+  // The exercises already done when this screen opened (a workout saved part way and continued): what was logged for them is in an earlier save, so
+  // they are not read as skipped now.
+  const restoredIndices = useRef(savedIndices);
   const [currentIndex, setCurrentIndex] = useState(() => {
     if (savedIndices.length === 0) return 0;
     const firstIncomplete = exercises.findIndex((_, i) => !savedIndices.includes(i));
@@ -421,6 +431,18 @@ export default function ActiveWorkoutScreen() {
     performed: (loggedSetsByExercise[e.id] || []).map(({ weight, reps, rpe }) => ({ weight, reps, rpe })),
   }));
 
+  // A workout the engine built (Today's Session) tells it, when it ends, which exercises were skipped (done with no set logged) and whether it was cut
+  // short. Any other workout tells it nothing. Never holds up saving.
+  const reportEnd = (partial) => {
+    try {
+      const done = exercisesToSave().filter((_, i) => !restoredIndices.current.includes(i));
+      const outcome = sessionOutcome(selectedWorkout?.source, done, partial);
+      if (outcome) useTrainingFeedbackStore.getState().recordEnd(outcome);
+    } catch (e) {
+      console.warn('[ActiveWorkout] training measures failed:', e?.message);
+    }
+  };
+
   /* Ã¢ÂÂÃ¢ÂÂ Timer Ã¢ÂÂÃ¢ÂÂ */
   useEffect(() => {
     if (isPlaying && timeLeft > 0) {
@@ -550,6 +572,12 @@ export default function ActiveWorkoutScreen() {
         [exercise.id]: [...(prev[exercise.id] || []), { weight, reps, rpe, isBodyweight }],
       }));
 
+      // Counted for the training engine's measures: whether this set reached the target the load rules gave (the weight is compared in the unit on
+      // screen, the one the target is in). A set with no target to reach is not counted.
+      const typedWeight = parseFloat(weightSource);
+      const hit = setHitTarget({ weight: typedWeight, reps, prescription, bodyweight: isBodyweight });
+      if (hit !== null) useTrainingFeedbackStore.getState().recordSet(hit);
+
       // Real, new: PR celebration - compares this just-logged set
       // against priorBests (this exercise's real best from before this
       // session). Updates priorBests in place the moment a PR fires, so
@@ -665,6 +693,7 @@ export default function ActiveWorkoutScreen() {
         // that field is checked. Explicit false, not left to a default.
         completed: false,
       }, user?.uid);
+      reportEnd(true);
 
       // Which badges and achievements this earns is the server's to decide (functions/src/unlocks.js, after the workout is saved).
 
@@ -988,6 +1017,7 @@ export default function ActiveWorkoutScreen() {
                 completedAt: new Date().toISOString(),
                 startedAt: workoutStartRef.current,
               }, user?.uid);
+              reportEnd(false);
 
               // Only a workout finished all the way is "completed" for analytics; saving and leaving early is not.
               logWorkoutCompleted(analyticsWorkoutId, Math.round(elapsedSeconds / 60), caloriesBurned);
