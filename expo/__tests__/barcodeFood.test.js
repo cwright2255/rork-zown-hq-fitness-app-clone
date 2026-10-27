@@ -204,3 +204,26 @@ describe('a scanned answer as the API really sends it', () => {
     expect(food.nutritionalScore).toEqual({ score: 'E', stars: 0.5 });
   });
 });
+
+describe('a figure the product does not list, when its own numbers settle it', () => {
+  const oil = { found: true, barcode: '8410000000011', product: { name: 'Olive Oil' }, nutrition_per_100g: { energy_kcal: 884, protein_g: 0, carbohydrates_g: 0, fat_g: 100, fiber_g: null, sugars_g: null, saturated_fat_g: 14, salt_g: null, sodium_g: null } };
+
+  it('takes the sodium of a pure fat as 0, and the sugars of a food with no carbohydrate, and rates it without holding it back', () => {
+    const food = foodFromBarcode(oil, '0');
+    expect(food).toMatchObject({ sodium: 0, sugar: 0 });
+    expect(food.fiber).toBeUndefined();
+    expect(food.nutritionalScore).toEqual({ score: 'E', stars: 1 });
+  });
+
+  it('leaves them out for a product that is not a pure fat and has carbohydrate', () => {
+    const food = foodFromBarcode(tikka({ sugars_g: undefined, salt_g: undefined }), '0');
+    expect(food.sugar).toBeUndefined();
+    expect(food.sodium).toBeUndefined();
+    expect(food.nutritionalScore.partial).toBe(true);
+  });
+
+  it('takes the saturated fat of a product with no fat as 0', () => {
+    const food = foodFromBarcode(tikka({ energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, fat_g: 0, fiber_g: 0, sugars_g: 0, saturated_fat_g: undefined, salt_g: 0.01 }), '0');
+    expect(food.nutritionalScore).toEqual({ score: 'B', stars: 4 });
+  });
+});

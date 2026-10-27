@@ -453,8 +453,12 @@ keep the whole stars they were logged with; log them again to get the new ones.
 - [ ] Foods are no longer all 3 stars: the app now reads the sodium and saturated fat out of a food's own record (it used to look for them
       under the wrong field name, found nothing, and held every food to 3 or 4 stars). Open a food from the search, for example an apple,
       broccoli or cheddar cheese: the page shows its own stars (cheddar 1, an apple 4.5) and does NOT show the grey note "Some nutrition
-      figures are not listed for this food, so its rating is limited". A food whose record really lists no sodium (olive oil, for one) still shows
-      that note.
+      figures are not listed for this food, so its rating is limited". A figure a record does not list is worked out when the food's own
+      numbers settle it: an oil or pure fat (98 g or more of fat in 100 g) has no sodium, a food with no fat has no saturated fat, and a food
+      with no carbohydrate has no sugar. Open "olive oil": it shows 1 star, a Sodium row of 0 mg and no note (the rating is a low one because
+      an oil is nearly all energy and 14% saturated fat, not because anything is missing). A food whose record lists no sodium and is not a
+      pure fat (a cut of meat, say) still shows the note, because its sodium cannot be told from its other figures. So does an oil whose
+      record lists no saturated fat.
 - [ ] Log "chicken breast" (about 4 stars). The EXP log reads "Logged Chicken Breast (4-star)" and earns 44 XP at level 1 (a higher level
       multiplies it, as it always has). A 5-star food still earns 55, a 4.5-star 50, a 3-star 33.
 - [ ] Log a sweet or a processed meat (a candy bar, bacon): half a star or one star, and 6 or 11 XP, no longer 33 like a 3-star food.

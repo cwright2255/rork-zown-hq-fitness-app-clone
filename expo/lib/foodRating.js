@@ -83,7 +83,7 @@ const ALCOHOL = { drinkG: 3, spiritG: 15, kcalPerG: 7, maxImpliedG: 45 };
 const UNEXPLAINED_SHARE = 0.15;
 
 // A listed amount, or undefined when the figure is missing or not a usable number.
-function amount(value) {
+export function amount(value) {
   if (value == null || value === '' || typeof value === 'boolean') return undefined;
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 ? n : undefined;

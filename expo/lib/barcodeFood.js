@@ -10,6 +10,7 @@
 // 2.5 times the sodium. Pure function.
 
 import { ratingFor } from './foodRating';
+import { completeFigures } from './completeFigures';
 
 // A listed number, or undefined when the figure is missing, empty or not a number.
 const listed = (value) => {
@@ -36,9 +37,14 @@ export function foodFromBarcode(data, barcode) {
   const carbs = listed(n.carbohydrates_g);
   const fat = listed(n.fat_g);
   const fiber = tenth(listed(n.fiber_g));
-  const sugar = tenth(listed(n.sugars_g));
-  const saturatedFat = tenth(listed(n.saturated_fat_g));
-  const sodium = tenth(sodiumMg(n));
+  // A figure the product does not list, when its own numbers settle it (lib/completeFigures.js).
+  const { sugar, saturatedFat, sodium } = completeFigures({
+    carbs,
+    fat,
+    sugar: tenth(listed(n.sugars_g)),
+    saturatedFat: tenth(listed(n.saturated_fat_g)),
+    sodium: tenth(sodiumMg(n)),
+  });
   const rating = ratingFor({ calories: energy, protein, carbs, fat, fiber, sugar, saturatedFat, sodium });
 
   return {

@@ -200,6 +200,11 @@ describe('a food\'s own record as the API really sends it', () => {
     nutrients: [entry('Calcium', 'mg', 1), entry('Energy (kcal)', 'kcal', 884), entry('Iron', 'mg', 0.56), entry('Monounsaturated Fat', 'g', 68.42),
       entry('Polyunsaturated Fat', 'g', 9.469), entry('Saturated Fat', 'g', 14.5), entry('Total Fat', 'g', 100)],
   };
+  const chickenBreast = {
+    id: 8099899, name: 'Chicken Breast', brand_name: 'Verified', calories_100g: 175, protein_100g: 26.37, carbs_100g: 0.09, fat_100g: 7.67, fiber_100g: 0, sugar_100g: 0.09,
+    nutrients: [entry('Monounsaturated Fat', 'g', 3.131), entry('Polyunsaturated Fat', 'g', 0.945), entry('Protein', 'g', 26.37), entry('Saturated Fat', 'g', 1.958),
+      entry('Sodium', 'mg', 329), entry('Total Fat', 'g', 7.67)],
+  };
   const broccoli = {
     id: 8093774, name: 'Broccoli, Steamed', brand_name: 'Verified', calories_100g: 47, protein_100g: 2.8, carbs_100g: 8.5, fat_100g: 0.5, fiber_100g: 3.1, sugar_100g: 1.9,
     nutrients: [entry('Fiber', 'g', 3.1), entry('Potassium', 'mg', 293), entry('Saturated Fat', 'g', 0.1), entry('Sodium', 'mg', 30), entry('Sugars', 'g', 1.9)],
@@ -234,11 +239,27 @@ describe('a food\'s own record as the API really sends it', () => {
     expect(food.nutritionalScore).toEqual({ score: 'E', stars: 1 });
   });
 
-  it('is still partial, and says so, for a food whose list has no sodium', async () => {
+  it('takes the sodium of an oil, which the record does not list, as 0, and rates it without holding it back', async () => {
     const food = await load(oliveOil, 'real-oil');
-    expect(food.sodium).toBeUndefined();
+    expect(food.sodium).toBe(0);
     expect(food.nutritionalDetails.saturatedFat).toBe(14.5);
-    expect(food.nutritionalScore).toEqual({ score: 'E', stars: 1, partial: true });
+    expect(food.nutritionalScore).toEqual({ score: 'E', stars: 1 });
+    expect(food.nutritionalScore).not.toHaveProperty('partial');
+  });
+
+  it('does not guess the sodium of a food that is not a pure fat: chicken with no sodium listed stays partial', async () => {
+    const noSodium = { ...chickenBreast, nutrients: chickenBreast.nutrients.filter((e) => e.name !== 'Sodium') };
+    const food = await load(noSodium, 'real-chicken-no-sodium');
+    expect(food.sodium).toBeUndefined();
+    expect(food.nutritionalScore).toEqual({ score: 'B', stars: 4, partial: true });
+  });
+
+  it('leaves a fat with no saturated fat listed partial: an oil\'s sodium is settled, its saturated fat is not', async () => {
+    // (The record the API has for avocado oil lists only its energy and fat.)
+    const avocadoOil = { ...oliveOil, id: 8098800, name: 'Oil, Avocado', nutrients: [entry('Energy (kcal)', 'kcal', 884), entry('Total Fat', 'g', 100)] };
+    const food = await load(avocadoOil, 'real-avocado-oil');
+    expect(food.sodium).toBe(0);
+    expect(food.nutritionalScore).toMatchObject({ partial: true });
   });
 
   it('leaves a search row partial (its list has no sodium or saturated fat), and completes it from the record', async () => {
@@ -460,7 +481,8 @@ describe('withFullRating', () => {
   });
 
   it('keeps a figure of the row that the record does not list', async () => {
-    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-3', fiber_100g: undefined, sugar_100g: undefined, sodium_100g: undefined }) } });
+    // (12 g of carbohydrate, so the record cannot be taken to have no sugar: see lib/completeFigures.js.)
+    mockCall.mockResolvedValueOnce({ data: { data: record({ id: 'wf-3', carbs_100g: 12, fiber_100g: undefined, sugar_100g: undefined, sodium_100g: undefined }) } });
     const out = await withFullRating({ ...row, id: 'wf-3', fiber: 1.5, sugar: 2.5, sodium: 40 });
     expect(out).toMatchObject({ fiber: 1.5, sugar: 2.5, sodium: 40 });
   });

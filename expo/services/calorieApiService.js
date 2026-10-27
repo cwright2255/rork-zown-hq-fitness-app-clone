@@ -13,6 +13,7 @@
 // further changes.
 
 import { rateFood, ratingFor } from '../lib/foodRating';
+import { completeFigures } from '../lib/completeFigures';
 
 // Cache for API responses
 let searchCache = new Map();
@@ -57,8 +58,14 @@ const tenthOrUndefined = (v) => (v == null || v === '' || !Number.isFinite(Numbe
 // https://calorieapi.com/docs/food-search: macros use a _100g suffix
 // (calories_100g, protein_100g, etc.).
 const convertCalorieApiToFoodItem = (item) => {
-  const sodium = item.sodium_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.sodium);
-  const saturatedFat = item.saturated_fat_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.saturatedFat);
+  // What the record lists, then what its own numbers settle for a figure it does not list (see lib/completeFigures.js).
+  const { sugar, saturatedFat, sodium } = completeFigures({
+    carbs: item.carbs_100g,
+    fat: item.fat_100g,
+    sugar: item.sugar_100g,
+    saturatedFat: item.saturated_fat_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.saturatedFat),
+    sodium: item.sodium_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.sodium),
+  });
   // Ethanol, when the food lists it ("Alcohol, ethyl" in the nutrients list). Without it the rating works
   // alcohol out from the energy the macros leave over.
   const alcohol = item.alcohol_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.alcohol);
@@ -74,7 +81,7 @@ const convertCalorieApiToFoodItem = (item) => {
     fat: item.fat_100g,
     fiber: item.fiber_100g,
     saturatedFat,
-    sugar: item.sugar_100g,
+    sugar,
     sodium,
     alcohol
   });
@@ -91,13 +98,13 @@ const convertCalorieApiToFoodItem = (item) => {
     // Left off (undefined) when the API has no figure, so "not listed" is not
     // shown as a real 0 in the diary's fiber / sugar / sodium totals.
     fiber: tenthOrUndefined(item.fiber_100g),
-    sugar: tenthOrUndefined(item.sugar_100g),
+    sugar: tenthOrUndefined(sugar),
     sodium: tenthOrUndefined(sodium),
     imageUrl: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
     ...(rating ? { nutritionalScore: rating } : {}),
     nutritionalDetails: {
       saturatedFat: Math.round((saturatedFat || 0) * 10) / 10,
-      sugar: Math.round((item.sugar_100g || 0) * 10) / 10,
+      sugar: Math.round((sugar || 0) * 10) / 10,
       fiber: Math.round((item.fiber_100g || 0) * 10) / 10,
       sodium: Math.round((sodium || 0) * 10) / 10
     }
