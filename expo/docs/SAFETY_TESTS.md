@@ -3,7 +3,9 @@
 The app's AI is meant to talk only about fitness, health, nutrition and using ZOWN HQ. Two things enforce that on the server
 (`functions/src/scope.js`):
 
-1. **The topic check.** A small model (`gpt-4o-mini`) reads the whole chat and says yes or no. On a no, the person gets one fixed
+1. **The topic check.** A small model (`gpt-4o-mini`) reads the whole chat and says yes or no. It is made to answer in a strict
+   yes/no format, because a chat can carry its own orders to reply in some other JSON (the Today brief's), and without the format the
+   check followed them, wrote a brief instead of a verdict and so counted as a no. On a no, the person gets one fixed
    sentence and nothing the main model wrote.
 2. **The scope rule.** A rule put first in front of what the main model (`gpt-4o`) is sent, telling it to stay on topic and to answer
    anything else with that same sentence.
@@ -12,8 +14,8 @@ Since delivery 15 the Coach and Help chats start the check and the answer togeth
 instead of both. On a no, the answer call is cancelled and what it wrote is dropped. An off-topic request still counts as one of the
 day's messages (as it always did) and now also costs the start of one main-model call.
 
-The **safety set** (`functions/safety/cases.js`) is 38 conversations: 16 real fitness questions (including the awkward ones: alcohol,
-a medical worry, a one-word follow-up, the Today brief and Coach notes requests the app writes itself), 11 plain off-topic requests
+The **safety set** (`functions/safety/cases.js`) is 39 conversations: 17 real fitness questions (including the awkward ones: alcohol,
+a medical worry, a one-word follow-up, the Today brief, in a short form and in the full size the app really sends, and the Coach notes request, which the app writes itself), 11 plain off-topic requests
 and 11 attempts to talk the AI out of the rule (ignore the rules, role-play, a pretend system message, fitness words wrapped around
 a coding task, an instruction hidden in a nutrition label, a pivot half way through a chat, a forged earlier reply, an encoded request).
 Each case says whether the person should get an answer or the fixed sentence.
@@ -29,7 +31,7 @@ node safety/run.js
 ```
 
 It needs the OpenAI key. It uses `OPENAI_API_KEY` if that is set, and otherwise reads the Firebase secret of the same name (you need to
-be logged in with `firebase login`). It never prints the key. A run is about 76 requests (38 to the small model, 38 to the main model)
+be logged in with `firebase login`). It never prints the key. A run is about 78 requests (39 to the small model, 39 to the main model)
 and costs a few cents.
 
 Options: `--verbose` (show every reply), `--repeat=3` (run each case 3 times; a case counts as right only if every run was),

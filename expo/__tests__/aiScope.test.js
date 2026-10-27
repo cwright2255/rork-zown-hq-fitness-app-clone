@@ -235,12 +235,33 @@ describe('what the checking model is sent', () => {
     expect(prompt).toContain('{"allowed": true} or {"allowed": false}');
   });
 
-  it('asks the cheap model, at temperature 0, for JSON', async () => {
+  it('asks the cheap model, at temperature 0, for a yes or no and nothing else', async () => {
     const openai = new (require('openai').default)();
     await scope.isInScope(openai, [{ role: 'user', content: 'workout?' }]);
     const [args] = global.__create.mock.calls[0];
-    expect(args).toMatchObject({ model: 'gpt-4o-mini', temperature: 0, response_format: { type: 'json_object' } });
+    expect(args).toMatchObject({ model: 'gpt-4o-mini', temperature: 0, response_format: scope.VERDICT_FORMAT });
     expect(args.max_tokens).toBeLessThanOrEqual(50);
+  });
+
+  it('gives the cheap model a strict format whose only field is the yes or no, so orders inside the chat cannot change what it writes', () => {
+    const { type, json_schema: format } = scope.VERDICT_FORMAT;
+    expect(type).toBe('json_schema');
+    expect(format.strict).toBe(true);
+    expect(format.schema).toEqual({ type: 'object', properties: { allowed: { type: 'boolean' } }, required: ['allowed'], additionalProperties: false });
+  });
+
+  it('still lets a request through only on a clear yes', async () => {
+    const openai = new (require('openai').default)();
+    const says = (content) => { global.__create = jest.fn(async () => ({ choices: [{ message: { content } }] })); };
+    const ask = () => scope.isInScope(openai, [{ role: 'user', content: 'x' }]);
+    says('{"allowed":true}');
+    await expect(ask()).resolves.toBe(true);
+    says('{"allowed":false}');
+    await expect(ask()).resolves.toBe(false);
+    says('{"headline":"A good day","points":["Sleep well."]}');
+    await expect(ask()).resolves.toBe(false);
+    says('{"allowed":"true"}');
+    await expect(ask()).resolves.toBe(false);
   });
 
   it('says no when the model sends back nothing usable', async () => {

@@ -110,12 +110,24 @@ export function readVerdict(text) {
   }
 }
 
+// The only thing the small model may write. A request can carry its own orders to answer in some JSON shape (the Today brief's
+// {"headline", "points"}); with plain JSON mode the model followed those and wrote the brief instead of the verdict, ran out of its 30
+// tokens part way, and that counted as a no. With this format the verdict is all it can write.
+export const VERDICT_FORMAT = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'verdict',
+    strict: true,
+    schema: { type: 'object', properties: { allowed: { type: 'boolean' } }, required: ['allowed'], additionalProperties: false },
+  },
+};
+
 export async function isInScope(openai, messages) {
   const result = await openai.chat.completions.create({
     model: GATE_MODEL,
     temperature: 0,
     max_tokens: 30,
-    response_format: { type: 'json_object' },
+    response_format: VERDICT_FORMAT,
     messages: gateMessages(messages),
   });
   return readVerdict(result?.choices?.[0]?.message?.content);

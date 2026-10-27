@@ -1,7 +1,7 @@
 // The safety set (functions/safety/cases.js): that it is well formed, covers what it should, and that the two requests the app writes
 // itself are in it word for word. What the AI does with it is checked by running functions/safety/run.js (docs/SAFETY_TESTS.md).
 import { SAFETY_CASES, COACH_SYSTEM, BRIEF_REQUEST as SET_BRIEF, MEMORY_REQUEST as SET_MEMORY } from '../functions/safety/cases';
-import { BRIEF_REQUEST } from '../lib/todayBrief';
+import { BRIEF_REQUEST, BRIEF_SYSTEM_PROMPT } from '../lib/todayBrief';
 import { MEMORY_REQUEST } from '../lib/coachMemory';
 import { buildCoachSystemPrompt } from '../services/coachService';
 
@@ -85,6 +85,18 @@ describe('the requests the app writes itself', () => {
     expect(c.messages[c.messages.length - 1]).toEqual({ role: 'user', content: BRIEF_REQUEST });
   });
 
+  it('has the Today brief as the app really sends it too: the real instructions, then the facts, the app data and the logged data', () => {
+    const c = SAFETY_CASES.find((x) => x.id === 'in-brief-full');
+    expect(c.expect).toBe('allow');
+    expect(c.system).toBe(BRIEF_SYSTEM_PROMPT);
+    expect(c.messages).toHaveLength(4);
+    expect(c.messages.slice(0, 3).every((m) => m.role === 'system')).toBe(true);
+    expect(c.messages[0].content.startsWith('About this person and today: ')).toBe(true);
+    expect(c.messages[1].content.startsWith('More about this user, from their real app data.')).toBe(true);
+    expect(c.messages[2].content.startsWith("Here is this user's real, current logged data.")).toBe(true);
+    expect(c.messages[3]).toEqual({ role: 'user', content: BRIEF_REQUEST });
+  });
+
   it('has the Coach notes request word for word, at the start of what is sent', () => {
     expect(SET_MEMORY).toBe(MEMORY_REQUEST);
     const c = SAFETY_CASES.find((x) => x.id === 'in-memory');
@@ -93,9 +105,9 @@ describe('the requests the app writes itself', () => {
     expect(c.messages[0].content).toContain('\n\nConversation, oldest first (JSON): ');
   });
 
-  it('gives those two their own instructions, and every other case the Coach stand-in', () => {
+  it('gives those three their own instructions, and every other case the Coach stand-in', () => {
     for (const c of SAFETY_CASES) {
-      if (c.id === 'in-brief' || c.id === 'in-memory') expect(c.system).toMatch(/strict JSON only/);
+      if (c.id === 'in-brief' || c.id === 'in-brief-full' || c.id === 'in-memory') expect(c.system).toMatch(/strict JSON only/);
       else expect(c.system).toBeUndefined();
     }
   });

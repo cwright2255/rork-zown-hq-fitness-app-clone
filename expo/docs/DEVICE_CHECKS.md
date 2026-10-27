@@ -339,6 +339,9 @@ and Legend, and the card is always on Home: check it on a Free account and on a 
       have logged. Check your connection and try again." with a "Try again" button. It is never an empty space. Airplane mode off, "Try
       again": the brief shows.
 - [ ] Opening Home again without tapping "Try again" does not try again within the half hour. The card stays as it was.
+- [ ] With the topic check fixed (`firebase deploy --only functions:postLLM`), "Try again" on a card that says today's brief is not ready
+      gives the brief. In `cd expo && firebase functions:log --only postLLM -n 30` there is no "declined a request outside fitness and
+      health" line for it.
 - [ ] Firebase console, Firestore, `aiUsage/<your id>_<today>`: set `insight` to 9 on a Free account (Pro 60, Legend 120) on a day when
       today's brief is not written yet, then open Home: the card still shows (the last brief, or the "not ready" card), with "Try again".
       Put the count back afterwards.
