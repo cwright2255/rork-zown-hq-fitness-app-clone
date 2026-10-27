@@ -146,23 +146,25 @@ class AuthService {
     }
   }
 
+  /**
+   * Signs in with Apple, Google or Meta ('apple', 'google', 'meta') through Firebase (services/socialAuth.js).
+   * Resolves to { user, token, isNewUser }: isNewUser is true when this sign-in created the account, so the
+   * caller can send a new account to onboarding. Rejects with a SocialAuthError: its message is fit to show, and
+   * code 'cancelled' means the person closed the sheet.
+   */
   async loginWithProvider(provider) {
-    if (IS_EXPO_GO && (provider === 'apple' || provider === 'google' || provider === 'meta')) {
-      throw new Error(
-        `${provider} Sign-In is not available in Expo Go. Please build a dev client or use email/password.`
+    const { signInWithProvider, SocialAuthError, PROVIDER_NAMES } = require('./socialAuth');
+    if (IS_EXPO_GO) {
+      throw new SocialAuthError(
+        'unavailable',
+        `${PROVIDER_NAMES[provider] || 'That'} sign-in is not available in Expo Go. Use the app from TestFlight, or email and password.`
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const displayName = provider === 'google' ? 'Google' : provider === 'apple' ? 'Apple' : 'Meta';
-    const user = buildUserShape(null, {
-      id: `${provider}-${Math.random().toString(36).slice(2, 10)}`,
-      name: `${displayName} User`,
-      email: `${provider}.user@example.com`,
-      profileImage: 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=faces'
-    });
-    const token = `${provider}-mock-token`;
+    const { fbUser, isNewUser, name } = await signInWithProvider(provider);
+    const user = buildUserShape(fbUser, name ? { name } : {});
+    const token = await fbUser.getIdToken().catch(() => 'firebase-session');
     await this._storeToken(token);
-    return { user, token };
+    return { user, token, isNewUser };
   }
 
   async verifyMFA(email, code) {

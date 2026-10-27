@@ -13,16 +13,48 @@ import {
   Image,
   Dimensions,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Svg, { Polygon } from 'react-native-svg';
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
+import { loginLayout } from '@/lib/loginLayout';
 
-
+// Sign in with Apple has its own button, which Apple requires. Loaded defensively: a build without the
+// native module still shows the rest of the screen.
+let AppleAuthentication = null;
+try {
+  AppleAuthentication = require('expo-apple-authentication');
+} catch (e) {
+  AppleAuthentication = null;
+}
 
 const { width, height } = Dimensions.get('window');
-const DIAGONAL_HEIGHT = 260;
+
+// One outlined pill for Google or Meta.
+function ProviderPill({ testID, label, icon, working, dimmed, onPress }) {
+  return (
+    <TouchableOpacity
+      testID={testID}
+      style={[styles.pill, dimmed && styles.pillDimmed]}
+      onPress={onPress}
+      disabled={working || dimmed}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`Sign in with ${label}`}>
+      {working ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <>
+          {icon}
+          <Text style={styles.pillText}>{label}</Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -30,9 +62,25 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [busyProvider, setBusyProvider] = useState(null); // 'apple' | 'google' | 'meta' while that sign-in is open
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const { setUser } = useUserStore();
+  const { width: screenWidth } = useWindowDimensions();
+  const layout = loginLayout(screenWidth);
+  const busy = isLoading || busyProvider !== null;
 
-  /* ââ splash overlay ââ */
+  // Sign in with Apple is only offered where the phone can do it.
+  useEffect(() => {
+    if (!AppleAuthentication) return undefined;
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => AppleAuthentication.isAvailableAsync())
+      .then((ok) => { if (!cancelled) setAppleAvailable(!!ok); })
+      .catch(() => { if (!cancelled) setAppleAvailable(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  /* splash overlay */
   const splashY = useRef(new Animated.Value(0)).current;
   const [splashDone, setSplashDone] = useState(false);
 
@@ -47,7 +95,7 @@ export default function LoginScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  /* ââ auth ââ */
+  /* auth */
   const handleLogin = useCallback(async () => {
     setErrorMsg('');
     if (!email.trim()) { setErrorMsg('Please enter your email'); return; }
@@ -77,12 +125,45 @@ export default function LoginScreen() {
     }
   }, [email, password, setUser]);
 
+  // Apple, Google or Meta (services/socialAuth.js). An account these create goes to onboarding, like a new
+  // email account; one that already existed goes home, like an email sign-in. Closing the sheet says nothing.
+  // `signingIn` is a ref, not state: a second tap in the same moment would still see the old state.
+  const signingIn = useRef(false);
+  const handleProvider = useCallback(async (provider) => {
+    if (signingIn.current || isLoading) return;
+    signingIn.current = true;
+    setErrorMsg('');
+    setBusyProvider(provider);
+    try {
+      const result = await authService.loginWithProvider(provider);
+      if (!result || !result.user) {
+        setErrorMsg('Sign-in failed. Please try again.');
+        return;
+      }
+      setUser(result.user);
+      if (result.isNewUser) {
+        router.replace('/onboarding');
+      } else {
+        useUserStore.getState().completeOnboarding();
+        router.replace('/hq');
+      }
+    } catch (error) {
+      if (error && error.code === 'cancelled') return;
+      setErrorMsg((error && error.message) || 'Sign-in failed. Please try again.');
+    } finally {
+      signingIn.current = false;
+      setBusyProvider(null);
+    }
+  }, [isLoading, setUser]);
+
+  const taglineStyle = [styles.tagline, { fontSize: layout.tagline.fontSize, lineHeight: layout.tagline.lineHeight }];
+
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* ââ login content ââ */}
+      {/* login content */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -90,21 +171,23 @@ export default function LoginScreen() {
           bounces={false}
           showsVerticalScrollIndicator={false}>
 
-          {/* diagonal white header */}
-          <View style={styles.diagonalWrap}>
-            <View style={styles.whiteBlock} />
-            <View style={styles.blackCut} />
+          {/* white above the line, black below it; the line rises to the right at lib/loginLayout.js's angle */}
+          <View style={{ height: layout.headerHeight }} testID="login-header">
+            <Svg width={layout.width} height={layout.headerHeight} style={StyleSheet.absoluteFill}>
+              <Polygon points={layout.whitePoints} fill="#FFFFFF" />
+            </Svg>
             <Image
-              source={require('@/assets/branding/zown-logo-512.png')}
-              style={styles.logo}
+              source={require('@/assets/branding/zown-wordmark.png')}
+              style={{ position: 'absolute', ...layout.logo }}
               resizeMode="contain"
+              accessibilityLabel="ZOWN"
+              testID="login-logo"
             />
-          </View>
-
-          {/* tagline */}
-          <View style={styles.taglineWrap}>
-            <Text style={styles.tagline1}>OWN THE</Text>
-            <Text style={styles.tagline2}>DAY</Text>
+            {/* tagline, on the black below the line */}
+            <View style={{ position: 'absolute', top: layout.tagline.top, right: layout.tagline.right, alignItems: 'flex-end' }}>
+              <Text style={taglineStyle}>OWN THE</Text>
+              <Text style={taglineStyle}>DAY</Text>
+            </View>
           </View>
 
           {/* form */}
@@ -117,35 +200,35 @@ export default function LoginScreen() {
 
             {/* email */}
             <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor="#666"
+                placeholderTextColor="#9CA3AF"
                 value={email}
                 onChangeText={(t) => { setEmail(t); setErrorMsg(''); }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 returnKeyType="next"
-                editable={!isLoading}
+                editable={!busy}
               />
             </View>
 
             {/* password */}
             <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor="#666"
+                placeholderTextColor="#9CA3AF"
                 value={password}
                 onChangeText={(t) => { setPassword(t); setErrorMsg(''); }}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
-                editable={!isLoading}
+                editable={!busy}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -153,23 +236,59 @@ export default function LoginScreen() {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#666"
+                  color="#9CA3AF"
                 />
               </TouchableOpacity>
             </View>
 
             {/* enter button */}
             <TouchableOpacity
-              style={[styles.enterBtn, isLoading && styles.enterBtnDisabled]}
+              style={[styles.enterBtn, busy && styles.enterBtnDisabled]}
               onPress={handleLogin}
-              disabled={isLoading}
+              disabled={busy}
               activeOpacity={0.85}>
               {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color="#000000" />
               ) : (
                 <Text style={styles.enterBtnText}>Enter</Text>
               )}
             </TouchableOpacity>
+
+            {/* Sign in with Apple: Apple's own button, only where the phone offers it */}
+            {AppleAuthentication && appleAvailable ? (
+              <View
+                style={[styles.appleWrap, busy && styles.pillDimmed]}
+                pointerEvents={busy ? 'none' : 'auto'}>
+                <AppleAuthentication.AppleAuthenticationButton
+                  testID="login-apple"
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
+                  cornerRadius={24}
+                  style={styles.appleBtn}
+                  onPress={() => handleProvider('apple')}
+                />
+              </View>
+            ) : null}
+
+            {/* Google and Meta */}
+            <View style={styles.pillRow}>
+              <ProviderPill
+                testID="login-google"
+                label="Google"
+                icon={<FontAwesome6 name="google" brand size={17} color="#FFFFFF" />}
+                working={busyProvider === 'google'}
+                dimmed={busy && busyProvider !== 'google'}
+                onPress={() => handleProvider('google')}
+              />
+              <ProviderPill
+                testID="login-meta"
+                label="Meta"
+                icon={<FontAwesome6 name="meta" brand size={17} color="#FFFFFF" />}
+                working={busyProvider === 'meta'}
+                dimmed={busy && busyProvider !== 'meta'}
+                onPress={() => handleProvider('meta')}
+              />
+            </View>
 
             {/* links */}
             <TouchableOpacity
@@ -188,7 +307,7 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ââ splash overlay ââ */}
+      {/* splash overlay */}
       {!splashDone && (
         <Animated.View
           style={[styles.splashOverlay, { transform: [{ translateY: splashY }] }]}
@@ -207,76 +326,29 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000',
   },
   flex: {
     flex: 1,
   },
   scroll: {
     flexGrow: 1,
-  },
-
-  /* diagonal header */
-  diagonalWrap: {
-    height: DIAGONAL_HEIGHT,
-    position: 'relative',
-    backgroundColor: '#F5F5F5',
-    overflow: 'hidden',
-  },
-  whiteBlock: {
-    position: 'absolute',
-    top: -140,
-    left: -100,
-    right: -20,
-    height: 300,
     backgroundColor: '#000000',
-    transform: [{ rotate: '-20deg' }],
-  },
-  blackCut: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 0,
-  },
-  logo: {
-    position: 'absolute',
-    top: 40,
-    left: (width - 240) / 2,
-    width: 240,
-    height: 72,
-    zIndex: 3,
+    paddingBottom: 32,
   },
 
-  /* tagline â right-aligned at bottom of header */
-  taglineWrap: {
-    marginTop: -32,
-    paddingRight: 24,
-    alignItems: 'flex-end',
-    zIndex: 2,
-    marginBottom: 20,
-  },
-  tagline1: {
-    color: '#000000',
-    fontSize: 38,
+  /* tagline: white, on the black below the line */
+  tagline: {
+    color: '#FFFFFF',
     fontWeight: '900',
     letterSpacing: 1,
     textAlign: 'right',
-    lineHeight: 44,
-  },
-  tagline2: {
-    color: '#000000',
-    fontSize: 38,
-    fontWeight: '900',
-    letterSpacing: 1,
-    textAlign: 'right',
-    lineHeight: 44,
   },
 
   /* form */
   form: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 8,
     gap: 16,
   },
   errorBox: {
@@ -285,7 +357,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   errorText: {
-    color: '#FF1654',
+    color: '#FF6B8A',
     fontSize: 13,
     textAlign: 'center',
   },
@@ -293,8 +365,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    paddingVertical: 8,
+    borderBottomColor: '#334155',
+    paddingVertical: 10,
   },
   inputIcon: {
     marginRight: 10,
@@ -302,25 +374,57 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#000000',
+    color: '#FFFFFF',
     paddingVertical: 6,
   },
 
   /* enter button */
   enterBtn: {
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#000000',
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
   enterBtnDisabled: {
     opacity: 0.6,
   },
   enterBtnText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  /* Apple, Google, Meta */
+  appleWrap: {
+    height: 48,
+  },
+  appleBtn: {
+    width: '100%',
+    height: 48,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pill: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pillDimmed: {
+    opacity: 0.5,
+  },
+  pillText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
 
@@ -330,7 +434,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   forgotText: {
-    color: '#666666',
+    color: '#E5E7EB',
     fontSize: 13,
   },
   signUpRow: {
@@ -338,11 +442,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signUpGray: {
-    color: '#666666',
+    color: '#9CA3AF',
     fontSize: 13,
   },
   signUpBold: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -360,4 +464,3 @@ const styles = StyleSheet.create({
     height: width * 0.35,
   },
 });
-

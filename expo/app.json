@@ -4,7 +4,7 @@
     "slug": "zown-hq",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/branding/zown-logo-512.png",
+    "icon": "./assets/branding/zown-icon-1024.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/branding/zown-logo-512.png",
@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zownhq.app",
+      "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "ZOWN HQ needs camera access to capture body scan photos for AI body composition analysis.",

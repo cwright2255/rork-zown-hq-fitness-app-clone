@@ -28,7 +28,7 @@ const RANDOM_ALLOWED = {
   'lib/mealCopy.js': [1, 'default source of randomness for ids of copied foods'],
   'lib/mealPlan.js': [1, 'default source of randomness for a plan entry id'],
   'lib/scheduleUtils.js': [1, 'id of a scheduled event'],
-  'services/authService.js': [2, 'fallback id for a user shape; id in the provider sign-in stub that nothing calls'],
+  'services/authService.js': [1, 'fallback id for a user shape'],
   'services/calorieApiService.js': [1, 'id for a food that came back without one'],
   'services/spotifyService.js': [11, 'sign-in state and code verifier, and picking or shuffling songs to play'],
 };

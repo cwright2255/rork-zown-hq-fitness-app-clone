@@ -857,3 +857,47 @@ Order: `cd expo && firebase deploy --only functions:getTrailApiMaps,functions:ge
       completely and open the trail from Saved. Tapping a path that is not among the kept 4 says "This path isn't saved on this phone.
       Connect to the internet to load it." instead of "Loading the path…" for ever. The 4 kept paths still draw with "Saved on this phone".
 - [ ] Back online, open the same trail: the path you could not load now draws.
+
+## Login screen, app icon, and signing in with Apple, Google and Meta (once, on the first build made after this change)
+
+Needs a new native build (`eas build --platform ios --profile production`, then `eas submit`), not only `eas update`: the icon and the
+Sign in with Apple capability are part of the app. Set up first, in `docs/SOCIAL_SIGN_IN.md`: the three providers on in Firebase, the Meta
+app, and `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` and `EXPO_PUBLIC_FACEBOOK_APP_ID` set in EAS. Use a real phone signed in to an Apple ID, with the
+build from TestFlight. Sign out first so the login screen shows.
+
+**The screen**
+
+- [ ] The top of the login screen is white, the rest black, and the line where they meet rises to the right at a steady slope (about the
+      angle of a 25-degree ramp). The black ZOWN is on the white, clear of the line. "OWN THE / DAY" is white, on the black, clear of the line.
+- [ ] Email, Password, a white Enter button, a white Sign in with Apple button, Google and Meta outlined side by side, "Forgot Password?" and
+      "Don't have an account? Sign Up". Turn the phone's text size up: nothing overlaps (scroll if it needs more room).
+- [ ] Email and password sign-in still work, and the wrong password still says "Invalid email or password".
+
+**The icon**
+
+- [ ] The home screen icon is the ZOWN wordmark, black on white, sharp (not blurry), filling the square with no corners cut off or empty border.
+      App Store Connect accepts the build without an icon error.
+
+**Apple**
+
+- [ ] Tap Sign in with Apple. Apple's sheet opens. Hide-my-email or share-my-email both work. You land in onboarding on a first sign-in.
+- [ ] Sign out, tap it again with the same Apple ID. You go straight home. The name from the first time is still on the profile.
+- [ ] Close Apple's sheet without choosing: the login screen shows no message.
+
+**Google** (needs the id)
+
+- [ ] Tap Google. The system's sign-in page opens, and asks which account. A first sign-in lands in onboarding, a later one goes home.
+- [ ] Close the page without signing in: the login screen shows no message.
+
+**Meta** (needs the id; the person needs a role on the Meta app while it is in Development mode)
+
+- [ ] Tap Meta. The Meta page opens. A first sign-in lands in onboarding, a later one goes home.
+- [ ] Close the page: no message. With a Facebook account that has no role on the app, Meta refuses; the login screen stays as it was.
+
+**When it goes wrong**
+
+- [ ] Airplane mode, tap Google: it says it could not finish, or "Network error. Check your connection and try again.", and the buttons work again.
+- [ ] Sign in with Google using an email that already has an email-and-password account. Firebase decides what happens: you either land in that
+      same account, or the screen says "An account with that email already exists. Sign in the way you first did: email and password, or the
+      other service." Either is fine for the alpha; note which one you get.
+- [ ] A build made without the Meta id: tapping Meta says "Meta sign-in isn't set up yet."
