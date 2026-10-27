@@ -34,3 +34,15 @@ export function placePhotoName(value) {
   if (typeof value !== 'string') return null;
   return /^places\/[A-Za-z0-9_-]{1,200}\/photos\/[A-Za-z0-9_-]{1,600}$/.test(value) ? value : null;
 }
+
+/**
+ * The words to look a food up by (USDA FoodData Central): 2 to 80 characters once trimmed, runs of spaces
+ * made single, no control characters. Returned as text, or null.
+ */
+export function foodSearchText(value) {
+  if (typeof value !== 'string') return null;
+  const text = value.trim().replace(/\s+/g, ' ');
+  if (text.length < 2 || text.length > 80) return null;
+  // eslint-disable-next-line no-control-regex
+  return /[\u0000-\u001f\u007f]/.test(text) ? null : text;
+}

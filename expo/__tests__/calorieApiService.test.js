@@ -1,6 +1,10 @@
 const mockCall = jest.fn();
+// USDA FoodData Central's foods for a name (the searchUsdaFoods function): its own mock, so that it does not take the answers the Calorie API ones queue.
+const mockUsda = jest.fn();
 const mockFunctionsCalled = [];
-jest.mock('firebase/functions', () => ({ httpsCallable: (_functions, name) => { mockFunctionsCalled.push(name); return mockCall; } }), { virtual: true });
+jest.mock('firebase/functions', () => ({
+  httpsCallable: (_functions, name) => { mockFunctionsCalled.push(name); return name === 'searchUsdaFoods' ? mockUsda : mockCall; },
+}), { virtual: true });
 jest.mock('../src/config/firebase', () => ({ functions: {} }));
 
 import { searchFoodsDetailed, searchFoods, getFoodById, withFullRating, calculateNutritionalScore } from '../services/calorieApiService';
@@ -11,12 +15,16 @@ const apiFood = (extra = {}) => ({
 });
 
 let errorSpy;
+let warnSpy;
 beforeEach(() => {
   mockCall.mockReset();
+  mockUsda.mockReset();
+  mockUsda.mockResolvedValue({ data: { foods: [] } });
   mockFunctionsCalled.length = 0;
   errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
-afterEach(() => errorSpy.mockRestore());
+afterEach(() => { errorSpy.mockRestore(); warnSpy.mockRestore(); });
 
 describe('searchFoodsDetailed', () => {
   it('returns the real results and says the search worked', async () => {
@@ -255,7 +263,7 @@ describe('a food\'s own record as the API really sends it', () => {
   });
 
   it('leaves a fat with no saturated fat listed partial: an oil\'s sodium is settled, its saturated fat is not', async () => {
-    // (The record the API has for avocado oil lists only its energy and fat.)
+    // (Made up: a fat whose record lists only its energy and fat. The real avocado oil record does list its saturated fat.)
     const avocadoOil = { ...oliveOil, id: 8098800, name: 'Oil, Avocado', nutrients: [entry('Energy (kcal)', 'kcal', 884), entry('Total Fat', 'g', 100)] };
     const food = await load(avocadoOil, 'real-avocado-oil');
     expect(food.sodium).toBe(0);
@@ -515,11 +523,11 @@ describe('withFullRating', () => {
     beforeEach(() => { jest.useFakeTimers(); });
     afterEach(() => { jest.useRealTimers(); });
 
-    it('gives back the row as it was after 4 seconds, and not before', async () => {
+    it('gives back the row as it was after 6 seconds, and not before', async () => {
       mockCall.mockReturnValueOnce(new Promise(() => {}));
       let out;
       const waiting = withFullRating({ ...row, id: 'wf-7' }).then((food) => { out = food; });
-      await jest.advanceTimersByTimeAsync(3999);
+      await jest.advanceTimersByTimeAsync(5999);
       expect(out).toBeUndefined();
       await jest.advanceTimersByTimeAsync(1);
       await waiting;
@@ -531,5 +539,305 @@ describe('withFullRating', () => {
       await withFullRating({ ...row, id: 'wf-8' });
       expect(jest.getTimerCount()).toBe(0);
     });
+  });
+});
+
+// A figure the record leaves out can come from USDA FoodData Central (lib/usdaFill.js says when it is safe; the searchUsdaFoods
+// function sends the foods). Each test uses its own food name: the foods found for a name are kept for the session.
+describe('figures a record leaves out, from USDA FoodData Central', () => {
+  const entry = (name, unit, amount) => ({ name, unit, amount, nutrient_id: 1 });
+  let n = 0;
+  // An orange juice record that lists its saturated fat and fibre but not its sodium.
+  const juiceRecord = (extra = {}) => {
+    n += 1;
+    return {
+      id: `usda-${n}`, name: `Orange Juice ${n}`, brand_name: 'Verified', calories_100g: 48, protein_100g: 0.5, carbs_100g: 11, fat_100g: 0.5, fiber_100g: 0.2, sugar_100g: 8.5,
+      nutrients: [entry('Fiber', 'g', 0.2), entry('Saturated Fat', 'g', 0.05), entry('Sugars', 'g', 8.5), entry('Total Fat', 'g', 0.5)], ...extra,
+    };
+  };
+  const usdaFood = (macros, { fibre = null, sodium = null, satFat = null } = {}) => ({
+    fdcId: 1, description: 'x', dataType: 'SR Legacy', kcal: macros[0], protein: macros[1], fat: macros[2], carbs: macros[3], fibre, sodium, satFat,
+  });
+  const juiceFoods = [[4, 0.3], [2, 0.5], [2, 0.4], [0, 0.4]].map(([sodium, satFat]) => usdaFood([47, 0.6, 0.2, 11], { fibre: 0.2, sodium, satFat }));
+  const serve = (record) => mockCall.mockResolvedValueOnce({ data: { data: record } });
+  const knows = (foods) => mockUsda.mockResolvedValue({ data: { foods } });
+
+  it('fills in a sodium the record does not list when the foods that agree put it in the same place', async () => {
+    const record = juiceRecord();
+    serve(record);
+    knows(juiceFoods);
+    const food = await getFoodById(record.id);
+    expect(mockUsda).toHaveBeenCalledWith({ query: record.name });
+    expect(food.sodium).toBe(2);
+    expect(food.nutritionalDetails.sodium).toBe(2);
+    expect(food.estimated).toEqual(['sodium']);
+    expect(food.nutritionalScore.partial).toBeUndefined();
+  });
+
+  it('gives the food the rating it would have had if the record had listed that sodium', async () => {
+    const filled = juiceRecord();
+    serve(filled);
+    knows(juiceFoods);
+    const listed = juiceRecord({ sodium_100g: 2 });
+    serve(listed);
+    const [a, b] = [await getFoodById(filled.id), await getFoodById(listed.id)];
+    expect(a.nutritionalScore).toEqual(b.nutritionalScore);
+    expect(a.nutritionalScore.partial).toBeUndefined();
+  });
+
+  it('leaves the food as it was when too few foods agree', async () => {
+    const record = juiceRecord();
+    serve(record);
+    knows(juiceFoods.slice(0, 2));
+    const food = await getFoodById(record.id);
+    expect(food.sodium).toBeUndefined();
+    expect(food.estimated).toBeUndefined();
+    expect(food.nutritionalScore.partial).toBe(true);
+  });
+
+  it('leaves the food as it was when the foods that agree do not put the figure in the same place', async () => {
+    const record = juiceRecord();
+    serve(record);
+    knows([70, 75, 85].map((sodium) => usdaFood([47, 0.6, 0.2, 11], { sodium })));
+    const food = await getFoodById(record.id);
+    expect(food.sodium).toBeUndefined();
+    expect(food.nutritionalScore.partial).toBe(true);
+  });
+
+  it('never changes a figure the record lists', async () => {
+    const record = juiceRecord({ sodium_100g: 9 });
+    serve(record);
+    knows(juiceFoods);
+    const food = await getFoodById(record.id);
+    expect(food.sodium).toBe(9);
+    expect(food.estimated).toBeUndefined();
+    expect(mockFunctionsCalled).not.toContain('searchUsdaFoods');
+  });
+
+  it('does not ask about a food that lists everything, or can be worked out from its own numbers', async () => {
+    const complete = juiceRecord({ sodium_100g: 4 });
+    serve(complete);
+    await getFoodById(complete.id);
+    const oil = juiceRecord({ name: 'Olive Oil usda', calories_100g: 884, protein_100g: 0, carbs_100g: 0, fat_100g: 100, fiber_100g: 0, sugar_100g: 0, nutrients: [entry('Saturated Fat', 'g', 14.5), entry('Fiber', 'g', 0)] });
+    serve(oil);
+    await getFoodById(oil.id);
+    expect(mockFunctionsCalled).toEqual(['getCalorieApiFoodById', 'getCalorieApiFoodById']);
+    expect(mockUsda).not.toHaveBeenCalled();
+  });
+
+  it('asks for a saturated fat the record does not list', async () => {
+    const record = juiceRecord({ nutrients: [entry('Fiber', 'g', 0.2), entry('Sodium', 'mg', 4)] });
+    serve(record);
+    knows(juiceFoods);
+    const food = await getFoodById(record.id);
+    expect(food.estimated).toEqual(['saturatedFat']);
+    expect(food.nutritionalDetails.saturatedFat).toBe(0.4);
+  });
+
+  it('asks for more than one figure at once', async () => {
+    const record = juiceRecord({ nutrients: [entry('Fiber', 'g', 0.2)] });
+    serve(record);
+    knows(juiceFoods);
+    const food = await getFoodById(record.id);
+    expect(mockUsda).toHaveBeenCalledTimes(1);
+    expect(food.estimated).toEqual(['sodium', 'saturatedFat']);
+    expect(food.sodium).toBe(2);
+    expect(food.nutritionalDetails).toMatchObject({ sodium: 2, saturatedFat: 0.4 });
+  });
+
+  describe('fibre', () => {
+    // Almonds as the Calorie API sends them: a list with no Fiber entry, and 0 at the top. They hold about 12 g.
+    const almonds = (extra = {}) => {
+      n += 1;
+      return {
+        id: `usda-${n}`, name: `Almonds ${n}`, brand_name: 'Verified', calories_100g: 612, protein_100g: 21, carbs_100g: 10, fat_100g: 52, fiber_100g: 0, sugar_100g: 4.9,
+        nutrients: [entry('Saturated Fat', 'g', 4.1), entry('Sodium', 'mg', 320), entry('Sugars', 'g', 4.9)], ...extra,
+      };
+    };
+    const almondFoods = [9, 12, 12.5].map((fibre) => usdaFood([600, 21, 50, 11], { fibre, sodium: 1, satFat: 3.7 }));
+
+    it('is filled in for a food whose record has no Fiber entry, when the foods that agree put it in the same place', async () => {
+      const record = almonds();
+      serve(record);
+      knows(almondFoods);
+      const food = await getFoodById(record.id);
+      expect(food.fiber).toBe(12);
+      expect(food.nutritionalDetails.fiber).toBe(12);
+      expect(food.estimated).toEqual(['fiber']);
+    });
+
+    it('is not asked about when the record lists it, even as 0', async () => {
+      const record = almonds({ nutrients: [entry('Saturated Fat', 'g', 4.1), entry('Sodium', 'mg', 320), entry('Fiber', 'g', 0)] });
+      serve(record);
+      knows(almondFoods);
+      const food = await getFoodById(record.id);
+      expect(food.fiber).toBe(0);
+      expect(mockUsda).not.toHaveBeenCalled();
+    });
+
+    it('is not asked about when the top-level figure is more than 0', async () => {
+      const record = almonds({ fiber_100g: 2 });
+      serve(record);
+      knows(almondFoods);
+      expect((await getFoodById(record.id)).fiber).toBe(2);
+      expect(mockUsda).not.toHaveBeenCalled();
+    });
+
+    it('is not asked about when the record has no list of nutrients to tell from', async () => {
+      for (const nutrients of [undefined, []]) {
+        const record = almonds({ nutrients: undefined });
+        record.nutrients = nutrients;
+        serve({ ...record, sodium_100g: 320, saturated_fat_100g: 4.1 });
+        await getFoodById(record.id);
+      }
+      expect(mockUsda).not.toHaveBeenCalled();
+    });
+
+    it('is only asked about for a food with 3 g of carbohydrate or more (under that it cannot hold the 3 g that earn a point)', async () => {
+      const low = almonds({ carbs_100g: 2.99 });
+      serve(low);
+      knows(almondFoods);
+      await getFoodById(low.id);
+      expect(mockUsda).not.toHaveBeenCalled();
+      const enough = almonds({ carbs_100g: 3, calories_100g: 590 });
+      serve(enough);
+      await getFoodById(enough.id);
+      expect(mockUsda).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads a Fiber entry in any of the names the API might use', async () => {
+      for (const name of ['Fiber', 'Fibre', 'Dietary Fiber', 'Fiber, total dietary']) {
+        const record = almonds({ nutrients: [entry('Saturated Fat', 'g', 4.1), entry('Sodium', 'mg', 320), entry(name, 'g', 0)] });
+        serve(record);
+        await getFoodById(record.id);
+      }
+      expect(mockUsda).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when USDA cannot be had', () => {
+    it('gives the food as it was, and goes on to ask again for the next food of that name', async () => {
+      const record = juiceRecord();
+      serve(record);
+      mockUsda.mockRejectedValueOnce(new Error('offline'));
+      const food = await getFoodById(record.id);
+      expect(food.sodium).toBeUndefined();
+      expect(food.nutritionalScore.partial).toBe(true);
+      expect(food.estimated).toBeUndefined();
+
+      const again = juiceRecord({ name: record.name });
+      serve(again);
+      knows(juiceFoods);
+      expect((await getFoodById(again.id)).sodium).toBe(2);
+      expect(mockUsda).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives the food as it was when the answer has no list of foods, and asks again next time', async () => {
+      const record = juiceRecord();
+      serve(record);
+      mockUsda.mockResolvedValue({ data: {} });
+      expect((await getFoodById(record.id)).sodium).toBeUndefined();
+      const none = juiceRecord();
+      serve(none);
+      mockUsda.mockResolvedValue(undefined);
+      expect((await getFoodById(none.id)).sodium).toBeUndefined();
+
+      // The same name again, now with a real answer: the empty ones were not remembered.
+      const again = juiceRecord({ name: record.name });
+      serve(again);
+      knows(juiceFoods);
+      expect((await getFoodById(again.id)).sodium).toBe(2);
+    });
+
+    it('does not wait for it for more than 2 seconds', async () => {
+      jest.useFakeTimers();
+      try {
+        const record = juiceRecord();
+        serve(record);
+        mockUsda.mockReturnValue(new Promise(() => {}));
+        let food;
+        const waiting = getFoodById(record.id).then((f) => { food = f; });
+        await jest.advanceTimersByTimeAsync(1999);
+        expect(food).toBeUndefined();
+        await jest.advanceTimersByTimeAsync(1);
+        await waiting;
+        expect(food.name).toBe(record.name);
+        expect(food.sodium).toBeUndefined();
+        expect(jest.getTimerCount()).toBe(0);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not leave its timer running once USDA has answered', async () => {
+      jest.useFakeTimers();
+      try {
+        const record = juiceRecord();
+        serve(record);
+        knows(juiceFoods);
+        await getFoodById(record.id);
+        expect(jest.getTimerCount()).toBe(0);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
+  it('keeps the foods found for a name for the session, an empty list as well', async () => {
+    const record = juiceRecord();
+    serve(record);
+    knows(juiceFoods);
+    await getFoodById(record.id);
+    const same = juiceRecord({ name: record.name });
+    serve(same);
+    expect((await getFoodById(same.id)).sodium).toBe(2);
+    expect(mockUsda).toHaveBeenCalledTimes(1);
+
+    const other = juiceRecord();
+    serve(other);
+    knows([]);
+    await getFoodById(other.id);
+    const otherAgain = juiceRecord({ name: other.name.toUpperCase() });
+    serve(otherAgain);
+    await getFoodById(otherAgain.id);
+    expect(mockUsda).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not look up a food with no name', async () => {
+    const record = juiceRecord({ name: '   ' });
+    serve(record);
+    knows(juiceFoods);
+    expect((await getFoodById(record.id)).sodium).toBeUndefined();
+    expect(mockUsda).not.toHaveBeenCalled();
+  });
+
+  it('does not look up a search row: the row has no figures to tell, and the food\'s own record is looked up when it is logged', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: [{ ...juiceRecord(), nutrients: undefined, sodium_100g: undefined }] } });
+    const { results } = await searchFoodsDetailed('orange juice usda row');
+    expect(results).toHaveLength(1);
+    expect(results[0].estimated).toBeUndefined();
+    expect(mockFunctionsCalled).toEqual(['searchCalorieApiFoods']);
+  });
+
+  it('gives a search row that is logged the filled figure, the note about it, and a rating that is no longer limited', async () => {
+    const record = juiceRecord();
+    serve(record);
+    knows(juiceFoods);
+    const row = {
+      id: record.id, name: record.name, servingSize: '100g', calories: 48, protein: 0.5, carbs: 11, fat: 0.5,
+      nutritionalScore: { score: 'B', partial: true }, nutritionalDetails: { saturatedFat: 0, sugar: 8.5, fiber: 0, sodium: 0 },
+    };
+    const out = await withFullRating(row);
+    expect(out.estimated).toEqual(['sodium']);
+    expect(out.sodium).toBe(2);
+    expect(out.nutritionalScore.partial).toBeUndefined();
+    expect(out.name).toBe(record.name);
+  });
+
+  it('leaves `estimated` off a row whose record had nothing filled in', async () => {
+    const record = juiceRecord({ sodium_100g: 5 });
+    serve(record);
+    const out = await withFullRating({ id: record.id, name: 'x', nutritionalScore: { score: 'B', partial: true } });
+    expect('estimated' in out).toBe(false);
   });
 });

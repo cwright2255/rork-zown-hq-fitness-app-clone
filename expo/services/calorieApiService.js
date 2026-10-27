@@ -12,8 +12,9 @@
 // app/nutrition/search.jsx and app/nutrition/food/[id].jsx need no
 // further changes.
 
-import { rateFood, ratingFor } from '../lib/foodRating';
+import { amount, rateFood, ratingFor } from '../lib/foodRating';
 import { completeFigures } from '../lib/completeFigures';
+import { usdaFigures } from '../lib/usdaFill';
 
 // Cache for API responses
 let searchCache = new Map();
@@ -54,11 +55,9 @@ function findNutrientAmount(nutrients, { names, unit }) {
 
 const tenthOrUndefined = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? undefined : Math.round(Number(v) * 10) / 10);
 
-// Real response shape confirmed directly from
-// https://calorieapi.com/docs/food-search: macros use a _100g suffix
-// (calories_100g, protein_100g, etc.).
-const convertCalorieApiToFoodItem = (item) => {
-  // What the record lists, then what its own numbers settle for a figure it does not list (see lib/completeFigures.js).
+// A record's figures as the rating takes them: what it lists, then what its own numbers settle for a figure it does not list
+// (see lib/completeFigures.js). A figure that is neither listed nor settled is undefined.
+function ratingFigures(item) {
   const { sugar, saturatedFat, sodium } = completeFigures({
     carbs: item.carbs_100g,
     fat: item.fat_100g,
@@ -66,15 +65,7 @@ const convertCalorieApiToFoodItem = (item) => {
     saturatedFat: item.saturated_fat_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.saturatedFat),
     sodium: item.sodium_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.sodium),
   });
-  // Ethanol, when the food lists it ("Alcohol, ethyl" in the nutrients list). Without it the rating works
-  // alcohol out from the energy the macros leave over.
-  const alcohol = item.alcohol_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.alcohol);
-  const servingSize = item.serving_size && item.serving_unit
-    ? `${item.serving_size}${item.serving_unit}`
-    : (item.serving_size || '100g');
-  // A food with no energy figure has nothing to be rated from, so it carries no rating (no stars). A food missing
-  // sodium or saturated fat (a search row never lists them) is rated from what there is, and marked partial.
-  const rating = ratingFor({
+  return {
     calories: item.calories_100g,
     protein: item.protein_100g,
     carbs: item.carbs_100g,
@@ -83,8 +74,27 @@ const convertCalorieApiToFoodItem = (item) => {
     saturatedFat,
     sugar,
     sodium,
-    alcohol
-  });
+    // Ethanol, when the food lists it ("Alcohol, ethyl" in the nutrients list). Without it the rating works
+    // alcohol out from the energy the macros leave over.
+    alcohol: item.alcohol_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.alcohol),
+  };
+}
+
+// Real response shape confirmed directly from
+// https://calorieapi.com/docs/food-search: macros use a _100g suffix
+// (calories_100g, protein_100g, etc.).
+//
+// `filled` is figures taken from elsewhere for ones the record does not list (see usdaFiguresFor): { sodium, saturatedFat, fiber },
+// any of them. The food then carries `estimated`, the names of those figures, so the page can say they are not the food's own.
+const convertCalorieApiToFoodItem = (item, filled = {}) => {
+  const figures = { ...ratingFigures(item), ...filled };
+  const estimated = Object.keys(filled);
+  const servingSize = item.serving_size && item.serving_unit
+    ? `${item.serving_size}${item.serving_unit}`
+    : (item.serving_size || '100g');
+  // A food with no energy figure has nothing to be rated from, so it carries no rating (no stars). A food missing
+  // sodium or saturated fat (a search row never lists them) is rated from what there is, and marked partial.
+  const rating = ratingFor(figures);
 
   return {
     id: (item.id ?? Math.random()).toString(),
@@ -97,19 +107,82 @@ const convertCalorieApiToFoodItem = (item) => {
     fat: Math.round((item.fat_100g || 0) * 10) / 10,
     // Left off (undefined) when the API has no figure, so "not listed" is not
     // shown as a real 0 in the diary's fiber / sugar / sodium totals.
-    fiber: tenthOrUndefined(item.fiber_100g),
-    sugar: tenthOrUndefined(sugar),
-    sodium: tenthOrUndefined(sodium),
+    fiber: tenthOrUndefined(figures.fiber),
+    sugar: tenthOrUndefined(figures.sugar),
+    sodium: tenthOrUndefined(figures.sodium),
     imageUrl: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
     ...(rating ? { nutritionalScore: rating } : {}),
+    ...(estimated.length ? { estimated } : {}),
     nutritionalDetails: {
-      saturatedFat: Math.round((saturatedFat || 0) * 10) / 10,
-      sugar: Math.round((sugar || 0) * 10) / 10,
-      fiber: Math.round((item.fiber_100g || 0) * 10) / 10,
-      sodium: Math.round((sodium || 0) * 10) / 10
+      saturatedFat: Math.round((figures.saturatedFat || 0) * 10) / 10,
+      sugar: Math.round((figures.sugar || 0) * 10) / 10,
+      fiber: Math.round((figures.fiber || 0) * 10) / 10,
+      sodium: Math.round((figures.sodium || 0) * 10) / 10
     }
   };
 };
+
+// The figures a full record does not list that USDA FoodData Central might supply (lib/usdaFill.js decides whether it does):
+// sodium and saturated fat when neither the record nor its own numbers give them, and fibre when the record has a list of
+// nutrients without a Fiber entry and enough carbohydrate to hold fibre that earns points. The API shows a missing fibre as 0, which
+// is true of meat, eggs and oil and wrong for almonds; a food with under 3 g of carbohydrate per 100 g cannot hold the 3 g of fibre that
+// earns the first point, so it is not looked up.
+const FIBRE_NAMES = ['fiber', 'fibre', 'dietary fiber', 'fiber, total dietary'];
+const FIBRE_LOOKUP_MIN_CARBS_G = 3;
+
+function unlistedFigures(item, figures) {
+  const lacking = [];
+  if (amount(figures.sodium) === undefined) lacking.push('sodium');
+  if (amount(figures.saturatedFat) === undefined) lacking.push('saturatedFat');
+  const fiberListed = findNutrientAmount(item.nutrients, { names: FIBRE_NAMES, unit: 'g' }) !== undefined;
+  if (
+    Array.isArray(item.nutrients) && item.nutrients.length > 0 && !fiberListed &&
+    !(amount(item.fiber_100g) > 0) && amount(item.carbs_100g) >= FIBRE_LOOKUP_MIN_CARBS_G
+  ) lacking.push('fiber');
+  return lacking;
+}
+
+// USDA FoodData Central's foods for a name, through the searchUsdaFoods function (which holds the key). Remembered for the session, a
+// found list and an empty one alike; null when it could not be had in time (not remembered, so the next food with that name tries again).
+const USDA_WAIT_MS = 2000;
+const usdaCache = new Map();
+
+async function usdaFoodsFor(name) {
+  const key = name.toLowerCase();
+  if (usdaCache.has(key)) return usdaCache.get(key);
+  let timer;
+  try {
+    // require, not import(): the same lazy load, and it can be run under Jest.
+    const { httpsCallable } = require('firebase/functions');
+    const { functions } = require('../src/config/firebase');
+    const answer = await Promise.race([
+      httpsCallable(functions, 'searchUsdaFoods')({ query: name }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('too slow')), USDA_WAIT_MS); }),
+    ]);
+    const foods = answer?.data?.foods;
+    // An answer without a list of foods is no answer: not remembered, so the next food with that name asks again.
+    if (!Array.isArray(foods)) throw new Error('USDA answer has no list of foods');
+    usdaCache.set(key, foods);
+    return foods;
+  } catch (error) {
+    console.warn('USDA food lookup failed:', error?.message);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// The figures to fill in for a record: {} for a food that is complete or has no safe match; otherwise { sodium, saturatedFat, fiber },
+// any of them. (A record's brand_name is no use for telling a product from a plain food: the plain ones say "Verified". What keeps a
+// product from taking another food's figures is the agreement test in lib/usdaFill.js.)
+async function usdaFiguresFor(item) {
+  const figures = ratingFigures(item);
+  const lacking = unlistedFigures(item, figures);
+  const name = typeof item.name === 'string' ? item.name.trim() : '';
+  if (!lacking.length || !name) return {};
+  const foods = await usdaFoodsFor(name);
+  return foods ? usdaFigures({ food: figures, foods, lacking }) : {};
+}
 
 // A food's grade, 'A' (best) to 'E', from its nutrition per 100 g, or null when it has no energy figure. See
 // lib/foodRating.js for how it is worked out.
@@ -176,7 +249,8 @@ export const getFoodById = async (id) => {
     // Defensive: handles a food object either wrapped in { data: ... }
     // (matching search's convention) or returned directly.
     const raw = payload.data || payload;
-    const food = convertCalorieApiToFoodItem(raw);
+    const filled = await usdaFiguresFor(raw);
+    const food = convertCalorieApiToFoodItem(raw, filled);
     foodCache.set(id, food);
     return food;
   } catch (error) {
@@ -185,8 +259,9 @@ export const getFoodById = async (id) => {
   }
 };
 
-// How long a tap on a search row waits for the food's own record before the row is logged as it is.
-const FULL_RECORD_WAIT_MS = 4000;
+// How long a tap on a search row waits for the food's own record before the row is logged as it is: 4 seconds for the record, and the
+// 2 that the USDA lookup (usdaFoodsFor) may take after it.
+const FULL_RECORD_WAIT_MS = 6000;
 
 // A search row lists no sodium or saturated fat, so its rating is held to 3 stars at best, which is why nearly every chicken
 // food came up at 3. The food's own record lists them. This gives back the row with that record's rating and nutrition figures,
@@ -203,6 +278,7 @@ export const withFullRating = async (food) => {
       ...food,
       nutritionalScore: full.nutritionalScore,
       nutritionalDetails: full.nutritionalDetails,
+      ...(full.estimated ? { estimated: full.estimated } : {}),
       fiber: full.fiber ?? food.fiber,
       sugar: full.sugar ?? food.sugar,
       sodium: full.sodium ?? food.sodium,

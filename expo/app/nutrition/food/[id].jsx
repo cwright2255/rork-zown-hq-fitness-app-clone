@@ -179,6 +179,10 @@ export default function FoodDetailScreen() {
     { key: 'sugar', label: 'Sugar', unit: 'g' },
     { key: 'sodium', label: 'Sodium', unit: 'mg' },
   ].filter((n) => scaled[n.key] != null);
+  // Figures the record did not list, taken from similar foods in USDA FoodData Central (services/calorieApiService.js): shown with a
+  // "≈", because they are not measured for this food.
+  const estimated = Array.isArray(food.estimated) ? food.estimated : [];
+  const showsEstimate = extras.some((n) => estimated.includes(n.key));
 
   const macros = [
     { label: 'Protein', value: p, goal: dailyP, color: '#3B82F6' },
@@ -243,10 +247,15 @@ export default function FoodDetailScreen() {
                   testID={`food-${n.key}`}
                   style={[styles.nutrientRow, i === extras.length - 1 && { marginBottom: 0 }]}>
                   <Text style={styles.macroLabel}>{n.label}</Text>
-                  <Text style={styles.macroValue}>{scaled[n.key]} {n.unit}</Text>
+                  <Text style={styles.macroValue}>{estimated.includes(n.key) ? '≈ ' : ''}{scaled[n.key]} {n.unit}</Text>
                 </View>
               ))}
             </View>
+            {showsEstimate ? (
+              <Text testID="food-estimated-note" style={styles.partialNote}>
+                ≈ is worked out from similar foods in USDA FoodData Central, not measured for this food.
+              </Text>
+            ) : null}
           </>
         ) : null}
 

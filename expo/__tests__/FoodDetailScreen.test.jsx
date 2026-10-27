@@ -268,6 +268,58 @@ describe('fiber, sugar and sodium', () => {
   });
 });
 
+describe('figures taken from similar foods', () => {
+  const NOTE = '≈ is worked out from similar foods in USDA FoodData Central, not measured for this food.';
+
+  it('shows a figure the record did not list with a ≈, and says what it means', async () => {
+    const utils = open({ food: apple({ fiber: 2.4, sodium: 3, estimated: ['sodium'] }) });
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(utils.getByText('≈ 3 mg')).toBeTruthy();
+    expect(utils.getByText('2.4 g')).toBeTruthy();
+    expect(utils.getByTestId('food-estimated-note')).toBeTruthy();
+    expect(utils.getByText(NOTE)).toBeTruthy();
+  });
+
+  it('keeps the ≈ on the figure as the serving count changes', async () => {
+    const utils = open({ food: apple({ fiber: 12, estimated: ['fiber'] }) });
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(utils.getByText('≈ 12 g')).toBeTruthy();
+    fireEvent.press(utils.getByTestId('food-plus')); // 1.5x
+    expect(utils.getByText('≈ 18 g')).toBeTruthy();
+  });
+
+  it('marks every one of them that is shown', async () => {
+    const utils = open({ food: apple({ fiber: 12, sodium: 3, sugar: 4, estimated: ['sodium', 'fiber'] }) });
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(utils.getByText('≈ 12 g')).toBeTruthy();
+    expect(utils.getByText('≈ 3 mg')).toBeTruthy();
+    expect(utils.getByText('4 g')).toBeTruthy();
+    expect(utils.getAllByText(NOTE)).toHaveLength(1);
+  });
+
+  it('has no ≈ and no note for a food whose figures are all its own', async () => {
+    const utils = open({ food: apple({ fiber: 2.4, sodium: 3 }) });
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(utils.getByText('3 mg')).toBeTruthy();
+    expect(utils.queryByText(/≈/)).toBeNull();
+    expect(utils.queryByTestId('food-estimated-note')).toBeNull();
+  });
+
+  it('has no note when the figure taken is one the page does not list (saturated fat)', async () => {
+    const utils = open({ food: apple({ fiber: 2.4, estimated: ['saturatedFat'] }) });
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(utils.queryByTestId('food-estimated-note')).toBeNull();
+    expect(utils.getByText('2.4 g')).toBeTruthy();
+  });
+
+  it('copes with an estimated that is not a list', async () => {
+    const utils = open({ food: apple({ fiber: 2.4, estimated: 'fiber' }) });
+    await waitFor(() => expect(utils.getByText('Apple')).toBeTruthy());
+    expect(utils.getByText('2.4 g')).toBeTruthy();
+    expect(utils.queryByTestId('food-estimated-note')).toBeNull();
+  });
+});
+
 describe('a custom food', () => {
   const shake = { id: 'custom-1', name: 'Protein shake', servingSize: '1 scoop', calories: 120, protein: 24, carbs: 3, fat: 1, custom: true };
 

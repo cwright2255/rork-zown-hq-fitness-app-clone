@@ -471,6 +471,31 @@ keep the whole stars they were logged with; log them again to get the new ones.
       before the update: deploy it and log the food again.
 - [ ] Scan a barcode of a packaged food and log it: its stars (halves too) and EXP follow the same rule.
 
+## Figures a food's record leaves out, filled in from USDA FoodData Central (once: set the key, deploy the function, then the update)
+
+Order matters: `cd expo && firebase functions:secrets:set USDA_API_KEY` (paste your free key from fdc.nal.usda.gov/api-key-signup when it asks;
+nothing is shown as you paste), then `firebase deploy --only functions:searchUsdaFoods`, then, once CI is green,
+`eas update --branch main --environment production`, and close the app completely and open it twice. If the update goes out before the
+function, nothing breaks: the lookup fails quickly and foods look as they did.
+
+The app asks the function for USDA's generic foods with the same name when a food's own record leaves out its sodium, its saturated fat, or
+its fibre (the last only for a food with 3 g or more of carbohydrate per 100 g, since less cannot hold the 3 g that earn a point). It
+uses a figure only when at least 3 USDA foods agree with the record's calories and macros and every one of them puts the figure in the same
+place on the rating's steps; then it uses their middle value. Otherwise the food is left exactly as it was. A probe found this closes
+orange juice's sodium and tofu's saturated fat, and correctly leaves spaghetti (the only match was a spinach pasta), peanut butter's fibre
+(5 to 8 g is different ratings), brown rice and banana alone.
+
+- [ ] Search "orange juice" and open the plain one. The page no longer shows the grey note "Some nutrition figures are not listed for this
+      food, so its rating is limited", the More nutrients card has a Sodium row that starts with "≈" (a few mg), and a line under the card
+      says "≈ is worked out from similar foods in USDA FoodData Central, not measured for this food." Fibre and sugar rows, which the record
+      lists, have no "≈".
+- [ ] Search "tofu" and log it from the list: the logged food keeps its rating without the limited note.
+- [ ] Open "spaghetti" or "brown rice": they still show the limited note (nothing safe to fill in), and no row has a "≈".
+- [ ] Open "olive oil" or "chicken breast": no "≈" anywhere (nothing missing, or the food's own numbers settled it).
+- [ ] Turn on airplane mode, open a food you have not opened this session whose record leaves out a figure: the page still opens, within a few seconds,
+      with the limited note as before.
+- [ ] Firebase console, Functions, `searchUsdaFoods`: calls appear when you open foods. A food opened again in the same session does not call it again.
+
 ## Lifetime totals, unlocks, Battle Pass claims and duel results (once, after the functions are deployed, then the update, then the rules)
 
 The server now counts your lifetime workout totals, decides every achievement, badge and Battle Pass claim, and settles duels that run

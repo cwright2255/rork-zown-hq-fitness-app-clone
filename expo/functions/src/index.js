@@ -14,7 +14,8 @@ import { handleClaim, fillLeaderboardEntry } from './xpLedger.js';
 import { refreshTotals } from './lifetimeTotals.js';
 import { runUnlocks, claimTier } from './unlocks.js';
 import { settleExpiredDuels, countsNow } from './duelSettle.js';
-import { numberInRange, trailServiceId, placePhotoName } from './proxyInput.js';
+import { numberInRange, trailServiceId, placePhotoName, foodSearchText } from './proxyInput.js';
+import { trimUsdaFoods } from './usdaFoods.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
@@ -972,6 +973,41 @@ export const getCalorieApiFoodById = onCall(
     }
 
     return await res.json();
+  }
+);
+
+// USDA FoodData Central, for the figures a Calorie API record leaves out (sodium, saturated fat, fibre). The key is a
+// secret held here, not in the app. Only the generic datasets are asked for (Foundation and SR Legacy: the
+// "Survey (FNDDS)" search was refused by the service in some spellings and added nothing). The answer is cut down
+// to the few figures the app compares (usdaFoods.js); lib/usdaFill.js decides in the app whether any of it is used.
+// The key goes in the address, as FoodData Central's own examples do, so nothing here logs or returns the address.
+const USDA_API_KEY = defineSecret('USDA_API_KEY');
+const USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
+const USDA_DATA_TYPES = 'Foundation,SR Legacy';
+
+export const searchUsdaFoods = onCall(
+  { secrets: [USDA_API_KEY], region: 'us-central1', maxInstances: 10, timeoutSeconds: 15 },
+  async (req) => {
+    requireAuth(req.auth);
+    const query = foodSearchText(req.data?.query);
+    if (query === null) throw new HttpsError('invalid-argument', 'query required');
+
+    let res;
+    try {
+      res = await fetch(
+        `${USDA_BASE_URL}/foods/search?query=${encodeURIComponent(query)}&dataType=${encodeURIComponent(USDA_DATA_TYPES)}&pageSize=25&api_key=${encodeURIComponent(USDA_API_KEY.value())}`
+      );
+    } catch {
+      console.warn('[searchUsdaFoods] could not be reached');
+      throw new HttpsError('internal', 'USDA search could not be reached');
+    }
+    if (!res.ok) {
+      console.warn('[searchUsdaFoods] request failed', { status: res.status });
+      throw new HttpsError('internal', `USDA search failed: ${res.status}`);
+    }
+    const data = await res.json().catch(() => null);
+    if (data === null) throw new HttpsError('internal', 'USDA search sent no readable answer');
+    return { foods: trimUsdaFoods(data) };
   }
 );
 
