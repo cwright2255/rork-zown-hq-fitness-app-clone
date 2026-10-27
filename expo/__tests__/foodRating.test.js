@@ -1,4 +1,4 @@
-import { scoreFood, rateFood, ratingFor } from '../lib/foodRating';
+import { scoreFood, rateFood, ratingFor, starsForScore, starsOf, gradeToStars } from '../lib/foodRating';
 
 // A food with every figure given, all at zero: nothing against it, nothing for it.
 const base = { calories: 0, sugar: 0, saturatedFat: 0, sodium: 0 };
@@ -394,8 +394,9 @@ const TABLE = [
 ];
 const foodOf = ([, calories, protein, fiber, sugar, saturatedFat, sodium, carbs, fat]) =>
   ({ calories, protein, fiber, sugar, saturatedFat, sodium, carbs, fat });
-const stars = { A: 5, B: 4, C: 3, D: 2, E: 1 };
-const starsOf = (row) => stars[rateFood(foodOf(row))];
+const wholeStars = { A: 5, B: 4, C: 3, D: 2, E: 1 };
+const wholeStarsOf = (row) => wholeStars[rateFood(foodOf(row))];
+const halfStarsOf = (row) => scoreFood(foodOf(row)).stars;
 const named = (names) => TABLE.filter((row) => names.includes(row[0]));
 
 describe('real foods', () => {
@@ -422,47 +423,47 @@ describe('real foods', () => {
   });
 
   it.each(STRONG_DRINKS)('%s is 1 star', (name) => {
-    expect(starsOf(named([name])[0])).toBe(1);
+    expect(wholeStarsOf(named([name])[0])).toBe(1);
   });
 
   it.each(WHOLE_FOODS)('%s is 4 or 5 stars', (name) => {
-    expect(starsOf(named([name])[0])).toBeGreaterThanOrEqual(4);
+    expect(wholeStarsOf(named([name])[0])).toBeGreaterThanOrEqual(4);
   });
 
   it.each(JUNK)('%s is 2 stars or fewer', (name) => {
-    expect(starsOf(named([name])[0])).toBeLessThanOrEqual(2);
+    expect(wholeStarsOf(named([name])[0])).toBeLessThanOrEqual(2);
   });
 
   it('spreads the table over the whole scale instead of piling up at 3 stars', () => {
     const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    for (const row of TABLE) counts[starsOf(row)] += 1;
+    for (const row of TABLE) counts[wholeStarsOf(row)] += 1;
     for (const level of [1, 2, 3, 4, 5]) expect(counts[level]).toBeGreaterThan(0);
     expect(counts[3] / TABLE.length).toBeLessThan(0.2);
     expect(Math.max(...Object.values(counts)) / TABLE.length).toBeLessThan(0.4);
   });
 
   it('puts a vegetable above a processed snack, and a whole fruit above its juice', () => {
-    expect(starsOf(named(['Broccoli'])[0])).toBeGreaterThan(starsOf(named(['Potato chips'])[0]));
-    expect(starsOf(named(['Orange'])[0])).toBeGreaterThan(starsOf(named(['Orange juice'])[0]));
+    expect(wholeStarsOf(named(['Broccoli'])[0])).toBeGreaterThan(wholeStarsOf(named(['Potato chips'])[0]));
+    expect(wholeStarsOf(named(['Orange'])[0])).toBeGreaterThan(wholeStarsOf(named(['Orange juice'])[0]));
   });
 });
 
-// The rating as it is kept on a food: the grade, and partial: true when a missing figure held it back.
+// The rating as it is kept on a food: the grade, its stars in half steps, and partial: true when a missing figure held it back.
 describe('ratingFor', () => {
   const chickenBreast = { calories: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, sugar: 0 };
 
   it('is just the grade when every figure the food is judged on is there', () => {
     const rating = ratingFor({ ...chickenBreast, saturatedFat: 1, sodium: 74 });
-    expect(rating).toEqual({ score: 'A' });
+    expect(rating).toEqual({ score: 'A', stars: 4.5 });
     expect(rating).not.toHaveProperty('partial');
   });
 
   it('is marked partial when sodium and saturated fat are missing, which also holds chicken breast to C', () => {
-    expect(ratingFor(chickenBreast)).toEqual({ score: 'C', partial: true });
+    expect(ratingFor(chickenBreast)).toEqual({ score: 'C', stars: 3, partial: true });
   });
 
   it('is marked partial when only one figure is missing', () => {
-    expect(ratingFor({ ...chickenBreast, saturatedFat: 1 })).toEqual({ score: 'B', partial: true });
+    expect(ratingFor({ ...chickenBreast, saturatedFat: 1 })).toEqual({ score: 'B', stars: 4, partial: true });
   });
 
   it('is nothing, so no stars, when there is no energy figure', () => {
@@ -475,5 +476,121 @@ describe('ratingFor', () => {
     for (const row of [{ ...chickenBreast, sodium: 600, saturatedFat: 5 }, { calories: 900, fat: 100, sugar: 0, saturatedFat: 30, sodium: 0 }, chickenBreast]) {
       expect(ratingFor(row).score).toBe(rateFood(row));
     }
+  });
+});
+
+describe('stars in half steps', () => {
+  // Written out again here on purpose: [score, stars]. Each grade is split at its middle (A -1 and under, B 0-2, C 3-10, D 11-18, E 19 and over).
+  const STEPS = [
+    [-15, 5], [-7, 5], [-6, 5], [-5, 4.5], [-2, 4.5], [-1, 4.5],
+    [0, 4], [1, 4], [2, 3.5],
+    [3, 3], [6, 3], [7, 2.5], [10, 2.5],
+    [11, 2], [14, 2], [15, 1.5], [18, 1.5],
+    [19, 1], [28, 1], [29, 0.5], [40, 0.5],
+  ];
+  const gradeOfScore = (score) => (score <= -1 ? 'A' : score <= 2 ? 'B' : score <= 10 ? 'C' : score <= 18 ? 'D' : 'E');
+
+  it.each(STEPS)('a score of %i is %s stars', (score, stars) => {
+    expect(starsForScore(score)).toBe(stars);
+  });
+
+  it('keeps every grade between its whole stars and half a star under them, at every score', () => {
+    for (let score = -15; score <= 40; score++) {
+      const whole = gradeToStars(gradeOfScore(score));
+      const stars = starsForScore(score);
+      expect([score, stars <= whole]).toEqual([score, true]);
+      expect([score, stars >= whole - 0.5]).toEqual([score, true]);
+    }
+  });
+
+  it('never gives more stars for a worse score, and only uses half steps from 0.5 to 5', () => {
+    let last = 5;
+    for (let score = -15; score <= 40; score++) {
+      const stars = starsForScore(score);
+      expect(stars).toBeLessThanOrEqual(last);
+      expect(stars * 2).toBe(Math.round(stars * 2));
+      expect(stars).toBeGreaterThanOrEqual(0.5);
+      last = stars;
+    }
+  });
+
+  it('is on the score of a food, along with its grade', () => {
+    const apple = { calories: 52, protein: 0.3, fiber: 2.4, sugar: 10.4, saturatedFat: 0.03, sodium: 1, fat: 0.2 };
+    expect(scoreFood(apple)).toMatchObject({ grade: 'A', score: -2, stars: 4.5 });
+    expect(scoreFood({ calories: 541, protein: 37, fiber: 0, sugar: 1.3, saturatedFat: 14, sodium: 1717, carbs: 1.4, fat: 42 })).toMatchObject({ grade: 'E', stars: 0.5 });
+  });
+
+  it('is null, like the grade, when there is no energy figure', () => {
+    expect(scoreFood({ protein: 31 }).stars).toBeNull();
+  });
+
+  it('is held down with the grade when a figure is missing: B at best (4 stars) for one, C at best (3) for two or more', () => {
+    const lean = { calories: 30, protein: 5, fiber: 4, sugar: 1, carbs: 3, fat: 0.3, sodium: 10, saturatedFat: 0 };
+    expect(ratingFor(lean)).toEqual({ score: 'A', stars: 5 });
+    expect(ratingFor({ ...lean, sodium: undefined })).toEqual({ score: 'B', stars: 4, partial: true });
+    expect(ratingFor({ ...lean, sodium: undefined, saturatedFat: undefined, fat: 5 })).toEqual({ score: 'C', stars: 3, partial: true });
+  });
+
+  it('does not lift a poor food that is also missing a figure: the hold-back only ever lowers the stars', () => {
+    const cookie = { calories: 488, protein: 5.7, fiber: 3.5, sugar: 36, saturatedFat: 8, carbs: 65, fat: 24 };
+    expect(ratingFor({ ...cookie, sodium: 350 }).stars).toBe(1);
+    expect(ratingFor(cookie).stars).toBe(1);
+  });
+
+  it('holds a drink that is only sugar to 2 stars, and spirits to 1', () => {
+    const cola = { calories: 42, protein: 0, fiber: 0, sugar: 10.6, saturatedFat: 0, sodium: 4, carbs: 10.6, fat: 0 };
+    expect(ratingFor(cola)).toEqual({ score: 'D', stars: 2 });
+    const vodka = { calories: 231, protein: 0, fiber: 0, sugar: 0, saturatedFat: 0, sodium: 1, carbs: 0, fat: 0 };
+    expect(ratingFor(vodka)).toEqual({ score: 'E', stars: 1 });
+  });
+
+  it('leaves a sugar-only food that already scores in the worse half of D at 1.5: a hold-back only lowers', () => {
+    const syrup = { calories: 300, protein: 0, fiber: 0, sugar: 75, saturatedFat: 0, sodium: 5, carbs: 75, fat: 0 };
+    expect(scoreFood(syrup)).toMatchObject({ grade: 'D', score: 18, sugarOnly: true, stars: 1.5 });
+  });
+
+  it('spreads the real foods over half steps from 0.5 to 5, instead of five bunches', () => {
+    const counts = {};
+    for (const row of TABLE) counts[halfStarsOf(row)] = (counts[halfStarsOf(row)] || 0) + 1;
+    expect(Object.keys(counts).map(Number).sort((a, b) => a - b)).toEqual([0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]);
+    expect(Math.max(...Object.values(counts)) / TABLE.length).toBeLessThan(0.3);
+  });
+
+  it('puts the real foods in order: vegetables and pulses over fish and eggs over bread over pizza over sweets and processed meat', () => {
+    const at = (name) => halfStarsOf(named([name])[0]);
+    expect(at('Lentils, cooked')).toBeGreaterThan(at('Salmon'));
+    expect(at('Salmon')).toBeGreaterThan(at('Boiled egg'));
+    expect(at('Boiled egg')).toBeGreaterThan(at('White bread'));
+    expect(at('White bread')).toBeGreaterThan(at('Cheese pizza'));
+    expect(at('Cheese pizza')).toBeGreaterThan(at('Milk chocolate'));
+    expect(at('Bacon')).toBe(0.5);
+  });
+});
+
+describe('starsOf, the stars to show for a rating kept on a food', () => {
+  it('is the stars the rating carries', () => {
+    expect(starsOf({ score: 'C', stars: 2.5 })).toBe(2.5);
+    expect(starsOf({ score: 'A', stars: 5 })).toBe(5);
+    expect(starsOf({ score: 'E', stars: 0.5, partial: true })).toBe(0.5);
+  });
+
+  it('is the whole stars of the grade for a rating kept before half stars, which has only the grade', () => {
+    expect(['A', 'B', 'C', 'D', 'E'].map((score) => starsOf({ score }))).toEqual([5, 4, 3, 2, 1]);
+  });
+
+  it('puts stars that are not on a half step right, and ignores stars that cannot be real', () => {
+    expect(starsOf({ score: 'B', stars: 3.5000001 })).toBe(3.5);
+    for (const stars of [0, 0.2, 5.5, 7, -1, NaN, Infinity, '4', true, null, undefined]) expect([stars, starsOf({ score: 'C', stars })]).toEqual([stars, 3]);
+  });
+
+  it('is nothing, so no stars, without a rating or a usable grade', () => {
+    for (const rating of [null, undefined, {}, 'A', 5, { score: 'Z' }, { score: '' }, { stars: 'many' }]) expect([rating, starsOf(rating)]).toEqual([rating, null]);
+  });
+});
+
+describe('gradeToStars', () => {
+  it('shows A to E as 5 to 1 stars, and anything else as nothing', () => {
+    expect(['A', 'B', 'C', 'D', 'E'].map(gradeToStars)).toEqual([5, 4, 3, 2, 1]);
+    for (const grade of ['F', 'a', '', null, undefined, 3]) expect(gradeToStars(grade)).toBeNull();
   });
 });

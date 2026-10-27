@@ -20,21 +20,35 @@ let foodCache = new Map();
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 let lastCacheTime = 0;
 
-// Pulls a nutrient's amount out of the real nutrients[] array by name
-// (case-insensitive substring match) - used for sodium/saturated fat,
-// which aren't part of the guaranteed top-level _100g field set.
-// Real fix: previously returned 0 both when a nutrient was genuinely
-// absent (0) and when it simply wasn't in the API's data at all
-// (unknown) - those are different things a scoring function needs to
-// treat differently, so this now returns undefined for "not found",
-// letting the caller (and calculateNutritionalScore below) tell the
-// two apart instead of silently treating "no data" as "verified safe."
-function findNutrientAmount(nutrients, nameSubstring) {
+// Pulls a nutrient's amount out of a record's nutrients[] list. Sodium and saturated fat are not among the top-level
+// *_100g figures (the API sends only calories, protein, carbs, fat, fibre and sugar there), so this list is the only place a
+// food's rating can get them from.
+//
+// The list as the API really sends it (a food's own record, 100 g): [{ name: 'Saturated Fat', unit: 'g', amount: 19.2,
+// nutrient_id: 106916 }, { name: 'Sodium', unit: 'mg', amount: 654, ... }, ...]. A search row's list and a record's
+// portion_nutrients call the name `nutrient_name` instead (and a row's has only energy, protein, carbs, fat and sugar). The
+// names are matched whole, not as a piece of the name: "Saturated Fat" is also inside "Monounsaturated Fat" and
+// "Polyunsaturated Fat", and those come first in the list, so a piece match gave cheddar 7 g of saturated fat instead of 19.
+//
+// Returns undefined for "not listed", never 0: a food that does not list a figure is not a food that has none (the rating
+// holds a grade back for a figure it does not have). An amount is read in the unit the rating uses (g or mg) whatever unit
+// the list gives it in, and a unit that is not a weight is not read at all.
+const NUTRIENTS = {
+  sodium: { names: ['sodium', 'sodium, na'], unit: 'mg' },
+  saturatedFat: { names: ['saturated fat', 'fatty acids, total saturated'], unit: 'g' },
+  alcohol: { names: ['alcohol, ethyl'], unit: 'g' },
+};
+const GRAMS_PER_UNIT = { g: 1, mg: 0.001, mcg: 0.000001, µg: 0.000001, ug: 0.000001 };
+
+function findNutrientAmount(nutrients, { names, unit }) {
   if (!Array.isArray(nutrients)) return undefined;
-  const match = nutrients.find((n) =>
-    (n.nutrient_name || '').toLowerCase().includes(nameSubstring)
-  );
-  return match?.amount;
+  const match = nutrients.find((n) => n && names.includes(String(n.name ?? n.nutrient_name ?? '').trim().toLowerCase()));
+  if (!match || match.amount == null || match.amount === '' || typeof match.amount === 'boolean') return undefined;
+  const amount = Number(match.amount);
+  if (!Number.isFinite(amount) || amount < 0) return undefined;
+  const listedUnit = match.unit == null || match.unit === '' ? unit : String(match.unit).trim().toLowerCase();
+  const factor = GRAMS_PER_UNIT[listedUnit];
+  return factor === undefined ? undefined : (amount * factor) / GRAMS_PER_UNIT[unit];
 }
 
 const tenthOrUndefined = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? undefined : Math.round(Number(v) * 10) / 10);
@@ -43,11 +57,11 @@ const tenthOrUndefined = (v) => (v == null || v === '' || !Number.isFinite(Numbe
 // https://calorieapi.com/docs/food-search: macros use a _100g suffix
 // (calories_100g, protein_100g, etc.).
 const convertCalorieApiToFoodItem = (item) => {
-  const sodium = item.sodium_100g ?? findNutrientAmount(item.nutrients, 'sodium');
-  const saturatedFat = item.saturated_fat_100g ?? findNutrientAmount(item.nutrients, 'saturated');
+  const sodium = item.sodium_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.sodium);
+  const saturatedFat = item.saturated_fat_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.saturatedFat);
   // Ethanol, when the food lists it ("Alcohol, ethyl" in the nutrients list). Without it the rating works
   // alcohol out from the energy the macros leave over.
-  const alcohol = item.alcohol_100g ?? findNutrientAmount(item.nutrients, 'alcohol, ethyl');
+  const alcohol = item.alcohol_100g ?? findNutrientAmount(item.nutrients, NUTRIENTS.alcohol);
   const servingSize = item.serving_size && item.serving_unit
     ? `${item.serving_size}${item.serving_unit}`
     : (item.serving_size || '100g');
@@ -93,28 +107,6 @@ const convertCalorieApiToFoodItem = (item) => {
 // A food's grade, 'A' (best) to 'E', from its nutrition per 100 g, or null when it has no energy figure. See
 // lib/foodRating.js for how it is worked out.
 export const calculateNutritionalScore = (n) => rateFood(n);
-
-// A grade as a 1-5 star display (A=5 ... E=1), shown alongside calories on
-// food and meal cards.
-export const gradeToStars = (grade) => {
-  if (grade === 'A') return 5;
-  if (grade === 'B') return 4;
-  if (grade === 'C') return 3;
-  if (grade === 'D') return 2;
-  return 1;
-};
-
-// Real mapping from a nutritional grade to the app's existing meal-star
-// XP tiers (33/44/55 XP - see store/expStore.js's mealThreeStar/
-// FourStar/FiveStar). Distinct from gradeToStars above: XP only has
-// three tiers, not five, so C/D/E all floor to the same 3-star/33 XP
-// tier rather than a grade below C awarding less than a grade with no
-// real nutrition data at all would.
-export const gradeToMealStars = (grade) => {
-  if (grade === 'A') return 5;
-  if (grade === 'B') return 4;
-  return 3;
-};
 
 // Search foods via the real Cloud Function proxy. Returns { results, failed }:
 // `failed` is true when the search itself could not be reached. The list is

@@ -442,3 +442,56 @@ describe('what stays on the phone', () => {
     expect(saved().customFoods).toHaveLength(1);
   });
 });
+
+describe('the XP a logged food earns follows its stars', () => {
+  const logged = (nutritionalScore, extra = {}) => {
+    mockAwardMealXp.mockClear();
+    store().addFoodToMeal('2026-10-08', 'lunch', apple({ ...(nutritionalScore ? { nutritionalScore } : {}), ...extra }));
+    return mockAwardMealXp.mock.calls[0] && mockAwardMealXp.mock.calls[0][1];
+  };
+
+  it('is 11 XP a star, so half stars are worth in between', () => {
+    const cases = [[0.5, 6], [1, 11], [1.5, 17], [2, 22], [2.5, 28], [3, 33], [3.5, 39], [4, 44], [4.5, 50], [5, 55]];
+    for (const [stars, xp] of cases) expect([stars, logged({ score: 'C', stars }).baseExp]).toEqual([stars, xp]);
+  });
+
+  it('pays what a food has always paid at 3, 4 and 5 stars', () => {
+    expect([3, 4, 5].map((stars) => logged({ score: 'C', stars }).baseExp)).toEqual([33, 44, 55]);
+  });
+
+  it('no longer pays the same for everything from C down to E', () => {
+    const paid = ['C', 'D', 'E'].map((score, i) => logged({ score, stars: [3, 2, 1][i] }).baseExp);
+    expect(paid).toEqual([33, 22, 11]);
+  });
+
+  it('pays a rating kept before half stars (only its grade) for the whole stars of that grade', () => {
+    expect(['A', 'B', 'C', 'D', 'E'].map((score) => logged({ score }).baseExp)).toEqual([55, 44, 33, 22, 11]);
+  });
+
+  it('pays a food held back for a missing figure for the stars it was held to', () => {
+    expect(logged({ score: 'C', stars: 3, partial: true }).baseExp).toBe(33);
+  });
+
+  it('says the stars in the log, halves too', () => {
+    expect(logged({ score: 'B', stars: 3.5 }).description).toBe('Logged Apple (3.5-star)');
+    expect(logged({ score: 'A', stars: 5 }).description).toBe('Logged Apple (5-star)');
+  });
+
+  it('pays every amount the server accepts, and nothing else', () => {
+    const { MEAL_BASES } = require('../lib/xpRules');
+    const paid = new Set();
+    for (const stars of [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]) paid.add(logged({ score: 'C', stars }).baseExp);
+    expect([...paid].sort((a, b) => a - b)).toEqual(MEAL_BASES);
+  });
+
+  it('keeps paying a food with no rating by how much of its nutrition is filled in', () => {
+    expect(logged(undefined, { protein: 5, carbs: 5, fat: 5 }).baseExp).toBe(55);
+    expect(logged(undefined, { protein: 5, carbs: 0, fat: 0 }).baseExp).toBe(44);
+    expect(logged(undefined, { protein: 0, carbs: 0, fat: 0 }).baseExp).toBe(33);
+  });
+
+  it('pays nothing for a quick add, or a food with no calories', () => {
+    expect(logged({ score: 'A', stars: 5 }, { quickAdd: true })).toBeUndefined();
+    expect(logged({ score: 'A', stars: 5 }, { calories: 0 })).toBeUndefined();
+  });
+});

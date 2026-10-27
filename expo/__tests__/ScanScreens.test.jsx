@@ -126,7 +126,7 @@ describe('barcode scanner', () => {
     await scan();
     fireEvent.press(utils.getByText('Add to Log'));
     const food = JSON.parse(global.__router.replace.mock.calls[0][0].params.scannedFood);
-    expect(food).toMatchObject({ name: 'Chicken Tikka Masala', nutritionalScore: { score: 'C' }, fiber: 1.2, sugar: 3.5, sodium: 360 });
+    expect(food).toMatchObject({ name: 'Chicken Tikka Masala', nutritionalScore: { score: 'C', stars: 3 }, fiber: 1.2, sugar: 3.5, sodium: 360 });
     expect(food.nutritionalScore).not.toHaveProperty('partial');
   });
 
@@ -147,7 +147,7 @@ describe('barcode scanner', () => {
     await scan();
     fireEvent.press(utils.getByText('Add to Log'));
     const food = JSON.parse(global.__router.replace.mock.calls[0][0].params.scannedFood);
-    expect(food.nutritionalScore).toEqual({ score: 'C', partial: true });
+    expect(food.nutritionalScore).toEqual({ score: 'C', stars: 3, partial: true });
   });
 
   it('carries the chosen meal through to the log screen', async () => {

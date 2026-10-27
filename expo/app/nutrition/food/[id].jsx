@@ -1,26 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Plus, Minus, Heart, Star } from 'lucide-react-native';
+import { Plus, Minus, Heart } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import StarRating from '@/components/StarRating';
 import { useNutritionStore } from '@/store/nutritionStore';
-import { getFoodById, gradeToStars } from '@/services/calorieApiService';
+import { getFoodById } from '@/services/calorieApiService';
+import { starsOf } from '@/lib/foodRating';
 import { localDateKey } from '@/lib/localDate';
 import { MEAL_SLOTS, scaleFood, foodKey, slotForHour } from '@/lib/foodLog';
-
-// Real, new 1-5 star display - same component/logic as
-// app/nutrition.jsx and app/nutrition/search.jsx.
-function StarRating({ stars, size = 16 }) {
-  if (!stars) return null;
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={size} color={i <= stars ? '#F59E0B' : '#DDDDDD'} fill={i <= stars ? '#F59E0B' : 'transparent'} />
-      ))}
-    </View>
-  );
-}
 
 // The Add / Update bar floats this far above the bottom of the screen, clear of the floating bottom bar; it is about this tall until
 // it has been measured. The list scrolls far enough to bring its last item clear of the bar, whatever the bar's height (one button
@@ -217,7 +206,7 @@ export default function FoodDetailScreen() {
           <Text testID="food-calories" style={styles.calNumber}>{cals}</Text>
           <Text style={styles.calLabel}>kcal</Text>
           <View style={{ marginTop: 8 }}>
-            <StarRating stars={food.nutritionalScore?.score ? gradeToStars(food.nutritionalScore.score) : null} />
+            <StarRating stars={starsOf(food.nutritionalScore)} size={16} gap={2} />
           </View>
           {food.nutritionalScore?.partial ? (
             <Text testID="food-rating-partial" style={styles.partialNote}>

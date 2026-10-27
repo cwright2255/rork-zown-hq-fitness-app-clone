@@ -1,8 +1,8 @@
 import {
   ADVICE_BASE, DAILY_BASE_CAP, FORMCHECK_BASE_PER_REP, KEEP_DAYS, KEEP_IDS, LEVEL_CAP, MAX_ACTIVE_DAYS, MAX_BACKDATE_DAYS,
-  MAX_MULTIPLIER, MAX_STEPS_PER_DAY, MAX_TOTAL_XP, PLAN_BASE, RACE_BASE,
+  MAX_MULTIPLIER, MAX_STEPS_PER_DAY, MAX_TOTAL_XP, MEAL_BASES, MEAL_XP_PER_STAR, PLAN_BASE, RACE_BASE,
   applyClaim, boardChanged, dailyCap, dayKeyOf, dayNumber, emptyLedger, leaderboardFields, levelFromXp, levelMultiplier,
-  monthKeyOf, normalizeLedger, streakFrom, utcDayKey, weekKeyOf, xpRequiredForLevel,
+  mealXpForStars, monthKeyOf, normalizeLedger, streakFrom, utcDayKey, weekKeyOf, xpRequiredForLevel,
 } from '../lib/xpRules';
 
 // Monday 19 October 2026, 15:00 UTC.
@@ -236,9 +236,29 @@ describe('a hike claim', () => {
 describe('a meal claim', () => {
   const meal = (extra = {}) => claim('meal', { baseExp: 44, foodKey: 'Banana', ...extra });
 
-  it('is worth 33, 44 or 55 and nothing else', () => {
-    [33, 44, 55].forEach((baseExp) => expect(file(null, meal({ baseExp })).outcome.amount).toBe(baseExp));
-    [0, 1, 34, 56, 1000].forEach((baseExp) => expect(file(null, meal({ baseExp })).outcome.reason).toBe('invalid'));
+  it('is worth one of the ten half-star amounts and nothing else', () => {
+    [6, 11, 17, 22, 28, 33, 39, 44, 50, 55].forEach((baseExp) => expect(file(null, meal({ baseExp })).outcome.amount).toBe(baseExp));
+    [0, 1, 5, 7, 12, 34, 56, 1000, 33.5, -33].forEach((baseExp) => expect(file(null, meal({ baseExp })).outcome.reason).toBe('invalid'));
+  });
+
+  it('keeps the amounts a 3, 4 and 5 star food has always been worth, and pays 11 XP a star', () => {
+    expect(MEAL_XP_PER_STAR).toBe(11);
+    expect([3, 4, 5].map(mealXpForStars)).toEqual([33, 44, 55]);
+    expect([1, 2].map(mealXpForStars)).toEqual([11, 22]);
+  });
+
+  it('pays half a star as half of 11 XP, rounded up to the whole number', () => {
+    expect([0.5, 1.5, 2.5, 3.5, 4.5].map(mealXpForStars)).toEqual([6, 17, 28, 39, 50]);
+  });
+
+  it('lists exactly the amounts a half-star rating can be worth, lowest first', () => {
+    expect(MEAL_BASES).toEqual([6, 11, 17, 22, 28, 33, 39, 44, 50, 55]);
+    expect(MEAL_BASES).toEqual([...MEAL_BASES].sort((a, b) => a - b));
+  });
+
+  it('pays more for more stars, and the top is no more than it was', () => {
+    for (let i = 1; i < MEAL_BASES.length; i++) expect(MEAL_BASES[i]).toBeGreaterThan(MEAL_BASES[i - 1]);
+    expect(MEAL_BASES[MEAL_BASES.length - 1]).toBe(55);
   });
 
   it('pays a food once a day, however it is typed', () => {

@@ -23,7 +23,6 @@ jest.mock('@/components/ScreenHeader', () => {
 jest.mock('@/store/nutritionStore', () => ({ useNutritionStore: () => global.__nutrition }));
 jest.mock('@/services/calorieApiService', () => ({
   getFoodById: (...a) => global.__getFoodById(...a),
-  gradeToStars: (g) => ({ A: 5, B: 4, C: 3, D: 2 }[g] || 1),
 }));
 
 import FoodDetailScreen from '../app/nutrition/food/[id]';
@@ -330,6 +329,44 @@ describe('the rating', () => {
     await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
     expect(stars(utils)).toBe(0);
     expect(utils.queryByTestId('food-rating-partial')).toBeNull();
+  });
+
+  it('shows a half star, with the stars said out loud for a screen reader', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'A', stars: 4.5 })) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(stars(utils)).toBe(4);
+    expect(utils.getAllByTestId('star-half')).toHaveLength(1);
+    expect(utils.getByLabelText('4.5 out of 5 stars')).toBeTruthy();
+  });
+
+  it('draws the stars 16 big, a little bigger than on the lists', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'B', stars: 4 })) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(utils.UNSAFE_queryAllByType('Star').every((star) => star.props.size === 16)).toBe(true);
+    expect(utils.getByTestId('star-rating').props.style).toMatchObject({ gap: 2 });
+  });
+
+  it('shows the whole stars of its grade for a rating kept before half stars', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'D' })) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(stars(utils)).toBe(2);
+    expect(utils.queryAllByTestId('star-half')).toHaveLength(0);
+    expect(utils.getByLabelText('2 out of 5 stars')).toBeTruthy();
+  });
+
+  it('shows the lowest rating, half a star, as a half star and nothing else', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'E', stars: 0.5 })) } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    expect(stars(utils)).toBe(0);
+    expect(utils.getAllByTestId('star-half')).toHaveLength(1);
+    expect(utils.getByLabelText('0.5 out of 5 stars')).toBeTruthy();
+  });
+
+  it('logs the half-star rating with the food', async () => {
+    const utils = open({ params: { id: 'scanned', scannedFood: JSON.stringify(scannedRated({ score: 'B', stars: 3.5 })), mealId: 'lunch' } });
+    await waitFor(() => expect(utils.getByText('Tikka Masala')).toBeTruthy());
+    fireEvent.press(utils.getByText('Add to Log'));
+    expect(global.__nutrition.addFoodToMeal.mock.calls[0][2].nutritionalScore).toEqual({ score: 'B', stars: 3.5 });
   });
 });
 

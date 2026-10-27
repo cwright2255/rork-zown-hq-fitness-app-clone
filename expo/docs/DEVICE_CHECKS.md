@@ -441,6 +441,32 @@ search shows 3 stars, a scanned one none); log them again to get the new ones.
       stalled for about 15 seconds, "Trouble detecting your turn? Tap to continue" shows ABOVE the caption, not on it.
       (The "Missing or insufficient permissions." line under the camera, if you still see it, is a separate matter.)
 
+## Half-star food ratings and the EXP a logged food earns (once, after the function is deployed, then the update)
+
+Order matters: `cd expo && firebase deploy --only functions:onXpClaim` FIRST (it learns the new meal amounts), then, once CI is green,
+`eas update --branch main --environment production`, and close the app completely and open it twice. Foods you logged BEFORE this update
+keep the whole stars they were logged with; log them again to get the new ones.
+
+- [ ] Nutrition, Search Food, add "broccoli" or "lentils" to a meal. On the food's page the stars can now end in a half star (a grey star
+      with its left half amber). Vegetables and pulses show 5 or 4.5; an apple 4.5; plain chicken breast and fish around 4 (they carry some
+      sodium and saturated fat). The exact stars depend on the record the Calorie API has for the food.
+- [ ] Foods are no longer all 3 stars: the app now reads the sodium and saturated fat out of a food's own record (it used to look for them
+      under the wrong field name, found nothing, and held every food to 3 or 4 stars). Open a food from the search, for example an apple,
+      broccoli or cheddar cheese: the page shows its own stars (cheddar 1, an apple 4.5) and does NOT show the grey note "Some nutrition
+      figures are not listed for this food, so its rating is limited". A food whose record really lists no sodium (olive oil, for one) still shows
+      that note.
+- [ ] Log "chicken breast" (about 4 stars). The EXP log reads "Logged Chicken Breast (4-star)" and earns 44 XP at level 1 (a higher level
+      multiplies it, as it always has). A 5-star food still earns 55, a 4.5-star 50, a 3-star 33.
+- [ ] Log a sweet or a processed meat (a candy bar, bacon): half a star or one star, and 6 or 11 XP, no longer 33 like a 3-star food.
+      A cheese pizza is around 1.5 stars and 17 XP (the exact stars depend on the record the Calorie API has for it).
+- [ ] The meal on the Nutrition tab shows the average of its foods to the nearest half star, and each food in it shows its own stars,
+      halves included. A food with no rating shows none and does not pull the meal's average down.
+- [ ] The logged food page (tap a food in a meal) shows the same stars it was logged with.
+- [ ] Firebase console, Firestore, `users/<you>/xpClaims`: a claim for a meal has a `baseExp` from 6, 11, 17, 22, 28, 33, 39, 44, 50, 55, and
+      your XP total goes up by it. If the XP does not go up for a half-star food and the claim is turned down, the function was not deployed
+      before the update: deploy it and log the food again.
+- [ ] Scan a barcode of a packaged food and log it: its stars (halves too) and EXP follow the same rule.
+
 ## Lifetime totals, unlocks, Battle Pass claims and duel results (once, after the functions are deployed, then the update, then the rules)
 
 The server now counts your lifetime workout totals, decides every achievement, badge and Battle Pass claim, and settles duels that run

@@ -148,7 +148,12 @@ export const KINDS = {
 export const CLAIM_KINDS = [...Object.keys(KINDS), 'import'];
 
 export const MAX_WORKOUT_BASE = 3000;
-export const MEAL_BASES = [33, 44, 55];
+/** XP a logged food earns for each star of its rating (the hydration tiers also go up in 11s). */
+export const MEAL_XP_PER_STAR = 11;
+/** The XP for a food rated `stars` (0.5 to 5, in half steps): 11 a star, to the whole number (6, 11, 17, 22, 28, 33, 39, 44, 50, 55). */
+export const mealXpForStars = (stars) => Math.round(MEAL_XP_PER_STAR * stars);
+/** Every amount a food can be worth: one for each half star from 0.5 to 5. A meal claim for any other amount is turned down. */
+export const MEAL_BASES = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(mealXpForStars);
 export const PLAN_BASE = 1125;
 export const ADVICE_BASE = 375;
 export const FORMCHECK_BASE_PER_REP = 40;

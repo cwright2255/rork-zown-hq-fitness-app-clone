@@ -5,29 +5,27 @@ import { useExpStore } from './expStore';
 import { useUserStore } from './userStore';
 import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { gradeToMealStars } from '@/services/calorieApiService';
+import { starsOf } from '@/lib/foodRating';
+import { mealXpForStars } from '@/lib/xpRules';
 import { foodBase, foodKey, newLogId, appendToMeals } from '@/lib/foodLog';
 import { buildCustomFood, MAX_CUSTOM_FOODS } from '@/lib/customFood';
 import { copyFoodEntries } from '@/lib/mealCopy';
 import { keepRecentMeals } from '@/lib/nutritionHistory';
 import { localDateKey } from '@/lib/localDate';
 
-// XP for logging a food: once per food name per day (expStore.awardMealXp),
-// graded by the food's nutritional score or, without one, how much of its
-// nutrition is filled in. A quick add has no real food behind it, so it earns
-// nothing.
+// XP for logging a food: once per food name per day (expStore.awardMealXp), 11 XP for each star of the food's rating (half stars
+// count: 3.5 stars is 39, 5 stars is 55), or, without a rating, how much of its nutrition is filled in. A quick add has no real food
+// behind it, so it earns nothing.
 function awardFoodXp(food) {
   try {
     const hasCalories = food.calories != null && food.calories > 0;
     if (!hasCalories || food.quickAdd) return;
-    let stars;
-    if (food.nutritionalScore?.score) {
-      stars = gradeToMealStars(food.nutritionalScore.score);
-    } else {
+    let stars = starsOf(food.nutritionalScore);
+    if (stars == null) {
       const macroCount = [food.protein, food.carbs, food.fat].filter((v) => v != null && v > 0).length;
       stars = macroCount >= 3 ? 5 : macroCount >= 1 ? 4 : 3;
     }
-    const baseExp = stars === 5 ? 55 : stars === 4 ? 44 : 33;
+    const baseExp = mealXpForStars(stars);
     const xpKey = (food.name || '').trim().toLowerCase();
     useExpStore.getState().awardMealXp(xpKey, {
       id: Date.now().toString(),

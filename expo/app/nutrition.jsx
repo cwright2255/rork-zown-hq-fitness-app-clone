@@ -2,10 +2,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView,
   RefreshControl, TouchableOpacity, Platform, Modal } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, Plus, Minus, Star, Droplet, Copy, Clock, CalendarDays, ClipboardList } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, Minus, Droplet, Copy, Clock, CalendarDays, ClipboardList } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import StarRating from '@/components/StarRating';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useUserStore } from '@/store/userStore';
@@ -13,7 +14,7 @@ import { useHealthStore } from '@/store/healthStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { getGoalLabels, profileForNutrition } from '@/lib/userProfileData';
 import { getProfileFromStores, loadSnapshotSources } from '@/services/coachSnapshotService';
-import { gradeToStars } from '@/services/calorieApiService';
+import { starsOf } from '@/lib/foodRating';
 import { localDateKey, parseDateKey } from '@/lib/localDate';
 import { MEAL_SLOTS, SLOT_IDS, foodKey } from '@/lib/foodLog';
 import { foodTotals } from '@/lib/nutritionHistory';
@@ -111,23 +112,6 @@ function MacroRing({ size = 180, strokeWidth = 14, macros, dailyGoalCalories, la
   );
 }
 
-
-// Real 1-5 star display - matches the A-E grade already computed for
-// any food that came from a search result (see lib/foodRating.js),
-// shown alongside calories to aid both the meal's XP tier and the user's own
-// decision-making. Renders nothing for a food with no computed grade
-// (a manually-adjusted quantity, etc.) rather than a misleading
-// default rating.
-function StarRating({ stars, size = 12 }) {
-  if (!stars) return null;
-  return (
-    <View style={{ flexDirection: 'row', gap: 1 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={size} color={i <= stars ? '#F59E0B' : '#DDDDDD'} fill={i <= stars ? '#F59E0B' : 'transparent'} />
-      ))}
-    </View>
-  );
-}
 
 // Same canonical meal slot ids as app/nutrition/food/[id].jsx --
 // lowercase singular. Previously this
@@ -276,15 +260,15 @@ export default function NutritionScreen() {
   const sumMealCalories = (meal) => (meal?.foods || []).reduce((s, f) => s + (f.calories || 0), 0);
 
   // Real average across a meal slot's foods - only counts foods that
-  // actually have a computed grade, so a slot with one graded food and
-  // one manually-adjusted one isn't dragged toward an assumed middle
-  // value for the ungraded item.
+  // actually have a computed rating, so a slot with one rated food
+  // and one manually-adjusted one isn't dragged toward an assumed middle
+  // value for the unrated item. To the nearest half star.
   const avgMealStars = (meal) => {
-    const graded = (meal?.foods || [])
-      .map((f) => f.nutritionalScore?.score ? gradeToStars(f.nutritionalScore.score) : null)
+    const rated = (meal?.foods || [])
+      .map((f) => starsOf(f.nutritionalScore))
       .filter((v) => v != null);
-    if (!graded.length) return null;
-    return Math.round(graded.reduce((s, v) => s + v, 0) / graded.length);
+    if (!rated.length) return null;
+    return Math.round((rated.reduce((s, v) => s + v, 0) / rated.length) * 2) / 2;
   };
 
   const handleAddMealType = (slot) => {
@@ -441,7 +425,7 @@ export default function NutritionScreen() {
                       onPress={() => router.push(`/nutrition/food/${foodKey(fo)}`)}>
                       <Text style={styles.foodName}>{fo.name}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <StarRating stars={fo.nutritionalScore?.score ? gradeToStars(fo.nutritionalScore.score) : null} size={10} />
+                        <StarRating stars={starsOf(fo.nutritionalScore)} size={10} />
                         <Text style={styles.foodCal}>{fo.calories} kcal</Text>
                       </View>
                     </TouchableOpacity>

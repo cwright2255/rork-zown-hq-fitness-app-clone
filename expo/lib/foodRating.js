@@ -1,4 +1,10 @@
-// Rates a food from A (best) to E from its nutrition per 100 g. The app shows A-E as 5-1 stars.
+// Rates a food from A (best) to E from its nutrition per 100 g, and gives the rating as stars in half steps, 5 down to 0.5.
+//
+// Stars: each grade is worth a whole number of stars (A 5, B 4, C 3, D 2, E 1) and is split at its middle, so the better
+// half of a grade keeps its whole stars and the worse half is half a star lower (STAR_STEPS below). A grade used to be
+// one star count for every food in it, so a food at the start of C and one at the far end of C (8 points apart) both
+// showed 3 stars, and so did everything in E, from cheddar to bacon. The very worst scores in E (past 28 points) go on
+// down to half a star.
 //
 // The method is Nutri-Score, the A-E label on food packs across Europe: energy, sugars, saturated fat and salt
 // count against a food, fibre and protein count for it. The point scales are the published ones. Sugars use the
@@ -49,6 +55,14 @@ const PRODUCE_POINTS = 5;
 const GRADE_LIMITS = [-1, 2, 10, 18];
 const GRADES = ['A', 'B', 'C', 'D', 'E'];
 
+// The stars a grade is worth when the score is in its better half (and the most it can be held to): A 5 ... E 1.
+const GRADE_STARS = { A: 5, B: 4, C: 3, D: 2, E: 1 };
+
+// [highest score, stars]: the first row a score fits under. The rows that end a grade (-1, 2, 10, 18) are GRADE_LIMITS; the rows
+// between them split each grade in two. Scores past the last row are the worst, half a star.
+const STAR_STEPS = [[-6, 5], [-1, 4.5], [1, 4], [2, 3.5], [6, 3], [10, 2.5], [14, 2], [18, 1.5], [28, 1]];
+const LOWEST_STARS = 0.5;
+
 // A food with fibre of at least this much has some; under it, none to speak of (a juice or a soft drink).
 const SOME_FIBRE = 0.3;
 
@@ -86,9 +100,15 @@ function impliedAlcohol(energy, protein, carbs, fat) {
   return grams >= ALCOHOL.drinkG && grams <= ALCOHOL.maxImpliedG ? grams : undefined;
 }
 
+/** The stars (0.5 to 5, in half steps) a score earns on its own, before any hold-back of the grade. */
+export function starsForScore(score) {
+  const step = STAR_STEPS.find(([highest]) => score <= highest);
+  return step ? step[1] : LOWEST_STARS;
+}
+
 // The score and everything behind it:
-// { grade, score, negative, positive, missing, produce, sugarOnly, alcohol }.
-// `grade` is null when there is no energy figure to rate from. `alcohol` is g per 100 g, listed or worked out.
+// { grade, stars, score, negative, positive, missing, produce, sugarOnly, alcohol }.
+// `grade` and `stars` are null when there is no energy figure to rate from. `alcohol` is g per 100 g, listed or worked out.
 export function scoreFood(food = {}) {
   const energy = amount(food.calories);
   const carbs = amount(food.carbs);
@@ -129,7 +149,7 @@ export function scoreFood(food = {}) {
     (produce ? PRODUCE_POINTS : 0);
 
   const score = negative - positive;
-  if (energy === undefined) return { grade: null, score, negative, positive, missing, produce, sugarOnly: false, alcohol };
+  if (energy === undefined) return { grade: null, stars: null, score, negative, positive, missing, produce, sugarOnly: false, alcohol };
 
   let level = GRADE_LIMITS.findIndex((limit) => score <= limit);
   if (level === -1) level = GRADES.length - 1;
@@ -144,16 +164,35 @@ export function scoreFood(food = {}) {
   // Nothing missing: any grade. One figure missing: B at best. Two or more: C at best.
   level = Math.max(level, Math.min(missing, 2));
 
-  return { grade: GRADES[level], score, negative, positive, missing, produce, sugarOnly, alcohol };
+  // The stars the score earns, but never more than the whole stars of the grade the food ended up in: a hold-back (missing figures,
+  // sugar only, alcohol) lowers the grade, and the stars come down to that grade's top with it.
+  const stars = Math.min(starsForScore(score), GRADE_STARS[GRADES[level]]);
+
+  return { grade: GRADES[level], stars, score, negative, positive, missing, produce, sugarOnly, alcohol };
 }
 
 // The grade alone: 'A' to 'E', or null when there is no energy figure.
 export const rateFood = (food) => scoreFood(food).grade;
 
-// The rating as the app keeps it on a food: { score: 'A'..'E' }, with partial: true added when a figure the food is judged on
-// was missing, so the grade is held back (see above). null when there is no energy figure, so the food shows no stars.
+// The rating as the app keeps it on a food: { score: 'A'..'E', stars: 0.5..5 }, with partial: true added when a figure the food is
+// judged on was missing, so the grade is held back (see above). null when there is no energy figure, so the food shows no stars.
 export function ratingFor(food) {
-  const { grade, missing } = scoreFood(food);
+  const { grade, stars, missing } = scoreFood(food);
   if (!grade) return null;
-  return missing ? { score: grade, partial: true } : { score: grade };
+  return missing ? { score: grade, stars, partial: true } : { score: grade, stars };
+}
+
+/** A grade as whole stars: A 5 ... E 1; null for anything else. */
+export const gradeToStars = (grade) => GRADE_STARS[grade] ?? null;
+
+/**
+ * The stars to show for a rating kept on a food ({ score, stars?, partial? }), or null for no stars. A rating kept before half stars has
+ * only its grade, and shows that grade's whole stars; a food logged since has its own stars.
+ */
+export function starsOf(rating) {
+  if (!rating) return null;
+  // (Number.isFinite is false for anything that is not a number: text, true, null.)
+  const { stars } = rating;
+  if (Number.isFinite(stars) && stars >= LOWEST_STARS && stars <= 5) return Math.round(stars * 2) / 2;
+  return gradeToStars(rating.score);
 }

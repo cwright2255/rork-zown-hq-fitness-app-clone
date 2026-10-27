@@ -64,7 +64,6 @@ jest.mock('@/services/coachSnapshotService', () => ({
   getProfileFromStores: () => ({}),
   loadSnapshotSources: async () => {},
 }));
-jest.mock('@/services/calorieApiService', () => ({ gradeToStars: () => 4 }));
 
 import NutritionScreen from '../app/nutrition';
 
@@ -402,5 +401,53 @@ describe('Copy Meal', () => {
     const utils = open([]);
     fireEvent.press(utils.getByTestId('copy-meal-snack'));
     expect(utils.getByTestId('copy-empty')).toBeTruthy();
+  });
+});
+
+describe('the stars in the diary', () => {
+  const rated = (name, nutritionalScore) => ({ id: name, logId: `${name}-1`, name, calories: 200, protein: 10, carbs: 20, fat: 5, ...(nutritionalScore ? { nutritionalScore } : {}) });
+  const dinner = (foods) => [{ id: 'dinner', date: '2026-10-08', name: 'Dinner', foods }];
+
+  it('shows each food\'s own stars in half steps, and the meal\'s average to the nearest half star', () => {
+    const utils = open(dinner([rated('Salmon', { score: 'A', stars: 4.5 }), rated('Rice', { score: 'C', stars: 2.5 })]));
+    expect(utils.getAllByLabelText('4.5 out of 5 stars')).toHaveLength(1);
+    expect(utils.getAllByLabelText('2.5 out of 5 stars')).toHaveLength(1);
+    // (4.5 + 2.5) / 2 = 3.5
+    expect(utils.getAllByLabelText('3.5 out of 5 stars')).toHaveLength(1);
+    // Each of the three has a half star.
+    expect(utils.getAllByTestId('star-half')).toHaveLength(3);
+  });
+
+  it('rounds a meal that falls between two half steps to the nearest one', () => {
+    const utils = open(dinner([rated('Salmon', { score: 'A', stars: 4.5 }), rated('Rice', { score: 'B', stars: 4 }), rated('Cookie', { score: 'E', stars: 1 })]));
+    // 9.5 / 3 = 3.17, which is nearer 3 than 3.5
+    expect(utils.getAllByLabelText('3 out of 5 stars')).toHaveLength(1);
+    expect(utils.queryAllByLabelText('3.5 out of 5 stars')).toHaveLength(0);
+  });
+
+  it('rounds a meal that falls half way between two half steps up, not down', () => {
+    const utils = open(dinner([rated('Salmon', { score: 'A', stars: 4.5 }), rated('Bread', { score: 'C', stars: 3 })]));
+    // (4.5 + 3) / 2 = 3.75, which is nearer 4 than 3.5
+    expect(utils.getAllByLabelText('4 out of 5 stars')).toHaveLength(1);
+    expect(utils.queryAllByLabelText('3.5 out of 5 stars')).toHaveLength(0);
+  });
+
+  it('shows a food logged before half stars (it has only its grade) with the whole stars of that grade', () => {
+    const utils = open(dinner([rated('Old chicken', { score: 'B' })]));
+    // The food and the meal around it.
+    expect(utils.getAllByLabelText('4 out of 5 stars')).toHaveLength(2);
+    expect(utils.queryAllByTestId('star-half')).toHaveLength(0);
+  });
+
+  it('counts only the foods that have a rating towards the meal, and shows no stars for one without', () => {
+    const utils = open(dinner([rated('Salmon', { score: 'A', stars: 4.5 }), rated('Homemade stew')]));
+    // The salmon, and the meal (which is just the salmon).
+    expect(utils.getAllByLabelText('4.5 out of 5 stars')).toHaveLength(2);
+    expect(utils.getAllByTestId('star-rating')).toHaveLength(2);
+  });
+
+  it('shows no stars at all when nothing in the meal has a rating', () => {
+    const utils = open(dinner([rated('Homemade stew')]));
+    expect(utils.queryAllByTestId('star-rating')).toHaveLength(0);
   });
 });

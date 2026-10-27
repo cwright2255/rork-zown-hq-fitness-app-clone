@@ -1,29 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Star, ScanLine, Camera, Plus, Zap } from 'lucide-react-native';
+import { ScanLine, Camera, Plus, Zap } from 'lucide-react-native';
 import ScreenHeader from '@/components/ScreenHeader';
+import StarRating from '@/components/StarRating';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useMealPlanStore } from '@/store/mealPlanStore';
-import { searchFoodsDetailed, withFullRating, gradeToStars } from '@/services/calorieApiService';
+import { searchFoodsDetailed, withFullRating } from '@/services/calorieApiService';
+import { starsOf } from '@/lib/foodRating';
 import { localDateKey } from '@/lib/localDate';
 import { matchesFoodQuery } from '@/lib/customFood';
 import { MEAL_SLOTS } from '@/lib/foodLog';
 import { dayLabel } from '@/lib/mealCopy';
-
-// Real, new 1-5 star display - same component/logic as app/nutrition.jsx,
-// duplicated locally rather than shared since these are two small,
-// screen-specific presentational components, not shared business logic.
-function StarRating({ stars, size = 12 }) {
-  if (!stars) return null;
-  return (
-    <View style={{ flexDirection: 'row', gap: 1 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={size} color={i <= stars ? '#F59E0B' : '#DDDDDD'} fill={i <= stars ? '#F59E0B' : 'transparent'} />
-      ))}
-    </View>
-  );
-}
 
 // The floating bottom bar sits about 100 pt up from the bottom of the screen; the last row of a list stops this far above the
 // bottom so it can be scrolled clear of the bar. (The other Nutrition screens use the same 140.)
@@ -31,7 +19,7 @@ const NAV_CLEARANCE = 140;
 
 // A row from the search only lists some of a food's nutrition, and a rating worked out from that is held back (partial): every
 // chicken food came up at 3 stars. No stars at all is truer than a held-back grade; the real ones come with the food's own record.
-const listStars = (food) => (food.nutritionalScore?.score && !food.nutritionalScore.partial ? gradeToStars(food.nutritionalScore.score) : null);
+const listStars = (food) => (food.nutritionalScore && !food.nutritionalScore.partial ? starsOf(food.nutritionalScore) : null);
 
 export default function SearchFoodScreen() {
   const { mealId, planDate: planParam } = useLocalSearchParams();

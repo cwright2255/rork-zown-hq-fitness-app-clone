@@ -25,7 +25,6 @@ jest.mock('@/store/mealPlanStore', () => ({ useMealPlanStore: { getState: () => 
 jest.mock('@/services/calorieApiService', () => ({
   searchFoodsDetailed: (...a) => global.__search(...a),
   withFullRating: (...a) => global.__withFull(...a),
-  gradeToStars: () => 4,
 }));
 
 import SearchFoodScreen from '../app/nutrition/search';
@@ -481,6 +480,22 @@ describe('stars on the list', () => {
     const utils = open({ search: async () => ({ results: [row('Breast', { score: 'A' })], failed: false }) });
     await typeQuery(utils, 'chicken');
     expect(stars(utils)).toBe(5);
+  });
+
+  it('are shown in half steps', async () => {
+    const utils = open({ search: async () => ({ results: [row('Breast', { score: 'A', stars: 4.5 })], failed: false }) });
+    await typeQuery(utils, 'chicken');
+    // Five stars drawn: four filled, and the empty one the half star sits on.
+    expect(stars(utils)).toBe(5);
+    expect(utils.getAllByTestId('star-half')).toHaveLength(1);
+    expect(utils.getByLabelText('4.5 out of 5 stars')).toBeTruthy();
+  });
+
+  it('are the whole stars of the grade for a rating kept before half stars', () => {
+    const utils = open({ recentFoods: [row('Oats', { score: 'C' })] });
+    expect(stars(utils)).toBe(5);
+    expect(utils.getByLabelText('3 out of 5 stars')).toBeTruthy();
+    expect(utils.queryAllByTestId('star-half')).toHaveLength(0);
   });
 
   it('are not shown for a rating held back by figures the search does not list', async () => {

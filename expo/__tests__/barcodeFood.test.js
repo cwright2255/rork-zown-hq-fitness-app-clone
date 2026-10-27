@@ -18,14 +18,14 @@ describe('foodFromBarcode', () => {
     expect(foodFromBarcode(tikka(), '0000')).toEqual({
       name: 'Chicken Tikka Masala', brand: 'Lidl', calories: 140, protein: 8, carbs: 12, fat: 6,
       fiber: 1.2, sugar: 3.5, sodium: 360, servingSize: '100g', barcode: '4056489123456',
-      nutritionalScore: { score: 'C' },
+      nutritionalScore: { score: 'C', stars: 3 },
     });
   });
 
   describe('the rating (a scanned food used to have none, so a meal of it showed no stars)', () => {
     it('is given, and is the real grade when everything it is judged on is listed', () => {
       const food = foodFromBarcode(tikka(), '0');
-      expect(food.nutritionalScore).toEqual({ score: 'C' });
+      expect(food.nutritionalScore).toEqual({ score: 'C', stars: 3 });
       expect(food.nutritionalScore).not.toHaveProperty('partial');
     });
 
@@ -38,7 +38,7 @@ describe('foodFromBarcode', () => {
 
     it('is marked partial when a figure is not listed, and is then held back from the top grades', () => {
       const food = foodFromBarcode(tikka({ saturated_fat_g: undefined }), '0');
-      expect(food.nutritionalScore).toEqual({ score: 'C', partial: true });
+      expect(food.nutritionalScore).toEqual({ score: 'C', stars: 3, partial: true });
       const bare = foodFromBarcode(tikka({ saturated_fat_g: undefined, salt_g: undefined, fiber_g: 6 }), '0');
       expect(bare.nutritionalScore.partial).toBe(true);
     });
@@ -51,16 +51,16 @@ describe('foodFromBarcode', () => {
 
     it('counts the fibre', () => {
       const dense = { energy_kcal: 200, protein_g: 0, carbohydrates_g: 40, fat_g: 4.4, sugars_g: 1, saturated_fat_g: 0, salt_g: 0.025 };
-      expect(foodFromBarcode(tikka({ ...dense, fiber_g: 7.5 }), '0').nutritionalScore).toEqual({ score: 'A' });
-      expect(foodFromBarcode(tikka({ ...dense, fiber_g: 0 }), '0').nutritionalScore).toEqual({ score: 'B' });
+      expect(foodFromBarcode(tikka({ ...dense, fiber_g: 7.5 }), '0').nutritionalScore).toEqual({ score: 'A', stars: 4.5 });
+      expect(foodFromBarcode(tikka({ ...dense, fiber_g: 0 }), '0').nutritionalScore).toEqual({ score: 'B', stars: 3.5 });
     });
 
     it('does not hold a lean product back for sugars and saturated fat it cannot hold much of (the carbohydrate and fat tell)', () => {
       const lean = { energy_kcal: 30, protein_g: 5, fat_g: 0.5, fiber_g: 0, sugars_g: undefined, saturated_fat_g: undefined, salt_g: 0.01 };
       // 2 g of carbohydrate cannot hold more than 3.4 g of sugars, and 0.5 g of fat cannot hold more than 1 g of saturated fat.
-      expect(foodFromBarcode(tikka({ ...lean, carbohydrates_g: 2 }), '0').nutritionalScore).toEqual({ score: 'A' });
+      expect(foodFromBarcode(tikka({ ...lean, carbohydrates_g: 2 }), '0').nutritionalScore).toEqual({ score: 'A', stars: 4.5 });
       // 20 g of carbohydrate could be mostly sugars: one figure missing.
-      expect(foodFromBarcode(tikka({ ...lean, carbohydrates_g: 20 }), '0').nutritionalScore).toEqual({ score: 'B', partial: true });
+      expect(foodFromBarcode(tikka({ ...lean, carbohydrates_g: 20 }), '0').nutritionalScore).toEqual({ score: 'B', stars: 4, partial: true });
     });
 
     it('counts the protein', () => {
@@ -72,7 +72,7 @@ describe('foodFromBarcode', () => {
 
     it('is given for a product with 0 kcal, which is a real figure', () => {
       const water = foodFromBarcode(tikka({ energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, fat_g: 0, fiber_g: 0, sugars_g: 0, saturated_fat_g: 0, salt_g: 0.01 }), '0');
-      expect(water.nutritionalScore).toEqual({ score: 'B' });
+      expect(water.nutritionalScore).toEqual({ score: 'B', stars: 4 });
     });
   });
 
@@ -153,7 +153,7 @@ describe('foodFromBarcode', () => {
 
   it('survives being sent to the log screen as text', () => {
     const food = JSON.parse(JSON.stringify(foodFromBarcode(tikka(), '0')));
-    expect(food.nutritionalScore).toEqual({ score: 'C' });
+    expect(food.nutritionalScore).toEqual({ score: 'C', stars: 3 });
     expect(food.sodium).toBe(360);
   });
 });
@@ -164,5 +164,43 @@ describe('sodiumMg', () => {
     expect(sodiumMg({ salt_g: 2.5 })).toBe(1000);
     expect(sodiumMg({ sodium_g: 0, salt_g: 2.5 })).toBe(0);
     expect(sodiumMg({})).toBeUndefined();
+  });
+});
+
+// Two answers exactly as the Calorie API sent them for real barcodes (a Coca-Cola can and a jar of Nutella): the whole answer, with the
+// parts the app does not use (ingredients, serving, per-serving figures), and a figure the product does not list sent as null.
+describe('a scanned answer as the API really sends it', () => {
+  const coke = {
+    found: true,
+    barcode: '5449000000996',
+    food_id: null,
+    product: { name: 'Coca-Cola', brand: 'Coca-Cola', category: 'Colas, Sweetened beverages', generic_name: null, quantity: '0kg', ingredients: 'carbonated water, sugar, colour (caramel e150d)', allergens: [] },
+    serving: { label: '1 can (330 ml)', quantity: 330, unit: 'ml' },
+    nutrition_per_100g: { energy_kcal: 42, protein_g: 0, carbohydrates_g: 10.6, fat_g: 0, fiber_g: null, sugars_g: 10.6, saturated_fat_g: 0, salt_g: 0, sodium_g: 0, added_sugars_g: 5.3 },
+    nutrition_per_serving: { energy_kcal: 139, protein_g: 0, carbohydrates_g: 35, fat_g: 0, fiber_g: null, sugars_g: 35, saturated_fat_g: 0, salt_g: 0, sodium_g: 0, added_sugars_g: 17.5 },
+    micronutrients_per_100g: [],
+  };
+  const nutella = {
+    found: true,
+    barcode: '3017620422003',
+    food_id: null,
+    product: { name: 'Nutella', brand: 'Nutella', category: 'Pâtes à tartiner', generic_name: 'Pâte à tartiner aux noisettes et au cacao', quantity: null, ingredients: 'sugar, palm oil, hazelnuts 13%', allergens: ['milk', 'nuts', 'soybeans'] },
+    serving: { label: '100g', quantity: null, unit: 'g' },
+    nutrition_per_100g: { energy_kcal: 539, protein_g: 6.3, carbohydrates_g: 57.5, fat_g: 30.9, fiber_g: 3.4, sugars_g: 56.3, saturated_fat_g: 10.6, salt_g: 0.107, sodium_g: 0.0428, added_sugars_g: 38.35 },
+    nutrition_per_serving: null,
+    micronutrients_per_100g: [{ name: 'Calcium', amount: 0.108, unit: 'g' }],
+  };
+
+  it('rates a cola from what it lists: sugar and nothing else is held at 2 stars, and nothing is missing', () => {
+    const food = foodFromBarcode(coke, '5449000000996');
+    expect(food).toMatchObject({ name: 'Coca-Cola', calories: 42, sugar: 10.6, sodium: 0, barcode: '5449000000996' });
+    expect(food.fiber).toBeUndefined();
+    expect(food.nutritionalScore).toEqual({ score: 'D', stars: 2 });
+  });
+
+  it('rates a chocolate spread at the very bottom, half a star, with sodium read from grams to mg', () => {
+    const food = foodFromBarcode(nutella, '3017620422003');
+    expect(food.sodium).toBe(42.8);
+    expect(food.nutritionalScore).toEqual({ score: 'E', stars: 0.5 });
   });
 });

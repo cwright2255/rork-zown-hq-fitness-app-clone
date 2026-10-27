@@ -3,7 +3,7 @@ const mockFunctionsCalled = [];
 jest.mock('firebase/functions', () => ({ httpsCallable: (_functions, name) => { mockFunctionsCalled.push(name); return mockCall; } }), { virtual: true });
 jest.mock('../src/config/firebase', () => ({ functions: {} }));
 
-import { searchFoodsDetailed, searchFoods, getFoodById, withFullRating, calculateNutritionalScore, gradeToStars, gradeToMealStars } from '../services/calorieApiService';
+import { searchFoodsDetailed, searchFoods, getFoodById, withFullRating, calculateNutritionalScore } from '../services/calorieApiService';
 
 const apiFood = (extra = {}) => ({
   id: 77, name: 'Chicken Soup', calories_100g: 40, protein_100g: 3, carbs_100g: 4, fat_100g: 1.2,
@@ -122,13 +122,13 @@ describe('the rating on a food', () => {
   };
 
   it('is worked out from the figures per 100 g', async () => {
-    expect(await rating('rating soup', {}, 901)).toEqual({ score: 'B' });
+    expect(await rating('rating soup', {}, 901)).toEqual({ score: 'B', stars: 3.5 });
   });
 
   it('puts a biscuit at the bottom', async () => {
     mockCall.mockResolvedValueOnce({ data: { data: [cookie] } });
     const { results } = await searchFoodsDetailed('rating cookie');
-    expect(results[0].nutritionalScore).toEqual({ score: 'E' });
+    expect(results[0].nutritionalScore).toEqual({ score: 'E', stars: 1 });
   });
 
   it('is left off, so no stars show, when the food has no energy figure', async () => {
@@ -139,28 +139,28 @@ describe('the rating on a food', () => {
   });
 
   it('is rated for a real 0 kcal', async () => {
-    expect(await rating('rating water', { name: 'Water', calories_100g: 0, protein_100g: 0, fiber_100g: 0, sugar_100g: 0, sodium_100g: 2, saturated_fat_100g: 0 }, 903)).toEqual({ score: 'B' });
+    expect(await rating('rating water', { name: 'Water', calories_100g: 0, protein_100g: 0, fiber_100g: 0, sugar_100g: 0, sodium_100g: 2, saturated_fat_100g: 0 }, 903)).toEqual({ score: 'B', stars: 4 });
   });
 
   it('counts the fibre', async () => {
     // 200 kcal that the carbohydrate and fat account for.
     const dense = { calories_100g: 200, protein_100g: 0, carbs_100g: 40, fat_100g: 4.4, sugar_100g: 1, sodium_100g: 10, saturated_fat_100g: 0 };
-    expect(await rating('rating fibre', { ...dense, fiber_100g: 7.5 }, 911)).toEqual({ score: 'A' });
-    expect(await rating('rating no fibre', { ...dense, fiber_100g: undefined }, 912)).toEqual({ score: 'B' });
+    expect(await rating('rating fibre', { ...dense, fiber_100g: 7.5 }, 911)).toEqual({ score: 'A', stars: 4.5 });
+    expect(await rating('rating no fibre', { ...dense, fiber_100g: undefined }, 912)).toEqual({ score: 'B', stars: 3.5 });
   });
 
   it('uses the carbohydrate to fill in a missing sugar figure', async () => {
     const lean = { calories_100g: 30, protein_100g: 5, fiber_100g: 4, sodium_100g: 10, saturated_fat_100g: 0, sugar_100g: undefined };
     // 20 g of carbohydrate could be mostly sugar: one figure missing, B at best.
-    expect(await rating('rating carbs high', { ...lean, id: 904, carbs_100g: 20 }, 904)).toEqual({ score: 'B', partial: true });
+    expect(await rating('rating carbs high', { ...lean, id: 904, carbs_100g: 20 }, 904)).toEqual({ score: 'B', stars: 4, partial: true });
     // 2 g of carbohydrate cannot hold more than 3.4 g of sugar: nothing missing.
-    expect(await rating('rating carbs low', { ...lean, id: 905, carbs_100g: 2 }, 905)).toEqual({ score: 'A' });
+    expect(await rating('rating carbs low', { ...lean, id: 905, carbs_100g: 2 }, 905)).toEqual({ score: 'A', stars: 4.5 });
   });
 
   it('uses the fat to fill in a missing saturated fat figure', async () => {
     const lean = { calories_100g: 30, protein_100g: 5, fiber_100g: 4, sodium_100g: 10, sugar_100g: 1, carbs_100g: 6, saturated_fat_100g: undefined };
-    expect(await rating('rating fat high', { ...lean, fat_100g: 5 }, 906)).toEqual({ score: 'B', partial: true });
-    expect(await rating('rating fat low', { ...lean, fat_100g: 0.5 }, 907)).toEqual({ score: 'A' });
+    expect(await rating('rating fat high', { ...lean, fat_100g: 5 }, 906)).toEqual({ score: 'B', stars: 4, partial: true });
+    expect(await rating('rating fat low', { ...lean, fat_100g: 0.5 }, 907)).toEqual({ score: 'A', stars: 5 });
   });
 
   it('reads saturated fat and sodium from the nutrients list when the top-level figures are missing', async () => {
@@ -170,6 +170,144 @@ describe('the rating on a food', () => {
     // With the figures: 900 mg of sodium and 6 g of saturated fat count against it. Without them: C at best.
     expect(withList.score).toBe('D');
     expect(without.score).toBe('C');
+  });
+});
+
+// Records exactly as the Calorie API sends them (a food's own record, per 100 g). The API sends only calories, protein, carbs, fat, fibre and
+// sugar at the top level; sodium and saturated fat are only in the `nutrients` list, whose entries call the name `name` (a search row's list
+// and portion_nutrients call it `nutrient_name`). Every test above this one gave sodium_100g and saturated_fat_100g at the top level, which the
+// real API never does, so nothing noticed that the app was not finding them and holding nearly every food to 3 or 4 stars.
+describe('a food\'s own record as the API really sends it', () => {
+  const entry = (name, unit, amount, nutrient_id = 1) => ({ name, unit, amount, nutrient_id });
+  const apple = {
+    id: 8113846, name: 'Apple', brand_name: 'Verified', serving_size: 182, serving_unit: 'g',
+    calories_100g: 52, protein_100g: 0.25, carbs_100g: 11.6, fat_100g: 0.25, fiber_100g: 1.4, sugar_100g: 9.35,
+    nutrients: [entry('Carbohydrates', 'g', 11.6), entry('Energy (kcal)', 'kcal', 52), entry('Fiber', 'g', 1.4), entry('Fiber and Sugar', 'g', 10.75),
+      entry('Net Carbohydrates', 'g', 10.2), entry('Protein', 'g', 0.25), entry('Saturated Fat', 'g', 0.052), entry('Sodium', 'mg', 4),
+      entry('Sugars', 'g', 9.35), entry('Total Fat', 'g', 0.25)],
+    portion_nutrients: [{ nutrient_id: 106916, nutrient_name: 'Saturated Fat', amount: 0.0946, unit: 'g' }, { nutrient_id: 106901, nutrient_name: 'Sodium', amount: 7.28, unit: 'mg' }],
+  };
+  // "Monounsaturated Fat" and "Polyunsaturated Fat" come before "Saturated Fat" in the list.
+  const cheddar = {
+    id: 8093809, name: 'Cheese, Cheddar', brand_name: 'Verified', calories_100g: 408, protein_100g: 23.3, carbs_100g: 2.44, fat_100g: 34, fiber_100g: 0, sugar_100g: 0,
+    nutrients: [entry('Calcium', 'mg', 707), entry('Carbohydrates', 'g', 2.44), entry('Energy (kcal)', 'kcal', 408), entry('Monounsaturated Fat', 'g', 7.44),
+      entry('Polyunsaturated Fat', 'g', 1.18), entry('Protein', 'g', 23.3), entry('Saturated Fat', 'g', 19.2), entry('Sodium', 'mg', 654),
+      entry('Total Fat', 'g', 34), entry('Trans Fat', 'g', 1.14)],
+  };
+  // No sodium in the list at all.
+  const oliveOil = {
+    id: 8102585, name: 'Olive Oil', brand_name: 'Verified', calories_100g: 884, protein_100g: 0, carbs_100g: 0, fat_100g: 100, fiber_100g: 0, sugar_100g: 0,
+    nutrients: [entry('Calcium', 'mg', 1), entry('Energy (kcal)', 'kcal', 884), entry('Iron', 'mg', 0.56), entry('Monounsaturated Fat', 'g', 68.42),
+      entry('Polyunsaturated Fat', 'g', 9.469), entry('Saturated Fat', 'g', 14.5), entry('Total Fat', 'g', 100)],
+  };
+  const broccoli = {
+    id: 8093774, name: 'Broccoli, Steamed', brand_name: 'Verified', calories_100g: 47, protein_100g: 2.8, carbs_100g: 8.5, fat_100g: 0.5, fiber_100g: 3.1, sugar_100g: 1.9,
+    nutrients: [entry('Fiber', 'g', 3.1), entry('Potassium', 'mg', 293), entry('Saturated Fat', 'g', 0.1), entry('Sodium', 'mg', 30), entry('Sugars', 'g', 1.9)],
+  };
+  // The row a search lists for cheddar: energy, protein, carbs, fat (and sugar when it has it), with `nutrient_name`.
+  const cheddarRow = {
+    id: 8093809, name: 'Cheese, Cheddar', brand_name: 'Verified', calories_100g: 408, protein_100g: 23.3, carbs_100g: 2.44, fat_100g: 34, fiber_100g: 0, sugar_100g: 0,
+    nutrients: [{ nutrient_id: 106888, nutrient_name: 'Calories', amount: 408 }, { nutrient_id: 106899, nutrient_name: 'Protein', amount: 23.3 },
+      { nutrient_id: 106896, nutrient_name: 'Carbohydrates', amount: 2.44 }, { nutrient_id: 106891, nutrient_name: 'Fat', amount: 34 }],
+  };
+  const load = async (record, key) => {
+    mockCall.mockResolvedValueOnce({ data: { data: { ...record, id: key } } });
+    return getFoodById(key);
+  };
+
+  it('finds the sodium and saturated fat in the list, so the rating is complete (not partial)', async () => {
+    const food = await load(apple, 'real-apple');
+    expect(food.sodium).toBe(4);
+    expect(food.nutritionalDetails.saturatedFat).toBe(0.1);
+    expect(food.nutritionalScore).toEqual({ score: 'A', stars: 4.5 });
+    expect(food.nutritionalScore).not.toHaveProperty('partial');
+  });
+
+  it('gives a vegetable its 5 stars, which a record that could not be read could never reach (4 at best)', async () => {
+    expect((await load(broccoli, 'real-broccoli')).nutritionalScore).toEqual({ score: 'A', stars: 5 });
+  });
+
+  it('reads "Saturated Fat" whole: not the "Monounsaturated Fat" in front of it', async () => {
+    const food = await load(cheddar, 'real-cheddar');
+    expect(food.nutritionalDetails.saturatedFat).toBe(19.2);
+    expect(food.sodium).toBe(654);
+    expect(food.nutritionalScore).toEqual({ score: 'E', stars: 1 });
+  });
+
+  it('is still partial, and says so, for a food whose list has no sodium', async () => {
+    const food = await load(oliveOil, 'real-oil');
+    expect(food.sodium).toBeUndefined();
+    expect(food.nutritionalDetails.saturatedFat).toBe(14.5);
+    expect(food.nutritionalScore).toEqual({ score: 'E', stars: 1, partial: true });
+  });
+
+  it('leaves a search row partial (its list has no sodium or saturated fat), and completes it from the record', async () => {
+    mockCall.mockResolvedValueOnce({ data: { data: [{ ...cheddarRow, id: 'row-cheddar' }] } });
+    const { results } = await searchFoodsDetailed('real cheddar row');
+    expect(results[0].nutritionalScore).toEqual({ score: 'C', stars: 3, partial: true });
+    mockCall.mockResolvedValueOnce({ data: { data: { ...cheddar, id: 'row-cheddar' } } });
+    const full = await withFullRating(results[0]);
+    expect(full.nutritionalScore).toEqual({ score: 'E', stars: 1 });
+    expect(full.nutritionalDetails.saturatedFat).toBe(19.2);
+  });
+
+  describe('reading one figure from the list', () => {
+    const rated = async (key, nutrients, extra = {}) => {
+      mockCall.mockResolvedValueOnce({ data: { data: { id: key, name: 'Test', calories_100g: 120, protein_100g: 5, carbs_100g: 10, fat_100g: 6, fiber_100g: 1, sugar_100g: 2, nutrients, ...extra } } });
+      return getFoodById(key);
+    };
+
+    it('takes `name` from a record and `nutrient_name` from a row, in any capital letters', async () => {
+      expect((await rated('u-1', [entry('SODIUM', 'mg', 200)])).sodium).toBe(200);
+      expect((await rated('u-2', [{ nutrient_name: 'sodium', unit: 'mg', amount: 210 }])).sodium).toBe(210);
+      expect((await rated('u-3', [{ name: '  Sodium ', amount: 220 }])).sodium).toBe(220);
+    });
+
+    it('reads it in the unit the rating uses, whatever unit the list gives it in', async () => {
+      expect((await rated('u-4', [entry('Sodium', 'g', 0.3)])).sodium).toBe(300);
+      expect((await rated('u-5', [entry('Sodium', 'mcg', 150000)])).sodium).toBe(150);
+      expect((await rated('u-6', [entry('Saturated Fat', 'mg', 3000)])).nutritionalDetails.saturatedFat).toBe(3);
+    });
+
+    it('takes a figure with no unit (or an empty one) to be in the usual one, and a unit in any capitals or spaces', async () => {
+      expect((await rated('u-7', [{ name: 'Sodium', amount: 180 }])).sodium).toBe(180);
+      expect((await rated('u-7b', [{ name: 'Sodium', unit: '', amount: 181 }])).sodium).toBe(181);
+      expect((await rated('u-7c', [{ name: 'Sodium', unit: ' MG ', amount: 182 }])).sodium).toBe(182);
+    });
+
+    it('also knows the longer names a USDA-style list uses', async () => {
+      const food = await rated('u-7d', [{ nutrient_name: 'Sodium, Na', amount: 240 }, { nutrient_name: 'Fatty acids, total saturated', amount: 6 }]);
+      expect([food.sodium, food.nutritionalDetails.saturatedFat]).toEqual([240, 6]);
+    });
+
+    it('does not read a figure it cannot trust: an amount that is not a number, below 0, or in a unit that is not a weight', async () => {
+      expect((await rated('u-8', [entry('Sodium', 'mg', 'lots')])).sodium).toBeUndefined();
+      expect((await rated('u-9', [entry('Sodium', 'mg', -5)])).sodium).toBeUndefined();
+      expect((await rated('u-10', [entry('Sodium', 'IU', 50)])).sodium).toBeUndefined();
+      expect((await rated('u-11', [entry('Sodium', 'mg', null)])).sodium).toBeUndefined();
+      expect((await rated('u-12', [entry('Sodium', 'mg', true)])).sodium).toBeUndefined();
+      expect((await rated('u-12b', [entry('Sodium', 'mg', '')])).sodium).toBeUndefined();
+    });
+
+    it('keeps a real 0', async () => {
+      const food = await rated('u-13', [entry('Sodium', 'mg', 0), entry('Saturated Fat', 'g', 0)]);
+      expect(food.sodium).toBe(0);
+      expect(food.nutritionalScore).not.toHaveProperty('partial');
+    });
+
+    it('prefers a top-level figure when the API ever sends one', async () => {
+      const food = await rated('u-14', [entry('Sodium', 'mg', 999), entry('Saturated Fat', 'g', 9)], { sodium_100g: 12, saturated_fat_100g: 2 });
+      expect([food.sodium, food.nutritionalDetails.saturatedFat]).toEqual([12, 2]);
+    });
+
+    it('copes with a list that is missing, empty or has odd entries', async () => {
+      expect((await rated('u-15', undefined)).sodium).toBeUndefined();
+      expect((await rated('u-16', [])).sodium).toBeUndefined();
+      // (A list that is not a list at all: the food still loads, with no sodium.)
+      expect((await rated('u-16b', 'oops'))).toMatchObject({ name: 'Test', calories: 120 });
+      expect((await rated('u-16c', { name: 'Sodium', amount: 70 })).sodium).toBeUndefined();
+      expect((await rated('u-17', [null, 'x', {}, entry('Sodium', 'mg', 70)])).sodium).toBe(70);
+    });
   });
 });
 
@@ -185,17 +323,17 @@ describe('a rating held back by missing figures', () => {
   };
 
   it('is marked partial, and is C, for chicken breast listed without sodium and saturated fat', async () => {
-    expect(await ratingOf('partial breast', breast)).toEqual({ score: 'C', partial: true });
+    expect(await ratingOf('partial breast', breast)).toEqual({ score: 'C', stars: 3, partial: true });
   });
 
   it('is the real grade, and not marked partial, once sodium and saturated fat are listed', async () => {
     const rated = await ratingOf('complete breast', { ...breast, id: 1502, sodium_100g: 74, saturated_fat_100g: 1 });
-    expect(rated).toEqual({ score: 'A' });
+    expect(rated).toEqual({ score: 'A', stars: 4.5 });
     expect(rated).not.toHaveProperty('partial');
   });
 
   it('is marked partial with one figure missing as well', async () => {
-    expect(await ratingOf('one missing', { ...breast, id: 1503, saturated_fat_100g: 1 })).toEqual({ score: 'B', partial: true });
+    expect(await ratingOf('one missing', { ...breast, id: 1503, saturated_fat_100g: 1 })).toEqual({ score: 'B', stars: 4, partial: true });
   });
 
   it('gives the foods that the chicken search finds their own grades once the figures are there', async () => {
@@ -247,16 +385,6 @@ describe('calculateNutritionalScore', () => {
   it('is the food rating', () => {
     expect(calculateNutritionalScore({ calories: 52, protein: 0.3, fiber: 2.4, sugar: 10.4, saturatedFat: 0.03, sodium: 1 })).toBe('A');
     expect(calculateNutritionalScore({})).toBeNull();
-  });
-});
-
-describe('grades as stars', () => {
-  it('shows A to E as 5 to 1 stars', () => {
-    expect(['A', 'B', 'C', 'D', 'E'].map(gradeToStars)).toEqual([5, 4, 3, 2, 1]);
-  });
-
-  it('gives the experience tiers 5, 4 and 3 stars, with C to E sharing the lowest', () => {
-    expect(['A', 'B', 'C', 'D', 'E'].map(gradeToMealStars)).toEqual([5, 4, 3, 3, 3]);
   });
 });
 
@@ -314,7 +442,7 @@ describe('withFullRating', () => {
     mockCall.mockResolvedValueOnce({ data: { data: record() } });
     const out = await withFullRating(row);
     expect(mockCall).toHaveBeenCalledWith({ id: 'wf-1' });
-    expect(out.nutritionalScore).toEqual({ score: 'A' });
+    expect(out.nutritionalScore).toEqual({ score: 'A', stars: 4.5 });
     expect(out.sodium).toBe(74);
     expect(out.nutritionalDetails).toEqual({ saturatedFat: 1, sugar: 0, fiber: 0, sodium: 74 });
   });
@@ -358,7 +486,7 @@ describe('withFullRating', () => {
     await getFoodById('wf-6');
     const out = await withFullRating({ ...row, id: 'wf-6' });
     expect(mockCall).toHaveBeenCalledTimes(1);
-    expect(out.nutritionalScore).toEqual({ score: 'A' });
+    expect(out.nutritionalScore).toEqual({ score: 'A', stars: 4.5 });
   });
 
   describe('when the record is slow', () => {
