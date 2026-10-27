@@ -304,6 +304,9 @@ export default function TrailPreviewScreen() {
       else pathsNote = 'No marked paths found near this trailhead.';
     } else if (!selectedIsOsm && fetched && String(fetched.mapId) === selectedKey && !fetched.route) {
       pathsNote = "This path's line isn't available right now.";
+    } else if (selectedIsOsm && osm.status !== 'loading') {
+      // OpenStreetMap has answered or could not be reached, and no line was kept on the phone for this path: nothing is on its way.
+      pathsNote = "This path isn't saved on this phone. Connect to the internet to load it.";
     } else {
       pathsNote = 'Loading the path…';
     }

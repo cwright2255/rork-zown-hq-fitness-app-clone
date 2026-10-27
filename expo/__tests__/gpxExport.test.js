@@ -189,6 +189,14 @@ describe('buildGpx', () => {
     expect(route.distanceKm).toBeGreaterThan(0);
   });
 
+  it('does not take a file with one track point for a route', () => {
+    const one = '<gpx><trk><trkseg><trkpt lat="40.1" lon="-74.2"><ele>5</ele></trkpt></trkseg></trk></gpx>';
+    expect(parseGpxToRoute(one)).toBeNull();
+    const two = '<gpx><trk><trkseg><trkpt lat="40.1" lon="-74.2"></trkpt><trkpt lat="40.2" lon="-74.2"></trkpt></trkseg></trk></gpx>';
+    expect(parseGpxToRoute(two).coordinates).toHaveLength(2);
+    expect(parseGpxToRoute('<gpx></gpx>')).toBeNull();
+  });
+
   it('reads back through parseGpx at the poles and across the date line', () => {
     const route = parseGpxToRoute(buildGpx({
       name: 'R',

@@ -19,13 +19,14 @@ export function numberInRange(value, min, max) {
 
 /**
  * An id from the trail service (a trail or a map): up to 100 characters, no spaces,
- * slashes, backslashes, ? # or %, and no "..". Returned as text.
+ * slashes, backslashes, ? # or %, no "..", and not just ".". Returned as text.
  */
 export function trailServiceId(value) {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const text = String(value);
   if (!/^[^\s/\\?#%]{1,100}$/.test(text)) return null;
-  if (text.includes('..')) return null;
+  // "." and ".." are not names but steps in an address, and encodeURIComponent leaves them as they are.
+  if (text.includes('..') || text === '.') return null;
   return text;
 }
 

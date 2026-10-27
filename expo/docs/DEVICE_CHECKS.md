@@ -844,3 +844,16 @@ definitions in Google Analytics. Realtime lists the event names.
 
 - [ ] On the phone, open `zownhq://admin?cmd=logout` from Safari's address bar, and let it open the app. You are still signed
       in. Before this update, that link signed you out.
+
+## Trail paths: a path that is not saved, one-point routes and odd ids (once: deploy the two functions, then the update)
+
+Order: `cd expo && firebase deploy --only functions:getTrailApiMaps,functions:getTrailApiGpx` (they now turn away an id of just "."), then
+`eas update --branch main --environment production`, and close the app completely and open it twice. Nothing else about the trail finder changed.
+
+- [ ] A trail that shows "Choose a Path" still lists its paths and draws the one you tap, with a signal. A trail service path still draws.
+- [ ] A path whose GPX holds a single point is no longer drawn as a route; it says "This path's line isn't available right now." (Needs a
+      trail whose map has one point; there is nothing to do if you cannot find one.)
+- [ ] Save a trail that has more than 4 paths from OpenStreetMap (the phone keeps the lines of 4). Turn on airplane mode, close the app
+      completely and open the trail from Saved. Tapping a path that is not among the kept 4 says "This path isn't saved on this phone.
+      Connect to the internet to load it." instead of "Loading the path…" for ever. The 4 kept paths still draw with "Saved on this phone".
+- [ ] Back online, open the same trail: the path you could not load now draws.

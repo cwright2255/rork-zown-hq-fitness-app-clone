@@ -121,7 +121,7 @@ describe('getTrailApiMaps and getTrailApiGpx', () => {
     expect(global.fetch.mock.calls[0][0]).toBe(`${TRAILAPI}/trails/map/55/gpx/`);
   });
 
-  it.each(['../secret', '..', 'a..b', '...', 'a/b', 'a\\b', 'a?x=1', 'a#b', 'a b', 'a%2Fb', '', 'x'.repeat(101), null, undefined, {}, ['1']])(
+  it.each(['../secret', '..', '.', 'a..b', '...', 'a/b', 'a\\b', 'a?x=1', 'a#b', 'a b', 'a%2Fb', '', 'x'.repeat(101), null, undefined, {}, ['1']])(
     'refuses the id %j',
     async (id) => {
       await expect(call('getTrailApiMaps', { trailId: id })).rejects.toMatchObject({ code: 'invalid-argument' });

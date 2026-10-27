@@ -23,8 +23,9 @@ const ELE_REGEX = /<ele>(-?\d+\.?\d*)<\/ele>/;
  *   elevationGainM: number|null,
  *   elevationProfile: Array<{distanceKm:number, elevationM:number}> | null
  * } | null}
- *   Returns null if no track points were found — the caller should treat
- *   that as "no route available" and hide the route UI, not as an error.
+ *   Returns null if fewer than two track points were found (one point is a
+ *   place, not a route) — the caller should treat that as "no route
+ *   available" and hide the route UI, not as an error.
  *   elevationProfile is null (not an empty array) when the GPX has no
  *   elevation data at all, so callers can distinguish "no chart to draw"
  *   from "chart with zero climb."
@@ -46,7 +47,7 @@ export function parseGpxToRoute(gpxXml) {
     points.push({ latitude, longitude, elevation });
   }
 
-  if (points.length === 0) return null;
+  if (points.length < 2) return null;
 
   let distanceKm = 0;
   let elevationGainM = 0;

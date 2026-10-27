@@ -1045,6 +1045,27 @@ describe('paths from OpenStreetMap with no signal', () => {
     expect(utils.queryByText(/Couldn't load/)).toBeNull();
   });
 
+  it('says a kept path whose line was not saved is not on the phone, rather than "Loading the path…" for ever', async () => {
+    const record = { ...KEPT_OSM(), routes: { [BLUE]: OSM.routes[BLUE] } }; // Red Trail is listed, its line was not kept
+    const utils = await open(placesTrail(), { record, inSearch: false, osm: new Error('no signal') });
+    await act(async () => { fireEvent.press(utils.getByText('Red Trail')); });
+    expect(utils.getByText("This path isn't saved on this phone. Connect to the internet to load it.")).toBeTruthy();
+    expect(utils.queryByText('Loading the path…')).toBeNull();
+    expect(utils.queryByText('Trail Route')).toBeNull();
+    // a path whose line was kept still draws
+    await act(async () => { fireEvent.press(utils.getByText('Blue Trail')); });
+    expect(utils.getByText('1.1 km route')).toBeTruthy();
+    expect(utils.queryByTestId('trail-paths-note')).toBeNull();
+  });
+
+  it('still says it is loading while OpenStreetMap is being waited for', async () => {
+    const record = { ...KEPT_OSM(), routes: { [BLUE]: OSM.routes[BLUE] } };
+    const utils = await open(placesTrail(), { record, inSearch: false, osm: 'pending' });
+    await act(async () => { fireEvent.press(utils.getByText('Red Trail')); });
+    expect(utils.getByText('Loading the path…')).toBeTruthy();
+    expect(utils.queryByText(/isn't saved on this phone/)).toBeNull();
+  });
+
   it('starts a hike from a kept path with no signal', async () => {
     const utils = await open(placesTrail(), { record: KEPT_OSM(), inSearch: false, osm: new Error('no signal') });
     fireEvent.press(utils.getByText('Start Hike'));
