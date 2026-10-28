@@ -961,3 +961,74 @@ native build (`app.json`, "splash"), so changing it to white is a separate build
 **Not expected any more**
 
 - [ ] There is no black glitch screen with the small Z mark, no animated Lottie splash, and no small logo on a white overlay.
+
+
+## Recipes tab: picks for you, opening fast, quick actions, Cook with what I have (once, on the first update with them)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
+the app completely and open it twice. The screen is `app/recipes.jsx`. What it picks and why is `lib/recipePicks.js`; what it asks Spoonacular
+for is `lib/recipeBrowse.js`; what it keeps on the phone so the tab opens with recipes on screen is `lib/recipeCache.js`; which recipes were
+top picks on which days is `lib/recipeHistory.js`. The first opening after the update has nothing kept yet, so it shows a grey placeholder while
+it fetches; every opening after that has recipes on screen at once.
+
+**The top pick and the picks**
+
+- [ ] A large card at the top, labelled "Top pick for dinner" (or breakfast to 10 AM, lunch to 3 PM, dinner to 9 PM, otherwise "a snack"). It has
+      a photo, calories and time, small protein / carbs / fat chips (blue, orange, purple), up to three ticked reasons, and "Add to plan".
+- [ ] Under "Picked for you" there is one line, for example "Sized for dinner: about 650 cal and 35 g protein." With an eating goal set (Nutrition),
+      it also says "You have N cal and N g protein left today", and those numbers match the Nutrition screen. With no goal set it does not say what is left.
+- [ ] Log a meal in Nutrition and come back: the "left" numbers have dropped by what you logged and the top pick may change to something that fits what
+      is left. The tab does not show a loading placeholder when you come back.
+- [ ] Finish a workout or a run, then open Recipes: some picks say "Good after today's workout".
+- [ ] Each pick has its reason in a small line under it (for example "38 g protein: 63% of what you have left" or "Ready in 15 min").
+- [ ] The same recipe is not the top pick three days in a row (look again tomorrow and the day after; yesterday's top pick can still be lower down).
+- [ ] The picks are not all one ingredient (no more than two chicken dishes, and so on).
+- [ ] "View All" shows more picks; "Show Less" goes back.
+- [ ] Post-Workout, Meal Prep and Quick & Easy are rows under the picks, and a recipe you see at the top is not repeated in them. A row with
+      nothing in it is left out.
+
+**Diet, allergies and foods to avoid** (Profile, Edit, nutrition)
+
+- [ ] With an allergy, a diet and a food to avoid set, look through the top pick, the picks, the rows, a chip and an ingredient search: none of the
+      names contains the allergy or the food you avoid. (This is best-effort filtering by Spoonacular, not a medical guarantee.)
+- [ ] Change the diet (for example to Vegan) and go back to Recipes: you see recipes for the new diet, never the old diet's recipes first.
+
+**Opening fast**
+
+- [ ] Close the app completely, open it and go to Recipes: recipes are on screen at once with no placeholder. With airplane mode on, the tab still shows
+      the last recipes.
+- [ ] The next morning: yesterday's recipes show at once and new ones replace them within a few seconds.
+- [ ] Pull down: the recipes refresh.
+- [ ] On a phone with nothing kept (just installed) and no connection: "Nothing to show right now" and a "Try again" button; with the connection back,
+      pressing it fills the page.
+
+**Chips and search**
+
+- [ ] Breakfast, Lunch, Dinner and Snack each show recipes sized for that meal, with a line such as "Sized for lunch: about 550 cal and 30 g protein."
+      High Protein, Low Carb, Vegan, Quick Meals and Post-Workout work as before; Vegan still leaves out your allergies.
+- [ ] Choosing a chip ends a search and "Cook with what I have", and the other way round.
+
+**Quick actions**
+
+- [ ] The bookmark on a card saves the recipe without opening it: a spinner, then a filled bookmark, and it is in Saved Recipes. Pressing a filled bookmark
+      asks "Remove Recipe?".
+- [ ] Saving the same recipe twice does not make two copies (a recipe saved before this update is recognised by its name).
+- [ ] Press a card: the recipe shows Calories, Protein, Carbs and Fat per serving as four tiles, and the bottom has "Add to Meal Plan" and "Save Recipe"
+      (it says "Saved" for one you have).
+- [ ] "Add to Meal Plan" asks for a day and a meal, saves the recipe if it was not saved, and says "Added to your plan" with "View plan", which opens the
+      plan on that day with the recipe in that meal.
+- [ ] "Add to plan" on the top pick opens the recipe and asks for the day and meal straight away.
+- [ ] Saved Recipes is only there when you have saved something. Pressing a saved recipe opens it (it did nothing before); pressing and holding offers to
+      remove it. A saved recipe shows its calories and protein / carbs / fat only when it has them.
+
+**Cook with what I have**
+
+- [ ] "Cook with what I have" (under the search bar) opens a sheet. Type "chicken, rice" and press Add or Done: two chips appear. The limit is five. The x
+      on a chip removes it. "Find recipes" is greyed out with nothing in the list.
+- [ ] The page says "Made with chicken, rice" and each recipe says "Uses 2 of your 2" and "Needs: ..." for what else it asks for. "Edit" reopens the sheet
+      with the list; "Clear" goes back to the picks.
+- [ ] An odd mix such as "chicken, rice, saffron" may say "Nothing used all of those. Try taking one out."
+
+**Not expected any more**
+
+- [ ] There is no "AI Recommendations" row, no "Featured" card, and no "No saved recipes" card when you have nothing saved.

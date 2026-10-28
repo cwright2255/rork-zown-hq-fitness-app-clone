@@ -79,6 +79,8 @@ export const useRecipeStore = create((set, get) => ({
         dateAdded: new Date().toISOString(),
         sourceUrl: recipeData.sourceUrl,
         sourcePlatform: recipeData.sourcePlatform,
+        // The Spoonacular id when it came from the Recipes tab, so that tab can show it as saved.
+        sourceId: recipeData.sourceId ?? null,
         author: recipeData.author,
         isFavorite: false,
         addedToGroceryList: false
@@ -105,9 +107,11 @@ export const useRecipeStore = create((set, get) => ({
       await get().saveData();
 
       console.log('Recipe added successfully:', saved.name);
+      return saved;
     } catch (error) {
       console.error('Error adding recipe:', error);
       set({ error: 'Failed to add recipe', isLoading: false });
+      return null;
     }
   },
 

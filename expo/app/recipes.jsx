@@ -1,238 +1,59 @@
 import LoadingSkeleton from '@/src/components/LoadingSkeleton';
-import EmptyState from '@/src/components/EmptyState';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image,
-  RefreshControl, Pressable, Platform, TextInput, Modal, ActivityIndicator, Alert, Dimensions } from 'react-native';
+  RefreshControl, Pressable, Platform, TextInput, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
+import { useRouter } from 'expo-router';
 import { useRecipeStore } from '@/store/recipeStore';
 import GroceryListButton from '@/components/GroceryListButton';
 import { useUserStore } from '@/store/userStore';
 import { useNutritionStore } from '@/store/nutritionStore';
+import { useWorkoutStore } from '@/store/workoutStore';
+import { useRunningStore } from '@/store/runningStore';
+import { useHikingStore } from '@/store/hikingStore';
 import { eatGoal } from '@/lib/calorieGoals';
+import { sessionsOf, countOnDay } from '@/lib/activity';
+import { foodTotals } from '@/lib/nutritionHistory';
+import { localDateKey } from '@/lib/localDate';
 import RecipeImportModal from '@/components/RecipeImportModal';
 import RecipePreviewModal from '@/components/RecipePreviewModal';
 import recipeExtractionService from '@/services/recipeExtractionService';
-import { getDietProfile, buildDietFilters } from '@/lib/dietProfile';
-
-const CATS = ['All','High Protein','Low Carb','Vegan','Quick Meals','Post-Workout'];
+import {
+  CATEGORIES, MEAL_CHIPS, resolveDietaryPreferences, buildHomeSections, buildRelaxedPoolParams, buildCategoryParams,
+  buildSearchParams, buildKitchenParams, kitchenLine, cacheKeyFor,
+} from '@/lib/recipeBrowse';
+import { dayContext, rankRecipes, layoutPicks, diversify, sizingLine, SLOT_NAME } from '@/lib/recipePicks';
+import { loadBrowseCache, rememberBrowse, isFresh, isShowable } from '@/lib/recipeCache';
+import { loadRecentPicks, recordPicks } from '@/lib/recipeHistory';
+import { withCacheKeys, fetchHome, fetchOne, cacheEntries, itemsToShow } from '@/lib/recipeLoader';
+import { findSavedMatch, isSavedRecipe } from '@/lib/recipeSaved';
+import RecipeCard from '@/components/recipes/RecipeCard';
+import HeroPick from '@/components/recipes/HeroPick';
+import MacroChips from '@/components/recipes/MacroChips';
+import KitchenSheet from '@/components/recipes/KitchenSheet';
 
 const NAV_BAR_CLEARANCE = Platform.OS === 'ios' ? 120 : 110;
 
-// Real fix: every discovery section asks Spoonacular for the same
-// "most popular" list with the same filters, so the answer never changed
-// and the same recipes showed up every day. This steps the result window
-// forward once per local calendar day (offset = day slot * page size), so
-// a section shows a fresh page of results each day, stays identical for
-// the whole day (so the 30-minute cache still works), and cycles back
-// after DAILY_ROTATION_SLOTS days. If a narrow diet/allergy filter has
-// fewer results than the offset reaches, the fetch below falls back to
-// offset 0 rather than showing an empty section.
-const DAILY_ROTATION_SLOTS = 15;
-function dailyOffset(pageSize) {
-  const now = new Date();
-  const dayNumber = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
-  return String((dayNumber % DAILY_ROTATION_SLOTS) * pageSize);
-}
+const EMPTY_HOME = { pool: [], postWorkout: [], mealPrep: [], quickEasy: [] };
 
-// Real fix: this screen used to read user.dietaryPreferences, a field
-// nothing in the app ever sets (onboarding and Edit Profile save the diet
-// choice as user.fitnessMetrics.nutritionPreference and goals as
-// fitnessMetrics.targetGoals), so diet, calorie and goal filters were silently
-// never applied. This maps the real fields onto the shape the builders
-// below expect. The app's diet ids don't match Spoonacular's values
-// (keto -> ketogenic, pescatarian -> pescetarian, gluten_free ->
-// "gluten free"); intermittent fasting is a timing strategy, not a
-// recipe filter, so it (and "no preference") applies no diet filter.
-// Diets, food allergies and foods-to-avoid are all defined in
-// lib/dietProfile.js (one source shared with onboarding, Edit Profile and
-// the AI coach). Allergies become Spoonacular intolerances, avoided foods
-// become excluded ingredients, and diets Spoonacular has no label for
-// (Mediterranean, carnivore, low carb, high protein) become a cuisine or
-// per-meal macro limits.
-//
-// The calorie figure that sizes a meal is the EAT goal (what the person is meant to take in per day, from the
-// nutrition store), passed in as eatTarget. user.dailyCalorieGoal is a BURN goal set from the home Calories card
-// and says nothing about how much to eat (lib/calorieGoals.js). eatTarget is null until a real target exists, and
-// meals are then sized to the 300-700 calorie default.
-function resolveDietaryPreferences(user, eatTarget) {
-  const profile = getDietProfile(user);
-  const filters = buildDietFilters(profile);
-  return {
-    dietId: profile.dietId,
-    diet: filters.diet,
-    allergies: filters.intolerances,
-    excludeIngredients: filters.excludeIngredients,
-    dietExtras: filters.extras,
-    dailyCalorieGoal: eatTarget || null,
-    goals: user?.fitnessMetrics?.targetGoals || user?.goals || [],
-    signature: [profile.dietId, filters.intolerances.join(','), filters.excludeIngredients || ''].join('|'),
-  };
-}
+// What the tab does, in order:
+//   1. It reads what it kept from last time (the recipes, and which ones were top picks on which days) and puts the recipes on
+//      screen at once, so there is never a blank page while the function that fetches them wakes up (lib/recipeCache.js).
+//   2. If that is old, or from another day, it asks again in ONE call and swaps the new recipes in quietly (lib/recipeLoader.js).
+//   3. It ranks the wide set of recipes for the meal that fits the time of day against the person's own day: calories and protein
+//      left, training today, goals, cuisines they saved, and what they were shown the last few days (lib/recipePicks.js).
+// A recipe is never kept or shown for a different diet, allergy or food to avoid than the person has now: they are part of every
+// question and of the name each answer is kept under (lib/recipeBrowse.js).
 
-function buildBrowseSections(dietaryPreferences) {
-  const { diet, allergies, dailyCalorieGoal, excludeIngredients, dietExtras } = dietaryPreferences || {};
-  const dietParam = { ...(diet ? { diet } : {}), ...(dietExtras || {}), ...(excludeIngredients ? { excludeIngredients } : {}) };
-  const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
-  // Low-carb style diets (keto, low carb, carnivore) must not get the
-  // post-workout carb minimum below, it would contradict the diet.
-  const lowCarbDiet = diet === 'ketogenic' || dietExtras?.maxCarbs != null;
-
-  const mealCalorieRange = dailyCalorieGoal
-    ? { minCalories: String(Math.round(dailyCalorieGoal * 0.25)), maxCalories: String(Math.round(dailyCalorieGoal * 0.35)) }
-    : { minCalories: '300', maxCalories: '700' };
-  const quickCalorieCeiling = dailyCalorieGoal
-    ? { maxCalories: String(Math.round(dailyCalorieGoal * 0.35)) }
-    : { maxCalories: '700' };
-
-  return {
-    // Real fix: postWorkout/mealPrep/quickEasy previously requested 12
-    // items each, but the collapsed view only ever shows 6
-    // (items.slice(0, 6) below) - half of what Spoonacular returned was
-    // unused unless a section was expanded. Now requests match what's
-    // actually shown, which is faster on the common, initial-load path.
-    // Expanding a section still switches its layout from a horizontal
-    // scroll to a grid, just without revealing additional items beyond
-    // these 6.
-    featured: { offset: dailyOffset(1), minProtein: '15', maxSugar: '15', ...mealCalorieRange, instructionsRequired: 'true', sort: 'popularity', number: 1, ...dietParam, ...intoleranceParam },
-    postWorkout: { offset: dailyOffset(6), minProtein: '20', ...(lowCarbDiet ? {} : { minCarbs: '30' }), maxSugar: '20', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
-    mealPrep: { offset: dailyOffset(6), minServings: '4', minProtein: '15', maxSugar: '20', type: 'main course', instructionsRequired: 'true', sort: 'popularity', number: 6, ...dietParam, ...intoleranceParam },
-    quickEasy: { offset: dailyOffset(6), maxReadyTime: '20', ...quickCalorieCeiling, maxSugar: '20', instructionsRequired: 'true', sort: 'time', number: 6, ...dietParam, ...intoleranceParam },
-  };
-}
-
-function buildSearchParams(query, dietaryPreferences) {
-  const { diet, allergies, excludeIngredients } = dietaryPreferences || {};
-  return {
-    query,
-    instructionsRequired: 'true',
-    number: 20,
-    ...(diet ? { diet } : {}),
-    ...(allergies?.length ? { intolerances: allergies.join(',') } : {}),
-    ...(excludeIngredients ? { excludeIngredients } : {}),
-  };
-}
-
-function buildAiRecommendationsParams(dietaryPreferences, fitnessLevel, savedRecipes) {
-  const { diet, allergies, dailyCalorieGoal, goals, excludeIngredients, dietExtras } = dietaryPreferences || {};
-  const goalList = goals || [];
-  const dietParam = { ...(diet ? { diet } : {}), ...(dietExtras || {}), ...(excludeIngredients ? { excludeIngredients } : {}) };
-  const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
-
-  const cuisineCounts = {};
-  (savedRecipes || []).forEach((r) => {
-    (r.tags || []).forEach((t) => {
-      cuisineCounts[t] = (cuisineCounts[t] || 0) + 1;
-    });
-  });
-  const topCuisineEntry = Object.entries(cuisineCounts).sort((a, b) => b[1] - a[1])[0];
-  const cuisineParam = topCuisineEntry && topCuisineEntry[1] >= 2 ? { cuisine: topCuisineEntry[0] } : {};
-
-  const ADVANCED_LEVELS = ['advanced', 'elite'];
-  // Protein per meal follows the goal: muscle gain and fat loss in a
-  // deficit both benefit most from higher protein per meal (roughly
-  // 25-40g), endurance goals lean on carbs to refuel glycogen.
-  let minProtein = ADVANCED_LEVELS.includes(fitnessLevel) ? '25' : '18';
-  if (goalList.includes('build_muscle')) minProtein = '30';
-  else if (goalList.includes('lose_weight')) minProtein = '25';
-  const lowCarbDiet = diet === 'ketogenic' || dietExtras?.maxCarbs != null;
-  const enduranceCarbs = goalList.includes('improve_endurance') && !lowCarbDiet ? { minCarbs: '45' } : {};
-  // Losing weight: keep each suggested meal to at most ~30% of the daily
-  // calorie goal instead of ~35%, so a day of them fits a deficit.
-  const weightLossCeiling = goalList.includes('lose_weight') && dailyCalorieGoal
-    ? { maxCalories: String(Math.round(dailyCalorieGoal * 0.3)) }
-    : {};
-
-  const mealCalorieRange = dailyCalorieGoal
-    ? { minCalories: String(Math.round(dailyCalorieGoal * 0.25)), maxCalories: String(Math.round(dailyCalorieGoal * 0.35)) }
-    : { minCalories: '300', maxCalories: '700' };
-
-  return {
-    // Real fix: same reasoning as buildBrowseSections above - this was
-    // requesting 12 but the collapsed view only shows 6.
-    offset: dailyOffset(6), minProtein, maxSugar: '15', ...mealCalorieRange, ...weightLossCeiling, instructionsRequired: 'true', sort: 'popularity', number: 6,
-    ...dietParam, ...intoleranceParam, ...cuisineParam, ...enduranceCarbs,
-  };
-}
-
-// Real fix: these pills used to only filter the small, personal Saved
-// Recipes list - tapping "High Protein" with few or no saved recipes
-// visibly did nothing, completely disconnected from Spoonacular's much
-// larger recipe database. Each pill except "All" now runs a real,
-// targeted Spoonacular query and replaces the discovery area with
-// matching results, the same way search already does. Allergies still
-// apply regardless of which pill is active (a safety constraint, not a
-// taste preference). Vegan is the one case where the pill's own intent
-// deliberately overrides a user's separately-stated profile diet
-// (e.g. keto) for this specific view, rather than combining the two
-// into a near-impossible intersection - the object spread order below
-// (diet after ...base) is what makes that override happen.
-function buildCategoryParams(category, dietaryPreferences) {
-  const { diet, allergies, excludeIngredients } = dietaryPreferences || {};
-  const dietParam = diet ? { diet } : {};
-  const intoleranceParam = allergies?.length ? { intolerances: allergies.join(',') } : {};
-  const excludeParam = excludeIngredients ? { excludeIngredients } : {};
-  const lowCarbDiet = diet === 'ketogenic' || dietaryPreferences?.dietExtras?.maxCarbs != null;
-  const base = { instructionsRequired: 'true', sort: 'popularity', number: 20, ...dietParam, ...intoleranceParam, ...excludeParam };
-
-  switch (category) {
-    case 'High Protein':
-      return { ...base, minProtein: '25' };
-    case 'Low Carb':
-      return { ...base, maxCarbs: '20' };
-    case 'Vegan':
-      return { ...base, diet: 'vegan' };
-    case 'Quick Meals':
-      return { ...base, maxReadyTime: '20', sort: 'time' };
-    case 'Post-Workout':
-      return { ...base, minProtein: '20', ...(lowCarbDiet ? {} : { minCarbs: '30' }) };
-    default:
-      return null;
-  }
-}
-
-// Real fix: why this tab feels slow. Featured/AI Recommendations/
-// Post-Workout/Meal Prep each call Cloud Functions' browseSpoonacularRecipes
-// (services/recipeExtractionService.js -> functions/src/index.js), which
-// proxies to Spoonacular. That function has no minInstances set anywhere in
-// functions/src/index.js (confirmed - nothing in the whole file sets
-// minInstances, concurrency, or calls setGlobalOptions), so it scales to
-// zero when idle and cold-starts again on the next call; the same file also
-// imports the full firebase-admin SDK and the openai package at module
-// scope, so every function in that bundle pays that load cost on a cold
-// start, whether it touches them or not. Four or five of those cold starts
-// firing at once (one per section, intentionally not awaited in sequence -
-// see the two effects below) is the real shape of the blank-then-
-// all-at-once pattern - a slow network fan-out, not a slow render. Only Cj
-// can trade that specific cost away (minInstances keeps a container warm
-// 24/7, which costs money even when nobody opens this tab, so it's his
-// call to make, not mine to flip silently).
-//
-// What IS a pure code fix, with no cost or infra decision attached: this
-// screen was re-running all five Spoonacular calls from scratch on EVERY
-// visit to this tab, even one 10 seconds after the last, because the
-// results only ever lived in this component's own useState - wiped the
-// instant the tab unmounts. Moving the cache to module scope means it
-// survives navigating away and back, so only the first visit in a session
-// (or the first one in BROWSE_CACHE_TTL_MS, or after a dietary/fitness
-// change actually alters the query) pays the full cold-start cost; every
-// other visit renders from cache immediately, with no loading skeleton at
-// all.
-const BROWSE_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const browseCache = new Map(); // browseCacheKey(...) -> { items, timestamp }
-function browseCacheKey(sectionKey, params) {
-  return `${sectionKey}:${JSON.stringify(params)}`;
-}
-
-function SectionHeader({ title, onViewAll, expanded, right }) {
+function SectionHeader({ title, onViewAll, expanded, right, testID }) {
   return (
     <View style={s.sectionHeader}>
       <Text style={s.sectionTitle}>{title}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {right}
         {onViewAll ? (
-          <Pressable onPress={onViewAll}>
+          <Pressable testID={testID} onPress={onViewAll}>
             <Text style={s.viewAll}>{expanded ? 'Show Less' : 'View All'}</Text>
           </Pressable>
         ) : null}
@@ -241,334 +62,410 @@ function SectionHeader({ title, onViewAll, expanded, right }) {
   );
 }
 
-function RecipeCard({ item, onPress }) {
+// A recipe the person saved. These carry the nutrition the saved recipe has (nothing is made up for one that has none), and open
+// the full recipe. Press and hold removes it.
+function SavedCard({ item, onPress, onLongPress }) {
+  const calories = typeof item.calories === 'number' ? Math.round(item.calories) : null;
   return (
-    <Pressable style={s.recipeCard} onPress={onPress}>
-      <View style={s.recipeImage}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={s.recipeImagePhoto} resizeMode="cover" />
-        ) : (
-          <Ionicons name="restaurant-outline" size={24} color="#CCC" />
-        )}
-      </View>
-      <Text style={s.recipeName} numberOfLines={2}>{item.name}</Text>
-      <View style={s.recipeMeta}>
-        {item.cal ? <Text style={s.recipeMetaText}>{item.cal}</Text> : null}
-        <Text style={s.recipeMetaText}>{item.time}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function SavedCard({ item, onLongPress }) {
-  return (
-    <Pressable style={s.savedCard} onLongPress={onLongPress}>
+    <Pressable testID={`saved-${item.id}`} style={s.savedCard} onPress={onPress} onLongPress={onLongPress}>
       <View style={s.savedImage}>
         {item.imageUrl || item.image ? (
           <Image source={{ uri: item.imageUrl || item.image }} style={s.savedImagePhoto} resizeMode="cover" />
         ) : (
           <Ionicons name="restaurant-outline" size={28} color="#CCC" />
         )}
-        {item.source ? (
-          <View style={[s.sourceBadge, { backgroundColor: item.color || '#333' }]}>
-            <Text style={s.sourceBadgeText}>{item.source}</Text>
-          </View>
-        ) : null}
         <View style={s.bookmarkIcon}>
           <Ionicons name="bookmark" size={18} color="#FFD700" />
         </View>
       </View>
-      <Text style={s.savedTitle} numberOfLines={2}>{item.title}</Text>
-      <View style={s.savedMeta}>
-        <Text style={s.savedMetaText}>{item.cal}</Text>
-        <Text style={s.savedMetaText}>{item.time}</Text>
-        <Text style={s.savedMetaText}>{item.servings}</Text>
-      </View>
+      <Text style={s.savedTitle} numberOfLines={2}>{item.title || item.name}</Text>
+      {calories !== null ? <Text style={s.savedMetaText}>{calories} cal</Text> : null}
+      <View style={{ marginTop: 6 }}><MacroChips item={item} /></View>
     </Pressable>
   );
 }
 
 export default function RecipesScreen() {
+  const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const gridCardWidth = Math.floor((screenWidth - 40 - 12) / 2);
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [cat, setCat] = useState('All');
   const [showImportModal, setShowImportModal] = useState(false);
   const { savedRecipes, loadRecipes, removeRecipe, addRecipe } = useRecipeStore();
   const { user } = useUserStore();
-  const eatTarget = useNutritionStore((s) => eatGoal(s));
+  const uid = user?.uid;
 
-  const [browse, setBrowse] = useState({ featured: [], aiRecommendations: [], postWorkout: [], mealPrep: [], quickEasy: [] });
-  // Real fix: was a single shared boolean, meaning every section showed
-  // its loading skeleton until all five Spoonacular calls finished
-  // together (via Promise.all) - now per-section, so each one can show
-  // its own content the moment its own fetch resolves, instead of the
-  // whole screen waiting on the slowest of the five.
-  const [browseLoading, setBrowseLoading] = useState({ featured: true, aiRecommendations: true, postWorkout: true, mealPrep: true, quickEasy: true });
-  const [expanded, setExpanded] = useState({ aiRecommendations: false, postWorkout: false, mealPrep: false, quickEasy: false });
-  const [previewRecipeId, setPreviewRecipeId] = useState(null);
+  const eatTarget = useNutritionStore((st) => eatGoal(st));
+  const meals = useNutritionStore((st) => st.meals);
+  const dailyGoals = useNutritionStore((st) => st.dailyGoals);
+  const completedWorkouts = useWorkoutStore((st) => st.completedWorkouts);
+  const runs = useRunningStore((st) => st.runs);
+  const completedHikes = useHikingStore((st) => st.completedHikes);
+
+  const [preview, setPreview] = useState(null); // { id, plan }
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
-
-  // Real, new state for category-pill results - separate from
-  // searchResults since a pill and a text search are two different,
-  // mutually exclusive browse modes (selecting one clears the other,
-  // see setCat/handleSearchSubmit below).
   const [categoryResults, setCategoryResults] = useState(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [kitchenOpen, setKitchenOpen] = useState(false);
+  const [kitchenList, setKitchenList] = useState([]);
+  const [kitchenResults, setKitchenResults] = useState(null);
+  const [kitchenLoading, setKitchenLoading] = useState(false);
+  const [savingIds, setSavingIds] = useState({});
+  const [picksExpanded, setPicksExpanded] = useState(false);
+  const [expanded, setExpanded] = useState({ postWorkout: false, mealPrep: false, quickEasy: false });
+
+  const [booted, setBooted] = useState(false);
+  const [recent, setRecent] = useState({});
+  const cacheRef = useRef({});
+  const [home, setHome] = useState(EMPTY_HOME);
+  const [homeLoading, setHomeLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const forceRef = useRef(false);
 
   useEffect(() => {
-    if (user?.uid) {
-      setIsLoading(true);
-      loadRecipes(user.uid).finally(() => setIsLoading(false));
-    }
-  }, [user?.uid]);
+    if (uid) loadRecipes(uid);
+  }, [uid]);
 
-  const dietaryPrefs = resolveDietaryPreferences(user, eatTarget);
-  const dietPref = dietaryPrefs.diet || null;
-  const allergiesPref = dietaryPrefs.allergies.join(',');
-  const calorieGoalPref = dietaryPrefs.dailyCalorieGoal || null;
-  const goalsPref = dietaryPrefs.goals.join(',');
-  const prefsSignature = dietaryPrefs.signature;
-  const fitnessLevelPref = user?.fitnessLevel || null;
-  const savedRecipesCount = savedRecipes?.length || 0;
+  // ---- the person -------------------------------------------------------------------------------------------------------------
 
-  // Real fix: featured/postWorkout/mealPrep/quickEasy don't depend on the
-  // user's saved recipes at all - only aiRecommendations does (see the
-  // separate effect below). Previously all five were combined into one
-  // effect keyed on savedRecipesCount too, so saving or removing any
-  // recipe re-fetched all five categories from Spoonacular, not just the
-  // one that actually needed the new count. Each of these four now runs
-  // as its own independent fetch (not Promise.all) so each section can
-  // show its own content the moment its own call resolves, rather than
-  // every section waiting on the slowest of all five.
-  useEffect(() => {
-    let cancelled = false;
-    const sections = buildBrowseSections(dietaryPrefs);
-    const sectionKeys = ['featured', 'postWorkout', 'mealPrep', 'quickEasy'];
+  const todayKey = localDateKey();
+  // The diet, allergies and foods to avoid, and the EAT goal that sizes a meal (not the burn goal on the home Calories card, which
+  // says nothing about how much to eat: lib/calorieGoals.js). eatTarget is null until a real target exists.
+  const prefs = useMemo(() => resolveDietaryPreferences(user, eatTarget), [user, eatTarget]);
+  const prefsKey = `${prefs.signature}|${prefs.dailyCalorieGoal || ''}`;
 
-    const applySectionItems = (key, items) => {
-      setBrowse((prev) => {
-        const seen = new Set(Object.values(prev).flat().map((item) => item.id));
-        const deduped = items.filter((item) => !seen.has(item.id));
-        return { ...prev, [key]: deduped };
-      });
-    };
+  const eaten = useMemo(() => {
+    const foods = (Array.isArray(meals) ? meals : [])
+      .filter((m) => m && m.date === todayKey)
+      .flatMap((m) => (Array.isArray(m.foods) ? m.foods : []));
+    const totals = foodTotals(foods);
+    return { calories: totals.calories, protein: totals.protein };
+  }, [meals, todayKey]);
+  const trained = useMemo(
+    () => countOnDay(sessionsOf({ workouts: completedWorkouts, runs, hikes: completedHikes }), todayKey) > 0,
+    [completedWorkouts, runs, completedHikes, todayKey],
+  );
+  const goalsReal = eatTarget != null;
+  const goalKey = prefs.goals.join(',');
 
-    // All four share this exact trigger (diet/allergies/calorie goal/
-    // fitness level), so in practice they're always cached together or
-    // stale together - one check covers all four, cache hit skips the
-    // network entirely for every section.
-    const allCached = sectionKeys.every((key) => {
-      const cached = browseCache.get(browseCacheKey(key, sections[key]));
-      return cached && Date.now() - cached.timestamp < BROWSE_CACHE_TTL_MS;
-    });
+  // The person's day for a meal. `nominal` leaves out what they ate and did today: it sizes the questions asked of Spoonacular, so
+  // logging a food does not send the tab off to fetch again (the ranking, which does use the day, happens here on the phone).
+  const ctxFor = useCallback((slot, nominal = false) => dayContext({
+    now: new Date(),
+    slot,
+    goals: dailyGoals,
+    goalsReal,
+    eaten: nominal ? undefined : eaten,
+    trained: nominal ? false : trained,
+    goalList: prefs.goals,
+    saved: nominal ? [] : savedRecipes,
+  }), [dailyGoals, goalsReal, eaten, trained, goalKey, savedRecipes]);
+  const ctx = useMemo(() => ctxFor(undefined), [ctxFor]);
+  const nominalCtx = useMemo(() => ctxFor(ctx.slot, true), [ctxFor, ctx.slot]);
 
-    if (allCached) {
-      sectionKeys.forEach((key) => {
-        applySectionItems(key, browseCache.get(browseCacheKey(key, sections[key])).items);
-        setBrowseLoading((prev) => ({ ...prev, [key]: false }));
-      });
-      return () => { cancelled = true; };
-    }
+  // ---- what was kept from last time ---------------------------------------------------------------------------------------------
 
-    // Real fix: one batched call (browseSpoonacularRecipesBatch) instead of
-    // four separate ones - see the big comment above browseCacheKey for
-    // why that matters (at most one cold start instead of up to four at
-    // once). The four Spoonacular queries still run concurrently, just
-    // server-side now.
-    sectionKeys.forEach((key) => setBrowseLoading((prev) => ({ ...prev, [key]: true })));
-    recipeExtractionService.getSpoonacularBrowseBatch(
-      sectionKeys.map((key) => ({ key, params: sections[key], number: sections[key].number }))
-    ).then(async (byKey) => {
-      const emptyKeys = sectionKeys.filter((key) => !(byKey[key] || []).length && sections[key].offset && sections[key].offset !== '0');
-      if (emptyKeys.length) {
-        const retry = await recipeExtractionService.getSpoonacularBrowseBatch(
-          emptyKeys.map((key) => ({ key, params: { ...sections[key], offset: '0' }, number: sections[key].number }))
-        );
-        emptyKeys.forEach((key) => { byKey[key] = retry[key] || []; });
-      }
-      if (cancelled) return;
-      sectionKeys.forEach((key) => {
-        const items = byKey[key] || [];
-        browseCache.set(browseCacheKey(key, sections[key]), { items, timestamp: Date.now() });
-        applySectionItems(key, items);
-      });
-    }).finally(() => {
-      if (!cancelled) sectionKeys.forEach((key) => setBrowseLoading((prev) => ({ ...prev, [key]: false })));
-    });
-
-    return () => { cancelled = true; };
-  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, prefsSignature]);
-
-  // Real, new: separated from the effect above specifically because this
-  // is the one category that genuinely needs savedRecipesCount (see
-  // buildAiRecommendationsParams) - keeping it isolated means saving or
-  // removing a recipe only re-fetches this one section, not all five.
   useEffect(() => {
     let cancelled = false;
-    const aiParams = buildAiRecommendationsParams(dietaryPrefs, user?.fitnessLevel, savedRecipes);
-
-    const applyItems = (items) => {
-      setBrowse((prev) => {
-        const seen = new Set(Object.values(prev).flat().map((item) => item.id));
-        const deduped = items.filter((item) => !seen.has(item.id));
-        return { ...prev, aiRecommendations: deduped };
-      });
-    };
-
-    const cacheKey = browseCacheKey('aiRecommendations', aiParams);
-    const cached = browseCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < BROWSE_CACHE_TTL_MS) {
-      applyItems(cached.items);
-      setBrowseLoading((prev) => ({ ...prev, aiRecommendations: false }));
-      return () => { cancelled = true; };
-    }
-
-    setBrowseLoading((prev) => ({ ...prev, aiRecommendations: true }));
-    recipeExtractionService.getSpoonacularBrowse(aiParams, aiParams.number).then(async (firstItems) => {
-      let items = firstItems;
-      if (!items.length && aiParams.offset && aiParams.offset !== '0') {
-        items = await recipeExtractionService.getSpoonacularBrowse({ ...aiParams, offset: '0' }, aiParams.number);
-      }
+    setBooted(false);
+    Promise.all([loadBrowseCache(uid), loadRecentPicks(uid)]).then(([cache, picks]) => {
       if (cancelled) return;
-      browseCache.set(cacheKey, { items, timestamp: Date.now() });
-      applyItems(items);
-    }).finally(() => {
-      if (!cancelled) setBrowseLoading((prev) => ({ ...prev, aiRecommendations: false }));
+      cacheRef.current = cache;
+      setRecent(picks);
+      setBooted(true);
     });
     return () => { cancelled = true; };
-  }, [dietPref, allergiesPref, calorieGoalPref, fitnessLevelPref, goalsPref, prefsSignature, savedRecipesCount]);
+  }, [uid]);
+
+  const remember = useCallback((entries) => {
+    if (!Object.keys(entries).length) return;
+    rememberBrowse(uid, entries).then((all) => { cacheRef.current = all; });
+  }, [uid]);
+
+  // ---- the home page: the pool of recipes and the three rows, in one call ---------------------------------------------------------
+
+  useEffect(() => {
+    if (!booted) return undefined;
+    let cancelled = false;
+    const force = forceRef.current;
+    forceRef.current = false;
+    const sections = withCacheKeys(buildHomeSections(prefs, nominalCtx, new Date()));
+    const cache = cacheRef.current;
+    const cached = {};
+    sections.forEach((sec) => { if (isShowable(cache[sec.cacheKey])) cached[sec.key] = cache[sec.cacheKey].items; });
+    // Only what is kept for THESE questions is shown: after the diet or an allergy changes, the old recipes are not.
+    setHome({ ...EMPTY_HOME, ...cached });
+    const stale = sections.filter((sec) => force || !isFresh(cache[sec.cacheKey], todayKey));
+    if (!stale.length) {
+      setHomeLoading(false);
+      return undefined;
+    }
+    setHomeLoading(!cached.pool);
+    fetchHome({
+      service: recipeExtractionService,
+      sections: stale,
+      relaxedPool: stale.some((sec) => sec.key === 'pool') ? buildRelaxedPoolParams(prefs) : null,
+    }).then((byKey) => {
+      if (cancelled) return;
+      remember(cacheEntries(stale, byKey, { now: Date.now(), dayKey: todayKey }));
+      setHome((h) => {
+        const next = { ...h };
+        stale.forEach((sec) => { next[sec.key] = itemsToShow(byKey[sec.key], h[sec.key]); });
+        return next;
+      });
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setHomeLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [booted, prefsKey, nominalCtx.calTarget, ctx.slot, refreshTick]);
+
+  const ranked = useMemo(() => rankRecipes(home.pool, ctx, { recent, todayKey }), [home.pool, ctx, recent, todayKey]);
+  const layout = useMemo(() => layoutPicks(ranked, { picks: 6, more: 8 }), [ranked]);
+  const rows = useMemo(() => {
+    const seen = new Set([layout.hero, ...layout.picks].filter(Boolean).map((i) => i.id));
+    // A recipe is shown once on the page: not in a row if it is a top pick, nor in a second row.
+    const take = (list) => list.filter((i) => {
+      if (seen.has(i.id)) return false;
+      seen.add(i.id);
+      return true;
+    });
+    return { postWorkout: take(home.postWorkout), mealPrep: take(home.mealPrep), quickEasy: take(home.quickEasy) };
+  }, [home, layout]);
+
+  // ---- a chip, a search, "cook with what I have" --------------------------------------------------------------------------------
+
+  const searching = !!searchQuery;
+  const kitchenActive = kitchenList.length > 0;
+  const chipActive = cat !== 'All';
+  const homeMode = !searching && !kitchenActive && !chipActive;
+  const chipSlot = MEAL_CHIPS[cat] || null;
+  const chipNominalCal = chipSlot ? ctxFor(chipSlot, true).calTarget : null;
+
+  useEffect(() => {
+    if (!booted || !chipActive || searching || kitchenActive) {
+      setCategoryResults(null);
+      setCategoryLoading(false);
+      return undefined;
+    }
+    const params = buildCategoryParams(cat, prefs, chipSlot ? ctxFor(chipSlot, true) : null);
+    if (!params) return undefined;
+    let cancelled = false;
+    const cacheKey = cacheKeyFor(`cat:${cat}`, params);
+    const entry = cacheRef.current[cacheKey];
+    setCategoryResults(isShowable(entry) ? entry.items : null);
+    if (isFresh(entry, todayKey)) {
+      setCategoryLoading(false);
+      return undefined;
+    }
+    setCategoryLoading(!isShowable(entry));
+    fetchOne({ service: recipeExtractionService, params, number: params.number }).then((items) => {
+      if (cancelled) return;
+      if (items.length) {
+        remember({ [cacheKey]: { items, at: Date.now(), day: todayKey } });
+        setCategoryResults(items);
+      } else {
+        setCategoryResults((cur) => cur || []);
+      }
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setCategoryLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [booted, cat, searching, kitchenActive, prefsKey, chipNominalCal]);
 
   useEffect(() => {
     if (!searchQuery) {
       setSearchResults(null);
-      return;
+      return undefined;
     }
     let cancelled = false;
     setSearchLoading(true);
-    recipeExtractionService.getSpoonacularBrowse(buildSearchParams(searchQuery, dietaryPrefs), 20).then((results) => {
+    recipeExtractionService.getSpoonacularBrowse(buildSearchParams(searchQuery, prefs), 20).then((results) => {
       if (!cancelled) setSearchResults(results);
     }).finally(() => {
       if (!cancelled) setSearchLoading(false);
     });
     return () => { cancelled = true; };
-  }, [searchQuery, prefsSignature]);
+  }, [searchQuery, prefsKey]);
 
-  // Real, new effect: fetches whenever a non-"All" category pill is
-  // active, using buildCategoryParams above. Re-fetches if the user's
-  // dietary preferences change while a category is active too, same
-  // reasoning as the main browse effect.
+  const kitchenKey = kitchenList.join(',');
   useEffect(() => {
-    if (cat === 'All') {
-      setCategoryResults(null);
-      return;
+    if (!kitchenList.length) {
+      setKitchenResults(null);
+      return undefined;
     }
     let cancelled = false;
-    setCategoryLoading(true);
-    const params = buildCategoryParams(cat, dietaryPrefs);
-    recipeExtractionService.getSpoonacularBrowse(params, params.number).then((results) => {
-      if (!cancelled) setCategoryResults(results);
+    setKitchenLoading(true);
+    const params = buildKitchenParams(kitchenList, prefs);
+    fetchOne({ service: recipeExtractionService, params, number: params.number }).then((results) => {
+      if (!cancelled) setKitchenResults(results);
     }).finally(() => {
-      if (!cancelled) setCategoryLoading(false);
+      if (!cancelled) setKitchenLoading(false);
     });
     return () => { cancelled = true; };
-  }, [cat, dietPref, allergiesPref, prefsSignature]);
+  }, [kitchenKey, prefsKey]);
 
-  // Saved Recipes is only ever shown in the "All" state now (see the
-  // render below - a category pill or search replaces the whole
-  // discovery area, same as before), so this no longer needs its own
-  // category-based filter.
-  const displayRecipes = savedRecipes || [];
+  const rankedChip = useMemo(
+    () => (categoryResults ? diversify(rankRecipes(categoryResults, chipSlot ? ctxFor(chipSlot) : ctx, { recent, todayKey }), 20) : null),
+    [categoryResults, chipSlot, ctxFor, ctx, recent, todayKey],
+  );
+
+  // The top picks are remembered, so the same few are not at the top every day.
+  const shownIds = homeMode ? [layout.hero, ...layout.picks].filter(Boolean).map((i) => i.id) : [];
+  const shownKey = shownIds.join(',');
+  useEffect(() => {
+    if (booted && shownIds.length) recordPicks(uid, shownIds, todayKey);
+  }, [booted, shownKey]);
+
+  // ---- saving ----------------------------------------------------------------------------------------------------------------
+
+  const saveStateOf = (item) => (savingIds[item.id] ? 'saving' : isSavedRecipe(savedRecipes, item) ? 'saved' : 'idle');
+
+  const confirmRemove = (saved) => {
+    Alert.alert('Remove Recipe', 'Remove this recipe from saved?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removeRecipe(saved.id, uid) },
+    ]);
+  };
+
+  // The bookmark on a card: saves the recipe without opening it (its steps and ingredients are fetched for the save), or offers to
+  // remove it when it is already saved.
+  const toggleSave = async (item) => {
+    const match = findSavedMatch(savedRecipes, item);
+    if (match) {
+      confirmRemove(match);
+      return;
+    }
+    if (savingIds[item.id]) return;
+    setSavingIds((cur) => ({ ...cur, [item.id]: true }));
+    try {
+      const detail = await recipeExtractionService.getSpoonacularById(item.id);
+      if (!detail) {
+        Alert.alert('Could not save', 'This recipe could not be loaded. Please try again.');
+        return;
+      }
+      if ((await addRecipe(detail, uid)) === null) Alert.alert('Could not save', 'This recipe could not be saved. Please try again.');
+    } catch (e) {
+      Alert.alert('Could not save', 'This recipe could not be saved. Please try again.');
+    } finally {
+      setSavingIds((cur) => { const next = { ...cur }; delete next[item.id]; return next; });
+    }
+  };
+
+  // ---- the page --------------------------------------------------------------------------------------------------------------
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setIsLoading(true);
+    forceRef.current = true;
+    setRefreshTick((t) => t + 1);
     try {
-      if (user?.uid) {
-        await loadRecipes(user.uid);
-      }
+      if (uid) await loadRecipes(uid);
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoading(false);
       setRefreshing(false);
     }
   };
 
-  const handleCardPress = (item) => setPreviewRecipeId(item.id);
+  const retry = () => {
+    forceRef.current = true;
+    setRefreshTick((t) => t + 1);
+  };
 
-  const toggleExpanded = (key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  const openRecipe = (item) => setPreview({ id: item.id, plan: false });
+  const toggleRow = (key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // Real fix: search and a category pill are two separate, mutually
-  // exclusive browse modes - submitting a search clears any active
-  // category, and selecting a category (below) clears any active
-  // search, so the discovery area is never asked to show two different
-  // result sets at once.
+  // Search, a chip and "cook with what I have" are three ways of looking: starting one ends the others.
   const handleSearchSubmit = () => {
     setCat('All');
+    setKitchenList([]);
     setSearchQuery(searchInput.trim());
   };
   const handleClearSearch = () => {
     setSearchInput('');
     setSearchQuery('');
   };
-
   const handleCategoryPress = (category) => {
     setSearchInput('');
     setSearchQuery('');
+    setKitchenList([]);
     setCat(category);
   };
+  const handleKitchenSubmit = (list) => {
+    setKitchenOpen(false);
+    setSearchInput('');
+    setSearchQuery('');
+    setCat('All');
+    setKitchenList(list);
+  };
 
-  const renderBrowseSection = (title, key, marginBottom = 24) => {
-    const items = browse[key] || [];
-    const visible = expanded[key] ? items : items.slice(0, 6);
+  const card = (item, extra = {}) => (
+    <RecipeCard
+      key={item.id}
+      item={item}
+      saveState={saveStateOf(item)}
+      onPress={() => openRecipe(item)}
+      onToggleSave={() => toggleSave(item)}
+      {...extra}
+    />
+  );
+  const grid = (list, extraFor) => (
+    <View style={[s.gridWrap, { marginBottom: 24 }]}>
+      {list.map((item) => card(item, { width: gridCardWidth, style: { marginRight: 0 }, ...(extraFor ? extraFor(item) : {}) }))}
+    </View>
+  );
+  const rail = (list, marginBottom = 24) => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom }}>
+      {list.map((item) => card(item))}
+    </ScrollView>
+  );
+
+  const renderRow = (title, key, marginBottom = 24) => {
+    const list = rows[key];
+    if (!list.length) return null;
     return (
       <>
-        <SectionHeader title={title} onViewAll={() => toggleExpanded(key)} expanded={expanded[key]} />
-        {browseLoading[key] ? (
-          <View style={{ paddingHorizontal: 20, marginBottom }}>
-            <LoadingSkeleton width="100%" height={140} borderRadius={12} />
-          </View>
-        ) : items.length === 0 ? (
-          <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom }]}>
-            Nothing to show right now.{recipeExtractionService.lastDiagnostic ? ` (${recipeExtractionService.lastDiagnostic})` : ''}
-          </Text>
-        ) : expanded[key] ? (
-          <View style={[s.gridWrap, { marginBottom }]}>
-            {visible.map((item) => (
-              <RecipeCard key={item.id} item={item} onPress={() => handleCardPress(item)} />
-            ))}
-          </View>
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom }}>
-            {visible.map((item) => (
-              <RecipeCard key={item.id} item={item} onPress={() => handleCardPress(item)} />
-            ))}
-          </ScrollView>
-        )}
+        <SectionHeader title={title} onViewAll={() => toggleRow(key)} expanded={expanded[key]} />
+        {expanded[key] ? grid(list) : rail(list, marginBottom)}
       </>
     );
   };
 
-  const featuredItem = browse.featured?.[0];
+  const skeleton = (height, marginBottom = 24) => (
+    <View style={{ paddingHorizontal: 20, marginBottom }}><LoadingSkeleton width="100%" height={height} borderRadius={16} /></View>
+  );
+
+  const rowsHaveAny = rows.postWorkout.length + rows.mealPrep.length + rows.quickEasy.length > 0;
+  const homeEmpty = !homeLoading && !layout.hero && !rowsHaveAny;
+  const diagnostic = recipeExtractionService.lastDiagnostic;
+  const pickList = picksExpanded ? [...layout.picks, ...layout.more] : layout.picks;
+
+  const kitchenLines = (item) => ({ lines: kitchenLine(item, kitchenList.length) });
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <RecipeImportModal
         visible={showImportModal}
         onClose={() => setShowImportModal(false)}
-        onSuccess={() => user?.uid && loadRecipes(user.uid)}
+        onSuccess={() => uid && loadRecipes(uid)}
       />
       <RecipePreviewModal
-        visible={!!previewRecipeId}
-        recipeId={previewRecipeId}
-        onClose={() => setPreviewRecipeId(null)}
-        onSaved={() => user?.uid && loadRecipes(user.uid)}
+        visible={!!preview}
+        recipeId={preview?.id}
+        planOnOpen={!!preview?.plan}
+        onClose={() => setPreview(null)}
+        onSaved={() => uid && loadRecipes(uid)}
         addRecipe={addRecipe}
-        uid={user?.uid}
+        uid={uid}
+        findSaved={(r) => findSavedMatch(savedRecipes, { id: r.sourceId, name: r.name })}
+        onViewPlan={(date) => router.push({ pathname: '/nutrition/plan', params: { date } })}
       />
+      {kitchenOpen ? (
+        <KitchenSheet initial={kitchenList} onSubmit={handleKitchenSubmit} onClose={() => setKitchenOpen(false)} />
+      ) : null}
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
@@ -578,19 +475,15 @@ export default function RecipesScreen() {
           <GroceryListButton />
         </View>
 
-        {/* Category Pills - real fix: these now run a real Spoonacular
-            query per pill (see buildCategoryParams/handleCategoryPress
-            above) instead of only filtering the small Saved Recipes
-            list */}
+        {/* Each chip except All runs a real search. The four meals are sized for that meal and ranked for the person. */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 16 }}>
-          {CATS.map(c => (
-            <Pressable key={c} style={[s.catPill, cat === c && s.catPillActive]} onPress={() => handleCategoryPress(c)}>
+          {CATEGORIES.map((c) => (
+            <Pressable key={c} testID={`chip-${c}`} style={[s.catPill, cat === c && s.catPillActive]} onPress={() => handleCategoryPress(c)}>
               <Text style={[s.catPillText, cat === c && s.catPillTextActive]}>{c}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        {/* Search Bar */}
         <View style={s.searchRow}>
           <Ionicons name="search-outline" size={18} color="#999" style={{ marginRight: 8 }} />
           <TextInput
@@ -603,122 +496,116 @@ export default function RecipesScreen() {
             returnKeyType="search"
           />
           {searchQuery ? (
-            <Pressable onPress={handleClearSearch} hitSlop={8}>
+            <Pressable testID="search-clear" onPress={handleClearSearch} hitSlop={8}>
               <Ionicons name="close-circle" size={18} color="#999" />
             </Pressable>
           ) : null}
         </View>
 
-        {searchQuery ? (
+        <Pressable testID="kitchen-open" accessibilityRole="button" style={s.kitchenBtn} onPress={() => setKitchenOpen(true)}>
+          <Ionicons name="basket-outline" size={17} color="#000" />
+          <Text style={s.kitchenBtnText}>Cook with what I have</Text>
+        </Pressable>
+
+        {searching ? (
           <>
-            {/* Search Results */}
             <SectionHeader title={`Results for "${searchQuery}"`} />
             {searchLoading ? (
-              <View style={[s.gridWrap, { marginBottom: 24 }]}>
-                <LoadingSkeleton width="100%" height={140} borderRadius={12} />
-              </View>
+              skeleton(140)
             ) : !searchResults?.length ? (
-              <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom: 24 }]}>No recipes found for that search.</Text>
-            ) : (
-              <View style={[s.gridWrap, { marginBottom: 24 }]}>
-                {searchResults.map((item) => (
-                  <RecipeCard key={item.id} item={item} onPress={() => handleCardPress(item)} />
-                ))}
-              </View>
-            )}
+              <Text style={[s.mutedText, { marginBottom: 24 }]}>No recipes found for that search.</Text>
+            ) : grid(searchResults)}
           </>
-        ) : cat !== 'All' ? (
+        ) : kitchenActive ? (
           <>
-            {/* Category Results - real, live Spoonacular results for
-                the selected pill */}
+            <View testID="kitchen-banner" style={s.kitchenBanner}>
+              <Text style={s.kitchenBannerText} numberOfLines={2}>Made with {kitchenList.join(', ')}</Text>
+              <Pressable testID="kitchen-edit" onPress={() => setKitchenOpen(true)} hitSlop={8}><Text style={s.viewAll}>Edit</Text></Pressable>
+              <Pressable testID="kitchen-clear" onPress={() => setKitchenList([])} hitSlop={8}><Text style={s.viewAll}>Clear</Text></Pressable>
+            </View>
+            {kitchenLoading ? (
+              skeleton(140)
+            ) : !kitchenResults?.length ? (
+              <Text testID="kitchen-empty" style={[s.mutedText, { marginBottom: 24 }]}>
+                {kitchenList.length > 1 ? 'Nothing used all of those. Try taking one out.' : 'No recipes found for that.'}
+              </Text>
+            ) : grid(kitchenResults, kitchenLines)}
+          </>
+        ) : chipActive ? (
+          <>
             <SectionHeader title={cat} />
+            {chipSlot && rankedChip?.length ? <Text testID="chip-sizing-line" style={s.sizing}>{sizingLine(ctxFor(chipSlot))}</Text> : null}
             {categoryLoading ? (
-              <View style={[s.gridWrap, { marginBottom: 24 }]}>
-                <LoadingSkeleton width="100%" height={140} borderRadius={12} />
-              </View>
-            ) : !categoryResults?.length ? (
-              <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom: 24 }]}>Nothing to show right now.</Text>
-            ) : (
-              <View style={[s.gridWrap, { marginBottom: 24 }]}>
-                {categoryResults.map((item) => (
-                  <RecipeCard key={item.id} item={item} onPress={() => handleCardPress(item)} />
-                ))}
-              </View>
-            )}
+              skeleton(140)
+            ) : !rankedChip?.length ? (
+              <Text style={[s.mutedText, { marginBottom: 24 }]}>Nothing to show right now.</Text>
+            ) : grid(rankedChip)}
           </>
         ) : (
           <>
-            {/* Loading and Empty States */}
-            {isLoading ? (
-              <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
-                <LoadingSkeleton width="100%" height={160} borderRadius={12} />
+            {homeLoading && !layout.hero ? (
+              <>
+                {skeleton(300)}
+                {skeleton(170)}
+              </>
+            ) : null}
+
+            {homeEmpty ? (
+              <View testID="home-empty" style={s.emptyBox}>
+                <Text style={s.emptyTitle}>Nothing to show right now</Text>
+                <Text style={s.emptyText}>Check your connection and try again.{diagnostic ? ` (${diagnostic})` : ''}</Text>
+                <Pressable testID="home-retry" accessibilityRole="button" style={s.retryBtn} onPress={retry}>
+                  <Text style={s.retryText}>Try again</Text>
+                </Pressable>
               </View>
-            ) : (savedRecipes || []).length === 0 ? (
-              <EmptyState
-                icon="BookOpen"
-                title="No saved recipes"
-                subtitle="Import a recipe from any URL to get started"
-                buttonText="Import Recipe"
-                onPress={() => setShowImportModal(true)}
+            ) : null}
+
+            {layout.hero ? (
+              <HeroPick
+                item={layout.hero}
+                eyebrow={`Top pick for ${SLOT_NAME[ctx.slot]}`}
+                saveState={saveStateOf(layout.hero)}
+                onPress={() => openRecipe(layout.hero)}
+                onToggleSave={() => toggleSave(layout.hero)}
+                onPlan={() => setPreview({ id: layout.hero.id, plan: true })}
               />
             ) : null}
-            {/* Saved Recipes Carousel */}
-            <SectionHeader
-              title="Saved Recipes"
-              right={<Text style={s.savedCount}>{displayRecipes.length} saved</Text>}
-            />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 24 }}>
-              {displayRecipes.map(item => <SavedCard key={item.id} item={item} onLongPress={() => {
-                Alert.alert('Remove Recipe', 'Remove this recipe from saved?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Remove', style: 'destructive', onPress: () => removeRecipe(item.id, user?.uid) },
-                ]);
-              }} />)}
-            </ScrollView>
 
-            {/* Featured Recipe */}
-            <SectionHeader title="Featured" />
-            {browseLoading.featured ? (
-              <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-                <LoadingSkeleton width="100%" height={200} borderRadius={16} />
-              </View>
-            ) : featuredItem ? (
-              <Pressable style={s.featuredCard} onPress={() => handleCardPress(featuredItem)}>
-                <View style={s.featuredImage}>
-                  {featuredItem.imageUrl ? (
-                    <Image source={{ uri: featuredItem.imageUrl }} style={s.featuredImagePhoto} resizeMode="cover" />
-                  ) : (
-                    <Ionicons name="flame-outline" size={32} color="#CCC" />
-                  )}
-                </View>
-                <View style={s.featuredContent}>
-                  <Text style={s.featuredTitle}>{featuredItem.name}</Text>
-                  <Text style={s.featuredMeta}>
-                    {[featuredItem.cal, featuredItem.time].filter(Boolean).join('  \u00B7  ')}
-                  </Text>
-                </View>
-              </Pressable>
-            ) : (
-              <Text style={[s.recipeMetaText, { paddingHorizontal: 20, marginBottom: 24 }]}>
-                Nothing to show right now.{recipeExtractionService.lastDiagnostic ? ` (${recipeExtractionService.lastDiagnostic})` : ''}
-              </Text>
-            )}
+            {layout.picks.length ? (
+              <>
+                <SectionHeader
+                  title="Picked for you"
+                  onViewAll={layout.more.length ? () => setPicksExpanded((v) => !v) : undefined}
+                  expanded={picksExpanded}
+                  testID="picks-view-all"
+                />
+                <Text testID="sizing-line" style={s.sizing}>{sizingLine(ctx)}</Text>
+                {picksExpanded ? grid(pickList) : rail(pickList)}
+              </>
+            ) : null}
 
-            {/* AI Recommendations */}
-            {renderBrowseSection('AI Recommendations', 'aiRecommendations')}
+            {savedRecipes && savedRecipes.length > 0 ? (
+              <>
+                <SectionHeader title="Saved Recipes" right={<Text style={s.savedCount}>{savedRecipes.length} saved</Text>} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 6, marginBottom: 24 }}>
+                  {savedRecipes.map((item) => (
+                    <SavedCard
+                      key={item.id}
+                      item={item}
+                      onPress={() => router.push(`/recipe/${item.id}`)}
+                      onLongPress={() => confirmRemove(item)}
+                    />
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
 
-            {/* Post-Workout */}
-            {renderBrowseSection('Post-Workout', 'postWorkout')}
-
-            {/* Meal Prep */}
-            {renderBrowseSection('Meal Prep', 'mealPrep')}
-
-            {/* Quick & Easy */}
-            {renderBrowseSection('Quick & Easy', 'quickEasy', 12)}
+            {renderRow('Post-Workout', 'postWorkout')}
+            {renderRow('Meal Prep', 'mealPrep')}
+            {renderRow('Quick & Easy', 'quickEasy', 12)}
           </>
         )}
 
-        {/* Add Recipe Button */}
         <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 24 }}>
           <Pressable style={s.addRecipeBtn} onPress={() => setShowImportModal(true)}>
             <Ionicons name="link-outline" size={18} color="#FFF" />
@@ -735,7 +622,6 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: NAV_BAR_CLEARANCE },
-  pageTitle: { fontSize: 24, fontWeight: '800', color: '#000', paddingHorizontal: 20, marginTop: 8, marginBottom: 16 },
   pageTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 8, marginBottom: 16 },
   pageTitleText: { fontSize: 24, fontWeight: '800', color: '#000' },
 
@@ -746,75 +632,40 @@ const s = StyleSheet.create({
   catPillTextActive: { color: '#FFF' },
 
   /* Search Bar */
-  searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginHorizontal: 20, marginBottom: 20 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginHorizontal: 20, marginBottom: 12 },
   searchInput: { flex: 1, fontSize: 15, color: '#000' },
+  kitchenBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8, marginHorizontal: 20, marginBottom: 20, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1.5, borderColor: '#000' },
+  kitchenBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  kitchenBanner: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 20, marginBottom: 14, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: '#F5F5F5' },
+  kitchenBannerText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#000' },
 
   /* Section */
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
   viewAll: { fontSize: 14, fontWeight: '600', color: '#000' },
   savedCount: { fontSize: 12, color: '#999', backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  sizing: { fontSize: 12, color: '#777', lineHeight: 17, paddingHorizontal: 20, marginTop: -4, marginBottom: 12 },
+  mutedText: { fontSize: 12, color: '#999', paddingHorizontal: 20 },
 
-  /* Recipe Card */
-  recipeCard: { width: 140, marginRight: 12, marginBottom: 16 },
-  recipeImage: { width: 140, height: 100, borderRadius: 12, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  recipeImagePhoto: { width: '100%', height: '100%' },
-  recipeName: { fontSize: 13, fontWeight: '600', color: '#000', marginTop: 6 },
-  recipeMeta: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  recipeMetaText: { fontSize: 11, color: '#999' },
-
-  /* Grid (expanded "View All" state, search results, category results) */
+  /* Grid (expanded "View All" state, search, chips, ingredient search) */
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 12, justifyContent: 'flex-start' },
 
   /* Saved Card */
   savedCard: { width: 180, marginRight: 14 },
   savedImage: { width: 180, height: 140, borderRadius: 14, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   savedImagePhoto: { width: '100%', height: '100%' },
-  sourceBadge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  sourceBadgeText: { fontSize: 9, fontWeight: '700', color: '#FFF' },
   bookmarkIcon: { position: 'absolute', top: 8, right: 8 },
   savedTitle: { fontSize: 14, fontWeight: '600', color: '#000', marginTop: 8 },
-  savedMeta: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  savedMetaText: { fontSize: 11, color: '#999' },
+  savedMetaText: { fontSize: 11, color: '#999', marginTop: 4 },
 
-  /* Featured */
-  featuredCard: { marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', marginBottom: 24, ...Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 3 }, default: {} }) },
-  featuredImage: { height: 160, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  featuredImagePhoto: { width: '100%', height: '100%' },
-  featuredContent: { padding: 14, backgroundColor: '#FFF' },
-  featuredTitle: { fontSize: 16, fontWeight: '700', color: '#000' },
-  featuredMeta: { fontSize: 13, color: '#999', marginTop: 4 },
+  /* Nothing to show */
+  emptyBox: { marginHorizontal: 20, marginBottom: 24, padding: 20, borderRadius: 16, backgroundColor: '#F7F7F7', alignItems: 'center' },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#000' },
+  emptyText: { fontSize: 13, color: '#777', textAlign: 'center', marginTop: 6, lineHeight: 18 },
+  retryBtn: { marginTop: 14, backgroundColor: '#000', paddingHorizontal: 22, paddingVertical: 11, borderRadius: 22 },
+  retryText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
 
   /* Add Recipe */
   addRecipeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#000', height: 52, borderRadius: 26 },
   addRecipeBtnText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
-
-  /* Modal */
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, minHeight: 400 },
-  dragBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#DDD', alignSelf: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: '#000' },
-  modalSub: { fontSize: 13, color: '#666', marginTop: 4, marginBottom: 20 },
-
-  sourceRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 20 },
-  sourceCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  sourceP: { fontSize: 18, fontWeight: '800', color: '#FFF' },
-
-  urlRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
-  urlInput: { flex: 1, fontSize: 15, color: '#000', marginLeft: 8 },
-  errText: { fontSize: 12, color: '#FF3B30', marginTop: 8 },
-
-  importBtn: { marginTop: 16, backgroundColor: '#000', height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  importBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
-
-  /* Preview */
-  previewCard: { backgroundColor: '#F8F8F8', borderRadius: 16, overflow: 'hidden', marginBottom: 8 },
-  previewImage: { height: 160, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' },
-  previewTitle: { fontSize: 16, fontWeight: '700', color: '#000', padding: 12, paddingBottom: 4 },
-  previewDesc: { fontSize: 13, color: '#666', paddingHorizontal: 12, paddingBottom: 8, lineHeight: 18 },
-  previewMeta: { flexDirection: 'row', gap: 12, paddingHorizontal: 12, paddingBottom: 12 },
-  previewMetaText: { fontSize: 12, color: '#999', backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  limitedNote: { fontSize: 11, color: '#999', fontStyle: 'italic', paddingHorizontal: 12, paddingBottom: 12 },
-  cancelLink: { alignItems: 'center', marginTop: 12 },
-  cancelText: { fontSize: 14, fontWeight: '600', color: '#999' },
 });

@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { askLLM } from '@/services/llmClient';
+import { mapBrowseResult } from '../lib/recipePicks';
 
 class RecipeExtractionService {
   constructor() {
@@ -337,6 +338,14 @@ class RecipeExtractionService {
     return this.lastDiagnostic || null;
   }
 
+  // Calls one of the app's Cloud Functions by name. The three Spoonacular browse/detail methods below go through here, so a test
+  // can stand in for the network without the real Firebase.
+  async callCloudFunction(name, payload) {
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../src/config/firebase');
+    return httpsCallable(functions, name)(payload);
+  }
+
   // Real, live recipe discovery via Spoonacular's complexSearch
   // endpoint - powers the Featured/Post-Workout/Meal Prep/Quick & Easy
   // sections on the main Recipes screen with real recipes instead of
@@ -354,22 +363,10 @@ class RecipeExtractionService {
   // this app's own post-processing, not part of the raw API call.
   async getSpoonacularBrowse(params, number = 12) {
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('../src/config/firebase');
-      const fn = httpsCallable(functions, 'browseSpoonacularRecipes');
-      const result = await fn({ params, number });
+      const result = await this.callCloudFunction('browseSpoonacularRecipes', { params, number });
       const data = result.data;
 
-      return data.results.map((r) => {
-        const calories = r.nutrition?.nutrients?.find((n) => n.name === 'Calories')?.amount;
-        return {
-          id: String(r.id),
-          name: r.title,
-          imageUrl: r.image || '',
-          cal: calories ? `${Math.round(calories)} cal` : '',
-          time: r.readyInMinutes ? `${r.readyInMinutes} min` : '',
-        };
-      });
+      return data.results.map(mapBrowseResult).filter(Boolean);
     } catch (error) {
       this.lastDiagnostic = `Spoonacular browse call failed: ${error?.message}`;
       return [];
@@ -384,24 +381,12 @@ class RecipeExtractionService {
   // batched response instead of to a single result list.
   async getSpoonacularBrowseBatch(sections) {
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('../src/config/firebase');
-      const fn = httpsCallable(functions, 'browseSpoonacularRecipesBatch');
-      const result = await fn({ sections });
+      const result = await this.callCloudFunction('browseSpoonacularRecipesBatch', { sections });
       const data = result.data;
 
       const byKey = {};
       (data?.sections || []).forEach((section) => {
-        byKey[section.key] = (section.results || []).map((r) => {
-          const calories = r.nutrition?.nutrients?.find((n) => n.name === 'Calories')?.amount;
-          return {
-            id: String(r.id),
-            name: r.title,
-            imageUrl: r.image || '',
-            cal: calories ? `${Math.round(calories)} cal` : '',
-            time: r.readyInMinutes ? `${r.readyInMinutes} min` : '',
-          };
-        });
+        byKey[section.key] = (section.results || []).map(mapBrowseResult).filter(Boolean);
       });
       return byKey;
     } catch (error) {
@@ -425,11 +410,9 @@ class RecipeExtractionService {
   // failure surfaces through the catch block below.
   async getSpoonacularById(id) {
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('../src/config/firebase');
-      const fn = httpsCallable(functions, 'getSpoonacularRecipeById');
-      const result = await fn({ id });
-      return this.mapSpoonacularRecipe(result.data);
+      const result = await this.callCloudFunction('getSpoonacularRecipeById', { id });
+      // sourceId is the Spoonacular id, kept on the saved recipe so the Recipes tab can show it as saved.
+      return { ...this.mapSpoonacularRecipe(result.data), sourceId: String(result.data?.id ?? id) };
     } catch (error) {
       this.lastDiagnostic = `Spoonacular getById call failed: ${error?.message}`;
       return null;
