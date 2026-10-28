@@ -36,7 +36,7 @@ export default function PrivacyPolicy() {
         </Text>
 
         <Text style={styles.sectionTitle}>1. Information We Collect</Text>
-        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Account</Text>: your name and email address. Your password is handled by Firebase Authentication; we never see it.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Account</Text>: your name and email address. Your password is handled by Firebase Authentication; we never see it. If you sign in with Apple, Google or Meta instead, that service confirms who you are to Firebase and we receive your name and email address, plus your profile picture from Google or Meta. We never see your Apple, Google or Meta password.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Profile and body metrics</Text>: age, gender, height, weight, goals, and body measurements you enter or that a body scan estimates. Body-scan photos are analyzed on your device. We save the resulting measurements and estimates, not the photos.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Fitness activity</Text>: workouts, sets, runs, walks and hikes, steps, and recovery data (sleep, resting heart rate and heart-rate variability) if you connect Apple Health or a wearable. A daily record of these readings is saved to your account, so the trend charts on the Health page come back on a new phone.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Location</Text>: GPS points while you record a run, walk or hike (including in the background while a recording is active), and your approximate location when you look up weather or nearby trails. For the Local 5K virtual race, a rough map square (about 7 miles across) for where your run started, and the squares around where you are when you look at its board; never your exact position. Only with your permission.</Text>
@@ -61,6 +61,7 @@ export default function PrivacyPolicy() {
 
         <Text style={styles.sectionTitle}>4. Services That Receive Your Data</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Google Firebase</Text>: sign-in, database, file storage, cloud functions, crash reporting (Crashlytics) and analytics.</Text>
+        <Text style={styles.bulletItem}>• <Text style={styles.bold}>Apple, Google and Meta</Text>: only if you choose to sign in with them. They learn that you signed in to ZOWN HQ, and what they do with that is covered by their own privacy policies.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>OpenAI</Text>: AI features described above.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>Radar, Google Places, TrailAPI and the U.S. National Weather Service</Text>: your coordinates or search text, to show a place name, find trails and places, and show weather.</Text>
         <Text style={styles.bulletItem}>• <Text style={styles.bold}>OpenStreetMap (Overpass)</Text>: the map point of a trail you open, to find its marked paths. Not your own location.</Text>
@@ -80,7 +81,7 @@ export default function PrivacyPolicy() {
           We keep your data while your account is active. You can delete your account at any time in Settings &gt; Danger Zone. Deleting it permanently erases your email address, profile, workouts, nutrition, calendar and body-scan records, AI coach chats and the coach's notes about you, posts, comments, likes, messages, duels, challenge entries, virtual race times, uploaded photos and videos, and your leaderboard entry from our servers, and then removes your sign-in. Conversations and duels you shared with other people are removed for them too. This cannot be undone.
         </Text>
         <Text style={styles.bodyText}>
-          A few things sit outside our servers. Firebase keeps crash reports for a limited time. OpenAI may keep AI requests for a short period under its own policy. Anything you connected to Spotify, Apple Music, Apple Health or ROOK stays in those services, where you can remove it yourself. To get a copy of your data before you delete it, email privacy@zownhq.com from the address on your account.
+          A few things sit outside our servers. Firebase keeps crash reports for a limited time. OpenAI may keep AI requests for a short period under its own policy. Anything you connected to Spotify, Apple Music, Apple Health or ROOK stays in those services, where you can remove it yourself. If you signed in with Apple, Google or Meta, ZOWN HQ may stay on the list of apps connected to that account after you delete yours; you can remove it in that service's settings. To get a copy of your data before you delete it, email privacy@zownhq.com from the address on your account.
         </Text>
 
         <Text style={styles.sectionTitle}>7. Security</Text>
@@ -92,6 +93,7 @@ export default function PrivacyPolicy() {
         <Text style={styles.bulletItem}>• Turn location, camera, photos, Apple Health and notification access on or off in your device settings at any time.</Text>
         <Text style={styles.bulletItem}>• Control who can find you and see your activity under Settings &gt; Privacy, and hide yourself from leaderboards.</Text>
         <Text style={styles.bulletItem}>• Disconnect Spotify, Apple Music or wearables in Settings.</Text>
+        <Text style={styles.bulletItem}>• When you sign in with Apple you can choose to hide your email address; Apple then gives us a private forwarding address instead.</Text>
 
         <Text style={styles.sectionTitle}>9. Children's Privacy</Text>
         <Text style={styles.bodyText}>

@@ -72,6 +72,25 @@ describe('Privacy Policy', () => {
     for (const gone of ['Passio', 'Open Food Facts', 'ExerciseDB', 'Meshy']) expect(text).not.toContain(gone);
   });
 
+  it('says the app can sign in with Apple, Google or Meta, what comes back from them, and that their passwords are never seen', () => {
+    const text = policy();
+    expect(text).toMatch(/If you sign in with Apple, Google or Meta instead, that service confirms who you are to Firebase and we receive your name and email address, plus your profile picture from Google or Meta\./);
+    expect(text).toMatch(/We never see your Apple, Google or Meta password\./);
+  });
+
+  it('lists Apple, Google and Meta among the services that receive data, only for people who choose them', () => {
+    const text = policy();
+    expect(text).toMatch(/Apple, Google and Meta: only if you choose to sign in with them\. They learn that you signed in to ZOWN HQ, and what they do with that is covered by their own privacy policies\./);
+  });
+
+  it('says deleting an account here does not take the app off the Apple, Google or Meta account', () => {
+    expect(policy()).toMatch(/If you signed in with Apple, Google or Meta, ZOWN HQ may stay on the list of apps connected to that account after you delete yours; you can remove it in that service's settings\./);
+  });
+
+  it('says a person signing in with Apple can hide their email address', () => {
+    expect(policy()).toMatch(/When you sign in with Apple you can choose to hide your email address; Apple then gives us a private forwarding address instead\./);
+  });
+
   it('says deleting an account erases the data and the sign-in, and names what stays outside our servers', () => {
     const text = policy();
     expect(text).toMatch(/Deleting it permanently erases your email address, profile, workouts/);

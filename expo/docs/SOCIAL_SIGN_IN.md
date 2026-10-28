@@ -101,8 +101,9 @@ Closing the sign-in page or sheet shows nothing; the person is back on the login
 - **Deleting an account must revoke Apple's token** before the App Store review: Apple requires an app that offers Sign in with
   Apple, and account deletion, to revoke the person's Apple token when the account is deleted. TestFlight does not check this; the
   App Store does. It needs the Apple key and Services ID in Firebase and a change to the deletion code.
-- **The privacy policy** should say the app can sign in with Apple, Google or Meta and what comes back from them (name and email).
-  Meta also asks for a public privacy policy URL.
+- **A public web address for the privacy policy.** The policy now names the three sign-ins and what comes back from them (name,
+  email, and a profile picture from Google and Meta), but it lives inside the app (`app/profile/privacy-policy.jsx`). Meta asks for
+  a public web address for it before the Meta app can go Live, and App Store Connect asks for one too.
 - **The register screen** has no Apple, Google or Meta buttons. A new account made by one of them is created from the login screen.
 - **One person, two sign-in methods.** What happens when someone signs in with Apple, Google or Meta using an email that already
   has an account is Firebase's rule (the setting "One account per email address", on by default), not the app's. Depending on
