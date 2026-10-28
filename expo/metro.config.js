@@ -28,14 +28,24 @@ const rorkConfig = withRorkMetro(config);
 const rorkResolveRequest = rorkConfig.resolver.resolveRequest;
 const aiStubPath = path.resolve(__dirname, 'metro-stubs/ai-sdk-stub.js');
 
+// expo-three (a library, not this app's code) imports three's loaders without the ".js"
+// ("three/examples/jsm/loaders/GLTFLoader"). three lists ./examples/jsm/* in its "exports" with no extension, so
+// Metro warned about each of them on every bundle ("invalid package.json configuration ... Falling back to
+// file-based resolution"). The file it fell back to was always the right one; only the warning was noise. Giving
+// Metro the file's real name finds it through "exports" and says nothing. A request that already has an extension,
+// and anything outside three/examples/jsm/, is left exactly as it was.
+const threeExample = /^three\/examples\/jsm\/.+/;
+const hasExtension = /\.(?:[cm]?js|json)$/;
+
 rorkConfig.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'ai' || moduleName.startsWith('@ai-sdk/')) {
     return { filePath: aiStubPath, type: 'sourceFile' };
   }
+  const request = threeExample.test(moduleName) && !hasExtension.test(moduleName) ? `${moduleName}.js` : moduleName;
   if (rorkResolveRequest) {
-    return rorkResolveRequest(context, moduleName, platform);
+    return rorkResolveRequest(context, request, platform);
   }
-  return context.resolveRequest(context, moduleName, platform);
+  return context.resolveRequest(context, request, platform);
 };
 
 module.exports = rorkConfig;
