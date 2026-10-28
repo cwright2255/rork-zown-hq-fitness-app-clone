@@ -109,6 +109,20 @@ describe('/users/{userId}/stats/{docId}', () => {
     await no(env.as('bob').doc(stats).get());
     await no(env.anon().doc(stats).get());
   });
+
+  // The invite record (functions/src/referrals.js) says how many friends joined and how many Pro days were earned: the person can read it and
+  // nothing they send can change it, or they could give themselves days or reset the limit on their code.
+  it('holds the invite record, which its owner can read and nobody can write', async () => {
+    const invite = 'users/alice/stats/invite';
+    await env.seed({ [invite]: { code: 'K7P2QX4M', joined: 1, rewarded: 1, daysEarned: 7 } });
+    await ok(env.as('alice').doc(invite).get());
+    await no(env.as('bob').doc(invite).get());
+    for (const db of [env.as('alice'), env.as('bob'), env.anon()]) {
+      await no(db.doc(invite).set({ code: 'K7P2QX4M', joined: 0, rewarded: 0, daysEarned: 700 }));
+      await no(db.doc(invite).update({ rewarded: 0 }));
+      await no(db.doc(invite).delete());
+    }
+  });
 });
 
 // Which achievements and badges are unlocked and which Battle Pass tiers are claimed are written by Cloud Functions only

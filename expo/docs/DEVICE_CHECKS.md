@@ -1044,3 +1044,45 @@ the login screen and signed nobody out, so closing the app and opening it again 
 - [ ] Sign in again: you reach Home with your own name and data.
 - [ ] Settings, Log Out does the same thing: login screen now, and still the login screen after closing and opening the app.
 - [ ] Profile, Log Out, then Cancel: you stay on Profile, and after closing and opening the app you are still signed in.
+
+## Home: Recommended Workouts and Invite your friends
+
+**Recommended Workouts** is JavaScript only. The row is real sessions from the same engine as Today's Session (`lib/homeRecommendations.js` asks
+`lib/sessionPicker.js`), worked out again whenever your workouts, runs, hikes, recovery data or profile change. It used to be four invented workouts.
+
+- [ ] Home, Recommended Workouts: the cards have the names of muscles ("Chest and Core"), a time and an exercise count, the equipment, and the first two
+      exercises. The first, "TODAY", is your usual session length with a full gym. None is called HIIT Blast, Morning Yoga, Strength Core or Cardio Mix.
+- [ ] Press a card: Today's Session opens with that card's time and equipment already chosen, and the same exercises the card named.
+- [ ] Finish a workout, go back to Home: the row has changed to train what is rested. If everything is still recovering, the row says so instead of
+      showing cards, and pressing it opens Today's Session.
+- [ ] Today's Session opened from Workouts still starts at your preferred time with a full gym.
+
+**Invite your friends** needs the two new functions (and nothing else on the server: no rules, no indexes). Deploy them first, then the update:
+
+```
+firebase deploy --only functions:getInviteStatus,functions:redeemInviteCode --project zown-3c512
+eas update --branch main --environment production --message "Home: real Recommended Workouts and Invite your friends"
+```
+
+What it does: every person has a code (shown as `XXXX-XXXX`) made by the server the first time they open the Invite screen. A friend who types it in
+gets 7 days of Pro, and so does the person it came from, for up to 5 friends. The numbers are `REFERRAL_RULES` at the top of
+`functions/src/referrals.js` (change them there and redeploy; the screens say whatever the server says). The days are a Pro plan that ends on a date, written
+to `entitlements/{uid}` with `source: 'referral'`, so every Pro check works on it and it ends by itself. A person who has bought a plan, or been given one by
+hand, keeps it and is given no days. When purchases are connected, the RevenueCat function must not replace a plan that has `source: 'referral'` while it is
+still running unless the person has bought one.
+
+The link in the share message is the App Store page (`APP_STORE_LINK` in `lib/invite.js`). It only works once the app is on the App Store; for the TestFlight
+alpha, put the public TestFlight link there instead.
+
+Check it with two accounts, A and B, on two phones (B must be a new account, made in the last 14 days):
+
+- [ ] A: Home, "Invite your friends" opens the Invite screen with a code like `K7P2-QX4M`, "0 Friends joined", "0 Pro days earned".
+- [ ] A: "Share invite" opens the share sheet. The message has the App Store link and the code. Sending it to yourself works.
+- [ ] B: Home, "Invite your friends", type A's code (lower case and no dash are fine), "Use code": "You're in! You now have 7 days of Pro". Settings, "Your plan"
+      says Pro. The box is replaced by "You joined with a friend's code and got 7 days of Pro."
+- [ ] A: reopen the Invite screen: "1 Friend joined", "7 Pro days earned", and A has Pro for 7 more days.
+- [ ] B: a second try with any code says "You've already joined with a friend's code." B using A's own code on A says "That's your own code."
+- [ ] A made-up code says "That code isn't right." Ten of those and the account is turned away.
+- [ ] An account older than 14 days says "Codes only work for accounts made in the last 14 days."
+- [ ] The Invite screen has a "Community" row at the bottom, which opens the Community (the Home banner used to be the only way there).
+- [ ] Delete B's account in the app, then try B's code from a third account: "That code isn't right." (Deleting an account removes its code.)

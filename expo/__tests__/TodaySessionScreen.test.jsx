@@ -9,7 +9,7 @@ import React from 'react';
 import { Text, Pressable, Alert } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
-jest.mock('expo-router', () => ({ useRouter: () => global.__router }), { virtual: true });
+jest.mock('expo-router', () => ({ useRouter: () => global.__router, useLocalSearchParams: () => global.__params || {} }), { virtual: true });
 jest.mock('@/components/ScreenHeader', () => ({ __esModule: true, default: ({ title }) => { const { Text: T } = require('react-native'); return <T>{title}</T>; } }));
 jest.mock('@/components/PrimaryButton', () => ({
   __esModule: true,
@@ -575,6 +575,44 @@ describe('what is counted when the workout is started', () => {
     const workout = global.__addWorkout.mock.calls[0][0];
     expect(workout.source).toBe('engine_session');
     expect(workout.exercises.map((x) => x.name)).toEqual(['Dumbbell Bench Press', 'Plank']);
+  });
+});
+
+describe('opened from a Recommended Workouts card on Home', () => {
+  const lastBuild = () => buildTodaySession.mock.calls[buildTodaySession.mock.calls.length - 1][0];
+  afterEach(() => { global.__params = undefined; });
+
+  it('builds the session for the time and equipment of the card, and shows them chosen', async () => {
+    global.__params = { minutes: '45', equipment: 'dumbbells' };
+    const utils = await show();
+    expect(lastBuild()).toMatchObject({ minutes: 45, equipment: 'dumbbells' });
+    expect(utils.getByRole('button', { name: '45 min', selected: true })).toBeTruthy();
+    expect(utils.getByRole('button', { name: 'Dumbbells and a bench', selected: true })).toBeTruthy();
+    expect(utils.queryByRole('button', { name: 'Full gym', selected: true })).toBeNull();
+    expect(utils.queryByRole('button', { name: '30 min', selected: true })).toBeNull();
+  });
+
+  it('starts at the person\'s own time and a full gym when opened any other way', async () => {
+    global.__params = {};
+    await show();
+    expect(lastBuild()).toMatchObject({ minutes: 30, equipment: 'gym' });
+  });
+
+  it('ignores a time or equipment the screen does not offer', async () => {
+    global.__params = { minutes: '20', equipment: 'pool' };
+    await show();
+    expect(lastBuild()).toMatchObject({ minutes: 30, equipment: 'gym' });
+  });
+
+  it('still lets the person change the time and equipment afterwards', async () => {
+    global.__params = { minutes: '15', equipment: 'bodyweight' };
+    const utils = await show();
+    fireEvent.press(utils.getByText('60 min'));
+    await flush();
+    expect(lastBuild()).toMatchObject({ minutes: 60, equipment: 'bodyweight' });
+    fireEvent.press(utils.getByText('Full gym'));
+    await flush();
+    expect(lastBuild()).toMatchObject({ minutes: 60, equipment: 'gym' });
   });
 });
 

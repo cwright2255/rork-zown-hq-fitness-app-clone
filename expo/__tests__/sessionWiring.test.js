@@ -87,11 +87,12 @@ describe('the Today\'s Session screen', () => {
   });
 
   it('starts at the length on the profile, offers the times and the equipment from the picker, and defaults to the gym', () => {
-    expect(screen).toMatch(/useState\(\(\) => minutesFromPreference\(useUserStore\.getState\(\)\.user\?\.preferences\?\.preferredDuration\)\)/);
+    expect(screen).toMatch(/startFromParams\(params, minutesFromPreference\(useUserStore\.getState\(\)\.user\?\.preferences\?\.preferredDuration\)\)/);
     expect(screen).toMatch(/SESSION_RULES\.minutesOptions\.map\(/);
     expect(screen).toMatch(/const EQUIPMENT_CHOICES = \['gym', 'dumbbells', 'bodyweight'\];/);
     expect(screen).toMatch(/EQUIPMENT_LABELS\[id\]/);
-    expect(screen).toMatch(/useState\('gym'\)/);
+    expect(screen).toMatch(/useState\(start\.minutes\)/);
+    expect(screen).toMatch(/useState\(start\.equipment\)/);
   });
 
   it('refreshes the stores once, ignores an answer that is no longer the latest, and clears the session when a rebuild fails', () => {

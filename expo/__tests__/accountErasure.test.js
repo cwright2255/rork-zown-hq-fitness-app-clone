@@ -154,6 +154,9 @@ const seed = () => ({
   'aiUsage/u1_2026-10-11': { uid: 'u1', day: '2026-10-11', coach: 4 },
   'aiUsage/u1_2026-10-12': { uid: 'u1', day: '2026-10-12', coach: 1, assist: 2 },
   'aiUsage/u2_2026-10-12': { uid: 'u2', day: '2026-10-12', coach: 3 },
+  'inviteCodes/K7P2QX4M': { uid: 'u1', createdAt: '2026-10-01T00:00:00.000Z' },
+  'inviteCodes/H3WZ9N5R': { uid: 'u2', createdAt: '2026-10-01T00:00:00.000Z' },
+  'users/u1/stats/invite': { code: 'K7P2QX4M', joined: 2, rewarded: 2, daysEarned: 14 },
   'communityGroups/g1': { memberCount: 5 },
 });
 
@@ -248,6 +251,14 @@ describe('erasing an account', () => {
     expect(has(db, 'aiUsage/u2_2026-10-12')).toBe(true);
   });
 
+  it('removes their invite code, so nobody can join with it afterwards, and only theirs', async () => {
+    const { db, promise } = run();
+    await promise;
+    expect(has(db, 'inviteCodes/K7P2QX4M')).toBe(false);
+    expect(has(db, 'users/u1/stats/invite')).toBe(false); // with the rest of their profile
+    expect(has(db, 'inviteCodes/H3WZ9N5R')).toBe(true);
+  });
+
   it('removes their times from the virtual race boards, and only theirs', async () => {
     const { db, promise } = run();
     await promise;
@@ -284,7 +295,7 @@ describe('erasing an account', () => {
       'workouts/w2', 'loggedSets/l2', 'coachMessages/m2', 'goals/g2', 'aiRecommendations/r2',
       'leaderboard/u2', 'communityPosts/p2', 'communityPosts/p2/likes/u3',
       'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'calendarInvites/i23', 'challengeEntries/ch1_u2', 'raceEntries/local-5k-week-2026-10-12_u2',
-      'entitlements/u2', 'aiUsage/u2_2026-10-12',
+      'entitlements/u2', 'aiUsage/u2_2026-10-12', 'inviteCodes/H3WZ9N5R',
     ];
     for (const p of keep) expect(db.docs.get(p)).toEqual(p === 'communityPosts/p2' ? { authorId: 'u2', likeCount: 2, commentCount: 2 } : before.docs.get(p));
   });

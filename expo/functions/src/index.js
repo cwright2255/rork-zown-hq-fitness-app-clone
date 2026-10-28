@@ -24,6 +24,7 @@ import { sanitizeTrainingState, trainingStateText } from './trainingState.js';
 import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
 import { checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan } from './aiQuota.js';
 import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
+import { getInviteStatus as inviteStatusFor, redeemInvite } from './referrals.js';
 
 initializeApp();
 
@@ -1884,6 +1885,25 @@ export const claimBattlePassTier = onCall(
     const result = await claimTier({ db: getFirestore(), uid, tier });
     if (result.status === 'invalid') throw new HttpsError('invalid-argument', 'tier must be a whole number from 1 to 20');
     return result;
+  }
+);
+
+// The person's invite code (made the first time it is asked for) and how their invites are going, and joining with a friend's code, which
+// gives both of them free Pro days. Everything is decided here, not on the phone. See referrals.js.
+export const getInviteStatus = onCall(
+  { region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    return inviteStatusFor({ db: getFirestore(), uid });
+  }
+);
+
+export const redeemInviteCode = onCall(
+  { region: 'us-central1' },
+  async (req) => {
+    const uid = requireAuth(req.auth);
+    const code = req.data && typeof req.data.code === 'string' ? req.data.code.slice(0, 64) : '';
+    return redeemInvite({ db: getFirestore(), uid, code, accountCreatedMs: () => accountCreatedMs(uid) });
   }
 );
 

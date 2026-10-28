@@ -19,7 +19,7 @@
 // and excluded is counted when the workout is started (lib/trainingMeasures.js).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
@@ -31,6 +31,7 @@ import {
   SESSION_RULES, EQUIPMENT_LABELS, SESSION_DISCLAIMER, minutesFromPreference, sessionToWorkout, dropExercise,
 } from '@/lib/sessionPicker';
 import { getExercise } from '@/lib/exerciseLibrary';
+import { startFromParams } from '@/lib/homeRecommendations';
 import { feedbackKey, voteOf, excludedList } from '@/lib/trainingFeedback';
 import {
   refreshSessionSources, buildTodaySession, getSwapOptions, swapInExercise,
@@ -50,8 +51,12 @@ export default function TodaySessionScreen() {
   const router = useRouter();
   const uid = useUserStore((s) => s.user?.uid);
   const weightUnit = useSettingsStore((s) => unitFromSetting(s.weightUnits));
-  const [minutes, setMinutes] = useState(() => minutesFromPreference(useUserStore.getState().user?.preferences?.preferredDuration));
-  const [equipment, setEquipment] = useState('gym');
+  // Opened from a Recommended Workouts card on Home, the screen starts with that card's time and equipment; opened any other way, with the
+  // person's preferred time and a full gym.
+  const params = useLocalSearchParams();
+  const [start] = useState(() => startFromParams(params, minutesFromPreference(useUserStore.getState().user?.preferences?.preferredDuration)));
+  const [minutes, setMinutes] = useState(start.minutes);
+  const [equipment, setEquipment] = useState(start.equipment);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -52,6 +52,10 @@ import SwipeableStepsContent from '@/components/SwipeableStepsContent';
 import PromptModal from '@/components/PromptModal';
 import { useRunningStore } from '@/store/runningStore';
 import { useHikingStore } from '@/store/hikingStore';
+import { useTrainingFeedbackStore } from '@/store/trainingFeedbackStore';
+import { readSessionInputs } from '@/services/sessionService';
+import { minutesFromPreference } from '@/lib/sessionPicker';
+import { buildHomeCards } from '@/lib/homeRecommendations';
 import { getFullOrderedLayout, getWidgetDefinition } from '@/lib/homeWidgets';
 import StrengthScoreWidget from '@/components/StrengthScoreWidget';
 import FastingWidget from '@/components/FastingWidget';
@@ -84,13 +88,6 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const WORKOUTS = [
-  { id: '1', name: 'HIIT Blast', duration: '30 min', icon: 'barbell-outline' },
-  { id: '2', name: 'Morning Yoga', duration: '20 min', icon: 'body-outline' },
-  { id: '3', name: 'Strength Core', duration: '45 min', icon: 'fitness-outline' },
-  { id: '4', name: 'Cardio Mix', duration: '25 min', icon: 'bicycle-outline' },
 ];
 
 /* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Circular Progress Ring Component ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
@@ -136,12 +133,24 @@ function ProgressRing({ size = 80, strokeWidth = 8, progress = 0.7, color = '#00
 /* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Workout carousel item ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 function WorkoutItem({ item, onPress }) {
   return (
-    <Pressable style={styles.workoutItem} onPress={onPress}>
+    <Pressable
+      style={styles.workoutItem}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}, ${item.detail}, ${item.equipmentLabel}`}
+    >
       <View style={styles.workoutThumb}>
         <Ionicons name={item.icon} size={28} color="#000" />
+        {item.today && (
+          <View style={styles.todayBadge}>
+            <Text style={styles.todayBadgeText}>TODAY</Text>
+          </View>
+        )}
       </View>
-      <Text style={styles.workoutName}>{item.name}</Text>
-      <Text style={styles.workoutDuration}>{item.duration}</Text>
+      <Text style={styles.workoutName} numberOfLines={2}>{item.title}</Text>
+      <Text style={styles.workoutDuration}>{item.detail}</Text>
+      <Text style={styles.workoutDuration}>{item.equipmentLabel}</Text>
+      <Text style={styles.workoutPreview} numberOfLines={2}>{item.preview}</Text>
     </Pressable>
   );
 }
@@ -207,6 +216,26 @@ export default function HQScreen() {
   };
   const { runs } = useRunningStore();
   const completedHikes = useHikingStore((s) => s.completedHikes);
+
+  // Recommended Workouts: sessions from the Today's Session engine, worked out again whenever what it reads changes (a finished workout, run or
+  // hike, the recovery data, the profile, what the person has told the engine, a new day, a pull to refresh). Nothing is fetched here.
+  const sessionFeedback = useTrainingFeedbackStore((s) => s.feedback);
+  const todayKey = localDateKey();
+  const recommended = useMemo(() => {
+    try {
+      return buildHomeCards({
+        inputs: readSessionInputs({ user, now: new Date(), feedback: sessionFeedback }),
+        preferredMinutes: minutesFromPreference(user?.preferences?.preferredDuration),
+      });
+    } catch (e) {
+      console.warn('[Home] could not work out the recommended workouts:', e?.message);
+      return { cards: [], notice: null };
+    }
+  }, [user, completedWorkouts, runs, completedHikes, rookRecovery, sleep, sessionFeedback, todayKey, refreshTick]);
+  const openRecommended = (card) => router.push({
+    pathname: '/workout/session',
+    params: { minutes: String(card.minutes), equipment: card.equipment },
+  });
 
   const [expandedCard, setExpandedCard] = useState(null);
   const [showWidgetMenu, setShowWidgetMenu] = useState(false);
@@ -658,19 +687,29 @@ export default function HQScreen() {
       (
         <View style={styles.carouselCard}>
           <Text style={styles.carouselTitle}>Recommended Workouts</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselScroll}
-          >
-            {WORKOUTS.map((w) => (
-              <WorkoutItem
-                key={w.id}
-                item={w}
-                onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
-              />
-            ))}
-          </ScrollView>
+          {recommended.cards.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselScroll}
+            >
+              {recommended.cards.map((c) => (
+                <WorkoutItem key={c.key} item={c} onPress={() => openRecommended(c)} />
+              ))}
+            </ScrollView>
+          ) : (
+            <Pressable
+              style={styles.restNote}
+              onPress={() => router.push('/workout/session')}
+              accessibilityRole="button"
+              accessibilityLabel="Open Today's Session"
+            >
+              <Ionicons name="moon-outline" size={22} color="#000" />
+              <Text style={styles.restNoteText}>
+                {recommended.notice || "A session couldn't be worked out right now. Tap to open Today's Session."}
+              </Text>
+            </Pressable>
+          )}
         </View>
         )
     ),
@@ -679,14 +718,16 @@ export default function HQScreen() {
         <TouchableOpacity
           style={styles.banner}
           activeOpacity={0.8}
-          onPress={() => router.push('/community')}
+          onPress={() => router.push('/invite')}
+          accessibilityRole="button"
+          accessibilityLabel="Invite your friends"
         >
           <View style={styles.bannerIcon}>
-            <Ionicons name="trophy-outline" size={22} color="#000" />
+            <Ionicons name="person-add-outline" size={22} color="#000" />
           </View>
           <View style={styles.bannerText}>
             <Text style={styles.bannerTitle}>Invite your friends</Text>
-            <Text style={styles.bannerSub}>Invite your friends to get a free exercise right away</Text>
+            <Text style={styles.bannerSub}>Share your code. When a friend joins, you both get free Pro days.</Text>
           </View>
         </TouchableOpacity>
         )
@@ -1145,6 +1186,40 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     marginTop: 2,
+  },
+  workoutPreview: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 4,
+  },
+  todayBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#000',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  todayBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  restNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
+    padding: 14,
+  },
+  restNoteText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 18,
   },
 
   /* banner */
