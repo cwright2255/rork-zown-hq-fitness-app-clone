@@ -1,13 +1,14 @@
 // lib/sessionWording.js
 //
 // The words around today's session. The training engine (lib/sessionPicker.js) chooses the exercises, the sets, the reps, the rests and the
-// weights; none of that is ever handed to the AI to decide. What the AI may do is put words on it: a name for the session, a plain-language
-// reason for each pick, and a line about an injury area that was left out or a muscle that is still tired.
+// weights; none of that is ever handed to the AI to decide. What the AI may do is put words on it: a plain-language reason for each pick, and a
+// line about an injury area that was left out or a muscle that is still tired. The session's name is not the AI's: the engine gives it one from a fixed
+// list (lib/workoutNames.js), so a name can never be an exercise, however the AI words the rest.
 //
 // Everything the AI says is checked here before anyone sees it, against the engine's own session:
 //   - the answer must be JSON for this session: every exercise it mentions has to be one in the session (once each), and if it repeats a
 //     set, rep, rest or weight figure for a pick, that figure has to be the engine's. Anything else and the whole answer is dropped;
-//   - each piece of text (the name, each reason, the note) is then checked on its own, and a piece that fails is dropped alone, so the
+//   - each piece of text (each reason, the note) is then checked on its own, and a piece that fails is dropped alone, so the
 //     engine's own reason stays in its place: no number the engine did not give for that pick (a digit or a number word beside a unit), the
 //     other weight unit's name, a claim the engine cannot make (guaranteed, proven, clinically, safe, optimal, diagnose, treat, rehab...),
 //     a link or markup, another exercise from the library, or text that is too long or too short.
@@ -23,9 +24,7 @@ import { muscleLabel } from './homeWidgetData';
 /** Every number this module uses. */
 export const WORDING_RULES = Object.freeze({
   /** Changes whenever the instructions below change, so an answer kept for the old ones is not used. */
-  version: 1,
-  nameMin: 2,
-  nameMax: 40,
+  version: 2,
   whyMin: 8,
   whyMax: 180,
   noteMax: 260,
@@ -36,7 +35,7 @@ export const WORDING_RULES = Object.freeze({
 });
 
 /** Shown under the session when the AI's words are on it, so the engine is never presented as the AI or the AI as the engine. */
-export const WORDING_CAPTION = 'The name and the reasons are worded by AI from the numbers the training engine used. The exercises, sets, reps and weights are the engine\'s.';
+export const WORDING_CAPTION = 'The reasons are worded by AI from the numbers the training engine used. The exercises, sets, reps and weights are the engine\'s.';
 
 const GOAL_LABELS = Object.freeze({ strength: 'Strength', muscle: 'Build Muscle', general: 'General Fitness' });
 const EQUIPMENT_WORDS = Object.freeze({ gym: 'a full gym', dumbbells: 'dumbbells and a bench', bodyweight: 'no equipment' });
@@ -96,8 +95,7 @@ export function wordingBrief(session, { unit, equipment } = {}) {
 export const WORDING_SYSTEM =
   'You put words on a workout that a training engine has already chosen. You do not choose, change, add, remove or reorder anything: not the ' +
   'exercises, sets, reps, rests or weights. You are given the session as JSON.\n' +
-  'Reply with JSON only, in exactly this shape: {"name": string, "note": string, "picks": [{"id": string, "why": string}]}.\n' +
-  '- name: a short plain name for the session, 2 to 5 words, at most 40 characters, with no digits.\n' +
+  'Reply with JSON only, in exactly this shape: {"note": string, "picks": [{"id": string, "why": string}]}. Do not name the session.\n' +
   '- picks: one entry for every exercise, in the same order, with its id exactly as given. why: one or two plain sentences, at most 180 ' +
   'characters, saying why this exercise is in today\'s session, using only the figures given for it in pickedFor, sets, reps and weight. ' +
   'Quote a number exactly as it is given, in the unit given, and use no other number. Never convert units. Name no other exercise.\n' +
@@ -219,8 +217,8 @@ function cleanText(value, { min, max, allowed, unit }) {
  *
  * Returns null when the reply cannot be used at all: it is not an object, it mentions an exercise that is not in the session or the same one
  * twice, it gives a set, rep, rest or weight figure that is not the engine's for that exercise, or nothing in it passes. Otherwise
- * `{ name, note, why }`: `name` and `note` are the checked text or null, and `why` is { exerciseId: checked reason } for the picks whose
- * reason passed. A piece that did not pass is simply not there, so the engine's own words stay in its place.
+ * `{ note, why }`: `note` is the checked text or null, and `why` is { exerciseId: checked reason } for the picks whose
+ * reason passed. A name in the reply is ignored: the session's name is the engine's. A piece that did not pass is simply not there, so the engine's own words stay in its place.
  */
 export function checkWording(reply, session, { unit } = {}) {
   if (!isObject(reply) || !isObject(session) || !Array.isArray(session.exercises) || session.exercises.length === 0) return null;
@@ -251,8 +249,7 @@ export function checkWording(reply, session, { unit } = {}) {
     return others.some((n) => withoutOwn(text).includes(n)) ? null : text;
   };
 
-  const out = { name: null, note: null, why: {} };
-  out.name = clean(reply.name, { min: WORDING_RULES.nameMin, max: WORDING_RULES.nameMax, allowed: [] });
+  const out = { note: null, why: {} };
 
   const hasWhat = (Array.isArray(session.leftOutFor) && session.leftOutFor.length > 0) || (Array.isArray(session.tired) && session.tired.length > 0);
   if (hasWhat) out.note = clean(reply.note, { min: WORDING_RULES.whyMin, max: WORDING_RULES.noteMax, allowed: figuresForSession(session) });
@@ -262,7 +259,7 @@ export function checkWording(reply, session, { unit } = {}) {
     if (text !== null) out.why[pick.id] = text;
   });
 
-  return out.name === null && out.note === null && Object.keys(out.why).length === 0 ? null : out;
+  return out.note === null && Object.keys(out.why).length === 0 ? null : out;
 }
 
 /**
@@ -276,9 +273,8 @@ export function applyWording(session, wording) {
   const exercises = session.exercises.map((x) => (
     typeof why[x.id] === 'string' ? { ...x, engineReason: x.reason, reason: why[x.id] } : x
   ));
-  const name = typeof wording.name === 'string' && wording.name ? wording.name : session.name;
   const note = typeof wording.note === 'string' && wording.note ? wording.note : null;
-  const worded = name !== session.name || note !== null || exercises.some((x, i) => x !== session.exercises[i]);
+  const worded = note !== null || exercises.some((x, i) => x !== session.exercises[i]);
   if (!worded) return session;
-  return { ...session, name, engineName: session.name, exercises, note, worded: true };
+  return { ...session, exercises, note, worded: true };
 }

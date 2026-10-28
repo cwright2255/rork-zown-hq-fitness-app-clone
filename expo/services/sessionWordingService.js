@@ -42,7 +42,7 @@ export function peekWording(session, { unit, equipment, now = Date.now() } = {})
 }
 
 /**
- * The checked wording for a session built by lib/sessionPicker.js ({ name, note, why }; see checkWording), or null when there is none: the
+ * The checked wording for a session built by lib/sessionPicker.js ({ note, why }; see checkWording), or null when there is none: the
  * session cannot be worded, the AI gave nothing, the plan's allowance is used up, or the answer failed the checks. `ask` is only there so a
  * test can stand in for the AI. Never throws.
  */

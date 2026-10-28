@@ -23,7 +23,7 @@ const optionNames = (src, from, to) => {
 describe('the picker and the injury list', () => {
   it('read no store, no Firestore and no screen: only the lib modules they are built from', () => {
     expect(importsOf(picker)).toEqual([
-      './coachActions', './exerciseLibrary', './homeWidgetData', './injuryRules', './loadRules', './muscleRecovery', './trainingFeedback',
+      './coachActions', './exerciseLibrary', './homeWidgetData', './injuryRules', './loadRules', './muscleRecovery', './trainingFeedback', './workoutNames',
     ]);
     expect(importsOf(injuries)).toEqual([]);
     [picker, injuries].forEach((src) => expect(src).not.toMatch(/require\(|firebase|AsyncStorage|react|fetch\(/));

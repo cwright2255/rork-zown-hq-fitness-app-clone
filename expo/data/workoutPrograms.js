@@ -55,7 +55,7 @@ function buildWeeks(dayTemplates, totalWeeks) {
 export const WORKOUT_PROGRAMS = [
   {
     id: 'full-body-foundations',
-    title: 'Full Body Foundations',
+    title: 'Sweat Symphony',
     subtitle: '9 weeks • 3x/week',
     level: 'Beginner',
     description: "A three-day full body split built on standard compound lifts. Ideal if you're new to structured training and want every session to hit your whole body.",
@@ -67,7 +67,7 @@ export const WORKOUT_PROGRAMS = [
   },
   {
     id: 'upper-lower-strength',
-    title: 'Upper/Lower Strength',
+    title: 'Split Decision',
     subtitle: '9 weeks • 4x/week',
     level: 'Intermediate',
     description: 'A four-day upper/lower split for lifters who already have the basics down and want to add weight to the bar with a higher training frequency.',
@@ -80,7 +80,7 @@ export const WORKOUT_PROGRAMS = [
   },
   {
     id: 'push-pull-legs',
-    title: 'Push Pull Legs',
+    title: 'Push Pull Powerhouse',
     subtitle: '9 weeks • 6x/week',
     level: 'Advanced',
     description: 'A six-day push/pull/legs split for experienced lifters who can recover from training each muscle group twice a week at high volume.',

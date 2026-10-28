@@ -1,7 +1,7 @@
 // app/workout/program/session/[id].jsx
 //
 // Preview + launch screen for one specific day within a workout program
-// (e.g. "Full Body Foundations, Week 3, Day A"). Modeled directly on
+// (e.g. "Sweat Symphony, Week 3, Day A"). Modeled directly on
 // app/running/session/[id].jsx - same role, same bottom-bar "Start
 // Session" pattern. Route id is a composite
 // "${programId}-w${weekNumber}-d${dayIndex}" string, matching the same

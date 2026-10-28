@@ -100,6 +100,7 @@ describe('Recommended Workouts on Home', () => {
     expect(utils.getByText('Recommended Workouts')).toBeTruthy();
     cards.forEach((c) => {
       expect(utils.getAllByText(c.title).length).toBeGreaterThan(0);
+      expect(utils.getAllByText(c.focus).length).toBeGreaterThan(0);
       expect(utils.getAllByText(c.detail).length).toBeGreaterThan(0);
       expect(utils.getAllByText(c.equipmentLabel).length).toBeGreaterThan(0);
       expect(utils.getAllByText(c.preview).length).toBeGreaterThan(0);
@@ -115,11 +116,11 @@ describe('Recommended Workouts on Home', () => {
   it('opens that session on the session screen, with the time and equipment of the card that was tapped', async () => {
     const utils = await openHome();
     const [first, ...others] = expectedCards();
-    fireEvent.press(utils.getByLabelText(`${first.title}, ${first.detail}, ${first.equipmentLabel}`));
+    fireEvent.press(utils.getByLabelText(`${first.title}, ${first.focus}, ${first.detail}, ${first.equipmentLabel}`));
     expect(router.push).toHaveBeenLastCalledWith({ pathname: '/workout/session', params: { minutes: '30', equipment: 'gym' } });
     const other = others.find((c) => c.equipment === 'dumbbells');
     if (other) {
-      fireEvent.press(utils.getByLabelText(`${other.title}, ${other.detail}, ${other.equipmentLabel}`));
+      fireEvent.press(utils.getByLabelText(`${other.title}, ${other.focus}, ${other.detail}, ${other.equipmentLabel}`));
       expect(router.push).toHaveBeenLastCalledWith({ pathname: '/workout/session', params: { minutes: '30', equipment: 'dumbbells' } });
     }
   });
@@ -129,7 +130,7 @@ describe('Recommended Workouts on Home', () => {
     const [first] = buildHomeCards({
       inputs: sessionService.readSessionInputs({ user: user(), now: EVENING }), preferredMinutes: 45,
     }).cards;
-    fireEvent.press(utils.getByLabelText(`${first.title}, ${first.detail}, ${first.equipmentLabel}`));
+    fireEvent.press(utils.getByLabelText(`${first.title}, ${first.focus}, ${first.detail}, ${first.equipmentLabel}`));
     expect(router.push).toHaveBeenLastCalledWith({ pathname: '/workout/session', params: { minutes: '45', equipment: 'gym' } });
   });
 

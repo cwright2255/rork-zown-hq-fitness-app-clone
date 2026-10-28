@@ -37,6 +37,7 @@
 import { LIBRARY, LEVELS, EQUIPMENT, getLadder, getExercise, findExercise } from './exerciseLibrary';
 import { workoutLoads, workoutTime } from './muscleRecovery';
 import { GOALS, levelKey, repRangeFor, describeLift, prescriptionText } from './loadRules';
+import { titleForSession } from './workoutNames';
 import { blockedBy } from './injuryRules';
 import { muscleLabel } from './homeWidgetData';
 import { calculateXpReward } from './coachActions';
@@ -220,16 +221,36 @@ const isTimed = (e) => {
 const minutesOf = (workSeconds, restSeconds, sets) => (sets * (workSeconds + restSeconds) + SESSION_RULES.transitionSeconds) / 60;
 const oneDecimal = (v) => Math.round(v * 10) / 10;
 
-function nameFor(planned) {
+// The muscles a session mainly works: the ones with at least half as many planned sets as the busiest, most sets first.
+function leadMuscles(planned) {
   const ranked = Object.entries(planned)
     .filter(([, sets]) => sets > 0)
     .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
-  if (ranked.length === 0) return 'Session';
+  if (ranked.length === 0) return [];
   const top = ranked[0][1];
-  const lead = ranked.filter(([, sets]) => sets >= top * 0.5);
+  return ranked.filter(([, sets]) => sets >= top * 0.5).map(([m]) => m);
+}
+
+// What the session trains, in words ("Chest, Back and Core"): shown under the session's name.
+function nameFor(planned) {
+  const lead = leadMuscles(planned);
+  if (lead.length === 0) return 'Session';
   if (lead.length > 3) return 'Full Body';
-  const labels = lead.slice(0, 3).map(([m]) => muscleLabel(m));
+  const labels = lead.map((m) => muscleLabel(m));
   return labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+// The session's name (lib/workoutNames.js): the same muscles get the same name, and the four ways to train them (the times and the equipment the
+// screens offer) get four different ones. `variant` is 0 to 11: which equipment (a full gym, dumbbells, nothing), then how long.
+function titleFor(planned, variant) {
+  return titleForSession({ muscles: leadMuscles(planned), variant });
+}
+
+function titleVariant(have, budget) {
+  const gym = have.has('barbell') || have.has('machine') || have.has('cable');
+  const rank = gym ? 0 : have.has('dumbbell') ? 1 : 2;
+  const longer = SESSION_RULES.minutesOptions.filter((m) => m < budget).length;
+  return rank * 4 + Math.min(3, longer);
 }
 
 /**
@@ -428,6 +449,7 @@ function prepare(options) {
   return {
     ctx: {
       goal, level, ready, leftOut, plannedMain, recovery, recoveryOf, result, valueOf, compoundOf, fitFor, makePick, commit,
+      variant: titleVariant(have, budget),
     },
   };
 }
@@ -478,7 +500,7 @@ export function pickSession(options = {}) {
   const prepared = prepare(options);
   if (prepared.done) return prepared.done;
   const {
-    goal, level, ready, leftOut, plannedMain, recovery, recoveryOf, result, compoundOf, fitFor, valueOf, makePick, commit,
+    goal, level, ready, leftOut, plannedMain, recovery, recoveryOf, result, compoundOf, fitFor, valueOf, makePick, commit, variant,
   } = prepared.ctx;
   const rules = SESSION_RULES;
 
@@ -529,7 +551,9 @@ export function pickSession(options = {}) {
     .map((m) => ({ muscle: m, recovered: Math.round(recoveryOf(m)) }))
     .sort((a, b) => a.recovered - b.recovered || (a.muscle < b.muscle ? -1 : 1));
 
-  return finishSession({ status: 'ok', message: null, name: nameFor(plannedMain), goal, level, exercises, leftOutFor: leftOut, tired });
+  return finishSession({
+    status: 'ok', message: null, name: nameFor(plannedMain), title: titleFor(plannedMain, variant), titleVariant: variant, goal, level, exercises, leftOutFor: leftOut, tired,
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -580,7 +604,9 @@ function reshape(session, list) {
   const plannedMain = {};
   list.forEach((x) => (Array.isArray(x.primary) ? x.primary : []).forEach((m) => { plannedMain[m] = (plannedMain[m] || 0) + x.sets; }));
   const exercises = [...list.filter((x) => x.role === 'compound'), ...list.filter((x) => x.role !== 'compound')];
-  return finishSession({ ...session, name: nameFor(plannedMain), exercises, edited: true });
+  return finishSession({
+    ...session, name: nameFor(plannedMain), title: titleFor(plannedMain, session.titleVariant || 0), exercises, edited: true,
+  });
 }
 
 /** A new session with `replacement` (an exercise from swapOptions) in place of the one with `exerciseId`; the same session when that is not in it. */
@@ -645,7 +671,7 @@ export function sessionToWorkout(session) {
   if (!session || session.status !== 'ok' || !Array.isArray(session.exercises)) return null;
   const minutes = Math.max(5, session.minutes);
   return {
-    name: session.name,
+    name: session.title || session.name,
     description: `Built from your recovery and this week's training: ${session.exercises.length} exercises, about ${minutes} minutes.`,
     category: GOAL_LABELS[session.goal] || 'General Fitness',
     difficulty: session.level,

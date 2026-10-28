@@ -215,7 +215,7 @@ export default function ActiveWorkoutScreen() {
   });
 
   // Real, new: so a completed program-day session records a real name
-  // ("Full Body Foundations - Day A") instead of falling back to the
+  // ("Sweat Symphony - Day A") instead of falling back to the
   // generic "Workout" - selectedWorkout is null in program-session mode,
   // which previously would have meant exactly that generic fallback.
   const workoutDisplayName = isProgramSession

@@ -32,6 +32,7 @@ const session = (over = {}) => ({
 });
 const withNote = () => session({ leftOutFor: ['shoulder'], tired: [{ muscle: 'quadriceps', recovered: 38 }, { muscle: 'calves', recovered: 55 }] });
 
+// The reply still has a name in it here, as an AI that was not told to leave it out might send: it is ignored (see "a name in the reply").
 const good = () => ({
   name: 'Chest and Hamstrings Day',
   note: 'Overhead work was left out because of your shoulder, and your quadriceps are only 38% recovered.',
@@ -44,13 +45,20 @@ const good = () => ({
 
 describe('the rules', () => {
   it('are these, and fixed', () => {
-    expect(WORDING_RULES).toEqual({ version: 1, nameMin: 2, nameMax: 40, whyMin: 8, whyMax: 180, noteMax: 260, tiredListed: 3, delayMs: 1200 });
+    expect(WORDING_RULES).toEqual({ version: 2, whyMin: 8, whyMax: 180, noteMax: 260, tiredListed: 3, delayMs: 1200 });
     expect(Object.isFrozen(WORDING_RULES)).toBe(true);
   });
 
   it('give a caption that says what the AI did and did not do', () => {
     expect(WORDING_CAPTION).toMatch(/worded by AI/);
     expect(WORDING_CAPTION).toMatch(/exercises, sets, reps and weights are the engine's/);
+  });
+
+  it('do not say the AI names the session, since the engine does', () => {
+    expect(WORDING_CAPTION).not.toMatch(/name/i);
+    expect(WORDING_SYSTEM).toMatch(/Do not name the session/);
+    expect(WORDING_SYSTEM).not.toMatch(/"name"/);
+    expect(WORDING_SYSTEM).not.toMatch(/short plain name/);
   });
 });
 
@@ -190,10 +198,9 @@ describe('parseWordingReply', () => {
 });
 
 describe('checkWording: an answer that is right', () => {
-  it('keeps the name, the note and every reason', () => {
+  it('keeps the note and every reason', () => {
     const out = checkWording(good(), withNote(), { unit: 'kg' });
     expect(out).toEqual({
-      name: 'Chest and Hamstrings Day',
       note: good().note,
       why: Object.fromEntries(good().picks.map((p) => [p.id, p.why])),
     });
@@ -201,8 +208,8 @@ describe('checkWording: an answer that is right', () => {
 
   it('tidies the white space', () => {
     const reply = good();
-    reply.name = '  Chest   and\n Hamstrings ';
-    expect(checkWording(reply, withNote(), { unit: 'kg' }).name).toBe('Chest and Hamstrings');
+    reply.picks[0].why = '  Your   chest\n is 92% recovered.  ';
+    expect(checkWording(reply, withNote(), { unit: 'kg' }).why['barbell-bench-press']).toBe('Your chest is 92% recovered.');
   });
 
   it('accepts the figures the engine repeats for a pick', () => {
@@ -220,9 +227,10 @@ describe('checkWording: an answer that is right', () => {
   });
 
   it('does not need the note or the picks', () => {
-    expect(checkWording({ name: 'Upper Day' }, session(), { unit: 'kg' })).toEqual({ name: 'Upper Day', note: null, why: {} });
     expect(checkWording({ picks: [{ id: 'plank', why: 'Your core has no sets logged this week.' }] }, session(), { unit: 'kg' }))
-      .toEqual({ name: null, note: null, why: { plank: 'Your core has no sets logged this week.' } });
+      .toEqual({ note: null, why: { plank: 'Your core has no sets logged this week.' } });
+    expect(checkWording({ note: 'Overhead work was left out because of your shoulder.' }, withNote(), { unit: 'kg' }))
+      .toEqual({ note: 'Overhead work was left out because of your shoulder.', why: {} });
   });
 
   it('is the same for pounds, with the pound name', () => {
@@ -272,7 +280,7 @@ describe('checkWording: an answer that cannot be used at all', () => {
   });
 
   it('is nothing when every piece fails', () => {
-    const reply = { name: 'x', note: 'ignored', picks: [{ id: 'plank', why: 'short' }] };
+    const reply = { note: 'ignored', picks: [{ id: 'plank', why: 'short' }] };
     expect(checkWording(reply, withNote(), { unit: 'kg' })).toBeNull();
   });
 });
@@ -365,37 +373,33 @@ describe('checkWording: a reason that fails keeps the engine\'s, and the rest st
   });
 });
 
-describe('checkWording: the name', () => {
-  const name = (text) => {
-    const out = checkWording({ name: text, picks: [{ id: 'plank', why: 'Your core has no sets logged this week.' }] }, session(), { unit: 'kg' });
-    return out ? out.name : 'dropped';
-  };
+describe('checkWording: a name in the reply', () => {
+  const pick = { id: 'plank', why: 'Your core has no sets logged this week.' };
 
-  it('is kept when it is two to forty characters with no digit or claim', () => {
-    expect(name('Upper Body')).toBe('Upper Body');
-    expect(name('Go')).toBe('Go');
-    expect(name('a'.repeat(40))).toBe('a'.repeat(40));
+  it('is ignored: the session\'s name is the engine\'s (lib/workoutNames.js), never the AI\'s', () => {
+    ['Upper Body', 'Trap Bar Deadlift Day', 'Romanian Deadlift Day', 'Dumbbell Bench Press Day', 'Day 3 Push', '**Chest** Day', 7, null, ['x']].forEach((name) => {
+      const out = checkWording({ name, picks: [pick] }, session(), { unit: 'kg' });
+      expect(out).toEqual({ note: null, why: { plank: pick.why } });
+      expect(out).not.toHaveProperty('name');
+    });
   });
 
-  it.each([
-    ['too short', 'A'], ['too long', 'a'.repeat(41)], ['a digit', 'Day 3 Push'], ['a number word beside a unit', 'Three Sets Day'], ['a claim', 'The Perfect Chest Day'],
-    ['a link', 'bench.com day'], ['markdown', '**Chest** Day'], ['not text', 7], ['empty', '   '],
-    ['an exercise outside the session', 'Dumbbell Bench Press Day'],
-  ])('is dropped for %s', (_, text) => {
-    expect(name(text)).toBeNull();
+  it('is not an answer by itself: a reply with a name and nothing else to use is nothing', () => {
+    expect(checkWording({ name: 'Upper Body' }, session(), { unit: 'kg' })).toBeNull();
+    expect(checkWording({ name: 'Upper Body', picks: [] }, session(), { unit: 'kg' })).toBeNull();
   });
 
-  it('is dropped alone, with the rest kept', () => {
-    const out = checkWording({ name: 'Day 3', picks: [{ id: 'plank', why: 'Your core has no sets logged this week.' }] }, session(), { unit: 'kg' });
-    expect(out.name).toBeNull();
+  it('does not make a good reason or note fail, however odd it is', () => {
+    const out = checkWording({ name: 'This is guaranteed to build your chest 100 times over', note: good().note, picks: [pick] }, withNote(), { unit: 'kg' });
+    expect(out.note).toBe(good().note);
     expect(Object.keys(out.why)).toEqual(['plank']);
   });
 });
 
 describe('checkWording: the note', () => {
   const note = (text, s = withNote()) => {
-    const out = checkWording({ name: 'Upper Day', note: text }, s, { unit: 'kg' });
-    return out.note;
+    const out = checkWording({ note: text }, s, { unit: 'kg' });
+    return out ? out.note : null;
   };
 
   it('is kept when there is an injury area left out or a tired muscle to mention', () => {
@@ -501,7 +505,7 @@ describe('checkWording: where each figure comes from', () => {
     const s = odd({}, { short: 2 });
     s.leftOutFor = ['shoulder'];
     s.tired = [{ muscle: 'calves', recovered: 29 }];
-    const note = (text) => { const out = checkWording({ name: 'Day', note: text }, s, { unit: 'kg' }); return out.note; };
+    const note = (text) => { const out = checkWording({ note: text }, s, { unit: 'kg' }); return out ? out.note : null; };
     ['About 47 minutes.', 'There are 13 sets in all.', 'Three exercises, with the shoulder left out.'.replace('Three', '3'), 'Your calves are 29% recovered.', 'The press is 87% recovered.']
       .forEach((text) => expect(note(text)).toBe(text));
     ['That is 48 minutes.', 'Your calves are 30% recovered.', 'There are 9 exercises.'].forEach((text) => expect(note(text)).toBeNull());
@@ -510,8 +514,8 @@ describe('checkWording: where each figure comes from', () => {
   it('keeps a note that is the only thing that passed', () => {
     const s = odd();
     s.leftOutFor = ['shoulder'];
-    expect(checkWording({ name: 'x', note: 'Overhead work was left out for your shoulder.', picks: [{ id: 'plank', why: 'no' }] }, s, { unit: 'kg' }))
-      .toEqual({ name: null, note: 'Overhead work was left out for your shoulder.', why: {} });
+    expect(checkWording({ note: 'Overhead work was left out for your shoulder.', picks: [{ id: 'plank', why: 'no' }] }, s, { unit: 'kg' }))
+      .toEqual({ note: 'Overhead work was left out for your shoulder.', why: {} });
   });
 
   it('accepts a weight of none for an exercise whose weight was never set', () => {
@@ -524,12 +528,12 @@ describe('checkWording: where each figure comes from', () => {
 describe('applyWording', () => {
   const wording = () => checkWording(good(), withNote(), { unit: 'kg' });
 
-  it('puts the checked name, note and reasons on the session and keeps the engine\'s in their place of record', () => {
+  it('puts the checked note and reasons on the session and keeps the engine\'s in their place of record', () => {
     const base = withNote();
     const out = applyWording(base, wording());
     expect(out.worded).toBe(true);
-    expect(out.name).toBe('Chest and Hamstrings Day');
-    expect(out.engineName).toBe('Chest and Hamstrings');
+    expect(out.name).toBe('Chest and Hamstrings');
+    expect(out).not.toHaveProperty('engineName');
     expect(out.note).toBe(good().note);
     expect(out.exercises.map((x) => x.reason)).toEqual(good().picks.map((p) => p.why));
     expect(out.exercises.map((x) => x.engineReason)).toEqual(base.exercises.map((x) => x.reason));
@@ -540,8 +544,8 @@ describe('applyWording', () => {
     const out = applyWording(base, wording());
     const strip = (s) => s.exercises.map(({ reason, engineReason, ...rest }) => rest);
     expect(strip(out)).toEqual(strip(base));
-    const { name, engineName, note, worded, exercises, ...rest } = out;
-    const { name: n2, exercises: e2, ...rest2 } = base;
+    const { note, worded, exercises, ...rest } = out;
+    const { exercises: e2, ...rest2 } = base;
     expect(rest).toEqual(rest2);
   });
 
@@ -553,7 +557,7 @@ describe('applyWording', () => {
   });
 
   it('replaces only the reasons that passed', () => {
-    const out = applyWording(session(), { name: null, note: null, why: { plank: 'Your core has no sets logged this week.' } });
+    const out = applyWording(session(), { note: null, why: { plank: 'Your core has no sets logged this week.' } });
     expect(out.exercises[2].reason).toBe('Your core has no sets logged this week.');
     expect(out.exercises[0].reason).toBe(session().exercises[0].reason);
     expect(out.exercises[0]).toBe(out.exercises[0]);
@@ -563,36 +567,41 @@ describe('applyWording', () => {
 
   it('is the session itself with no wording, or with wording that changes nothing', () => {
     const base = session();
-    [null, undefined, 'x', 7, [], {}, { name: null, note: null, why: {} }, { name: base.name, note: null, why: {} }].forEach((w) => expect(applyWording(base, w)).toBe(base));
+    [null, undefined, 'x', 7, [], {}, { note: null, why: {} }].forEach((w) => expect(applyWording(base, w)).toBe(base));
   });
 
-  it('counts a new name alone, or a note alone, as wording, and ignores a name or note that is not text', () => {
+  it('counts a note alone as wording, and ignores a note that is not text', () => {
     const base = session();
-    const named = applyWording(base, { name: 'Upper Day', note: null, why: {} });
-    expect(named.worded).toBe(true);
-    expect(named.name).toBe('Upper Day');
-    expect(named.exercises).toEqual(base.exercises);
-    const noted = applyWording(base, { name: null, note: 'Overhead work was left out for your shoulder.', why: {} });
+    const noted = applyWording(base, { note: 'Overhead work was left out for your shoulder.', why: {} });
     expect(noted.worded).toBe(true);
     expect(noted.note).toBe('Overhead work was left out for your shoulder.');
     expect(noted.name).toBe(base.name);
-    expect(applyWording(base, { name: 7, note: 7, why: {} })).toBe(base);
-    expect(applyWording(base, { name: ['x'], note: { a: 1 }, why: { plank: 7 } })).toBe(base);
+    expect(applyWording(base, { note: 7, why: {} })).toBe(base);
+    expect(applyWording(base, { note: { a: 1 }, why: { plank: 7 } })).toBe(base);
+  });
+
+  it('never changes the session\'s name or title, even for wording that carries a name', () => {
+    const base = session({ title: 'Quad Squad' });
+    const out = applyWording(base, { name: 'Trap Bar Deadlift Day', note: null, why: { plank: 'Your core has no sets logged this week.' } });
+    expect(out.name).toBe('Chest and Hamstrings');
+    expect(out.title).toBe('Quad Squad');
+    expect(applyWording(base, { name: 'Trap Bar Deadlift Day', note: null, why: {} })).toBe(base);
   });
 
   it('is what it was given for something that is not a session', () => {
     [null, undefined, 'x', {}, { exercises: 'x' }].forEach((s) => expect(applyWording(s, wording())).toBe(s));
   });
 
-  it('is saved as a workout with the AI\'s name, and with the same exercises as without it', () => {
+  it('is saved as a workout with the engine\'s made-up name, and with the same exercises as without it', () => {
     const picked = pickSession({ level: 'intermediate', goal: 'muscle', minutes: 45, equipment: 'gym' });
     const reply = { name: 'Big Compound Day', picks: picked.exercises.map((x) => ({ id: x.id, why: x.reason })) };
     const out = applyWording(picked, checkWording(reply, picked, { unit: 'lb' }));
     const plain = sessionToWorkout(picked);
     const worded = sessionToWorkout(out);
-    expect(worded.name).toBe('Big Compound Day');
+    expect(worded.name).toBe(picked.title);
+    expect(worded.name).not.toBe('Big Compound Day');
     expect(worded.exercises).toEqual(plain.exercises);
-    expect({ ...worded, name: plain.name }).toEqual(plain);
+    expect(worded).toEqual(plain);
   });
 });
 
@@ -611,11 +620,10 @@ describe('the engine\'s own words pass its own checks', () => {
       recoveries.forEach((recovery) => volumes.forEach((volume) => {
         const s = pickSession({ level, goal, minutes, recovery, volume, injuries: level === 'advanced' ? ['shoulder'] : [] });
         if (s.status !== 'ok') return;
-        const reply = { name: s.name, picks: s.exercises.map((x) => ({ id: x.id, why: x.reason, sets: x.sets, reps: x.reps, restSeconds: x.restSeconds })) };
+        const reply = { picks: s.exercises.map((x) => ({ id: x.id, why: x.reason, sets: x.sets, reps: x.reps, restSeconds: x.restSeconds })) };
         const out = checkWording(reply, s, { unit: 'lb' });
         expect(out).not.toBeNull();
         expect(Object.keys(out.why)).toEqual(s.exercises.map((x) => x.id));
-        expect(out.name).toBe(s.name);
         checked += 1;
       }));
     })));

@@ -267,7 +267,8 @@ export default function TodaySessionScreen() {
 
         {ok && (
           <>
-            <Text style={styles.sessionTitle}>{shown.name}</Text>
+            <Text style={styles.sessionTitle}>{shown.title || shown.name}</Text>
+            {!!shown.title && <Text style={styles.sessionFocus} testID="session-focus">{shown.name}</Text>}
             <Text style={styles.sessionMeta}>
               {shown.exercises.length} exercises · {shown.totalSets} sets · about {shown.minutes} min
             </Text>
@@ -424,6 +425,7 @@ const styles = StyleSheet.create({
   noticeBox: { marginTop: 24, padding: 16, borderRadius: 14, backgroundColor: '#F6F6F6' },
   noticeText: { fontSize: 14, color: '#333', lineHeight: 21 },
   sessionTitle: { fontSize: 22, fontWeight: '800', color: '#000', marginTop: 28 },
+  sessionFocus: { fontSize: 14, fontWeight: '600', color: '#666', marginTop: 4 },
   sessionMeta: { fontSize: 13, color: '#666', marginTop: 4, marginBottom: 14 },
   wordedCaption: { fontSize: 11, color: '#999', lineHeight: 16, marginTop: -8, marginBottom: 14 },
   card: { padding: 14, borderRadius: 14, backgroundColor: '#F6F6F6', marginBottom: 10 },

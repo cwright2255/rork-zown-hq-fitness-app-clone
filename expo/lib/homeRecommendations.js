@@ -38,7 +38,8 @@ export function homeVariants(preferredMinutes) {
  *   inputs            services/sessionService.js readSessionInputs' answer (recovery, volume, ladderRungs, goal, level, injuries, weights, excluded)
  *   preferredMinutes  the length of session the person prefers (lib/sessionPicker.js minutesFromPreference)
  * @returns {{ cards: object[], notice: string|null }}
- *   cards   { key, title, minutes, exercises, equipment, equipmentLabel, icon, preview, today } for each session that can be built; `minutes` and
+ *   cards   { key, title, focus, minutes, exercises, equipment, equipmentLabel, icon, preview, today } for each session that can be built; `title` is
+ *           the session's made-up name (lib/workoutNames.js) and `focus` the muscles it trains in words; `minutes` and
  *           `equipment` are what to open the session screen with, `minutes` there being the time asked for (the session itself says how long it takes)
  *   notice  the engine's reason when no card could be built (null when there are cards)
  */
@@ -63,7 +64,8 @@ export function buildHomeCards({ inputs, preferredMinutes } = {}) {
     seen.add(signature);
     cards.push({
       key: variant.key,
-      title: session.name,
+      title: session.title || session.name,
+      focus: session.name,
       minutes: variant.minutes,
       sessionMinutes: session.minutes,
       exercises: session.exercises.length,

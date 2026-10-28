@@ -19,6 +19,8 @@ jest.mock('@/lib/userProfileData', () => ({ toQuickWorkoutGoals: () => ['strengt
 jest.mock('@/services/coachSnapshotService', () => ({ getProfileFromStores: () => ({}) }));
 
 import QuickWorkoutScreen from '../app/workout/quick';
+import { NAME_POOLS, titlesForPlan } from '../lib/workoutNames';
+import { LIBRARY, normalizeName } from '../lib/exerciseLibrary';
 
 const planError = (details = { feature: 'aiWorkoutPlan', needs: 'pro', tier: 'free' }) => Object.assign(new Error('needs pro'), {
   code: 'functions/permission-denied', details: { reason: 'plan_required', ...details },
@@ -66,5 +68,50 @@ describe('Quick Workout when something else goes wrong', () => {
     expect(mockAddWorkout).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenCalledWith('/workout/w1');
     expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+});
+
+describe('Quick Workout\'s name', () => {
+  const built = (focus, names, id = 'rec-9') => ({
+    recommendationId: id,
+    plan: { days: [{ focus, exercises: names.map((name) => ({ name, sets: 3, reps: 8, restSeconds: 60 })) }, { focus: 'Pull', exercises: [{ name: 'Lat Pulldown', sets: 3, reps: 10, restSeconds: 60 }] }] },
+  });
+  const savedName = async (result) => {
+    mockGenerate.mockResolvedValue(result);
+    mockAddWorkout.mockResolvedValue({ id: 'w1' });
+    const utils = render(<QuickWorkoutScreen />);
+    await generate(utils);
+    expect(mockAddWorkout).toHaveBeenCalledTimes(1);
+    return mockAddWorkout.mock.calls[0][0].name;
+  };
+
+  it('is a made-up name from the lists, not what the AI called the day', async () => {
+    const name = await savedName(built('Trap Bar Deadlift Day', ['Trap Bar Deadlift', 'Leg Press']));
+    expect(Object.values(NAME_POOLS).flat()).toContain(name);
+    expect(name.toLowerCase()).not.toContain('trap bar');
+    expect(LIBRARY.some((e) => normalizeName(e.name) === normalizeName(name))).toBe(false);
+  });
+
+  it('is the name the Workouts tab gives the first day of the same plan', async () => {
+    const result = built('Upper Body Push', ['Bench Press', 'Overhead Press']);
+    expect(await savedName(result)).toBe(titlesForPlan(result.plan.days, { seed: 'rec-9' })[0]);
+  });
+
+  it('is the same for the same plan every time', async () => {
+    const result = built('Lower Body', ['Squat', 'Leg Press']);
+    const first = await savedName(result);
+    jest.clearAllMocks();
+    expect(await savedName(result)).toBe(first);
+  });
+
+  it('is picked from the list that matches the day: a leg day gets a leg name', async () => {
+    const name = await savedName(built('Leg Day', ['Squat', 'Leg Press', 'Leg Curl']));
+    expect(NAME_POOLS.legs.concat(NAME_POOLS.lower)).toContain(name);
+  });
+
+  it('still saves the exercises as the AI gave them', async () => {
+    await savedName(built('Push', ['Bench Press', 'Overhead Press']));
+    expect(mockAddWorkout.mock.calls[0][0].exercises.map((x) => x.name)).toEqual(['Bench Press', 'Overhead Press']);
+    expect(mockAddWorkout.mock.calls[0][0].source).toBe('ai_quick_workout');
   });
 });

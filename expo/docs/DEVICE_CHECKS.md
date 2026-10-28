@@ -1050,8 +1050,8 @@ the login screen and signed nobody out, so closing the app and opening it again 
 **Recommended Workouts** is JavaScript only. The row is real sessions from the same engine as Today's Session (`lib/homeRecommendations.js` asks
 `lib/sessionPicker.js`), worked out again whenever your workouts, runs, hikes, recovery data or profile change. It used to be four invented workouts.
 
-- [ ] Home, Recommended Workouts: the cards have the names of muscles ("Chest and Core"), a time and an exercise count, the equipment, and the first two
-      exercises. The first, "TODAY", is your usual session length with a full gym. None is called HIIT Blast, Morning Yoga, Strength Core or Cardio Mix.
+- [ ] Home, Recommended Workouts: the cards have a made-up name ("Press Play"), the muscles under it ("Chest and Core"), a time and an exercise count, the
+      equipment, and the first two exercises. The first, "TODAY", is your usual session length with a full gym. None is called HIIT Blast, Morning Yoga, Strength Core or Cardio Mix.
 - [ ] Press a card: Today's Session opens with that card's time and equipment already chosen, and the same exercises the card named.
 - [ ] Finish a workout, go back to Home: the row has changed to train what is rested. If everything is still recovering, the row says so instead of
       showing cards, and pressing it opens Today's Session.
@@ -1086,3 +1086,32 @@ Check it with two accounts, A and B, on two phones (B must be a new account, mad
 - [ ] An account older than 14 days says "Codes only work for accounts made in the last 14 days."
 - [ ] The Invite screen has a "Community" row at the bottom, which opens the Community (the Home banner used to be the only way there).
 - [ ] Delete B's account in the app, then try B's code from a third account: "That code isn't right." (Deleting an account removes its code.)
+
+## Creative workout names (once, on the first update with them)
+
+JavaScript only: **one `eas update`, nothing to deploy.** Workouts, plans and programs that were named after a muscle, or after whatever the AI wrote
+("Trap Bar Deadlift Day"), now have a short made-up name from a fixed list: Sweat Symphony, Plank You Next, Quad Squad, Deadlift & Chill. The list is
+`NAME_POOLS` (workouts, matched to the muscles) and `PLAN_POOLS` (whole plans, matched to the goal) in `lib/workoutNames.js`. The same workout gets the same name
+on every phone, with no AI call, so it works offline and costs nothing.
+
+```
+eas update --branch main --environment production --message "Creative workout names"
+```
+
+- [ ] Home, Recommended Workouts: each card has a made-up name in bold, the muscles in the smaller line under it ("Chest, Back and Core"), then the time and
+      exercise count. The cards on the row have different names from each other.
+- [ ] Press a card: Today's Session has the same name at the top with the muscles under it. Switch the time (15, 30, 45, 60 min) or the equipment: the name
+      changes with it, and each one is the same every time you come back to it.
+- [ ] Today's Session, once the AI's words are in (a few seconds): the reasons are reworded, but the **name does not change**, and the caption now says
+      "The reasons are worded by AI ...". Swap or drop an exercise: the session keeps a made-up name.
+- [ ] Start the workout and finish it: Workout History has the made-up name. (Workouts finished before this update keep the names they had.)
+- [ ] Workouts tab, Recommended For You: tap Get Recommendation (a Pro feature; a Free account goes to the plans). The card shows a name for the whole plan above
+      "Based on your recent workouts and goals", and each of the first three days has its own bold name with what it trains underneath ("Upper Body Push").
+      No two days have the same name. Close the app and open it again: the names are the same.
+- [ ] Quick Workout: the saved workout has a made-up name, the same as day one of the plan on the Workouts tab, and none is called after an exercise.
+- [ ] Training Programs: the three programs are Sweat Symphony (9 weeks, 3x/week), Split Decision (4x/week) and Push Pull Powerhouse (6x/week). The line under each
+      still says what it is, and the program you were already on keeps your progress.
+
+To add or change a name, edit the lists in `lib/workoutNames.js` and keep each workout list at 12 or more names and each plan list at 8 or more (the tests fail if a list is
+short, a name repeats, or a name is an exercise). Workouts already saved keep the name they were saved with. Adding or removing a name in a list moves which workout gets which name from then
+on, so a session you have seen before may show a different name after the edit.

@@ -137,7 +137,7 @@ function WorkoutItem({ item, onPress }) {
       style={styles.workoutItem}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}, ${item.detail}, ${item.equipmentLabel}`}
+      accessibilityLabel={`${item.title}, ${item.focus}, ${item.detail}, ${item.equipmentLabel}`}
     >
       <View style={styles.workoutThumb}>
         <Ionicons name={item.icon} size={28} color="#000" />
@@ -148,6 +148,7 @@ function WorkoutItem({ item, onPress }) {
         )}
       </View>
       <Text style={styles.workoutName} numberOfLines={2}>{item.title}</Text>
+      <Text style={styles.workoutDuration} numberOfLines={1}>{item.focus}</Text>
       <Text style={styles.workoutDuration}>{item.detail}</Text>
       <Text style={styles.workoutDuration}>{item.equipmentLabel}</Text>
       <Text style={styles.workoutPreview} numberOfLines={2}>{item.preview}</Text>

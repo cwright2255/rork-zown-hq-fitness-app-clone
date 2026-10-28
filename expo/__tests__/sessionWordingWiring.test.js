@@ -78,7 +78,9 @@ describe('the Today\'s Session screen', () => {
   it('shows and saves the worded session, with the caption only when words are on it', () => {
     expect(screen).toMatch(/\{shown\.worded && <Text style=\{styles\.wordedCaption\}>\{WORDING_CAPTION\}<\/Text>\}/);
     expect(screen).toMatch(/\{shown\.exercises\.map\(\(x\) => \{/);
-    expect(screen).toMatch(/<Text style=\{styles\.sessionTitle\}>\{shown\.name\}<\/Text>/);
+    // The title is the engine's made-up name (lib/workoutNames.js), never the AI's; the muscles it trains are the smaller line under it.
+    expect(screen).toMatch(/<Text style=\{styles\.sessionTitle\}>\{shown\.title \|\| shown\.name\}<\/Text>/);
+    expect(screen).toMatch(/\{!!shown\.title && <Text style=\{styles\.sessionFocus\} testID="session-focus">\{shown\.name\}<\/Text>\}/);
     expect(screen).toMatch(/<Text style=\{styles\.cardReason\}>\{x\.reason\}<\/Text>/);
     expect(screen).toMatch(/\{!!shown\.note && <Text style=\{styles\.note\}>\{shown\.note\}<\/Text>\}/);
     expect(screen).toMatch(/const workout = sessionToWorkout\(shown\);/);

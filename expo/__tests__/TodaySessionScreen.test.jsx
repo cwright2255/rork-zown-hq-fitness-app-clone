@@ -1,5 +1,5 @@
-// Today's Session on the phone (app/workout/session.jsx): the engine's session shows at once; a moment later the AI's wording replaces the name
-// and the reasons, but only the parts that pass the checks, only on the session it was made for, and never the exercises, sets, reps or weights.
+// Today's Session on the phone (app/workout/session.jsx): the engine's session shows at once, under its made-up name (lib/workoutNames.js) with the
+// muscles it trains below; a moment later the AI's wording replaces the reasons (never the name), but only the parts that pass the checks, only on the session it was made for, and never the exercises, sets, reps or weights.
 // The AI call is stood in for (services/aiService.js generateSessionWording); the checks, the keeping and the screen are the real ones.
 //
 // The four controls on each card (More, Less, Swap, Exclude) are tested here with the real feedback store (store/trainingFeedbackStore.js, on stand-in
@@ -56,7 +56,7 @@ const exercise = (id, name, extra = {}) => ({
   reason: "Chest: fully rested, 6 sets short of this week's 14-set aim.", facts: { muscle: 'chest', recovered: 100, done: 8, short: 6, aim: 14 }, ...extra,
 });
 const sessionFor = (minutes) => ({
-  status: 'ok', message: null, name: 'Chest and Core', goal: 'muscle', level: 'intermediate', minutes, exactMinutes: minutes, totalSets: 6,
+  status: 'ok', message: null, name: 'Chest and Core', title: 'Press Play', titleVariant: 1, goal: 'muscle', level: 'intermediate', minutes, exactMinutes: minutes, totalSets: 6,
   leftOutFor: [], tired: [], source: 'engine',
   exercises: [
     exercise('barbell-bench-press', 'Barbell Bench Press', { sets: minutes >= 45 ? 4 : 3, weight: 60, unit: 'kg', target: '60 kg x 8-10', detail: 'Last time: 57.5 kg x 10' }),
@@ -102,7 +102,9 @@ afterEach(() => { jest.useRealTimers(); });
 describe('the session before the words', () => {
   it('shows the engine\'s own name, reasons, sets and targets at once, with no caption, and has not asked the AI yet', async () => {
     const utils = await show();
+    expect(has(utils, 'Press Play')).toBe(true);
     expect(has(utils, 'Chest and Core')).toBe(true);
+    expect(utils.getByTestId('session-focus').props.children).toBe('Chest and Core');
     expect(has(utils, ENGINE_BENCH)).toBe(true);
     expect(has(utils, '3 x 8-10 reps')).toBe(true);
     expect(has(utils, 'Start at 60 kg x 8-10')).toBe(true);
@@ -112,12 +114,14 @@ describe('the session before the words', () => {
 });
 
 describe('the words', () => {
-  it('swap in after the delay: the name and the reasons are the AI\'s, with the caption, and everything else is the engine\'s', async () => {
+  it('swap in after the delay: the reasons are the AI\'s, with the caption, and everything else (the name too) is the engine\'s', async () => {
     const utils = await show();
     await wait(delay + 10);
     expect(generateSessionWording).toHaveBeenCalledTimes(1);
-    expect(has(utils, 'Chest Day')).toBe(true);
-    expect(has(utils, 'Chest and Core')).toBe(false);
+    // the reply names the session "Chest Day"; the name on the screen is still the engine's
+    expect(has(utils, 'Chest Day')).toBe(false);
+    expect(has(utils, 'Press Play')).toBe(true);
+    expect(has(utils, 'Chest and Core')).toBe(true);
     expect(has(utils, 'Your chest is fully rested and 6 sets short of its 14-set aim.')).toBe(true);
     expect(has(utils, ENGINE_BENCH)).toBe(false);
     expect(has(utils, WORDING_CAPTION)).toBe(true);
@@ -158,7 +162,7 @@ describe('the words', () => {
     await wait(delay + 10);
     expect(has(utils, ENGINE_BENCH)).toBe(true);
     expect(has(utils, 'Core work with no sets logged this week.')).toBe(true);
-    expect(has(utils, 'Chest Day')).toBe(true);
+    expect(has(utils, 'Press Play')).toBe(true);
     expect(has(utils, WORDING_CAPTION)).toBe(true);
   });
 
@@ -174,6 +178,7 @@ describe('the words', () => {
       const utils = await show();
       await wait(delay + 10);
       expect({ bad, caption: has(utils, WORDING_CAPTION) }).toEqual({ bad, caption: false });
+      expect(has(utils, 'Press Play')).toBe(true);
       expect(has(utils, 'Chest and Core')).toBe(true);
       expect(has(utils, ENGINE_BENCH)).toBe(true);
       utils.unmount();
@@ -238,7 +243,7 @@ describe('asking', () => {
   it('uses an answer already kept for a session shown before at once, without asking again', async () => {
     const utils = await show();
     await wait(delay + 10);
-    expect(has(utils, 'Chest Day')).toBe(true);
+    expect(has(utils, 'Your chest is fully rested and 6 sets short of its 14-set aim.')).toBe(true);
     fireEvent.press(utils.getByText('45 min'));
     await flush();
     await wait(delay + 10);
@@ -246,7 +251,7 @@ describe('asking', () => {
     generateSessionWording.mockClear();
     fireEvent.press(utils.getByText('30 min'));
     await flush();
-    expect(has(utils, 'Chest Day')).toBe(true);
+    expect(has(utils, 'Your chest is fully rested and 6 sets short of its 14-set aim.')).toBe(true);
     await wait(delay + 10);
     expect(generateSessionWording).not.toHaveBeenCalled();
   });
@@ -281,21 +286,31 @@ describe('asking', () => {
 });
 
 describe('Start Workout', () => {
-  it('saves the session with the AI\'s name when it is on, and the same exercises as without it', async () => {
+  it('saves the session under its made-up name, not the AI\'s, and with the same exercises as without the words', async () => {
     const utils = await show();
     await wait(delay + 10);
     await act(async () => { fireEvent.press(utils.getByTestId('start')); });
     await flush();
     expect(global.__addWorkout).toHaveBeenCalledTimes(1);
     const workout = global.__addWorkout.mock.calls[0][0];
-    expect(workout.name).toBe('Chest Day');
+    expect(workout.name).toBe('Press Play');
     expect(workout.source).toBe('engine_session');
     expect(workout.exercises.map((x) => [x.name, x.sets])).toEqual([['Barbell Bench Press', 3], ['Plank', 3]]);
     expect(global.__router.replace).toHaveBeenCalledWith('/workout/w1');
   });
 
-  it('saves the engine\'s name before the words are in', async () => {
+  it('saves the same name before the words are in', async () => {
     const utils = await show();
+    await act(async () => { fireEvent.press(utils.getByTestId('start')); });
+    await flush();
+    expect(global.__addWorkout.mock.calls[0][0].name).toBe('Press Play');
+  });
+
+  it('falls back to the muscles for a session that has no made-up name: they are the title, with no line under it', async () => {
+    buildTodaySession.mockImplementation(async ({ minutes }) => { const { title, titleVariant, ...plain } = sessionFor(minutes); return plain; });
+    const utils = await show();
+    expect(has(utils, 'Chest and Core')).toBe(true);
+    expect(utils.queryByTestId('session-focus')).toBeNull();
     await act(async () => { fireEvent.press(utils.getByTestId('start')); });
     await flush();
     expect(global.__addWorkout.mock.calls[0][0].name).toBe('Chest and Core');

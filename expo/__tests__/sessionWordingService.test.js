@@ -22,7 +22,7 @@ const goodReply = () => ({
   name: 'Chest Day',
   picks: [{ id: 'barbell-bench-press', why: 'Your chest is fully rested and 6 sets short of its 14-set aim.' }, { id: 'plank', why: 'A plank adds core work in 3 sets.' }],
 });
-const WORDING = { name: 'Chest Day', note: null, why: { 'barbell-bench-press': goodReply().picks[0].why, plank: goodReply().picks[1].why } };
+const WORDING = { note: null, why: { 'barbell-bench-press': goodReply().picks[0].why, plank: goodReply().picks[1].why } };
 const options = { unit: 'kg', equipment: 'gym' };
 
 beforeEach(() => {

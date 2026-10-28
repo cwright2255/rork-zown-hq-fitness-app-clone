@@ -11,6 +11,7 @@ import { localDateKey, shiftDateKey, dayKeyOf } from '@/lib/localDate';
 import { newestFirst } from '@/lib/workoutOrder';
 import { withoutUndefined } from '@/lib/firestoreSafe';
 import { workoutPlanRequest } from '@/lib/trainingState';
+import { historyForPlan } from '@/lib/planHistory';
 
 // How many finished workouts the app holds: the most recent 240 (about a year at five a week), the same as loadWorkouts asks the server for. The phone keeps the
 // newest 20 of them in its own storage, to show something before the server answers.
@@ -447,9 +448,8 @@ export const useWorkoutStore = create(
           } catch {
             trainingState = null;
           }
-          const history = get().completedWorkouts.slice(0, 10).map((w) => ({
-            name: w.name, category: w.category, completedAt: w.completedAt,
-          }));
+          // The newest workouts, each with the muscles it worked (a workout's name is a made-up one now, so it says nothing about that).
+          const history = historyForPlan(get().completedWorkouts);
           const fn = httpsCallable(functions, 'generateWorkoutPlan');
           const result = await fn(workoutPlanRequest({ fitnessLevel, goals, history, profile, trainingState }));
           if (uid) await get().loadWorkoutRecommendation(uid);

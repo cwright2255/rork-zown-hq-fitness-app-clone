@@ -27,6 +27,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { toQuickWorkoutGoals, profileForWorkouts } from '@/lib/userProfileData';
 import { getProfileFromStores } from '@/services/coachSnapshotService';
 import { planRedirect } from '@/lib/upgradePrompt';
+import { titlesForPlan } from '@/lib/workoutNames';
 
 const GOALS = ['weight_loss', 'build_muscle', 'increase_strength', 'improve_endurance', 'improve_flexibility', 'general_fitness'];
 const GOAL_LABELS = {
@@ -97,7 +98,9 @@ export default function QuickWorkoutScreen() {
       const primaryGoalLabel = GOAL_LABELS[goals[0]] || 'General Fitness';
 
       const workout = {
-        name: day.focus || 'Quick Workout',
+        // A made-up name from the list (lib/workoutNames.js), the same one the Workouts tab gives this day of the plan; day.focus is whatever
+        // the AI wrote ("Trap Bar Deadlift Day"), which is only read to pick the list.
+        name: titlesForPlan(result.plan.days, { seed: result.recommendationId })[0] || 'Quick Workout',
         description: `AI-generated ${duration}-minute workout focused on ${primaryGoalLabel.toLowerCase()}, built for your ${difficulty} fitness level.`,
         category: primaryGoalLabel,
         difficulty,

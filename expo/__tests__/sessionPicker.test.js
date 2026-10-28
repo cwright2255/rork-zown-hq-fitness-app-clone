@@ -989,7 +989,8 @@ describe('sessionToWorkout', () => {
   const w = sessionToWorkout(s);
 
   it('is the workout Quick Workout saves: a name, a description, a length, XP, and each exercise with its sets, reps and rest', () => {
-    expect(w.name).toBe(s.name);
+    expect(w.name).toBe(s.title);
+    expect(w.name).not.toBe(s.name);
     expect(w.category).toBe('Build Muscle');
     expect(w.difficulty).toBe('beginner');
     expect(w.duration).toBe(s.minutes);

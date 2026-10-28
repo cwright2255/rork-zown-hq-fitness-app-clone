@@ -25,7 +25,7 @@ describe('the plan request', () => {
   });
 
   it('lists the recent workouts after the state has brought them up to date, and sends the request through the builder', () => {
-    expect(fn.indexOf('getTrainingState(uid)')).toBeLessThan(fn.indexOf('completedWorkouts.slice(0, 10)'));
+    expect(fn.indexOf('getTrainingState(uid)')).toBeLessThan(fn.indexOf('historyForPlan(get().completedWorkouts)'));
     expect(fn).toMatch(/fn\(workoutPlanRequest\(\{ fitnessLevel, goals, history, profile, trainingState \}\)\)/);
     expect(store).toMatch(/import \{ workoutPlanRequest \} from '@\/lib\/trainingState';/);
   });

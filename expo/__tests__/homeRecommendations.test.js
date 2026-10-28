@@ -60,7 +60,8 @@ describe('the cards', () => {
     cards.forEach((card) => {
       const session = pickSession({ ...inputs, minutes: card.minutes, equipment: card.equipment });
       expect(session.status).toBe('ok');
-      expect(card.title).toBe(session.name);
+      expect(card.title).toBe(session.title);
+      expect(card.focus).toBe(session.name);
       expect(card.exercises).toBe(session.exercises.length);
       expect(card.sessionMinutes).toBe(session.minutes);
       expect(card.detail).toBe(`${session.minutes} min · ${session.exercises.length} exercises`);

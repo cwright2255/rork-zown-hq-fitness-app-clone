@@ -15,6 +15,7 @@ import { getGoalLabels, profileForWorkouts } from '@/lib/userProfileData';
 import { getProfileFromStores } from '@/services/coachSnapshotService';
 import { planRedirect } from '@/lib/upgradePrompt';
 import { getFeaturedProgram } from '@/data/workoutPrograms';
+import { titlesForPlan, titleForPlan, goalsFromPrompt } from '@/lib/workoutNames';
 
 function SectionHeader({ title, onViewAll }) {
   return (
@@ -134,6 +135,12 @@ export default function WorkoutsScreen() {
 
   const featuredExercises = exercises.slice(0, 10);
   const planDays = workoutRecommendation?.structuredData?.days || [];
+  // Made-up names from the list (lib/workoutNames.js), the same ones Quick Workout gives day one. The plan keeps the name it was made under:
+  // its goals are read back from the request that made it, and only when that says nothing are the person's goals now used.
+  const planSeed = workoutRecommendation?.id || '';
+  const dayNames = titlesForPlan(planDays, { seed: planSeed });
+  const planGoals = goalsFromPrompt(workoutRecommendation?.prompt);
+  const planName = titleForPlan({ seed: planSeed, goals: planGoals.length > 0 ? planGoals : getGoalLabels(user) });
   const featuredProgram = getFeaturedProgram();
 
   return (
@@ -172,11 +179,15 @@ export default function WorkoutsScreen() {
             </View>
           ) : planDays.length > 0 ? (
             <View>
+              <Text style={styles.recPlanName} testID="plan-name">{planName}</Text>
               <Text style={styles.recSubtitle}>Based on your recent workouts and goals</Text>
               {planDays.slice(0, 3).map((day, i) => (
                 <View key={i} style={[styles.recDayRow, i === Math.min(2, planDays.length - 1) && { borderBottomWidth: 0 }]}>
                   <Text style={styles.recDayLabel}>{day.day}</Text>
-                  <Text style={styles.recDayFocus} numberOfLines={1}>{day.focus}</Text>
+                  <View style={styles.recDayName}>
+                    <Text style={styles.recDayTitle} numberOfLines={1} testID={`plan-day-name-${i}`}>{dayNames[i]}</Text>
+                    {!!day.focus && <Text style={styles.recDayFocus} numberOfLines={1}>{day.focus}</Text>}
+                  </View>
                 </View>
               ))}
               <Pressable style={styles.recBtn} onPress={handleGetRecommendation}>
@@ -325,7 +336,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#E5E5E5',
   },
   recDayLabel: { fontSize: 13, fontWeight: '700', color: '#000', width: 90 },
-  recDayFocus: { fontSize: 13, color: '#666', flex: 1, textAlign: 'right' },
+  recPlanName: { fontSize: 18, fontWeight: '800', color: '#000', marginBottom: 2 },
+  recDayName: { flex: 1, alignItems: 'flex-end' },
+  recDayTitle: { fontSize: 14, fontWeight: '700', color: '#000', textAlign: 'right' },
+  recDayFocus: { fontSize: 12, color: '#666', textAlign: 'right' },
   recBtn: {
     marginTop: 14, backgroundColor: '#000', borderRadius: 10, paddingVertical: 12, alignItems: 'center',
   },
