@@ -19,6 +19,7 @@ jest.mock('firebase/auth', () => ({
 jest.mock('expo-apple-authentication', () => ({
   isAvailableAsync: jest.fn(async () => true),
   signInAsync: jest.fn(),
+  refreshAsync: jest.fn(),
   AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
 }), { virtual: true });
 
@@ -50,6 +51,7 @@ const Crypto = require('expo-crypto');
 const AuthSession = require('expo-auth-session');
 const {
   signInWithProvider,
+  requestAppleAuthorizationCode,
   isProviderConfigured,
   SocialAuthError,
   GOOGLE_REDIRECT_URI,
@@ -356,5 +358,71 @@ describe('when sign-in cannot start', () => {
     const error = await failure('twitter');
     expect(error.code).toBe('failed');
     expect(error.message).toBe('That sign-in method is not available.');
+  });
+});
+
+describe('a fresh Apple code, for deleting an account that signs in with Apple', () => {
+  const codeFailure = async (appleUserId = '001234.apple.user') => {
+    try { await requestAppleAuthorizationCode(appleUserId); } catch (e) { return e; }
+    throw new Error('expected it to fail');
+  };
+  const canceled = () => Object.assign(new Error('closed'), { code: 'ERR_REQUEST_CANCELED' });
+
+  it('asks Apple to refresh the Apple ID linked to the account, and gives back the code', async () => {
+    Apple.refreshAsync.mockResolvedValue({ authorizationCode: 'one-time-code', user: '001234.apple.user' });
+    await expect(requestAppleAuthorizationCode('001234.apple.user')).resolves.toBe('one-time-code');
+    expect(Apple.refreshAsync).toHaveBeenCalledTimes(1);
+    expect(Apple.refreshAsync).toHaveBeenCalledWith({ user: '001234.apple.user' });
+    expect(Apple.signInAsync).not.toHaveBeenCalled();
+  });
+
+  it('does not sign anyone in to Firebase: it only fetches a code', async () => {
+    Apple.refreshAsync.mockResolvedValue({ authorizationCode: 'one-time-code' });
+    await requestAppleAuthorizationCode('001234.apple.user');
+    expect(firebaseAuth.signInWithCredential).not.toHaveBeenCalled();
+  });
+
+  it('shows the normal Sign in with Apple sheet if Apple will not refresh (for example ZOWN HQ was removed in Apple ID settings)', async () => {
+    Apple.refreshAsync.mockRejectedValue(Object.assign(new Error('not handled'), { code: 'ERR_REQUEST_NOT_HANDLED' }));
+    Apple.signInAsync.mockResolvedValue({ authorizationCode: 'fallback-code' });
+    await expect(requestAppleAuthorizationCode('001234.apple.user')).resolves.toBe('fallback-code');
+    expect(Apple.signInAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows nothing more, and says it was cancelled, when the person closes the sheet', async () => {
+    Apple.refreshAsync.mockRejectedValue(canceled());
+    const error = await codeFailure();
+    expect(error).toBeInstanceOf(SocialAuthError);
+    expect(error.code).toBe('cancelled');
+    expect(Apple.signInAsync).not.toHaveBeenCalled();
+  });
+
+  it('says it was cancelled when the person closes the second sheet', async () => {
+    Apple.refreshAsync.mockRejectedValue(new Error('nope'));
+    Apple.signInAsync.mockRejectedValue(canceled());
+    expect((await codeFailure()).code).toBe('cancelled');
+  });
+
+  it('says Apple could not confirm when neither sheet works', async () => {
+    Apple.refreshAsync.mockRejectedValue(new Error('nope'));
+    Apple.signInAsync.mockRejectedValue(Object.assign(new Error('still no'), { code: 'ERR_REQUEST_FAILED' }));
+    const error = await codeFailure();
+    expect(error.code).toBe('failed');
+    expect(error.message).toBe('Apple could not confirm it is you. Please try again.');
+  });
+
+  it.each([[null], [undefined], ['']])('says so when Apple sends back no code (%p)', async (authorizationCode) => {
+    Apple.refreshAsync.mockResolvedValue({ authorizationCode });
+    const error = await codeFailure();
+    expect(error.code).toBe('failed');
+    expect(error.message).toMatch(/did not send back what is needed/);
+  });
+
+  it('says so on a phone that cannot do Sign in with Apple, without opening anything', async () => {
+    Apple.isAvailableAsync.mockResolvedValue(false);
+    const error = await codeFailure();
+    expect(error.code).toBe('unavailable');
+    expect(Apple.refreshAsync).not.toHaveBeenCalled();
+    expect(Apple.signInAsync).not.toHaveBeenCalled();
   });
 });

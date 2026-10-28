@@ -19,16 +19,20 @@ jest.mock('firebase-functions/v2/firestore', () => ({ onDocumentCreated: (opts, 
 jest.mock('firebase-functions/params', () => ({ defineSecret: (name) => ({ name, value: () => 'secret-' + name }) }), { virtual: true });
 jest.mock('openai', () => ({ __esModule: true, default: class OpenAI {} }), { virtual: true });
 jest.mock('../functions/src/accountErasure.js', () => ({ eraseUserAccount: (...a) => global.__erase(...a) }));
+jest.mock('../functions/src/appleRevoke.js', () => ({ revokeAppleGrant: (...a) => global.__revokeApple(...a) }));
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
-const call = (auth) => require('../functions/src/index.js').deleteMyAccount({ auth, data: {} });
+const call = (auth, data = {}) => require('../functions/src/index.js').deleteMyAccount({ auth, data });
+const recent = () => ({ uid: 'u1', token: { auth_time: nowSeconds() - 60 } });
+const accountWith = (...providerIds) => ({ providerData: providerIds.map((providerId) => ({ providerId, uid: providerId === 'apple.com' ? '001234.apple.user' : 'other' })) });
 
 beforeEach(() => {
   jest.resetModules();
   global.__db = { fake: 'db' };
-  global.__auth = { fake: 'auth' };
+  global.__auth = { fake: 'auth', getUser: jest.fn(async () => accountWith('password')) };
   global.__bucket = { fake: 'bucket' };
   global.__erase = jest.fn(async () => ({ ok: true, steps: [] }));
+  global.__revokeApple = jest.fn(async () => ({ revoked: true }));
   global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ data_sources: [] }) }));
 });
 
@@ -103,5 +107,99 @@ describe('deleteMyAccount', () => {
     global.fetch = jest.fn(async () => ({ ok: false, status: 503 }));
     await call({ uid: 'u1', token: { auth_time: nowSeconds() } });
     await expect(global.__erase.mock.calls[0][0].revokeIntegrations('u1')).rejects.toThrow(/503/);
+  });
+});
+
+describe('deleteMyAccount: disconnecting from Apple (guideline 5.1.1(v))', () => {
+  const withAppleAccount = (...extra) => { global.__auth.getUser = jest.fn(async () => accountWith('apple.com', ...extra)); };
+  const failedWith = (code, message) => ({ code, message });
+
+  it('asks for the Apple key and its id, along with the ROOK secrets', () => {
+    const opts = require('../functions/src/index.js').deleteMyAccount.__opts;
+    expect(opts.secrets.map((s) => s.name)).toEqual(expect.arrayContaining(['APPLE_KEY_ID', 'APPLE_PRIVATE_KEY']));
+  });
+
+  it('does not touch Apple for an account that never signed in with Apple, even if a code is sent', async () => {
+    global.__auth.getUser = jest.fn(async () => accountWith('password', 'google.com'));
+    await expect(call(recent(), { appleAuthorizationCode: 'code-1' })).resolves.toEqual({ deleted: true });
+    expect(global.__auth.getUser).toHaveBeenCalledWith('u1');
+    expect(global.__revokeApple).not.toHaveBeenCalled();
+    expect(global.__erase).toHaveBeenCalledTimes(1);
+  });
+
+  it('revokes the Apple token with the code from the app, the key and the Apple id linked to the account', async () => {
+    withAppleAccount();
+    await expect(call(recent(), { appleAuthorizationCode: ' code-1 ' })).resolves.toEqual({ deleted: true });
+    expect(global.__revokeApple).toHaveBeenCalledTimes(1);
+    expect(global.__revokeApple).toHaveBeenCalledWith({
+      authorizationCode: 'code-1',
+      expectedUserId: '001234.apple.user',
+      keyId: 'secret-APPLE_KEY_ID',
+      privateKey: 'secret-APPLE_PRIVATE_KEY',
+    });
+  });
+
+  it('revokes before anything is erased', async () => {
+    withAppleAccount();
+    const order = [];
+    global.__revokeApple = jest.fn(async () => { order.push('revoke'); return { revoked: true }; });
+    global.__erase = jest.fn(async () => { order.push('erase'); return { ok: true, steps: [] }; });
+    await call(recent(), { appleAuthorizationCode: 'code-1' });
+    expect(order).toEqual(['revoke', 'erase']);
+  });
+
+  it('revokes for an account that has Apple linked next to another way in', async () => {
+    withAppleAccount('password');
+    await call(recent(), { appleAuthorizationCode: 'code-1' });
+    expect(global.__revokeApple).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes the Apple id from the account, never from the request', async () => {
+    withAppleAccount();
+    await call(recent(), { appleAuthorizationCode: 'code-1', appleUserId: 'someone-else', uid: 'u2' });
+    expect(global.__revokeApple.mock.calls[0][0].expectedUserId).toBe('001234.apple.user');
+  });
+
+  it.each([[undefined], [''], ['   '], [42], [null], [{}]])('refuses, erasing nothing, when an Apple account sends no usable code (%p)', async (appleAuthorizationCode) => {
+    withAppleAccount();
+    await expect(call(recent(), { appleAuthorizationCode })).rejects.toMatchObject({ code: 'failed-precondition', message: 'apple-code-required' });
+    expect(global.__revokeApple).not.toHaveBeenCalled();
+    expect(global.__erase).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['invalid-code', 'failed-precondition', 'apple-code-rejected'],
+    ['wrong-account', 'failed-precondition', 'apple-wrong-account'],
+    ['unavailable', 'unavailable', 'apple-unavailable'],
+    ['not-configured', 'internal', 'apple-revoke-failed'],
+    ['failed', 'internal', 'apple-revoke-failed'],
+    [undefined, 'internal', 'apple-revoke-failed'],
+  ])('when Apple says %s, tells the app (%s, %s) and erases nothing', async (reason, code, message) => {
+    withAppleAccount();
+    global.__revokeApple = jest.fn(async () => { throw Object.assign(new Error('c-one-time-code'), { code: reason }); });
+    await expect(call(recent(), { appleAuthorizationCode: 'code-1' })).rejects.toMatchObject(failedWith(code, message));
+    expect(global.__erase).not.toHaveBeenCalled();
+  });
+
+  it('does not spend the one-time code when the sign-in is too old to delete', async () => {
+    withAppleAccount();
+    await expect(call({ uid: 'u1', token: { auth_time: nowSeconds() - 6 * 60 } }, { appleAuthorizationCode: 'code-1' }))
+      .rejects.toMatchObject({ message: 'recent-login-required' });
+    expect(global.__revokeApple).not.toHaveBeenCalled();
+    expect(global.__auth.getUser).not.toHaveBeenCalled();
+  });
+
+  it('carries on when the sign-in account is already gone', async () => {
+    global.__auth.getUser = jest.fn(async () => { throw Object.assign(new Error('gone'), { code: 'auth/user-not-found' }); });
+    await expect(call(recent(), { appleAuthorizationCode: 'code-1' })).resolves.toEqual({ deleted: true });
+    expect(global.__revokeApple).not.toHaveBeenCalled();
+    expect(global.__erase).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses, erasing nothing, when it cannot tell whether the account uses Apple', async () => {
+    global.__auth.getUser = jest.fn(async () => { throw Object.assign(new Error('boom'), { code: 'auth/internal-error' }); });
+    await expect(call(recent(), { appleAuthorizationCode: 'code-1' })).rejects.toMatchObject({ code: 'unavailable', message: 'apple-check-failed' });
+    expect(global.__revokeApple).not.toHaveBeenCalled();
+    expect(global.__erase).not.toHaveBeenCalled();
   });
 });

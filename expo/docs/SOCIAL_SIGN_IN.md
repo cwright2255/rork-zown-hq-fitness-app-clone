@@ -22,8 +22,8 @@ Until the id for Google or Meta is set, its button is still there. Tapping it sa
 
 Firebase console, project `zown-3c512`, Authentication, Sign-in method, Add new provider.
 
-- **Apple.** Turn it on and save. For an iPhone-only app nothing else is needed (the Services ID, team id and key are for the web
-  and for revoking a token when an account is deleted; see "Not done yet").
+- **Apple.** Turn it on and save. For signing in on an iPhone nothing else is needed here (the Services ID and the key fields in this
+  panel are for the web). Revoking the token when an account is deleted uses its own key, kept as a Cloud Functions secret: step 6.
 - **Google.** Turn it on, pick the project support email, save. This also creates the iOS OAuth client the app uses.
 - **Facebook.** Needs the Meta app first (step 3). Turn it on, paste the Meta App ID and App Secret **here only**. They never go in
   the app, in a file in the repo or in a chat. Firebase then shows an OAuth redirect URI: copy it for step 3.
@@ -42,8 +42,8 @@ Check that its bundle id is `com.zownhq.app`.
 ### 3. Meta: the app
 
 1. developers.facebook.com, My Apps, Create App. Choose the use case for authenticating with Facebook Login.
-2. Settings, Basic: note the **App ID** (a number) and the **App Secret** (goes only into Firebase, step 1). Add a Privacy Policy URL
-   and an App icon (the new 1024 one) here. Add iOS as a platform with bundle id `com.zownhq.app`.
+2. Settings, Basic: note the **App ID** (a number) and the **App Secret** (goes only into Firebase, step 1). Add the Privacy Policy URL
+   (`https://zown-3c512-legal.web.app/privacy`, see `docs/PRIVACY_PAGE.md`) and an App icon (the new 1024 one) here. Add iOS as a platform with bundle id `com.zownhq.app`.
 3. Products, Facebook Login, Settings:
    - Client OAuth Login: on. Web OAuth Login: on.
    - Valid OAuth Redirect URIs: add both
@@ -81,6 +81,52 @@ EAS adds the Sign in with Apple capability to the app's identifier and makes a n
 capabilities, say yes. Do not `eas update` an older build first and expect Apple to work: it will not until the build is replaced.
 (Google and Meta would work from an update once the ids are set, but the build is what you are about to make anyway.)
 
+### 6. Apple: disconnect the app when an account is deleted (needed before the App Store)
+
+Apple requires an app that offers Sign in with Apple to revoke the person's Apple token when they delete their account (App Review
+guideline 5.1.1(v)). TestFlight does not check this; App Store review does.
+
+How it works: the person taps Delete Account and confirms twice. Apple's own sheet then asks them to confirm. The app sends the one-time
+code Apple gives to the `deleteMyAccount` function, which signs in to Apple with the key below, trades the code for a token and revokes
+it. That happens **before anything is erased**: if Apple says no, nothing is deleted and the person can try again. An account that never
+used Apple is unaffected, and sees no Apple sheet.
+
+**a. Make the key.** developer.apple.com, Account, Certificates, Identifiers & Profiles, Keys, the + button.
+
+1. Name it `ZOWN HQ Sign in with Apple` and tick **Sign in with Apple**, then Configure.
+2. Primary App ID: `ZOWN HQ (com.zownhq.app)`. Save, Continue, Register.
+3. Write down the **Key ID** (10 letters and digits) shown on the next page.
+4. Download the `.p8` file. Apple lets you download it **once**. Open it in a text editor: you will paste what is inside in step b.
+
+Do not commit the file or paste its text into a chat. (`*.p8` is already in `.gitignore`.) The Team ID, `GLFKG8342N`, is already in the code
+(`functions/src/appleRevoke.js`); it is the same one shown under Membership on developer.apple.com.
+
+**b. Keep the key as Firebase secrets.** In the Codespace:
+
+```
+cd expo
+firebase functions:secrets:set APPLE_KEY_ID
+firebase functions:secrets:set APPLE_PRIVATE_KEY --data-file -
+```
+
+The first asks for a value: type the Key ID and press Enter. The second waits for input: paste the whole text of the `.p8` file (from
+`-----BEGIN PRIVATE KEY-----` to `-----END PRIVATE KEY-----`), press Enter, then press Ctrl+D. If it asks whether to redeploy functions that
+use the secret, say no for now. (If you ever lose the file, make a new key in step a and set both secrets again.)
+
+**c. Put it live, app first.**
+
+```
+cd expo
+eas update --branch main --environment production
+firebase deploy --only functions:deleteMyAccount
+```
+
+The app goes first on purpose. The function insists on an Apple code for any account that signed in with Apple, and an app made before this
+change does not send one: with the new function and the old app, deleting an Apple account would just say "Sign in with Apple again first"
+until the app updates. Close and reopen the app twice after the update. (A build made after this change has it already.)
+
+**d. Check it on a phone:** the section "Deleting an account that signed in with Apple" in `docs/DEVICE_CHECKS.md`.
+
 ## If something does not work
 
 | What the person sees | What it means |
@@ -92,18 +138,15 @@ capabilities, say yes. Do not `eas update` an older build first and expect Apple
 | Meta signs a tester in, but another person gets "App not active" or similar | The Meta app is in Development mode and that person has no role on it (step 3.4). |
 | "An account with that email already exists. Sign in the way you first did…" | The email already belongs to an account made another way, and Firebase would not sign in with a second method for it. The app does not join accounts itself. |
 | "Apple sign-in is not available in Expo Go…" | These need the real app (TestFlight). Email and password still work in Expo Go. |
+| "We couldn't disconnect ZOWN HQ from your Apple ID" when deleting | The key is wrong or not set (step 6). `firebase functions:log --only deleteMyAccount` shows "could not revoke the Apple token: not-configured". Check the Key ID matches the key, the key has Sign in with Apple on for `com.zownhq.app`, and set both secrets again. |
+| "Apple didn't accept the confirmation" when deleting | The one-time code was used or had expired. Try again; nothing was deleted. |
+| "That isn't the Apple ID you signed in to ZOWN HQ with" | The phone is signed in to a different Apple ID than the one used to sign in. Nothing was deleted. |
 | No Sign in with Apple button | The phone cannot offer it (not signed in to an Apple ID, or a simulator without one). |
 
 Closing the sign-in page or sheet shows nothing; the person is back on the login screen.
 
 ## Not done yet (known, and not part of this change)
 
-- **Deleting an account must revoke Apple's token** before the App Store review: Apple requires an app that offers Sign in with
-  Apple, and account deletion, to revoke the person's Apple token when the account is deleted. TestFlight does not check this; the
-  App Store does. It needs the Apple key and Services ID in Firebase and a change to the deletion code.
-- **A public web address for the privacy policy.** The policy now names the three sign-ins and what comes back from them (name,
-  email, and a profile picture from Google and Meta), but it lives inside the app (`app/profile/privacy-policy.jsx`). Meta asks for
-  a public web address for it before the Meta app can go Live, and App Store Connect asks for one too.
 - **The register screen** has no Apple, Google or Meta buttons. A new account made by one of them is created from the login screen.
 - **One person, two sign-in methods.** What happens when someone signs in with Apple, Google or Meta using an email that already
   has an account is Firebase's rule (the setting "One account per email address", on by default), not the app's. Depending on

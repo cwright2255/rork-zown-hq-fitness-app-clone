@@ -15,6 +15,7 @@ import { useSpotifyStore } from '@/store/spotifyStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
 import { setShowInLeaderboards } from '@/services/leaderboardVisibility';
+import { requestAppleAuthorizationCode } from '@/services/socialAuth';
 import { auth, functions } from '../../src/config/firebase';
 import { sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
@@ -286,12 +287,42 @@ export default function SettingsScreen() {
 
   const deleteAccountNow = async () => {
     setDeleting(true);
+
+    // An account that signs in with Apple has to be disconnected from the person's Apple ID when it is deleted (App Review
+    // guideline 5.1.1(v)). The server does that, but only with a fresh one-time code from Apple, so the person confirms with
+    // Apple first. Nothing has been deleted yet if they close that sheet.
+    const apple = (auth.currentUser?.providerData || []).find((p) => p?.providerId === 'apple.com');
+    let appleAuthorizationCode;
+    if (apple) {
+      try {
+        appleAuthorizationCode = await requestAppleAuthorizationCode(apple.uid);
+      } catch (e) {
+        setDeleting(false);
+        if (e?.code === 'cancelled') {
+          Alert.alert('Not deleted', 'To delete an account that uses Sign in with Apple, you need to confirm with Apple. Nothing was deleted.');
+        } else {
+          Alert.alert('Could not confirm with Apple', `${e?.message || 'Apple could not confirm it is you.'} Nothing was deleted.`);
+        }
+        return;
+      }
+    }
+
     try {
-      await httpsCallable(functions, 'deleteMyAccount', { timeout: 540000 })({});
+      await httpsCallable(functions, 'deleteMyAccount', { timeout: 540000 })(appleAuthorizationCode ? { appleAuthorizationCode } : {});
     } catch (e) {
       setDeleting(false);
       const message = String(e?.message || '');
-      if (message === 'recent-login-required' || /failed-precondition/.test(String(e?.code))) {
+      if (message === 'apple-code-rejected') {
+        Alert.alert('Apple did not accept that', "Apple didn't accept the confirmation. Nothing was deleted. Please try again.");
+      } else if (message === 'apple-wrong-account') {
+        Alert.alert('A different Apple ID', "That isn't the Apple ID you signed in to ZOWN HQ with. Nothing was deleted. Use the same Apple ID and try again.");
+      } else if (message === 'apple-unavailable') {
+        Alert.alert('Apple is not answering', "Apple isn't answering right now. Nothing was deleted. Please try again in a few minutes.");
+      } else if (message === 'apple-revoke-failed') {
+        Alert.alert('Could not disconnect from Apple', "We couldn't disconnect ZOWN HQ from your Apple ID. Nothing was deleted. Please try again. If it keeps failing, email privacy@zownhq.com.");
+      } else if (message === 'apple-code-required') {
+        Alert.alert('Sign in with Apple again first', 'To delete an account that uses Sign in with Apple, log out, sign in with Apple again, then delete your account.');
+      } else if (message === 'recent-login-required' || /failed-precondition/.test(String(e?.code))) {
         Alert.alert('Sign in again first', 'To protect your account, log out, sign back in, then delete your account.');
       } else if (message === 'delete-incomplete') {
         Alert.alert('Not finished', "We couldn't finish erasing your data. Nothing was lost, so please try again. If it keeps failing, email privacy@zownhq.com.");

@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "site": "zown-3c512-legal",
+    "public": ".",
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  }
+}

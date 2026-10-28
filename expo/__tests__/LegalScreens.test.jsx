@@ -83,8 +83,15 @@ describe('Privacy Policy', () => {
     expect(text).toMatch(/Apple, Google and Meta: only if you choose to sign in with them\. They learn that you signed in to ZOWN HQ, and what they do with that is covered by their own privacy policies\./);
   });
 
-  it('says deleting an account here does not take the app off the Apple, Google or Meta account', () => {
-    expect(policy()).toMatch(/If you signed in with Apple, Google or Meta, ZOWN HQ may stay on the list of apps connected to that account after you delete yours; you can remove it in that service's settings\./);
+  it('says deleting an account disconnects the app from the Apple ID, after the person confirms with Apple', () => {
+    expect(policy()).toMatch(/If you signed in with Apple, deleting your account also disconnects ZOWN HQ from your Apple ID \(you confirm with Apple first\), so it no longer appears in the apps using your Apple ID\./);
+  });
+
+  it('says deleting an account does not take the app off a Google or Meta account', () => {
+    const text = policy();
+    expect(text).toMatch(/If you signed in with Google or Meta, ZOWN HQ may stay on the list of apps connected to that account after you delete yours; you can remove it in that service's settings\./);
+    // Apple is the one it does disconnect, so it must not be in the "may stay" sentence
+    expect(text).not.toMatch(/If you signed in with Apple, Google or Meta, ZOWN HQ may stay/);
   });
 
   it('says a person signing in with Apple can hide their email address', () => {

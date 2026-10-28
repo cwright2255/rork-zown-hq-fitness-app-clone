@@ -179,6 +179,41 @@ function firebaseFailure(error) {
 }
 
 /**
+ * A fresh one-time authorization code from Apple, for deleting an account that signs in with Apple. The delete function
+ * trades it for a token and revokes it (functions/src/appleRevoke.js), which is what takes ZOWN HQ off the person's Apple ID.
+ * Apple shows its own sheet, so this is the person confirming with Apple. `appleUserId` is the Apple id linked to the account
+ * (providerData uid), so the sheet is for that Apple ID. If Apple will not refresh it (for example the person already removed
+ * ZOWN HQ from their Apple ID settings), a normal Sign in with Apple sheet is shown instead; either way the code is only used
+ * to revoke. Rejects with a SocialAuthError: 'cancelled' when the person closes the sheet.
+ */
+export async function requestAppleAuthorizationCode(appleUserId) {
+  const AppleAuthentication = require('expo-apple-authentication');
+
+  let available = false;
+  try { available = await AppleAuthentication.isAvailableAsync(); } catch (e) { available = false; }
+  if (!available) throw new SocialAuthError('unavailable', 'Sign in with Apple is not available on this phone.');
+
+  const isCancel = (e) => !!e && (e.code === 'ERR_REQUEST_CANCELED' || e.code === 'ERR_CANCELED');
+  let apple = null;
+  try {
+    apple = await AppleAuthentication.refreshAsync({ user: appleUserId });
+  } catch (e) {
+    if (isCancel(e)) throw cancelled();
+    try {
+      apple = await AppleAuthentication.signInAsync({});
+    } catch (second) {
+      if (isCancel(second)) throw cancelled();
+      console.warn('[SocialAuth] Apple would not give a code:', second && second.code, second && second.message);
+      throw new SocialAuthError('failed', 'Apple could not confirm it is you. Please try again.');
+    }
+  }
+  if (!apple || !apple.authorizationCode) {
+    throw new SocialAuthError('failed', 'Apple did not send back what is needed to delete the account. Please try again.');
+  }
+  return apple.authorizationCode;
+}
+
+/**
  * Signs in with `provider` ('apple', 'google' or 'meta'). Resolves to
  * { fbUser, isNewUser, name }: the Firebase user, whether this sign-in created the account, and the name the
  * provider gave (Apple only, and only the first time) so the caller can use it. Rejects with a SocialAuthError.

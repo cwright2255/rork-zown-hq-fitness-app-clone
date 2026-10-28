@@ -25,6 +25,7 @@ jest.mock('@/store/appleMusicStore', () => ({
 }));
 jest.mock('@/services/spotifyService', () => ({ spotifyService: {} }));
 jest.mock('@/services/leaderboardVisibility', () => ({ setShowInLeaderboards: jest.fn() }));
+jest.mock('@/services/socialAuth', () => ({ requestAppleAuthorizationCode: (...a) => global.__appleCode(...a) }));
 jest.mock('../src/config/firebase', () => ({ auth: { currentUser: { uid: 'u1', email: 'cj@example.com' } }, functions: { fake: true } }));
 // firebase/auth and firebase/functions get the same fake, so this test does not
 // depend on how the module resolver maps the two (some setups point both at one stub).
@@ -66,6 +67,8 @@ const { auth } = require('../src/config/firebase');
 let alertSpy;
 beforeEach(() => {
   global.__logout = jest.fn();
+  global.__appleCode = jest.fn(async () => 'apple-code');
+  auth.currentUser.providerData = [{ providerId: 'password', uid: 'cj@example.com' }];
   global.__deleteCall = jest.fn(async () => ({ data: { deleted: true } }));
   global.__httpsCallable = jest.fn(() => global.__deleteCall);
   global.__signOut = jest.fn(async () => {});
@@ -247,6 +250,141 @@ describe('Settings: Delete Account', () => {
       await confirmTwice(utils);
       expect(global.__deleteCall).toHaveBeenCalledTimes(1);
       expect(router.replace).toHaveBeenCalledWith('/auth/login');
+    });
+  });
+});
+
+describe('Settings: Delete Account with Sign in with Apple', () => {
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  const APPLE = { providerId: 'apple.com', uid: '001234.apple.user' };
+  const confirmTwice = async (utils) => {
+    fireEvent.press(utils.getByText('Delete Account'));
+    alertSpy.mock.calls[0][2].find((b) => b.text === 'Delete Permanently').onPress();
+    await act(async () => { await alertSpy.mock.calls[1][2].find((b) => b.text === 'Yes, Delete').onPress(); });
+  };
+  const lastAlert = () => alertSpy.mock.calls.at(-1);
+  const failWith = (error) => { global.__deleteCall = jest.fn(async () => { throw error; }); global.__httpsCallable = jest.fn(() => global.__deleteCall); };
+  const nothingWiped = () => {
+    expect(global.__signOut).not.toHaveBeenCalled();
+    expect(AsyncStorage.clear).not.toHaveBeenCalled();
+    expect(global.__logout).not.toHaveBeenCalled();
+    expect(global.__reload).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  };
+  beforeEach(() => { auth.currentUser.providerData = [APPLE]; });
+
+  it('does not open Apple for an account that signs in another way, and sends no code', async () => {
+    auth.currentUser.providerData = [{ providerId: 'password', uid: 'cj@example.com' }, { providerId: 'google.com', uid: 'g1' }];
+    const callServer = jest.fn(async () => ({ data: { deleted: true } }));
+    global.__deleteCall = callServer;
+    global.__httpsCallable = jest.fn(() => callServer);
+    await confirmTwice(render(<SettingsScreen />));
+    expect(global.__appleCode).not.toHaveBeenCalled();
+    expect(callServer).toHaveBeenCalledWith({});
+  });
+
+  it('has the person confirm with Apple, for the Apple ID linked to the account, and sends the code to the server', async () => {
+    await confirmTwice(render(<SettingsScreen />));
+    expect(global.__appleCode).toHaveBeenCalledTimes(1);
+    expect(global.__appleCode).toHaveBeenCalledWith('001234.apple.user');
+    expect(global.__deleteCall).toHaveBeenCalledWith({ appleAuthorizationCode: 'apple-code' });
+    expect(router.replace).toHaveBeenCalledWith('/auth/login');
+  });
+
+  it('also asks when Apple is linked next to email and password', async () => {
+    auth.currentUser.providerData = [{ providerId: 'password', uid: 'cj@example.com' }, APPLE];
+    await confirmTwice(render(<SettingsScreen />));
+    expect(global.__appleCode).toHaveBeenCalledWith('001234.apple.user');
+    expect(global.__deleteCall).toHaveBeenCalledWith({ appleAuthorizationCode: 'apple-code' });
+  });
+
+  it('confirms with Apple first, then the server erases, and only then is this phone wiped', async () => {
+    const order = [];
+    global.__appleCode = jest.fn(async () => { order.push('apple'); return 'apple-code'; });
+    global.__deleteCall = jest.fn(async () => { order.push('server'); return { data: { deleted: true } }; });
+    global.__httpsCallable = jest.fn(() => global.__deleteCall);
+    AsyncStorage.clear.mockImplementation(async () => { order.push('wipe'); });
+    await confirmTwice(render(<SettingsScreen />));
+    expect(order).toEqual(['apple', 'server', 'wipe']);
+    AsyncStorage.clear.mockReset();
+  });
+
+  it('shows "Erasing your data..." while it waits for Apple, so the screen is not left looking idle', async () => {
+    let finish;
+    global.__appleCode = jest.fn(() => new Promise((resolve) => { finish = () => resolve('apple-code'); }));
+    const utils = render(<SettingsScreen />);
+    fireEvent.press(utils.getByText('Delete Account'));
+    alertSpy.mock.calls[0][2].find((b) => b.text === 'Delete Permanently').onPress();
+    await act(async () => { alertSpy.mock.calls[1][2].find((b) => b.text === 'Yes, Delete').onPress(); });
+    expect(utils.getByText('Erasing your data...')).toBeTruthy();
+    expect(global.__deleteCall).not.toHaveBeenCalled();
+    await act(async () => { finish(); });
+    expect(global.__deleteCall).toHaveBeenCalledTimes(1);
+  });
+
+  describe('when Apple is not confirmed', () => {
+    it('says nothing was deleted when the person closes the Apple sheet, and can try again', async () => {
+      global.__appleCode = jest.fn(async () => { throw Object.assign(new Error('Sign-in was cancelled.'), { code: 'cancelled' }); });
+      const utils = render(<SettingsScreen />);
+      await confirmTwice(utils);
+      expect(lastAlert()[0]).toBe('Not deleted');
+      expect(lastAlert()[1]).toMatch(/confirm with Apple/);
+      expect(lastAlert()[1]).toMatch(/Nothing was deleted/);
+      expect(global.__deleteCall).not.toHaveBeenCalled();
+      nothingWiped();
+      expect(utils.queryByText('Erasing your data...')).toBeNull();
+
+      global.__appleCode = jest.fn(async () => 'apple-code');
+      alertSpy.mockClear();
+      await confirmTwice(utils);
+      expect(global.__deleteCall).toHaveBeenCalledWith({ appleAuthorizationCode: 'apple-code' });
+    });
+
+    it('shows what Apple could not do, says nothing was deleted, and does not call the server', async () => {
+      global.__appleCode = jest.fn(async () => { throw Object.assign(new Error('Apple could not confirm it is you. Please try again.'), { code: 'failed' }); });
+      await confirmTwice(render(<SettingsScreen />));
+      expect(lastAlert()[0]).toBe('Could not confirm with Apple');
+      expect(lastAlert()[1]).toBe('Apple could not confirm it is you. Please try again. Nothing was deleted.');
+      expect(global.__deleteCall).not.toHaveBeenCalled();
+      nothingWiped();
+    });
+
+    it('does not show an empty message if the error carries none', async () => {
+      global.__appleCode = jest.fn(async () => { throw new Error(''); });
+      await confirmTwice(render(<SettingsScreen />));
+      expect(lastAlert()[1]).toBe('Apple could not confirm it is you. Nothing was deleted.');
+      expect(global.__deleteCall).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the server cannot disconnect from Apple', () => {
+    it.each([
+      ['apple-code-rejected', 'Apple did not accept that', /Apple didn't accept the confirmation\. Nothing was deleted\. Please try again\./],
+      ['apple-wrong-account', 'A different Apple ID', /isn't the Apple ID you signed in to ZOWN HQ with\. Nothing was deleted\./],
+      ['apple-unavailable', 'Apple is not answering', /Apple isn't answering right now\. Nothing was deleted\. Please try again in a few minutes\./],
+      ['apple-revoke-failed', 'Could not disconnect from Apple', /couldn't disconnect ZOWN HQ from your Apple ID\. Nothing was deleted\..*privacy@zownhq\.com/],
+      ['apple-code-required', 'Sign in with Apple again first', /log out, sign in with Apple again, then delete your account/],
+    ])('%s: tells the person (%s), keeps everything, and does not look like a lost connection', async (message, title, body) => {
+      failWith(Object.assign(new Error(message), { code: 'functions/failed-precondition' }));
+      const utils = render(<SettingsScreen />);
+      await confirmTwice(utils);
+      expect(lastAlert()[0]).toBe(title);
+      expect(lastAlert()[1]).toMatch(body);
+      expect(lastAlert()[1]).not.toMatch(/Check your connection/);
+      nothingWiped();
+      expect(utils.queryByText('Erasing your data...')).toBeNull();
+    });
+
+    it('does not show the generic "sign in again" message for an Apple refusal that arrives as failed-precondition', async () => {
+      failWith(Object.assign(new Error('apple-code-rejected'), { code: 'functions/failed-precondition' }));
+      await confirmTwice(render(<SettingsScreen />));
+      expect(lastAlert()[0]).not.toBe('Sign in again first');
+    });
+
+    it('still shows the generic message when the sign-in is too old', async () => {
+      failWith(Object.assign(new Error('recent-login-required'), { code: 'functions/failed-precondition' }));
+      await confirmTwice(render(<SettingsScreen />));
+      expect(lastAlert()[0]).toBe('Sign in again first');
     });
   });
 });

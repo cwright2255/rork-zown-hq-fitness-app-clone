@@ -9,6 +9,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
+import { revokeAppleGrant } from './appleRevoke.js';
 import { changeMemberCount } from './groupMemberCount.js';
 import { handleClaim, fillLeaderboardEntry } from './xpLedger.js';
 import { refreshTotals } from './lifetimeTotals.js';
@@ -45,6 +46,11 @@ const RADAR_TEST_SECRET_KEY = defineSecret('RADAR_TEST_SECRET_KEY');
 const ROOK_CLIENT_UUID = defineSecret('ROOK_CLIENT_UUID');
 const ROOK_CLIENT_SECRET = defineSecret('ROOK_CLIENT_SECRET');
 const ROOK_API_BASE = 'https://api.rook-connect.review'; // sandbox host - see comment above for why
+
+// The Sign in with Apple key (the team's .p8 file and its id), used only to revoke a person's Apple token when they delete their
+// account (appleRevoke.js). Set once: firebase functions:secrets:set APPLE_KEY_ID / APPLE_PRIVATE_KEY (docs/SOCIAL_SIGN_IN.md).
+const APPLE_KEY_ID = defineSecret('APPLE_KEY_ID');
+const APPLE_PRIVATE_KEY = defineSecret('APPLE_PRIVATE_KEY');
 
 // Real, new: for the Spoonacular (recipeExtractionService.js) and
 // RapidAPI (exerciseDbService.js, muscleVisualizerService.js) proxies
@@ -1716,9 +1722,32 @@ async function revokeRookForUser(uid) {
   }
 }
 
+// The Apple user id linked to this account, or null when they never used Sign in with Apple. If the account cannot be read for
+// any reason other than not existing, this refuses rather than guess: guessing "no Apple" would erase an Apple account
+// without disconnecting it.
+async function linkedAppleUserId(uid) {
+  let record;
+  try {
+    record = await getAuth().getUser(uid);
+  } catch (e) {
+    if (e?.code === 'auth/user-not-found') return null;
+    console.error('[deleteMyAccount] could not read the sign-in account:', e?.code || e?.message || e);
+    throw new HttpsError('unavailable', 'apple-check-failed');
+  }
+  const apple = (record?.providerData || []).find((p) => p?.providerId === 'apple.com');
+  return apple ? String(apple.uid) : null;
+}
+
+// What the app is told when Apple would not take the token back. Nothing has been erased at this point.
+const APPLE_FAILURES = {
+  'invalid-code': ['failed-precondition', 'apple-code-rejected'],
+  'wrong-account': ['failed-precondition', 'apple-wrong-account'],
+  unavailable: ['unavailable', 'apple-unavailable'],
+};
+
 export const deleteMyAccount = onCall(
   {
-    secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET],
+    secrets: [ROOK_CLIENT_UUID, ROOK_CLIENT_SECRET, APPLE_KEY_ID, APPLE_PRIVATE_KEY],
     region: 'us-central1',
     timeoutSeconds: 540,
     memory: '512MiB',
@@ -1728,6 +1757,27 @@ export const deleteMyAccount = onCall(
     const signedInAt = Number(req.auth?.token?.auth_time);
     if (!Number.isFinite(signedInAt) || Date.now() / 1000 - signedInAt > RECENT_SIGN_IN_SECONDS) {
       throw new HttpsError('failed-precondition', 'recent-login-required');
+    }
+
+    // First, before anything is erased: an account that signs in with Apple must be disconnected from the person's Apple ID
+    // (App Review guideline 5.1.1(v)). The app gets a fresh one-time code from Apple for this; if Apple will not take it back the
+    // person is told, nothing is lost, and they can try again.
+    const appleUserId = await linkedAppleUserId(uid);
+    if (appleUserId) {
+      const code = typeof req.data?.appleAuthorizationCode === 'string' ? req.data.appleAuthorizationCode.trim() : '';
+      if (!code) throw new HttpsError('failed-precondition', 'apple-code-required');
+      try {
+        await revokeAppleGrant({
+          authorizationCode: code,
+          expectedUserId: appleUserId,
+          keyId: APPLE_KEY_ID.value(),
+          privateKey: APPLE_PRIVATE_KEY.value(),
+        });
+      } catch (e) {
+        console.error('[deleteMyAccount] could not revoke the Apple token:', e?.code || 'unknown');
+        const [status, message] = APPLE_FAILURES[e?.code] || ['internal', 'apple-revoke-failed'];
+        throw new HttpsError(status, message);
+      }
     }
 
     const result = await eraseUserAccount({

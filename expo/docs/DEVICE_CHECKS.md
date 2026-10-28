@@ -901,3 +901,30 @@ build from TestFlight. Sign out first so the login screen shows.
       same account, or the screen says "An account with that email already exists. Sign in the way you first did: email and password, or the
       other service." Either is fine for the alpha; note which one you get.
 - [ ] A build made without the Meta id: tapping Meta says "Meta sign-in isn't set up yet."
+
+## Deleting an account that signed in with Apple, and the public privacy page (once, after both are live)
+
+Needs the app update (`eas update`, then close and reopen twice), the Apple key set as the two Firebase secrets, and
+`firebase deploy --only functions:deleteMyAccount`, in that order (`docs/SOCIAL_SIGN_IN.md`, step 6). For the page, the site put online
+(`docs/PRIVACY_PAGE.md`). Use a **throwaway** account: this erases it. Use a real phone signed in to an Apple ID.
+
+**Deleting an account that signed in with Apple**
+
+- [ ] Sign out. Tap Sign in with Apple, make a new account (hide-my-email is fine), finish onboarding.
+- [ ] On the phone: Settings, your name at the top, Sign-In & Security, Sign in with Apple. **ZOWN HQ is in the list.**
+- [ ] In ZOWN HQ: Settings, Delete Account, Delete Permanently, Yes, Delete. Apple's sheet opens (Continue with your Apple ID, then Face ID or
+      passcode). After you confirm, "Erasing your data..." shows and you land on the login screen.
+- [ ] Back in the phone's Settings, Sign in with Apple: **ZOWN HQ is gone from the list.**
+- [ ] Tap Sign in with Apple in ZOWN HQ again with the same Apple ID: Apple treats it as new (it asks about name and email again) and you land in
+      onboarding with an empty account.
+- [ ] With another throwaway Apple account, close Apple's sheet when it opens during the delete: it says "Not deleted ... Nothing was deleted."
+      The account is still there (log out and back in works), and trying the delete again works.
+- [ ] An account made with email and password: Delete Account shows **no** Apple sheet and still deletes.
+- [ ] If an account was signed in more than 5 minutes ago, the delete says "Sign in again first". Log out, sign in with Apple, delete: it works.
+
+**The public privacy page**
+
+- [ ] On the phone, open `https://zown-3c512-legal.web.app/privacy` in Safari. It shows the Privacy Policy, readable without zooming, and
+      follows the phone's light or dark setting.
+- [ ] Section 6 mentions that deleting an account disconnects ZOWN HQ from your Apple ID. Tapping privacy@zownhq.com opens a new email.
+- [ ] The words match the in-app one (Settings, Privacy Policy).
