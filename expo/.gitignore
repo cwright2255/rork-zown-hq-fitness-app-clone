@@ -34,6 +34,9 @@ firebase-debug.log*
 firestore-debug.log*
 ui-debug.log*
 
+# Firebase CLI's local hosting cache (made by firebase deploy --only hosting)
+.firebase/
+
 # macOS
 .DS_Store
 *.pem

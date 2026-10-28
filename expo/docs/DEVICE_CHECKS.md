@@ -928,3 +928,36 @@ Needs the app update (`eas update`, then close and reopen twice), the Apple key 
       follows the phone's light or dark setting.
 - [ ] Section 6 mentions that deleting an account disconnects ZOWN HQ from your Apple ID. Tapping privacy@zownhq.com opens a new email.
 - [ ] The words match the in-app one (Settings, Privacy Policy).
+
+## Launch splash, and going straight to Home when signed in (once, on the first update with it)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
+the app completely and open it twice. The splash is `components/ZownGlitchSplash.jsx`; what it draws at each moment is
+`lib/zownGlitchSpec.js`. The first thing on screen is still the phone's own black launch screen (the Z mark on black): that is part of the
+native build (`app.json`, "splash"), so changing it to white is a separate build and, until then, the jump from black to white is expected.
+
+**Not signed in** (Settings, Log Out first, then close the app completely)
+
+- [ ] Open the app. After the phone's launch screen the screen is white and the black ZOWN glitches in: slices of it shifted sideways with cyan
+      and orange fringes, coloured blocks (cyan, orange, a dark red, a little green) and thin streaks, settling in about two seconds. Then it
+      holds, perfectly clean, with one tiny flicker.
+- [ ] About 3 seconds in, the white slides up (a bit under a second) and the login screen is under it: the wordmark at the top, the black
+      below the diagonal line, "OWN THE DAY", the form. About 4 seconds in all.
+- [ ] While the splash is on, tapping where Email will be does nothing (no keyboard). When it has slid away, the login works as before.
+- [ ] The login screen looks as it did before the splash (white top, black below the line, wordmark at the top).
+
+**Once per opening of the app**
+
+- [ ] Sign in, then Log Out: the login screen shows at once, with no splash.
+- [ ] Close the app completely and open it while signed out: the splash plays again.
+- [ ] Open Forgot Password and go back: no splash again.
+
+**Signed in**
+
+- [ ] Close the app completely and open it while signed in: no splash. After the phone's black launch screen you go straight to Home.
+- [ ] An account that was created but never finished onboarding opens on the login screen, with the splash, as it did before.
+- [ ] A Spotify sign-in coming back to the app (Settings, Connect Spotify) still returns to Settings.
+
+**Not expected any more**
+
+- [ ] There is no black glitch screen with the small Z mark, no animated Lottie splash, and no small logo on a white overlay.

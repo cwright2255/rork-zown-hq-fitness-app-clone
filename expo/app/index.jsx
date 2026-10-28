@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useUserStore } from '@/store/userStore';
 import LoadingScreen from '@/components/LoadingScreen';
-import SplashScreen from '@/components/SplashScreen';
 import { authService } from '@/services/authService';
 import { spotifyService } from '@/services/spotifyService';
+
+// What shows for the moment the sign-in check takes, the same black as the phone's own launch screen (app.json, "splash"), so
+// someone who is signed in goes from that to Home with nothing in between. If that launch screen is ever made white, make this white too.
+const LAUNCH_BACKGROUND = '#000000';
 
 
 
@@ -14,10 +17,6 @@ function IndexContent() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   const [handlingSpotify, setHandlingSpotify] = useState(false);
-  // Splash and the auth check run in parallel — navigation waits for
-  // whichever finishes last, so a slow network doesn't cut the animation
-  // short and a fast auth check doesn't skip past it entirely.
-  const [splashDone, setSplashDone] = useState(false);
   const params = useLocalSearchParams();
   const router = useRouter();
 
@@ -85,10 +84,12 @@ function IndexContent() {
     return <LoadingScreen message="Connecting Spotify..." />;
   }
 
-  if (isInitializing || !splashDone) {
-    return <SplashScreen onFinish={() => setSplashDone(true)} />;
+  if (isInitializing) {
+    return <View testID="launch-blank" style={{ flex: 1, backgroundColor: LAUNCH_BACKGROUND }} />;
   }
 
+  // Signed in (and set up): straight to Home, with no splash. Everyone else goes to the login screen (/start sends them there),
+  // which plays the launch splash (components/ZownGlitchSplash.jsx) over itself.
   if (!isAuthed) {
     return <Redirect href="/start" />;
   }

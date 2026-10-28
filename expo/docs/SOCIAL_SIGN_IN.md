@@ -101,24 +101,40 @@ used Apple is unaffected, and sees no Apple sheet.
 Do not commit the file or paste its text into a chat. (`*.p8` is already in `.gitignore`.) The Team ID, `GLFKG8342N`, is already in the code
 (`functions/src/appleRevoke.js`); it is the same one shown under Membership on developer.apple.com.
 
-**b. Keep the key as Firebase secrets.** In the Codespace:
+**b. Keep the key as Firebase secrets.** Set both **before** you deploy the function: a deploy asks for a secret that does not exist yet,
+one line at a time, and the key is several lines.
+
+1. Put the `.p8` file in the Codespace: in the file explorer on the left, right-click the `expo` folder, **Upload...**, and pick
+   `AuthKey_<KEYID>.p8` from your Downloads. Do not paste its text anywhere: a terminal's one-line prompt keeps only one line of it, and
+   Apple rejects that.
+2. In the terminal:
 
 ```
 cd expo
-firebase functions:secrets:set APPLE_KEY_ID
-firebase functions:secrets:set APPLE_PRIVATE_KEY --data-file -
+firebase functions:secrets:set APPLE_KEY_ID --project zown-3c512
+firebase functions:secrets:set APPLE_PRIVATE_KEY --data-file AuthKey_<KEYID>.p8 --force --project zown-3c512
 ```
 
-The first asks for a value: type the Key ID and press Enter. The second waits for input: paste the whole text of the `.p8` file (from
-`-----BEGIN PRIVATE KEY-----` to `-----END PRIVATE KEY-----`), press Enter, then press Ctrl+D. If it asks whether to redeploy functions that
-use the secret, say no for now. (If you ever lose the file, make a new key in step a and set both secrets again.)
+   The first asks for a value: type the Key ID and press Enter. If it asks whether to redeploy functions that use the secret, say `n`.
+   The second reads the whole file, with its lines. Run them one at a time.
+3. Check the key was kept whole. This prints a line count and two yes/no answers, never the key:
+
+```
+firebase functions:secrets:access APPLE_PRIVATE_KEY --project zown-3c512 | awk 'NR==1{b=($0 ~ /^-----BEGIN PRIVATE KEY-----/)} NF{l=$0} END{print NR " lines"; print (b ? "BEGIN line ok" : "BEGIN line MISSING"); print (l ~ /^-----END PRIVATE KEY-----/ ? "END line ok" : "END line MISSING")}'
+```
+
+   You want 5 or 6 lines, with both lines "ok". One line means the key was cut: set it again as in step 2.
+4. Take the copy out of the Codespace (keep the one on your computer; Apple will not give it again): `rm AuthKey_<KEYID>.p8`. Check nothing is left
+   with `find /workspaces -name "*.p8"`, which should print nothing.
+
+If you ever lose the file, make a new key in step a and set both secrets again.
 
 **c. Put it live, app first.**
 
 ```
 cd expo
 eas update --branch main --environment production
-firebase deploy --only functions:deleteMyAccount
+firebase deploy --only functions:deleteMyAccount --project zown-3c512
 ```
 
 The app goes first on purpose. The function insists on an Apple code for any account that signed in with Apple, and an app made before this

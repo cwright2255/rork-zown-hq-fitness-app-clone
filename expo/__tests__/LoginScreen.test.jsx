@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, Image, StyleSheet } from 'react-native';
 import { Polygon } from 'react-native-svg';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { loginLayout } from '../lib/loginLayout';
@@ -33,7 +33,19 @@ jest.mock('@/services/authService', () => ({
   },
 }));
 
+jest.mock('@/components/ZownGlitchSplash', () => {
+  const mockReact = require('react');
+  return {
+    __esModule: true,
+    default: (props) => {
+      global.__splashProps = props;
+      return mockReact.createElement('LaunchSplash', { testID: 'launch-splash' });
+    },
+  };
+});
+
 import LoginScreen from '../app/auth/login';
+import { resetLaunchSplashForTests } from '../lib/launchSplash';
 
 const { router } = require('expo-router');
 
@@ -47,6 +59,8 @@ const renderScreen = async () => {
 const tap = async (utils, testID) => { await act(async () => { fireEvent.press(utils.getByTestId(testID)); }); };
 
 beforeEach(() => {
+  resetLaunchSplashForTests(); // every test is a fresh opening of the app
+  global.__splashProps = null;
   router.push.mockClear();
   router.replace.mockClear();
   global.__setUser = jest.fn();
@@ -264,5 +278,52 @@ describe('Login screen: Apple, Google and Meta', () => {
     global.__loginWithProvider = jest.fn(async () => ({ user: { uid: 'p2' }, isNewUser: false }));
     await tap(utils, 'login-meta');
     expect(global.__loginWithProvider).toHaveBeenCalledWith('meta');
+  });
+});
+
+describe('Login screen: the launch splash', () => {
+  it('plays the launch splash over the screen the first time it opens, and takes it away when the splash is done', async () => {
+    const utils = await renderScreen();
+    expect(utils.getByTestId('launch-splash')).toBeTruthy();
+    expect(typeof global.__splashProps.onFinish).toBe('function');
+    act(() => { global.__splashProps.onFinish(); });
+    expect(utils.queryByTestId('launch-splash')).toBeNull();
+  });
+
+  it('has the login screen itself underneath while the splash plays', async () => {
+    const utils = await renderScreen();
+    expect(utils.getByTestId('launch-splash')).toBeTruthy();
+    expect(utils.getByPlaceholderText('Email')).toBeTruthy();
+    expect(utils.getByTestId('login-logo')).toBeTruthy();
+  });
+
+  it('puts the splash on top: it comes after the login content in the screen', async () => {
+    const utils = await renderScreen();
+    const root = utils.toJSON();
+    const names = (root.children || []).map((c) => (typeof c === 'string' ? c : c.type));
+    expect(names[names.length - 1]).toBe('LaunchSplash');
+  });
+
+  it('does not play it again when the login screen opens again in the same session (after signing out, say)', async () => {
+    const first = await renderScreen();
+    expect(first.queryByTestId('launch-splash')).toBeTruthy();
+    first.unmount();
+    const second = await renderScreen();
+    expect(second.queryByTestId('launch-splash')).toBeNull();
+    expect(second.getByPlaceholderText('Email')).toBeTruthy();
+  });
+
+  it('plays it again the next time the app is opened', async () => {
+    const first = await renderScreen();
+    first.unmount();
+    resetLaunchSplashForTests(); // the app was closed and opened again
+    const second = await renderScreen();
+    expect(second.queryByTestId('launch-splash')).toBeTruthy();
+  });
+
+  it('no longer has the old white overlay with the small logo, which slid up after two seconds: the wordmark is the only picture on the screen', async () => {
+    const utils = await renderScreen();
+    expect(utils.UNSAFE_queryAllByType(Image)).toHaveLength(1);
+    expect(utils.getByTestId('login-logo')).toBeTruthy();
   });
 });

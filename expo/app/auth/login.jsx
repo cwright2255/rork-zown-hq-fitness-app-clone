@@ -11,8 +11,6 @@ import {
   StatusBar,
   ActivityIndicator,
   Image,
-  Dimensions,
-  Animated,
   useWindowDimensions,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -21,6 +19,8 @@ import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
 import { loginLayout } from '@/lib/loginLayout';
+import { hasLaunchSplashPlayed, markLaunchSplashPlayed } from '@/lib/launchSplash';
+import ZownGlitchSplash from '@/components/ZownGlitchSplash';
 
 // Sign in with Apple has its own button, which Apple requires. Loaded defensively: a build without the
 // native module still shows the rest of the screen.
@@ -30,8 +30,6 @@ try {
 } catch (e) {
   AppleAuthentication = null;
 }
-
-const { width, height } = Dimensions.get('window');
 
 // One outlined pill for Google or Meta.
 function ProviderPill({ testID, label, icon, working, dimmed, onPress }) {
@@ -80,20 +78,10 @@ export default function LoginScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  /* splash overlay */
-  const splashY = useRef(new Animated.Value(0)).current;
-  const [splashDone, setSplashDone] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      Animated.timing(splashY, {
-        toValue: -height,
-        duration: 800,
-        useNativeDriver: true,
-      }).start(() => setSplashDone(true));
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  // The launch splash (components/ZownGlitchSplash.jsx) plays over this screen once each time the app is opened, then slides
+  // up to reveal it. Reaching this screen again in the same session (after signing out) does not play it again.
+  const [showSplash, setShowSplash] = useState(() => !hasLaunchSplashPlayed());
+  useEffect(() => { markLaunchSplashPlayed(); }, []);
 
   /* auth */
   const handleLogin = useCallback(async () => {
@@ -307,18 +295,8 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* splash overlay */}
-      {!splashDone && (
-        <Animated.View
-          style={[styles.splashOverlay, { transform: [{ translateY: splashY }] }]}
-          pointerEvents="none">
-          <Image
-            source={require('@/assets/branding/zown-logo-512.png')}
-            style={styles.splashLogo}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      )}
+      {/* launch splash, on top until it has slid away */}
+      {showSplash ? <ZownGlitchSplash onFinish={() => setShowSplash(false)} /> : null}
     </View>
   );
 }
@@ -449,18 +427,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
-  },
-
-  /* splash overlay */
-  splashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  splashLogo: {
-    width: width * 0.35,
-    height: width * 0.35,
   },
 });
