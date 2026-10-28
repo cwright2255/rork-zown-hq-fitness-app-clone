@@ -13,6 +13,8 @@ jest.mock('react-native-safe-area-context', () => {
   return { SafeAreaView: (props) => mockReact.createElement(mockRn.View, null, props.children) };
 }, { virtual: true });
 jest.mock('@/src/components/LoadingSkeleton', () => ({ __esModule: true, default: () => null }));
+// Log Out (lib/logOut.js, tested in ProfileLogOut.test.jsx) reaches into the phone's storage, which this test does not use.
+jest.mock('@/lib/logOut', () => ({ logOut: jest.fn() }));
 // The old counter is still on the user record, at a number nothing else would give.
 jest.mock('@/store/userStore', () => ({
   useUserStore: () => ({ user: { uid: 'u1', name: 'Cj', streak: 9 }, loadProfile: () => {}, updateUser: () => {}, saveProfile: () => {} }),

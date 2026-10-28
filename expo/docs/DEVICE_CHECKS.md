@@ -1032,3 +1032,15 @@ it fetches; every opening after that has recipes on screen at once.
 **Not expected any more**
 
 - [ ] There is no "AI Recommendations" row, no "Featured" card, and no "No saved recipes" card when you have nothing saved.
+
+## Log Out on the Profile page (once, on the first update with the fix)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close the
+app completely and open it twice. The Log Out row is in `app/profile.jsx`; what it does is in `lib/logOut.js`. Before this update it only opened
+the login screen and signed nobody out, so closing the app and opening it again went straight back to Home.
+
+- [ ] Profile, Log Out, then Log Out again at "Are you sure you want to log out?": you are on the login screen.
+- [ ] Close the app completely (swipe it away in the app switcher) and open it again: you are on the login screen, not Home.
+- [ ] Sign in again: you reach Home with your own name and data.
+- [ ] Settings, Log Out does the same thing: login screen now, and still the login screen after closing and opening the app.
+- [ ] Profile, Log Out, then Cancel: you stay on Profile, and after closing and opening the app you are still signed in.

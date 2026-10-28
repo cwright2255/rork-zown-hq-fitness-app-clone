@@ -20,6 +20,7 @@ import { useUserStore } from '@/store/userStore';
 import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useActivityStreak } from '@/services/streakService';
+import { logOut } from '@/lib/logOut';
 
 /* âââ Placeholder data âââ */
 
@@ -78,7 +79,19 @@ function MenuRow({ item }) {
     if (item.danger) {
       Alert.alert('Log Out', 'Are you sure you want to log out?', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: () => router.replace('/auth/login') },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          // Signs out first (lib/logOut.js), so opening the app again does not go straight back to Home, then opens the login screen.
+          onPress: async () => {
+            try {
+              await logOut();
+            } catch (e) {
+              console.warn('[Profile] log out did not finish cleanly:', e?.message);
+            }
+            router.replace('/auth/login');
+          },
+        },
       ]);
       return;
     }
