@@ -49,14 +49,14 @@ export default function ChatScreen() {
         myName: user.name,
         myAvatar: user.profileImage,
         otherUid,
-        otherName: contactName,
+        // The name the screen was opened with, not the "Chat" it shows when there is none: that would be stored as the person's name.
+        otherName: typeof name === 'string' ? name : undefined,
         otherAvatar: typeof avatar === 'string' ? avatar : null,
         text,
       });
     } catch (e) {
-      // real-time listener will simply not show the message; text stays
-      // clearable so the user can just retry rather than losing input on
-      // a network hiccup
+      // The message was not sent (the store logs why). Put the text back so
+      // it can be sent again rather than lost on a network hiccup.
       setMsgText(text);
     } finally {
       setSending(false);

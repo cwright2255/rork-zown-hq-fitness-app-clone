@@ -1187,3 +1187,31 @@ Before you start, make sure A has these, with a signal so they reach the cloud: 
 - [ ] If A was in the middle of a hike recording when it logged out, B is not asked to pick up an unfinished hike.
 
 One thing to know: whatever had not reached the cloud yet is gone after a log out, because nothing is left behind on the phone. A run recorded with no signal and not yet synced is the example. If anything of A shows on B, do not log back in as A; note which screen it was on.
+
+## Messages: the first message to someone new, and two missing indexes (once: indexes first, then the update)
+
+This is an app update (`eas update`) plus one indexes deploy. It does not touch the rules, so there is no rules deploy. Two things were wrong. Sending the first message to someone you had never messaged was refused (the app read the conversation first, and the database does not let anyone read a conversation that does not exist yet), so your text came back into the box. And a new thread did not show a message after it was sent, until you left it and came back (its live messages had been refused too, and never started again). The indexes are the other half: the conversation list and the community stats the coach reads each needed an index that was not in `firestore.indexes.json`.
+
+Needs two phones, with accounts A and B that have never messaged each other (or A and a friend who has not been messaged). Do the first check on the build that is live now, before the update: it tells me whether the first message really fails today.
+
+**Before the update (the build that is live now)**
+
+- [ ] A: Messages, the + at the top, pick B, type "hello" and send. If the send fails and "hello" goes back into the box, the bug is confirmed. If it goes through, tell me: the first-message part of this build shrinks to the live-messages fix and the rules test, and the rest below still applies.
+
+**The indexes (do this before the update, once CI is green)**
+
+1. In the Firebase console, Firestore, Indexes, Composite: look at what is listed. If the two new ones are already there (an error link in the logs makes them), that is fine, the deploy leaves them.
+2. Save what is live before changing anything: `cd expo && firebase firestore:indexes --project zown-3c512 > /tmp/live-indexes.json`. Open it. It should list workouts (userId, date), goals, aiRecommendations and raceEntries. If it lists anything else, tell me before you deploy: the file does not have it.
+3. `cd expo && firebase deploy --only firestore:indexes --project zown-3c512`. If it asks whether to delete indexes that are live but not in the file, answer **No** (`n`), then tell me which ones it named.
+4. In the console, both new indexes (conversations: participantIds, updatedAt; workouts: completed, date) go from Building to Enabled. That takes a minute or two. Wait for Enabled before the phone check.
+
+**After the update (close the app completely and open it twice)**
+
+- [ ] A: Messages, +, pick B, type "hello", send. The box empties, "hello" appears in the thread within a second or two (not only after leaving and coming back), and the conversation is at the top of A's Messages list.
+- [ ] B: Messages shows the conversation from A, with A's name (not "Zown User") and "hello" as the last message. Open it: "hello" is there. If B already had Messages open when A sent, it shows up without a refresh.
+- [ ] B replies. A, with the thread open, sees the reply at once.
+- [ ] A starts a conversation with a third person another way and sends: tap another person's name on a post in Community, or search for them on the Social page. It goes through the same way.
+- [ ] A: send a second message in the conversation with B. The conversation is still at the top, with the new last message, and B's name and photo are still right (nothing turned into "Zown User" or "Chat").
+- [ ] Messages loads with the newest conversation first, and keeps that order after a pull to refresh.
+
+If the very first message still fails after the update, do not deploy anything else: tell me what the app showed. That means the database refuses a first write I did not expect, and I would send the fix as its own step (it would be a rules change).

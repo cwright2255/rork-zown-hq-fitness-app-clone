@@ -285,6 +285,56 @@ describe('/conversations/{conversationId}', () => {
     await ok(env.as('alice').doc('conversations/alice_bob').set({ lastMessage: 'hello', updatedAt: '2026-10-19T12:00:00.000Z' }, { merge: true }));
   });
 
+  // store/messagingStore.js sendMessage: the first message to someone new is one merging write that carries both ids, then the
+  // message. It used to read the conversation first, and a conversation that does not exist cannot be read (the rule looks inside
+  // it), so that first message was refused. These pin both halves: what is refused, and what the app does instead.
+  describe('the first message to someone new', () => {
+    const first = {
+      participantIds: ['alice', 'bob'],
+      participantInfo: { alice: { name: 'Alice' } },
+      lastMessage: { text: 'Run tomorrow?', senderId: 'alice' },
+      updatedAt: '2026-10-29T12:00:00.000Z',
+    };
+
+    it('cannot be read before it exists, by anyone, which is why the app does not read it first', async () => {
+      await no(env.as('alice').doc('conversations/alice_bob').get());
+      await no(env.as('bob').doc('conversations/alice_bob').get());
+      await no(env.as('carol').doc('conversations/alice_bob').get());
+    });
+
+    it('cannot have its messages listed before it exists, so a thread opened first has to listen again after the first message', async () => {
+      await no(env.as('alice').collection('conversations/alice_bob/messages').get());
+      await no(env.as('bob').collection('conversations/alice_bob/messages').get());
+    });
+
+    it('is sent the way the app sends it: one merging write with both ids, then the message, which both can then read', async () => {
+      await ok(env.as('alice').doc('conversations/alice_bob').set(first, { merge: true }));
+      await ok(env.as('alice').doc('conversations/alice_bob/messages/m1').set({ senderId: 'alice', text: 'Run tomorrow?' }));
+      await ok(env.as('alice').collection('conversations/alice_bob/messages').get());
+      await ok(env.as('bob').collection('conversations/alice_bob/messages').get());
+      await ok(env.as('bob').doc('conversations/alice_bob').get());
+    });
+
+    it('cannot be sent by someone who is not one of the two, nor under the id of another pair, nor without the ids', async () => {
+      await no(env.as('carol').doc('conversations/alice_bob').set(first, { merge: true }));
+      await no(env.anon().doc('conversations/alice_bob').set(first, { merge: true }));
+      await no(env.as('alice').doc('conversations/alice_bob').set({ ...first, participantIds: ['alice', 'carol'] }, { merge: true }));
+      await no(env.as('alice').doc('conversations/alice_bob').set({ lastMessage: first.lastMessage }, { merge: true }));
+    });
+
+    it('goes through again for every later message, from either of them, because the same two ids are sent each time', async () => {
+      await env.seed({ 'conversations/alice_bob': chat });
+      await ok(env.as('alice').doc('conversations/alice_bob').set(first, { merge: true }));
+      await ok(env.as('bob').doc('conversations/alice_bob').set({ ...first, participantInfo: { bob: { name: 'Bob' } } }, { merge: true }));
+    });
+
+    it('still cannot change who is in the conversation, nor be added to by someone outside it', async () => {
+      await env.seed({ 'conversations/alice_bob': chat });
+      await no(env.as('alice').doc('conversations/alice_bob').set({ ...first, participantIds: ['alice', 'carol'] }, { merge: true }));
+      await no(env.as('carol').doc('conversations/alice_bob').set(first, { merge: true }));
+    });
+  });
+
   it('cannot have its list of people changed, by either of them', async () => {
     await env.seed({ 'conversations/alice_bob': chat });
     await no(env.as('alice').doc('conversations/alice_bob').update({ participantIds: ['alice', 'bob', 'carol'] }));
