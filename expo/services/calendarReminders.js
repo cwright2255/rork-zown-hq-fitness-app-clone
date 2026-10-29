@@ -10,6 +10,7 @@
 import { notificationService } from './notificationService';
 import { useScheduleStore } from '../store/scheduleStore';
 import { reminderContent, reminderPlan } from '../lib/calendarEvents';
+import { remindersAllowed } from '../lib/remindersAllowed';
 
 const TYPE = 'schedule-event';
 
@@ -18,6 +19,8 @@ let queue = Promise.resolve();
 async function run(now) {
   const plan = reminderPlan(useScheduleStore.getState().events, now);
   await notificationService.cancelNotificationsByType(TYPE);
+  // With the Notifications switch off (Settings) the old ones are cleared above and no new ones are set.
+  if (!remindersAllowed()) return { scheduled: 0, blocked: false };
   if (plan.length === 0) return { scheduled: 0, blocked: false };
   if (!(await notificationService.hasPermission())) return { scheduled: 0, blocked: true };
   let scheduled = 0;

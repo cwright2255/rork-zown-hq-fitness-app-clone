@@ -1215,3 +1215,37 @@ Needs two phones, with accounts A and B that have never messaged each other (or 
 - [ ] Messages loads with the newest conversation first, and keeps that order after a pull to refresh.
 
 If the very first message still fails after the update, do not deploy anything else: tell me what the app showed. That means the database refuses a first write I did not expect, and I would send the fix as its own step (it would be a rules change).
+
+## Notifications switch, the real Achievements page, and fewer switches that did nothing (once, on the first update with them)
+
+This is an app update (`eas update`). Nothing is deployed to Firebase. Three things changed.
+
+- The one **Notifications** switch now controls something. The app sets three kinds of alert on the phone: calendar reminders, the alert when a fast reaches its goal, and cooking timers. With the switch off, none is set and the ones already set are cleared. Turning it back on sets the calendar's reminders again, and the fasting alert for a fast that is running (Home must be open for that one, because the fasting card is what knows the fast). The switch is in Settings and on Profile, Notifications. The hike off-route warning is a safety alert and is not turned off by it.
+- The app now shows a notification that arrives while Zown HQ is open in front. It never did before (the part that allows that was never switched on), so a cooking timer or a reminder that came due while you were using the app was silent.
+- Settings and Profile, Notifications lost the rows that saved a value nothing read: Workout Reminders, Achievement Alerts, Social Activity, Nutrition Reminders, Weekly Summary, Quiet Hours, Profile Visibility, Activity Sharing, Allow Friend Requests, Temperature and Start of Week. Show in Leaderboards stays, because it works.
+- Profile, Achievements, View All used to open a page with typed-in numbers ("12 / 20 Achievements Unlocked", "2,550 XP"). It now opens the real page, which shows your XP, level, photo, badges and achievements.
+
+You need one phone, with notifications allowed for Zown HQ in the phone's own Settings (if nothing in the app has asked yet: starting a fast asks, and so does adding a calendar event with a reminder).
+
+**Cooking timer, with the app open**
+
+- [ ] Open a recipe, start Cooking mode and go to a step that mentions a short time (a 1 or 2 minute step is best). Tap "Start ... timer" and stay in Zown HQ. When the time is up, a banner from Zown HQ ("Timer done") appears at the top of the screen while the app is still in front, and the screen says "Time is up".
+
+**The switch**
+
+- [ ] Settings: the Notifications section has one row, "Notifications", with "Calendar reminders, fasting goal alerts and cooking timers". There are no Workout Reminders, Achievement Alerts, Social Activity or Weekly Summary rows. Units has Distance Units and Weight Units only. Privacy has Show in Leaderboards only.
+- [ ] Profile, Notifications: one switch, a line saying the phone's own Settings also have to allow notifications, and no Quiet Hours.
+- [ ] Turn the switch off on one of these screens and open the other: it is off there too.
+- [ ] With the switch on, add a calendar event that starts about 12 minutes from now, with the reminder "10 min before". Lock the phone. About 2 minutes later the reminder arrives.
+- [ ] Turn Notifications off. Add another event about 12 minutes away with the reminder "10 min before", and lock the phone. No reminder arrives.
+- [ ] With the switch still off, open Cooking mode and start a short timer, then lock the phone. Nothing arrives when it ends (the clock on screen still counts down).
+- [ ] Turn the switch on again and add one more event with a reminder: its reminder arrives.
+- [ ] Close the app completely and open it. The switch is still where you left it.
+
+**Achievements**
+
+- [ ] Profile, Achievements, View All opens a page titled ACHIEVEMENTS. The XP and level match the ones on Profile (this page used to read them from fields that are never filled in). Your photo is in the ring, or your first initial if you have none. The ring is filled as far as your progress to the next level.
+- [ ] Badges lists all of them (15), not nine, the ones you have unlocked in full and the rest faded. The list under it is the 15 achievements, the ones you have unlocked first, with "N OF 15 UNLOCKED" above it. No "12 / 20", no "2,550 XP", no "Season 01", no "Challenge 1".
+- [ ] The arrow at the top left goes back to Profile.
+
+If a reminder still arrives with the switch off, tell me which kind it was (calendar, fast or cooking timer) and whether you turned the switch off before or after setting it: that tells me where it was set from.

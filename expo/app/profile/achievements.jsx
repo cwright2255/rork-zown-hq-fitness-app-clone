@@ -1,15 +1,13 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { Award, Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell } from 'lucide-react-native';
+import { Stack, router } from 'expo-router';
+import { Award, Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell, ChevronLeft } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '@/constants/theme';
 import { useAchievementStore } from '@/store/achievementStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useUserStore } from '@/store/userStore';
-import { tokens } from '../../../theme/tokens';
-
-
+import { useExpStore } from '@/store/expStore';
 
 const BADGE_ICONS = [Flame, Zap, Medal, Target, Trophy, Crown, Star, Dumbbell, Award];
 
@@ -52,8 +50,9 @@ const ringStyles = StyleSheet.create({
 });
 
 export default function AchievementsScreen() {
-  const { achievements, initializeAchievements, getUnlockedAchievements, loadAchievements } = useAchievementStore();
+  const { achievements, initializeAchievements, getUnlockedAchievements, getLockedAchievements, loadAchievements } = useAchievementStore();
   const { badges, loadBadges } = useBadgeStore();
+  const { loadXP, getLevel, getExpForLevel, getTotalExp } = useExpStore();
   const user = useUserStore((s) => s.user);
 
   useEffect(() => {
@@ -62,49 +61,40 @@ export default function AchievementsScreen() {
 
   useEffect(() => {
     if (user?.uid) {
+      loadXP(user.uid);
       loadAchievements(user.uid);
       loadBadges(user.uid);
     }
   }, [user?.uid]);
 
   const unlocked = getUnlockedAchievements();
-  // Real values only — this used to fall back to a hardcoded 27975 XP /
-  // level 12 whenever `user` was null (e.g. still loading), which looked
-  // like a plausible power-user profile rather than a loading state.
-  const xp = user?.xp ?? 0;
-  const level = user?.level ?? 1;
-  const nextLevelXp = (level + 1) * 1000;
-  const currentLevelXp = level * 1000;
-  const levelProgress = Math.min(100, Math.max(0, ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100));
+  const locked = getLockedAchievements();
 
-  // There is no real leaderboard/ranking system anywhere in this app (see
-  // the audit) — this used to hardcode `position = 2`, claiming a specific
-  // competitive rank that was never actually computed from anything.
-  // Showing level/XP honestly instead of a fabricated placement.
-
-  const seasons = useMemo(() => {
-    // No more fake "Run/Lift/Mind/Burn/Streak/Hydrate" fallback data —
-    // if there are no real achievements loaded yet, show an empty season
-    // rather than fabricated progress percentages.
-    const list = achievements && achievements.length ? achievements : [];
-    return [
-      { name: 'Season 01', status: 'Completed', items: list.slice(0, 4) },
-      { name: 'Season 02', status: 'In Progress', items: list.slice(4, 8) },
-    ];
-  }, [achievements]);
+  // XP and level are read the way the Profile screen reads them (store/expStore.js), so the two always agree.
+  const totalXp = Math.round(getTotalExp() || 0);
+  const level = getLevel();
+  const levelStart = getExpForLevel(level);
+  const levelSize = Math.max(1, getExpForLevel(level + 1) - levelStart);
+  const levelProgress = Math.min(100, Math.max(0, ((getTotalExp() || 0) - levelStart) / levelSize * 100));
 
   return (
     <SafeAreaView style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>ACHIEVEMENTS</Text>
+        <View style={styles.titleRow}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()} accessibilityLabel="Back" hitSlop={8}>
+            <ChevronLeft size={26} color={colors.text} />
+          </Pressable>
+          <Text style={styles.pageTitle}>ACHIEVEMENTS</Text>
+          <View style={styles.backBtn} />
+        </View>
 
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrap}>
             <ProgressRing percent={levelProgress} size={160} stroke={4} />
             <View style={styles.avatarInner}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImg} />
+              {user?.photoURL ? (
+                <Image source={{ uri: user.photoURL }} style={styles.avatarImg} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitial}>{(user?.name || 'Z').charAt(0).toUpperCase()}</Text>
@@ -112,13 +102,13 @@ export default function AchievementsScreen() {
               )}
             </View>
           </View>
-          <Text style={styles.xpValue}>{xp.toLocaleString()} XP</Text>
+          <Text style={styles.xpValue}>{totalXp.toLocaleString()} XP</Text>
           <Text style={styles.subtitle}>Level {level}</Text>
         </View>
 
         <Text style={styles.sectionLabel}>BADGES</Text>
         <View style={styles.badgeGrid}>
-          {(badges || []).slice(0, 9).map((badge, i) => {
+          {(badges || []).map((badge, i) => {
             const Icon = BADGE_ICONS[i % BADGE_ICONS.length];
             const isUnlocked = !!badge.isUnlocked;
             return (
@@ -126,7 +116,7 @@ export default function AchievementsScreen() {
                 <View style={[styles.badgeCircle, !isUnlocked && styles.badgeLocked]}>
                   <Icon size={28} color={isUnlocked ? colors.text : colors.textMuted} />
                 </View>
-                <Text style={[styles.badgeLabel, !isUnlocked && { color: colors.textMuted }]} numberOfLines={1}>
+                <Text style={[styles.badgeLabel, !isUnlocked && { color: colors.textMuted }]} numberOfLines={2}>
                   {badge.name}
                 </Text>
               </View>
@@ -134,30 +124,21 @@ export default function AchievementsScreen() {
           })}
         </View>
 
-        {seasons.map((season) => (
-          <View key={season.name} style={styles.seasonBlock}>
-            <View style={styles.seasonHeader}>
-              <Text style={styles.seasonName}>{season.name}</Text>
+        <Text style={styles.sectionLabel}>{`${unlocked.length} OF ${achievements.length} UNLOCKED`}</Text>
+        {[...unlocked.map((a) => [a, true]), ...locked.map((a) => [a, false])].map(([a, isUnlocked]) => {
+          return (
+            <View key={a.id} style={[styles.achievementRow, !isUnlocked && styles.achievementLocked]}>
+              <Text style={styles.achievementIcon}>{a.icon}</Text>
+              <View style={styles.achievementText}>
+                <Text style={styles.achievementName}>{a.name}</Text>
+                <Text style={styles.achievementDesc}>{a.description}</Text>
+              </View>
               <View style={styles.statusPill}>
-                <Text style={styles.statusText}>{season.status}</Text>
+                <Text style={styles.statusText}>{isUnlocked ? 'Unlocked' : 'Locked'}</Text>
               </View>
             </View>
-            <View style={styles.challengePair}>
-              {season.items.slice(0, 2).map((it, idx) => {
-                const pct = typeof it.progress === 'number' ? it.progress : 50;
-                return (
-                  <View key={it.id || idx} style={styles.challengeCard}>
-                    <Text style={styles.challengeTitle}>{it.title || `Challenge ${idx + 1}`}</Text>
-                    <View style={styles.progressTrack}>
-                      <View style={[styles.progressFill, { width: `${pct}%` }]} />
-                    </View>
-                    <Text style={styles.challengePct}>{pct}%</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -166,7 +147,9 @@ export default function AchievementsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  pageTitle: { ...typography.h1, textAlign: 'center', marginBottom: spacing.lg },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  backBtn: { width: 32, alignItems: 'flex-start' },
+  pageTitle: { ...typography.h1, textAlign: 'center' },
   avatarSection: { alignItems: 'center', marginBottom: spacing.xl },
   avatarWrap: { width: 160, height: 160, alignItems: 'center', justifyContent: 'center' },
   avatarInner: {
@@ -199,9 +182,6 @@ const styles = StyleSheet.create({
   },
   badgeLocked: { opacity: 0.4 },
   badgeLabel: { ...typography.caption, color: colors.text, fontWeight: '600' },
-  seasonBlock: { marginTop: spacing.lg },
-  seasonHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  seasonName: { ...typography.h3, letterSpacing: 1, textTransform: 'uppercase' },
   statusPill: {
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -211,17 +191,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   statusText: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
-  challengePair: { flexDirection: 'row', gap: spacing.md },
-  challengeCard: {
-    flex: 1,
+  achievementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
+    marginBottom: spacing.sm,
   },
-  challengeTitle: { ...typography.body, fontWeight: '700', marginBottom: spacing.sm },
-  progressTrack: { height: 4, borderRadius: radius.full, backgroundColor: colors.progressTrack, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: colors.progressFill, borderRadius: radius.full },
-  challengePct: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, fontWeight: '600' },
+  achievementLocked: { opacity: 0.55 },
+  achievementIcon: { fontSize: 26, marginRight: spacing.md },
+  achievementText: { flex: 1, marginRight: spacing.sm },
+  achievementName: { ...typography.body, fontWeight: '700' },
+  achievementDesc: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
 });

@@ -315,7 +315,7 @@ return (
         {/* Achievements */}
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>Achievements</Text>
-          <Pressable onPress={() => router.push('/achievements')}>
+          <Pressable onPress={() => router.push('/profile/achievements')}>
             <Text style={styles.viewAll}>View All</Text>
           </Pressable>
         </View>

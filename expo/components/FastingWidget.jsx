@@ -92,6 +92,7 @@ function Segments({ options, value, onChange, testPrefix, small }) {
 export default function FastingWidget() {
   const { user } = useUserStore();
   const weightUnits = useSettingsStore((st) => st.weightUnits);
+  const remindersOn = useSettingsStore((st) => st.notifications !== false);
   const meals = useNutritionStore((st) => st.meals);
   const weightLogs = useWeightLogStore((st) => st.logs);
   const loadWeightLogs = useWeightLogStore((st) => st.loadLogs);
@@ -141,6 +142,14 @@ export default function FastingWidget() {
     })();
     return () => { cancelled = true; };
   }, [user?.uid]);
+
+  // The Notifications switch (Settings) clears the goal alert when it is turned off (services/notificationStartup.js); when it is turned
+  // back on with a fast running, this card, which knows the fast, sets it again. (When the card first opens there is no fast yet, so this
+  // does nothing then: the alert for a fast already running is set where the fast is loaded, above.)
+  useEffect(() => {
+    if (!remindersOn || !activeFast) return;
+    scheduleFastAlert(activeFast).then(setAlertStatus).catch(() => undefined);
+  }, [remindersOn]);
 
   useEffect(() => {
     if (!activeFast) return undefined;

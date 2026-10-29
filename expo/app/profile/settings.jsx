@@ -84,19 +84,10 @@ export default function SettingsScreen() {
     darkMode,
     units,
     language,
-    privacy,
     weightUnits,
-    temperatureUnits,
-    startOfWeek,
-    workoutReminders,
-    achievementAlerts,
-    socialActivity,
-    weeklySummary,
     showInLeaderboards,
-    allowFriendRequests,
     coachCanAddToCalendar,
     updateSetting,
-    updatePrivacy,
   } = useSettingsStore();
 
   const { user, logout } = useUserStore();
@@ -489,94 +480,22 @@ export default function SettingsScreen() {
               />
             }
           />
-          <SettingRow
-            icon="thermometer-outline"
-            label="Temperature"
-            right={
-              <SegmentedControl
-                options={[
-                  { label: 'Â°F', value: 'fahrenheit' },
-                  { label: 'Â°C', value: 'celsius' },
-                ]}
-                value={temperatureUnits}
-                onChange={(val) => updateSetting('temperatureUnits', val, uid)}
-              />
-            }
-          />
-          <SettingRow
-            icon="calendar-outline"
-            label="Start of Week"
-            right={
-              <SegmentedControl
-                options={[
-                  { label: 'Mon', value: 'monday' },
-                  { label: 'Sun', value: 'sunday' },
-                ]}
-                value={startOfWeek}
-                onChange={(val) => updateSetting('startOfWeek', val, uid)}
-              />
-            }
-          />
         </View>
 
         {/* 3. NOTIFICATIONS */}
+        {/* One switch for the reminders the app sets on this phone (services/notificationStartup.js, lib/remindersAllowed.js). The
+            per-kind toggles and Quiet Hours were hidden: they were saved and nothing read them. */}
         <SectionHeader title="Notifications" />
         <View style={s.card}>
           <SettingRow
             icon="notifications-outline"
-            label="Push Notifications"
+            label="Notifications"
+            subLabel="Calendar reminders, fasting goal alerts and cooking timers"
             right={
               <Switch
-                value={notifications}
+                value={notifications !== false}
                 onValueChange={(v) => updateSetting('notifications', v, uid)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
-            icon="time-outline"
-            label="Workout Reminders"
-            right={
-              <Switch
-                value={workoutReminders}
-                onValueChange={(v) => updateSetting('workoutReminders', v, uid)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
-            icon="trophy-outline"
-            label="Achievement Alerts"
-            right={
-              <Switch
-                value={achievementAlerts}
-                onValueChange={(v) => updateSetting('achievementAlerts', v, uid)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
-            icon="people-outline"
-            label="Social Activity"
-            right={
-              <Switch
-                value={socialActivity}
-                onValueChange={(v) => updateSetting('socialActivity', v, uid)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
-            icon="bar-chart-outline"
-            label="Weekly Summary"
-            right={
-              <Switch
-                value={weeklySummary}
-                onValueChange={(v) => updateSetting('weeklySummary', v, uid)}
+                accessibilityLabel="Notifications"
                 trackColor={{ true: '#000000', false: '#E0E0E0' }}
                 thumbColor="#FFFFFF"
               />
@@ -588,50 +507,12 @@ export default function SettingsScreen() {
         <SectionHeader title="Privacy" />
         <View style={s.card}>
           <SettingRow
-            icon="eye-outline"
-            label="Profile Visibility"
-            subLabel="Allow anyone to view your feed posts"
-            right={
-              <Switch
-                value={privacy?.profilePublic}
-                onValueChange={(v) => updatePrivacy('profilePublic', v, uid)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
-            icon="share-social-outline"
-            label="Activity Sharing"
-            subLabel="Automatically share completed workouts"
-            right={
-              <Switch
-                value={privacy?.activitySharing}
-                onValueChange={(v) => updatePrivacy('activitySharing', v, uid)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
             icon="list-outline"
             label="Show in Leaderboards"
             right={
               <Switch
                 value={showInLeaderboards}
                 onValueChange={(v) => setShowInLeaderboards(v, user)}
-                trackColor={{ true: '#000000', false: '#E0E0E0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
-          <SettingRow
-            icon="person-add-outline"
-            label="Allow Friend Requests"
-            right={
-              <Switch
-                value={allowFriendRequests}
-                onValueChange={(v) => updateSetting('allowFriendRequests', v, uid)}
                 trackColor={{ true: '#000000', false: '#E0E0E0' }}
                 thumbColor="#FFFFFF"
               />

@@ -37,6 +37,7 @@ import { useScheduleStore } from '@/store/scheduleStore';
 import { useCalendarInviteStore } from '@/store/calendarInviteStore';
 import { useEntitlementStore } from '@/store/entitlementStore';
 import { reconcileReminders } from '@/services/calendarReminders';
+import { startNotifications } from '@/services/notificationStartup';
 import { startXpSync, stopXpSync } from '@/services/xpSync';
 import { startProgressSync, stopProgressSync } from '@/services/progressSync';
 import { publishMyProfile } from '@/services/leaderboardVisibility';
@@ -75,6 +76,8 @@ function RootLayoutInner() {
   // and leave a trail of screens so a crash report shows where it happened.
   const crashUid = useUserStore((s) => s.user?.uid);
   useEffect(() => { initCrashReporting(); }, []);
+  // Show a notification that arrives while the app is open, and follow the Notifications switch in Settings.
+  useEffect(() => { startNotifications(); }, []);
   useEffect(() => { if (crashUid) setCrashUser(crashUid); }, [crashUid]);
   useEffect(() => { logBreadcrumb(`screen: ${pathname}`); }, [pathname]);
   // The same uid goes to analytics so its events are counted per person. It is cleared when they sign out (no uid).

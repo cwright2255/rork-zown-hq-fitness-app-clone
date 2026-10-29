@@ -7,10 +7,11 @@ jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: tru
 let mockMeals = [];
 let mockWeightLogs = [];
 let mockUnits = 'imperial';
+let mockNotifications = true;
 const mockLoadWeightLogs = jest.fn();
 
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1' } }) }));
-jest.mock('@/store/settingsStore', () => ({ useSettingsStore: (sel) => sel({ weightUnits: mockUnits }) }));
+jest.mock('@/store/settingsStore', () => ({ useSettingsStore: (sel) => sel({ weightUnits: mockUnits, notifications: mockNotifications }) }));
 jest.mock('@/store/nutritionStore', () => ({ useNutritionStore: (sel) => sel({ meals: mockMeals }) }));
 jest.mock('@/store/weightLogStore', () => ({
   useWeightLogStore: (sel) => sel({ logs: mockWeightLogs, loadLogs: mockLoadWeightLogs }),
@@ -75,6 +76,7 @@ beforeEach(() => {
   mockMeals = [];
   mockWeightLogs = [];
   mockUnits = 'imperial';
+  mockNotifications = true;
   mockLoadWeightLogs.mockReset();
   Object.values(service).filter((fn) => typeof fn === 'function').forEach((fn) => fn.mockReset());
   Object.values(alerts).filter((fn) => typeof fn === 'function').forEach((fn) => fn.mockReset());
@@ -802,5 +804,87 @@ describe('the tabs', () => {
     expect(utils.getByTestId('fasting-range-week')).toBeTruthy();
     await press(utils, 'fasting-tab-fast');
     expect(utils.getByTestId('fasting-start')).toBeTruthy();
+  });
+});
+
+// The Notifications switch in Settings clears the goal alert when it goes off (services/notificationStartup.js). Only this card knows the
+// fast that is running, so when the switch goes back on it sets the alert again; with no switch change it does nothing extra.
+describe('the Notifications switch', () => {
+  const running = () => ({ startedAt: new Date(NOW.getTime() - 6 * H), targetHours: 16, plan: '16' });
+  const switchTo = async (utils, value) => {
+    mockNotifications = value;
+    utils.rerender(<FastingWidget />);
+    await flush();
+  };
+
+  it('sets the goal alert again for the fast that is running when the switch is turned back on', async () => {
+    const active = running();
+    const utils = await setup({ active });
+    await switchTo(utils, false);
+    alerts.scheduleFastAlert.mockClear();
+    await switchTo(utils, true);
+    expect(alerts.scheduleFastAlert).toHaveBeenCalledTimes(1);
+    expect(alerts.scheduleFastAlert).toHaveBeenCalledWith(active);
+  });
+
+  it('does not ask the phone for permission when it does that', async () => {
+    const utils = await setup({ active: running() });
+    await switchTo(utils, false);
+    alerts.scheduleFastAlert.mockClear();
+    await switchTo(utils, true);
+    expect(alerts.scheduleFastAlert.mock.calls[0]).toHaveLength(1);
+  });
+
+  it('sets nothing when the switch is turned off', async () => {
+    const utils = await setup({ active: running() });
+    alerts.scheduleFastAlert.mockClear();
+    await switchTo(utils, false);
+    expect(alerts.scheduleFastAlert).not.toHaveBeenCalled();
+  });
+
+  it('sets nothing when no fast is running', async () => {
+    const utils = await setup();
+    await switchTo(utils, false);
+    await switchTo(utils, true);
+    expect(alerts.scheduleFastAlert).not.toHaveBeenCalled();
+  });
+
+  it('sets nothing more when the card draws again with the switch as it was', async () => {
+    const utils = await setup({ active: running() });
+    alerts.scheduleFastAlert.mockClear();
+    await switchTo(utils, true);
+    await switchTo(utils, true);
+    expect(alerts.scheduleFastAlert).not.toHaveBeenCalled();
+  });
+
+  it('sets the alert for the start time the fast has now, not the one it opened with', async () => {
+    const utils = await setup({ active: running() });
+    await open(utils);
+    await press(utils, 'fasting-edit-start');
+    await press(utils, 'fasting-nudge--60');
+    await press(utils, 'fasting-edit-save');
+    const newStart = new Date(NOW.getTime() - 7 * H);
+    await switchTo(utils, false);
+    alerts.scheduleFastAlert.mockClear();
+    await switchTo(utils, true);
+    expect(alerts.scheduleFastAlert).toHaveBeenCalledTimes(1);
+    expect(alerts.scheduleFastAlert.mock.calls[0][0]).toEqual({ startedAt: newStart, targetHours: 16, plan: '16' });
+  });
+
+  it('shows the note about notifications being off for Zown if the phone will not allow them when it is set again', async () => {
+    const utils = await setup({ active: running() });
+    await switchTo(utils, false);
+    alerts.scheduleFastAlert.mockResolvedValue('not-allowed');
+    await switchTo(utils, true);
+    await open(utils);
+    expect(textOf(utils.getByTestId('fasting-alert-note'))).toMatch(/turn on notifications/i);
+  });
+
+  it('shows no note while the switch is off, even though the alert is not set', async () => {
+    alerts.scheduleFastAlert.mockResolvedValue('turned-off');
+    mockNotifications = false;
+    const utils = await setup({ active: running() });
+    await open(utils);
+    expect(utils.queryByTestId('fasting-alert-note')).toBeNull();
   });
 });

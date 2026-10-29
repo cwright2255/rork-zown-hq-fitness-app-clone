@@ -5,9 +5,11 @@
 // here asks for permission in the middle of cooking.
 
 import * as Notifications from 'expo-notifications';
+import { remindersAllowed } from '../lib/remindersAllowed';
 
-/** Schedules the alert for `seconds` from now. Returns its id, or null if it was not scheduled. */
+/** Schedules the alert for `seconds` from now. Returns its id, or null if it was not scheduled (including when the Notifications switch in Settings is off). */
 export async function scheduleTimerAlert(seconds, { title, body } = {}) {
+  if (!remindersAllowed()) return null;
   try {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') return null;

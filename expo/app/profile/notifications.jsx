@@ -8,57 +8,17 @@ import { useUserStore } from '@/store/userStore';
 
 export default function NotificationsSettingsScreen() {
   const { user } = useUserStore();
-  const settings = useSettingsStore();
+  const notifications = useSettingsStore((st) => st.notifications);
+  const updateSetting = useSettingsStore((st) => st.updateSetting);
 
-  const toggleVal = (key) => {
-    // If the setting is stored, use it. Otherwise, default to true.
-    return settings[key] !== undefined ? settings[key] : true;
-  };
-
-  const handleToggle = (key, val) => {
-    if (settings.updateSetting) {
-      settings.updateSetting(key, val, user?.uid);
-    }
-  };
-
-  const TOGGLES = [
-    {
-      key: 'workoutReminders',
-      title: 'Workout Reminders',
-      desc: 'Get alerted when it\'s time to log or start a workout.',
-      icon: 'fitness-outline',
-    },
-    {
-      key: 'achievementAlerts',
-      title: 'Achievement Alerts',
-      desc: 'Instant badges, level-ups, and tier rewards alerts.',
-      icon: 'trophy-outline',
-    },
-    {
-      key: 'socialActivity',
-      title: 'Social Activity',
-      desc: 'When friends send duels, messages, or interact with feed posts.',
-      icon: 'people-outline',
-    },
-    {
-      key: 'nutritionReminders',
-      title: 'Nutrition Reminders',
-      desc: 'Friendly nudges to log daily hydration, meals, and macronutrients.',
-      icon: 'nutrition-outline',
-    },
-    {
-      key: 'weeklySummary',
-      title: 'Weekly Summary',
-      desc: 'Every Sunday, get a comprehensive performance and streak wrap-up.',
-      icon: 'calendar-outline',
-    },
-  ];
+  // On unless it has been switched off, the same reading the reminders themselves use (lib/remindersAllowed.js).
+  const on = notifications !== false;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()} accessibilityLabel="Back">
           <Ionicons name="arrow-back" size={24} color="#000" />
         </Pressable>
         <Text style={styles.headerTitle}>Notifications</Text>
@@ -67,45 +27,34 @@ export default function NotificationsSettingsScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Preferences</Text>
-        <Text style={styles.sectionDesc}>Customize how and when you receive push notifications from ZOWN HQ.</Text>
+        <Text style={styles.sectionDesc}>
+          One switch for the alerts Zown HQ sets on your phone: calendar reminders, the alert when a fast reaches its goal, and cooking timers.
+        </Text>
 
         <View style={styles.card}>
-          {TOGGLES.map((t, idx) => (
-            <View key={t.key}>
-              <View style={styles.row}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name={t.icon} size={20} color="#000" />
-                </View>
-                <View style={styles.textContainer}>
-                  <Text style={styles.toggleTitle}>{t.title}</Text>
-                  <Text style={styles.toggleDesc}>{t.desc}</Text>
-                </View>
-                <Switch
-                  value={toggleVal(t.key)}
-                  onValueChange={(val) => handleToggle(t.key, val)}
-                  trackColor={{ false: '#767577', true: '#000' }}
-                  thumbColor={Platform.OS === 'ios' ? undefined : '#FFF'}
-                />
-              </View>
-              {idx < TOGGLES.length - 1 && <View style={styles.divider} />}
+          <View style={styles.row}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="notifications-outline" size={20} color="#000" />
             </View>
-          ))}
+            <View style={styles.textContainer}>
+              <Text style={styles.toggleTitle}>Notifications</Text>
+              <Text style={styles.toggleDesc}>
+                {on ? 'On. Zown HQ will set the alerts above.' : 'Off. Zown HQ will not set any of them, and the ones already set have been cleared.'}
+              </Text>
+            </View>
+            <Switch
+              value={on}
+              onValueChange={(val) => updateSetting('notifications', val, user?.uid)}
+              accessibilityLabel="Notifications"
+              trackColor={{ false: '#767577', true: '#000' }}
+              thumbColor={Platform.OS === 'ios' ? undefined : '#FFF'}
+            />
+          </View>
         </View>
 
-        {/* Quiet Hours */}
-        <Text style={styles.sectionTitle}>Quiet Hours</Text>
-        <Pressable style={styles.quietHoursCard}>
-          <View style={styles.quietHoursRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Ionicons name="moon-outline" size={20} color="#666" />
-              <View>
-                <Text style={styles.quietTitle}>Do Not Disturb</Text>
-                <Text style={styles.quietSubtitle}>10:00 PM - 7:00 AM</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#CCC" />
-          </View>
-        </Pressable>
+        <Text style={styles.note}>
+          Alerts also need notifications allowed for Zown HQ in your phone's Settings. If you turned them off there, this switch cannot turn them back on.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -157,17 +106,5 @@ const styles = StyleSheet.create({
   textContainer: { flex: 1, marginRight: 12 },
   toggleTitle: { fontSize: 15, fontWeight: '600', color: '#000' },
   toggleDesc: { fontSize: 12, color: '#666', marginTop: 2, lineHeight: 16 },
-  divider: { height: 1, backgroundColor: '#F0F0F0' },
-
-  /* Quiet Hours */
-  quietHoursCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    padding: 16,
-  },
-  quietHoursRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  quietTitle: { fontSize: 15, fontWeight: '600', color: '#000' },
-  quietSubtitle: { fontSize: 12, color: '#666', marginTop: 2 },
+  note: { fontSize: 12, color: '#666', lineHeight: 16 },
 });

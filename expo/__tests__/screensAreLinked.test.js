@@ -18,7 +18,6 @@ const KNOWN_UNLINKED = {
   '/messaging': 'a redirect to /messages, kept for any old link',
   '/workout/create': 'a redirect to the Quick Workout, kept for any old link',
   '/running/program/[id]': 'a redirect to /running/[id], kept for any old link',
-  '/profile/achievements': 'real data, not linked yet',
   '/exp-dashboard': 'real data, not linked yet',
   '/recipes/import-from-share': 'real, but the share-sheet setup it needs is not in app.json yet',
   '/shop/cart': 'the Shop is still sample products; its screens are not wired together',

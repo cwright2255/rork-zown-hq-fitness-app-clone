@@ -3,6 +3,8 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
 }), { virtual: true });
+// The Notifications switch is looked at in remindersSwitch.test.js; here it is on.
+jest.mock('../lib/remindersAllowed', () => ({ remindersAllowed: () => true }));
 
 import * as Notifications from 'expo-notifications';
 import { cancelTimerAlert, scheduleTimerAlert } from '../services/cookTimerAlert';

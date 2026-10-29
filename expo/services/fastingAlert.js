@@ -9,6 +9,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { formatHours, goalTime } from '../lib/fastingStats';
+import { remindersAllowed } from '../lib/remindersAllowed';
 
 export const FAST_ALERT_ID = 'zown-fasting-goal';
 
@@ -42,6 +43,7 @@ export async function cancelFastAlert() {
  *   'already-reached' - the goal time has passed, so there is nothing to ring for
  *   'not-allowed'     - notifications are not on for Zown yet (not asked, or turned down)
  *   'blocked'         - notifications are off for Zown and only the Settings app can change that
+ *   'turned-off'      - the Notifications switch in Settings is off, so no alert is set (and any set earlier is cleared)
  *   'unavailable'     - not on this device (web), or the phone would not schedule it
  */
 export async function scheduleFastAlert({ startedAt, targetHours }, { ask = false, now = new Date() } = {}) {
@@ -50,6 +52,7 @@ export async function scheduleFastAlert({ startedAt, targetHours }, { ask = fals
     const when = goalTime(startedAt, targetHours);
     // An alert left from an earlier start time must not ring for a fast that has moved.
     await cancelFastAlert();
+    if (!remindersAllowed()) return 'turned-off';
     if (when.getTime() <= now.getTime()) return 'already-reached';
     const permitted = await permission(ask);
     if (permitted !== 'granted') return permitted;
