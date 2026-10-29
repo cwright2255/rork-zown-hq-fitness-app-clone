@@ -1115,3 +1115,29 @@ eas update --branch main --environment production --message "Creative workout na
 To add or change a name, edit the lists in `lib/workoutNames.js` and keep each workout list at 12 or more names and each plan list at 8 or more (the tests fail if a list is
 short, a name repeats, or a name is an exercise). Workouts already saved keep the name they were saved with. Adding or removing a name in a list moves which workout gets which name from then
 on, so a session you have seen before may show a different name after the edit.
+
+## Run and hike recording with the phone locked (once, on the first build with expo-task-manager)
+
+Needs a new native build, not only `eas update`: `expo-task-manager` is a native module, and the HealthKit background-delivery entitlement
+is gone from `app.json`. A build made before this one keeps recording only while the app is open, and an update can't change that.
+
+```
+cd expo
+eas build --platform ios --profile production
+eas submit --platform ios --latest
+```
+
+`eas submit` asks you to sign in to Apple in the terminal. Do this check on the TestFlight build, outdoors, with a real phone. If you still
+have a build from before this one, do the first walk on it, to see the gap this fixes.
+
+- [ ] Open the app: no red error screen, and you are signed in (sign in if it asks, because this is a new install).
+- [ ] Apple Health still works: open the Health page, allow access if it asks, and the steps load as before.
+- [ ] Start a run. If iOS asks for location access, allow it (While Using or Always). A blue bar or pill shows at the top of the screen once the run is
+      recording.
+- [ ] Lock the phone and walk for **five minutes**, then unlock it. The time shows about five minutes more and the distance kept counting, with no gap
+      or straight line across the route on the map.
+- [ ] Finish the run. It is in the Running Log (Profile) with that distance and time, and Home's Calories card counts it.
+- [ ] Start a hike and do the same for two minutes with the phone locked. The route has no gap.
+- [ ] On the older build (if you kept one): the same walk shows a gap, or the run stopped. That is the problem this build fixes, so it is not a fault on the new build.
+- [ ] Firebase console, `users/<your uid>/data/progressSyncDebug`: the temporary note the app used to write at every start is no longer updated by this build.
+      Documents already written stay where they are, and nothing reads them.
