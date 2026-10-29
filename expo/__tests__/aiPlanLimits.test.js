@@ -266,6 +266,131 @@ describe('the AI functions that stay open to every plan', () => {
     await call('getNutritionRecommendations', { recentWorkouts: [], goals: ['lose weight'], profile: {} });
     await call('generateChallenges', {});
     expect(mainCalls()).toHaveLength(2);
+  });
+
+  it('count only the nutrition targets, and take nothing from the Coach\'s messages', async () => {
+    fakeModels({ answer: '{}' });
+    await call('getNutritionRecommendations', { recentWorkouts: [], goals: [], profile: {} });
+    await call('generateChallenges', {});
+    expect([...global.__docs.keys()]).toEqual(['aiUsage/u1_' + global.__today]);
+    expect(global.__docs.get('aiUsage/u1_' + global.__today)).toEqual({ uid: 'u1', day: global.__today, nutrition: 1 });
+  });
+});
+
+describe('getNutritionRecommendations: 5 a day', () => {
+  const targets = () => call('getNutritionRecommendations', { recentWorkouts: [], goals: ['lose weight'], profile: { weightKg: 80 } });
+  const answer = JSON.stringify({ dailyMacros: { calories: 2200, protein: 150, carbs: 250, fat: 70 }, mealIdeas: [], summary: 'ok' });
+
+  beforeEach(() => fakeModels({ answer }));
+
+  it.each([['Free', FREE], ['Pro', PRO], ['Legend', LEGEND]])('gives %s five and counts each', async (_name, plan) => {
+    fakeDb(plan);
+    for (let i = 1; i <= 5; i += 1) {
+      expect((await targets()).recommendations.dailyMacros.calories).toBe(2200);
+      expect(used('nutrition')).toBe(i);
+    }
+    expect(mainCalls()).toHaveLength(5);
+  });
+
+  it.each([['Free', FREE], ['Pro', PRO], ['Legend', LEGEND]])('turns %s away on the sixth, says what the limit was, and never reaches the AI', async (_name, plan) => {
+    fakeDb(plan);
+    for (let i = 0; i < 5; i += 1) await targets();
+    const error = await failure(targets());
+    expect(error.code).toBe('resource-exhausted');
+    expect(error.message).toBe('Today\'s 5 nutrition targets are used up');
+    expect(error.details).toEqual({ reason: 'daily_cap', field: 'nutrition', limit: 5 });
+    expect(mainCalls()).toHaveLength(5);
+    expect(global.__saved).toHaveLength(5);
+    expect(used('nutrition')).toBe(5);
+  });
+
+  it('is not worded as a Coach or plan limit, so the app does not offer an upgrade for it', async () => {
+    const { upgradeFromError } = require('../lib/upgradePrompt');
+    for (let i = 0; i < 5; i += 1) await targets();
+    expect(upgradeFromError(await failure(targets()))).toBeNull();
+  });
+
+  it('counts apart from the Coach: five Coach messages do not use it, and five targets do not use them', async () => {
+    for (let i = 0; i < 5; i += 1) await ask();
+    await expect(ask()).rejects.toMatchObject({ code: 'resource-exhausted' });
+    for (let i = 0; i < 5; i += 1) await targets();
+    expect(used('coach')).toBe(5);
+    expect(used('nutrition')).toBe(5);
+    await expect(targets()).rejects.toMatchObject({ details: { reason: 'daily_cap' } });
+  });
+
+  it('starts over the next day, and keeps the day before as it was', async () => {
+    global.__docs.set('aiUsage/u1_2000-01-01', { uid: 'u1', day: '2000-01-01', nutrition: 5 });
+    expect((await targets()).recommendationId).toBe('rec1');
+    expect(used('nutrition')).toBe(1);
+    expect(global.__docs.get('aiUsage/u1_2000-01-01').nutrition).toBe(5);
+  });
+
+  it('counts each person on their own', async () => {
+    for (let i = 0; i < 5; i += 1) await targets();
+    await expect(targets()).rejects.toMatchObject({ code: 'resource-exhausted' });
+    expect((await call('getNutritionRecommendations', { recentWorkouts: [], goals: [], profile: {} }, { uid: 'u2' })).recommendationId).toBe('rec1');
+  });
+
+  it('checks who is asking before it counts anything', async () => {
+    const error = await failure(call('getNutritionRecommendations', { recentWorkouts: [], goals: [], profile: {} }, null));
+    expect(error.code).toBe('unauthenticated');
     expect(global.__docs.size).toBe(0);
+    expect(global.__create).not.toHaveBeenCalled();
+  });
+
+  it('gives the request back when the AI fails, so a failure does not use up one of the five', async () => {
+    global.__create = jest.fn(async () => { throw new Error('model unavailable'); });
+    for (let i = 0; i < 7; i += 1) await expect(targets()).rejects.toThrow('model unavailable');
+    expect(used('nutrition')).toBe(0);
+    fakeModels({ answer });
+    expect((await targets()).recommendationId).toBe('rec1');
+    expect(used('nutrition')).toBe(1);
+  });
+
+  it('gives the request back when the answer cannot be saved', async () => {
+    global.__db.collection = () => ({ add: async () => { throw new Error('write failed'); } });
+    await expect(targets()).rejects.toThrow('write failed');
+    expect(used('nutrition')).toBe(0);
+  });
+
+  it('passes the original failure on even when giving the request back fails too', async () => {
+    global.__create = jest.fn(async () => { throw new Error('model unavailable'); });
+    const real = global.__db.runTransaction;
+    let transactions = 0;
+    global.__db.runTransaction = (fn) => { transactions += 1; return transactions === 1 ? real(fn) : Promise.reject(new Error('database down')); };
+    await expect(targets()).rejects.toThrow('model unavailable');
+    expect(console.error).toHaveBeenCalledWith('[getNutritionRecommendations] could not give the request back', expect.any(Error));
+  });
+
+  it('fails, rather than answering for free, when the count cannot be read', async () => {
+    global.__db.runTransaction = async () => { throw new Error('database down'); };
+    await expect(targets()).rejects.toThrow('database down');
+    expect(global.__create).not.toHaveBeenCalled();
+  });
+
+  it('lets exactly five through when many requests arrive at once', async () => {
+    const results = await Promise.allSettled(Array.from({ length: 9 }, () => targets()));
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(5);
+    expect(results.filter((r) => r.status === 'rejected')).toHaveLength(4);
+    expect(used('nutrition')).toBe(5);
+  });
+
+  it('keeps its secret and region', () => {
+    expect(fns.getNutritionRecommendations.__opts.secrets.map((s) => s.name)).toEqual(['OPENAI_API_KEY']);
+    expect(fns.getNutritionRecommendations.__opts.region).toBe('us-central1');
+  });
+});
+
+describe('the functions that were removed', () => {
+  it('are no longer there to be called', () => {
+    expect(fns.getProgressSummary).toBeUndefined();
+    expect(fns.sendWorkoutReminder).toBeUndefined();
+  });
+
+  it('leave the others in place', () => {
+    for (const name of ['generateWorkoutPlan', 'generateBodyCompositionInsight', 'getNutritionRecommendations', 'postLLM', 'generateChallenges', 'refreshSpotifyToken', 'instagramEmbed']) {
+      expect(typeof fns[name]).toBe('function');
+    }
   });
 });

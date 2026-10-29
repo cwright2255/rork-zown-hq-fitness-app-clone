@@ -149,11 +149,11 @@ describe('the functions that enforce the plan', () => {
     expect(post).toMatch(/takeAiQuota\(\{ db, uid, kind: bucket \}\)/);
     expect(post.indexOf('requireFeature(uid, feature)')).toBeLessThan(post.indexOf('takeAiQuota('));
     expect(post.indexOf("'messages must be a non-empty array'")).toBeLessThan(post.indexOf('requireFeature(uid, feature)'));
-    expect(index).toMatch(/import \{ checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan \} from '\.\/aiQuota\.js';/);
+    expect(index).toMatch(/import \{ checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP \} from '\.\/aiQuota\.js';/);
   });
 
   it('check the plan before doing any work in the workout-plan and body-scan functions', () => {
-    const plan = index.slice(index.indexOf('export const generateWorkoutPlan'), index.indexOf('export const getProgressSummary'));
+    const plan = index.slice(index.indexOf('export const generateWorkoutPlan'), index.indexOf('export const postLLM'));
     expect(plan).toMatch(/requireAuth\(req\.auth\);\s*await requireFeature\(uid, 'aiWorkoutPlan'\);/);
     const scan = index.slice(index.indexOf('export const generateBodyCompositionInsight'), index.indexOf('export const getNutritionRecommendations'));
     expect(scan).toMatch(/requireAuth\(req\.auth\);\s*await requireFeature\(uid, 'bodyScan'\);/);

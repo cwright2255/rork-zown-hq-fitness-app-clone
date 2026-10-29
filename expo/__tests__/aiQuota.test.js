@@ -1,4 +1,4 @@
-import { tierOf, checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan } from '../functions/src/aiQuota';
+import { tierOf, checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP } from '../functions/src/aiQuota';
 
 // A small stand-in for Firestore: documents in a map, doc(path).get(), and runTransaction(fn) with tx.get / tx.set (merge). Transactions
 // run one at a time, as in the real database, where a transaction whose document changed under it is run again.
@@ -211,6 +211,103 @@ describe('takeAiQuota', () => {
     const noRead = makeDb();
     noRead.doc = () => ({ get: async () => { throw new Error('read failed'); } });
     await expect(take(noRead, 'coach')).rejects.toThrow('read failed');
+  });
+});
+
+describe('takeDailyCap', () => {
+  const cap = (db, over = {}) => takeDailyCap({ db, uid: 'u1', field: 'nutrition', limit: 3, now: NOW, ...over });
+
+  it('is 5 nutrition targets a day', () => {
+    expect(NUTRITION_DAILY_CAP).toBe(5);
+  });
+
+  it('takes one and says how many have been used, the limit, the field and the day', async () => {
+    const db = makeDb();
+    expect(await cap(db)).toEqual({ ok: true, used: 1, field: 'nutrition', limit: 3, day: '2026-10-20' });
+    expect(await cap(db)).toEqual({ ok: true, used: 2, field: 'nutrition', limit: 3, day: '2026-10-20' });
+  });
+
+  it('records the count in the person\'s day document, with the person and the day on it', async () => {
+    const db = makeDb();
+    await cap(db);
+    expect(db.docs.get('aiUsage/u1_2026-10-20')).toEqual({ uid: 'u1', day: '2026-10-20', nutrition: 1 });
+  });
+
+  it('refuses once the limit is reached, without changing the count', async () => {
+    const db = makeDb();
+    for (let i = 0; i < 3; i += 1) expect((await cap(db)).ok).toBe(true);
+    expect(await cap(db)).toEqual({ ok: false, used: 3, field: 'nutrition', limit: 3, day: '2026-10-20' });
+    expect(db.docs.get('aiUsage/u1_2026-10-20').nutrition).toBe(3);
+  });
+
+  it('does not look at the plan: Free, Pro and Legend get the same limit', async () => {
+    for (const plan of [null, pro, legend]) {
+      const db = makeDb(plan ? { 'entitlements/u1': plan } : {});
+      for (let i = 0; i < 3; i += 1) expect((await cap(db)).ok).toBe(true);
+      expect((await cap(db)).ok).toBe(false);
+    }
+  });
+
+  it('counts beside the Coach\'s messages in the same document without touching them', async () => {
+    const db = makeDb();
+    await take(db, 'coach');
+    await take(db, 'coach');
+    await cap(db);
+    expect(db.docs.get('aiUsage/u1_2026-10-20')).toEqual({ uid: 'u1', day: '2026-10-20', coach: 2, nutrition: 1 });
+    for (let i = 0; i < 5; i += 1) await cap(db, { limit: 50 });
+    expect(db.docs.get('aiUsage/u1_2026-10-20').coach).toBe(2);
+  });
+
+  it('counts each field on its own', async () => {
+    const db = makeDb();
+    for (let i = 0; i < 3; i += 1) await cap(db);
+    expect((await cap(db)).ok).toBe(false);
+    expect(await cap(db, { field: 'other' })).toMatchObject({ ok: true, used: 1 });
+  });
+
+  it('starts a new count at midnight in New York, and keeps each day\'s count', async () => {
+    const db = makeDb();
+    const late = new Date('2026-10-20T03:30:00.000Z'); // 11:30 PM on the 19th in New York
+    const early = new Date('2026-10-20T04:30:00.000Z'); // 12:30 AM on the 20th
+    for (let i = 0; i < 3; i += 1) await cap(db, { now: late });
+    expect((await cap(db, { now: late })).ok).toBe(false);
+    expect(await cap(db, { now: early })).toMatchObject({ ok: true, used: 1, day: '2026-10-20' });
+    expect(db.docs.get('aiUsage/u1_2026-10-19').nutrition).toBe(3);
+    expect(db.docs.get('aiUsage/u1_2026-10-20').nutrition).toBe(1);
+  });
+
+  it('counts each person on their own', async () => {
+    const db = makeDb();
+    for (let i = 0; i < 3; i += 1) await cap(db);
+    expect((await cap(db)).ok).toBe(false);
+    expect(await cap(db, { uid: 'u2' })).toMatchObject({ ok: true, used: 1 });
+  });
+
+  it('lets exactly the limit through when many requests arrive at once', async () => {
+    const db = makeDb();
+    const results = await Promise.all(Array.from({ length: 10 }, () => cap(db)));
+    expect(results.filter((r) => r.ok)).toHaveLength(3);
+    expect(db.docs.get('aiUsage/u1_2026-10-20').nutrition).toBe(3);
+  });
+
+  it('reads a damaged count as zero rather than failing', async () => {
+    for (const bad of ['many', -3, null, NaN, {}]) {
+      const db = makeDb({ 'aiUsage/u1_2026-10-20': { uid: 'u1', day: '2026-10-20', nutrition: bad } });
+      expect(await cap(db)).toMatchObject({ ok: true, used: 1 });
+    }
+  });
+
+  it('passes a database failure on, so the request fails instead of getting a free one', async () => {
+    const db = makeDb();
+    db.runTransaction = async () => { throw new Error('unavailable'); };
+    await expect(cap(db)).rejects.toThrow('unavailable');
+  });
+
+  it('can be given back with giveBackAiQuota, using its field as the bucket', async () => {
+    const db = makeDb();
+    for (let i = 0; i < 3; i += 1) await cap(db);
+    await giveBackAiQuota({ db, uid: 'u1', bucket: 'nutrition', day: '2026-10-20' });
+    expect(await cap(db)).toMatchObject({ ok: true, used: 3 });
   });
 });
 

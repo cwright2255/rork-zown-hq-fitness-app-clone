@@ -38,7 +38,16 @@ beforeEach(() => {
   fns = require('../functions/src/index.js');
   notes = require('../functions/src/nutritionKnowledge.js').NUTRITION_EVIDENCE_NOTES;
   global.__create = jest.fn(async () => ({ choices: [{ message: { content: REPLY } }] }));
-  global.__db = { collection: () => ({ add: async () => ({ id: 'rec1' }) }) };
+  // The day's count (aiUsage) is taken in a transaction before the targets are worked out.
+  const docs = new Map();
+  global.__db = {
+    collection: () => ({ add: async () => ({ id: 'rec1' }) }),
+    doc: (path) => ({ path, get: async () => ({ exists: docs.has(path), data: () => docs.get(path) }) }),
+    runTransaction: async (fn) => fn({
+      get: async (r) => r.get(),
+      set: (r, data, opts) => docs.set(r.path, opts && opts.merge ? { ...docs.get(r.path), ...data } : data),
+    }),
+  };
   jest.spyOn(console, 'warn').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });

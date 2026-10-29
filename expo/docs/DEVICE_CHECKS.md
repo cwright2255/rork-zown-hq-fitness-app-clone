@@ -1249,3 +1249,36 @@ You need one phone, with notifications allowed for Zown HQ in the phone's own Se
 - [ ] The arrow at the top left goes back to Profile.
 
 If a reminder still arrives with the switch off, tell me which kind it was (calendar, fast or cooking timer) and whether you turned the switch off before or after setting it: that tells me where it was set from.
+
+## Locked-down back end: Instagram import, nutrition targets, two deleted functions and the mesh service (once: deploy, one Google Cloud command, no app update)
+
+This build is the server only. Nothing changes in the app, so there is no `eas update` and nothing to open twice. Four things changed.
+
+- **Instagram recipe import** (the `instagramEmbed` function) fetches only an `https` link to `instagram.com` or `www.instagram.com`, judged on the real address, so `instagram.com.example.com` and `example.com/instagram.com` are refused. It follows a redirect only when it leads to one of those two addresses. Its errors no longer say what the page looked like (status, size, title); they are a few plain sentences, and the details go to the function's log. The `instagr.am` short links, which the app also counts as Instagram, are refused now: the plan names only the two addresses. If you ever import from one, tell me.
+- **Nutrition targets** (`getNutritionRecommendations`) are limited to 5 a day per person on every plan, counted the way the Coach's messages are (the day ends at midnight Eastern), and a request that fails before you get your numbers is given back. The Nutrition page asks at most once per visit, and only when the targets are over 14 days old, so you will not reach 5. If it ever is refused, the app keeps the targets it has.
+- **`getProgressSummary` and `sendWorkoutReminder` are deleted.** Nothing in the app calls either (the app's reminders are set on the phone itself).
+- **The 3D body mesh service** (`anny-mesh-service` on Cloud Run) can start at most 3 copies at a time, and its README's deploy command carries the same flag, so a redeploy keeps the cap.
+
+**Deploy, once CI is green, in this order**
+
+```
+cd expo && firebase deploy --only functions:instagramEmbed,functions:getNutritionRecommendations --project zown-3c512
+firebase functions:delete getProgressSummary sendWorkoutReminder --region us-central1 --project zown-3c512 --force
+gcloud run services update anny-mesh-service --region us-central1 --project zown-3c512 --max-instances 3
+```
+
+If a delete says a function is not found, it was already gone, which is fine. If `gcloud` is not available in the Codespace, do the third step in the Google Cloud console instead: Cloud Run, `anny-mesh-service`, Edit & deploy new revision, in the scaling settings set Maximum number of instances to 3, then Deploy.
+
+**A billing alert on the project** (a warning email, not a spending cap, so it will not stop anything): Google Cloud console, Billing, Budgets & alerts, Create budget. Scope it to the project `zown-3c512`, pick a monthly amount you would be unhappy to pass (25 dollars is a reasonable start; it is only a warning), keep the alerts at 50%, 90% and 100%, and leave your email on it.
+
+**Checks**
+
+- [ ] Firebase console, Functions: `getProgressSummary` and `sendWorkoutReminder` are gone, and `instagramEmbed` and `getNutritionRecommendations` are listed with a new deploy time.
+- [ ] Google Cloud console, Cloud Run, `anny-mesh-service`: the revision shows a maximum of 3 instances.
+- [ ] Google Cloud console, Billing, Budgets & alerts: the budget is listed for `zown-3c512`.
+- [ ] From the Codespace, a link that is not Instagram's is refused without anything being fetched. Each of these prints `{"error":"Send the link to an Instagram post."}`:
+      `curl -s -X POST https://us-central1-zown-3c512.cloudfunctions.net/instagramEmbed -H "Content-Type: application/json" -d '{"url":"https://example.com/p/abc/"}'`
+      `curl -s -X POST https://us-central1-zown-3c512.cloudfunctions.net/instagramEmbed -H "Content-Type: application/json" -d '{"url":"https://instagram.com.example.com/p/abc/"}'`
+- [ ] `curl -s https://us-central1-zown-3c512.cloudfunctions.net/instagramEmbed` (a GET) prints `{"error":"Method not allowed"}`.
+- [ ] On the phone, Recipes, import a recipe from an Instagram post whose caption holds the recipe (a normal `https://www.instagram.com/p/...` or `/reel/...` link). The recipe comes in as before. This is the check that matters: if it now fails, tell me what the app showed, and do not redeploy anything else.
+- [ ] Optional, Legend only: Body Scan, build the 3D body. It still builds (the first one after a quiet spell takes a minute or two to start, as before).

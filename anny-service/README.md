@@ -64,7 +64,8 @@ that can be done from this side. Steps:
      --allow-unauthenticated \
      --memory 4Gi \
      --cpu 2 \
-     --timeout 600
+     --timeout 600 \
+     --max-instances 3
    ```
    `--memory 4Gi` (raised from an initial 2Gi after real evidence, not a
    guess: a direct log from a female-gender request showed the process go
@@ -76,6 +77,14 @@ that can be done from this side. Steps:
    80-100+ seconds in direct testing - the original 60s value used on the
    very first deploy was too short and caused a real, observed truncated
    response.
+   `--max-instances 3` caps how many copies of the service Cloud Run will
+   start at once, because each one holds 4Gi and 2 CPUs and the endpoint is
+   public: without a cap, a flood of requests (or a loop in some script)
+   would start copies without limit and the bill would follow. Keep the
+   flag in this command so a redeploy cannot undo the cap, and raise the
+   number when real traffic needs it. On the service that was already
+   running, the cap was set with
+   `gcloud run services update anny-mesh-service --region us-central1 --max-instances 3`.
    `--allow-unauthenticated` for now since there's no auth wiring on the
    app side yet - **tighten this before any real user traffic reaches it**,
    this flag makes the endpoint public.

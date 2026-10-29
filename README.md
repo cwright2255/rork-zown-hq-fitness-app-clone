@@ -179,7 +179,7 @@ expo/
 │   ├── stores/                # Zustand stores
 │   └── types/firestore.ts     # Firestore TS interfaces
 ├── functions/                 # Firebase Cloud Functions
-│   └── src/index.ts           # generateWorkoutPlan, getProgressSummary, getNutritionRecommendations, refreshSpotifyToken, sendWorkoutReminder, onWorkoutComplete
+│   └── src/index.ts           # generateWorkoutPlan, getNutritionRecommendations, refreshSpotifyToken, onWorkoutComplete
 ├── __tests__/                 # Jest tests
 ├── firestore.rules
 ├── firestore.indexes.json

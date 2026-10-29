@@ -22,7 +22,8 @@ import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
 import { sanitizeTrainingState, trainingStateText } from './trainingState.js';
 import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
-import { checkFeature, takeAiQuota, giveBackAiQuota, aiRequestPlan } from './aiQuota.js';
+import { checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP } from './aiQuota.js';
+import { instagramUrl, embedUrl, fetchFromInstagram } from './instagramUrl.js';
 import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
 import { getInviteStatus as inviteStatusFor, redeemInvite } from './referrals.js';
 
@@ -179,51 +180,6 @@ export const generateWorkoutPlan = onCall(
   }
 );
 
-export const getProgressSummary = onCall(
-  { secrets: [OPENAI_API_KEY], region: 'us-central1' },
-  async (req) => {
-    const uid = requireAuth(req.auth);
-    const { dateRange } = req.data;
-
-
-
-
-    const db = getFirestore();
-    const start = new Date(dateRange.start);
-    const end = new Date(dateRange.end);
-    const snap = await db.
-    collection('workouts').
-    where('userId', '==', uid).
-    where('date', '>=', start).
-    where('date', '<=', end).
-    get();
-
-    const workouts = snap.docs.map((d) => d.data());
-    const prompt = `Summarize this user's fitness progress from ${dateRange.start} to ${dateRange.end}. Workouts: ${JSON.stringify(workouts)}. Provide a warm, 2-3 paragraph natural-language summary with specific stats and encouragement.`;
-
-    const openai = getOpenAI();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: withScopePolicy([
-      { role: 'system', content: 'You are a supportive fitness coach.' },
-      { role: 'user', content: prompt }])
-
-    });
-
-    const content = completion.choices[0]?.message?.content ?? '';
-
-    const recommendationId = await saveRecommendation({
-      userId: uid,
-      type: 'progress_summary',
-      content,
-      prompt,
-      structuredData: { workoutCount: workouts.length, dateRange }
-    });
-
-    return { recommendationId, summary: content };
-  }
-);
-
 // Real fix: this is the actual, missing backend for the /text/llm/
 // endpoint services/aiService.js's postLLM (client-side) and
 // app/nutrition/scan.jsx both call directly via fetch() - that route
@@ -347,11 +303,23 @@ export const generateBodyCompositionInsight = onCall(
   }
 );
 
+// The most calorie-and-macro targets one person can ask for in a day (NUTRITION_DAILY_CAP, counted in aiUsage the way the Coach's messages
+// are, and starting over at midnight Eastern). It is the same on every plan: the app asks once when someone sets or changes their goal.
+// A request that fails before the person gets their answer is given back. The app reads `reason: 'daily_cap'` as a plain refusal.
+function nutritionCapReached(cap) {
+  return new HttpsError('resource-exhausted', `Today's ${cap.limit} nutrition targets are used up`, {
+    reason: 'daily_cap', field: cap.field, limit: cap.limit,
+  });
+}
+
 export const getNutritionRecommendations = onCall(
   { secrets: [OPENAI_API_KEY], region: 'us-central1' },
   async (req) => {
     const uid = requireAuth(req.auth);
     const { recentWorkouts, goals, profile } = req.data;
+
+    const cap = await takeDailyCap({ db: getFirestore(), uid, field: 'nutrition', limit: NUTRITION_DAILY_CAP });
+    if (!cap.ok) throw nutritionCapReached(cap);
 
     // Real profile data, when available, grounds this in an actual BMR
     // calculation instead of a generic estimate - previously this was
@@ -385,33 +353,38 @@ ${NUTRITION_EVIDENCE_NOTES}
 
 Return strict JSON { "dailyMacros": { "calories": number, "protein": number, "carbs": number, "fat": number }, "mealIdeas": [{ "name": string, "description": string }], "summary": string }. "summary" is one honest sentence naming what actually shaped this number (e.g. "Based on your BMR, moderately active level, and a goal to lose 10 lbs, this targets a 400 kcal/day deficit.") - if profile data was missing, say that honestly instead.`;
 
-    const openai = getOpenAI();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
-      messages: withScopePolicy([
-      { role: 'system', content: 'You are a sports nutrition expert calculating real, personalized calorie and macro targets from real body metrics using established formulas (Mifflin-St Jeor for BMR). Always return valid JSON. Never invent a number you have not actually derived from the given data, and never state an estimate with false precision or as personalized when the real inputs to personalize it were not provided.' },
-      { role: 'user', content: prompt }])
-
-    });
-    const content = completion.choices[0]?.message?.content ?? '{}';
-
-    let structured = {};
     try {
-      structured = JSON.parse(content);
-    } catch {
-      structured = { raw: content };
+      const openai = getOpenAI();
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        response_format: { type: 'json_object' },
+        messages: withScopePolicy([
+        { role: 'system', content: 'You are a sports nutrition expert calculating real, personalized calorie and macro targets from real body metrics using established formulas (Mifflin-St Jeor for BMR). Always return valid JSON. Never invent a number you have not actually derived from the given data, and never state an estimate with false precision or as personalized when the real inputs to personalize it were not provided.' },
+        { role: 'user', content: prompt }])
+
+      });
+      const content = completion.choices[0]?.message?.content ?? '{}';
+
+      let structured = {};
+      try {
+        structured = JSON.parse(content);
+      } catch {
+        structured = { raw: content };
+      }
+
+      const recommendationId = await saveRecommendation({
+        userId: uid,
+        type: 'nutrition',
+        content,
+        structuredData: structured,
+        prompt
+      });
+
+      return { recommendationId, recommendations: structured };
+    } catch (err) {
+      await giveBackAiQuota({ db: getFirestore(), uid, bucket: cap.field, day: cap.day }).catch((e) => console.error('[getNutritionRecommendations] could not give the request back', e));
+      throw err;
     }
-
-    const recommendationId = await saveRecommendation({
-      userId: uid,
-      type: 'nutrition',
-      content,
-      structuredData: structured,
-      prompt
-    });
-
-    return { recommendationId, recommendations: structured };
   }
 );
 
@@ -475,37 +448,6 @@ export const getSpotifyAppToken = onCall(
       console.warn('[getSpotifyAppToken] failed', { status: error?.status });
       throw new HttpsError('internal', error?.message || 'Spotify app token request failed');
     }
-  }
-);
-
-export const sendWorkoutReminder = onCall(
-  { region: 'us-central1' },
-  async (req) => {
-    requireAuth(req.auth);
-    const { userId, message } = req.data;
-    if (!userId || !message) {
-      throw new HttpsError('invalid-argument', 'userId and message required');
-    }
-
-    const db = getFirestore();
-    const devicesSnap = await db.
-    collection('users').
-    doc(userId).
-    collection('devices').
-    get();
-
-    const tokens = devicesSnap.docs.
-    map((d) => d.data().token).
-    filter((t) => !!t);
-
-    if (tokens.length === 0) return { sent: 0 };
-
-    const response = await getMessaging().sendEachForMulticast({
-      tokens,
-      notification: { title: 'Zown HQ', body: message }
-    });
-
-    return { sent: response.successCount, failed: response.failureCount };
   }
 );
 
@@ -1167,42 +1109,52 @@ export const onWorkoutComplete = onDocumentCreated(
   }
 );
 
-// Real fix for Instagram recipe import: confirmed directly, in-app
-// requests to Instagram from the user's phone get served a generic
-// blocked/login-wall page (HTTP 200, title="Instagram", login/error
-// markers present) even though the exact same request via curl from a
-// dev/datacenter environment succeeds and returns the real post
-// content, including the caption, unchanged. This runs the fetch
-// server-side instead, from Google Cloud's own network - matching the
-// network profile that has been confirmed to work - rather than from
-// the device directly. Uses the same, already-verified extraction
-// pattern as the app's own recipeExtractionService.js.
+// Instagram recipe import. Requests to Instagram from a phone get a generic login-wall page, while the same request from Google's
+// network returns the real post, so the fetch runs here, using the same extraction pattern as services/recipeExtractionService.js.
+//
+// Anyone who can reach this address can send it a web address, so it only ever fetches an https address on instagram.com or
+// www.instagram.com (judged on the parsed address, and again on every redirect: functions/src/instagramUrl.js), and what it says back
+// when something goes wrong is the same few plain sentences whatever the page looked like. The details go to the log, not to the caller.
+// Sign-in and a limit per person follow once the app sends its token (Build 11).
+function embedProblem(res, status, logged, detail) {
+  console.warn('[instagramEmbed]', logged, detail ?? '');
+  const said = {
+    400: 'Send the link to an Instagram post.',
+    404: 'No caption was found for that post.',
+    405: 'Method not allowed',
+    502: 'Instagram did not answer. Try again in a moment.',
+    500: 'Something went wrong reading that post.',
+  };
+  res.status(status).json({ error: said[status] });
+}
+
 export const instagramEmbed = onRequest(
   { region: 'us-central1', cors: true },
   async (req, res) => {
     if (req.method !== 'POST') {
-      res.status(405).json({ error: 'Method not allowed' });
+      embedProblem(res, 405, 'not a POST');
       return;
     }
 
     const { url } = req.body || {};
-    if (!url || typeof url !== 'string') {
-      res.status(400).json({ error: 'Missing "url" in request body' });
+    const parsed = instagramUrl(url);
+    if (!parsed) {
+      embedProblem(res, 400, 'not an Instagram address', typeof url === 'string' ? url.slice(0, 200) : typeof url);
       return;
     }
 
     try {
-      const parsed = new URL(url);
-      let path = parsed.pathname;
-      if (!path.endsWith('/')) path += '/';
-      const embedUrl = `${parsed.origin}${path}embed/captioned/`;
+      const response = await fetchFromInstagram(
+        embedUrl(parsed),
+        { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' } },
+      );
 
-      const response = await fetch(embedUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
-      });
-
+      if (!response) {
+        embedProblem(res, 502, 'redirected away from Instagram', parsed.href);
+        return;
+      }
       if (!response.ok) {
-        res.status(502).json({ error: `Instagram embed page returned HTTP ${response.status}` });
+        embedProblem(res, 502, 'Instagram answered with an error', response.status);
         return;
       }
 
@@ -1211,10 +1163,12 @@ export const instagramEmbed = onRequest(
       const captionMatch = html.match(/"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"((?:[^"\\]|\\.)*)"/);
       if (!captionMatch) {
         const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-        const hasPartialMarker = html.includes('edge_media_to_caption');
-        const hasLoginMarker = /log ?in|Log In|challenge|rate.?limit|Sorry, this page/i.test(html);
-        res.status(404).json({
-          error: `No caption pattern found (server-side fetch): HTTP ${response.status}, ${html.length} chars, title="${titleMatch?.[1] || 'none'}", contains "edge_media_to_caption" substring: ${hasPartialMarker}, login/error markers present: ${hasLoginMarker}`
+        embedProblem(res, 404, 'no caption pattern', {
+          status: response.status,
+          chars: html.length,
+          title: titleMatch?.[1] || 'none',
+          partialMarker: html.includes('edge_media_to_caption'),
+          loginMarker: /log ?in|Log In|challenge|rate.?limit|Sorry, this page/i.test(html),
         });
         return;
       }
@@ -1223,11 +1177,11 @@ export const instagramEmbed = onRequest(
       try {
         caption = JSON.parse(`"${captionMatch[1]}"`);
       } catch (e) {
-        res.status(500).json({ error: `Caption pattern matched but failed to JSON-decode: ${e?.message}` });
+        embedProblem(res, 500, 'caption would not decode', e?.message);
         return;
       }
       if (!caption) {
-        res.status(404).json({ error: 'Caption pattern matched but decoded to empty string' });
+        embedProblem(res, 404, 'caption decoded to nothing');
         return;
       }
 
@@ -1244,7 +1198,7 @@ export const instagramEmbed = onRequest(
 
       res.status(200).json({ caption, username, thumbnail });
     } catch (error) {
-      res.status(500).json({ error: `Server error: ${error?.message}` });
+      embedProblem(res, 500, 'failed', error?.message);
     }
   }
 );

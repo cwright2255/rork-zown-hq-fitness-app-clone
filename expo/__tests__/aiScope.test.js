@@ -593,7 +593,6 @@ describe('postLLM', () => {
 describe('the other AI functions carry the rule too', () => {
   const requests = {
     generateWorkoutPlan: [{ fitnessLevel: 'beginner', goals: ['build muscle'], history: [], profile: {} }, '{"days":[]}'],
-    getProgressSummary: [{ dateRange: { start: '2026-01-01', end: '2026-01-31' } }, 'A good month.'],
     generateBodyCompositionInsight: [{ goal: 'lose fat', age: 40, scans: [{ date: '2026-01-01', measurements: {} }] }, '{"summary":"s","trend":"steady","suggestion":""}'],
     getNutritionRecommendations: [{ recentWorkouts: [], goals: ['lose weight'], profile: {} }, '{}'],
     generateChallenges: [{}, '{"challenges":[]}'],

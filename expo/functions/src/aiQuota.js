@@ -3,8 +3,11 @@
 // real service. The plans themselves (and their limits) are in entitlements.js, the same file the app uses.
 //
 //   entitlements/{uid}       the person's plan. Nobody can write it from the app (firestore.rules).
-//   aiUsage/{uid}_{day}      { uid, day, coach: n, assist: n }, the messages used that day. Only these functions touch it.
+//   aiUsage/{uid}_{day}      { uid, day, coach: n, assist: n, nutrition: n }, the messages and nutrition targets used that day. Only these functions touch it.
 import { effectiveTier, dailyLimit, bucketOf, aiDayKey, canUseFeature, featureTier } from './entitlements.js';
+
+/** The most nutrition targets (getNutritionRecommendations) one person can ask for in a day, on every plan. */
+export const NUTRITION_DAILY_CAP = 5;
 
 const count = (value) => (Number.isFinite(value) && value > 0 ? Math.floor(value) : 0);
 
@@ -52,7 +55,25 @@ export async function takeAiQuota({ db, uid, kind, now = new Date() }) {
   return { ...taken, tier, bucket, limit, day };
 }
 
-/** Gives back one message taken by takeAiQuota, for a request that failed before the person got anything. Never goes below zero. */
+/**
+ * A fixed daily cap for a kind of request that is not one of the plans' AI buckets, counted in the same aiUsage document and the same
+ * way as takeAiQuota (a transaction, so two requests at once cannot both take the last one; the day starts over at midnight Eastern).
+ * `field` is the name it is counted under. Resolves to { ok, used, field, limit, day }; when ok is false nothing was changed.
+ */
+export async function takeDailyCap({ db, uid, field, limit, now = new Date() }) {
+  const day = aiDayKey(now);
+  const ref = db.doc(`aiUsage/${uid}_${day}`);
+  const taken = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const used = snap.exists ? count(snap.data()[field]) : 0;
+    if (used >= limit) return { ok: false, used };
+    tx.set(ref, { uid, day, [field]: used + 1 }, { merge: true });
+    return { ok: true, used: used + 1 };
+  });
+  return { ...taken, field, limit, day };
+}
+
+/** Gives back one message taken by takeAiQuota (or one request taken by takeDailyCap, with its field as `bucket`), for a request that failed before the person got anything. Never goes below zero. */
 export async function giveBackAiQuota({ db, uid, bucket, day }) {
   const ref = db.doc(`aiUsage/${uid}_${day}`);
   await db.runTransaction(async (tx) => {

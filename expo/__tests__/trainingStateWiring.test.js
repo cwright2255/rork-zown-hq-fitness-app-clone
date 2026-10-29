@@ -32,7 +32,7 @@ describe('the plan request', () => {
 });
 
 describe('the cloud plan function', () => {
-  const fn = index.slice(index.indexOf('export const generateWorkoutPlan'), index.indexOf('export const getProgressSummary'));
+  const fn = index.slice(index.indexOf('export const generateWorkoutPlan'), index.indexOf('export const postLLM'));
 
   it('reads the state from the request and checks it before the prompt is written', () => {
     expect(index).toMatch(/import \{ sanitizeTrainingState, trainingStateText \} from '\.\/trainingState\.js';/);
