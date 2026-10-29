@@ -1170,3 +1170,20 @@ An update now waits for the next launch instead of restarting the app. After the
 - [ ] Open Settings. It does **not** restart when you open it either.
 - [ ] Close the app completely (swipe it away) and open it again. Settings, Current Update shows the new update's id.
 - [ ] Settings, Check for Updates when you know an update is waiting: the app restarts straight away (you asked for it). With nothing new it says "Up to date".
+
+## Log out leaves nothing behind (once, on the first update with it)
+
+This is an app update (`eas update`), not a new native build. Log Out on the Profile page and Log Out in Settings now run the same function (`lib/logOut.js`): it signs out, disconnects Spotify and Apple Music, clears everything the app holds in memory and removes everything it saved on the phone. It sends nothing to the cloud, so the first account's data in the cloud is not touched. This is the two-accounts check, and it needs one phone, an account that already has data (call it A) and a brand-new account (B, a new email).
+
+Before you start, make sure A has these, with a signal so they reach the cloud: a finished run (Running, 15 seconds is enough), something in Health (log a glass of water or a weight) and a saved recipe (Recipes, save any). Give it half a minute.
+
+- [ ] On A: Settings, Log Out, confirm. You land on the login screen.
+- [ ] Create the brand-new account B on the same phone (a new email; Skip for now on the setup is fine). On B, run history is empty (Running).
+- [ ] On B, Health shows nothing of A: no weight, no water, no steps.
+- [ ] On B, Recipes, Saved is empty, and so is the grocery list.
+- [ ] On B, Home shows nothing of A: no streak, no XP, no workouts. If A had connected Spotify, Settings on B says it is not connected.
+- [ ] Log out of B from the Profile page this time (Profile, Log Out, confirm). Close the app completely (swipe it away) and open it again: you are on the login screen, not on Home.
+- [ ] Log in as A. After a few seconds A's run history, Health entries and saved recipe are all back (they come from the cloud).
+- [ ] If A was in the middle of a hike recording when it logged out, B is not asked to pick up an unfinished hike.
+
+One thing to know: whatever had not reached the cloud yet is gone after a log out, because nothing is left behind on the phone. A run recorded with no signal and not yet synced is the example. If anything of A shows on B, do not log back in as A; note which screen it was on.

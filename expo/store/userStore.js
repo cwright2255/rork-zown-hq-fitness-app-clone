@@ -330,38 +330,11 @@ export const useUserStore = create(
         }
       },
 
+      // Signs the person out of this store only: the profile and the "set up" flag. Every saved key is removed by lib/logOut.js,
+      // from one list, which is also what resets every other store.
       logout: async () => {
-        try {
-          console.log('[UserStore] Logging out: clearing auth token and persisted user storage');
-
-          // Clear auth token
-          await AsyncStorage.removeItem('auth_token');
-          console.log('[UserStore] Auth token cleared');
-
-          // Clear persisted user storage
-          await AsyncStorage.removeItem('zown-user-storage');
-          console.log('[UserStore] User storage cleared');
-
-          // Clear any other app-specific storage
-          const keys = await AsyncStorage.getAllKeys();
-          const appKeys = keys.filter((key) =>
-          key.startsWith('zown-') ||
-          key.includes('user') ||
-          key.includes('auth')
-          );
-
-          if (appKeys.length > 0) {
-            await AsyncStorage.multiRemove(appKeys);
-            console.log('[UserStore] Additional app storage cleared:', appKeys);
-          }
-
-        } catch (error) {
-          console.error('[UserStore] Failed to clear storage during logout:', error);
-        } finally {
-          // Reset user state
-          set({ user: null, isOnboarded: false });
-          console.log('[UserStore] User state reset to logged out');
-        }
+        set({ user: null, isOnboarded: false });
+        console.log('[UserStore] User state reset to logged out');
       },
 
       startOnboarding: () => set({ isOnboarded: false }),

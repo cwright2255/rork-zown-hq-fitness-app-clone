@@ -5,7 +5,8 @@ import { scaleRecipe } from '@/lib/recipeScale';
 import { db } from '../src/config/firebase';
 import { collection, addDoc, getDocs, query, orderBy, limit, doc, deleteDoc } from 'firebase/firestore';
 
-const STORAGE_KEYS = {
+// Exported so lib/logOut.js removes exactly these.
+export const STORAGE_KEYS = {
   RECIPES: '@recipes_saved',
   GROCERY_LIST: '@grocery_list'
 };

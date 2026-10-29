@@ -26,6 +26,9 @@ jest.mock('../src/config/firebase', () => ({
   default: {},
 }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() } }), { virtual: true });
+// Log Out (lib/logOut.js) resets every store and disconnects Spotify and Apple Music; their stores load these when they load.
+jest.mock('@/services/spotifyService', () => ({ spotifyService: { clearToken: jest.fn(async () => undefined) } }));
+jest.mock('@lomray/react-native-apple-music', () => ({ Auth: {}, MusicKit: {}, Player: {}, isMusicSubscriptionError: () => false }), { virtual: true });
 jest.mock('expo-image-picker', () => ({}), { virtual: true });
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }), { virtual: true });
 jest.mock('react-native-safe-area-context', () => {

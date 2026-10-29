@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUserStore } from '@/store/userStore';
+import { logOut } from '@/lib/logOut';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { TIER_NAMES } from '@/lib/entitlements';
 import { useSpotifyStore } from '@/store/spotifyStore';
@@ -281,11 +282,9 @@ export default function SettingsScreen() {
       {
         text: 'Log Out',
         style: 'destructive',
+        // The same function as the Log Out on the Profile page (lib/logOut.js): it signs out, then clears every store and every saved key.
         onPress: async () => {
-          try {
-            await signOut(auth);
-          } catch {}
-          if (logout) logout();
+          await logOut();
           router.replace('/auth/login');
         },
       },
