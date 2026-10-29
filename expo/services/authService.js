@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { logSignUp } from '../src/services/analytics';
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
@@ -122,6 +123,8 @@ class AuthService {
       const user = buildUserShape(fbUser, { name, email: fbUser.email || email });
       const token = await fbUser.getIdToken().catch(() => 'firebase-session');
       await this._storeToken(token);
+      // The account exists now: count the sign-up, once (the offline branch above creates no account).
+      logSignUp('email');
 
       return { user, token };
     } catch (error) {
@@ -164,6 +167,8 @@ class AuthService {
     const user = buildUserShape(fbUser, name ? { name } : {});
     const token = await fbUser.getIdToken().catch(() => 'firebase-session');
     await this._storeToken(token);
+    // Signing in with an account that already exists is not a sign-up; only the sign-in that created it is.
+    if (isNewUser) logSignUp(provider);
     return { user, token, isNewUser };
   }
 

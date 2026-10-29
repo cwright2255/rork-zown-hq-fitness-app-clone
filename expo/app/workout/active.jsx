@@ -31,7 +31,8 @@ import { getGoalIds } from '@/lib/userProfileData';
 import { goalForLoad, countLowReadinessDays, trustedSets, isOutlierOneRepMax, effortLegend, prescriptionText } from '@/lib/loadRules';
 import { unitFromSetting, historyIn, targetIn, toPounds, fromPounds, weightText } from '@/lib/weightUnits';
 import { setHitTarget, sessionOutcome } from '@/lib/trainingMeasures';
-import { logWorkoutStarted, logWorkoutCompleted } from '@/src/services/analytics';
+import { logWorkoutStarted, logWorkoutCompleted, logFirstWorkoutCompleted } from '@/src/services/analytics';
+import { isFirstFinishedWorkout } from '@/lib/firstWorkout';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -1003,6 +1004,10 @@ export default function ActiveWorkoutScreen() {
               );
               const xpEarned = selectedWorkout?.xpReward ?? 100;
 
+              // Whether this is the first workout the person has finished all the way (one saved part-way does not count). Worked
+              // out before this one goes into the history.
+              const isFirstWorkout = isFirstFinishedWorkout(useWorkoutStore.getState().completedWorkouts);
+
               await addCompletedWorkout({
                 workoutId: selectedWorkout?.id ?? null,
                 name: workoutDisplayName,
@@ -1021,6 +1026,7 @@ export default function ActiveWorkoutScreen() {
 
               // Only a workout finished all the way is "completed" for analytics; saving and leaving early is not.
               logWorkoutCompleted(analyticsWorkoutId, Math.round(elapsedSeconds / 60), caloriesBurned);
+              if (isFirstWorkout) logFirstWorkoutCompleted();
 
               // Which badges and achievements this earns (First Workout, the workout counts, streaks, calories, level, XP) is the
               // server's to decide (functions/src/unlocks.js, after the workout is saved); the phone only shows what it unlocked.

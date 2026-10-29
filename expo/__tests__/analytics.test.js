@@ -267,6 +267,111 @@ describe('setAnalyticsUser', () => {
   });
 });
 
+describe('the events that show where testers go', () => {
+  it('a screen being opened: screen_view, with the screen\'s name', () => {
+    const { service, native } = load();
+    service.logScreenView('workout/active');
+    expect(native.logEvent).toHaveBeenCalledTimes(1);
+    expect(native.logEvent).toHaveBeenCalledWith(native.instance, 'screen_view', { screen_name: 'workout/active' });
+  });
+
+  it('a screen without a name is not an event', () => {
+    const { service, native } = load();
+    service.logScreenView('');
+    service.logScreenView(undefined);
+    service.logScreenView(42);
+    expect(native.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('a sign-up: sign_up, with how they signed up', () => {
+    const { service, native } = load();
+    service.logSignUp('email');
+    expect(native.logEvent).toHaveBeenCalledTimes(1);
+    expect(native.logEvent).toHaveBeenCalledWith(native.instance, 'sign_up', { method: 'email' });
+  });
+
+  it('onboarding finished: onboarding_completed, just the event', () => {
+    const { service, native } = load();
+    service.logOnboardingCompleted();
+    expect(native.logEvent).toHaveBeenCalledTimes(1);
+    expect(native.logEvent).toHaveBeenCalledWith(native.instance, 'onboarding_completed', {});
+  });
+
+  it('a first workout finished: first_workout_completed, just the event', () => {
+    const { service, native } = load();
+    service.logFirstWorkoutCompleted();
+    expect(native.logEvent).toHaveBeenCalledTimes(1);
+    expect(native.logEvent).toHaveBeenCalledWith(native.instance, 'first_workout_completed', {});
+  });
+
+  it('the plans being opened: paywall_viewed, with the feature that sent them (or nothing)', () => {
+    const { service, native } = load();
+    service.logPaywallViewed('bodyScan');
+    service.logPaywallViewed(undefined);
+    expect(native.logEvent).toHaveBeenCalledTimes(2);
+    expect(native.logEvent).toHaveBeenNthCalledWith(1, native.instance, 'paywall_viewed', { feature: 'bodyScan' });
+    expect(native.logEvent).toHaveBeenNthCalledWith(2, native.instance, 'paywall_viewed', {});
+  });
+
+  it('a meal logged: meal_logged, with the meal slot', () => {
+    const { service, native } = load();
+    service.logMealLogged('breakfast');
+    expect(native.logEvent).toHaveBeenCalledTimes(1);
+    expect(native.logEvent).toHaveBeenCalledWith(native.instance, 'meal_logged', { meal_slot: 'breakfast' });
+  });
+
+  it('a run finished: run_finished, with the kind of outing', () => {
+    const { service, native } = load();
+    service.logRunFinished('run');
+    expect(native.logEvent).toHaveBeenCalledTimes(1);
+    expect(native.logEvent).toHaveBeenCalledWith(native.instance, 'run_finished', { activity: 'run' });
+  });
+
+  it('none of them carries a number: names only, never a health figure', () => {
+    const { service, native } = load();
+    service.logScreenView('nutrition/food/[id]');
+    service.logSignUp('google');
+    service.logOnboardingCompleted();
+    service.logFirstWorkoutCompleted();
+    service.logPaywallViewed('bodyScan');
+    service.logMealLogged('lunch');
+    service.logRunFinished('walk');
+    expect(native.logEvent).toHaveBeenCalledTimes(7);
+    for (const [, , values] of native.logEvent.mock.calls) {
+      for (const value of Object.values(values)) expect(typeof value).toBe('string');
+    }
+  });
+
+  it('they send nothing, and do not fail, in Expo Go, in an old build or in tests', () => {
+    const expoGo = load({ expoGo: true });
+    expect(() => expoGo.service.logRunFinished('run')).not.toThrow();
+    expect(expoGo.native.logEvent).not.toHaveBeenCalled();
+    const old = load({ native: new Error('Cannot find module') });
+    expect(() => old.service.logMealLogged('lunch')).not.toThrow();
+  });
+});
+
+describe('screenNameOf: the name a screen goes by', () => {
+  const { screenNameOf } = load().service;
+
+  it('is the route\'s name, with the tab group left off', () => {
+    expect(screenNameOf(['(tabs)', 'hq'])).toBe('hq');
+    expect(screenNameOf(['workout', 'active'])).toBe('workout/active');
+  });
+
+  it('keeps a changing part of a route as its pattern, never the value in it', () => {
+    expect(screenNameOf(['workout', '[id]'])).toBe('workout/[id]');
+    expect(screenNameOf(['nutrition', 'food', '[id]'])).toBe('nutrition/food/[id]');
+  });
+
+  it('calls the first screen "index", and copes with nothing usable', () => {
+    expect(screenNameOf([])).toBe('index');
+    expect(screenNameOf(['(auth)'])).toBe('index');
+    expect(screenNameOf(undefined)).toBe('index');
+    expect(screenNameOf(null)).toBe('index');
+  });
+});
+
 describe('the web package', () => {
   it('is not what the service uses: it cannot run on a phone', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'services', 'analytics.js'), 'utf8');

@@ -98,6 +98,42 @@ logEvent('ai_coach_used', { feature_type: featureType });
 
 export const logSpotifyConnected = () => logEvent('spotify_connected');
 
+// Where testers go and what they get done. These carry names only: the screen's name, how someone signed up, the plan feature a
+// paywall was opened for, the meal slot, the kind of outing. Never a number from their body or workout and never text they typed,
+// so nothing here can leak health data or personal text into Firebase. Each one is logged from the single place the thing
+// happens, so it is sent once per time it happens.
+
+/** The name a screen goes by in the reports: the route's own name, not what was typed into it ("workout/[id]", never an id). */
+export const screenNameOf = (segments) => {
+  const parts = (Array.isArray(segments) ? segments : []).filter(
+    (s) => typeof s === 'string' && s && !(s.startsWith('(') && s.endsWith(')'))
+  );
+  return parts.length ? parts.join('/') : 'index';
+};
+
+export const logScreenView = (screenName) => {
+  if (typeof screenName !== 'string' || !screenName) return;
+  logEvent('screen_view', { screen_name: screenName });
+};
+
+// `method` is how they signed up: 'email', or the provider's name ('google', 'apple').
+export const logSignUp = (method) => logEvent('sign_up', { method });
+
+export const logOnboardingCompleted = () => logEvent('onboarding_completed');
+
+// The first workout this person has ever finished on this account. (Every workout is logWorkoutCompleted.)
+export const logFirstWorkoutCompleted = () => logEvent('first_workout_completed');
+
+// `feature` is the plan feature they were turned away from (a fixed key from lib/entitlements.js), or nothing when they opened
+// the plans on their own.
+export const logPaywallViewed = (feature) => logEvent('paywall_viewed', { feature });
+
+// `slot` is the meal slot (breakfast, lunch, dinner, snack); the food itself and its numbers are never sent.
+export const logMealLogged = (slot) => logEvent('meal_logged', { meal_slot: slot });
+
+// `activity` is the kind of outing ('run', 'hike', ...); the distance, pace and route are never sent.
+export const logRunFinished = (activity) => logEvent('run_finished', { activity });
+
 export const initCrashlytics = () => {
   if (IS_EXPO_GO) {
     console.log('[Crashlytics] no-op in Expo Go');

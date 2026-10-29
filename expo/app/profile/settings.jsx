@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 
@@ -133,10 +133,16 @@ export default function SettingsScreen() {
   // calling reloadAsync() only after this handler's own fetch) is what
   // actually closes the gap, including the case where it's already true
   // the moment this screen mounts.
+  //
+  // But the restart only happens once the person has tapped Check for
+  // updates. An update that arrived in the background waits for the next
+  // launch (services/appUpdates.js); it must not restart the app just
+  // because Settings was opened.
   const { isUpdatePending } = Updates.useUpdates();
+  const askedForUpdate = useRef(false);
 
   useEffect(() => {
-    if (isUpdatePending) {
+    if (isUpdatePending && askedForUpdate.current) {
       Updates.reloadAsync();
     }
   }, [isUpdatePending]);
@@ -144,6 +150,12 @@ export default function SettingsScreen() {
   const handleCheckForUpdate = async () => {
     if (!Updates.isEnabled) {
       Alert.alert('Updates', 'OTA updates are not enabled in this build (likely running in development mode).');
+      return;
+    }
+    askedForUpdate.current = true;
+    if (isUpdatePending) {
+      // Already downloaded in the background, and the person asked for it: use it now.
+      try { await Updates.reloadAsync(); } catch {}
       return;
     }
     setUpdateCheckState('checking');

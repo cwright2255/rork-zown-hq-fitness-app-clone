@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useEntitlement } from '@/hooks/useEntitlement';
 import { planCards } from '@/lib/plans';
 import { FEATURE_NAMES, TIERS, TIER_NAMES, featureTier, tierAtLeast } from '@/lib/entitlements';
 import { PURCHASES_ENABLED, purchasePlan } from '@/services/purchases';
+import { logPaywallViewed } from '@/src/services/analytics';
 
 // The plans: Free, Pro and Legend, what each one includes, which one the person has, and a button to move up. The lists come from
 // lib/plans.js, which builds them from the rules in lib/entitlements.js. Until purchases are connected (services/purchases.js) the
@@ -21,6 +22,12 @@ export default function PaywallScreen() {
 
   const wanted = typeof params.feature === 'string' && FEATURE_NAMES[params.feature] ? params.feature : null;
   const lockedOut = wanted && !tierAtLeast(tier, featureTier(wanted)) ? wanted : null;
+
+  // Counted once each time the plans open, with the feature that sent the person here (a fixed key), or none if they came on
+  // their own.
+  useEffect(() => {
+    logPaywallViewed(wanted || undefined);
+  }, [wanted]);
 
   const buy = async (plan) => {
     if (buying) return;

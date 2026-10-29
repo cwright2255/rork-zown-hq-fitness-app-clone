@@ -18,6 +18,10 @@ jest.mock('../services/purchases', () => ({
   get PURCHASES_ENABLED() { return global.__purchasesOn; },
   purchasePlan: (...args) => global.__purchasePlan(...args),
 }));
+jest.mock('../src/services/analytics', () => ({
+  ...jest.requireActual('../src/services/analytics'),
+  logPaywallViewed: (...args) => global.__logPaywallViewed(...args),
+}));
 jest.mock('../src/config/firebase', () => ({ db: {} }));
 jest.mock('firebase/firestore', () => ({}));
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -45,10 +49,11 @@ beforeEach(() => {
   global.__params = {};
   global.__purchasesOn = false;
   global.__purchasePlan = jest.fn(async () => ({ ok: true }));
+  global.__logPaywallViewed = jest.fn();
   router.canGoBack.mockReturnValue(true);
   as('free');
 });
-afterEach(() => { delete global.__params; delete global.__purchasesOn; delete global.__purchasePlan; });
+afterEach(() => { delete global.__params; delete global.__purchasesOn; delete global.__purchasePlan; delete global.__logPaywallViewed; });
 
 describe('the three plans', () => {
   it('shows Free, Pro and Legend, each with what it includes', () => {
@@ -226,5 +231,37 @@ describe('going back', () => {
     router.canGoBack.mockReturnValue(false);
     fireEvent.press(render(<PaywallScreen />).getByTestId('paywall-back'));
     expect(router.replace).toHaveBeenCalledWith('/profile/settings');
+  });
+});
+
+describe('the paywall_viewed analytics event', () => {
+  it('is sent once when the plans open on their own, with no feature', () => {
+    render(<PaywallScreen />);
+    expect(global.__logPaywallViewed).toHaveBeenCalledTimes(1);
+    expect(global.__logPaywallViewed).toHaveBeenCalledWith(undefined);
+  });
+
+  it('is sent once when a feature sent the person here, naming that feature', () => {
+    global.__params = { feature: 'analytics' };
+    render(<PaywallScreen />);
+    expect(global.__logPaywallViewed).toHaveBeenCalledTimes(1);
+    expect(global.__logPaywallViewed).toHaveBeenCalledWith('analytics');
+  });
+
+  it('does not send what is not a feature of the app', () => {
+    global.__params = { feature: 'nonsense typed by somebody' };
+    render(<PaywallScreen />);
+    expect(global.__logPaywallViewed).toHaveBeenCalledTimes(1);
+    expect(global.__logPaywallViewed).toHaveBeenCalledWith(undefined);
+  });
+
+  it('is not sent again when the screen redraws (the plan changes, a button is tapped)', async () => {
+    global.__params = { feature: 'bodyScan' };
+    const utils = render(<PaywallScreen />);
+    as('pro');
+    utils.rerender(<PaywallScreen />);
+    as('legend');
+    await settle();
+    expect(global.__logPaywallViewed).toHaveBeenCalledTimes(1);
   });
 });

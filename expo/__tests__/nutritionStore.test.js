@@ -1,4 +1,6 @@
 const mockAwardMealXp = jest.fn();
+const mockLogMealLogged = jest.fn();
+jest.mock('../src/services/analytics', () => ({ logMealLogged: (...a) => mockLogMealLogged(...a) }));
 jest.mock('../src/config/firebase', () => ({ db: {} }));
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn((...args) => ({ path: args.slice(1).join('/') })),
@@ -34,6 +36,7 @@ const foodsOn = (date, mealId) => {
 
 beforeEach(() => {
   mockAwardMealXp.mockClear();
+  mockLogMealLogged.mockClear();
   useNutritionStore.setState({ meals: [], recentFoods: [], favoriteFood: [], customFoods: [], syncUid: null });
 });
 
@@ -79,6 +82,35 @@ describe('addFoodToMeal', () => {
     store().addFoodToMeal('2026-10-08', 'lunch', apple());
     store().addFoodToMeal('2026-10-08', 'dinner', rice());
     expect(store().getDailyNutrition('2026-10-08').calories).toBe(182);
+  });
+});
+
+describe('the meal_logged analytics event', () => {
+  it('is sent once for a food logged, naming only the meal slot', () => {
+    store().addFoodToMeal('2026-10-08', 'breakfast', apple());
+    expect(mockLogMealLogged).toHaveBeenCalledTimes(1);
+    expect(mockLogMealLogged).toHaveBeenCalledWith('breakfast');
+  });
+
+  it('is sent once more for each further food, and not at all for anything else the store does', () => {
+    store().addFoodToMeal('2026-10-08', 'lunch', apple());
+    store().addFoodToMeal('2026-10-08', 'lunch', rice());
+    expect(mockLogMealLogged).toHaveBeenCalledTimes(2);
+    const entry = foodsOn('2026-10-08', 'lunch')[0];
+    store().updateFoodInMeal('lunch', entry.logId, { quantity: 2 }, '2026-10-08');
+    store().removeFoodFromMeal('lunch', entry.logId, '2026-10-08');
+    expect(mockLogMealLogged).toHaveBeenCalledTimes(2);
+  });
+
+  it('never carries the food, its name or its numbers', () => {
+    store().addFoodToMeal('2026-10-08', 'dinner', apple({ name: 'Grandma\'s secret stew', calories: 999 }));
+    expect(mockLogMealLogged.mock.calls[0]).toEqual(['dinner']);
+  });
+
+  it('calls a slot the app does not know "other", so a stray value is never sent', () => {
+    store().addFoodToMeal('2026-10-08', 'my own typed text', apple());
+    expect(mockLogMealLogged).toHaveBeenCalledTimes(1);
+    expect(mockLogMealLogged).toHaveBeenCalledWith('other');
   });
 });
 

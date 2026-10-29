@@ -18,8 +18,8 @@ describe('the workout screen', () => {
   const source = read('app/workout/active.jsx');
   const count = (re) => (source.match(re) || []).length;
 
-  it('gets its two events from the analytics service', () => {
-    expect(source).toContain("import { logWorkoutStarted, logWorkoutCompleted } from '@/src/services/analytics';");
+  it('gets its events from the analytics service', () => {
+    expect(source).toContain("import { logWorkoutStarted, logWorkoutCompleted, logFirstWorkoutCompleted } from '@/src/services/analytics';");
   });
 
   it('names a workout by its id, or by the program\'s id for a day of a program', () => {
@@ -42,6 +42,26 @@ describe('the workout screen', () => {
     expect(logged).toBeLessThan(finish.indexOf("router.replace('/workout/complete')"));
   });
 
+  it('logs the first workout once, only when none has been finished before, and works that out before this one is saved', () => {
+    expect(source).toContain("import { isFirstFinishedWorkout } from '@/lib/firstWorkout';");
+    expect(count(/logFirstWorkoutCompleted\(/g)).toBe(1);
+    expect(count(/isFirstFinishedWorkout\(/g)).toBe(1);
+    const finish = source.slice(source.indexOf('onPress={isWorkoutDone ? async () => {'));
+    const asked = finish.indexOf('const isFirstWorkout = isFirstFinishedWorkout(useWorkoutStore.getState().completedWorkouts);');
+    const saved = finish.indexOf('await addCompletedWorkout(');
+    const completed = finish.indexOf('logWorkoutCompleted(analyticsWorkoutId');
+    const first = finish.indexOf('if (isFirstWorkout) logFirstWorkoutCompleted();');
+    expect(asked).toBeGreaterThan(-1);
+    expect(saved).toBeGreaterThan(asked);
+    expect(first).toBeGreaterThan(completed);
+    expect(first).toBeLessThan(finish.indexOf("router.replace('/workout/complete')"));
+  });
+
+  it('does not call saving a workout and leaving early the first workout either', () => {
+    const exit = source.slice(source.indexOf('const handleSaveAndExit'), source.indexOf('const handleDiscardAndExit'));
+    expect(exit).not.toContain('logFirstWorkoutCompleted');
+  });
+
   it('does not call saving a workout and leaving early a completion', () => {
     const exit = source.slice(source.indexOf('const handleSaveAndExit'), source.indexOf('const handleDiscardAndExit'));
     expect(exit.length).toBeGreaterThan(500);
@@ -53,7 +73,14 @@ describe('the root layout', () => {
   const layout = read('app/_layout.jsx');
 
   it('gets the user call from the analytics service', () => {
-    expect(layout).toContain("import { setAnalyticsUser } from '@/src/services/analytics';");
+    expect(layout).toContain("import { setAnalyticsUser, logScreenView, screenNameOf } from '@/src/services/analytics';");
+  });
+
+  it('logs a screen view each time the screen changes, named by the route and not by what is in it', () => {
+    expect(layout).toContain("import { Stack, usePathname, useSegments } from 'expo-router';");
+    expect(layout).toContain('const screenName = screenNameOf(useSegments());');
+    expect(layout).toContain('useEffect(() => { logScreenView(screenName); }, [screenName]);');
+    expect((layout.match(/logScreenView\(/g) || []).length).toBe(1);
   });
 
   it('gives analytics the same uid Crashlytics gets, so signing out (no uid) clears it', () => {
@@ -78,7 +105,11 @@ describe('across the app', () => {
 
   it('every analytics helper is used by something: an event nothing sends is the bug this replaced', () => {
     const service = read('src/services/analytics.js');
-    const helpers = ['logWorkoutStarted', 'logWorkoutCompleted', 'logAICoachUsed', 'logSpotifyConnected', 'setAnalyticsUser'];
+    const helpers = [
+      'logWorkoutStarted', 'logWorkoutCompleted', 'logAICoachUsed', 'logSpotifyConnected', 'setAnalyticsUser',
+      'logScreenView', 'logSignUp', 'logOnboardingCompleted', 'logFirstWorkoutCompleted', 'logPaywallViewed', 'logMealLogged',
+      'logRunFinished',
+    ];
     const users = sources.filter((file) => file !== path.join('src', 'services', 'analytics.js'));
     for (const name of helpers) {
       expect(service).toContain(`export const ${name}`);

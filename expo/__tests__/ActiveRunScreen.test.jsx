@@ -43,6 +43,11 @@ jest.mock('@/store/virtualChallengeStore', () => ({
 }));
 jest.mock('@/store/expStore', () => ({ useExpStore: () => ({ addExpActivity: global.__addExp }) }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: { uid: 'u1' } }) }));
+// The analytics event sent when a run is finished (the rest of the service is left as it is).
+jest.mock('../src/services/analytics', () => ({
+  ...jest.requireActual('../src/services/analytics'),
+  logRunFinished: jest.fn(),
+}));
 // The music sheet reads whichever player is connected; here the test decides what it says.
 jest.mock('@/store/useActiveMusicPlayer', () => ({ useActiveMusicPlayer: () => global.__music }));
 
@@ -56,6 +61,7 @@ beforeEach(() => { useSettingsStore.setState({ units: 'metric' }); });
 
 const Location = require('expo-location');
 const Speech = require('expo-speech');
+const analytics = require('../src/services/analytics');
 const tracking = require('@/services/runTracking');
 
 const T0 = Date.UTC(2026, 9, 8, 12, 0, 0);
@@ -102,6 +108,7 @@ describe('ActiveRunScreen', () => {
     tracking.startTracking.mockClear();
     tracking.stopTracking.mockClear();
     Speech.speak.mockClear();
+    analytics.logRunFinished.mockClear();
     alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   });
   afterEach(() => {
@@ -345,6 +352,34 @@ describe('ActiveRunScreen', () => {
       expect(global.__router.replace).toHaveBeenCalledTimes(1);
     });
 
+    it('sends one run_finished event, naming only the kind of outing, when a run is saved', async () => {
+      const utils = await runFor(520);
+      expect(analytics.logRunFinished).not.toHaveBeenCalled();
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      fireEvent.press(utils.getByText('End Run'));
+      expect(analytics.logRunFinished).toHaveBeenCalledTimes(1);
+      expect(analytics.logRunFinished).toHaveBeenCalledWith('run');
+    });
+
+    it('sends no run_finished event for a run under 10 seconds, which is not saved', async () => {
+      const utils = await mount();
+      await tick(4);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      fireEvent.press(utils.getByText('End Run'));
+      expect(analytics.logRunFinished).not.toHaveBeenCalled();
+    });
+
+    it('sends the run_finished event once if End is tapped twice', async () => {
+      const utils = await runFor(60);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      const end = utils.getByText('End Run');
+      act(() => {
+        fireEvent.press(end);
+        fireEvent.press(end);
+      });
+      expect(analytics.logRunFinished).toHaveBeenCalledTimes(1);
+    });
+
     it('does not pause a run that has ended when the screen closes', async () => {
       const utils = await runFor(60);
       fireEvent.press(utils.getByTestId('run-main-button'));
@@ -386,6 +421,14 @@ describe('ActiveRunScreen', () => {
       fireEvent.press(utils.getByTestId('run-main-button'));
       expect(utils.getByText('End Walk')).toBeTruthy();
       expect(utils.queryByText('End Run')).toBeNull();
+    });
+
+    it('sends the run_finished event for a walk with the activity "walk"', async () => {
+      const utils = await walkFor(900);
+      fireEvent.press(utils.getByTestId('run-main-button'));
+      fireEvent.press(utils.getByText('End Walk'));
+      expect(analytics.logRunFinished).toHaveBeenCalledTimes(1);
+      expect(analytics.logRunFinished).toHaveBeenCalledWith('walk');
     });
 
     it('saves it as a walk, with walking calories and walking XP', async () => {

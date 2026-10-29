@@ -1141,3 +1141,32 @@ have a build from before this one, do the first walk on it, to see the gap this 
 - [ ] On the older build (if you kept one): the same walk shows a gap, or the run stopped. That is the problem this build fixes, so it is not a fault on the new build.
 - [ ] Firebase console, `users/<your uid>/data/progressSyncDebug`: the temporary note the app used to write at every start is no longer updated by this build.
       Documents already written stay where they are, and nothing reads them.
+
+## Where testers go, and updates that wait for the next launch (once, on the first update with them)
+
+This is an app update (`eas update`), not a new native build. The events need the phone's own analytics module, which is in any build made
+after analytics was added (see "Analytics" above), so they show for the TestFlight builds and not in Expo Go. They carry names only: the
+screen, how someone signed up, the plan feature a paywall was opened for, the meal slot, the kind of outing. Never a weight, a calorie
+figure, a distance or anything typed. Open the Realtime report (Firebase console, Analytics, Realtime) on a signed-in test phone: event names
+show within a minute or two. The Events table fills in within a day. The values on an event (`screen_name`, `method`, `feature`, `meal_slot`,
+`activity`) only show in reports once they are registered as custom definitions in Google Analytics; Realtime lists the names.
+
+Use a new test account for the first five, because `sign_up`, `onboarding_completed` and `first_workout_completed` only happen once per account.
+
+- [ ] Create an account with a new email. `sign_up` shows up once. Signing out and back in sends no second `sign_up`.
+- [ ] Go through the setup to the end (Skip for now on the last step is fine). `onboarding_completed` shows up once.
+- [ ] Move around: Home, Nutrition, a workout, Settings. `screen_view` shows up for each screen you open. The screen names are the route's
+      name, like `workout/[id]`, never an id or something you typed.
+- [ ] Finish a workout all the way. `workout_completed` and `first_workout_completed` both show up. Finish a second one: only `workout_completed`.
+- [ ] Open Settings, then the "Your plan" row. `paywall_viewed` shows up once.
+- [ ] Log a food in any meal. `meal_logged` shows up.
+- [ ] Record a run for at least 15 seconds and End Run. `run_finished` shows up once. A run ended under 10 seconds is not saved and sends nothing.
+- [ ] A day later: Firebase console, Analytics, Events lists `sign_up`, `onboarding_completed`, `first_workout_completed`, `paywall_viewed`,
+      `meal_logged`, `run_finished` and `screen_view`, with counts.
+
+An update now waits for the next launch instead of restarting the app. After the next `eas update`:
+
+- [ ] Open the app and stay on Home for a minute or two, using it (open a page, scroll). The app does **not** restart by itself.
+- [ ] Open Settings. It does **not** restart when you open it either.
+- [ ] Close the app completely (swipe it away) and open it again. Settings, Current Update shows the new update's id.
+- [ ] Settings, Check for Updates when you know an update is waiting: the app restarts straight away (you asked for it). With nothing new it says "Up to date".

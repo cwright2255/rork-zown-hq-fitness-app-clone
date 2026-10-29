@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DIET_OPTIONS, ALLERGY_OPTIONS, AVOID_OPTIONS } from '@/lib/dietProfile';
 import {
   View,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
+import { logOnboardingCompleted } from '@/src/services/analytics';
 import { ChevronLeft } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -127,6 +128,14 @@ export default function OnboardingScreen() {
     return years >= 0 && years < 130 ? years : null;
   };
 
+  // The "onboarding completed" event is sent once, however Finish ends: a second tap, or the fallback below after a save error.
+  const finishLogged = useRef(false);
+  const logFinished = () => {
+    if (finishLogged.current) return;
+    finishLogged.current = true;
+    logOnboardingCompleted();
+  };
+
   // Save profile and finish
   const handleFinish = async (destination = '/hq') => {
     try {
@@ -181,6 +190,7 @@ export default function OnboardingScreen() {
 
       // Mark onboarding as completed
       completeOnboarding();
+      logFinished();
 
       // Sync user profile to Firestore
       if (user?.uid) {
@@ -194,6 +204,7 @@ export default function OnboardingScreen() {
       // Fallback redirect - always home on error, never into the scan flow
       // with a profile that may not have actually saved
       completeOnboarding();
+      logFinished();
       router.replace('/hq');
     }
   };

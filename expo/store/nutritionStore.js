@@ -7,7 +7,8 @@ import { db } from '../src/config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { starsOf } from '@/lib/foodRating';
 import { mealXpForStars } from '@/lib/xpRules';
-import { foodBase, foodKey, newLogId, appendToMeals } from '@/lib/foodLog';
+import { foodBase, foodKey, newLogId, appendToMeals, SLOT_IDS } from '@/lib/foodLog';
+import { logMealLogged } from '../src/services/analytics';
 import { buildCustomFood, MAX_CUSTOM_FOODS } from '@/lib/customFood';
 import { copyFoodEntries } from '@/lib/mealCopy';
 import { keepRecentMeals } from '@/lib/nutritionHistory';
@@ -207,6 +208,9 @@ export const useNutritionStore = create(
         // Real XP award for logging food (see awardFoodXp above): synchronous, once
         // per food name per day, graded by the food's real nutrition data.
         awardFoodXp(food);
+
+        // One event per food logged, naming only the meal slot (never the food or its numbers).
+        logMealLogged(SLOT_IDS.includes(mealId) ? mealId : 'other');
       },
 
       // Removes ONE logged entry. `key` is the entry's log id (or, for entries

@@ -37,6 +37,7 @@ import { currentRace } from '@/lib/virtualRaces';
 import { raceResultMessage, speakableRaceTime } from '@/lib/raceMessages';
 import { finishRace } from '@/services/raceBoard';
 import { localDateKey } from '@/lib/localDate';
+import { logRunFinished } from '@/src/services/analytics';
 
 /** How long the lock is held to open it again, so a pocket or a sweaty thumb does not. */
 const UNLOCK_HOLD_MS = 700;
@@ -316,6 +317,9 @@ export default function ActiveRunScreen() {
       });
       if (completed) {
         savedRunId = completed.id;
+        // Counted when a run is saved (one under 10 seconds is not), once: endedRef above stops a second End. Only the kind of
+        // outing is sent ('run' or 'walk'), never the distance, pace or route.
+        logRunFinished(activity);
         const credited = useVirtualChallengeStore.getState().creditDistance(summary.distance, user?.uid);
         finishedJourneys = ((credited && credited.completed) || []).join(',');
         // A session ended well short of its plan is saved as a run, but is not
