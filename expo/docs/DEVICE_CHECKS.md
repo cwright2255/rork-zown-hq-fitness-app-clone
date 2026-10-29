@@ -1282,3 +1282,20 @@ If a delete says a function is not found, it was already gone, which is fine. If
 - [ ] `curl -s https://us-central1-zown-3c512.cloudfunctions.net/instagramEmbed` (a GET) prints `{"error":"Method not allowed"}`.
 - [ ] On the phone, Recipes, import a recipe from an Instagram post whose caption holds the recipe (a normal `https://www.instagram.com/p/...` or `/reel/...` link). The recipe comes in as before. This is the check that matters: if it now fails, tell me what the app showed, and do not redeploy anything else.
 - [ ] Optional, Legend only: Body Scan, build the 3D body. It still builds (the first one after a quiet spell takes a minute or two to start, as before).
+
+## An honest Shop tab (once, on the first update with it)
+
+This is an app update (`eas update`). Nothing is deployed to Firebase. The Shop was a mock-up that looked finished, and App Review rejects placeholder content that looks real. It stays as a tab, and now says plainly that it is not open.
+
+- **The Shop tab** (`app/shop.jsx`) says "Coming soon" next to its title and in a grey note that the items are samples and nothing can be bought yet. The cart badge that always said 2 is gone, with the search, cart and heart buttons, "View All", "Clear" and "Join". The cards, categories, looks and banners used to be buttons that did nothing when tapped; they are plain labels now. The Digital Try-On banner says "Coming soon" where it said "Try Now", and the rewards line says it is coming soon instead of offering XP on purchases. The sample items are still there as a preview.
+- **The product page** (`app/shop/product/[id].jsx`) has no reviews and no "4.5 (128 reviews)" (the three reviewers were made up). Add to Cart is greyed out and disabled, a note says it is a sample item, and the share icon, which did nothing, is gone.
+- **Digital Try-On** (`app/shop/try-on.jsx`): the preview badge says "Coming soon" instead of "AR Preview". Save Look (which said "Your look has been saved." without saving anything) and Share are gone.
+- The product page and Try-On cannot be opened from the Shop tab. They could not before either (tapping a card did nothing), so they are not part of the phone check; a test looks at each.
+
+You need one phone.
+
+- [ ] Open the Shop tab. "Coming soon" sits next to the title, with the grey note under it. There is no red number on a cart, and no search, cart or heart icon anywhere.
+- [ ] Tap around: a product card, a look, a category, the Digital Try-On banner, the rewards banner, a Recently Viewed item. Nothing opens, nothing is highlighted, and nothing shows "View All", "Clear", "Join" or "Try Now".
+- [ ] Scroll to the bottom and back. The bottom tab bar still works from the Shop tab (tap Home, then Shop again).
+
+If anything on the Shop tab still reacts to a tap, or a number still sits on a cart, tell me where.

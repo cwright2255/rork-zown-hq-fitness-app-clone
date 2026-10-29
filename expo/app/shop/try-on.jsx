@@ -46,7 +46,7 @@ export default function TryOnScreen() {
         {photo ? (
           <View style={s.photoOverlay}>
             <Ionicons name="person" size={80} color="rgba(255,255,255,0.3)" />
-            <View style={s.overlayBadge}><Text style={s.overlayText}>AR Preview</Text></View>
+            <View style={s.overlayBadge}><Text style={s.overlayText}>Coming soon</Text></View>
           </View>
         ) : (
           <View style={s.cameraPlaceholder}>
@@ -72,13 +72,6 @@ export default function TryOnScreen() {
         ))}
       </ScrollView>
 
-      {/* Action Buttons */}
-      {photo && (
-        <View style={s.actions}>
-          <Pressable style={s.saveBtn} onPress={() => Alert.alert('Saved!', 'Your look has been saved.')}><Ionicons name="bookmark-outline" size={18} color="#FFF" /><Text style={s.saveBtnText}>Save Look</Text></Pressable>
-          <Pressable style={s.shareBtn} onPress={() => Alert.alert('Share', 'Sharing coming soon!')}><Ionicons name="share-outline" size={18} color="#000" /><Text style={s.shareBtnText}>Share</Text></Pressable>
-        </View>
-      )}
       {/* TODO: Implement actual AR overlay using camera feed + product 3D model */}
     </SafeAreaView>
   );
@@ -101,9 +94,4 @@ const s = StyleSheet.create({
   productCard:{width:120,backgroundColor:'#F0F0F0',borderRadius:14,padding:14,alignItems:'center',marginRight:10},
   productSelected:{backgroundColor:'#000'},
   productName:{fontSize:12,fontWeight:'600',color:'#333',marginTop:6,textAlign:'center'},
-  actions:{flexDirection:'row',gap:10,paddingHorizontal:20,marginTop:16},
-  saveBtn:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:'#000',height:44,borderRadius:22},
-  saveBtnText:{fontSize:14,fontWeight:'700',color:'#FFF'},
-  shareBtn:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,borderWidth:2,borderColor:'#000',height:44,borderRadius:22},
-  shareBtnText:{fontSize:14,fontWeight:'700',color:'#000'},
 });

@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Dimensions, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 
@@ -45,11 +44,10 @@ const RECENT = [
 
 /* ââ Section header ââ */
 
-function SectionHeader({ title, action, onAction }) {
+function SectionHeader({ title }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Pressable onPress={onAction}><Text style={styles.viewAll}>{action || 'View All'}</Text></Pressable>
     </View>
   );
 }
@@ -58,17 +56,14 @@ function SectionHeader({ title, action, onAction }) {
 
 function ProductCard({ item }) {
   return (
-    <Pressable style={styles.productCard} onPress={() => { /* TODO: navigate to /shop/product/[id] */ }}>
+    <View style={styles.productCard}>
       <View style={styles.productImage}>
         <Ionicons name={item.icon} size={32} color="#999" />
-        <Pressable style={styles.heartBtn}>
-          <Ionicons name="heart-outline" size={18} color="#000" />
-        </Pressable>
       </View>
       <Text style={styles.productBrand}>{item.brand}</Text>
       <Text style={styles.productName}>{item.name}</Text>
       <Text style={styles.productPrice}>{item.price}</Text>
-    </Pressable>
+    </View>
   );
 }
 
@@ -76,23 +71,20 @@ function ProductCard({ item }) {
 
 function LookCard({ item }) {
   return (
-    <Pressable style={[styles.lookCard, { width: GRID_CARD_W }]} onPress={() => { /* TODO: navigate to shop by look */ }}>
+    <View style={[styles.lookCard, { width: GRID_CARD_W }]}>
       <View style={styles.lookImage}>
         <Ionicons name={item.icon} size={32} color="#999" />
         <View style={styles.lookOverlay}>
           <Text style={styles.lookLabel}>{item.label}</Text>
         </View>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
 /* ââ Main screen ââ */
 
 export default function ShopScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [cartCount] = useState(2);
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -104,56 +96,47 @@ export default function ShopScreen() {
         {/* Header row */}
         <View style={styles.headerRow}>
           <Text style={styles.pageTitle}>Shop</Text>
-          <View style={styles.headerIcons}>
-            <Pressable style={styles.iconBtn} onPress={() => { /* TODO: search */ }}>
-              <Ionicons name="search-outline" size={22} color="#000" />
-            </Pressable>
-            <Pressable style={styles.iconBtn} onPress={() => { /* TODO: /shop/cart */ }}>
-              <Ionicons name="cart-outline" size={22} color="#000" />
-              {cartCount > 0 && (
-                <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>
-              )}
-            </Pressable>
-          </View>
+          <View style={styles.soonPill}><Text style={styles.soonPillText}>Coming soon</Text></View>
+        </View>
+
+        {/* Nothing here can be bought or opened yet: the items are samples, so none of the cards or labels is a button. */}
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>The Shop is coming soon. This is a preview of how it will look, with sample items. Nothing here can be bought yet.</Text>
         </View>
 
         {/* Digital try-on banner */}
-        <Pressable style={styles.tryOnBanner} onPress={() => { /* TODO: /shop/try-on */ }}>
+        <View style={styles.tryOnBanner}>
           <View style={styles.tryOnLeft}>
             <Text style={styles.tryOnTitle}>Digital Try-On</Text>
             <Text style={styles.tryOnSub}>See how gear looks on you with AR</Text>
-            <View style={styles.tryOnBtn}><Text style={styles.tryOnBtnText}>Try Now</Text></View>
+            <View style={styles.tryOnBtn}><Text style={styles.tryOnBtnText}>Coming soon</Text></View>
           </View>
           <Ionicons name="body-outline" size={60} color="rgba(255,255,255,0.3)" />
-        </Pressable>
+        </View>
 
         {/* Category scroll */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
           {CATEGORIES.map((c) => (
-            <Pressable
-              key={c}
-              style={[styles.catPill, selectedCategory === c && styles.catPillActive]}
-              onPress={() => setSelectedCategory(c)}
-            >
-              <Text style={[styles.catPillText, selectedCategory === c && styles.catPillTextActive]}>{c}</Text>
-            </Pressable>
+            <View key={c} style={[styles.catPill, c === 'All' && styles.catPillActive]}>
+              <Text style={[styles.catPillText, c === 'All' && styles.catPillTextActive]}>{c}</Text>
+            </View>
           ))}
         </ScrollView>
 
         {/* New arrivals */}
-        <SectionHeader title="New Arrivals" onAction={() => {}} />
+        <SectionHeader title="New Arrivals" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
           {NEW_ARRIVALS.map((item) => <ProductCard key={item.id} item={item} />)}
         </ScrollView>
 
         {/* Shop by look */}
-        <SectionHeader title="Shop by Look" onAction={() => {}} />
+        <SectionHeader title="Shop by Look" />
         <View style={styles.lookGrid}>
           {LOOKS.map((item) => <LookCard key={item.id} item={item} />)}
         </View>
 
         {/* Trending now */}
-        <SectionHeader title="Trending Now" onAction={() => {}} />
+        <SectionHeader title="Trending Now" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
           {TRENDING.map((item) => <ProductCard key={item.id} item={item} />)}
         </ScrollView>
@@ -163,19 +146,18 @@ export default function ShopScreen() {
           <View style={styles.rewardsIcon}><Ionicons name="star" size={22} color="#FFD700" /></View>
           <View style={styles.rewardsText}>
             <Text style={styles.rewardsTitle}>ZOWN Rewards</Text>
-            <Text style={styles.rewardsSub}>Earn XP on every purchase \u2022 Unlock exclusive gear</Text>
+            <Text style={styles.rewardsSub}>Coming soon: earn XP on purchases and unlock exclusive gear</Text>
           </View>
-          <Pressable style={styles.joinBtn}><Text style={styles.joinBtnText}>Join</Text></Pressable>
         </View>
 
         {/* Recently viewed */}
-        <SectionHeader title="Recently Viewed" action="Clear" onAction={() => {}} />
+        <SectionHeader title="Recently Viewed" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
           {RECENT.map((item) => (
-            <Pressable key={item.id} style={styles.recentCard}>
+            <View key={item.id} style={styles.recentCard}>
               <View style={styles.recentImage}><Ionicons name={item.icon} size={22} color="#999" /></View>
               <Text style={styles.recentPrice}>{item.price}</Text>
-            </Pressable>
+            </View>
           ))}
         </ScrollView>
       </ScrollView>
@@ -195,10 +177,10 @@ const styles = StyleSheet.create({
   /* Header */
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
   pageTitle: { fontSize: 24, fontWeight: '800', color: '#000' },
-  headerIcons: { flexDirection: 'row', gap: 12 },
-  iconBtn: { position: 'relative' },
-  cartBadge: { position: 'absolute', top: -6, right: -8, backgroundColor: '#FF3B30', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
-  cartBadgeText: { fontSize: 10, fontWeight: '700', color: '#FFF' },
+  soonPill: { backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
+  soonPillText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
+  notice: { marginHorizontal: 20, marginBottom: 20, borderRadius: 14, backgroundColor: '#F5F5F5', padding: 14 },
+  noticeText: { fontSize: 13, color: '#444', lineHeight: 19 },
 
   /* Digital try-on */
   tryOnBanner: { marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', marginBottom: 20, backgroundColor: '#111', padding: 20, height: 140, flexDirection: 'row', alignItems: 'center' },
@@ -218,7 +200,6 @@ const styles = StyleSheet.create({
   /* Section */
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
-  viewAll: { fontSize: 13, fontWeight: '600', color: '#666' },
 
   /* Carousel */
   carousel: { paddingLeft: 20, paddingRight: 6, marginBottom: 24 },
@@ -228,11 +209,6 @@ const styles = StyleSheet.create({
   productImage: {
     height: 200, borderRadius: 14, backgroundColor: '#F0F0F0',
     justifyContent: 'center', alignItems: 'center', position: 'relative',
-  },
-  heartBtn: {
-    position: 'absolute', top: 10, right: 10,
-    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center', alignItems: 'center',
   },
   productBrand: { fontSize: 11, color: '#999', marginTop: 8, textTransform: 'uppercase' },
   productName: { fontSize: 14, fontWeight: '600', color: '#000', marginTop: 2 },
@@ -251,8 +227,6 @@ const styles = StyleSheet.create({
   rewardsText: { flex: 1 },
   rewardsTitle: { fontSize: 15, fontWeight: '700', color: '#000' },
   rewardsSub: { fontSize: 12, color: '#666', marginTop: 2 },
-  joinBtn: { backgroundColor: '#000', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
-  joinBtnText: { fontSize: 12, fontWeight: '600', color: '#FFF' },
 
   /* Recent */
   recentCard: { width: 100, marginRight: 12 },
