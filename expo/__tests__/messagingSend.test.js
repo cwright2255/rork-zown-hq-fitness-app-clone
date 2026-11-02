@@ -13,10 +13,17 @@ const path = require('path');
 
 jest.mock('../src/config/firebase', () => ({ db: { name: 'db' } }));
 const mockListeners = [];
+let mockProfiles = {};
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn((db, ...p) => ({ collection: p.join('/') })),
   doc: jest.fn((db, ...p) => ({ path: p.join('/') })),
-  getDoc: jest.fn(async () => { throw new Error('getDoc must not be called: reading a conversation that does not exist is refused'); }),
+  // A conversation must not be read: one that does not exist is refused. The sender's own profile is read, for the name and picture
+  // that go on the conversation (services/publicProfile.js); mockProfiles is what each person's profile holds.
+  getDoc: jest.fn(async (ref) => {
+    if (/^conversations/.test(ref.path)) throw new Error('getDoc must not be called: reading a conversation that does not exist is refused');
+    const data = mockProfiles[ref.path];
+    return { exists: () => !!data, data: () => data };
+  }),
   setDoc: jest.fn(async () => undefined),
   addDoc: jest.fn(async () => ({ id: 'm1' })),
   query: jest.fn((ref, ...constraints) => ({ ref, constraints })),
@@ -35,6 +42,7 @@ import { setDoc, addDoc, getDoc, onSnapshot, query } from 'firebase/firestore';
 import { useMessagingStore, getConversationId } from '../store/messagingStore';
 
 const store = () => useMessagingStore.getState();
+const conversationReads = () => getDoc.mock.calls.filter(([ref]) => /^conversations/.test(ref.path));
 const alice = { myUid: 'alice', myName: 'Alice', myAvatar: 'https://img/a.png' };
 const send = (extra = {}) => store().sendMessage({ ...alice, otherUid: 'bob', otherName: 'Bob', otherAvatar: 'https://img/b.png', text: 'Run tomorrow?', ...extra });
 /** The live listeners on one conversation's messages, oldest first. */
@@ -44,6 +52,10 @@ let warn;
 beforeEach(() => {
   jest.clearAllMocks();
   mockListeners.length = 0;
+  mockProfiles = {
+    'users/alice': { name: 'Alice', profileImage: 'https://img/a.png' },
+    'users/bob': { name: 'Bob', profileImage: 'https://img/b.png' },
+  };
   useMessagingStore.setState(useMessagingStore.getInitialState(), true);
   warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -53,7 +65,7 @@ describe('the first message to someone new', () => {
   it('creates the conversation and sends the message, without reading the conversation first', async () => {
     const id = await send();
     expect(id).toBe('alice_bob');
-    expect(getDoc).not.toHaveBeenCalled();
+    expect(conversationReads()).toEqual([]);
     expect(setDoc).toHaveBeenCalledTimes(1);
     expect(addDoc).toHaveBeenCalledTimes(1);
   });
@@ -89,7 +101,7 @@ describe('the first message to someone new', () => {
       expect(data.participantIds).toEqual(['alice', 'bob']);
       expect(options).toEqual({ merge: true });
     }
-    expect(getDoc).not.toHaveBeenCalled();
+    expect(conversationReads()).toEqual([]);
   });
 
   it('sends the text trimmed, in the message and in the preview', async () => {
@@ -124,17 +136,72 @@ describe('the names and photos stored with the conversation', () => {
     expect('bob' in info).toBe(false);
   });
 
-  it('writes only the field it knows: a name without a photo does not set the photo to nothing', async () => {
-    await send({ otherName: 'Bob', otherAvatar: null, myAvatar: undefined });
-    expect(setDoc.mock.calls[0][1].participantInfo).toEqual({ alice: { name: 'Alice' }, bob: { name: 'Bob' } });
-    expect('avatar' in setDoc.mock.calls[0][1].participantInfo.bob).toBe(false);
+  it('writes only the field it knows about the other person: a name without a photo does not set the photo to nothing', async () => {
+    await send({ otherName: 'Bob', otherAvatar: null });
+    const info = setDoc.mock.calls[0][1].participantInfo;
+    expect(info.bob).toEqual({ name: 'Bob' });
+    expect('avatar' in info.bob).toBe(false);
   });
 
-  it('never stores a made-up name such as "Zown User" or "Chat"', async () => {
-    await send({ myName: '', otherName: undefined, myAvatar: undefined, otherAvatar: undefined });
-    const text = JSON.stringify(setDoc.mock.calls[0][1].participantInfo);
-    expect(text).not.toMatch(/Zown User|Chat/);
-    expect(setDoc.mock.calls[0][1].participantInfo).toEqual({ alice: {} });
+  it('never stores a made-up name such as "Zown User" or "Chat" for the other person', async () => {
+    await send({ otherName: undefined, otherAvatar: undefined });
+    const info = setDoc.mock.calls[0][1].participantInfo;
+    expect('bob' in info).toBe(false);
+    expect(JSON.stringify(info)).not.toMatch(/Chat/);
+  });
+});
+
+// The rules accept a conversation only when the sender's own name and picture in it are the ones on their profile
+// (firestore.rules, ownInfoMatches), so the sender's entry is taken from the profile (services/publicProfile.js), not from the screen.
+describe('the sender\'s own name and picture', () => {
+  it('are the ones on the profile, whatever the screen has', async () => {
+    mockProfiles['users/alice'] = { name: 'Alice Smith', profileImage: 'https://img/new.png' };
+    await send({ myName: 'Alice', myAvatar: 'https://img/a.png' });
+    // The picture the screen has is saved to the profile and used; the name already on the profile wins and is left as it is.
+    expect(setDoc.mock.calls[0][0]).toEqual({ path: 'users/alice' });
+    expect(setDoc.mock.calls[0][1]).toEqual({ profileImage: 'https://img/a.png' });
+    expect(setDoc.mock.calls[1][1].participantInfo.alice).toEqual({ name: 'Alice Smith', avatar: 'https://img/a.png' });
+  });
+
+  it('are saved to the profile first when it does not have them, so the rules see the same ones', async () => {
+    mockProfiles['users/alice'] = {};
+    await send();
+    expect(setDoc).toHaveBeenCalledTimes(2);
+    expect(setDoc.mock.calls[0][0]).toEqual({ path: 'users/alice' });
+    expect(setDoc.mock.calls[0][1]).toEqual({ name: 'Alice', profileImage: 'https://img/a.png' });
+    expect(setDoc.mock.calls[0][2]).toEqual({ merge: true });
+    expect(setDoc.mock.calls[1][0]).toEqual({ path: 'conversations/alice_bob' });
+    expect(setDoc.mock.calls[1][1].participantInfo.alice).toEqual({ name: 'Alice', avatar: 'https://img/a.png' });
+    expect(setDoc.mock.invocationCallOrder[0]).toBeLessThan(setDoc.mock.invocationCallOrder[1]);
+  });
+
+  it('are Zown User and no picture for someone whose profile has neither, as the rules expect', async () => {
+    mockProfiles['users/alice'] = {};
+    await send({ myName: '', myAvatar: undefined });
+    expect(setDoc).toHaveBeenCalledTimes(1); // nothing to save on the profile
+    expect(setDoc.mock.calls[0][1].participantInfo.alice).toEqual({ name: 'Zown User', avatar: null });
+  });
+
+  it('are written with every message, so a picture removed from the profile is removed from the conversation too', async () => {
+    mockProfiles['users/alice'] = { name: 'Alice' };
+    await send({ myAvatar: undefined });
+    expect(setDoc.mock.calls[0][1].participantInfo.alice).toEqual({ name: 'Alice', avatar: null });
+  });
+
+  it('are the screen\'s own when the profile cannot be read (offline), and the rules decide', async () => {
+    getDoc.mockRejectedValueOnce(new Error('offline'));
+    await send();
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    expect(setDoc.mock.calls[0][1].participantInfo.alice).toEqual({ name: 'Alice', avatar: 'https://img/a.png' });
+  });
+});
+
+describe('a message that is too long', () => {
+  it('is not sent: the rules allow 2000 characters, and the box stops typing there', async () => {
+    expect(await send({ text: 'x'.repeat(2001) })).toBeNull();
+    expect(setDoc).not.toHaveBeenCalled();
+    expect(addDoc).not.toHaveBeenCalled();
+    expect(await send({ text: 'x'.repeat(2000) })).toBe('alice_bob');
   });
 });
 

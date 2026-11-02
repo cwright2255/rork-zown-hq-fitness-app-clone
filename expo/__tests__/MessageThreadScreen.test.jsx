@@ -31,7 +31,11 @@ const mockListeners = [];
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn((db, ...p) => ({ collection: p.join('/') })),
   doc: jest.fn((db, ...p) => ({ path: p.join('/') })),
-  getDoc: jest.fn(async () => { throw new Error('getDoc must not be called'); }),
+  // A conversation must not be read (one that does not exist yet cannot be); the sender's own profile is (services/publicProfile.js).
+  getDoc: jest.fn(async (ref) => {
+    if (/^conversations/.test(ref.path)) throw new Error('getDoc must not be called on a conversation');
+    return { exists: () => true, data: () => ({ name: 'Alice', profileImage: 'https://img/a.png' }) };
+  }),
   setDoc: jest.fn(async () => undefined),
   addDoc: jest.fn(async () => ({ id: 'm1' })),
   query: jest.fn((ref, ...constraints) => ({ ref, constraints })),
@@ -49,6 +53,8 @@ jest.mock('firebase/firestore', () => ({
 import { setDoc, addDoc, getDoc } from 'firebase/firestore';
 import { useMessagingStore } from '../store/messagingStore';
 import ChatScreen from '../app/messages/[id]';
+
+const conversationReads = () => getDoc.mock.calls.filter(([ref]) => /^conversations/.test(ref.path));
 
 const live = () => mockListeners.filter((l) => l.q.ref.collection === 'conversations/alice_bob/messages');
 const input = (utils) => utils.getByPlaceholderText('Type message...');
@@ -83,7 +89,7 @@ describe('a thread with someone you have never messaged', () => {
     type(utils, 'Run tomorrow?');
     await press(utils);
 
-    expect(getDoc).not.toHaveBeenCalled();
+    expect(conversationReads()).toEqual([]);
     expect(setDoc).toHaveBeenCalledTimes(1);
     expect(setDoc.mock.calls[0][0]).toEqual({ path: 'conversations/alice_bob' });
     expect(setDoc.mock.calls[0][1].participantIds).toEqual(['alice', 'bob']);
@@ -205,7 +211,7 @@ describe('a thread that already exists', () => {
     deliver(live()[0], [{ id: 'm1', senderId: 'bob', text: 'Hi' }]);
     type(utils, 'Hello');
     await press(utils);
-    expect(getDoc).not.toHaveBeenCalled();
+    expect(conversationReads()).toEqual([]);
     expect(setDoc.mock.calls[0][1].participantIds).toEqual(['alice', 'bob']);
   });
 });

@@ -8,6 +8,7 @@ import { useMessagingStore, getConversationId } from '@/store/messagingStore';
 import { useBlockStore } from '@/store/blockStore';
 import ModerationSheet from '@/components/ModerationSheet';
 import { isBlocked, messageTarget, personTarget } from '@/lib/moderation';
+import { MAX_MESSAGE_LENGTH } from '@/lib/communityLimits';
 
 function formatTimestamp(timestamp) {
   if (!timestamp?.toDate) return '';
@@ -164,6 +165,7 @@ export default function ChatScreen() {
               onChangeText={setMsgText}
               onSubmitEditing={handleSend}
               returnKeyType="send"
+              maxLength={MAX_MESSAGE_LENGTH}
             />
             <Pressable style={s.sendBtn} onPress={handleSend} disabled={sending}>
               <Ionicons name="send" size={16} color="#FFF" />

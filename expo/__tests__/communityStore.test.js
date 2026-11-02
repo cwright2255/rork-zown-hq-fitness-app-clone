@@ -25,6 +25,11 @@ jest.mock('../services/postMediaService', () => ({
   uploadPostMedia: jest.fn(async () => []),
   deletePostMedia: jest.fn(async () => undefined),
 }));
+// What goes on a post or comment as the author's name and picture is services/publicProfile.js's business (tested in
+// publicProfile.test.js); here it hands back what the screen gave.
+jest.mock('../services/publicProfile', () => ({
+  ensurePublicProfile: jest.fn(async (uid, given = {}) => ({ name: given.name || 'Zown User', avatar: given.avatar || null })),
+}));
 jest.mock('../store/runningStore', () => ({
   useRunningStore: { getState: () => ({ runs: global.__runs, loadRuns: mockLoadRuns, forgetSharedPost: mockForget }) },
 }));

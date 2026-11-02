@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { pickFromLibrary, capturePhoto } from '../services/postMediaService';
+import { MAX_POST_LENGTH } from '../lib/communityLimits';
 import {
   addPicked, removeAt, remainingPhotos, pickerHint, formatDuration, canPost,
   initialsFor, progressPercent, uploadLabel,
@@ -140,6 +141,7 @@ export default function PostComposer({
               autoFocus
               editable={!posting}
               textAlignVertical="top"
+              maxLength={MAX_POST_LENGTH}
             />
 
             {list.length > 0 && (

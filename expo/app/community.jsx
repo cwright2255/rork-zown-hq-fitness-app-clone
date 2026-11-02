@@ -16,6 +16,8 @@ import { useBlockStore } from '@/store/blockStore';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
 import { withoutBlocked, postTarget, commentTarget } from '@/lib/moderation';
 import { isContentNotAllowed, NOT_ALLOWED_MESSAGE } from '@/lib/wordFilter';
+import { MAX_COMMENT_LENGTH } from '@/lib/communityLimits';
+import { useLikes } from '@/hooks/useLikes';
 import RunPostCard from '@/components/RunPostCard';
 
 function timeAgo(timestamp) {
@@ -35,10 +37,10 @@ export default function CommunityScreen() {
   const [posting, setPosting] = useState(false);
   const [mediaItems, setMediaItems] = useState([]); // photos or a video picked for the new post
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [likedByMe, setLikedByMe] = useState({});
 
   const { posts, isLoading, subscribeFeed, unsubscribeFeed, createPost, toggleLike, hasLiked, loadComments, addComment, deleteComment } = useCommunityStore();
   const { user } = useUserStore();
+  const { likedByMe, setLikedByMe, handleLike, likeCountOf } = useLikes({ uid: user?.uid, toggleLike });
   // People this person has blocked: their posts and comments are not shown (store/blockStore.js).
   const blocked = useBlockStore((st) => st.blocked);
   const subscribeBlocks = useBlockStore((st) => st.subscribeBlocks);
@@ -89,16 +91,6 @@ export default function CommunityScreen() {
 
   const closeComposer = () => {
     if (!posting) setComposerOpen(false);
-  };
-
-  const handleLike = async (postId) => {
-    if (!user?.uid) return;
-    // Optimistic — flips immediately, corrected if the write fails.
-    setLikedByMe((prev) => ({ ...prev, [postId]: !prev[postId] }));
-    const result = await toggleLike(postId, user.uid);
-    if (result === null) {
-      setLikedByMe((prev) => ({ ...prev, [postId]: !prev[postId] }));
-    }
   };
 
   // ---- Comments ----
@@ -155,10 +147,10 @@ export default function CommunityScreen() {
   // ---- Share ----
   // Real OS share sheet (React Native's built-in Share API — no new
   // dependency) rather than an internal "repost" concept, which would need
-  // its own separate data model. shareCount is a real, non-author-writable
-  // counter on the post (see firestore.rules — same allowed-fields pattern
-  // already used for likeCount/commentCount), incremented only once the OS
-  // share sheet actually completes, not just on tapping the button.
+  // its own separate data model. A share is recorded (recordShare in
+  // store/communityStore.js) only once the OS share sheet actually completes,
+  // not just on tapping the button, as one document per person under the post;
+  // the Cloud Function that sees it appear moves the post's shareCount.
   const handleShare = async (post) => {
     try {
       const summary = mediaSummary(normalizeMedia(post));
@@ -229,12 +221,12 @@ export default function CommunityScreen() {
             {!!post.run && <RunPostCard run={post.run} />}
             <PostMedia media={normalizeMedia(post)} />
             <View style={styles.postActions}>
-              <TouchableOpacity style={styles.action} onPress={() => handleLike(post.id)}>
+              <TouchableOpacity style={styles.action} onPress={() => handleLike(post)} testID={`like-${post.id}`}>
                 <Heart
                   size={18} color={likedByMe[post.id] ? '#EF4444' : '#999999'}
                   fill={likedByMe[post.id] ? '#EF4444' : 'none'}
                 />
-                <Text style={styles.actionText}>{post.likeCount || 0}</Text>
+                <Text style={styles.actionText}>{likeCountOf(post)}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.action} onPress={() => openComments(post)}>
                 <MessageCircle size={18} color="#999999" />
@@ -315,6 +307,7 @@ export default function CommunityScreen() {
                 placeholder="Add a comment..."
                 placeholderTextColor="#999999"
                 style={styles.commentInput}
+                maxLength={MAX_COMMENT_LENGTH}
               />
               <TouchableOpacity
                 onPress={handleAddComment}

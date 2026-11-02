@@ -12,7 +12,10 @@
 //   leaderboard/{uid}, admins/{uid}        public entry, admin flag
 //   communityPosts (authorId)              their posts, with the likes and comments on them
 //   communityPosts/*/likes/{uid}           their likes on other people's posts
+//   communityPosts/*/shares/{uid}          the mark that they shared other people's posts
 //   communityPosts/*/comments (authorId)   their comments on other people's posts
+//                                          (the like, comment and share counts on those posts are lowered by the functions in
+//                                          postCounters.js when each document goes; this file never writes a count)
 //   users/*/following/{uid}                other people's follow of them (holds their name and avatar)
 //   conversations, duels (participantIds)  threads and duels they were in, removed for both people
 //   calendarInvites (participantIds)       calendar invites they sent or were sent, removed for both people (they hold both names)
@@ -40,7 +43,6 @@ async function writeAll(db, build) {
   const pending = [];
   build({
     delete: (ref) => pending.push(writer.delete(ref)),
-    update: (ref, data) => pending.push(writer.update(ref, data)),
   });
   await writer.close();
   const results = await Promise.allSettled(pending);
@@ -89,13 +91,12 @@ export const STORAGE_PREFIXES = (uid) => [`users/${uid}/`, `posts/${uid}/`];
  * @param {object} deps.db                 Firestore (admin)
  * @param {object} deps.bucket             Storage bucket (admin)
  * @param {object} deps.auth               Auth (admin)
- * @param {Function} deps.increment        FieldValue.increment
  * @param {Function} [deps.revokeIntegrations]  async (uid) => void, best effort
  * @param {Function} [deps.now]
  * @param {object} [deps.log]
  * @returns {Promise<{ok: boolean, steps: {name: string, ok: boolean, error?: string}[]}>}
  */
-export async function eraseUserAccount({ uid, db, bucket, auth, increment, revokeIntegrations, now = () => new Date(), log = console }) {
+export async function eraseUserAccount({ uid, db, bucket, auth, revokeIntegrations, now = () => new Date(), log = console }) {
   if (!uid || typeof uid !== 'string') throw new Error('uid is required');
 
   const steps = [];
@@ -129,25 +130,22 @@ export async function eraseUserAccount({ uid, db, bucket, auth, increment, revok
   // Their own posts, with all the likes and comments on them.
   await run('posts', () => deleteQuery(db, () => db.collection('communityPosts').where('authorId', '==', uid), { recursive: true }));
 
-  // Their likes and comments on other people's posts, with the counters corrected.
+  // Their likes, shares and comments on other people's posts. The counts on those posts are not touched here: removing each document
+  // is what makes the functions in postCounters.js lower the count, once per document, so running this twice never lowers a count
+  // twice.
   await run('likesAndComments', () => forEachPage(db, 'communityPosts', async (posts) => {
     const likeRefs = posts.map((p) => db.doc(`communityPosts/${p.id}/likes/${uid}`));
-    const [likeSnaps, commentSnaps] = await Promise.all([
+    const shareRefs = posts.map((p) => db.doc(`communityPosts/${p.id}/shares/${uid}`));
+    const [likeSnaps, shareSnaps, commentSnaps] = await Promise.all([
       db.getAll(...likeRefs),
+      db.getAll(...shareRefs),
       Promise.all(posts.map((p) => db.collection(`communityPosts/${p.id}/comments`).where('authorId', '==', uid).get())),
     ]);
     await writeAll(db, (w) => {
       posts.forEach((p, i) => {
-        const counters = {};
-        if (likeSnaps[i].exists) {
-          w.delete(likeRefs[i]);
-          counters.likeCount = increment(-1);
-        }
-        if (!commentSnaps[i].empty) {
-          commentSnaps[i].docs.forEach((c) => w.delete(c.ref));
-          counters.commentCount = increment(-commentSnaps[i].size);
-        }
-        if (Object.keys(counters).length) w.update(p.ref, counters);
+        if (likeSnaps[i].exists) w.delete(likeRefs[i]);
+        if (shareSnaps[i].exists) w.delete(shareRefs[i]);
+        commentSnaps[i].docs.forEach((c) => w.delete(c.ref));
       });
     });
   }));

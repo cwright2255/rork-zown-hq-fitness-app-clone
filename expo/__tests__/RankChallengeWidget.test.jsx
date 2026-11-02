@@ -1,6 +1,7 @@
 // Home > Challenges & Rank: your place among the people you follow (by XP) and your live challenge, in one wide card with two taps.
-// jest.global-setup.js pins the zone to America/New_York; 9:30 PM on Wed 14 Oct there is 01:30Z on the 15th, so UTC says Thu 15 Oct
-// and the challenge store's periods are day-2026-10-15, week-2026-10-12, month-2026-10 and season-fall-2026.
+// jest.global-setup.js pins the zone to America/New_York; 9:30 PM on Wed 14 Oct there is 01:30Z on the 15th, so UTC says Thu 15 Oct.
+// The challenge periods are cut at midnight in New York (lib/challengePeriods.js), not at midnight UTC, so it is still Wed 14 Oct for
+// them: the periods are day-2026-10-14, week-2026-10-12, month-2026-10 and season-fall-2026.
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
@@ -75,11 +76,11 @@ const readsOf = (path) => getDocs.mock.calls.filter(([q]) => (q.query ? q.query[
 
 const weekly = (o = {}) => ({
   id: 'w1', cadence: 'weekly', periodKey: 'week-2026-10-12', title: 'Five workouts this week', goalType: 'workout_count', goalTarget: 5,
-  startDate: '2026-10-12T00:00:00.000Z', endDate: '2026-10-18T01:30:00.000Z', createdAt: '2026-10-12T00:00:00.000Z', ...o,
+  startDate: '2026-10-12T04:00:00.000Z', endDate: '2026-10-19T03:59:59.999Z', createdAt: '2026-10-12T04:00:00.000Z', ...o,
 });
 const daily = (o = {}) => ({
-  id: 'd1', cadence: 'daily', periodKey: 'day-2026-10-15', title: 'One workout today', goalType: 'workout_count', goalTarget: 1,
-  startDate: '2026-10-15T00:00:00.000Z', endDate: '2026-10-15T23:59:59.000Z', createdAt: '2026-10-15T00:00:00.000Z', ...o,
+  id: 'd1', cadence: 'daily', periodKey: 'day-2026-10-14', title: 'One workout today', goalType: 'workout_count', goalTarget: 1,
+  startDate: '2026-10-14T04:00:00.000Z', endDate: '2026-10-15T03:59:59.999Z', createdAt: '2026-10-14T04:00:00.000Z', ...o,
 });
 const lift = (id, when) => ({ id, completedAt: when, duration: 1800, caloriesBurned: 200 });
 
@@ -378,7 +379,7 @@ describe('Home > Challenges & Rank: live challenge', () => {
     server.joins = [{ id: 'w1' }];
     useWorkoutStore.setState({ completedWorkouts: [lift('a', '2026-10-13T15:00:00.000Z'), lift('b', '2026-10-14T15:00:00.000Z')] });
     const utils = await open();
-    expect(challengeText(utils)).toEqual(['Weekly challenge', '2/5', 'Five workouts this week', '3 days left']);
+    expect(challengeText(utils)).toEqual(['Weekly challenge', '2/5', 'Five workouts this week', '5 days left']);
     expect(barWidth(utils)).toBe('40%');
   });
 
@@ -467,7 +468,7 @@ describe('Home > Challenges & Rank: live challenge', () => {
     server.joins = [{ id: 'w1' }];
     const utils = await open();
     expect(utils.getByTestId('home-widget-rankchallenge-challenge').props.accessibilityLabel).toBe(
-      'Weekly challenge: Five workouts this week, 0 of 5, 3 days left. Opens Challenges.',
+      'Weekly challenge: Five workouts this week, 0 of 5, 5 days left. Opens Challenges.',
     );
   });
 

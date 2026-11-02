@@ -29,6 +29,8 @@ import { useBlockStore } from '@/store/blockStore';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
 import { isBlocked, withoutBlocked, postTarget, commentTarget } from '@/lib/moderation';
 import { isTextAllowed, isContentNotAllowed, NOT_ALLOWED_MESSAGE } from '@/lib/wordFilter';
+import { MAX_POST_LENGTH, MAX_COMMENT_LENGTH } from '@/lib/communityLimits';
+import { useLikes } from '@/hooks/useLikes';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
@@ -78,7 +80,7 @@ export default function SocialScreen() {
   const blocked = useBlockStore((st) => st.blocked);
   const subscribeBlocks = useBlockStore((st) => st.subscribeBlocks);
   const [moderationTarget, setModerationTarget] = useState(null); // the post or comment whose Report / Block menu is open
-  const [likedByMe, setLikedByMe] = useState({});
+  const { likedByMe, setLikedByMe, handleLike, likeCountOf } = useLikes({ uid: user?.uid, toggleLike });
   const [composerOpen, setComposerOpen] = useState(false);
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -136,13 +138,6 @@ export default function SocialScreen() {
 
   const closeComposer = () => {
     if (!posting) setComposerOpen(false);
-  };
-
-  const handleLike = async (postId) => {
-    if (!user?.uid) return;
-    setLikedByMe((prev) => ({ ...prev, [postId]: !prev[postId] }));
-    const result = await toggleLike(postId, user.uid);
-    if (result === null) setLikedByMe((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
   const openComments = async (post) => {
@@ -405,9 +400,9 @@ export default function SocialScreen() {
             {!!post.run && <RunPostCard run={post.run} />}
             <PostMedia media={normalizeMedia(post)} />
             <View style={s.feedActionsRow}>
-              <Pressable style={s.feedActionBtn} onPress={() => handleLike(post.id)}>
+              <Pressable style={s.feedActionBtn} onPress={() => handleLike(post)} testID={`like-${post.id}`}>
                 <Ionicons name={likedByMe[post.id] ? 'heart' : 'heart-outline'} size={18} color={likedByMe[post.id] ? '#FF3B30' : '#666'} />
-                {showLikes && <Text style={s.feedActionText}>{post.likeCount || 0}</Text>}
+                {showLikes && <Text style={s.feedActionText}>{likeCountOf(post)}</Text>}
               </Pressable>
               <Pressable style={[s.feedActionBtn, post.commentsDisabled && { opacity: 0.4 }]} onPress={() => openComments(post)} disabled={post.commentsDisabled}>
                 <Ionicons name="chatbubble-outline" size={17} color="#666" />
@@ -682,7 +677,7 @@ export default function SocialScreen() {
             <View style={s.commentInputRow}>
               <TextInput
                 value={commentText} onChangeText={setCommentText} placeholder="Add a comment..."
-                placeholderTextColor="#999" style={s.commentInput}
+                placeholderTextColor="#999" style={s.commentInput} maxLength={MAX_COMMENT_LENGTH}
               />
               <Pressable onPress={handleAddComment} disabled={!commentText.trim() || sendingComment} style={s.commentSendBtn}>
                 <Ionicons name="send" size={16} color="#FFF" />
@@ -740,7 +735,7 @@ export default function SocialScreen() {
             </View>
             <TextInput
               value={editText} onChangeText={setEditText} placeholder="What's on your mind?"
-              placeholderTextColor="#999" style={s.composerInput} multiline autoFocus
+              placeholderTextColor="#999" style={s.composerInput} multiline autoFocus maxLength={MAX_POST_LENGTH}
             />
             <Pressable style={[s.composeBtn, (!editText.trim() || savingEdit) && { opacity: 0.5 }]} onPress={handleSaveEdit} disabled={!editText.trim() || savingEdit}>
               <Text style={s.composeBtnText}>{savingEdit ? 'Saving…' : 'Save'}</Text>

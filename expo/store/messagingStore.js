@@ -28,6 +28,9 @@ import {
   collection, doc, setDoc, addDoc, query, where, orderBy,
   onSnapshot, serverTimestamp, limit,
 } from 'firebase/firestore';
+import { ensurePublicProfile } from '../services/publicProfile';
+// How long a message can be: the rules refuse anything longer, and the message box stops typing at the same number.
+import { MAX_MESSAGE_LENGTH } from '../lib/communityLimits';
 
 export function getConversationId(uidA, uidB) {
   return [uidA, uidB].sort().join('_');
@@ -141,10 +144,13 @@ export const useMessagingStore = create((set, get) => ({
   // check the ids and that the sender is one of them) and an update when it is (the rules check that the list is unchanged, which
   // it is, because it is always the same two sorted ids).
   //
-  // participantInfo is merged field by field, so only what is known is written: a name or photo this screen does not have must not
-  // wipe the one already stored.
+  // participantInfo is merged field by field, so only what is known is written about the other person: a name or photo this screen
+  // does not have must not wipe the one already stored. The sender's own name and picture are always written, and are the ones on
+  // their profile (services/publicProfile.js): the rules refuse a conversation that carries a different name or picture for the
+  // person writing it.
   sendMessage: async ({ myUid, myName, myAvatar, otherUid, otherName, otherAvatar, text }) => {
     if (!myUid || !otherUid || !text?.trim()) return null;
+    if (text.trim().length > MAX_MESSAGE_LENGTH) return null;
     const conversationId = getConversationId(myUid, otherUid);
     const convRef = doc(db, 'conversations', conversationId);
 
@@ -152,9 +158,8 @@ export const useMessagingStore = create((set, get) => ({
       const body = text.trim();
       const messagePreview = { text: body, senderId: myUid, createdAt: serverTimestamp() };
 
-      const mine = {};
-      if (myName) mine.name = myName;
-      if (myAvatar) mine.avatar = myAvatar;
+      const me = await ensurePublicProfile(myUid, { name: myName, avatar: myAvatar });
+      const mine = { name: me.name, avatar: me.avatar };
       const theirs = {};
       if (otherName) theirs.name = otherName;
       if (otherAvatar) theirs.avatar = otherAvatar;

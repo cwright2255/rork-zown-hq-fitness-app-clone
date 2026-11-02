@@ -3,10 +3,7 @@ import { eraseUserAccount, USER_KEYED_COLLECTIONS, STORAGE_PREFIXES } from '../f
 // ---- A small in-memory stand-in for Firestore, Storage and Auth -------------------------------
 // Documents live in one map keyed by path ("users/u1/bodyScans/s1"). It supports exactly what the
 // erase code uses: where (== and array-contains), select, orderBy('__name__'), limit, startAfter,
-// get, add, getAll, bulkWriter (delete / update), recursiveDelete.
-
-const INC = Symbol('increment');
-const increment = (n) => ({ [INC]: n });
+// get, add, getAll, bulkWriter (delete only: erasing an account never writes a count, the post counter functions do that), recursiveDelete.
 
 const parent = (path) => path.split('/').slice(0, -1).join('/');
 const idOf = (path) => path.split('/').pop();
@@ -69,13 +66,6 @@ function makeDb(seed = {}) {
       const apply = (fn) => { const p = new Promise((res, rej) => queued.push(() => { try { res(fn()); } catch (e) { rej(e); } })); p.catch(() => {}); return p; };
       return {
         delete: (r) => apply(() => { calls.push(['delete', r.path]); docs.delete(r.path); }),
-        update: (r, data) => apply(() => {
-          if (!docs.has(r.path)) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
-          const cur = { ...docs.get(r.path) };
-          for (const [k, v] of Object.entries(data)) cur[k] = v && v[INC] !== undefined ? (cur[k] || 0) + v[INC] : v;
-          docs.set(r.path, cur);
-          calls.push(['update', r.path]);
-        }),
         close: async () => { queued.forEach((f) => f()); await Promise.resolve(); },
       };
     },
@@ -128,9 +118,11 @@ const seed = () => ({
   'communityPosts/p1': { authorId: 'u1', likeCount: 1, commentCount: 1 },
   'communityPosts/p1/likes/u2': { likedAt: 1 },
   'communityPosts/p1/comments/c1': { authorId: 'u2', text: 'hi' },
-  'communityPosts/p2': { authorId: 'u2', likeCount: 3, commentCount: 3 },
+  'communityPosts/p2': { authorId: 'u2', likeCount: 3, commentCount: 3, shareCount: 2 },
   'communityPosts/p2/likes/u1': { likedAt: 1 },
   'communityPosts/p2/likes/u3': { likedAt: 1 },
+  'communityPosts/p2/shares/u1': { sharedAt: 1 },
+  'communityPosts/p2/shares/u3': { sharedAt: 1 },
   'communityPosts/p2/comments/c2': { authorId: 'u1', text: 'mine' },
   'communityPosts/p2/comments/c3': { authorId: 'u3', text: 'theirs' },
   'communityPosts/p2/comments/c4': { authorId: 'u3', text: 'theirs too' },
@@ -172,7 +164,7 @@ const run = (over = {}) => {
   const bucket = over.bucket || makeBucket(storageSeed());
   const auth = over.auth || makeAuth(['u1', 'u2', 'u3']);
   const promise = eraseUserAccount({
-    uid: 'u1', db, bucket, auth, increment, now: fixedNow, log: quiet, revokeIntegrations: over.revokeIntegrations, ...over.extra,
+    uid: 'u1', db, bucket, auth, now: fixedNow, log: quiet, revokeIntegrations: over.revokeIntegrations, ...over.extra,
   });
   return { db, bucket, auth, promise };
 };
@@ -207,15 +199,24 @@ describe('erasing an account', () => {
     expect(startsWith(db, 'communityPosts/p1')).toBe(false);
   });
 
-  it('removes their likes and comments on other people\'s posts and corrects the counters', async () => {
+  it('removes their likes, shares and comments on other people\'s posts', async () => {
     const { db, promise } = run();
     await promise;
     expect(has(db, 'communityPosts/p2/likes/u1')).toBe(false);
+    expect(has(db, 'communityPosts/p2/shares/u1')).toBe(false);
     expect(has(db, 'communityPosts/p2/comments/c2')).toBe(false);
     expect(has(db, 'communityPosts/p2/likes/u3')).toBe(true);
+    expect(has(db, 'communityPosts/p2/shares/u3')).toBe(true);
     expect(has(db, 'communityPosts/p2/comments/c3')).toBe(true);
     expect(has(db, 'communityPosts/p2/comments/c4')).toBe(true);
-    expect(db.docs.get('communityPosts/p2')).toMatchObject({ likeCount: 2, commentCount: 2 });
+  });
+
+  it('leaves the like, comment and share counts to the post counter functions, which lower each as its document goes', async () => {
+    const { db, promise } = run();
+    await promise;
+    // Writing the counts here as well would lower them twice: once here, once by the function that sees the document go.
+    expect(db.docs.get('communityPosts/p2')).toEqual({ authorId: 'u2', likeCount: 3, commentCount: 3, shareCount: 2 });
+    expect(db.calls.filter(([kind]) => kind === 'update')).toEqual([]);
   });
 
   it('removes them from the lists of people who follow them (those hold their name and avatar)', async () => {
@@ -293,11 +294,11 @@ describe('erasing an account', () => {
     const keep = [
       'users/u2', 'users/u2/bodyScans/s9', 'users/u2/following/u3', 'users/u3',
       'workouts/w2', 'loggedSets/l2', 'coachMessages/m2', 'goals/g2', 'aiRecommendations/r2',
-      'leaderboard/u2', 'communityPosts/p2', 'communityPosts/p2/likes/u3',
+      'leaderboard/u2', 'communityPosts/p2', 'communityPosts/p2/likes/u3', 'communityPosts/p2/shares/u3',
       'conversations/c23', 'conversations/c23/messages/m1', 'duels/d23', 'calendarInvites/i23', 'challengeEntries/ch1_u2', 'raceEntries/local-5k-week-2026-10-12_u2',
       'entitlements/u2', 'aiUsage/u2_2026-10-12', 'inviteCodes/H3WZ9N5R',
     ];
-    for (const p of keep) expect(db.docs.get(p)).toEqual(p === 'communityPosts/p2' ? { authorId: 'u2', likeCount: 2, commentCount: 2 } : before.docs.get(p));
+    for (const p of keep) expect(db.docs.get(p)).toEqual(before.docs.get(p));
   });
 
   it('removes the sign-in account (the email) last, after all the data is gone', async () => {
@@ -378,7 +379,7 @@ describe('when something goes wrong', () => {
     expect(has(db, 'communityPosts/p2/likes/u1')).toBe(false);
   });
 
-  it('finishes cleanly when tried again, without changing a counter twice', async () => {
+  it('finishes cleanly when tried again, without writing a counter', async () => {
     const db = makeDb(seed());
     db.failRecursiveDelete = (p) => p === 'users/u1';
     const bucket = makeBucket(storageSeed());
@@ -389,7 +390,7 @@ describe('when something goes wrong', () => {
     expect(second.ok).toBe(true);
     expect(auth.users.has('u1')).toBe(false);
     expect(db.docs.get('communityGroups/g1').memberCount).toBe(5);
-    expect(db.docs.get('communityPosts/p2')).toMatchObject({ likeCount: 2, commentCount: 2 });
+    expect(db.docs.get('communityPosts/p2')).toMatchObject({ likeCount: 3, commentCount: 3, shareCount: 2 });
     expect(startsWith(db, 'users/u1')).toBe(false);
   });
 
@@ -427,8 +428,8 @@ describe('when something goes wrong', () => {
   });
 
   it('refuses to run without a uid', async () => {
-    await expect(eraseUserAccount({ uid: '', db: makeDb(), bucket: makeBucket(), auth: makeAuth(), increment, log: quiet })).rejects.toThrow(/uid is required/);
-    await expect(eraseUserAccount({ db: makeDb(), bucket: makeBucket(), auth: makeAuth(), increment, log: quiet })).rejects.toThrow(/uid is required/);
+    await expect(eraseUserAccount({ uid: '', db: makeDb(), bucket: makeBucket(), auth: makeAuth(), log: quiet })).rejects.toThrow(/uid is required/);
+    await expect(eraseUserAccount({ db: makeDb(), bucket: makeBucket(), auth: makeAuth(), log: quiet })).rejects.toThrow(/uid is required/);
   });
 });
 
@@ -451,7 +452,8 @@ describe('with a lot of data', () => {
     expect([...db.docs.keys()].filter((p) => p.startsWith('workouts/')).length).toBe(350);
     expect([...db.docs.keys()].filter((p) => p.endsWith('/likes/u1'))).toEqual([]);
     expect([...db.docs.keys()].filter((p) => p.endsWith('/following/u1'))).toEqual([]);
-    expect(db.docs.get('communityPosts/p0699').likeCount).toBe(0);
+    expect(db.docs.get('communityPosts/p0699').likeCount).toBe(1); // the counter function lowers it as the like goes
+    expect(db.calls.filter(([kind]) => kind === 'update')).toEqual([]);
     expect([...db.docs.keys()].filter((p) => /^users\/x\d+$/.test(p)).length).toBe(700);
   });
 });

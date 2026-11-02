@@ -63,7 +63,9 @@ describe('deleteMyAccount', () => {
     expect(args.db).toBe(global.__db);
     expect(args.auth).toBe(global.__auth);
     expect(args.bucket).toBe(global.__bucket);
-    expect(args.increment(-1)).toEqual({ inc: -1 });
+    // The like, comment and share counts on other people's posts are brought down by the post counter functions as each document goes;
+    // erasing an account writes no count, so it is given nothing to write one with.
+    expect(args.increment).toBeUndefined();
     expect(typeof args.revokeIntegrations).toBe('function');
   });
 

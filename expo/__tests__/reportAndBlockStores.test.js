@@ -30,6 +30,11 @@ jest.mock('../services/postMediaService', () => ({
   deletePostMedia: jest.fn(async () => undefined),
 }));
 jest.mock('../store/runningStore', () => ({ useRunningStore: { getState: () => ({}) } }));
+// What goes on a post or comment as the author's name and picture is services/publicProfile.js's business (tested in
+// publicProfile.test.js); here it hands back what the screen gave.
+jest.mock('../services/publicProfile', () => ({
+  ensurePublicProfile: jest.fn(async (uid, given = {}) => ({ name: given.name || 'Zown User', avatar: given.avatar || null })),
+}));
 
 import { setDoc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { uploadPostMedia } from '../services/postMediaService';
@@ -277,21 +282,17 @@ describe('the word list in the community store', () => {
 describe('deleting a comment', () => {
   const community = () => useCommunityStore.getState();
 
-  it('deletes the comment and brings the post\'s comment count down by one', async () => {
+  it('deletes the comment and does not write the post\'s comment count: the Cloud Function that sees the comment go brings it down', async () => {
     expect(await community().deleteComment('p1', 'c1')).toBe(true);
     expect(deleteDoc.mock.calls[0][0]).toEqual({ id: 'c1', path: 'communityPosts/p1/comments/c1' });
-    expect(updateDoc).toHaveBeenCalledWith({ id: 'p1', path: 'communityPosts/p1' }, { commentCount: { increment: -1 } });
+    expect(updateDoc).not.toHaveBeenCalled();
+    expect(setDoc).not.toHaveBeenCalled();
   });
 
-  it('says it did not work, and leaves the count alone, when the delete is refused', async () => {
+  it('says it did not work when the delete is refused', async () => {
     deleteDoc.mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'permission-denied' }));
     expect(await community().deleteComment('p1', 'c1')).toBe(false);
     expect(updateDoc).not.toHaveBeenCalled();
-  });
-
-  it('still says it worked when only the count could not be brought down: the comment is gone', async () => {
-    updateDoc.mockRejectedValueOnce(new Error('offline'));
-    expect(await community().deleteComment('p1', 'c1')).toBe(true);
   });
 
   it('does nothing without a post and a comment', async () => {

@@ -15,6 +15,22 @@ service cloud.firestore {
       return blockedBetween(ids[0], ids[1]);
     }
 
+    // The name and picture a person shows to other people on a post, a comment or a conversation: the name and profileImage on their own
+    // users/{uid} document. services/publicProfile.js brings that document up to date just before the app writes one of those, so a
+    // post, comment or conversation can only carry the name and picture on the person's profile, not one made up for the occasion.
+    // A person whose profile has no name is shown as Zown User, and one with no picture has none.
+    function publicName(uid) {
+      let name = exists(/databases/$(database)/documents/users/$(uid)) ?
+        get(/databases/$(database)/documents/users/$(uid)).data.get('name', '') : '';
+      return (name is string && name.size() > 0) ? name : 'Zown User';
+    }
+
+    function publicImage(uid) {
+      let image = exists(/databases/$(database)/documents/users/$(uid)) ?
+        get(/databases/$(database)/documents/users/$(uid)).data.get('profileImage', null) : null;
+      return (image is string && image.size() > 0) ? image : null;
+    }
+
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
@@ -247,19 +263,36 @@ service cloud.firestore {
     // NEW: store/communityStore.js — a real public feed. Any authenticated
     // user can read every post; only the author can create their own post
     // (enforced against request.resource.data.authorId, not just trusting
-    // the client) or edit/delete it afterward. The one deliberate
-    // exception: likeCount/commentCount/shareCount need to be incrementable
-    // by users OTHER than the author (that's the whole point of a like,
-    // comment, or share), so non-authors are allowed to update a post ONLY
-    // if the sole fields they're touching are those three counters —
-    // everything else on the post document stays author-only.
+    // the client) or edit/delete it afterward.
+    //
+    // A post is held to limits: the text is at most 2000 characters, the name at most 100 and the picture address at most 2000, and
+    // the name and picture on it must be the ones on the author's profile (publicName and publicImage, above).
+    //
+    // The like, comment and share counts are not the app's to write at all. A person's like is a document under the post named by
+    // their uid (so a double tap is one like), a comment is a document, a share is a document named by the uid, and the functions in
+    // functions/src/postCounters.js keep the three counts equal to them. A new post must start at 0, and nobody can change a count
+    // afterwards, the author included. All the author can change on a post is its text, the time it was edited and the three
+    // settings (hide likes, hide shares, turn comments off); no one else can change a post.
     match /communityPosts/{postId} {
+      function validNewPost(uid) {
+        let d = request.resource.data;
+        return d.text is string && d.text.size() <= 2000 &&
+          d.authorName is string && d.authorName.size() <= 100 && d.authorName == publicName(uid) &&
+          (d.get('authorAvatar', null) == null || (d.authorAvatar is string && d.authorAvatar.size() <= 2000)) &&
+          d.get('authorAvatar', null) == publicImage(uid) &&
+          d.likeCount == 0 && d.commentCount == 0 && d.shareCount == 0;
+      }
+
+      function validPostEdit() {
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
+        return changed.hasOnly(['text', 'editedAt', 'likesHidden', 'shareCountHidden', 'commentsDisabled']) &&
+          (!changed.hasAny(['text']) || (request.resource.data.text is string && request.resource.data.text.size() <= 2000));
+      }
+
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
-      allow update: if request.auth != null && (
-        request.auth.uid == resource.data.authorId ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'commentCount', 'shareCount'])
-      );
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId &&
+        validNewPost(request.auth.uid);
+      allow update: if request.auth != null && request.auth.uid == resource.data.authorId && validPostEdit();
       allow delete: if request.auth != null && (
         request.auth.uid == resource.data.authorId ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
@@ -270,9 +303,26 @@ service cloud.firestore {
         allow create, delete: if request.auth != null && request.auth.uid == uid;
       }
 
+      // The mark that a person shared the post: one document per person, so the share count is the number of people who shared it.
+      // Written once and never changed or taken back; only its owner can read it.
+      match /shares/{uid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid &&
+          request.resource.data.keys().hasOnly(['sharedAt']);
+        allow update, delete: if false;
+      }
+
       match /comments/{commentId} {
+        function validNewComment(uid) {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt']) &&
+            d.text is string && d.text.size() <= 1000 &&
+            d.authorName is string && d.authorName.size() <= 100 && d.authorName == publicName(uid);
+        }
+
         allow read: if request.auth != null;
         allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId &&
+          validNewComment(request.auth.uid) &&
           get(/databases/$(database)/documents/communityPosts/$(postId)).data.get('commentsDisabled', false) != true;
         // A comment can be removed by whoever wrote it, by an admin, and by the owner of the post it is on.
         allow delete: if request.auth != null && (
@@ -290,7 +340,23 @@ service cloud.firestore {
     // rules hold it to that: a conversation can only be created with exactly
     // two ids, in order, under the id those two make (so nobody can claim
     // the id of a pair they are not in), and an update cannot change the list.
+    //
+    // A message is at most 2000 characters, and so is the copy of the last one kept on the conversation (lastMessage). The name and
+    // picture a person puts for themselves in participantInfo must be the ones on their profile (publicName and publicImage, above);
+    // the entry for the other person is not checked, because it is only ever shown back to the person who wrote it.
     match /conversations/{conversationId} {
+      function lastMessageOk() {
+        let last = request.resource.data.lastMessage;
+        return last is map && last.get('text', '') is string && last.get('text', '').size() <= 2000;
+      }
+
+      function ownInfoMatches() {
+        let uid = request.auth.uid;
+        let d = request.resource.data;
+        return !('participantInfo' in d) || !(uid in d.participantInfo) ||
+          (d.participantInfo[uid].get('name', '') == publicName(uid) && d.participantInfo[uid].get('avatar', null) == publicImage(uid));
+      }
+
       allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
       allow create: if request.auth != null &&
         request.resource.data.participantIds is list &&
@@ -298,11 +364,15 @@ service cloud.firestore {
         request.auth.uid in request.resource.data.participantIds &&
         request.resource.data.participantIds[0] < request.resource.data.participantIds[1] &&
         conversationId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1] &&
-        !blockedBetween(request.resource.data.participantIds[0], request.resource.data.participantIds[1]);
+        !blockedBetween(request.resource.data.participantIds[0], request.resource.data.participantIds[1]) &&
+        (!('lastMessage' in request.resource.data) || lastMessageOk()) &&
+        ownInfoMatches();
       allow update: if request.auth != null &&
         request.auth.uid in resource.data.participantIds &&
         request.resource.data.participantIds == resource.data.participantIds &&
-        !blockedBetween(resource.data.participantIds[0], resource.data.participantIds[1]);
+        !blockedBetween(resource.data.participantIds[0], resource.data.participantIds[1]) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastMessage']) || lastMessageOk()) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['participantInfo']) || ownInfoMatches());
 
       match /messages/{messageId} {
         allow read: if request.auth != null &&
@@ -310,6 +380,8 @@ service cloud.firestore {
         allow create: if request.auth != null &&
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds &&
           request.auth.uid == request.resource.data.senderId &&
+          request.resource.data.keys().hasOnly(['senderId', 'text', 'createdAt']) &&
+          request.resource.data.text is string && request.resource.data.text.size() <= 2000 &&
           !conversationBlocked(conversationId);
       }
     }

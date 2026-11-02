@@ -10,22 +10,34 @@
 // Like store/leaderboardStore.js, this is a genuinely different Firestore
 // pattern than the private `users/{uid}/...` collections everywhere else
 // in this app: posts need to be readable by every authenticated user, but
-// only the author can create/edit/delete their own. Likes use a
-// subcollection (users/{uid} under each post) rather than an incremented
-// counter field directly on the post, specifically to avoid two users
-// liking at nearly the same moment corrupting a shared counter — reading
-// the subcollection size gives an exact count with no race condition.
+// only the author can create/edit/delete their own.
+//
+// The like, comment and share counts on a post are NOT written by the app
+// (and the rules refuse anyone who tries). A like is one document named by
+// the person's uid under the post, so a double tap is one like; a comment
+// is a document; a share is one document per person. The Cloud Functions
+// in functions/src/postCounters.js keep likeCount, commentCount and
+// shareCount equal to those documents, a moment after each one appears or
+// goes. The name and picture on a post or comment are the ones on the
+// author's profile (services/publicProfile.js, checked by the rules).
 
 import { create } from 'zustand';
 import { db } from '../src/config/firebase';
 import {
   collection, doc, addDoc, deleteDoc, setDoc, getDoc, getDocs,
-  query, orderBy, limit, onSnapshot, serverTimestamp, increment, updateDoc,
+  query, orderBy, limit, onSnapshot, serverTimestamp, updateDoc,
 } from 'firebase/firestore';
 import { uploadPostMedia, deletePostMedia } from '../services/postMediaService';
 import { describeSharedRun } from '../lib/runShare';
 import { isTextAllowed, contentNotAllowedError } from '../lib/wordFilter';
 import { useRunningStore } from './runningStore';
+import { ensurePublicProfile } from '../services/publicProfile';
+// How long a post and a comment can be: the rules refuse anything longer, and the screens stop typing at the same number.
+import { MAX_POST_LENGTH, MAX_COMMENT_LENGTH } from '../lib/communityLimits';
+
+// A like or unlike that is still being written, by post and person: asking again meanwhile gives the answer to the first, so a
+// double tap is one like and not a like followed by an unlike.
+const likesInFlight = new Map();
 
 export const useCommunityStore = create((set, get) => ({
   posts: [],
@@ -71,7 +83,10 @@ export const useCommunityStore = create((set, get) => ({
     if (!uid || (!clean && items.length === 0 && !sharedRun)) return null;
     // The word list (lib/wordFilter.js) is checked before anything is uploaded or saved.
     if (!isTextAllowed(clean)) throw contentNotAllowedError();
+    if (clean.length > MAX_POST_LENGTH) throw new Error(`A post can be at most ${MAX_POST_LENGTH} characters.`);
     try {
+      // The name and picture on the post are the ones on the person's profile; the rules check that they are.
+      const profile = await ensurePublicProfile(uid, { name: authorName, avatar: authorAvatar });
       const postRef = doc(collection(db, 'communityPosts'));
       const media = items.length > 0
         ? await uploadPostMedia({ uid, postId: postRef.id, items, onProgress })
@@ -80,13 +95,14 @@ export const useCommunityStore = create((set, get) => ({
       try {
         await setDoc(postRef, {
           authorId: uid,
-          authorName: authorName || 'Zown User',
-          authorAvatar: authorAvatar || null,
+          authorName: profile.name,
+          authorAvatar: profile.avatar,
           text: clean,
           imageUrl: firstImage ? firstImage.url : (imageUrl || null),
           media,
           type: type || 'general',
           ...(sharedRun ? { run: sharedRun } : {}),
+          // The counts start at 0 and are moved by the Cloud Functions; the rules refuse a post that starts anywhere else.
           likeCount: 0,
           commentCount: 0,
           shareCount: 0,
@@ -106,13 +122,14 @@ export const useCommunityStore = create((set, get) => ({
     }
   },
 
-  // Real edit — firestore.rules already lets an author update any field
-  // on their own post (not just the like/comment/share counters), so
-  // this needs no rule change. Only ever touches text; every other field
-  // (likeCount, authorId, createdAt, etc.) is left exactly as it was.
+  // Real edit — firestore.rules let an author change the text, the edited
+  // time and the three settings of their own post, and nothing else. Only
+  // ever touches text and the edited time; every other field (the counts,
+  // authorId, createdAt, etc.) is left exactly as it was.
   updatePost: async (postId, uid, text) => {
     if (!uid || !text?.trim()) return false;
     if (!isTextAllowed(text)) return false; // the screen checks first, to say why (lib/wordFilter.js)
+    if (text.trim().length > MAX_POST_LENGTH) return false;
     try {
       await updateDoc(doc(db, 'communityPosts', postId), {
         text: text.trim(),
@@ -177,7 +194,9 @@ export const useCommunityStore = create((set, get) => ({
   },
 
   // Real per-post visibility settings — only ever touches the specific
-  // boolean fields passed in, same author-only path updatePost uses.
+  // boolean fields passed in (likesHidden, shareCountHidden, commentsDisabled:
+  // the only ones the rules let anyone change), same author-only path
+  // updatePost uses.
   // commentsDisabled is also enforced server-side (see firestore.rules'
   // comments subcollection create rule) so turning it off actually
   // blocks new comments, not just hides the UI for it.
@@ -192,26 +211,33 @@ export const useCommunityStore = create((set, get) => ({
   },
 
   // Returns the new liked state (true/false) so the caller can update its
-  // own optimistic UI without waiting for the feed subscription to catch up.
-  toggleLike: async (postId, uid) => {
-    if (!uid) return false;
-    const likeRef = doc(db, 'communityPosts', postId, 'likes', uid);
-    const postRef = doc(db, 'communityPosts', postId);
-    try {
-      const existing = await getDoc(likeRef);
-      if (existing.exists()) {
-        await deleteDoc(likeRef);
-        await updateDoc(postRef, { likeCount: increment(-1) });
-        return false;
-      } else {
+  // own optimistic UI without waiting for the feed subscription to catch up,
+  // or null when it could not be written. A like is one document named by the
+  // person's uid, so liking twice is still one like; the Cloud Function that
+  // sees the document appear adds one to the post's likeCount (the app never
+  // writes the count). A second call while the first is still being written
+  // is not a second toggle: it waits for, and returns, the first one's answer.
+  toggleLike: (postId, uid) => {
+    if (!uid || !postId) return Promise.resolve(false);
+    const key = `${postId}/${uid}`;
+    if (likesInFlight.has(key)) return likesInFlight.get(key);
+    const run = (async () => {
+      const likeRef = doc(db, 'communityPosts', postId, 'likes', uid);
+      try {
+        const existing = await getDoc(likeRef);
+        if (existing.exists()) {
+          await deleteDoc(likeRef);
+          return false;
+        }
         await setDoc(likeRef, { likedAt: serverTimestamp() });
-        await updateDoc(postRef, { likeCount: increment(1) });
         return true;
+      } catch (e) {
+        console.warn('[communityStore] toggleLike error:', e?.message);
+        return null;
       }
-    } catch (e) {
-      console.warn('[communityStore] toggleLike error:', e?.message);
-      return null;
-    }
+    })().finally(() => likesInFlight.delete(key));
+    likesInFlight.set(key, run);
+    return run;
   },
 
   hasLiked: async (postId, uid) => {
@@ -227,14 +253,17 @@ export const useCommunityStore = create((set, get) => ({
   addComment: async (postId, { uid, authorName, text }) => {
     if (!uid || !text?.trim()) return null;
     if (!isTextAllowed(text)) throw contentNotAllowedError();
+    if (text.trim().length > MAX_COMMENT_LENGTH) throw new Error(`A comment can be at most ${MAX_COMMENT_LENGTH} characters.`);
     try {
+      // The name on the comment is the one on the person's profile; the rules check that it is. The post's commentCount is moved
+      // by the Cloud Function that sees the comment appear, not written here.
+      const profile = await ensurePublicProfile(uid, { name: authorName });
       const ref = await addDoc(collection(db, 'communityPosts', postId, 'comments'), {
         authorId: uid,
-        authorName: authorName || 'Zown User',
+        authorName: profile.name,
         text: text.trim(),
         createdAt: serverTimestamp(),
       });
-      await updateDoc(doc(db, 'communityPosts', postId), { commentCount: increment(1) });
       return ref.id;
     } catch (e) {
       console.warn('[communityStore] addComment error:', e?.message);
@@ -243,7 +272,7 @@ export const useCommunityStore = create((set, get) => ({
   },
 
   // Removes a comment. The rules let its author, the owner of the post and an admin do this (firestore.rules). The post's comment count
-  // is brought down by one afterwards; that is only the number shown, so a failure there does not undo the delete.
+  // is brought down by the Cloud Function that sees the comment go, not written here.
   deleteComment: async (postId, commentId) => {
     if (!postId || !commentId) return false;
     try {
@@ -252,23 +281,22 @@ export const useCommunityStore = create((set, get) => ({
       console.warn('[communityStore] deleteComment error:', e?.message);
       return false;
     }
-    try {
-      await updateDoc(doc(db, 'communityPosts', postId), { commentCount: increment(-1) });
-    } catch (e) {
-      console.warn('[communityStore] could not bring the comment count down:', e?.message);
-    }
     return true;
   },
 
   // Records a real completed OS share (see app/community.jsx's handleShare
   // — only called after the native share sheet reports the share actually
-  // went through, not just on tapping the button). Same non-author-counter
-  // pattern as likes: allowed by firestore.rules because this update only
-  // ever touches shareCount, never anything else on the post.
+  // went through, not just on tapping the button). The mark is one document
+  // named by the person's uid under the post, so the post's shareCount (moved
+  // by the Cloud Function that sees the document appear) is the number of
+  // people who shared it, not the number of times. Sharing again is a
+  // rewrite of that document, which the rules refuse; that is not an error.
   recordShare: async (postId, uid) => {
+    if (!postId || !uid) return;
     try {
-      await updateDoc(doc(db, 'communityPosts', postId), { shareCount: increment(1) });
+      await setDoc(doc(db, 'communityPosts', postId, 'shares', uid), { sharedAt: serverTimestamp() });
     } catch (e) {
+      if (e?.code === 'permission-denied') return; // this person's share is already on the post
       console.warn('[communityStore] recordShare error:', e?.message);
     }
   },

@@ -1369,3 +1369,72 @@ If the Terms open and then drop you at onboarding or back at the first step, tel
 - The comment count on a post still counts comments from people you blocked.
 - With no connection, Report and Block wait for it instead of failing (the database holds the write until it can send it). The reasons list stays on the screen with its spinner until then.
 - A test for each new rule is in `rules-tests/social.test.js` and runs in CI only (it needs the Firestore emulator). If CI is red on `Firestore rules`, do not deploy the rules.
+
+## Limits in the rules, counts kept by the server, one challenge set per period (once: the update first, then the rules and functions together)
+
+Three changes, and the order they go out in matters. **The app update goes first.** Once the new rules are live they refuse any phone that still writes a like, comment or share count itself, so a phone on the old version could no longer like anything cleanly.
+
+**What changed**
+
+- **Length limits.** A post and an edit to a post can be 2000 characters, a comment 1000, a message 2000. The boxes stop typing at those numbers, and the rules refuse anything longer, so a long paste is cut off rather than refused after you press send.
+- **The name and picture on a post, comment or message must be the ones on the person's profile.** The profile is the person's own document, `users/<uid>`: `name` and a new field, `profileImage`. Just before the app writes a post, a comment or a message, it reads that document, fills in whatever it lacks (the first post a person makes after the update saves their picture address to `profileImage`), and puts exactly what the profile holds on the post. The name already on the profile always wins, so a post made from a screen that holds a different "display name" is still posted under the profile name. A person whose profile has no name anywhere is shown as "Zown User". On a conversation the rule checks only the sender's own entry (their name and picture); the other person's entry is only ever shown back to the sender.
+- **The app no longer writes the like, comment or share count.** A like is one document named by the person's id under the post (`communityPosts/<post>/likes/<uid>`), so a double tap is one like. Six functions (`onPostLiked`, `onPostUnliked`, `onPostCommented`, `onCommentRemoved`, `onPostShared`, `onShareRemoved`) keep `likeCount`, `commentCount` and `shareCount` equal to those documents, a second or two after each one appears or goes. Each event is counted once, even if Firebase delivers it twice. The rules refuse any client write to the three counts, including the author's own. The heart and the number do not wait for the function: this phone adds its own like to the number it was showing, until the real count comes in or 8 seconds pass.
+- **A share is one document per person** (`communityPosts/<post>/shares/<uid>`), so the share count is the number of people who shared the post, not the number of times. Sharing the same post a second time changes nothing.
+- **Deleting an account no longer edits other people's counts itself**; the functions lower each count as the person's like, comment or share document is removed. Before, doing both would have lowered a count twice.
+- **Challenges.** The day, week, month and season are cut at midnight in New York, the same cut the AI limits use, not at midnight UTC. At 8 PM Eastern the daily challenge is still today's. Each set has a fixed document id for its cadence and period (`daily_day-2026-11-03`, `weekly_week-2026-11-02`, `monthly_month-2026-11`, `seasonal_season-fall-2026`), and is written with "create, fail if it exists", so two people opening Challenges at the same moment on a new day produce one set. A challenge's start and end are now midnight to midnight Eastern, so the progress bar counts the workouts, runs and hikes of the person's own evening in the right day.
+
+**Order**
+
+1. Paste the apply steps and the ship step. Wait for CI. **This is the first run of the new rules tests (the `Firestore rules` job).** If it is red, do not deploy the rules; send me the failure.
+2. `cd expo && eas update` (the same command as before). Close the app completely and open it twice on both phones.
+3. Do the "before the deploy" checks below.
+4. Deploy the rules and the functions together, from `expo`:
+
+```
+cd expo && firebase deploy --only firestore:rules,functions:onPostLiked,functions:onPostUnliked,functions:onPostCommented,functions:onCommentRemoved,functions:onPostShared,functions:onShareRemoved,functions:generateChallenges,functions:deleteMyAccount --project zown-3c512
+```
+
+The deploy compiles the rules before it uploads anything; if it prints an error, nothing was deployed. If it complains about Eventarc or a service agent while creating the new functions, wait a few minutes and run the same command again.
+
+Do not wait long between steps 2 and 4. Until the functions are live, nothing moves the counts, so a like or comment made on the new version is not counted (the heart fills and the number goes back after a few seconds). Those few are not recounted afterwards; fix them by hand in the console if anyone cares. People still on the old version keep working until the deploy.
+
+**Checks (two phones: accounts A and B)**
+
+*Before the deploy (update installed on both phones, old rules, new functions not live yet)*
+
+- [ ] A writes a post in Community. It appears with A's name and picture, as before. B comments on it, and B sends A a message. All three go through.
+- [ ] Firebase console, Firestore, `users/<A's uid>`: there is a `profileImage` (the address of A's picture) and the `name` is A's name. Same for B after B's first post, comment or message.
+- [ ] A likes B's post: the heart fills and the number goes up by one. After about 8 seconds the number goes back (nothing is counting yet). That is expected here.
+
+*After the deploy*
+
+- [ ] **Double-tap a like.** A, on B's post, two quick taps on the heart. The heart is filled, and the number goes up by exactly one and stays there a few seconds later. In the console the post's `likeCount` is one higher, and `communityPosts/<post>/likes` holds one document named by A's id.
+- [ ] A taps the heart once more: it empties and the number goes back down by one; the like document is gone.
+- [ ] A comments on B's post: the comment count goes up by one within a few seconds. A deletes the comment: it goes back down by one.
+- [ ] A shares B's post through the phone's share sheet and completes it: `shareCount` goes up by one and `communityPosts/<post>/shares/<A's uid>` exists. A shares the same post again: nothing changes, and no error shows.
+- [ ] Posts, comments and messages made after the deploy still go through, with the right name and picture.
+- [ ] Paste a few thousand characters into the new post box, the comment box and the message box: each stops typing (2000, 1000 and 2000).
+- [ ] Console, `communityPosts/<post>/counterEvents`: one small document for each change in the counts. They are how a repeated delivery is told from a new one. Leave them alone.
+
+*Challenges*
+
+- [ ] At about 8 PM Eastern, open Challenges. The daily challenge is the one from the afternoon, not a new one, and the progress is the same. (Before this build, a new daily appeared in the evening.)
+- [ ] Just after midnight Eastern, open Challenges once: a new day's set appears (daily, plus a new week, month or season only when one has started).
+- [ ] **Two phones, one new day.** On the first morning when there is no daily set yet, open Challenges on both phones at the same moment. The console `challenges` collection shows one new set, whose ids are `daily_day-<date>` (and `weekly_week-<Monday>`, and so on, for whichever were missing), and both phones show the same challenge.
+
+*Optional, with a throwaway account*
+
+- [ ] Make a third account C, like and comment on A's post and share it, then delete C's account (Settings). A's post goes back down by one for each of the three, once, a few seconds later.
+
+**If something goes wrong**
+
+- **The Challenges screen shows two sets for the same day or week.** One is an older challenge with a random id. Delete the one whose id is a string of random letters, not `daily_day-...`, in the console. The first day after the deploy can do this.
+- **Someone still on the old version, after the deploy,** cannot post, comment or send a message until the update reaches them (the app shows its usual error), and a like from them counts but the heart looks empty until the feed refreshes.
+
+**Things this build does not do**
+
+- **The name check keeps the name and picture consistent with the profile; it does not make them unique or prove who someone is.** A person can still set their own profile name to any name. What it stops is a post, comment or message that carries a name or picture that is not on the poster's profile.
+- **The counts on posts that already exist are not recounted.** They stay as they were, and some may already be off (a double tap before this build added two). Only likes, comments and shares from the deploy onwards move them.
+- **The share count is people, not times.**
+- A post's likes, comments and shares are left behind when the post itself is deleted, as before.
+- A test for each new rule is in `rules-tests/social.test.js`, and the counters, the period cuts and the challenge ids have their own tests; the rules tests run in CI only (they need the Firestore emulator).

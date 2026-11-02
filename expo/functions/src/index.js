@@ -11,6 +11,9 @@ import OpenAI from 'openai';
 import { eraseUserAccount } from './accountErasure.js';
 import { revokeAppleGrant } from './appleRevoke.js';
 import { changeMemberCount } from './groupMemberCount.js';
+import { changePostCount } from './postCounters.js';
+import { getPeriod, challengeDocId, daysLeft } from './challengePeriods.js';
+import { createChallengesOnce } from './challengeCreate.js';
 import { handleClaim, fillLeaderboardEntry } from './xpLedger.js';
 import { refreshTotals } from './lifetimeTotals.js';
 import { runUnlocks, claimTier } from './unlocks.js';
@@ -619,65 +622,6 @@ export const getRookSdkCredentials = onCall(
   }
 );
 
-// Real calendar boundaries for each cadence — not arbitrary day counts.
-// periodKey is a stable identifier for "which day/week/month/season this
-// is", used below to check whether a current challenge already exists
-// for a cadence before generating a new one, and by the client to know
-// which loaded challenge is the CURRENT one for each cadence. All in
-// UTC for server/client consistency; not user-timezone-aware, which
-// only matters right at a boundary edge and isn't worth the added
-// complexity here.
-function getDayBounds(now) {
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const end = new Date(start);
-  end.setUTCHours(23, 59, 59, 999);
-  return { periodKey: `day-${start.toISOString().slice(0, 10)}`, start, end };
-}
-
-function getWeekBounds(now) {
-  const dayNum = (now.getUTCDay() + 6) % 7; // Mon=0 .. Sun=6
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayNum));
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-  sunday.setUTCHours(23, 59, 59, 999);
-  return { periodKey: `week-${monday.toISOString().slice(0, 10)}`, start: monday, end: sunday };
-}
-
-function getMonthBounds(now) {
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-  const periodKey = `month-${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-  return { periodKey, start, end };
-}
-
-// Real meteorological seasons (Northern Hemisphere convention — a known
-// simplification; Southern Hemisphere users get labels six months out
-// of sync with their actual weather, worth revisiting if that matters
-// for this app's real user base): Winter=Dec-Feb, Spring=Mar-May,
-// Summer=Jun-Aug, Fall=Sep-Nov.
-function getSeasonBounds(now) {
-  const month = now.getUTCMonth(); // 0-11
-  const year = now.getUTCFullYear();
-  let seasonName, startYear, startMonth, endYear, endMonthExclusive;
-
-  if (month === 11) {
-    seasonName = 'winter'; startYear = year; startMonth = 11; endYear = year + 1; endMonthExclusive = 2;
-  } else if (month <= 1) {
-    seasonName = 'winter'; startYear = year - 1; startMonth = 11; endYear = year; endMonthExclusive = 2;
-  } else if (month <= 4) {
-    seasonName = 'spring'; startYear = year; startMonth = 2; endYear = year; endMonthExclusive = 5;
-  } else if (month <= 7) {
-    seasonName = 'summer'; startYear = year; startMonth = 5; endYear = year; endMonthExclusive = 8;
-  } else {
-    seasonName = 'fall'; startYear = year; startMonth = 8; endYear = year; endMonthExclusive = 11;
-  }
-
-  const start = new Date(Date.UTC(startYear, startMonth, 1));
-  const end = new Date(Date.UTC(endYear, endMonthExclusive, 0, 23, 59, 59, 999));
-  const periodKey = `season-${seasonName}-${startYear}`;
-  return { periodKey, start, end, seasonName };
-}
-
 const CADENCE_GUIDANCE = {
   daily: 'achievable within a single day — a concrete, specific target like a rep count, a single workout, or minutes of activity today',
   weekly: 'achievable within 7 days — typically 3-5 workouts or a multi-day streak within the week',
@@ -697,16 +641,20 @@ export const generateChallenges = onCall(
     const db = getFirestore();
     const now = new Date();
 
+    // Real calendar boundaries for each cadence, cut at midnight in New York like the AI limits (see challengePeriods.js, which
+    // the app shares so both agree on which period a challenge is in).
     const periods = {
-      daily: getDayBounds(now),
-      weekly: getWeekBounds(now),
-      monthly: getMonthBounds(now),
-      seasonal: getSeasonBounds(now),
+      daily: getPeriod('daily', now),
+      weekly: getPeriod('weekly', now),
+      monthly: getPeriod('monthly', now),
+      seasonal: getPeriod('seasonal', now),
     };
 
     // Only generate cadences that don't already have a current challenge
     // — repeat visits within the same day/week/month/season should never
-    // create duplicates.
+    // create duplicates. (Two people asking at the same moment both get
+    // past this check; the fixed document ids below make the second
+    // write a no-op.)
     const existingChecks = await Promise.all(
       Object.entries(periods).map(([cadence, period]) =>
         db.collection('challenges')
@@ -775,7 +723,7 @@ export const generateChallenges = onCall(
 
     const guidanceLines = needed.map((c) => {
       if (c === 'seasonal') {
-        return `- seasonal: tied to the current ${periods.seasonal.seasonName} season — an ambitious, multi-week cumulative goal or long streak, scaled to however many days remain in the season (${Math.max(1, Math.round((periods.seasonal.end - now) / (24 * 60 * 60 * 1000)))} days left)`;
+        return `- seasonal: tied to the current ${periods.seasonal.seasonName} season — an ambitious, multi-week cumulative goal or long streak, scaled to however many days remain in the season (${daysLeft(periods.seasonal, now)} days left)`;
       }
       return `- ${c}: ${CADENCE_GUIDANCE[c]}`;
     });
@@ -814,8 +762,7 @@ Return strict JSON: { "challenges": [{ "cadence": string, "title": string, "desc
     }
 
     const rawChallenges = Array.isArray(structured.challenges) ? structured.challenges : [];
-    const batch = db.batch();
-    const created = [];
+    const toWrite = [];
     const usedCadences = new Set();
 
     rawChallenges.forEach((c) => {
@@ -827,7 +774,6 @@ Return strict JSON: { "challenges": [{ "cadence": string, "title": string, "desc
 
       const cadence = c.cadence;
       const period = periods[cadence];
-      const ref = db.collection('challenges').doc();
       const goalType = c.goalType === 'streak_days' ? 'streak_days' : 'workout_count';
       const doc = {
         title: c.title || 'Fitness Challenge',
@@ -846,18 +792,23 @@ Return strict JSON: { "challenges": [{ "cadence": string, "title": string, "desc
         source: 'ai_generated',
         createdAt: FieldValue.serverTimestamp(),
       };
-      batch.set(ref, doc);
-      created.push({
-        id: ref.id,
-        ...doc,
-        startDate: period.start.toISOString(),
-        endDate: period.end.toISOString(),
-      });
+      // One fixed id per cadence and period, so the same challenge written twice is one document.
+      toWrite.push({ id: challengeDocId(cadence, period.periodKey), data: doc, period });
     });
 
-    if (created.length > 0) {
-      await batch.commit();
-    }
+    const { created: createdIds } = await createChallengesOnce({
+      db,
+      challenges: toWrite.map(({ id, data }) => ({ id, data })),
+    });
+    // Only what this call wrote is returned; a challenge a moment-earlier request already made is loaded by the app afterwards.
+    const created = toWrite
+      .filter(({ id }) => createdIds.includes(id))
+      .map(({ id, data, period }) => ({
+        id,
+        ...data,
+        startDate: period.start.toISOString(),
+        endDate: period.end.toISOString(),
+      }));
 
     return { generated: created, communityStats };
   }
@@ -1740,7 +1691,6 @@ export const deleteMyAccount = onCall(
       db: getFirestore(),
       bucket: getStorage().bucket(),
       auth: getAuth(),
-      increment: FieldValue.increment,
       revokeIntegrations: revokeRookForUser,
     });
 
@@ -1776,6 +1726,29 @@ export const onGroupLeft = onDocumentDeleted(
     stamp: FieldValue.serverTimestamp(),
   })
 );
+
+// The like, comment and share counts on a community post follow the documents that make them: when a person's like
+// (communityPosts/{postId}/likes/{uid}), comment or share (shares/{uid}) appears the count goes up by one, and when it goes it
+// goes down by one. The app does not write the counts and the rules refuse anyone who tries. Each event is applied once, so a
+// repeated delivery or a retry after a failure never counts twice. See postCounters.js.
+const postCountTrigger = (kind, path, delta, onEvent) => onEvent(
+  { document: path, region: 'us-central1', retry: true },
+  (event) => changePostCount({
+    db: getFirestore(),
+    postId: event.params.postId,
+    kind,
+    delta,
+    eventId: event.id,
+    stamp: FieldValue.serverTimestamp(),
+  })
+);
+
+export const onPostLiked = postCountTrigger('likes', 'communityPosts/{postId}/likes/{uid}', 1, onDocumentCreated);
+export const onPostUnliked = postCountTrigger('likes', 'communityPosts/{postId}/likes/{uid}', -1, onDocumentDeleted);
+export const onPostCommented = postCountTrigger('comments', 'communityPosts/{postId}/comments/{commentId}', 1, onDocumentCreated);
+export const onCommentRemoved = postCountTrigger('comments', 'communityPosts/{postId}/comments/{commentId}', -1, onDocumentDeleted);
+export const onPostShared = postCountTrigger('shares', 'communityPosts/{postId}/shares/{uid}', 1, onDocumentCreated);
+export const onShareRemoved = postCountTrigger('shares', 'communityPosts/{postId}/shares/{uid}', -1, onDocumentDeleted);
 
 // A person's XP, level, streak and distance are kept here, not by the app. The app files a claim for what it earned as
 // users/{uid}/xpClaims/{claimId} (the rules let it create one and never change it); this checks it, adds it to the ledger at

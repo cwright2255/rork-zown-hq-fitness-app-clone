@@ -4,9 +4,10 @@
 // cadence (daily/weekly/monthly/seasonal), each tied to a real calendar
 // boundary rather than an arbitrary day count. Generation logic lives
 // server-side in functions/src/index.js's generateChallenges; this
-// store loads what's there, mirrors the SAME period-boundary math
-// client-side so it can identify which loaded challenge is the current
-// one for each cadence, and auto-fills whatever's missing.
+// store loads what's there, uses the SAME period-boundary math
+// (lib/challengePeriods.js, shared with the function) so it can identify
+// which loaded challenge is the current one for each cadence, and
+// auto-fills whatever's missing.
 //
 // Progress is never stored or faked — it's computed live from the
 // user's own completed workouts (store/workoutStore.js), runs
@@ -22,43 +23,12 @@ import {
 } from 'firebase/firestore';
 import { chunk, rankEntries, challengeEntryId } from '../lib/audience';
 import { sessionsOf, sessionsBetween, distinctDays } from '../lib/activity';
+import { CADENCES, getCurrentPeriodKey } from '../lib/challengePeriods';
 
-export const CADENCES = ['daily', 'weekly', 'monthly', 'seasonal'];
-
-// Mirrors functions/src/index.js's getDayBounds/getWeekBounds/
-// getMonthBounds/getSeasonBounds exactly — must stay in sync with that
-// file if the boundary logic ever changes there.
-function getDayPeriodKey(now) {
-  return `day-${now.toISOString().slice(0, 10)}`;
-}
-
-function getWeekPeriodKey(now) {
-  const dayNum = (now.getUTCDay() + 6) % 7; // Mon=0 .. Sun=6
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayNum));
-  return `week-${monday.toISOString().slice(0, 10)}`;
-}
-
-function getMonthPeriodKey(now) {
-  return `month-${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function getSeasonPeriodKey(now) {
-  const month = now.getUTCMonth();
-  const year = now.getUTCFullYear();
-  if (month === 11) return `season-winter-${year}`;
-  if (month <= 1) return `season-winter-${year - 1}`;
-  if (month <= 4) return `season-spring-${year}`;
-  if (month <= 7) return `season-summer-${year}`;
-  return `season-fall-${year}`;
-}
-
-export function getCurrentPeriodKey(cadence, now = new Date()) {
-  if (cadence === 'daily') return getDayPeriodKey(now);
-  if (cadence === 'weekly') return getWeekPeriodKey(now);
-  if (cadence === 'monthly') return getMonthPeriodKey(now);
-  if (cadence === 'seasonal') return getSeasonPeriodKey(now);
-  return null;
-}
+// Which day, week, month and season it is, and the id a challenge has, come from lib/challengePeriods.js: the same file the Cloud
+// Function that creates the challenges uses (a copy in functions/src, kept identical by a test). Periods are cut at midnight
+// in New York, like the AI daily limits, not at midnight UTC.
+export { CADENCES, getCurrentPeriodKey };
 
 export const useChallengeStore = create((set, get) => ({
   challenges: [],
@@ -230,7 +200,8 @@ export const useChallengeStore = create((set, get) => ({
   // goalType is either 'workout_count' (how many sessions fall in the
   // window) or 'streak_days' (how many distinct calendar days — the
   // person's own days, so a 9 PM run is that day's — had at least one).
-  // The window itself is the server's UTC one. total_minutes was
+  // The window itself is the one the server saved on the challenge: midnight to
+  // midnight in New York (lib/challengePeriods.js). total_minutes was
   // deliberately left out of the generated goal types: workout.duration
   // is stored in seconds for real completed sessions (see
   // app/workout/active.jsx) but in minutes for saved templates (see
