@@ -52,7 +52,7 @@ export default function TermsOfService() {
 
         <Text style={styles.sectionTitle}>4. User Content</Text>
         <Text style={styles.bodyText}>
-          You keep ownership of the data, images, logs, recipes, posts and custom workouts you create or upload ("User Content"). By submitting User Content you grant ZOWN HQ a worldwide, non-exclusive, royalty-free license to host, display and distribute it within the app, subject to your privacy settings. Harassment, spam, illegal content and infringement of others' rights are prohibited, and we may remove content that breaks these Terms.
+          You keep ownership of the data, images, logs, recipes, posts and custom workouts you create or upload ("User Content"). By submitting User Content you grant ZOWN HQ a worldwide, non-exclusive, royalty-free license to host, display and distribute it within the app, subject to your privacy settings. Harassment, spam, illegal content and infringement of others' rights are prohibited, and we may remove content that breaks these Terms. ZOWN HQ has no tolerance for objectionable content or abusive users. You can report any post, comment or message, and block any person, from inside the app (a block can be undone in Settings, under Blocked people). We review reports, remove content that breaks these Terms, and end the accounts of people who abuse others.
         </Text>
 
         <Text style={styles.sectionTitle}>5. Health & Fitness Disclaimer</Text>

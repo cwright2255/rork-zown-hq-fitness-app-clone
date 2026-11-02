@@ -5,6 +5,8 @@
 // the same limits X uses. Raise MAX_PHOTOS here if you want more later; the
 // Storage rules only cap file sizes, not counts.
 
+import { isContentNotAllowed, NOT_ALLOWED_MESSAGE } from './wordFilter';
+
 export const MAX_PHOTOS = 4;
 export const MAX_VIDEOS = 1;
 export const MAX_VIDEO_SECONDS = 60;
@@ -241,6 +243,8 @@ export function errorDetails(e, max = 260) {
 
 // The alert text when creating a post fails: what happened in plain words, then the details.
 export function postErrorMessage(e, hasMedia) {
+  // Turned away by the word list (lib/wordFilter.js): say so plainly, with no technical details.
+  if (isContentNotAllowed(e)) return NOT_ALLOWED_MESSAGE;
   const code = errorCode(e);
   let hint = 'Check your connection and try again.';
   if (code === 'storage/unauthorized' || code === 'permission-denied') {

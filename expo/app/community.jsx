@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, Share, FlatList, ActivityIndicator } from 'react-native';
-import { Heart, MessageCircle, X, Send, Share2 } from 'lucide-react-native';
+import { Heart, MessageCircle, X, Send, Share2, EllipsisVertical, Ellipsis } from 'lucide-react-native';
 import { router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -11,7 +11,11 @@ import { useUserStore } from '@/store/userStore';
 import { getConversationId } from '@/store/messagingStore';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
+import ModerationSheet from '@/components/ModerationSheet';
+import { useBlockStore } from '@/store/blockStore';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
+import { withoutBlocked, postTarget, commentTarget } from '@/lib/moderation';
+import { isContentNotAllowed, NOT_ALLOWED_MESSAGE } from '@/lib/wordFilter';
 import RunPostCard from '@/components/RunPostCard';
 
 function timeAgo(timestamp) {
@@ -33,13 +37,21 @@ export default function CommunityScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [likedByMe, setLikedByMe] = useState({});
 
-  const { posts, isLoading, subscribeFeed, unsubscribeFeed, createPost, toggleLike, hasLiked, loadComments, addComment } = useCommunityStore();
+  const { posts, isLoading, subscribeFeed, unsubscribeFeed, createPost, toggleLike, hasLiked, loadComments, addComment, deleteComment } = useCommunityStore();
   const { user } = useUserStore();
+  // People this person has blocked: their posts and comments are not shown (store/blockStore.js).
+  const blocked = useBlockStore((st) => st.blocked);
+  const subscribeBlocks = useBlockStore((st) => st.subscribeBlocks);
+  const [moderationTarget, setModerationTarget] = useState(null); // the post or comment whose Report / Block menu is open
 
   useEffect(() => {
     subscribeFeed(50);
     return () => unsubscribeFeed();
   }, []);
+
+  useEffect(() => {
+    if (user?.uid) subscribeBlocks(user.uid);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user?.uid || posts.length === 0) return;
@@ -127,10 +139,17 @@ export default function CommunityScreen() {
       }]);
       setCommentText('');
     } catch (e) {
-      Alert.alert('Error', "Couldn't post your comment. Try again.");
+      Alert.alert('Error', isContentNotAllowed(e) ? NOT_ALLOWED_MESSAGE : "Couldn't post your comment. Try again.");
     } finally {
       setSendingComment(false);
     }
+  };
+
+  // Removes a comment (its author and the owner of the post can; firestore.rules). It leaves the open list at once.
+  const handleDeleteComment = async (target) => {
+    const removed = await deleteComment(target.postId, target.id);
+    if (removed) setComments((prev) => prev.filter((c) => c.id !== target.id));
+    else Alert.alert('Error', "Couldn't delete that comment. Try again.");
   };
 
   // ---- Share ----
@@ -169,31 +188,43 @@ export default function CommunityScreen() {
             No posts yet — be the first to share something.
           </Text>
         )}
-        {posts.map(post => (
+        {withoutBlocked(posts, blocked).map(post => (
           <View key={post.id} style={styles.card}>
-            <TouchableOpacity
-              style={styles.postHeader}
-              disabled={post.authorId === user?.uid}
-              onPress={() => {
-                if (post.authorId === user?.uid) return;
-                const conversationId = getConversationId(user.uid, post.authorId);
-                router.push({
-                  pathname: '/messages/[id]',
-                  params: { id: conversationId, name: post.authorName, otherUid: post.authorId, avatar: post.authorAvatar || '' },
-                });
-              }}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials(post.authorName)}</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.postName}>{post.authorName}</Text>
-                <Text style={styles.postTime}>{timeAgo(post.createdAt)} ago</Text>
-              </View>
+            <View style={styles.postHeaderRow}>
+              <TouchableOpacity
+                style={[styles.postHeader, { flex: 1 }]}
+                disabled={post.authorId === user?.uid}
+                onPress={() => {
+                  if (post.authorId === user?.uid) return;
+                  const conversationId = getConversationId(user.uid, post.authorId);
+                  router.push({
+                    pathname: '/messages/[id]',
+                    params: { id: conversationId, name: post.authorName, otherUid: post.authorId, avatar: post.authorAvatar || '' },
+                  });
+                }}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{initials(post.authorName)}</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.postName}>{post.authorName}</Text>
+                  <Text style={styles.postTime}>{timeAgo(post.createdAt)} ago</Text>
+                </View>
+                {post.authorId !== user?.uid && (
+                  <MessageCircle size={16} color="#999999" />
+                )}
+              </TouchableOpacity>
               {post.authorId !== user?.uid && (
-                <MessageCircle size={16} color="#999999" />
+                <TouchableOpacity
+                  style={styles.moreBtn}
+                  testID={`post-more-${post.id}`}
+                  accessibilityLabel="Report or block"
+                  onPress={() => setModerationTarget(postTarget(post))}
+                >
+                  <EllipsisVertical size={18} color="#999999" />
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
             {!!post.text && <Text style={styles.postText}>{post.text}</Text>}
             {!!post.run && <RunPostCard run={post.run} />}
             <PostMedia media={normalizeMedia(post)} />
@@ -245,7 +276,7 @@ export default function CommunityScreen() {
               <ActivityIndicator size="large" color="#000000" style={{ marginVertical: 30 }} />
             ) : (
               <FlatList
-                data={comments}
+                data={withoutBlocked(comments, blocked)}
                 keyExtractor={(c) => c.id}
                 style={{ maxHeight: 320 }}
                 ListEmptyComponent={
@@ -264,6 +295,14 @@ export default function CommunityScreen() {
                       <Text style={styles.commentAuthor}>{item.authorName}</Text>
                       <Text style={styles.commentText}>{item.text}</Text>
                     </View>
+                    <TouchableOpacity
+                      style={styles.moreBtn}
+                      testID={`comment-more-${item.id}`}
+                      accessibilityLabel="Comment options"
+                      onPress={() => setModerationTarget(commentTarget({ post: commentsPost, comment: item, myUid: user?.uid }))}
+                    >
+                      <Ellipsis size={16} color="#999999" />
+                    </TouchableOpacity>
                   </View>
                 )}
               />
@@ -286,8 +325,21 @@ export default function CommunityScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <ModerationSheet
+            target={moderationTarget?.kind === 'comment' ? moderationTarget : null}
+            myUid={user?.uid}
+            onClose={() => setModerationTarget(null)}
+            onDeleteComment={handleDeleteComment}
+          />
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Report / Block on a post. (A comment's is inside the comments window above: a phone cannot show two windows side by side.) */}
+      <ModerationSheet
+        target={moderationTarget?.kind === 'comment' ? null : moderationTarget}
+        myUid={user?.uid}
+        onClose={() => setModerationTarget(null)}
+      />
 
       <BottomNavigation />
     </View>
@@ -318,7 +370,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF', ...cardShadow,
     borderRadius: tokens.radius.lg, padding: tokens.spacing.md, marginBottom: 12,
   },
+  postHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   postHeader: { flexDirection: 'row', alignItems: 'center' },
+  moreBtn: { padding: 6 },
   avatar: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#F5F5F5',

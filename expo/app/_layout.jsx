@@ -181,7 +181,9 @@ function RootLayoutInner() {
   }, [handleDeepLink]);
 
   useEffect(() => {
-    if (pathname === '/' || pathname === '/index' || pathname === '/start' || pathname.startsWith('/auth/') || pathname === '/spotify-callback') return;
+    // The Terms and the Privacy Policy open from the Register screen, before the person is onboarded, so they are left where they are.
+    if (pathname === '/' || pathname === '/index' || pathname === '/start' || pathname.startsWith('/auth/') || pathname === '/spotify-callback'
+      || pathname === '/profile/terms' || pathname === '/profile/privacy-policy') return;
     const navigationFrame = requestAnimationFrame(() => {
       if (!isOnboarded && pathname !== '/start' && !pathname.startsWith('/auth/') && pathname !== '/' && pathname !== '/spotify-callback') {
         if (pathname !== '/onboarding') {
@@ -270,7 +272,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && !pathname.startsWith('/paywall') && <BottomNavigation />}
+        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/blocked') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && !pathname.startsWith('/paywall') && <BottomNavigation />}
     </View>
   );
 }

@@ -21,6 +21,11 @@ jest.mock('@/store/userStore', () => ({
   useUserStore: () => ({ user: { uid: 'alice', name: 'Alice', profileImage: 'https://img/a.png' } }),
 }));
 
+// Blocking has its own tests (ReportAndBlockScreens.test.jsx); here nobody is blocked, and no listener of its own gets in the way.
+jest.mock('@/store/blockStore', () => ({
+  useBlockStore: (select) => select({ blocked: {}, subscribeBlocks: () => undefined }),
+}));
+
 jest.mock('../src/config/firebase', () => ({ db: { name: 'db' } }));
 const mockListeners = [];
 jest.mock('firebase/firestore', () => ({

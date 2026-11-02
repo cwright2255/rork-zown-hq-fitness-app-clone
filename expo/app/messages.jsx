@@ -7,6 +7,8 @@ import { router } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
 import { useMessagingStore, getConversationId } from '@/store/messagingStore';
 import { useLeaderboardStore } from '@/store/leaderboardStore';
+import { useBlockStore } from '@/store/blockStore';
+import { withoutBlocked } from '@/lib/moderation';
 
 function formatTime(timestamp) {
   if (!timestamp?.toDate) return '';
@@ -25,7 +27,11 @@ export default function MessagesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const { user } = useUserStore();
-  const { conversations, isLoadingConversations, subscribeConversations, unsubscribeConversations } = useMessagingStore();
+  const { conversations: allConversations, isLoadingConversations, subscribeConversations, unsubscribeConversations } = useMessagingStore();
+  // People this person has blocked are left out of the list and of the New Message picker (store/blockStore.js).
+  const blocked = useBlockStore((st) => st.blocked);
+  const subscribeBlocks = useBlockStore((st) => st.subscribeBlocks);
+  const conversations = withoutBlocked(allConversations, blocked, (c) => c.otherUid);
 
   // Real, already-available list of other real users — the same source
   // app/social.jsx's Duel challenge picker uses. There's no user-search
@@ -37,6 +43,10 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (user?.uid) subscribeConversations(user.uid);
     return () => unsubscribeConversations();
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (user?.uid) subscribeBlocks(user.uid);
   }, [user?.uid]);
 
   useEffect(() => {
@@ -64,7 +74,7 @@ export default function MessagesScreen() {
     });
   };
 
-  const pickablePeople = entries.filter((e) => e.id !== user?.uid);
+  const pickablePeople = withoutBlocked(entries.filter((e) => e.id !== user?.uid), blocked, (e) => e.id);
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>

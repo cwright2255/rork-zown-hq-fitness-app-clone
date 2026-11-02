@@ -518,6 +518,12 @@ export default function SettingsScreen() {
               />
             }
           />
+          <SettingRow
+            icon="ban-outline"
+            label="Blocked people"
+            subLabel="You don't see their posts, and you can't message each other"
+            onPress={() => router.push('/profile/blocked')}
+          />
         </View>
 
         {/* AI COACH */}

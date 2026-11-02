@@ -28,6 +28,7 @@ import { useAnalyticsStore } from '@/store/analyticsStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { useBadgeStore } from '@/store/badgeStore';
 import { useBattlePassStore } from '@/store/battlePassStore';
+import { useBlockStore } from '@/store/blockStore';
 import { useBodyCompositionStore } from '@/store/bodyCompositionStore';
 import { useCalendarInviteStore } from '@/store/calendarInviteStore';
 import { useChallengeStore } from '@/store/challengeStore';
@@ -72,6 +73,7 @@ export const LOG_OUT_STORES = {
   appleMusicStore: useAppleMusicStore,
   badgeStore: useBadgeStore,
   battlePassStore: useBattlePassStore,
+  blockStore: useBlockStore,
   bodyCompositionStore: useBodyCompositionStore,
   calendarInviteStore: useCalendarInviteStore,
   challengeStore: useChallengeStore,

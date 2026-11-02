@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, KeyboardAvoidingView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
 import { useMessagingStore, getConversationId } from '@/store/messagingStore';
+import { useBlockStore } from '@/store/blockStore';
+import ModerationSheet from '@/components/ModerationSheet';
+import { isBlocked, messageTarget, personTarget } from '@/lib/moderation';
 
 function formatTimestamp(timestamp) {
   if (!timestamp?.toDate) return '';
@@ -28,6 +31,18 @@ export default function ChatScreen() {
   const [msgText, setMsgText] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
+
+  // Blocking (store/blockStore.js): a person you have blocked cannot be written to from here, and the rules refuse it too.
+  const blocked = useBlockStore((st) => st.blocked);
+  const subscribeBlocks = useBlockStore((st) => st.subscribeBlocks);
+  const iBlockedThem = isBlocked(blocked, otherUid);
+  const [moderationTarget, setModerationTarget] = useState(null); // a message, or the person, whose Report / Block menu is open
+  const otherName = typeof name === 'string' && name ? name : 'this person';
+  const otherAvatar = typeof avatar === 'string' ? avatar : '';
+
+  useEffect(() => {
+    if (user?.uid) subscribeBlocks(user.uid);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (conversationId) subscribeMessages(conversationId);
@@ -58,6 +73,10 @@ export default function ChatScreen() {
       // The message was not sent (the store logs why). Put the text back so
       // it can be sent again rather than lost on a network hiccup.
       setMsgText(text);
+      // The rules refuse a message between two people when either has blocked the other. Nothing says which of them did.
+      if (e?.code === 'permission-denied') {
+        Alert.alert("Message not sent", "This message couldn't be sent. You may not be able to message this person.");
+      }
     } finally {
       setSending(false);
     }
@@ -68,9 +87,24 @@ export default function ChatScreen() {
     return (
       <View key={msg.id} style={isMine ? s.sentRow : s.receivedRow}>
         {!isMine && <View style={s.receivedAvSmall}><Ionicons name="person" size={12} color="#999" /></View>}
-        <View style={isMine ? s.sentBubble : s.receivedBubble}>
+        <Pressable
+          style={isMine ? s.sentBubble : s.receivedBubble}
+          disabled={isMine}
+          onLongPress={() => setModerationTarget(messageTarget({ conversationId, message: msg, otherName, otherAvatar }))}
+        >
           <Text style={isMine ? s.sentText : s.receivedText}>{msg.text}</Text>
-        </View>
+        </Pressable>
+        {!isMine && (
+          <Pressable
+            style={s.msgMoreBtn}
+            hitSlop={8}
+            testID={`message-more-${msg.id}`}
+            accessibilityLabel="Report or block"
+            onPress={() => setModerationTarget(messageTarget({ conversationId, message: msg, otherName, otherAvatar }))}
+          >
+            <Ionicons name="ellipsis-horizontal" size={16} color="#999" />
+          </Pressable>
+        )}
       </View>
     );
   };
@@ -86,6 +120,16 @@ export default function ChatScreen() {
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={s.headerName}>{contactName}</Text>
         </View>
+        {!!otherUid && !iBlockedThem && (
+          <Pressable
+            style={s.menuBtn}
+            testID="thread-more"
+            accessibilityLabel="Block"
+            onPress={() => setModerationTarget(personTarget({ uid: otherUid, name: otherName, avatar: otherAvatar }))}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#000" />
+          </Pressable>
+        )}
       </View>
 
       {/* Messages */}
@@ -106,21 +150,35 @@ export default function ChatScreen() {
         </ScrollView>
 
         {/* Input Bar */}
-        <View style={s.inputBar}>
-          <TextInput
-            style={s.textInput}
-            placeholder="Type message..."
-            placeholderTextColor="#999"
-            value={msgText}
-            onChangeText={setMsgText}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-          />
-          <Pressable style={s.sendBtn} onPress={handleSend} disabled={sending}>
-            <Ionicons name="send" size={16} color="#FFF" />
-          </Pressable>
-        </View>
+        {iBlockedThem ? (
+          <View style={s.blockedBar}>
+            <Text style={s.blockedText}>{`You blocked ${otherName}. To message them again, unblock them in Settings, under Blocked people.`}</Text>
+          </View>
+        ) : (
+          <View style={s.inputBar}>
+            <TextInput
+              style={s.textInput}
+              placeholder="Type message..."
+              placeholderTextColor="#999"
+              value={msgText}
+              onChangeText={setMsgText}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
+            />
+            <Pressable style={s.sendBtn} onPress={handleSend} disabled={sending}>
+              <Ionicons name="send" size={16} color="#FFF" />
+            </Pressable>
+          </View>
+        )}
       </KeyboardAvoidingView>
+
+      {/* Report / Block */}
+      <ModerationSheet
+        target={moderationTarget}
+        myUid={user?.uid}
+        onClose={() => setModerationTarget(null)}
+        onBlocked={() => router.back()}
+      />
     </SafeAreaView>
   );
 }
@@ -152,7 +210,7 @@ const s = StyleSheet.create({
   /* Received */
   receivedRow: { flexDirection: 'row', alignItems: 'flex-end', marginLeft: 16, marginRight: 60, marginBottom: 8 },
   receivedAvSmall: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center', marginRight: 8 },
-  receivedBubble: { maxWidth: '85%', backgroundColor: '#F5F5F5', borderRadius: 20, borderBottomLeftRadius: 4, padding: 14 },
+  receivedBubble: { flexShrink: 1, maxWidth: '85%', backgroundColor: '#F5F5F5', borderRadius: 20, borderBottomLeftRadius: 4, padding: 14 },
   receivedText: { fontSize: 15, color: '#000', lineHeight: 22 },
 
   /* Workout bubble */
@@ -164,6 +222,11 @@ const s = StyleSheet.create({
   mapBubble: { width: 250, borderRadius: 16, overflow: 'hidden', backgroundColor: '#F5F5F5' },
   mapArea: { height: 140, backgroundColor: '#E8E8E8', justifyContent: 'center', alignItems: 'center' },
   mapPin: { position: 'absolute', width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: '#FF8A9B', backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+
+  /* Blocked */
+  msgMoreBtn: { padding: 6, alignSelf: 'center' },
+  blockedBar: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#F0F0F0', backgroundColor: '#FAFAFA' },
+  blockedText: { fontSize: 13, color: '#666', textAlign: 'center' },
 
   /* Input Bar */
   inputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F0F0F0', backgroundColor: '#FFF' },

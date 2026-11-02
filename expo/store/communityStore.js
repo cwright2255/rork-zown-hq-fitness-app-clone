@@ -24,6 +24,7 @@ import {
 } from 'firebase/firestore';
 import { uploadPostMedia, deletePostMedia } from '../services/postMediaService';
 import { describeSharedRun } from '../lib/runShare';
+import { isTextAllowed, contentNotAllowedError } from '../lib/wordFilter';
 import { useRunningStore } from './runningStore';
 
 export const useCommunityStore = create((set, get) => ({
@@ -68,6 +69,8 @@ export const useCommunityStore = create((set, get) => ({
     const items = Array.isArray(mediaItems) ? mediaItems : [];
     const sharedRun = run && typeof run === 'object' && describeSharedRun(run) ? run : null;
     if (!uid || (!clean && items.length === 0 && !sharedRun)) return null;
+    // The word list (lib/wordFilter.js) is checked before anything is uploaded or saved.
+    if (!isTextAllowed(clean)) throw contentNotAllowedError();
     try {
       const postRef = doc(collection(db, 'communityPosts'));
       const media = items.length > 0
@@ -109,6 +112,7 @@ export const useCommunityStore = create((set, get) => ({
   // (likeCount, authorId, createdAt, etc.) is left exactly as it was.
   updatePost: async (postId, uid, text) => {
     if (!uid || !text?.trim()) return false;
+    if (!isTextAllowed(text)) return false; // the screen checks first, to say why (lib/wordFilter.js)
     try {
       await updateDoc(doc(db, 'communityPosts', postId), {
         text: text.trim(),
@@ -222,6 +226,7 @@ export const useCommunityStore = create((set, get) => ({
 
   addComment: async (postId, { uid, authorName, text }) => {
     if (!uid || !text?.trim()) return null;
+    if (!isTextAllowed(text)) throw contentNotAllowedError();
     try {
       const ref = await addDoc(collection(db, 'communityPosts', postId, 'comments'), {
         authorId: uid,
@@ -235,6 +240,24 @@ export const useCommunityStore = create((set, get) => ({
       console.warn('[communityStore] addComment error:', e?.message);
       throw e;
     }
+  },
+
+  // Removes a comment. The rules let its author, the owner of the post and an admin do this (firestore.rules). The post's comment count
+  // is brought down by one afterwards; that is only the number shown, so a failure there does not undo the delete.
+  deleteComment: async (postId, commentId) => {
+    if (!postId || !commentId) return false;
+    try {
+      await deleteDoc(doc(db, 'communityPosts', postId, 'comments', commentId));
+    } catch (e) {
+      console.warn('[communityStore] deleteComment error:', e?.message);
+      return false;
+    }
+    try {
+      await updateDoc(doc(db, 'communityPosts', postId), { commentCount: increment(-1) });
+    } catch (e) {
+      console.warn('[communityStore] could not bring the comment count down:', e?.message);
+    }
+    return true;
   },
 
   // Records a real completed OS share (see app/community.jsx's handleShare

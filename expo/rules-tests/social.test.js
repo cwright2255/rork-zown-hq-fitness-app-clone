@@ -223,12 +223,181 @@ describe('/communityPosts/{postId}/comments/{commentId}', () => {
     await no(env.as('bob').doc('communityPosts/nothing-here/comments/c1').set(comment));
   });
 
-  it('can be deleted by its author only, and never edited', async () => {
-    await env.seed({ 'communityPosts/p1': { authorId: 'alice' }, 'communityPosts/p1/comments/c1': comment });
+  it('can be deleted by its author, by the owner of the post it is on, and by an admin, and never edited', async () => {
+    await env.seed({
+      'communityPosts/p1': { authorId: 'alice' },
+      'communityPosts/p1/comments/c1': comment,
+      'communityPosts/p1/comments/c2': comment,
+      'communityPosts/p1/comments/c3': comment,
+      'communityPosts/p1/comments/c4': comment,
+      'admins/root': { since: '2026-10-01' },
+    });
     await no(env.as('carol').doc('communityPosts/p1/comments/c1').delete());
-    await no(env.as('alice').doc('communityPosts/p1/comments/c1').delete()); // the post's author cannot remove it
+    await no(env.anon().doc('communityPosts/p1/comments/c1').delete());
     await no(env.as('bob').doc('communityPosts/p1/comments/c1').update({ text: 'edited' }));
-    await ok(env.as('bob').doc('communityPosts/p1/comments/c1').delete());
+    await no(env.as('alice').doc('communityPosts/p1/comments/c1').update({ text: 'edited' })); // the post's owner can remove it, not rewrite it
+    await ok(env.as('bob').doc('communityPosts/p1/comments/c1').delete()); // the comment's author
+    await ok(env.as('alice').doc('communityPosts/p1/comments/c2').delete()); // the owner of the post
+    await ok(env.as('root').doc('communityPosts/p1/comments/c3').delete()); // an admin
+    // Saying you are an admin is not enough; there has to be an admins/{uid} document for you.
+    await no(env.as('mallory', { admin: true }).doc('communityPosts/p1/comments/c4').delete());
+  });
+
+  it('cannot be deleted by the owner of some other post', async () => {
+    await env.seed({
+      'communityPosts/p1': { authorId: 'alice' },
+      'communityPosts/p2': { authorId: 'carol' },
+      'communityPosts/p1/comments/c1': comment,
+    });
+    await no(env.as('carol').doc('communityPosts/p1/comments/c1').delete());
+    await ok(env.as('alice').doc('communityPosts/p1/comments/c1').delete());
+  });
+});
+
+// People you have blocked (store/blockStore.js).
+describe('/users/{userId}/blocks/{blockedUid}', () => {
+  const block = (over = {}) => ({ name: 'Bob', avatar: null, blockedAt: '2026-10-29T12:00:00.000Z', ...over });
+
+  it('can be made, read, listed, changed and removed by the person who blocks', async () => {
+    const mine = env.as('alice').doc('users/alice/blocks/bob');
+    await ok(mine.set(block()));
+    await ok(mine.get());
+    await ok(env.as('alice').collection('users/alice/blocks').get());
+    await ok(mine.set(block({ name: 'Bob W.' }))); // blocking someone again is an update
+    await ok(mine.delete());
+  });
+
+  it('belongs to the person who blocks: nobody else can read, make, change or remove it, the person who was blocked included', async () => {
+    await env.seed({ 'users/alice/blocks/bob': block(), 'admins/root': { since: '2026-10-01' } });
+    for (const db of [env.as('bob'), env.as('carol'), env.as('root'), env.anon()]) {
+      await no(db.doc('users/alice/blocks/bob').get());
+      await no(db.collection('users/alice/blocks').get());
+      await no(db.doc('users/alice/blocks/carol').set(block()));
+      await no(db.doc('users/alice/blocks/bob').update({ name: 'Not Bob' }));
+      await no(db.doc('users/alice/blocks/bob').delete());
+    }
+  });
+
+  it('cannot be made in someone else\'s name, even for yourself', async () => {
+    await no(env.as('bob').doc('users/alice/blocks/bob').set(block())); // bob blocking himself on alice's list
+    await no(env.as('bob').doc('users/alice/blocks/carol').set(block()));
+  });
+
+  it('cannot be a block of yourself', async () => {
+    await no(env.as('alice').doc('users/alice/blocks/alice').set(block({ name: 'Alice' })));
+  });
+
+  it('holds a name, a picture and when, and nothing else', async () => {
+    const make = (data) => env.as('alice').doc('users/alice/blocks/bob').set(data);
+    await ok(make({ blockedAt: '2026-10-29T12:00:00.000Z' })); // a person with no name or picture to show
+    await ok(make(block({ avatar: 'https://example.com/b.jpg' })));
+    await no(make({ name: 'Bob' })); // no date
+    await no(make(block({ reason: 'rude' })));
+    await no(make(block({ admin: true })));
+    await no(make(block({ name: 42 })));
+    await no(make(block({ name: 'x'.repeat(101) })));
+    await no(make(block({ avatar: 42 })));
+    await no(make(block({ avatar: 'x'.repeat(2001) })));
+    await no(make(block({ blockedAt: 5 })));
+    await no(make(block({ blockedAt: 'x'.repeat(41) })));
+  });
+});
+
+// Reports of a post, a comment or a message (services/reportService.js). Filing one is all a phone can do with them.
+describe('/reports/{reportId}', () => {
+  const report = (over = {}) => ({
+    reporterId: 'alice',
+    kind: 'post',
+    targetId: 'p1',
+    targetPath: 'communityPosts/p1',
+    targetAuthorId: 'bob',
+    reason: 'spam',
+    text: 'Buy my shake',
+    createdAt: '2026-10-29T12:00:00.000Z',
+    ...over,
+  });
+  const without = (data, key) => Object.fromEntries(Object.entries(data).filter(([name]) => name !== key));
+
+  it('can be filed by anyone signed in, as themselves, for a post, a comment or a message', async () => {
+    await ok(env.as('alice').doc('reports/alice_post_p1').set(report()));
+    await ok(env.as('alice').doc('reports/alice_comment_c1').set(
+      report({ kind: 'comment', targetId: 'c1', targetPath: 'communityPosts/p1/comments/c1', reason: 'harassment' }),
+    ));
+    await ok(env.as('alice').doc('reports/alice_message_m1').set(
+      report({ kind: 'message', targetId: 'm1', targetPath: 'conversations/alice_bob/messages/m1', reason: 'hate' }),
+    ));
+    await ok(env.as('carol').doc('reports/carol_post_p1').set(report({ reporterId: 'carol' })));
+  });
+
+  it('can be filed without a copy of the text, for a post that is only a photo', async () => {
+    await ok(env.as('alice').doc('reports/alice_post_p1').set(without(report(), 'text')));
+  });
+
+  it('cannot be filed as someone else, or by a visitor', async () => {
+    await no(env.as('bob').doc('reports/alice_post_p1').set(report())); // says alice reported it
+    await no(env.as('bob').doc('reports/bob_post_p1').set(report())); // bob's id, but alice\'s name in it
+    await no(env.anon().doc('reports/alice_post_p1').set(report()));
+  });
+
+  it('has to be named for who reported what, so nobody can take another report\'s name', async () => {
+    await no(env.as('alice').doc('reports/anything').set(report()));
+    await no(env.as('alice').doc('reports/alice_post_p2').set(report())); // names p2, says p1
+    await no(env.as('alice').doc('reports/alice_comment_p1').set(report())); // names a comment, says post
+    await no(env.as('alice').doc('reports/bob_post_p1').set(report())); // names bob as the reporter
+    await no(env.as('alice').doc('reports/alice_post_').set(report({ targetId: '' })));
+  });
+
+  it('can be filed once: the same person reporting the same thing again is refused, whatever the reason', async () => {
+    await ok(env.as('alice').doc('reports/alice_post_p1').set(report()));
+    await no(env.as('alice').doc('reports/alice_post_p1').set(report({ reason: 'hate' })));
+    await no(env.as('alice').doc('reports/alice_post_p1').set(report(), { merge: true }));
+    await ok(env.as('carol').doc('reports/carol_post_p1').set(report({ reporterId: 'carol' }))); // someone else can report it too
+  });
+
+  it('cannot be read or listed by anyone: not by who filed it, who it is about, an admin or a visitor', async () => {
+    await env.seed({ 'reports/alice_post_p1': report(), 'admins/root': { since: '2026-10-01' } });
+    for (const db of [env.as('alice'), env.as('bob'), env.as('root'), env.anon()]) {
+      await no(db.doc('reports/alice_post_p1').get());
+      await no(db.collection('reports').get());
+      await no(db.collection('reports').where('reporterId', '==', 'alice').get());
+    }
+  });
+
+  it('cannot be changed or removed by anyone, who filed it and an admin included', async () => {
+    await env.seed({ 'reports/alice_post_p1': report(), 'admins/root': { since: '2026-10-01' } });
+    for (const db of [env.as('alice'), env.as('bob'), env.as('root'), env.anon()]) {
+      await no(db.doc('reports/alice_post_p1').update({ reason: 'other' }));
+      await no(db.doc('reports/alice_post_p1').delete());
+    }
+  });
+
+  it('takes only the kinds of thing and the reasons the app offers', async () => {
+    const file = (over) => env.as('alice').doc(`reports/alice_${over.kind || 'post'}_p1`).set(report(over));
+    for (const reason of ['spam', 'harassment', 'hate', 'sexual', 'violence', 'self_harm', 'other']) {
+      await ok(env.as('alice').doc(`reports/alice_post_${reason}`).set(report({ reason, targetId: reason })));
+    }
+    await no(file({ reason: 'rude' }));
+    await no(file({ reason: '' }));
+    await no(file({ kind: 'user' }));
+    await no(file({ kind: 'conversation' }));
+  });
+
+  it('holds only the fields the app sends, all of them the right kind and not too long', async () => {
+    const file = (data) => env.as('alice').doc('reports/alice_post_p1').set(data);
+    await no(file(report({ status: 'open' })));
+    await no(file(report({ admin: true })));
+    for (const key of ['reporterId', 'kind', 'targetId', 'targetPath', 'targetAuthorId', 'reason', 'createdAt']) {
+      await no(file(without(report(), key)));
+    }
+    await no(file(report({ targetPath: 42 })));
+    await no(file(report({ targetPath: 'x'.repeat(301) })));
+    await no(file(report({ targetAuthorId: 42 })));
+    await no(file(report({ targetAuthorId: 'x'.repeat(129) })));
+    await no(file(report({ text: 42 })));
+    await no(file(report({ text: 'x'.repeat(1001) })));
+    await no(file(report({ createdAt: 5 })));
+    await no(file(report({ createdAt: 'x'.repeat(41) })));
+    await ok(file(report({ text: 'x'.repeat(1000) })));
   });
 });
 
@@ -383,5 +552,85 @@ describe('/conversations/{conversationId}/messages/{messageId}', () => {
 
   it('cannot be sent into a conversation that does not exist', async () => {
     await no(env.as('alice').doc('conversations/nobody/messages/m1').set(message));
+  });
+});
+
+// Blocking (users/{uid}/blocks): once either of two people has blocked the other, they cannot start a conversation or send each other a
+// message. What was already said stays readable; the app hides it.
+describe('two people when one has blocked the other', () => {
+  const chat = { participantIds: ['alice', 'bob'], lastMessage: 'hi' };
+  const first = {
+    participantIds: ['alice', 'bob'],
+    participantInfo: { alice: { name: 'Alice' } },
+    lastMessage: { text: 'Run tomorrow?', senderId: 'alice' },
+    updatedAt: '2026-10-29T12:00:00.000Z',
+  };
+  const block = { name: 'x', blockedAt: '2026-10-29T12:00:00.000Z' };
+  const message = (sender) => ({ senderId: sender, text: 'Run tomorrow?' });
+
+  // The same checks whichever of the two did the blocking.
+  describe.each([
+    ['alice', 'bob'],
+    ['bob', 'alice'],
+  ])('%s has blocked %s', (blocker) => {
+    const blockDoc = `users/${blocker}/blocks/${blocker === 'alice' ? 'bob' : 'alice'}`;
+
+    it('stops either of them starting a conversation, in either way of writing it', async () => {
+      await env.seed({ [blockDoc]: block });
+      await no(env.as('alice').doc('conversations/alice_bob').set(chat));
+      await no(env.as('bob').doc('conversations/alice_bob').set(chat));
+      await no(env.as('alice').doc('conversations/alice_bob').set(first, { merge: true }));
+      await no(env.as('bob').doc('conversations/alice_bob').set(first, { merge: true }));
+    });
+
+    it('stops either of them writing to a conversation they already had', async () => {
+      await env.seed({ [blockDoc]: block, 'conversations/alice_bob': chat });
+      await no(env.as('alice').doc('conversations/alice_bob').update({ lastMessage: 'hello' }));
+      await no(env.as('bob').doc('conversations/alice_bob').update({ lastMessage: 'hello' }));
+      await no(env.as('alice').doc('conversations/alice_bob').set(first, { merge: true }));
+      await no(env.as('bob').doc('conversations/alice_bob').set(first, { merge: true }));
+    });
+
+    it('stops either of them sending a message in it', async () => {
+      await env.seed({ [blockDoc]: block, 'conversations/alice_bob': chat });
+      await no(env.as('alice').doc('conversations/alice_bob/messages/m1').set(message('alice')));
+      await no(env.as('bob').doc('conversations/alice_bob/messages/m2').set(message('bob')));
+    });
+
+    it('leaves what was already said readable by both of them', async () => {
+      await env.seed({ [blockDoc]: block, 'conversations/alice_bob': chat, 'conversations/alice_bob/messages/m1': message('alice') });
+      await ok(env.as('alice').doc('conversations/alice_bob').get());
+      await ok(env.as('bob').doc('conversations/alice_bob').get());
+      await ok(env.as('alice').collection('conversations/alice_bob/messages').get());
+      await ok(env.as('bob').doc('conversations/alice_bob/messages/m1').get());
+    });
+
+    it('lets them talk again once the block is removed', async () => {
+      await env.seed({ [blockDoc]: block, 'conversations/alice_bob': chat });
+      await no(env.as('alice').doc('conversations/alice_bob/messages/m1').set(message('alice')));
+      await ok(env.as(blocker).doc(blockDoc).delete());
+      await ok(env.as('alice').doc('conversations/alice_bob').set(first, { merge: true }));
+      await ok(env.as('alice').doc('conversations/alice_bob/messages/m1').set(message('alice')));
+      await ok(env.as('bob').doc('conversations/alice_bob/messages/m2').set(message('bob')));
+    });
+
+    it('still lets each of them talk to other people', async () => {
+      await env.seed({ [blockDoc]: block });
+      await ok(env.as('alice').doc('conversations/alice_carol').set({ ...chat, participantIds: ['alice', 'carol'] }));
+      await ok(env.as('bob').doc('conversations/bob_carol').set({ ...chat, participantIds: ['bob', 'carol'] }));
+      await ok(env.as('carol').doc('conversations/alice_carol/messages/m1').set(message('carol')));
+    });
+  });
+
+  it('is not stopped by someone else\'s block', async () => {
+    await env.seed({ 'users/carol/blocks/bob': block, 'users/dave/blocks/alice': block });
+    await ok(env.as('alice').doc('conversations/alice_bob').set(first, { merge: true }));
+    await ok(env.as('alice').doc('conversations/alice_bob/messages/m1').set(message('alice')));
+    await ok(env.as('bob').doc('conversations/alice_bob/messages/m2').set(message('bob')));
+  });
+
+  it('is still refused for someone who is not in the conversation, blocked or not', async () => {
+    await env.seed({ 'conversations/alice_bob': chat });
+    await no(env.as('carol').doc('conversations/alice_bob/messages/m1').set(message('carol')));
   });
 });

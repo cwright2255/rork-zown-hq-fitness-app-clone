@@ -24,7 +24,11 @@ import {
 import { publishMyProfile } from '@/services/leaderboardVisibility';
 import PostMedia from '@/components/PostMedia';
 import PostComposer from '@/components/PostComposer';
+import ModerationSheet from '@/components/ModerationSheet';
+import { useBlockStore } from '@/store/blockStore';
 import { canPost, normalizeMedia, mediaSummary, postErrorMessage } from '@/lib/postMedia';
+import { isBlocked, withoutBlocked, postTarget, commentTarget } from '@/lib/moderation';
+import { isTextAllowed, isContentNotAllowed, NOT_ALLOWED_MESSAGE } from '@/lib/wordFilter';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const TABS = ['Feed', 'Leaderboard', 'Duels', 'Community'];
@@ -68,8 +72,12 @@ export default function SocialScreen() {
      real people. -- */
   const {
     posts, isLoading: postsLoading, subscribeFeed, unsubscribeFeed, createPost, updatePost,
-    updatePostSettings, deletePost, toggleLike, hasLiked, loadComments, addComment,
+    updatePostSettings, deletePost, toggleLike, hasLiked, loadComments, addComment, deleteComment,
   } = useCommunityStore();
+  // People this person has blocked: their posts and comments are not shown (store/blockStore.js).
+  const blocked = useBlockStore((st) => st.blocked);
+  const subscribeBlocks = useBlockStore((st) => st.subscribeBlocks);
+  const [moderationTarget, setModerationTarget] = useState(null); // the post or comment whose Report / Block menu is open
   const [likedByMe, setLikedByMe] = useState({});
   const [composerOpen, setComposerOpen] = useState(false);
   const [postText, setPostText] = useState('');
@@ -92,6 +100,10 @@ export default function SocialScreen() {
     subscribeFeed(50);
     return () => unsubscribeFeed();
   }, []);
+
+  useEffect(() => {
+    if (user?.uid) subscribeBlocks(user.uid);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user?.uid || posts.length === 0) return;
@@ -155,10 +167,17 @@ export default function SocialScreen() {
       setComments((prev) => [...prev, { id: newId, authorId: user.uid, authorName: user.name, text: commentText.trim() }]);
       setCommentText('');
     } catch (e) {
-      Alert.alert('Error', "Couldn't post your comment. Try again.");
+      Alert.alert('Error', isContentNotAllowed(e) ? NOT_ALLOWED_MESSAGE : "Couldn't post your comment. Try again.");
     } finally {
       setSendingComment(false);
     }
+  };
+
+  // Removes a comment (its author and the owner of the post can; firestore.rules). It leaves the open list at once.
+  const handleDeleteComment = async (target) => {
+    const removed = await deleteComment(target.postId, target.id);
+    if (removed) setComments((prev) => prev.filter((c) => c.id !== target.id));
+    else Alert.alert('Error', "Couldn't delete that comment. Try again.");
   };
 
   const handleShare = async (post) => {
@@ -185,6 +204,10 @@ export default function SocialScreen() {
 
   const handleSaveEdit = async () => {
     if (!editingPost || !editText.trim() || !user?.uid) return;
+    if (!isTextAllowed(editText)) {
+      Alert.alert('Error', NOT_ALLOWED_MESSAGE);
+      return;
+    }
     setSavingEdit(true);
     const ok = await updatePost(editingPost.id, user.uid, editText);
     setSavingEdit(false);
@@ -254,11 +277,12 @@ export default function SocialScreen() {
 
   const query = searchQuery.trim().toLowerCase();
   const matchingPeople = query
-    ? entries.filter((e) => e.id !== user?.uid && (e.name || '').toLowerCase().includes(query))
+    ? entries.filter((e) => e.id !== user?.uid && !isBlocked(blocked, e.id) && (e.name || '').toLowerCase().includes(query))
     : [];
+  const unblockedPosts = withoutBlocked(posts, blocked);
   const visiblePosts = query
-    ? posts.filter((p) => (p.text || '').toLowerCase().includes(query))
-    : posts;
+    ? unblockedPosts.filter((p) => (p.text || '').toLowerCase().includes(query))
+    : unblockedPosts;
 
   /* -- Duels: real, server-verified progress. -- */
   const { duels, subscribeDuels, unsubscribeDuels, proposeDuel, acceptDuel, declineDuel, getDisplayStatus } = useDuelStore();
@@ -363,6 +387,16 @@ export default function SocialScreen() {
               </View>
               {isMe && (
                 <Pressable style={s.postMenuBtn} onPress={() => setPostMenuFor(post)}>
+                  <Ionicons name="ellipsis-vertical" size={18} color="#666" />
+                </Pressable>
+              )}
+              {!isMe && (
+                <Pressable
+                  style={s.postMenuBtn}
+                  testID={`post-more-${post.id}`}
+                  accessibilityLabel="Report or block"
+                  onPress={() => setModerationTarget(postTarget(post))}
+                >
                   <Ionicons name="ellipsis-vertical" size={18} color="#666" />
                 </Pressable>
               )}
@@ -622,7 +656,7 @@ export default function SocialScreen() {
               <ActivityIndicator size="large" color="#000" style={{ marginVertical: 30 }} />
             ) : (
               <FlatList
-                data={comments}
+                data={withoutBlocked(comments, blocked)}
                 keyExtractor={(c) => c.id}
                 style={{ maxHeight: 320 }}
                 ListEmptyComponent={<Text style={s.emptyText}>No comments yet — be the first.</Text>}
@@ -633,6 +667,14 @@ export default function SocialScreen() {
                       <Text style={s.commentAuthor}>{item.authorName}</Text>
                       <Text style={s.commentText}>{item.text}</Text>
                     </View>
+                    <Pressable
+                      style={s.postMenuBtn}
+                      testID={`comment-more-${item.id}`}
+                      accessibilityLabel="Comment options"
+                      onPress={() => setModerationTarget(commentTarget({ post: commentsPost, comment: item, myUid: user?.uid }))}
+                    >
+                      <Ionicons name="ellipsis-horizontal" size={16} color="#666" />
+                    </Pressable>
                   </View>
                 )}
               />
@@ -647,6 +689,12 @@ export default function SocialScreen() {
               </Pressable>
             </View>
           </View>
+          <ModerationSheet
+            target={moderationTarget?.kind === 'comment' ? moderationTarget : null}
+            myUid={user?.uid}
+            onClose={() => setModerationTarget(null)}
+            onDeleteComment={handleDeleteComment}
+          />
         </KeyboardAvoidingView>
       </Modal>
 
@@ -736,6 +784,13 @@ export default function SocialScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Report / Block on a post. (A comment's is inside the comments window below: a phone cannot show two windows side by side.) */}
+      <ModerationSheet
+        target={moderationTarget?.kind === 'comment' ? null : moderationTarget}
+        myUid={user?.uid}
+        onClose={() => setModerationTarget(null)}
+      />
 
       <PersonSheet
         person={sheetPerson}

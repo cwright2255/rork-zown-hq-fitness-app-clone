@@ -1299,3 +1299,73 @@ You need one phone.
 - [ ] Scroll to the bottom and back. The bottom tab bar still works from the Shop tab (tap Home, then Shop again).
 
 If anything on the Shop tab still reacts to a tap, or a number still sits on a cart, tell me where.
+
+## Report, Block and the Terms step (once: deploy the rules first, then the update)
+
+This is a rules deploy and an app update (`eas update`), in that order. Nothing else is deployed. The order matters: Report and Block write to two places the old rules do not know (`reports` and `users/{you}/blocks`), so a phone that gets the update before the rules shows "Couldn't send the report" and "Couldn't block".
+
+What changed.
+
+- **Report.** Other people's posts, comments and messages have a three-dot button with Report and Block. Report asks why (seven reasons, the last is "Something else"), then writes one record in `reports`: who reported, what, whose it is, why, a copy of the words, and when. Only the reporter can create one, and only one per thing (the record is named after the reporter and the thing, so a second report of the same post is refused, and the app says "Already reported"). Nobody can read, change or delete a report from the app. You read them in the Firebase console.
+- **Block.** Blocking someone hides their posts and comments from you (Community and Social), takes your conversation with them off Messages, and leaves them out of the New Message picker. The rules refuse a new conversation or message between two people when either has blocked the other, in either direction. Settings, then Blocked people, lists everyone you blocked, each with Unblock. They are not told.
+- **Terms.** The last step of Create Account has a box to agree to the Terms of Service and Privacy Policy. Both documents open from that line. Under it is the no-tolerance line. Create Account does nothing until the box is ticked. The Terms of Service (section 4) say the same thing.
+- **Moderation.** The owner of a post can now delete any comment on it (before, only the comment's author could). A basic word list is checked before a post, an edit to a post, or a comment is saved. The list is `BLOCKED_WORDS` in `lib/wordFilter.js`: one word or short phrase per line, lower case. Add a word and it is blocked on the next update.
+
+**Read the wording and approve it.** These are the two places the no-tolerance wording is.
+
+- On the last step of Create Account: "ZOWN HQ has no tolerance for objectionable content or abusive users. Posts, comments and messages that break the rules are removed, and people who abuse others lose their account. You can report anything you see and block anyone, at any time."
+- In the Terms of Service, section 4: "ZOWN HQ has no tolerance for objectionable content or abusive users. You can report any post, comment or message, and block any person, from inside the app (a block can be undone in Settings, under Blocked people). We review reports, remove content that breaks these Terms, and end the accounts of people who abuse others."
+
+Those sentences are a promise: if you would rather not promise to end accounts, or want a different time frame, tell me and I will change both before the update goes out. Apple (Guideline 1.2) expects reports to be acted on within 24 hours, so look at `reports` in the console at least once a day once this is live.
+
+**Deploy the rules first, once CI is green**
+
+```
+cd expo && firebase deploy --only firestore:rules --project zown-3c512
+```
+
+The deploy compiles the rules before it uploads anything. If it prints an error, nothing was deployed: send me the error. Then run the ship paste and `eas update`.
+
+**Checks (two phones: accounts A and B, close the app completely and open it twice after the update)**
+
+Set up: B writes a post in Community. A and B each comment on it. B sends A a message.
+
+*Report*
+
+- [ ] A: on B's post, the three dots at the top right of the post open a menu: Report post, Block (with B's name), Cancel. On A's own post the dots open the Edit / Delete menu as before, with no Report or Block.
+- [ ] A: Report post, pick "Spam or a scam". "Report sent". Do the same on the same post again: "Already reported".
+- [ ] A: the three dots on B's comment open Report comment and Block. Report it: "Report sent". On A's own comment there is no Report and no Block, only Delete.
+- [ ] A: in the thread with B, the dots next to B's message (or pressing and holding it) open Report message and Block. Report it: "Report sent". A's own messages have no dots.
+- [ ] Firebase console, Firestore, `reports`: three documents named `<A's uid>_post_<id>`, `<A's uid>_comment_<id>` and `<A's uid>_message_<id>`. Each has `reporterId` (A), `kind`, `targetId`, `targetPath`, `targetAuthorId` (B), `reason`, `text` (a copy of the words) and `createdAt`. Open each `targetPath` in the console: it is the post, comment or message that was reported.
+
+*Block*
+
+- [ ] A: the three dots on B's post, Block, then Block again in the question. B's posts disappear from Community and from Social without leaving the page. Open a post that A and B both commented on: B's comment is gone and A's is there.
+- [ ] A: Messages. The conversation with B is gone. The + picker does not list B.
+- [ ] B (who has not blocked anyone): open the conversation with A and send "hello". An alert says "Message not sent" and "This message couldn't be sent. You may not be able to message this person.", and "hello" is back in the box. Nothing in it says who blocked whom.
+- [ ] A: Settings, Blocked people. B is listed, with Unblock. Unblock, then Unblock again in the question. B's posts and comments are back, the conversation is back on Messages, and B's "hello" can now be sent.
+- [ ] A: open the thread with B, the three dots at the top right, Block. It asks first, then takes A back to Messages with the conversation gone. Settings, Blocked people lists B. Unblock B again.
+- [ ] A: log out and log in as another account. Settings, Blocked people is empty (A's list does not follow the phone).
+
+*Moderation*
+
+- [ ] B (owner of the post): the three dots on A's comment on B's post show Delete comment (and Report and Block). Delete it, confirm: the comment goes and the comment count goes down by one. On a comment on a post that is not yours, written by someone else, there is no Delete.
+- [ ] A new post, an edit to a post, and a comment each refuse a word from the list ("That has language that isn't allowed on ZOWN HQ. Please change it and try again."). Use a word you are sure is on the list. The same post without that word goes through. Ordinary words are never refused ("class", "assess", "Scunthorpe", "5K PR").
+
+*Terms*
+
+- [ ] Log out. Create Account: steps 1 and 2 are as before. Step 3 shows the three levels, then an empty box with "I agree to the Terms of Service and Privacy Policy.", then the no-tolerance line, then Create Account.
+- [ ] Pick a level and tap Create Account without ticking: "Agree to continue".
+- [ ] Tap "Terms of Service": the Terms open, section 4 has the no-tolerance sentence, and the back arrow returns to step 3 with your level still picked and the box still empty. The same for "Privacy Policy". Neither one sends you to onboarding.
+- [ ] Tick the box and tap Create Account: it works as before and you land on onboarding.
+
+If the Terms open and then drop you at onboarding or back at the first step, tell me which one: that is the redirect I exempted in `app/_layout.jsx`.
+
+**Things this build does not do**
+
+- The login screen's Apple, Google and Meta buttons create an account without the Terms step. The plan did not include it. Tell me if you want it.
+- Admins can delete any comment through the rules (anyone in the `admins` collection), but the app has no screen for it. Do it in the console.
+- A word list is a first line, not a moderator. It misses anything spelled in a way nobody thought of. That is what Report is for.
+- The comment count on a post still counts comments from people you blocked.
+- With no connection, Report and Block wait for it instead of failing (the database holds the write until it can send it). The reasons list stays on the screen with its spinner until then.
+- A test for each new rule is in `rules-tests/social.test.js` and runs in CI only (it needs the Firestore emulator). If CI is red on `Firestore rules`, do not deploy the rules.

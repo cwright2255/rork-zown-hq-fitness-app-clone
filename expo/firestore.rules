@@ -1,6 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // True when either of the two people has blocked the other: a document users/{uid}/blocks/{otherUid}, which only the person who
+    // blocks can write (the blocks rule below). The rules for a conversation and for a message look for it, so two people cannot start
+    // a conversation or send each other a message once either of them has blocked the other.
+    function blockedBetween(a, b) {
+      return exists(/databases/$(database)/documents/users/$(a)/blocks/$(b)) ||
+        exists(/databases/$(database)/documents/users/$(b)/blocks/$(a));
+    }
+
+    // The same for an existing conversation, looked up by its id.
+    function conversationBlocked(conversationId) {
+      let ids = get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+      return blockedBetween(ids[0], ids[1]);
+    }
+
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
@@ -143,6 +157,23 @@ service cloud.firestore {
       match /following/{otherUid} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // People you have blocked (store/blockStore.js): one document per blocked person, named by their uid, holding only what the Blocked
+      // people list in Settings shows (their name and picture, and when). Private to you, so the person you blocked is not told. Their
+      // posts and comments are hidden from you in the app, and blockedBetween (above) makes the conversation and message rules refuse
+      // anything between the two of you, whichever of you blocked. You cannot block yourself.
+      match /blocks/{blockedUid} {
+        function validBlock() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['name', 'avatar', 'blockedAt']) && d.keys().hasAll(['blockedAt']) &&
+            (!('name' in d) || (d.name is string && d.name.size() <= 100)) &&
+            (!('avatar' in d) || d.avatar == null || (d.avatar is string && d.avatar.size() <= 2000)) &&
+            d.blockedAt is string && d.blockedAt.size() <= 40;
+        }
+
+        allow read, delete: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null && request.auth.uid == userId && blockedUid != userId && validBlock();
+      }
     }
 
     match /workouts/{workoutId} {
@@ -243,7 +274,12 @@ service cloud.firestore {
         allow read: if request.auth != null;
         allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId &&
           get(/databases/$(database)/documents/communityPosts/$(postId)).data.get('commentsDisabled', false) != true;
-        allow delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+        // A comment can be removed by whoever wrote it, by an admin, and by the owner of the post it is on.
+        allow delete: if request.auth != null && (
+          request.auth.uid == resource.data.authorId ||
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+          request.auth.uid == get(/databases/$(database)/documents/communityPosts/$(postId)).data.authorId
+        );
       }
     }
 
@@ -261,18 +297,46 @@ service cloud.firestore {
         request.resource.data.participantIds.size() == 2 &&
         request.auth.uid in request.resource.data.participantIds &&
         request.resource.data.participantIds[0] < request.resource.data.participantIds[1] &&
-        conversationId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1];
+        conversationId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1] &&
+        !blockedBetween(request.resource.data.participantIds[0], request.resource.data.participantIds[1]);
       allow update: if request.auth != null &&
         request.auth.uid in resource.data.participantIds &&
-        request.resource.data.participantIds == resource.data.participantIds;
+        request.resource.data.participantIds == resource.data.participantIds &&
+        !blockedBetween(resource.data.participantIds[0], resource.data.participantIds[1]);
 
       match /messages/{messageId} {
         allow read: if request.auth != null &&
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
         allow create: if request.auth != null &&
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds &&
-          request.auth.uid == request.resource.data.senderId;
+          request.auth.uid == request.resource.data.senderId &&
+          !conversationBlocked(conversationId);
       }
+    }
+
+    // Reports of a post, a comment or a message (services/reportService.js). The app can only add one: nobody can read, change or delete
+    // a report from a phone, the person who made it included. They are read in the Firebase console. The id is
+    // `<reporter>_<kind>_<id of the thing>`, so one person reports one thing once (reporting it again is an update, which is refused)
+    // and cannot use another person's report id. targetPath is where the thing is in the database, so it can be found there, and text is
+    // a copy of what it said, kept in case it is deleted before the report is read.
+    match /reports/{reportId} {
+      function validReport(id) {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['reporterId', 'kind', 'targetId', 'targetPath', 'targetAuthorId', 'reason', 'text', 'createdAt']) &&
+          d.keys().hasAll(['reporterId', 'kind', 'targetId', 'targetPath', 'targetAuthorId', 'reason', 'createdAt']) &&
+          d.reporterId == request.auth.uid &&
+          d.kind in ['post', 'comment', 'message'] &&
+          d.targetId is string && d.targetId.size() > 0 && d.targetId.size() <= 128 &&
+          id == d.reporterId + '_' + d.kind + '_' + d.targetId &&
+          d.targetPath is string && d.targetPath.size() <= 300 &&
+          d.targetAuthorId is string && d.targetAuthorId.size() <= 128 &&
+          d.reason in ['spam', 'harassment', 'hate', 'sexual', 'violence', 'self_harm', 'other'] &&
+          (!('text' in d) || (d.text is string && d.text.size() <= 1000)) &&
+          d.createdAt is string && d.createdAt.size() <= 40;
+      }
+
+      allow read, update, delete: if false;
+      allow create: if request.auth != null && validReport(reportId);
     }
 
     // NEW: admin console (see admin/ — a separate web app, not part of

@@ -95,6 +95,12 @@ describe('Settings: About and Data rows', () => {
     expect(router.push).toHaveBeenLastCalledWith('/profile/licenses');
   });
 
+  it('lists Blocked people under Privacy, and it opens the list where a block is undone', () => {
+    const utils = render(<SettingsScreen />);
+    fireEvent.press(utils.getByText('Blocked people'));
+    expect(router.push).toHaveBeenLastCalledWith('/profile/blocked');
+  });
+
   it('has no Rate App row until the app has a store page to send people to', () => {
     const utils = render(<SettingsScreen />);
     expect(utils.queryByText('Rate App')).toBeNull();

@@ -21,6 +21,10 @@ jest.mock('@/components/PostComposer', () => {
 });
 jest.mock('@/store/messagingStore', () => ({ getConversationId: (a, b) => `${a}_${b}` }));
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: global.__user }) }));
+// Blocking has its own tests (ReportAndBlockScreens.test.jsx); here nobody is blocked.
+jest.mock('@/store/blockStore', () => ({
+  useBlockStore: (select) => select({ blocked: {}, subscribeBlocks: () => undefined }),
+}));
 jest.mock('@/store/communityStore', () => {
   const hook = () => global.__community;
   hook.getState = () => global.__community;

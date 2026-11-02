@@ -2,11 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, User, ChevronLeft, Target, Dumbbell, Flame, TrendingUp, Activity, Zap } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock, User, ChevronLeft, Check, Target, Dumbbell, Flame, TrendingUp, Activity, Zap } from 'lucide-react-native';
 import { radius, spacing, typography } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
+import { NO_TOLERANCE_LINE } from '@/lib/moderation';
 import { tokens } from '../../../theme/tokens';
 
 
@@ -37,6 +38,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const { setUser } = useUserStore();
 
@@ -89,6 +91,10 @@ export default function RegisterScreen() {
       Alert.alert('Select activity level', 'Choose your current level');
       return;
     }
+    if (!agreedToTerms) {
+      Alert.alert('Agree to continue', 'Please agree to the Terms of Service and Privacy Policy to create your account.');
+      return;
+    }
     const { name, email, password } = formData;
     setIsLoading(true);
     try {
@@ -101,7 +107,7 @@ export default function RegisterScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [formData, goal, activityLevel, setUser]);
+  }, [formData, goal, activityLevel, agreedToTerms, setUser]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -259,6 +265,33 @@ export default function RegisterScreen() {
                 })}
               </View>
 
+              <View style={styles.termsBox}>
+                <TouchableOpacity
+                  testID="termsCheckbox"
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: agreedToTerms }}
+                  accessibilityLabel="I agree to the Terms of Service and Privacy Policy"
+                  activeOpacity={0.8}
+                  style={styles.termsRow}
+                  onPress={() => setAgreedToTerms((agreed) => !agreed)}>
+                  <View style={[styles.checkbox, agreedToTerms && styles.checkboxOn]}>
+                    {agreedToTerms && <Check size={14} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.termsText}>
+                    I agree to the{' '}
+                    <Text style={styles.termsLink} accessibilityRole="link" onPress={() => router.push('/profile/terms')}>
+                      Terms of Service
+                    </Text>
+                    {' '}and{' '}
+                    <Text style={styles.termsLink} accessibilityRole="link" onPress={() => router.push('/profile/privacy-policy')}>
+                      Privacy Policy
+                    </Text>
+                    .
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.termsNote}>{NO_TOLERANCE_LINE}</Text>
+              </View>
+
               <PrimaryButton
                 testID="registerSubmit"
                 title="Create Account"
@@ -332,6 +365,16 @@ const styles = StyleSheet.create({
   linkButton: { alignItems: 'center', paddingVertical: spacing.md },
   linkLight: { ...typography.bodySmall, color: '#666666' },
   linkStrong: { color: '#000000', fontWeight: '700' },
+  termsBox: { marginTop: spacing.xl, gap: spacing.sm },
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: '#000000',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', marginTop: 1,
+  },
+  checkboxOn: { backgroundColor: '#000000' },
+  termsText: { flex: 1, ...typography.bodySmall, color: '#000000' },
+  termsLink: { fontWeight: '700', textDecorationLine: 'underline' },
+  termsNote: { ...typography.bodySmall, color: '#666666' },
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
