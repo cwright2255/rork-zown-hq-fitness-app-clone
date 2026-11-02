@@ -20,6 +20,10 @@ jest.mock('../src/services/analytics', () => ({
   ...jest.requireActual('../src/services/analytics'),
   logOnboardingCompleted: (...a) => global.__logOnboardingCompleted(...a),
 }));
+// Under-13 removal (services/underageRemoval.js) is not used here; its pieces are stand-ins so the screen loads without Firebase.
+jest.mock('firebase/functions', () => ({ httpsCallable: jest.fn() }));
+jest.mock('../src/config/firebase', () => ({ __esModule: true, auth: { currentUser: null }, functions: {} }));
+jest.mock('@/lib/logOut', () => ({ logOut: jest.fn(async () => undefined) }));
 
 import OnboardingScreen from '../app/onboarding';
 
@@ -38,9 +42,11 @@ afterEach(() => {
 
 const settle = () => act(async () => { for (let i = 0; i < 8; i += 1) await Promise.resolve(); });
 
-// Gets to the last step: Get Started, then Continue through About You and the body step, pick a goal, and Continue through the rest.
+// Gets to the last step: Get Started, type a date of birth (About You will not go on without one), Continue through the body step,
+// pick a goal, and Continue through the rest.
 const toLastStep = (utils) => {
   fireEvent.press(utils.getByText('Get Started'));
+  fireEvent.changeText(utils.getByTestId('dob-input'), '1995-04-12');
   fireEvent.press(utils.getByText('Continue'));
   fireEvent.press(utils.getByText('Continue'));
   fireEvent.press(utils.getByText('Build Muscle'));

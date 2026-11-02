@@ -1438,3 +1438,68 @@ Do not wait long between steps 2 and 4. Until the functions are live, nothing mo
 - **The share count is people, not times.**
 - A post's likes, comments and shares are left behind when the post itself is deleted, as before.
 - A test for each new rule is in `rules-tests/social.test.js`, and the counters, the period cuts and the challenge ids have their own tests; the rules tests run in CI only (they need the Firestore emulator).
+
+## Sign-up asks for age and keeps blanks blank; sign-in follows Firebase (once, on the first update with it)
+
+An app update only: no rules and no functions to deploy. It needs the Build 9 deploy to be done already, because removing an under-13 account uses `deleteMyAccount`.
+
+**What changed**
+
+- **Date of birth is required in onboarding (About You).** It is typed as `YYYY-MM-DD` (`1995/4/12` and `1995.04.12` are read the same way). A blank, a date that cannot exist (31 February), a date in the future, or a date more than 120 years ago is refused with a sentence under the box.
+- **Under 13 cannot continue.** The person gets a screen that says ZOWN HQ is for ages 13 and up and that the account they just made has been removed. The account is removed with the same function Settings → Delete Account uses (`deleteMyAccount`), then the phone is cleared the way Log Out clears it. The date they typed is never saved. If the function refuses (see "If something goes wrong"), the screen says so and gives `privacy@zownhq.com`, and the person is still signed out. The age is worked out on the phone's own calendar: someone turning 13 tomorrow is 12 today. The minimum is one number, `MIN_AGE` in `lib/ageGate.js`.
+- **A blank height or weight stays blank.** Before, a blank became 175 cm and 70 kg (or 5 ft 7 in and 150 lb) and was saved as if the person had said it. Now it is saved as blank. Feet alone is a height (6 ft is 6 ft 0 in); inches alone is not. The date of birth also lost its made-up `1995-01-01`, and the age is worked out from the date typed.
+- **Anything that needs a blank number asks for it.** On Nutrition, when there is no calorie target yet and the height, weight or age is missing, the ring is replaced by a card that names what is missing ("Add your height and weight") with a button to Edit Profile. Once the numbers are saved and you come back to Nutrition, the target is worked out and the ring appears. The Coach is told which numbers are not on file and to ask for them instead of guessing. The nutrition and workout functions were already sent only the numbers that exist.
+- **Finish stamps the profile with `onboardedAt`**, the time Finish was pressed (saved to `users/<uid>`, which the rules already allow). A profile counts as finished if it has that stamp, or (for accounts that finished before this update) a saved activity level, or a saved height and weight.
+- **Signing in with an email marks onboarding done only if the saved profile is finished.** Someone who signed up and quit part way is taken back to onboarding (from its first step; answers already typed are not kept). A profile that cannot be read (offline) signs in as before.
+- **The launch gate follows Firebase, not the saved token.** On open, the app waits for Firebase's first answer. If Firebase says nobody is signed in, whatever the phone kept (the saved token, every store and saved key) is cleared and the login screen opens. If Firebase has not answered after 10 seconds, the saved token decides, as before, so a slow start never logs anyone out. Firebase itself checks a saved session with its servers before it answers, so an account removed in the console arrives as "signed out".
+- **While the app is open,** if Firebase signs the person out without them pressing Log Out, the same clearing happens and the login screen opens. Pressing Log Out yourself behaves as before.
+- **Someone signed in whose phone is not marked as set up** (they quit onboarding, or the phone's saved state was cleared) is sent by the gate to onboarding if their saved profile is unfinished, and Home if it is finished.
+
+**Order**
+
+1. Paste the apply steps and the ship step. Wait for CI.
+2. `cd expo && eas update --branch main --environment production --message "Build 10: age in sign-up, blanks stay blank, sign-in follows Firebase"`. Close the app completely and open it twice.
+3. Do the checks below. Use throwaway accounts for all of them.
+
+**Checks**
+
+*Date of birth*
+
+- [ ] Sign up with a new email. On About You, leave the date empty and tap Continue: it stays there and says "Enter your date of birth to continue." Type `12 April 1995`, then `1995-02-30`, then a date next year: each gets its own sentence. Typing again clears the sentence.
+- [ ] Type `1995-04-12` and Continue: Body Metrics opens.
+- [ ] **Under 13 (throwaway account).** Sign up, and on About You type a date 10 years ago. A screen says ZOWN HQ is for ages 13 and up and that the account was removed. In the Firebase console, Authentication, the user is gone, and so is `users/<uid>` in Firestore. Tap OK: the login screen. Logging in with that email and password now fails.
+- [ ] Type the date of someone who turns 13 today: it goes on. Tomorrow's 13th birthday: it is refused as under 13.
+
+*Blank height and weight*
+
+- [ ] Sign up and leave height and weight empty all the way to the end. Choose Skip for now. In the console, `users/<uid>` has `heightCm: null`, `weightKg: null`, an `age`, and an `onboardedAt` time. It does not have 175 or 70.
+- [ ] Open Nutrition. Instead of a ring, a card says "Add your height and weight" (or whichever is missing). Tap its button: Edit Profile opens. Enter them, save, go back to Nutrition: after a moment the ring shows a calorie target.
+- [ ] Ask the Coach how many calories to eat. It asks for your height and weight, or says it needs them. It does not quote a plan built on 175 cm and 70 kg.
+- [ ] Sign up another account and fill in height and weight: Nutrition shows a target without the card, as before.
+
+*Resuming a half-finished sign-up*
+
+- [ ] Sign up, go as far as Body Metrics, then force-quit the app. Open it again: it lands on onboarding, not Home.
+- [ ] **Log out and back in.** With that same unfinished account, delete the app and install it again (or use the second phone), then log in with the email and password: it opens onboarding, not Home. Finish it: log out and log in once more, and this time it opens Home.
+
+*Firebase ends a session*
+
+- [ ] **Deleted account.** Sign in on the phone with a throwaway account that has finished onboarding. In the Firebase console, Authentication, delete that user. Force-quit the app and open it (with a connection): you land on the login screen, not Home. Logging in with that email fails.
+- [ ] **Slow start.** Sign in on the phone, turn on airplane mode, force-quit the app and open it: you land on Home, not the login screen. Turn airplane mode off.
+- [ ] A normal Log Out and log in still work, with no extra flicker. Settings → Delete Account on a throwaway account still ends on the login screen.
+
+**If something goes wrong**
+
+- **The under-13 screen says it could not remove the account.** `deleteMyAccount` only works for a login no more than 5 minutes old, and for a Sign in with Apple account it needs a fresh Apple confirmation, which this screen does not ask for. The person was signed out and the phone was cleared, but the account is still on the servers. Email privacy@zownhq.com asking for it to be removed, or delete it in the console (Authentication, then `users/<uid>`).
+- **Someone lands on onboarding who has already finished it.** Their saved profile has none of the finished marks (no `onboardedAt`, no activity level, no height and weight together). Finishing onboarding again writes the stamp.
+- **Someone lands on the login screen after a slow start with a connection.** The gate waited 10 seconds for Firebase and then went by the saved token, so this should not happen; if it does, send me what the screen showed and how long it took.
+
+**Things this build does not do**
+
+- **Sign in with Apple, Google and Meta still mark an existing account as set up without looking at its profile.** Only the email sign-in changed. A new account made with one of them goes through onboarding, with the same date of birth step.
+- **The date of birth is checked but not saved.** The cloud profile keeps the age worked out at sign-up, as before; it does not move up on birthdays.
+- **Accounts that finished the old onboarding keep the 175 cm and 70 kg that were saved for them.** There is no way to tell a made-up number from a typed one, so none are blanked.
+- **The minimum age is 13 everywhere.** Whether a place needs a higher one (16 in parts of Europe, or parental consent) is a question for a lawyer; it is the one number in `lib/ageGate.js`.
+- **A weight from a weight log or a body scan counts as a weight on file**, so the Nutrition card asks only for what is truly missing.
+- **Onboarding answers are not kept when it is quit part way.** A resumed onboarding starts again from its first step.
+- **No new rules, indexes or functions.** `onboardedAt` goes in the person's own `users/<uid>` document, which the rules already let them write.

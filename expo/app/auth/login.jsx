@@ -18,6 +18,7 @@ import Svg, { Polygon } from 'react-native-svg';
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/authService';
+import { fetchProfileComplete } from '@/services/profileStatus';
 import { loginLayout } from '@/lib/loginLayout';
 import { hasLaunchSplashPlayed, markLaunchSplashPlayed } from '@/lib/launchSplash';
 import ZownGlitchSplash from '@/components/ZownGlitchSplash';
@@ -94,8 +95,16 @@ export default function LoginScreen() {
       const result = await authService.login(email.trim(), password);
       if (result && result.user) {
         setUser(result.user);
-        useUserStore.getState().completeOnboarding();
-        router.replace('/hq');
+        // Onboarding counts as done only if the saved profile is complete (services/profileStatus.js), so someone who signed up and
+        // quit part way through starts it again instead of skipping it. If the profile cannot be read, sign-in goes ahead as it did
+        // before: a sign-in that works is not held up by a read that did not.
+        const finished = await fetchProfileComplete(result.user.uid);
+        if (finished === false) {
+          router.replace('/onboarding');
+        } else {
+          useUserStore.getState().completeOnboarding();
+          router.replace('/hq');
+        }
       } else {
         setErrorMsg('Login failed. Please try again.');
       }

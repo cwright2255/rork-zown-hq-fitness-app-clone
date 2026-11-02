@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { fireEvent, render, within } from '@testing-library/react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
 
 jest.mock('lucide-react-native', () => new Proxy({}, { get: (_, name) => (name === '__esModule' ? false : name) }), { virtual: true });
 jest.mock('react-native-svg', () => {
@@ -59,9 +59,12 @@ jest.mock('@/store/workoutStore', () => {
   hook.getState = () => ({ completedWorkouts: [] });
   return { useWorkoutStore: hook };
 });
-jest.mock('@/lib/userProfileData', () => ({ getGoalLabels: () => [], profileForNutrition: (p) => p }));
+jest.mock('@/lib/userProfileData', () => {
+  const actual = jest.requireActual('@/lib/userProfileData');
+  return { ...actual, getGoalLabels: () => [], profileForNutrition: (p) => p };
+});
 jest.mock('@/services/coachSnapshotService', () => ({
-  getProfileFromStores: () => ({}),
+  getProfileFromStores: () => global.__profile || {},
   loadSnapshotSources: async () => {},
 }));
 
@@ -79,7 +82,7 @@ beforeEach(() => {
   global.__addGlass = jest.fn();
   global.__removeGlass = jest.fn();
 });
-afterEach(() => { jest.useRealTimers(); delete global.__glasses; delete global.__addGlass; delete global.__removeGlass; delete global.__user; });
+afterEach(() => { jest.useRealTimers(); delete global.__profile; delete global.__glasses; delete global.__addGlass; delete global.__removeGlass; delete global.__user; });
 
 const open = (meals = [], extra = {}, params = {}) => {
   global.__params = params;
@@ -449,5 +452,97 @@ describe('the stars in the diary', () => {
   it('shows no stars at all when nothing in the meal has a rating', () => {
     const utils = open(dinner([rated('Homemade stew')]));
     expect(utils.queryAllByTestId('star-rating')).toHaveLength(0);
+  });
+});
+
+describe('a blank height, weight or age: the card asks for the numbers instead of showing a target', () => {
+  const settle = () => act(async () => { for (let i = 0; i < 12; i += 1) await Promise.resolve(); });
+  const asks = (extra = {}, user = { uid: 'u1', name: 'Cj' }) => {
+    global.__user = user;
+    return open([], { shouldRefreshDailyGoals: () => true, refreshDailyGoals: jest.fn(async () => undefined), ...extra });
+  };
+
+  it('shows the ask, not the ring, when there is no target and the height and weight are blank', async () => {
+    global.__profile = { age: 31 };
+    const utils = asks();
+    await settle();
+    expect(utils.getByTestId('nutrition-needs-body')).toBeTruthy();
+    expect(utils.getByText('Add your height and weight')).toBeTruthy();
+    expect(utils.queryByText('kcal remaining')).toBeNull();
+    expect(utils.queryByText('2000')).toBeNull();
+    expect(global.__nutrition.refreshDailyGoals).not.toHaveBeenCalled(); // nothing to work a target out from
+  });
+
+  it('names exactly the numbers that are missing', async () => {
+    global.__profile = { heightCm: 180, weightKg: 80 };
+    const ageOnly = asks();
+    await settle();
+    expect(ageOnly.getByText('Add your age')).toBeTruthy();
+    ageOnly.unmount();
+
+    global.__profile = {};
+    const all = asks();
+    await settle();
+    expect(all.getByText('Add your height, weight and age')).toBeTruthy();
+  });
+
+  it('opens Edit Profile from the button', async () => {
+    global.__profile = { age: 31 };
+    const utils = asks();
+    await settle();
+    fireEvent.press(utils.getByTestId('nutrition-add-body'));
+    expect(global.__router.push).toHaveBeenCalledWith('/profile/edit');
+  });
+
+  it('shows the ring and works a target out when all three numbers are there', async () => {
+    global.__profile = { heightCm: 180, weightKg: 80, age: 31 };
+    const utils = asks();
+    await settle();
+    expect(utils.queryByTestId('nutrition-needs-body')).toBeNull();
+    expect(utils.getByText('kcal remaining')).toBeTruthy();
+    expect(global.__nutrition.refreshDailyGoals).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps showing the person\'s own target when they have one, even with a blank height', async () => {
+    global.__profile = { age: 31 };
+    const utils = asks({ dailyGoals: { calories: 2300 }, dailyGoalsUpdatedAt: '2026-09-01T10:00:00.000Z' });
+    await settle();
+    expect(utils.queryByTestId('nutrition-needs-body')).toBeNull();
+    expect(utils.getByText('2300')).toBeTruthy();
+    expect(utils.getByText('kcal remaining')).toBeTruthy();
+  });
+
+  it('shows the ring as before when the targets are fresh and nothing needs working out', async () => {
+    global.__profile = {};
+    const utils = asks({ shouldRefreshDailyGoals: () => false });
+    await settle();
+    expect(utils.queryByTestId('nutrition-needs-body')).toBeNull();
+    expect(utils.getByText('kcal remaining')).toBeTruthy();
+  });
+
+  it('works the target out, and shows it, once the numbers are added and the screen comes back', async () => {
+    global.__profile = { age: 31 };
+    global.__user = { uid: 'u1', name: 'Cj' };
+    const utils = open([], { shouldRefreshDailyGoals: () => true, refreshDailyGoals: jest.fn(async () => undefined) });
+    await settle();
+    expect(utils.getByTestId('nutrition-needs-body')).toBeTruthy();
+    expect(global.__nutrition.refreshDailyGoals).not.toHaveBeenCalled();
+
+    global.__profile = { age: 31, heightCm: 180, weightKg: 80 };
+    global.__user = { uid: 'u1', name: 'Cj', heightCm: 180, weightKg: 80 }; // Edit Profile saved them
+    utils.rerender(<NutritionScreen />);
+    await settle();
+    expect(utils.queryByTestId('nutrition-needs-body')).toBeNull();
+    expect(global.__nutrition.refreshDailyGoals).toHaveBeenCalledTimes(1);
+  });
+
+  it('looks once for the same numbers, however often the screen redraws', async () => {
+    global.__profile = { heightCm: 180, weightKg: 80, age: 31 };
+    const utils = asks();
+    await settle();
+    utils.rerender(<NutritionScreen />);
+    utils.rerender(<NutritionScreen />);
+    await settle();
+    expect(global.__nutrition.refreshDailyGoals).toHaveBeenCalledTimes(1);
   });
 });

@@ -15,6 +15,11 @@ import { useRouter } from 'expo-router';
 import { useUserStore } from '@/store/userStore';
 import { logOnboardingCompleted } from '@/src/services/analytics';
 import { ChevronLeft } from 'lucide-react-native';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions } from '../src/config/firebase';
+import { checkDateOfBirth, dateOfBirthMessage } from '@/lib/ageGate';
+import { removeUnderageAccount, UNDERAGE_TITLE, UNDERAGE_MESSAGES } from '@/services/underageRemoval';
+import { logOut } from '@/lib/logOut';
 
 const { width } = Dimensions.get('window');
 
@@ -50,6 +55,9 @@ export default function OnboardingScreen() {
   // Form Fields State
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
+  const [dobError, setDobError] = useState(null);
+  // Set when the date of birth makes the person younger than 13 (lib/ageGate.js): null | 'working' | 'removed' | 'failed'.
+  const [underage, setUnderage] = useState(null);
   const [gender, setGender] = useState('Prefer not to say');
   
   // Height / Weight units and values
@@ -89,43 +97,53 @@ export default function OnboardingScreen() {
     }
   };
 
-  // Convert height to cm for storage
+  // Convert height to cm for storage. A blank stays blank (null): the screens that need a height ask for it, instead of working from a
+  // number the person never gave. In feet and inches, feet alone is enough (5 ft, no inches, is 5 ft 0 in); inches alone is not a height.
   const getCalculatedHeight = () => {
     if (isMetric) {
-      return parseFloat(heightVal) || 175;
-    } else {
-      const ft = parseFloat(heightVal) || 5;
-      const inch = parseFloat(heightInches) || 7;
-      return Math.round((ft * 12 + inch) * 2.54);
+      const cm = parseFloat(heightVal);
+      return cm > 0 ? cm : null;
     }
+    const ft = parseFloat(heightVal);
+    if (!(ft > 0)) return null;
+    const inch = parseFloat(heightInches) || 0;
+    return Math.round((ft * 12 + inch) * 2.54);
   };
 
-  // Convert weight to kg for storage
+  // Convert weight to kg for storage. A blank stays blank (null), as for height.
   const getCalculatedWeight = () => {
-    if (isMetric) {
-      return parseFloat(weightVal) || 70;
-    } else {
-      const lbs = parseFloat(weightVal) || 150;
-      return Math.round(lbs * 0.453592);
-    }
+    const entered = parseFloat(weightVal);
+    if (!(entered > 0)) return null;
+    return isMetric ? entered : Math.round(entered * 0.453592);
   };
 
-  // Real age from the YYYY-MM-DD date of birth already collected in step 2 -
-  // accounts for whether this year's birthday has actually happened yet,
-  // not just a year subtraction. Returns null (not a guessed default) if
-  // the date doesn't parse, so downstream consumers can tell "unknown"
-  // apart from a real age of 0.
-  const getAgeFromDob = (dobString) => {
-    if (!dobString) return null;
-    const parsed = new Date(dobString);
-    if (Number.isNaN(parsed.getTime())) return null;
-    const today = new Date();
-    let years = today.getFullYear() - parsed.getFullYear();
-    const monthDiff = today.getMonth() - parsed.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsed.getDate())) {
-      years -= 1;
+  // The person is under 13 (lib/ageGate.js): the account they just made is removed and they go no further. The date they typed is not kept.
+  // A ref, not the state above: a second tap in the same moment must not start a second removal.
+  const removalStarted = useRef(false);
+  const handleUnderage = async () => {
+    if (removalStarted.current) return;
+    removalStarted.current = true;
+    setUnderage('working');
+    const { removed } = await removeUnderageAccount({
+      auth,
+      deleteAccount: () => httpsCallable(functions, 'deleteMyAccount', { timeout: 540000 })({}),
+      endSession: logOut,
+    });
+    setDob('');
+    setUnderage(removed ? 'removed' : 'failed');
+  };
+
+  // Continue on About You: the date of birth must be a real date, and the person must be 13 or older.
+  const submitAboutYou = () => {
+    const check = checkDateOfBirth(dob);
+    if (check.ok) {
+      setDobError(null);
+      nextStep();
+    } else if (check.reason === 'under_age') {
+      handleUnderage();
+    } else {
+      setDobError(dateOfBirthMessage(check.reason));
     }
-    return years >= 0 && years < 130 ? years : null;
   };
 
   // The "onboarding completed" event is sent once, however Finish ends: a second tap, or the fallback below after a save error.
@@ -138,15 +156,27 @@ export default function OnboardingScreen() {
 
   // Save profile and finish
   const handleFinish = async (destination = '/hq') => {
+    // The date of birth is checked again here: it is the one answer the rest of the profile is built on.
+    const dobCheck = checkDateOfBirth(dob);
+    if (!dobCheck.ok) {
+      if (dobCheck.reason === 'under_age') {
+        handleUnderage();
+      } else {
+        setDobError(dateOfBirthMessage(dobCheck.reason));
+        setStep(2);
+      }
+      return;
+    }
+
     try {
       const calculatedHeight = getCalculatedHeight();
       const calculatedWeight = getCalculatedWeight();
-      const calculatedAge = getAgeFromDob(dob);
+      const calculatedAge = dobCheck.age;
 
       // Setup clean, well-structured user object matching Firestore requirements
       const profileData = {
         name: name || 'User',
-        dob: dob || '1995-01-01',
+        dob: dobCheck.iso,
         gender: gender,
         // Real fix, not redundant with fitnessMetrics below: body-scan/capture.jsx
         // pre-fills its own form from these exact top-level field names
@@ -158,6 +188,9 @@ export default function OnboardingScreen() {
         heightCm: calculatedHeight,
         weightKg: calculatedWeight,
         age: calculatedAge,
+        // When Finish was pressed. The saved profile carries it, so signing in again can tell a finished setup from one that was
+        // quit part way (services/profileStatus.js).
+        onboardedAt: new Date().toISOString(),
         fitnessMetrics: {
           height: calculatedHeight,
           weight: calculatedWeight,
@@ -263,8 +296,10 @@ export default function OnboardingScreen() {
                 placeholder="YYYY-MM-DD (e.g. 1995-04-12)"
                 placeholderTextColor={'#666666'}
                 value={dob}
-                onChangeText={setDob}
+                onChangeText={(text) => { setDob(text); setDobError(null); }}
+                testID="dob-input"
               />
+              {dobError ? <Text style={styles.fieldError} testID="dob-error">{dobError}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -284,7 +319,7 @@ export default function OnboardingScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.blackButton} onPress={nextStep}>
+            <TouchableOpacity style={styles.blackButton} onPress={submitAboutYou}>
               <Text style={styles.blackButtonText}>Continue</Text>
             </TouchableOpacity>
           </View>
@@ -610,6 +645,28 @@ export default function OnboardingScreen() {
     }
   };
 
+  // Under 13: nothing else of onboarding is shown, only what happened to the account and a way out.
+  if (underage) {
+    return (
+      <View style={styles.container} testID="underage-screen">
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.underageBody}>
+          <Text style={styles.titleText}>{UNDERAGE_TITLE}</Text>
+          {underage === 'working' ? (
+            <Text style={styles.descText}>Removing the account you just made...</Text>
+          ) : (
+            <>
+              <Text style={styles.descText}>{UNDERAGE_MESSAGES[underage]}</Text>
+              <TouchableOpacity style={styles.blackButton} onPress={() => router.replace('/auth/login')}>
+                <Text style={styles.blackButtonText}>OK</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -721,6 +778,17 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 12,
     lineHeight: 34
+  },
+  fieldError: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#B00020'
+  },
+  underageBody: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center'
   },
   descText: {
     fontSize: 15,

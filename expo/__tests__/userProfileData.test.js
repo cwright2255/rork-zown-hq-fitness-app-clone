@@ -1,6 +1,7 @@
 import {
   getGoalIds, toQuickWorkoutGoals, getGoalLabels, latestWeight, weightTrend, buildProfile,
   nutritionPreferenceText, profileForNutrition, profileForWorkouts, dayTotals, buildSnapshotMessage,
+  missingBodyNumbers, joinWords,
 } from '../lib/userProfileData';
 import { normalizeActions, describeActions, buildQuestion, buildActionInstructions } from '../lib/coachActions';
 import { dietAiNote } from '../lib/dietProfile';
@@ -160,5 +161,73 @@ describe('coach goal action', () => {
   it('caps at five goals', () => {
     const goals = Array.from({ length: 9 }, (_, i) => ({ title: `G${i}`, target: 10 }));
     expect(normalizeActions([{ type: 'goal', goals }], { now: NOW }).actions[0].goals).toHaveLength(5);
+  });
+});
+
+describe('a blank height, weight or age is asked for, not guessed', () => {
+  it('lists the numbers a calorie target needs that the profile does not have, in a fixed order', () => {
+    expect(missingBodyNumbers(buildProfile({ user }))).toEqual([]);
+    expect(missingBodyNumbers(buildProfile({ user: {} }))).toEqual(['height', 'weight', 'age']);
+    expect(missingBodyNumbers(buildProfile({ user: { ...user, heightCm: null, weightKg: null } }))).toEqual(['height', 'weight']);
+    expect(missingBodyNumbers(buildProfile({ user: { ...user, heightCm: null } }))).toEqual(['height']);
+    expect(missingBodyNumbers(buildProfile({ user: { ...user, weightKg: null } }))).toEqual(['weight']);
+    expect(missingBodyNumbers(buildProfile({ user: { ...user, age: null } }))).toEqual(['age']);
+  });
+
+  it('counts a weight from a weight log or a scan as a weight on file', () => {
+    const logs = [{ weightKg: 90, createdAtLocal: iso(1) }];
+    expect(missingBodyNumbers(buildProfile({ user: { ...user, weightKg: null }, weightLogs: logs }))).toEqual([]);
+  });
+
+  it('copes with nothing at all', () => {
+    expect(missingBodyNumbers(null)).toEqual(['height', 'weight', 'age']);
+    expect(missingBodyNumbers(undefined)).toEqual(['height', 'weight', 'age']);
+  });
+
+  it('joins the words for a sentence', () => {
+    expect(joinWords(['height'])).toBe('height');
+    expect(joinWords(['height', 'weight'])).toBe('height and weight');
+    expect(joinWords(['height', 'weight', 'age'])).toBe('height, weight and age');
+    expect(joinWords([])).toBe('');
+    expect(joinWords(null)).toBe('');
+  });
+
+  it('sends the nutrition function only the numbers that are there', () => {
+    const profile = buildProfile({ user: { ...user, heightCm: null, weightKg: null } });
+    const out = profileForNutrition(profile);
+    expect(out).not.toHaveProperty('heightCm');
+    expect(out).not.toHaveProperty('weightKg');
+    expect(out.age).toBe(30);
+  });
+
+  it('tells the coach what is not on file, and to ask for it first', () => {
+    const msg = buildSnapshotMessage({ profile: buildProfile({ user: { ...user, heightCm: null, weightKg: null } }) });
+    expect(msg.content).toContain('Not on file: height and weight. Do not guess them: when an answer depends on one of them');
+    expect(msg.content).toContain('ask the person for the number first');
+    expect(msg.content).not.toContain('height 175');
+    expect(msg.content).not.toContain('weight 154');
+  });
+
+  it('says it in the singular for one missing number', () => {
+    const msg = buildSnapshotMessage({ profile: buildProfile({ user: { ...user, weightKg: null } }) });
+    expect(msg.content).toContain('Not on file: weight. Do not guess it: when an answer depends on it');
+  });
+
+  it('says nothing when everything is on file', () => {
+    const msg = buildSnapshotMessage({ profile: buildProfile({ user }) });
+    expect(msg.content).not.toContain('Not on file');
+  });
+
+  it('adds nothing, and the message stays null, when there is nothing else to say', () => {
+    expect(buildSnapshotMessage({ profile: buildProfile({ user: {} }) })).toBeNull();
+  });
+
+  it('puts the note after what is known and before nothing the coach is told to cite', () => {
+    const msg = buildSnapshotMessage({
+      profile: buildProfile({ user: { ...user, heightCm: null } }),
+      upcoming: [{ title: 'Leg Day', when: 'Thu Oct 8, 7:00 AM' }],
+    });
+    expect(msg.content.indexOf('Leg Day')).toBeLessThan(msg.content.indexOf('Not on file'));
+    expect(msg.content.indexOf('Body:')).toBeLessThan(msg.content.indexOf('Not on file'));
   });
 });

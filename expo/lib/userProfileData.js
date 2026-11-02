@@ -155,6 +155,27 @@ export function nutritionPreferenceText(diet) {
   return parts.length ? parts.join('; ') : 'no_preference';
 }
 
+/**
+ * The numbers a calorie target is worked out from that the profile does not have: a list of 'height', 'weight' and 'age' (in that
+ * order), empty when all three are there. A blank is a blank (onboarding no longer makes up a height or a weight), so whatever needs
+ * one asks the person for it, or says it is missing, instead of working from a guess.
+ */
+export function missingBodyNumbers(profile) {
+  const p = profile || {};
+  const out = [];
+  if (!p.heightCm) out.push('height');
+  if (!p.weightKg) out.push('weight');
+  if (!p.age) out.push('age');
+  return out;
+}
+
+/** ['height', 'weight'] -> "height and weight"; ['height', 'weight', 'age'] -> "height, weight and age". */
+export function joinWords(words) {
+  const list = Array.isArray(words) ? words.filter(Boolean) : [];
+  if (list.length <= 1) return list.join('');
+  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+}
+
 /** What the nutrition Cloud Function expects. Only real values are sent. */
 export function profileForNutrition(profile) {
   const p = profile || {};
@@ -269,6 +290,11 @@ export function buildSnapshotMessage({
   }
 
   if (!lines.length) return null;
+  // What the coach must not guess: a number the person never gave is asked for, not assumed.
+  const missing = missingBodyNumbers(p);
+  if (missing.length) {
+    lines.push(`Not on file: ${joinWords(missing)}. Do not guess ${missing.length === 1 ? 'it' : 'them'}: when an answer depends on ${missing.length === 1 ? 'it' : 'one of them'} (a calorie target, a portion, a load), ask the person for the number first.`);
+  }
   const header = 'More about this user, from their real app data. Use it to personalise plans (pick exercises that fit their injuries, set calories and protein from their weight and goal, fit sessions to their schedule). Only cite numbers listed here.';
   return { role: 'system', content: [header, ...lines].join(' ') };
 }

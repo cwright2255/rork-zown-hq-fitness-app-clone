@@ -32,6 +32,7 @@ jest.mock('@/services/authService', () => ({
     loginWithProvider: (...a) => global.__loginWithProvider(...a),
   },
 }));
+jest.mock('@/services/profileStatus', () => ({ fetchProfileComplete: (...a) => global.__fetchProfileComplete(...a) }));
 
 jest.mock('@/components/ZownGlitchSplash', () => {
   const mockReact = require('react');
@@ -66,6 +67,7 @@ beforeEach(() => {
   global.__setUser = jest.fn();
   global.__completeOnboarding = jest.fn();
   global.__login = jest.fn(async () => ({ user: { uid: 'u1' } }));
+  global.__fetchProfileComplete = jest.fn(async () => true);
   global.__loginWithProvider = jest.fn(async () => ({ user: { uid: 'p1' }, isNewUser: false }));
   global.__appleAvailable = jest.fn(async () => true);
 });
@@ -101,6 +103,50 @@ describe('Login screen', () => {
     expect(global.__setUser).toHaveBeenCalledWith({ uid: 'u1' });
     expect(global.__completeOnboarding).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith('/hq');
+  });
+
+  describe('marking onboarding done at sign-in follows the saved profile', () => {
+    const signIn = async () => {
+      const utils = await renderScreen();
+      typeInto(utils, 'Email', 'cj@example.com');
+      typeInto(utils, 'Password', 'secret1');
+      await submit(utils);
+      return utils;
+    };
+
+    it('looks at the profile of the account that signed in', async () => {
+      await signIn();
+      expect(global.__fetchProfileComplete).toHaveBeenCalledWith('u1');
+    });
+
+    it('marks onboarding done and opens Home when the saved profile is complete', async () => {
+      global.__fetchProfileComplete = jest.fn(async () => true);
+      await signIn();
+      expect(global.__completeOnboarding).toHaveBeenCalledTimes(1);
+      expect(router.replace).toHaveBeenCalledWith('/hq');
+    });
+
+    it('opens onboarding, and does not mark it done, when the profile was never finished (they quit part way)', async () => {
+      global.__fetchProfileComplete = jest.fn(async () => false);
+      await signIn();
+      expect(global.__completeOnboarding).not.toHaveBeenCalled();
+      expect(router.replace).toHaveBeenCalledWith('/onboarding');
+      expect(router.replace).not.toHaveBeenCalledWith('/hq');
+    });
+
+    it('signs in as before when the profile cannot be read: a sign-in that works is not held up by a read that did not', async () => {
+      global.__fetchProfileComplete = jest.fn(async () => null);
+      await signIn();
+      expect(global.__completeOnboarding).toHaveBeenCalledTimes(1);
+      expect(router.replace).toHaveBeenCalledWith('/hq');
+    });
+
+    it('does not look at any profile when the sign-in fails', async () => {
+      global.__login = jest.fn(async () => { throw new Error('auth/wrong-password'); });
+      await signIn();
+      expect(global.__fetchProfileComplete).not.toHaveBeenCalled();
+      expect(global.__completeOnboarding).not.toHaveBeenCalled();
+    });
   });
 
   it.each([

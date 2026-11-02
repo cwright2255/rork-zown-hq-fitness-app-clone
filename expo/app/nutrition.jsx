@@ -12,7 +12,8 @@ import { useNutritionStore } from '@/store/nutritionStore';
 import { useUserStore } from '@/store/userStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useWorkoutStore } from '@/store/workoutStore';
-import { getGoalLabels, profileForNutrition } from '@/lib/userProfileData';
+import { getGoalLabels, profileForNutrition, missingBodyNumbers, joinWords } from '@/lib/userProfileData';
+import { eatGoal } from '@/lib/calorieGoals';
 import { getProfileFromStores, loadSnapshotSources } from '@/services/coachSnapshotService';
 import { starsOf } from '@/lib/foodRating';
 import { localDateKey, parseDateKey } from '@/lib/localDate';
@@ -126,7 +127,7 @@ function MacroRing({ size = 180, strokeWidth = 14, macros, dailyGoalCalories, la
 export default function NutritionScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useUserStore();
-  const { meals, dailyGoals, loadNutritionData, setSyncUid, getMealsByDate, copyMealFoods } = useNutritionStore();
+  const { meals, dailyGoals, dailyGoalsUpdatedAt, loadNutritionData, setSyncUid, getMealsByDate, copyMealFoods } = useNutritionStore();
   // A day can be opened directly (the intake history does this): ?date=YYYY-MM-DD.
   const routeParams = useLocalSearchParams() || {};
   const startDate = parseDateKey(Array.isArray(routeParams.date) ? routeParams.date[0] : routeParams.date);
@@ -163,17 +164,24 @@ export default function NutritionScreen() {
   // 2000/150/200/65 default. Runs at most once per visit, only when the
   // targets are older than 14 days (or were never set) and the profile has
   // enough to calculate from. Targets the AI coach set count as fresh.
-  const autoTargetsTried = React.useRef(false);
+  // When the profile has a blank height, weight or age (onboarding leaves a blank blank), there is nothing to calculate from, so the
+  // card below asks for the numbers instead of showing a placeholder target. It runs again when those numbers change, so adding them
+  // (Edit Profile) and coming back gives the target.
+  const bodyKey = [user?.uid, user?.heightCm, user?.weightKg, user?.age, user?.fitnessMetrics?.height, user?.fitnessMetrics?.weight].join('|');
+  const [bodyMissing, setBodyMissing] = useState([]);
+  const autoTargetsTried = React.useRef(null);
   useEffect(() => {
-    if (!user?.uid || autoTargetsTried.current) return;
-    autoTargetsTried.current = true;
+    if (!user?.uid || autoTargetsTried.current === bodyKey) return;
+    autoTargetsTried.current = bodyKey;
     (async () => {
       try {
         const nutrition = useNutritionStore.getState();
         if (!nutrition.shouldRefreshDailyGoals()) return;
         await loadSnapshotSources(user.uid);
         const profile = getProfileFromStores(user);
-        if (!profile.weightKg || !profile.heightCm || !profile.age) return;
+        const missing = missingBodyNumbers(profile);
+        setBodyMissing(missing);
+        if (missing.length) return;
         const recentWorkouts = (useWorkoutStore.getState().completedWorkouts || []).slice(0, 15).map((w) => ({
           name: w.name, category: w.category, completedAt: w.completedAt,
         }));
@@ -186,7 +194,7 @@ export default function NutritionScreen() {
         console.warn('[Nutrition] automatic targets skipped:', e?.message);
       }
     })();
-  }, [user?.uid]);
+  }, [bodyKey]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -244,6 +252,8 @@ export default function NutritionScreen() {
     .map((n) => `${n.label.toLowerCase()} ${totals.listed[n.key]} of ${totals.foodCount}`);
 
   const dailyCalorieGoal = dailyGoals?.calories || 2000;
+  // No target of the person's own and no numbers to work one out from: ask for the numbers instead of showing the placeholder.
+  const needsBodyNumbers = bodyMissing.length > 0 && !eatGoal({ dailyGoals, dailyGoalsUpdatedAt });
   const caloriesConsumed = mealsForSelectedDate.reduce((s, m) => s + (m.foods || []).reduce((fs, f) => fs + (f.calories || 0), 0), 0);
   const caloriesRemaining = Math.max(0, dailyCalorieGoal - caloriesConsumed);
 
@@ -318,14 +328,26 @@ export default function NutritionScreen() {
         </View>
 
         <View style={styles.calCard}>
-          <MacroRing
-            size={180}
-            strokeWidth={14}
-            macros={totals}
-            dailyGoalCalories={dailyCalorieGoal}
-            label={caloriesRemaining}
-            subLabel="kcal remaining"
-          />
+          {needsBodyNumbers ? (
+            <View testID="nutrition-needs-body" style={styles.needsBody}>
+              <Text style={styles.needsBodyTitle}>Add your {joinWords(bodyMissing)}</Text>
+              <Text style={styles.needsBodyText}>
+                Your daily calorie and macro targets are worked out from your height, weight and age. Add the missing {bodyMissing.length === 1 ? 'number' : 'numbers'} and your target appears here.
+              </Text>
+              <TouchableOpacity testID="nutrition-add-body" style={styles.needsBodyButton} onPress={() => router.push('/profile/edit')}>
+                <Text style={styles.needsBodyButtonText}>Add {joinWords(bodyMissing)}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <MacroRing
+              size={180}
+              strokeWidth={14}
+              macros={totals}
+              dailyGoalCalories={dailyCalorieGoal}
+              label={caloriesRemaining}
+              subLabel="kcal remaining"
+            />
+          )}
         </View>
 
         <View style={styles.macroRow}>
@@ -552,6 +574,11 @@ const styles = StyleSheet.create({
     paddingVertical: 24, alignItems: 'center',
     marginTop: 8, marginBottom: 16,
   },
+  needsBody: { alignItems: 'center', paddingHorizontal: 24 },
+  needsBodyTitle: { fontSize: 20, fontWeight: '800', color: '#000000', textAlign: 'center' },
+  needsBodyText: { fontSize: 14, lineHeight: 20, color: '#666666', textAlign: 'center', marginTop: 8, marginBottom: 16 },
+  needsBodyButton: { backgroundColor: '#000000', borderRadius: 24, paddingVertical: 12, paddingHorizontal: 24 },
+  needsBodyButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   macroRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   macroChip: {
     flex: 1,

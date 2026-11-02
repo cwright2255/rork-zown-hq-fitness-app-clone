@@ -48,6 +48,9 @@ import * as Linking from 'expo-linking';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { auth, isFirebaseConfigured } from '../src/config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { authService } from '@/services/authService';
+import { handleSignedOut } from '@/services/authGate';
+import { logOut } from '@/lib/logOut';
 import Constants from 'expo-constants';
 
 void SplashScreen.preventAutoHideAsync();
@@ -104,8 +107,12 @@ function RootLayoutInner() {
       setStoresReady(true);
       return;
     }
+    // True once Firebase has reported someone signed in during this run of the app. A "signed out" report after that is Firebase
+    // ending a session while the app is open (the first report of a run is the launch gate's to handle, app/index.jsx).
+    let sawSignedIn = false;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        sawSignedIn = true;
         const uid = firebaseUser.uid;
         // The person's plan (Free, Pro or Legend) is followed from the start, so locks and limits are right as soon as a screen opens.
         useEntitlementStore.getState().startListening(uid);
@@ -139,6 +146,16 @@ function RootLayoutInner() {
         stopProgressSync();
         useEntitlementStore.getState().stopListening();
         useCalendarInviteStore.getState().unsubscribe();
+      }
+      // Firebase ended the session while the app was open: clear the saved sign-in and everything of the person on the phone, and
+      // open the login screen. (Someone who logs out themselves has already cleared the saved sign-in, so nothing happens here.)
+      if (!firebaseUser && sawSignedIn) {
+        sawSignedIn = false;
+        void handleSignedOut({
+          authService,
+          endSession: logOut,
+          openLogin: () => { import('expo-router').then(({ router }) => router.replace('/auth/login')).catch(console.error); },
+        });
       }
       setStoresReady(true);
     });

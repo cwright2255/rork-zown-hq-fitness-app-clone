@@ -50,7 +50,9 @@ describe('the launch splash is the only splash', () => {
 
   it('sends someone who is signed in straight to Home from app/index.jsx', () => {
     const index = read('app/index.jsx');
-    expect(index).toContain("<Redirect href={isOnboarded ? '/hq' : '/start'} />");
+    // Signed in and set up on this phone: Home, with nothing in between. (Signed in but not marked as set up, the saved profile says
+    // whether to go on to Home or back to onboarding: IndexStartup.test.jsx.)
+    expect(index).toMatch(/if \(isOnboarded\) \{\s+return <Redirect href="\/hq" \/>;\s+\}/);
     expect(index).not.toContain('splashDone');
   });
 

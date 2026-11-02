@@ -323,6 +323,9 @@ export const useUserStore = create(
             gender: user.gender ?? null,
             targetWeightKg: user.targetWeightKg ?? null,
             dailyCalorieGoal: user.dailyCalorieGoal ?? null,
+            // When onboarding was finished (app/onboarding.jsx). Written only when there is one, so a save from anywhere else never
+            // clears it; services/profileStatus.js reads it to tell a finished setup from one that was quit part way.
+            ...(user.onboardedAt ? { onboardedAt: user.onboardedAt } : {}),
             updatedAt: new Date().toISOString(),
           }, { merge: true });
         } catch (e) {
