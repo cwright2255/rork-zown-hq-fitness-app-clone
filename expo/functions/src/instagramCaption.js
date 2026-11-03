@@ -24,7 +24,9 @@ const PLAIN_THUMBNAIL = /"thumbnail_src":"((?:[^"\\]|\\.)*)"/;
 // Where each value's string starts in the wrapped shape (the text just before its opening quote mark, which is written \").
 const WRAPPED_CAPTION = '\\"edge_media_to_caption\\":{\\"edges\\":[{\\"node\\":{\\"text\\":\\"';
 const WRAPPED_OWNER = /\\"owner\\":\{\\"id\\":\\"[^"\\]*\\",\\"username\\":\\"/;
-const WRAPPED_THUMBNAIL = '\\"thumbnail_src\\":\\"';
+// The picture: Instagram's own thumbnail when the page has one, and otherwise the post's picture (the first one, for a post with
+// several). The live page in the wrapped shape has no thumbnail_src at all, only display_url.
+const WRAPPED_THUMBNAILS = ['\\"thumbnail_src\\":\\"', '\\"display_url\\":\\"'];
 
 const OUTER_ESCAPES = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
 
@@ -88,6 +90,15 @@ function wrappedValue(html, start) {
   return match ? readWrappedString(html, match.index + match[0].length) : null;
 }
 
+// The first of the markers that is on the page and reads as a string.
+function firstWrappedValue(html, starts) {
+  for (const start of starts) {
+    const value = wrappedValue(html, start);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 function decoded(raw) {
   if (raw === null) return null;
   try {
@@ -124,7 +135,7 @@ export function readEmbedPage(html) {
 
   // The caption is the essential piece: a user name or picture that cannot be read is left out, and the caption is kept.
   const username = decoded(plain ? plainValue(html, PLAIN_OWNER) : wrappedValue(html, WRAPPED_OWNER));
-  const thumbnail = decoded(plain ? plainValue(html, PLAIN_THUMBNAIL) : wrappedValue(html, WRAPPED_THUMBNAIL));
+  const thumbnail = decoded(plain ? plainValue(html, PLAIN_THUMBNAIL) : firstWrappedValue(html, WRAPPED_THUMBNAILS));
   return {
     ok: true,
     caption,

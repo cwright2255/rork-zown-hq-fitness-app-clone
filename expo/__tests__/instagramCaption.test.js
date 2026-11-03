@@ -97,6 +97,56 @@ describe('readEmbedPage: the wrapped shape', () => {
     expect(out).toEqual({ ok: true, caption: 'Just words', username: null, thumbnail: null });
   });
 
+  describe('the picture', () => {
+    const { thumbnail_src: _none, ...withoutThumbnail } = post('Pasta');
+
+    it('is the post\'s display_url when the page has no thumbnail_src, which is how the live page is', () => {
+      const out = readEmbedPage(wrappedPage({ ...withoutThumbnail, display_url: 'https://cdn.example/display.jpg?a=1&b=2' }));
+      expect(out).toEqual({
+        ok: true, caption: 'Pasta', username: 'chef.amy', thumbnail: 'https://cdn.example/display.jpg?a=1&b=2',
+      });
+    });
+
+    it('is the thumbnail_src when the page has both', () => {
+      const out = readEmbedPage(wrappedPage({ ...post('Pasta'), display_url: 'https://cdn.example/display.jpg' }));
+      expect(out.thumbnail).toBe('https://cdn.example/pic.jpg?x=1&y=2');
+    });
+
+    it('is the display_url when the thumbnail_src is there and cannot be read', () => {
+      const page = wrappedPage({ ...post('Pasta', { thumbnail_src: 'broken' }), display_url: 'https://cdn.example/display.jpg' })
+        .replace('broken', 'bro\\qken');
+      expect(page).toContain('bro\\qken');
+      expect(readEmbedPage(page).thumbnail).toBe('https://cdn.example/display.jpg');
+    });
+
+    it('is null, with the caption kept, when the display_url will not decode', () => {
+      const page = wrappedPage({ ...withoutThumbnail, display_url: 'broken' }).replace('broken', 'bad\\\\uZZZZ');
+      expect(page).toContain('bad\\\\uZZZZ');
+      const out = readEmbedPage(page);
+      expect(out.ok).toBe(true);
+      expect(out.caption).toBe('Pasta');
+      expect(out.thumbnail).toBeNull();
+    });
+
+    it('is not the poster\'s profile picture', () => {
+      const out = readEmbedPage(wrappedPage({
+        ...withoutThumbnail, owner: { id: '42', username: 'chef.amy', profile_pic_url: 'https://cdn.example/profile.jpg' },
+      }));
+      expect(out.thumbnail).toBeNull();
+    });
+
+    it('reads the live page: the first picture of the post, with %3D written as \\\\u00253D and slashes as \\\\\\/', () => {
+      // The live carousel's data as it came back (the caption and the pictures' addresses cut short), with nothing named thumbnail_src.
+      const live = String.raw`\"edge_media_to_caption\":{\"edges\":[{\"node\":{\"text\":\"Episode 14 : What\\u2019s for Supper? \\n\\nLet\\u2019s Make Red Thai Curry Dumpling Bake \\ud83e\\udd29\"}}]},\"edge_media_to_comment\":{\"count\":416},\"owner\":{\"id\":\"30384640177\",\"username\":\"entreesofdelight\",\"is_verified\":false,\"profile_pic_url\":\"https:\\\/\\\/scontent-iad3-1.cdninstagram.com\\\/v\\\/t51.2885-19\\\/152400718_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_cat=108&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0\\u00253D&_nc_ohc=jKGncikCYZ8\",\"edge_followed_by\":{\"count\":239551}},\"edge_sidecar_to_children\":{\"edges\":[{\"node\":{\"id\":\"3814495151818008116\",\"shortcode\":\"DTvzyFpj-Y0\",\"is_video\":false,\"display_url\":\"https:\\\/\\\/scontent-iad3-2.cdninstagram.com\\\/v\\\/t51.82787-15\\\/617894891_n.jpg?stp=dst-jpg_e35_tt6&ig_cache_key=MzgxNDQ5NTE1MTgxODAwODExNg\\u00253D\\u00253D.3-ccb7-5&_nc_sid=58cdad\",\"display_resources\":[{\"src\":\"https:\\\/\\\/scontent-iad3-2.cdninstagram.com\\\/v\\\/t51.82787-15\\\/617894891_n.jpg\",\"config_width\":1440}]}},{\"node\":{\"id\":\"3814495151759237191\",\"shortcode\":\"DTvzyFmDyBH\",\"is_video\":false,\"display_url\":\"https:\\\/\\\/scontent-iad3-2.cdninstagram.com\\\/v\\\/t51.82787-15\\\/second.jpg\"}}]}`;
+      expect(readEmbedPage(live)).toEqual({
+        ok: true,
+        caption: 'Episode 14 : What’s for Supper? \n\nLet’s Make Red Thai Curry Dumpling Bake 🤩',
+        username: 'entreesofdelight',
+        thumbnail: 'https://scontent-iad3-2.cdninstagram.com/v/t51.82787-15/617894891_n.jpg?stp=dst-jpg_e35_tt6&ig_cache_key=MzgxNDQ5NTE1MTgxODAwODExNg%3D%3D.3-ccb7-5&_nc_sid=58cdad',
+      });
+    });
+  });
+
   it('keeps the caption when the user name will not decode', () => {
     const page = `{"x":"${wrapped(post('Kept')).replace('chef.amy', 'bad\\\\uZZZZ')}"}`;
     const out = readEmbedPage(page);
