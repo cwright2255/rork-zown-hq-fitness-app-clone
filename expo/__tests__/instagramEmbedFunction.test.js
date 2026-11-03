@@ -121,6 +121,46 @@ describe('instagramEmbed: an Instagram post', () => {
     expect(out.body.caption).toBe('Kept');
   });
 
+  // Instagram's page now holds the same data a second time as a string inside its own data: every quote mark and backslash has one more
+  // backslash in front of it (functions/src/instagramCaption.js). This writes a page the way the live one is written.
+  const wrappedPage = (data) => {
+    const json = JSON.stringify(data)
+      .replace(/[\u0080-\uffff]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+      .replace(/\//g, '\\/');
+    return `<html><title>Instagram</title><script>{"contextJSON":"${JSON.stringify(json).slice(1, -1)}"}</script></html>`;
+  };
+  const wrappedPost = (text) => wrappedPage({
+    owner: { id: '42', username: 'chef.amy' },
+    thumbnail_src: 'https://cdn.example/pic.jpg',
+    edge_media_to_caption: { edges: [{ node: { text } }] },
+  });
+
+  it('reads a page in the wrapped shape: the caption, the account and the picture', async () => {
+    const text = 'What\u2019s for supper?\n\nRed Thai curry \ud83e\udd29 \u2022 1/2 cup "coconut" milk';
+    global.fetch.mockResolvedValue(page(wrappedPost(text)));
+    const out = await send();
+    expect(out.status).toBe(200);
+    expect(out.body).toEqual({ caption: text, username: 'chef.amy', thumbnail: 'https://cdn.example/pic.jpg' });
+  });
+
+  it('counts an import from a page in the wrapped shape like any other', async () => {
+    global.fetch.mockResolvedValue(page(wrappedPost('Anything')));
+    await send();
+    expect(usedToday()).toBe(1);
+  });
+
+  it('still says no caption was found for a wrapped page that lists none, and logs that the caption name was there', async () => {
+    global.fetch.mockResolvedValue(page(wrappedPage({ edge_media_to_caption: { edges: [] } })));
+    expect(await send()).toEqual({ status: 404, body: { error: 'No caption was found for that post.' } });
+    expect(console.warn).toHaveBeenCalledWith('[instagramEmbed]', 'no caption pattern', expect.objectContaining({ status: 200, partialMarker: true }));
+  });
+
+  it('says no caption was found for an empty caption in the wrapped shape', async () => {
+    global.fetch.mockResolvedValue(page(wrappedPost('')));
+    expect(await send()).toEqual({ status: 404, body: { error: 'No caption was found for that post.' } });
+    expect(console.warn).toHaveBeenCalledWith('[instagramEmbed]', 'caption decoded to nothing', '');
+  });
+
   it('follows a redirect to the other Instagram host', async () => {
     global.fetch.mockResolvedValueOnce(redirect('https://instagram.com/p/ABC123/embed/captioned/')).mockResolvedValueOnce(page());
     const out = await send();

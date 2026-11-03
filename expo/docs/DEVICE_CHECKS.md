@@ -1512,7 +1512,7 @@ Four stages, each with its own checks. Do not start a stage until the one before
 
 - **Stage 1: Firebase settings come from EAS.** No code. The six `EXPO_PUBLIC_FIREBASE_*` variables are set in the EAS production environment, so an update carries the same API key and app id as the binary (the iOS ones in `eas.json`) instead of the web fallback written in `src/config/firebase.js`. The six unused third-party keys (Calorie, Places, Passio, RapidAPI, Spoonacular, TrailAPI) are deleted from it. Nothing in the app reads those six.
 - **Stage 2: the app sends the person's sign-in token** with an Instagram recipe import (to `instagramEmbed`) and with a 3D body request (to the mesh service). The token is read only when a request goes to the network, so a mesh already saved on the phone still loads with none. Nothing refuses a missing token yet, so you will not see a difference in this stage.
-- **Stage 3: `instagramEmbed` needs a good token.** A request without one is answered 401 ("Sign in to import from Instagram."), before the link is looked at. Each person may import 30 posts a day (429, "That is today's limit for importing from Instagram. Try again tomorrow."), counted in Firestore `aiUsage/<uid>_<day>` under `instagram`; the day ends at midnight Eastern. Only a link that passed the Instagram address check is counted, whether or not a caption is found.
+- **Stage 3: `instagramEmbed` needs a good token.** A request without one is answered 401 ("Sign in to import from Instagram."), before the link is looked at. Each person may import 30 posts a day (429, "That is today's limit for importing from Instagram. Try again tomorrow."), counted in Firestore `aiUsage/<uid>_<day>` under `instagram`; the day ends at midnight Eastern. Only a link that passed the Instagram address check is counted, whether or not a caption is found. This deploy also fixes the import itself: Instagram now writes a post's caption, user name and picture a second time as a string inside the page's own data, with one more backslash in front of every quote mark and backslash, and the function looked only for the plain form, so it found "No caption was found for that post." on every post. `functions/src/instagramCaption.js` reads both forms.
 - **Stage 4: the mesh service needs a good token** (`anny-service/token_guard.py`). A request to `/generate-mesh` without one is answered 401 before any work starts. `GET /health` stays open. The deploy keeps `--allow-unauthenticated`, because Cloud Run's own sign-in cannot read a Firebase token; the service checks it itself.
 - **Not in this build: the Rook host.** The wearable functions keep the sandbox host (`api.rook-connect.review`) until Rook says which host and keys real accounts use.
 
@@ -1565,8 +1565,18 @@ These two show only that nothing broke. The server does not check the token yet,
 
 **Stage 3: the Instagram function** (once everyone has opened the stage 2 update twice)
 
+Before the deploy, check that the new reader finds the caption on a real post. From the Codespace, with the part of a post's link after `/p/` or `/reel/` in place of `<code>` (a post that has a caption):
+
 ```
-cd expo && firebase deploy --only functions:instagramEmbed --project zown-3c512
+cd /workspaces/rork-zown-hq-fitness-app-clone/expo/functions
+curl -s -A 'Mozilla/5.0 (compatible; RecipeBot/1.0)' 'https://www.instagram.com/p/<code>/embed/captioned/' > /tmp/embed.html
+NODE_NO_WARNINGS=1 node --input-type=module -e "import { readFileSync } from 'node:fs'; import { readEmbedPage } from './src/instagramCaption.js'; const out = readEmbedPage(readFileSync('/tmp/embed.html', 'utf8')); console.log(out.ok ? out : out.reason)"
+```
+
+It prints `{ ok: true, caption: '...', username: '...', thumbnail: '...' }` with the post's caption. If it prints `no-caption-pattern`, do not deploy: send me what `grep -a -o 'edge_media_to_caption.\{0,200\}' /tmp/embed.html | head -1` prints. Then the deploy:
+
+```
+cd /workspaces/rork-zown-hq-fitness-app-clone/expo && firebase deploy --only functions:instagramEmbed --project zown-3c512
 ```
 
 - [ ] Firebase console, Functions: `instagramEmbed` has a new deploy time.
@@ -1574,7 +1584,7 @@ cd expo && firebase deploy --only functions:instagramEmbed --project zown-3c512
       `curl -s -X POST https://us-central1-zown-3c512.cloudfunctions.net/instagramEmbed -H "Content-Type: application/json" -d '{"url":"https://www.instagram.com/p/abc/"}'`
 - [ ] So is one with a made-up token, and the answer is the same words: add `-H "Authorization: Bearer nonsense"` to the line above.
 - [ ] The Build 6 line that checked a non-Instagram link now prints the same sign-in sentence instead of "Send the link to an Instagram post.": the token is asked for first. A GET still prints `{"error":"Method not allowed"}`.
-- [ ] On the phone, Recipes, import a recipe from an Instagram post. It comes in. This is the check that matters: it shows the app is sending a token the function accepts. If it now fails, tell me what the app showed.
+- [ ] On the phone, Recipes, import a recipe from an Instagram post. It comes in, with its caption. This is the check that matters: it shows the app is sending a token the function accepts and that the caption is read from Instagram's current page. If it now fails, tell me what the app showed: "Sign in to import from Instagram." means the token was refused, "No caption was found for that post." means the token was accepted and the page was not read.
 - [ ] Firebase console, Firestore, `aiUsage`, the document `<your uid>_<today's date>` (the uid is under Authentication): `instagram` is the number of imports you did today. It goes up by one each time.
 - [ ] You will not reach the limit of 30 by hand. If you ever do, the app shows the "today's limit" sentence.
 

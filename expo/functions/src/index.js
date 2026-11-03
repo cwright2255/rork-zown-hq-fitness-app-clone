@@ -28,6 +28,7 @@ import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js
 import { checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP, INSTAGRAM_DAILY_CAP } from './aiQuota.js';
 import { signedInUid } from './bearerToken.js';
 import { instagramUrl, embedUrl, fetchFromInstagram } from './instagramUrl.js';
+import { readEmbedPage } from './instagramCaption.js';
 import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
 import { getInviteStatus as inviteStatusFor, redeemInvite } from './referrals.js';
 
@@ -1130,43 +1131,28 @@ export const instagramEmbed = onRequest(
 
       const html = await response.text();
 
-      const captionMatch = html.match(/"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"((?:[^"\\]|\\.)*)"/);
-      if (!captionMatch) {
-        const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-        embedProblem(res, 404, 'no caption pattern', {
-          status: response.status,
-          chars: html.length,
-          title: titleMatch?.[1] || 'none',
-          partialMarker: html.includes('edge_media_to_caption'),
-          loginMarker: /log ?in|Log In|challenge|rate.?limit|Sorry, this page/i.test(html),
-        });
+      // The caption, and when they are there the user name and picture, in either of the two shapes Instagram has used for them
+      // (functions/src/instagramCaption.js).
+      const page = readEmbedPage(html);
+      if (!page.ok) {
+        if (page.reason === 'would-not-decode') {
+          embedProblem(res, 500, 'caption would not decode', page.detail);
+        } else if (page.reason === 'empty') {
+          embedProblem(res, 404, 'caption decoded to nothing');
+        } else {
+          const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+          embedProblem(res, 404, 'no caption pattern', {
+            status: response.status,
+            chars: html.length,
+            title: titleMatch?.[1] || 'none',
+            partialMarker: html.includes('edge_media_to_caption'),
+            loginMarker: /log ?in|Log In|challenge|rate.?limit|Sorry, this page/i.test(html),
+          });
+        }
         return;
       }
 
-      let caption;
-      try {
-        caption = JSON.parse(`"${captionMatch[1]}"`);
-      } catch (e) {
-        embedProblem(res, 500, 'caption would not decode', e?.message);
-        return;
-      }
-      if (!caption) {
-        embedProblem(res, 404, 'caption decoded to nothing');
-        return;
-      }
-
-      const usernameMatch = html.match(/"owner":\{"id":"[^"]*","username":"((?:[^"\\]|\\.)*)"/);
-      const thumbnailMatch = html.match(/"thumbnail_src":"((?:[^"\\]|\\.)*)"/);
-      let username = null;
-      let thumbnail = null;
-      try {
-        if (usernameMatch) username = JSON.parse(`"${usernameMatch[1]}"`);
-        if (thumbnailMatch) thumbnail = JSON.parse(`"${thumbnailMatch[1]}"`);
-      } catch {
-        // caption is the essential piece here, keep it regardless
-      }
-
-      res.status(200).json({ caption, username, thumbnail });
+      res.status(200).json({ caption: page.caption, username: page.username, thumbnail: page.thumbnail });
     } catch (error) {
       embedProblem(res, 500, 'failed', error?.message);
     }
