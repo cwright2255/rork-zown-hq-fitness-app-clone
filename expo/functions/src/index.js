@@ -21,6 +21,7 @@ import { settleExpiredDuels, countsNow } from './duelSettle.js';
 import { numberInRange, trailServiceId, placePhotoName, foodSearchText } from './proxyInput.js';
 import { trimUsdaFoods } from './usdaFoods.js';
 import { askWithinScope, withScopePolicy, REFUSAL } from './scope.js';
+import { readRecipe } from './recipeReply.js';
 import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
 import { sanitizeTrainingState, trainingStateText } from './trainingState.js';
@@ -207,8 +208,9 @@ export const postLLM = onCall(
     }
 
     // One message from today's allowance for the person's plan (lib/entitlements.js). `kind` says which allowance: 'coach' for the Coach
-    // chat, 'assist' for the other helpers; a request that says nothing, or something else, is taken as 'coach'. A request the model
-    // declines as off-topic still counts; one that fails before the person gets anything is given back.
+    // chat, 'assist' for the other helpers, 'recipe' (counted as 'assist') for recipe import; a request that says nothing, or something
+    // else, is taken as 'coach'. A request the model declines as off-topic still counts; one that fails before the person gets anything
+    // is given back.
     // The daily Today brief ('brief') is open to every plan and counted with the 'insight' comments; a feature that needs a plan is checked before anything is counted or sent.
     const { bucket, feature } = aiRequestPlan(kind);
     if (feature) await requireFeature(uid, feature);
@@ -218,6 +220,16 @@ export const postLLM = onCall(
 
     try {
       const openai = getOpenAI();
+      if (kind === 'recipe') {
+        // Recipe import (services/recipeExtractionService.js): the app turns a post's caption, a page's details or pasted text into a
+        // recipe. The topic check turned the captions of real recipe posts away as "outside fitness and health", so this kind goes
+        // without it: the rule still goes first, the reply is asked for as JSON, and only a recipe read out of it (recipeReply.js) is
+        // sent back, so this cannot be used to ask the model anything else. 'null' says there was none; the app already reads that.
+        const reply = await askWithinScope(openai, { model: 'gpt-4o', messages, response_format: { type: 'json_object' } }, { gate: false });
+        const recipe = readRecipe(reply.completion.choices[0]?.message?.content);
+        if (!recipe) console.info('[postLLM] a recipe request came back without a recipe');
+        return { completion: recipe ? JSON.stringify(recipe) : 'null' };
+      }
       // The topic check and the answer start together (a person on topic waits for the slower one, not both); the answer is only
       // returned when the check says yes.
       const answer = await askWithinScope(openai, { model: 'gpt-4o', messages }, { parallel: true });

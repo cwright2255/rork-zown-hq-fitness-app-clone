@@ -709,7 +709,9 @@ If real ingredients/instructions were provided above, reproduce them faithfully 
 If no recipe is found at all (not even in the real structured data above, and not within a video caption if this was a video), return null. Only return valid JSON.
 `;
 
-      const completion = await askLLM([{ role: 'user', content: prompt }]);
+      // kind 'recipe': counted with the other AI helpers, and the server reads the reply as a recipe instead of putting the request
+      // through the topic check, which turned the captions of real recipe posts away as "outside fitness and health".
+      const completion = await askLLM([{ role: 'user', content: prompt }], { kind: 'recipe' });
 
       try {
         const jsonMatch = completion.match(/\{[\s\S]*\}/);

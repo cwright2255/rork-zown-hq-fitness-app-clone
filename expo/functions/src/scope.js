@@ -141,10 +141,12 @@ export async function isInScope(openai, messages) {
 // `{ parallel: true }` both start together, so a person who is on topic waits for the slower of the two
 // instead of the sum of the two. Nothing the main model writes is ever returned unless the check says yes:
 // on a no (or a failed check) the main call is cancelled and its answer, or its failure, is dropped.
-export async function askWithinScope(openai, { messages, ...options }, { parallel = false } = {}) {
+export async function askWithinScope(openai, { messages, ...options }, { parallel = false, gate = true } = {}) {
   const forwarded = fitToBudget(messages);
   if (!forwarded) throw new HttpsError('invalid-argument', 'That conversation is too long to send');
   const request = { ...options, messages: withScopePolicy(forwarded) };
+  // `gate: false` leaves the check out: the rule still goes first, and the caller reads the reply itself (recipe import, recipeReply.js).
+  if (!gate) return { refused: false, completion: await openai.chat.completions.create(request) };
   if (!parallel) {
     if (!(await isInScope(openai, forwarded))) return { refused: true };
     return { refused: false, completion: await openai.chat.completions.create(request) };

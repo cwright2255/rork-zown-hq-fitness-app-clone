@@ -14,8 +14,10 @@ import { functions } from '../src/config/firebase';
  * { type: 'image_url', image_url: { url } }) and resolves to the reply text.
  * Rejects when the call fails or the reply is not text. `kind` is which daily
  * AI allowance it uses (lib/entitlements.js): the one-off helpers that come
- * through here (the meal photo scanner, recipe import) are 'assist'. When the
- * allowance is used up the error carries the reason (lib/upgradePrompt.js).
+ * through here (the meal photo scanner) are 'assist'. Recipe import is 'recipe': counted with
+ * 'assist', but the server reads the reply as a recipe (functions/src/recipeReply.js) in place
+ * of the topic check, and sends back the recipe as JSON text, or 'null'. When the allowance is
+ * used up the error carries the reason (lib/upgradePrompt.js).
  */
 export async function askLLM(messages, { timeoutMs = 60000, kind = 'assist' } = {}) {
   const call = httpsCallable(functions, 'postLLM', { timeout: timeoutMs });

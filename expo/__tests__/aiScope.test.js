@@ -338,6 +338,45 @@ describe('askWithinScope', () => {
     await expect(scope.askWithinScope(openai(), { model: 'gpt-4o', messages: huge })).rejects.toMatchObject({ code: 'invalid-argument' });
     expect(global.__create).not.toHaveBeenCalled();
   });
+
+  it('leaves the check out when told gate is false, and still puts the rule first and passes the settings on', async () => {
+    fakeModels({ allowed: false, answer: '{"name":"Soup"}' });
+    const answer = await scope.askWithinScope(openai(), { model: 'gpt-4o', response_format: { type: 'json_object' }, messages }, { gate: false });
+    expect(answer.refused).toBe(false);
+    expect(answer.completion.choices[0].message.content).toBe('{"name":"Soup"}');
+    expect(gateCalls()).toHaveLength(0);
+    expect(global.__create).toHaveBeenCalledTimes(1);
+    expect(global.__create.mock.calls[0]).toHaveLength(1);
+    expect(mainCalls()[0]).toEqual({ model: 'gpt-4o', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: scope.SCOPE_POLICY }, ...messages] });
+  });
+
+  it('leaves the check out whether or not the two models are run side by side', async () => {
+    fakeModels({ allowed: false });
+    await scope.askWithinScope(openai(), { model: 'gpt-4o', messages }, { gate: false, parallel: true });
+    expect(gateCalls()).toHaveLength(0);
+    expect(mainCalls()).toHaveLength(1);
+  });
+
+  it('still trims the conversation, and refuses one that cannot fit, when the check is left out', async () => {
+    fakeModels();
+    const huge = [{ role: 'user', content: 'x'.repeat(scope.MAX_TEXT_CHARS + 1) }];
+    await expect(scope.askWithinScope(openai(), { model: 'gpt-4o', messages: huge }, { gate: false })).rejects.toMatchObject({ code: 'invalid-argument' });
+    expect(global.__create).not.toHaveBeenCalled();
+  });
+
+  it('passes a failure of the main model on when the check is left out', async () => {
+    global.__create = jest.fn(async () => { throw new Error('OpenAI is down'); });
+    await expect(scope.askWithinScope(openai(), { model: 'gpt-4o', messages }, { gate: false })).rejects.toThrow('OpenAI is down');
+  });
+
+  it('keeps the check on when gate is given as true or left out', async () => {
+    for (const options of [{ gate: true }, {}]) {
+      fakeModels({ allowed: false });
+      await expect(scope.askWithinScope(openai(), { model: 'gpt-4o', messages }, options)).resolves.toEqual({ refused: true });
+      expect(gateCalls()).toHaveLength(1);
+      expect(mainCalls()).toHaveLength(0);
+    }
+  });
 });
 
 describe('askWithinScope with the check and the answer side by side', () => {
@@ -587,6 +626,90 @@ describe('postLLM', () => {
   it('keeps its secret and region', () => {
     expect(fns.postLLM.__opts.secrets.map((s) => s.name)).toEqual(['OPENAI_API_KEY']);
     expect(fns.postLLM.__opts.region).toBe('us-central1');
+  });
+});
+
+describe('postLLM for recipe import', () => {
+  const importRequest = [{ role: 'user', content: 'Analyze the following content and extract a complete recipe if one exists.\nDescription: Fiesta Taco Potato Skillet is an easy weeknight dinner my family loves!\n#easyrecipes\nReturn a JSON object.' }];
+  const recipe = {
+    name: 'Fiesta Taco Potato Skillet',
+    ingredients: [{ id: '1', name: '5 small potatoes', amount: 5, unit: 'whole' }],
+    instructions: ['Cube the potatoes', 'Brown the beef'],
+    servings: 4,
+  };
+  const askRecipe = (messages = importRequest) => call('postLLM', { messages, kind: 'recipe' });
+
+  it('does not put the request through the topic check, which turned the captions of real recipe posts away', async () => {
+    fakeModels({ allowed: false, answer: JSON.stringify(recipe) });
+    const answer = await askRecipe();
+    expect(gateCalls()).toHaveLength(0);
+    expect(JSON.parse(answer.completion)).toEqual(recipe);
+    expect(answer).not.toHaveProperty('refused');
+  });
+
+  it('asks the main model once, for JSON, with the rule in front of the request exactly as it came', async () => {
+    fakeModels({ answer: JSON.stringify(recipe) });
+    await askRecipe();
+    expect(global.__create).toHaveBeenCalledTimes(1);
+    expect(mainCalls()[0]).toEqual({
+      model: 'gpt-4o',
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: scope.SCOPE_POLICY }, ...importRequest],
+    });
+    expect(global.__create.mock.calls[0]).toHaveLength(1);
+  });
+
+  it('sends back the recipe as JSON text, which is what the app already reads', async () => {
+    fakeModels({ answer: JSON.stringify(recipe) });
+    const answer = await askRecipe();
+    expect(typeof answer.completion).toBe('string');
+    expect(answer).toEqual({ completion: JSON.stringify(recipe) });
+  });
+
+  it('sends back only the recipe: nothing else the model wrote, and every field cut to size', async () => {
+    fakeModels({ answer: JSON.stringify({ ...recipe, message: 'And here is some tax advice...', name: 'N'.repeat(5000) }) });
+    const out = JSON.parse((await askRecipe()).completion);
+    expect(out).not.toHaveProperty('message');
+    expect(out.name).toHaveLength(200);
+  });
+
+  it('says null, and never what the model wrote, when the reply is not a recipe', async () => {
+    for (const text of ['Here is a poem about taxes.', JSON.stringify({ message: scope.REFUSAL }), '{}', 'null', JSON.stringify({ name: 'Soup', ingredients: [], instructions: [] })]) {
+      fakeModels({ answer: text });
+      expect(await askRecipe()).toEqual({ completion: 'null' });
+    }
+  });
+
+  it('cannot be used to ask the model something else: a reply that is only an answer comes back as null', async () => {
+    fakeModels({ answer: 'Buy index funds and hold them.' });
+    const answer = await askRecipe([{ role: 'user', content: 'Which stocks should I buy this year?' }]);
+    expect(answer).toEqual({ completion: 'null' });
+    expect(JSON.stringify(answer)).not.toContain('index funds');
+  });
+
+  it('needs a signed-in caller and a list of messages, like every other request', async () => {
+    await expect(call('postLLM', { messages: importRequest, kind: 'recipe' }, null)).rejects.toMatchObject({ code: 'unauthenticated' });
+    await expect(call('postLLM', { messages: [], kind: 'recipe' })).rejects.toMatchObject({ code: 'invalid-argument' });
+    expect(global.__create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a conversation too long to send, without calling the model', async () => {
+    await expect(askRecipe([{ role: 'user', content: 'x'.repeat(scope.MAX_TEXT_CHARS + 1) }])).rejects.toMatchObject({ code: 'invalid-argument' });
+    expect(global.__create).not.toHaveBeenCalled();
+  });
+
+  it('passes an OpenAI failure on', async () => {
+    global.__create = jest.fn(async () => { throw new Error('OpenAI is down'); });
+    await expect(askRecipe()).rejects.toThrow('OpenAI is down');
+  });
+
+  it('is the only kind that goes without the check: any other kind, and a kind that says nothing, still goes through it', async () => {
+    for (const kind of ['assist', 'coach', 'insight', 'brief', 'memory', 'Recipe', 'recipes', undefined]) {
+      fakeModels({ allowed: false, answer: JSON.stringify(recipe) });
+      const answer = await call('postLLM', { messages: importRequest, ...(kind ? { kind } : {}) });
+      expect(answer).toEqual({ completion: scope.REFUSAL, refused: true });
+      expect(gateCalls()).toHaveLength(1);
+    }
   });
 });
 

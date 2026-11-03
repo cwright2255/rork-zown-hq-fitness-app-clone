@@ -1513,6 +1513,7 @@ Four stages, each with its own checks. Do not start a stage until the one before
 - **Stage 1: Firebase settings come from EAS.** No code. The six `EXPO_PUBLIC_FIREBASE_*` variables are set in the EAS production environment, so an update carries the same API key and app id as the binary (the iOS ones in `eas.json`) instead of the web fallback written in `src/config/firebase.js`. The six unused third-party keys (Calorie, Places, Passio, RapidAPI, Spoonacular, TrailAPI) are deleted from it. Nothing in the app reads those six.
 - **Stage 2: the app sends the person's sign-in token** with an Instagram recipe import (to `instagramEmbed`) and with a 3D body request (to the mesh service). The token is read only when a request goes to the network, so a mesh already saved on the phone still loads with none. Nothing refuses a missing token yet, so you will not see a difference in this stage.
 - **Stage 3: `instagramEmbed` needs a good token.** A request without one is answered 401 ("Sign in to import from Instagram."), before the link is looked at. Each person may import 30 posts a day (429, "That is today's limit for importing from Instagram. Try again tomorrow."), counted in Firestore `aiUsage/<uid>_<day>` under `instagram`; the day ends at midnight Eastern. Only a link that passed the Instagram address check is counted, whether or not a caption is found. This deploy also fixes the import itself: Instagram now writes a post's caption, user name and picture a second time as a string inside the page's own data, with one more backslash in front of every quote mark and backslash, and the function looked only for the plain form, so it found "No caption was found for that post." on every post. `functions/src/instagramCaption.js` reads both forms. The page no longer has a `thumbnail_src`, so the recipe's picture is the post's own `display_url` (the first picture, for a post with several).
+- **Stage 3b: the recipe import's AI step.** Found while checking stage 3 on a phone: the Instagram function worked (its log showed the caption was read), but the app then sends the caption to `postLLM` to turn it into a recipe, and the topic check there said "outside fitness and health" to the captions of recipe posts (`[postLLM] declined a request outside fitness and health` in its log), so no recipe came in and the app showed "Instagram Links Need a Little Help" with no reason. Build 11 did not cause it: the topic check dates from Oct 23. The import now asks with `kind: 'recipe'`. For that kind only, `postLLM` leaves the topic check out, keeps the scope rule in front of the request, counts it with the other AI helpers (`assist`: 5 a day on Free, 100 on Pro, 300 on Legend, as before), asks for the reply as JSON and sends back only a recipe read out of it (`functions/src/recipeReply.js`): a name, ingredients, steps and the other recipe fields, each cut to size, or `null`. It covers every import that reaches the AI: Instagram and TikTok captions, text pasted into "From Text", and pages with no recipe data of their own. Every other kind (Coach, Help, the meal photo scanner, the Today brief) is still checked as before. An app update from before this one keeps working: it still asks with `assist`.
 - **Stage 4: the mesh service needs a good token** (`anny-service/token_guard.py`). A request to `/generate-mesh` without one is answered 401 before any work starts. `GET /health` stays open. The deploy keeps `--allow-unauthenticated`, because Cloud Run's own sign-in cannot read a Firebase token; the service checks it itself.
 - **Not in this build: the Rook host.** The wearable functions keep the sandbox host (`api.rook-connect.review`) until Rook says which host and keys real accounts use.
 
@@ -1588,6 +1589,19 @@ cd /workspaces/rork-zown-hq-fitness-app-clone/expo && firebase deploy --only fun
 - [ ] Firebase console, Firestore, `aiUsage`, the document `<your uid>_<today's date>` (the uid is under Authentication): `instagram` is the number of imports you did today. It goes up by one each time.
 - [ ] You will not reach the limit of 30 by hand. If you ever do, the app shows the "today's limit" sentence.
 
+**Stage 3b: the recipe import's AI step** (after stage 3; the order matters: the function first, then the app)
+
+1. Paste the apply steps and the ship step. Wait for CI.
+2. `cd expo && firebase deploy --only functions:postLLM --project zown-3c512`
+3. `cd expo && eas update --branch main --environment production --message "Build 11 stage 3b: recipe import is not turned away by the topic check"`. Close the app completely and open it twice.
+
+- [ ] Recipes, import `https://www.instagram.com/reel/De4X70ix-Ye/`. A recipe comes in: Fiesta Taco Potato Skillet, with its ingredients and steps. Save it.
+- [ ] Import `https://www.instagram.com/p/DTvzyRZD9Gs/` (the photo post). A recipe comes in (the red Thai curry dumpling bake).
+- [ ] Import, then From Text: paste a recipe's text. It comes in as well.
+- [ ] Firebase console, Functions, `postLLM`, Logs: no "declined a request outside fitness and health" after these imports.
+- [ ] The Coach still turns a clearly off-topic question away with the fitness sentence: ask it "Which stocks should I buy this year?" The topic check still runs on everything but recipe import.
+- [ ] Firebase console, Firestore, `aiUsage`, your document for today: `assist` goes up by one for each recipe import. If you are on the Free plan, the sixth AI helper use of a day is refused, and the import then shows the same "Instagram Links Need a Little Help" box with no reason: wait for midnight Eastern.
+
 **Stage 4: the mesh service** (from `anny-service`; the image build takes several minutes)
 
 ```
@@ -1606,5 +1620,6 @@ gcloud run deploy anny-mesh-service --source . --region us-central1 --project zo
 
 - Stage 1 or 2: `eas update:list --branch main --limit 10`, then `eas update:republish --group <last good group> --message "Roll back to ..."`. The Build 10 group is `f26bf6e4-ac19-43c3-b3bb-14ed83fed1dd`.
 - Stage 3: check out the commit before Build 11 and run `firebase deploy --only functions:instagramEmbed --project zown-3c512`.
+- Stage 3b: check out the commit before it (`832ebce`) and run `firebase deploy --only functions:postLLM --project zown-3c512`, and republish the stage 2 update group (`eas update:republish --group 995d41b4-e180-467d-985f-6b6e2544c096`). The recipe import then asks as before.
 - Stage 4: `gcloud run revisions list --service anny-mesh-service --region us-central1 --project zown-3c512`, then `gcloud run services update-traffic anny-mesh-service --region us-central1 --project zown-3c512 --to-revisions <previous revision>=100`.
 - Nothing from a stage undoes data the stage's version wrote. The only data these stages write is the `instagram` count in `aiUsage`, which does no harm if left.

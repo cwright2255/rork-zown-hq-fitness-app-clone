@@ -106,6 +106,45 @@ describe('postLLM: the daily AI messages', () => {
     expect(used('coach')).toBe(5);
   });
 
+  it('counts a recipe import with the other helpers, and turns the sixth away on a free plan with the helper limit', async () => {
+    fakeModels({ answer: JSON.stringify({ name: 'Soup', ingredients: ['water'], instructions: ['Boil'] }) });
+    for (let i = 1; i <= 5; i += 1) {
+      expect(await ask('recipe')).toEqual({ completion: JSON.stringify({ name: 'Soup', ingredients: [{ id: '1', name: 'water' }], instructions: ['Boil'] }) });
+      expect(used('assist')).toBe(i);
+    }
+    const before = global.__create.mock.calls.length;
+    const error = await failure(ask('recipe'));
+    expect(error.code).toBe('resource-exhausted');
+    expect(error.details).toEqual({ reason: 'ai_limit', bucket: 'assist', limit: 5, tier: 'free' });
+    expect(global.__create.mock.calls.length).toBe(before);
+    expect(used('coach')).toBe(0);
+  });
+
+  it('shares the helper allowance between recipe import and the other helpers', async () => {
+    fakeModels({ answer: JSON.stringify({ name: 'Soup', ingredients: ['water'], instructions: ['Boil'] }) });
+    for (let i = 0; i < 3; i += 1) await ask('assist');
+    for (let i = 0; i < 2; i += 1) await ask('recipe');
+    expect(used('assist')).toBe(5);
+    await expect(ask('recipe')).rejects.toMatchObject({ code: 'resource-exhausted' });
+    await expect(ask('assist')).rejects.toMatchObject({ code: 'resource-exhausted' });
+  });
+
+  it('counts a recipe import on a Pro plan against its own, larger helper allowance', async () => {
+    fakeDb(PRO);
+    fakeModels({ answer: JSON.stringify({ name: 'Soup', ingredients: ['water'], instructions: ['Boil'] }) });
+    for (let i = 0; i < 6; i += 1) await ask('recipe');
+    expect(used('assist')).toBe(6);
+  });
+
+  it('gives a recipe import back when the model fails before anything is sent, and counts one that came back with no recipe', async () => {
+    global.__create = jest.fn(async () => { throw new Error('OpenAI is down'); });
+    await expect(ask('recipe')).rejects.toThrow('OpenAI is down');
+    expect(used('assist')).toBe(0);
+    fakeModels({ answer: 'no recipe here' });
+    expect(await ask('recipe')).toEqual({ completion: 'null' });
+    expect(used('assist')).toBe(1);
+  });
+
   it('reports the helper bucket when that is the one that ran out', async () => {
     for (let i = 0; i < 5; i += 1) await ask('assist');
     const error = await failure(ask('assist'));

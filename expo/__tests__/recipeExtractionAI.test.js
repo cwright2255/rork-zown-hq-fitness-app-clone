@@ -32,6 +32,19 @@ describe('AI recipe extraction', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('asks as a recipe import, so the server counts it with the AI helpers and reads the reply as a recipe', async () => {
+    await recipeExtractionService.extractRecipeWithAI(metadata, url, 'web');
+    expect(global.__askLLM.mock.calls[0][1]).toEqual({ kind: 'recipe' });
+  });
+
+  it('asks the same way for an Instagram caption and for text pasted in', async () => {
+    await recipeExtractionService.extractRecipeWithAI({ title: 'chef\'s recipe', description: 'Pasta caption', isVideoCaption: true }, 'https://www.instagram.com/reel/abc/', 'instagram');
+    expect(global.__askLLM.mock.calls[0][1]).toEqual({ kind: 'recipe' });
+    expect(global.__askLLM.mock.calls[0][0][0].content).toContain('social media video caption');
+    await recipeExtractionService.extractRecipeFromText('Garlic noodles: boil noodles, toss with garlic');
+    expect(global.__askLLM.mock.calls[1][1]).toEqual({ kind: 'recipe' });
+  });
+
   it('returns the recipe the AI found', async () => {
     await expect(recipeExtractionService.extractRecipeWithAI(metadata, url, 'web')).resolves.toEqual(recipe);
   });

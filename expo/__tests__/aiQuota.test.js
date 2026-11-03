@@ -82,6 +82,10 @@ describe('aiRequestPlan', () => {
     expect(aiRequestPlan('memory')).toEqual({ bucket: 'insight', feature: null });
   });
 
+  it('counts recipe import with the other AI helpers, for every plan', () => {
+    expect(aiRequestPlan('recipe')).toEqual({ bucket: 'assist', feature: null });
+  });
+
   it('counts every other kind where bucketOf says, and needs no feature', () => {
     expect(aiRequestPlan('coach')).toEqual({ bucket: 'coach', feature: null });
     expect(aiRequestPlan('assist')).toEqual({ bucket: 'assist', feature: null });
@@ -89,7 +93,7 @@ describe('aiRequestPlan', () => {
   });
 
   it('counts a request that says nothing, or something unknown, as the Coach\'s, the strictest, with no feature', () => {
-    for (const kind of [undefined, null, '', 'whatever', 'Brief', 'briefs', 'Memory', 'memories', 7]) expect(aiRequestPlan(kind)).toEqual({ bucket: 'coach', feature: null });
+    for (const kind of [undefined, null, '', 'whatever', 'Brief', 'briefs', 'Memory', 'memories', 'Recipe', 'recipes', 7]) expect(aiRequestPlan(kind)).toEqual({ bucket: 'coach', feature: null });
   });
 
   it('is taken from the Free allowance of insight comments when a Free person somehow gets as far as the count', async () => {
