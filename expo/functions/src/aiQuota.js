@@ -3,11 +3,18 @@
 // real service. The plans themselves (and their limits) are in entitlements.js, the same file the app uses.
 //
 //   entitlements/{uid}       the person's plan. Nobody can write it from the app (firestore.rules).
-//   aiUsage/{uid}_{day}      { uid, day, coach: n, assist: n, nutrition: n }, the messages and nutrition targets used that day. Only these functions touch it.
+//   aiUsage/{uid}_{day}      { uid, day, coach: n, assist: n, nutrition: n, instagram: n }, the messages, nutrition targets and Instagram imports used that day. Only these functions touch it.
 import { effectiveTier, dailyLimit, bucketOf, aiDayKey, canUseFeature, featureTier } from './entitlements.js';
 
 /** The most nutrition targets (getNutritionRecommendations) one person can ask for in a day, on every plan. */
 export const NUTRITION_DAILY_CAP = 5;
+
+/**
+ * The most Instagram recipe imports (instagramEmbed) one person can ask for in a day, on every plan. Every import that gets as far as
+ * Instagram is counted, whether or not it finds a caption: what the limit protects is how often Google's network asks Instagram, and a
+ * failed attempt asks just the same. A person importing recipes by hand will not come near it.
+ */
+export const INSTAGRAM_DAILY_CAP = 30;
 
 const count = (value) => (Number.isFinite(value) && value > 0 ? Math.floor(value) : 0);
 

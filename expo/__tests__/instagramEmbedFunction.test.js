@@ -1,11 +1,11 @@
 // The cloud function behind the Instagram recipe import (instagramEmbed in functions/src/index.js, with the address check in
-// functions/src/instagramUrl.js). index.js is loaded with the Firebase packages replaced by small fakes, and fetch replaced by a fake
-// Instagram, so nothing leaves the test.
+// functions/src/instagramUrl.js, the sign-in check in functions/src/bearerToken.js and the daily limit in functions/src/aiQuota.js).
+// index.js is loaded with the Firebase packages replaced by small fakes, and fetch replaced by a fake Instagram, so nothing leaves the test.
 
 jest.mock('firebase-admin/app', () => ({ initializeApp: jest.fn() }), { virtual: true });
-jest.mock('firebase-admin/firestore', () => ({ getFirestore: () => ({}), FieldValue: {} }), { virtual: true });
+jest.mock('firebase-admin/firestore', () => ({ getFirestore: () => global.__db, FieldValue: {} }), { virtual: true });
 jest.mock('firebase-admin/messaging', () => ({ getMessaging: () => ({}) }), { virtual: true });
-jest.mock('firebase-admin/auth', () => ({ getAuth: () => ({}) }), { virtual: true });
+jest.mock('firebase-admin/auth', () => ({ getAuth: () => ({ verifyIdToken: (...args) => global.__verify(...args) }) }), { virtual: true });
 jest.mock('firebase-admin/storage', () => ({ getStorage: () => ({ bucket: () => ({}) }) }), { virtual: true });
 jest.mock('firebase-functions/v2/https', () => {
   class HttpsError extends Error {
@@ -31,24 +31,53 @@ const page = (html = PAGE, status = 200) => ({ ok: status >= 200 && status < 300
 const redirect = (location, status = 302) => ({ ok: false, status, headers: headers(location) });
 
 // What the function says back: { status, body }, and whether it said anything at all.
+// Signed in as u1 unless the request says otherwise: the token 'good-token' is the one the fake Firebase accepts.
 const send = async (req) => {
   const out = { status: null, body: undefined };
   const res = { status: (code) => { out.status = code; return res; }, json: (body) => { out.body = body; return res; } };
-  await fns.instagramEmbed({ method: 'POST', body: { url: POST }, ...req }, res);
+  await fns.instagramEmbed({ method: 'POST', headers: { authorization: 'Bearer good-token' }, body: { url: POST }, ...req }, res);
   return out;
 };
+
+// Firestore with documents in a map, doc().get() and transactions one at a time: enough for the daily limit.
+const fakeDb = () => {
+  const docs = new Map();
+  global.__docs = docs;
+  let queue = Promise.resolve();
+  const ref = (path) => ({ path, get: async () => ({ exists: docs.has(path), data: () => docs.get(path) }) });
+  global.__db = {
+    doc: ref,
+    runTransaction: (fn) => {
+      const run = queue.then(() => fn({
+        get: async (r) => r.get(),
+        set: (r, data, opts) => docs.set(r.path, opts && opts.merge ? { ...docs.get(r.path), ...data } : data),
+      }));
+      queue = run.catch(() => {});
+      return run;
+    },
+  };
+};
+const usedToday = (uid = 'u1') => (global.__docs.get(`aiUsage/${uid}_${global.__today}`) || {}).instagram || 0;
 
 beforeAll(() => { global.URL = require('url').URL; });
 afterAll(() => { global.URL = reactNativeURL; });
 
 beforeEach(() => {
   jest.resetModules();
+  global.__today = require('../lib/entitlements').aiDayKey(new Date());
   fns = require('../functions/src/index.js');
+  fakeDb();
+  global.__verify = jest.fn(async (token) => {
+    if (token === 'good-token') return { uid: 'u1' };
+    if (token === 'other-token') return { uid: 'u2' };
+    if (token === 'no-uid-token') return {};
+    throw new Error('auth/argument-error: not a Firebase token');
+  });
   global.fetch = jest.fn(async () => page());
   jest.spyOn(console, 'warn').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });
-afterEach(() => { jest.restoreAllMocks(); delete global.fetch; });
+afterEach(() => { jest.restoreAllMocks(); delete global.fetch; delete global.__db; delete global.__docs; delete global.__verify; delete global.__today; });
 
 describe('instagramEmbed: an Instagram post', () => {
   it('gives back the caption, the account and the picture, decoded', async () => {
@@ -200,5 +229,157 @@ describe('instagramEmbed: what it says when something goes wrong', () => {
   it('does not put the address it was sent in what it says back', async () => {
     const out = await send({ body: { url: 'https://example.com/<script>alert(1)</script>' } });
     expect(said(out)).not.toMatch(/example|script/);
+  });
+});
+
+describe('instagramEmbed: who is asking', () => {
+  const SIGN_IN = { error: 'Sign in to import from Instagram.' };
+
+  it('turns away a request with no sign-in token with a 401, and reads nothing', async () => {
+    const out = await send({ headers: {} });
+    expect(out).toEqual({ status: 401, body: SIGN_IN });
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(global.__verify).not.toHaveBeenCalled();
+  });
+
+  it('turns away a request with no headers at all the same way', async () => {
+    const out = await send({ headers: undefined });
+    expect(out).toEqual({ status: 401, body: SIGN_IN });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('turns away a token that Firebase does not accept, and a token that names nobody', async () => {
+    for (const token of ['made-up', 'no-uid-token', 'x'.repeat(5000)]) {
+      const out = await send({ headers: { authorization: `Bearer ${token}` } });
+      expect(out).toEqual({ status: 401, body: SIGN_IN });
+    }
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['another kind of sign-in', 'Basic dXNlcjpwYXNz'],
+    ['a token with no Bearer word', 'good-token'],
+    ['the Bearer word alone', 'Bearer'],
+    ['two tokens', 'Bearer good-token other-token'],
+    ['a blank token', 'Bearer    '],
+  ])('turns away %s', async (_name, authorization) => {
+    const out = await send({ headers: { authorization } });
+    expect(out).toEqual({ status: 401, body: SIGN_IN });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('hands Firebase the token exactly as it was sent, and lets that person in', async () => {
+    const out = await send({ headers: { authorization: 'Bearer good-token' } });
+    expect(global.__verify).toHaveBeenCalledWith('good-token');
+    expect(out.status).toBe(200);
+  });
+
+  it('takes the Bearer word in any letter case', async () => {
+    const out = await send({ headers: { authorization: 'bearer good-token' } });
+    expect(out.status).toBe(200);
+  });
+
+  it('asks who is calling before it looks at the link, so a stranger learns nothing about what it accepts', async () => {
+    const out = await send({ headers: {}, body: { url: 'https://example.com/' } });
+    expect(out).toEqual({ status: 401, body: SIGN_IN });
+  });
+
+  it('still refuses anything but POST with a 405 first, signed in or not', async () => {
+    expect(await send({ method: 'GET', headers: {} })).toEqual({ status: 405, body: { error: 'Method not allowed' } });
+  });
+
+  it('says the same few words to every kind of stranger, without the reason Firebase gave', async () => {
+    const out = await send({ headers: { authorization: 'Bearer made-up' } });
+    expect(JSON.stringify(out.body)).not.toMatch(/auth\/|argument|Firebase token/);
+  });
+
+  it('does not count a stranger\'s request against anyone', async () => {
+    await send({ headers: {} });
+    await send({ headers: { authorization: 'Bearer made-up' } });
+    expect(global.__docs.size).toBe(0);
+  });
+});
+
+describe('instagramEmbed: the limit for each person', () => {
+  const { INSTAGRAM_DAILY_CAP } = require('../functions/src/aiQuota.js');
+  const LIMIT = { error: 'That is today\'s limit for importing from Instagram. Try again tomorrow.' };
+
+  it('is 30 imports a day', () => {
+    expect(INSTAGRAM_DAILY_CAP).toBe(30);
+  });
+
+  it('counts each import against the person who asked, under today\'s date', async () => {
+    await send();
+    await send();
+    expect(usedToday('u1')).toBe(2);
+    expect(global.__docs.get(`aiUsage/u1_${global.__today}`)).toEqual({ uid: 'u1', day: global.__today, instagram: 2 });
+  });
+
+  it('lets the last import of the day through and turns the next one away with a 429, fetching nothing for it', async () => {
+    for (let n = 1; n <= INSTAGRAM_DAILY_CAP; n += 1) {
+      expect((await send()).status).toBe(200);
+    }
+    expect(global.fetch).toHaveBeenCalledTimes(INSTAGRAM_DAILY_CAP);
+    const over = await send();
+    expect(over).toEqual({ status: 429, body: LIMIT });
+    expect(global.fetch).toHaveBeenCalledTimes(INSTAGRAM_DAILY_CAP);
+    expect(usedToday('u1')).toBe(INSTAGRAM_DAILY_CAP);
+  });
+
+  it('does not let one person\'s limit stop another', async () => {
+    global.__docs.set(`aiUsage/u1_${global.__today}`, { uid: 'u1', day: global.__today, instagram: INSTAGRAM_DAILY_CAP });
+    expect((await send()).status).toBe(429);
+    expect((await send({ headers: { authorization: 'Bearer other-token' } })).status).toBe(200);
+    expect(usedToday('u2')).toBe(1);
+  });
+
+  it('starts over on a new day', async () => {
+    global.__docs.set('aiUsage/u1_2020-01-01', { uid: 'u1', day: '2020-01-01', instagram: INSTAGRAM_DAILY_CAP });
+    expect((await send()).status).toBe(200);
+    expect(usedToday('u1')).toBe(1);
+  });
+
+  it('keeps its count apart from the nutrition targets and the Coach\'s messages', async () => {
+    global.__docs.set(`aiUsage/u1_${global.__today}`, { uid: 'u1', day: global.__today, nutrition: 5, coach: 12 });
+    expect((await send()).status).toBe(200);
+    expect(global.__docs.get(`aiUsage/u1_${global.__today}`)).toEqual({ uid: 'u1', day: global.__today, nutrition: 5, coach: 12, instagram: 1 });
+  });
+
+  it('counts an import that finds no caption, since Instagram was asked just the same', async () => {
+    global.fetch.mockResolvedValue(page('<html><title>Instagram</title></html>'));
+    expect((await send()).status).toBe(404);
+    expect(usedToday('u1')).toBe(1);
+  });
+
+  it('counts an import when Instagram does not answer', async () => {
+    global.fetch.mockResolvedValue(page('', 429));
+    expect((await send()).status).toBe(502);
+    expect(usedToday('u1')).toBe(1);
+  });
+
+  it('does not count a link that is not an Instagram post: nothing was asked of Instagram', async () => {
+    for (const url of ['https://example.com/', 'not a link', undefined]) await send({ body: { url } });
+    expect(usedToday('u1')).toBe(0);
+    expect(global.__docs.size).toBe(0);
+  });
+
+  it('does not count a request that was not a POST', async () => {
+    await send({ method: 'GET' });
+    expect(global.__docs.size).toBe(0);
+  });
+
+  it('refuses, rather than lets everything through, when the count cannot be kept', async () => {
+    global.__db.runTransaction = async () => { throw new Error('database down'); };
+    const out = await send();
+    expect(out).toEqual({ status: 500, body: { error: 'Something went wrong reading that post.' } });
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(JSON.stringify(out.body)).not.toMatch(/database/);
+  });
+
+  it('writes who hit the limit to the log, not to the person', async () => {
+    global.__docs.set(`aiUsage/u1_${global.__today}`, { uid: 'u1', day: global.__today, instagram: INSTAGRAM_DAILY_CAP });
+    const out = await send();
+    expect(JSON.stringify(out.body)).not.toMatch(/u1|30/);
+    expect(console.warn).toHaveBeenCalledWith('[instagramEmbed]', 'daily limit reached', 'u1');
   });
 });

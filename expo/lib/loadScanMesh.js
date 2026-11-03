@@ -12,6 +12,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildBodyMesh } from '@/lib/bodyMeshBuilder';
 import { buildSkinnedBodyMesh } from '@/lib/applySkeletonToMesh';
 import { buildCacheKey, meshCache } from '@/lib/meshCache';
+import { signInHeader } from '@/lib/signInHeader';
 
 const MANNEQUIN_GRAY = '#9CA3AF';
 const ANNY_SERVICE_URL = 'https://anny-mesh-service-431690627943.us-central1.run.app/generate-mesh';
@@ -56,13 +57,17 @@ async function loadHighQualityMesh(scan) {
   }
 
   if (!gltf) {
+    // The mesh service checks who is asking (anny-service/token_guard.py). The sign-in token is read only here, on the way to the
+    // network, so a mesh already on the phone still loads with no network at all. If it cannot be read the error goes up to
+    // loadScanMesh, which falls back to the local mesh, as it does for any other failure of this request.
+    const signedIn = await signInHeader();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), ANNY_REQUEST_TIMEOUT_MS);
     let response;
     try {
       response = await fetch(ANNY_SERVICE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...signedIn },
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       });

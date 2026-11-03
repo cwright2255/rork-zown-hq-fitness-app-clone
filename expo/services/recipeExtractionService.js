@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { askLLM } from '@/services/llmClient';
 import { mapBrowseResult } from '../lib/recipePicks';
+import { signInHeader } from '../lib/signInHeader';
 
 class RecipeExtractionService {
   constructor() {
@@ -268,12 +269,15 @@ class RecipeExtractionService {
   // which performs that same fetch server-side, from Google Cloud's
   // own network - matching the network profile confirmed to work -
   // rather than from the device directly.
+  //
+  // The function checks who is asking and limits each person per day, so the request carries the person's sign-in token
+  // (lib/signInHeader.js). Its 401 and 429 answers come back as plain sentences in data.error, shown as the diagnostic below.
   async getInstagramEmbedData(url) {
     try {
       const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://us-central1-zown-3c512.cloudfunctions.net';
       const response = await fetch(`${apiBase}/instagramEmbed`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await signInHeader()) },
         body: JSON.stringify({ url })
       });
 

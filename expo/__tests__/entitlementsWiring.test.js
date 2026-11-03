@@ -149,7 +149,7 @@ describe('the functions that enforce the plan', () => {
     expect(post).toMatch(/takeAiQuota\(\{ db, uid, kind: bucket \}\)/);
     expect(post.indexOf('requireFeature(uid, feature)')).toBeLessThan(post.indexOf('takeAiQuota('));
     expect(post.indexOf("'messages must be a non-empty array'")).toBeLessThan(post.indexOf('requireFeature(uid, feature)'));
-    expect(index).toMatch(/import \{ checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP \} from '\.\/aiQuota\.js';/);
+    expect(index).toMatch(/import \{ checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP, INSTAGRAM_DAILY_CAP \} from '\.\/aiQuota\.js';/);
   });
 
   it('check the plan before doing any work in the workout-plan and body-scan functions', () => {

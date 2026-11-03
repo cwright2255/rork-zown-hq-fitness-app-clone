@@ -1503,3 +1503,98 @@ An app update only: no rules and no functions to deploy. It needs the Build 9 de
 - **A weight from a weight log or a body scan counts as a weight on file**, so the Nutrition card asks only for what is truly missing.
 - **Onboarding answers are not kept when it is quit part way.** A resumed onboarding starts again from its first step.
 - **No new rules, indexes or functions.** `onboardedAt` goes in the person's own `users/<uid>` document, which the rules already let them write.
+
+## Locking the back end: Firebase settings from EAS, the sign-in token, the Instagram function and the mesh service (once: four stages, in this order)
+
+Four stages, each with its own checks. Do not start a stage until the one before it passes. Between stages 2 and 3, anyone else on the build must have opened the app twice, because after stage 3 an app without stage 2 cannot import from Instagram.
+
+**What changed**
+
+- **Stage 1: Firebase settings come from EAS.** No code. The six `EXPO_PUBLIC_FIREBASE_*` variables are set in the EAS production environment, so an update carries the same API key and app id as the binary (the iOS ones in `eas.json`) instead of the web fallback written in `src/config/firebase.js`. The six unused third-party keys (Calorie, Places, Passio, RapidAPI, Spoonacular, TrailAPI) are deleted from it. Nothing in the app reads those six.
+- **Stage 2: the app sends the person's sign-in token** with an Instagram recipe import (to `instagramEmbed`) and with a 3D body request (to the mesh service). The token is read only when a request goes to the network, so a mesh already saved on the phone still loads with none. Nothing refuses a missing token yet, so you will not see a difference in this stage.
+- **Stage 3: `instagramEmbed` needs a good token.** A request without one is answered 401 ("Sign in to import from Instagram."), before the link is looked at. Each person may import 30 posts a day (429, "That is today's limit for importing from Instagram. Try again tomorrow."), counted in Firestore `aiUsage/<uid>_<day>` under `instagram`; the day ends at midnight Eastern. Only a link that passed the Instagram address check is counted, whether or not a caption is found.
+- **Stage 4: the mesh service needs a good token** (`anny-service/token_guard.py`). A request to `/generate-mesh` without one is answered 401 before any work starts. `GET /health` stays open. The deploy keeps `--allow-unauthenticated`, because Cloud Run's own sign-in cannot read a Firebase token; the service checks it itself.
+- **Not in this build: the Rook host.** The wearable functions keep the sandbox host (`api.rook-connect.review`) until Rook says which host and keys real accounts use.
+
+**Stage 1: EAS and Firebase settings** (from `expo`, before the Build 11 paste files, so the update carries only the settings)
+
+```
+eas env:create --environment production --name EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN --value zown-3c512.firebaseapp.com --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_FIREBASE_PROJECT_ID --value zown-3c512 --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET --value zown-3c512.firebasestorage.app --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID --value 431690627943 --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_FIREBASE_API_KEY --value AIzaSyDf0HJWw1edlKDqJHF4pvjVuIZTsSGriy4 --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_FIREBASE_APP_ID --value 1:431690627943:ios:452de869042bbce299cdc2 --visibility plaintext
+eas env:delete production --variable-name EXPO_PUBLIC_CALORIE_API_KEY
+eas env:delete production --variable-name EXPO_PUBLIC_GOOGLE_PLACES_API_KEY
+eas env:delete production --variable-name EXPO_PUBLIC_PASSIO_API_KEY
+eas env:delete production --variable-name EXPO_PUBLIC_RAPIDAPI_KEY
+eas env:delete production --variable-name EXPO_PUBLIC_SPOONACULAR_API_KEY
+eas env:delete production --variable-name EXPO_PUBLIC_TRAILAPI_KEY
+eas env:list production
+eas update --branch main --environment production --message "Build 11 stage 1: Firebase settings come from EAS"
+```
+
+The first four values equal the fallback, so only the API key and the app id change what the app does. Before setting those two, check from the Codespace that the iOS key is accepted for the kind of request the app makes (the app talks to Firebase over plain web requests, and a key limited to "iOS apps" can be refused for those). Run this for both keys:
+
+```
+for KEY in AIzaSyDf0HJWw1edlKDqJHF4pvjVuIZTsSGriy4 AIzaSyBK867YDgtUxrY03-uf5qi5g3ZE_7gMJG8; do
+  echo "=== ${KEY:0:12}"
+  curl -s -X POST "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$KEY" -H 'Content-Type: application/json' -d '{"email":"nobody@example.invalid","password":"x","returnSecureToken":true}' | tr -d '\n' | head -c 220; echo
+  curl -s -X POST "https://securetoken.googleapis.com/v1/token?key=$KEY" -d 'grant_type=refresh_token&refresh_token=x' | tr -d '\n' | head -c 220; echo
+  curl -s "https://firestore.googleapis.com/v1/projects/zown-3c512/databases/(default)/documents/users?pageSize=1&key=$KEY" | tr -d '\n' | head -c 220; echo
+done
+```
+
+A key that works answers `INVALID_LOGIN_CREDENTIALS` (or `EMAIL_NOT_FOUND`), `INVALID_REFRESH_TOKEN` and `Missing or insufficient permissions`. If any line says "blocked", do not set the API key and the app id. Also open both keys in the Google Cloud console (APIs & Services, Credentials) and read their Application restrictions and API restrictions; if API restrictions is on, the list needs Identity Toolkit API, Token Service API and Cloud Firestore API. `eas env:list production` must end with exactly eight names: the six `EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` and `EXPO_PUBLIC_RADAR_PUBLISHABLE_KEY`.
+
+- [ ] The first lines of the publish output list those same eight variables, and no others.
+- [ ] Close the app completely and open it twice. Do "Every update" at the top of this file.
+- [ ] Log out and log in with a throwaway email account. Home loads that account's data.
+
+**Stage 2: the app update**
+
+1. Paste the apply steps and the ship step. Wait for CI.
+2. `cd expo && eas update --branch main --environment production --message "Build 11 stage 2: the app sends its sign-in token"`. Close the app completely and open it twice.
+
+- [ ] "Every update" at the top of this file.
+- [ ] Recipes, import a recipe from an Instagram post whose caption holds the recipe. It comes in as before.
+- [ ] Legend only: Body Scan, open a scan's 3D body. It builds as before.
+
+These two show only that nothing broke. The server does not check the token yet, so they cannot show that it is being sent; stages 3 and 4 do.
+
+**Stage 3: the Instagram function** (once everyone has opened the stage 2 update twice)
+
+```
+cd expo && firebase deploy --only functions:instagramEmbed --project zown-3c512
+```
+
+- [ ] Firebase console, Functions: `instagramEmbed` has a new deploy time.
+- [ ] From the Codespace, a request with no token is refused: this prints `{"error":"Sign in to import from Instagram."}`
+      `curl -s -X POST https://us-central1-zown-3c512.cloudfunctions.net/instagramEmbed -H "Content-Type: application/json" -d '{"url":"https://www.instagram.com/p/abc/"}'`
+- [ ] So is one with a made-up token, and the answer is the same words: add `-H "Authorization: Bearer nonsense"` to the line above.
+- [ ] The Build 6 line that checked a non-Instagram link now prints the same sign-in sentence instead of "Send the link to an Instagram post.": the token is asked for first. A GET still prints `{"error":"Method not allowed"}`.
+- [ ] On the phone, Recipes, import a recipe from an Instagram post. It comes in. This is the check that matters: it shows the app is sending a token the function accepts. If it now fails, tell me what the app showed.
+- [ ] Firebase console, Firestore, `aiUsage`, the document `<your uid>_<today's date>` (the uid is under Authentication): `instagram` is the number of imports you did today. It goes up by one each time.
+- [ ] You will not reach the limit of 30 by hand. If you ever do, the app shows the "today's limit" sentence.
+
+**Stage 4: the mesh service** (from `anny-service`; the image build takes several minutes)
+
+```
+cd anny-service
+gcloud run deploy anny-mesh-service --source . --region us-central1 --project zown-3c512 --allow-unauthenticated --memory 4Gi --cpu 2 --timeout 600 --max-instances 3
+```
+
+- [ ] The command finishes and prints the service URL, still `https://anny-mesh-service-431690627943.us-central1.run.app`.
+- [ ] `curl -s https://anny-mesh-service-431690627943.us-central1.run.app/health` prints `{"status":"ok"}`. The first request after a deploy starts a new copy, so allow a minute or two.
+- [ ] A request with no token is refused: this prints `HTTP/2 401` and `{"detail":"Sign in to build the 3D body."}`
+      `curl -s -i -X POST https://anny-mesh-service-431690627943.us-central1.run.app/generate-mesh -H "Content-Type: application/json" -d '{"height_cm":178,"weight_kg":95,"gender":"male","body_fat_percent":22}'`
+- [ ] Legend only, on the phone: Settings, Clear Cache (a mesh already saved on the phone never reaches the service), then Body Scan and open a scan's 3D body. It builds (the first one after a quiet spell takes a minute or two).
+- [ ] Google Cloud console, Cloud Run, `anny-mesh-service`, Logs: there is a `POST /generate-mesh` with status 200 from that. This is the check that shows the token reached the service. If the log shows a 401 and the app showed the plain mannequin instead of the 3D body, the app's token was refused. The service writes the reason (never the token) to its log as "Refused a sign-in token"; send me that line. A 401 with no such line means Cloud Run itself turned the request away; tell me that too.
+
+**If something goes wrong**
+
+- Stage 1 or 2: `eas update:list --branch main --limit 10`, then `eas update:republish --group <last good group> --message "Roll back to ..."`. The Build 10 group is `f26bf6e4-ac19-43c3-b3bb-14ed83fed1dd`.
+- Stage 3: check out the commit before Build 11 and run `firebase deploy --only functions:instagramEmbed --project zown-3c512`.
+- Stage 4: `gcloud run revisions list --service anny-mesh-service --region us-central1 --project zown-3c512`, then `gcloud run services update-traffic anny-mesh-service --region us-central1 --project zown-3c512 --to-revisions <previous revision>=100`.
+- Nothing from a stage undoes data the stage's version wrote. The only data these stages write is the `instagram` count in `aiUsage`, which does no harm if left.

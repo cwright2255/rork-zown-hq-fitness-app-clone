@@ -22,11 +22,12 @@ import logging
 
 import torch
 import trimesh
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 import anny
+from token_guard import require_signed_in
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("anny-service")
@@ -245,7 +246,10 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/generate-mesh")
+# Making a mesh is the expensive part, so it needs a signed-in person: the app sends the Firebase sign-in token and token_guard.py
+# checks it before this function runs (a request without a good one is answered 401 and never gets here). /health stays open so
+# Cloud Run can check the service is up.
+@app.post("/generate-mesh", dependencies=[Depends(require_signed_in)])
 def generate_mesh(measurements: ScanMeasurements):
     try:
         model = get_model()

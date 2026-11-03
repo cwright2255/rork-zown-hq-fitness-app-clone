@@ -25,7 +25,8 @@ import { NUTRITION_EVIDENCE_NOTES } from './nutritionKnowledge.js';
 import { recoveryDay } from './recoveryDay.js';
 import { sanitizeTrainingState, trainingStateText } from './trainingState.js';
 import { getSpotifyAppToken as fetchSpotifyAppToken } from './spotifyAppToken.js';
-import { checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP } from './aiQuota.js';
+import { checkFeature, takeAiQuota, takeDailyCap, giveBackAiQuota, aiRequestPlan, NUTRITION_DAILY_CAP, INSTAGRAM_DAILY_CAP } from './aiQuota.js';
+import { signedInUid } from './bearerToken.js';
 import { instagramUrl, embedUrl, fetchFromInstagram } from './instagramUrl.js';
 import { FEATURE_NAMES, TIER_NAMES } from './entitlements.js';
 import { getInviteStatus as inviteStatusFor, redeemInvite } from './referrals.js';
@@ -1066,13 +1067,19 @@ export const onWorkoutComplete = onDocumentCreated(
 // Anyone who can reach this address can send it a web address, so it only ever fetches an https address on instagram.com or
 // www.instagram.com (judged on the parsed address, and again on every redirect: functions/src/instagramUrl.js), and what it says back
 // when something goes wrong is the same few plain sentences whatever the page looked like. The details go to the log, not to the caller.
-// Sign-in and a limit per person follow once the app sends its token (Build 11).
+//
+// It also needs to know who is asking: the app sends the person's Firebase sign-in token (lib/signInHeader.js) and a request without a
+// good one is answered 401 before anything is read. Each person may import INSTAGRAM_DAILY_CAP posts a day, counted the way the
+// Coach's messages are (aiQuota.js: the day ends at midnight Eastern); past that the answer is 429. Only a link that passed the address
+// check is counted, and every one that did is, found or not (see INSTAGRAM_DAILY_CAP).
 function embedProblem(res, status, logged, detail) {
   console.warn('[instagramEmbed]', logged, detail ?? '');
   const said = {
     400: 'Send the link to an Instagram post.',
+    401: 'Sign in to import from Instagram.',
     404: 'No caption was found for that post.',
     405: 'Method not allowed',
+    429: 'That is today\'s limit for importing from Instagram. Try again tomorrow.',
     502: 'Instagram did not answer. Try again in a moment.',
     500: 'Something went wrong reading that post.',
   };
@@ -1087,6 +1094,12 @@ export const instagramEmbed = onRequest(
       return;
     }
 
+    const uid = await signedInUid(req, (token) => getAuth().verifyIdToken(token));
+    if (!uid) {
+      embedProblem(res, 401, 'no good sign-in token');
+      return;
+    }
+
     const { url } = req.body || {};
     const parsed = instagramUrl(url);
     if (!parsed) {
@@ -1095,6 +1108,12 @@ export const instagramEmbed = onRequest(
     }
 
     try {
+      const cap = await takeDailyCap({ db: getFirestore(), uid, field: 'instagram', limit: INSTAGRAM_DAILY_CAP });
+      if (!cap.ok) {
+        embedProblem(res, 429, 'daily limit reached', uid);
+        return;
+      }
+
       const response = await fetchFromInstagram(
         embedUrl(parsed),
         { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' } },

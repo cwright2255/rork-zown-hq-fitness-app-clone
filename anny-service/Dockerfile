@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
+# main.py imports token_guard.py, so both files go into the image (a file that is not copied here is missing when the service starts).
+COPY main.py token_guard.py ./
 
 # Cloud Run injects PORT at runtime and expects the container to listen on
 # it - not a fixed port, so this can't be hardcoded to e.g. 8000.
