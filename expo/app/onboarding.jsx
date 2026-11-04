@@ -674,7 +674,7 @@ export default function OnboardingScreen() {
       {/* Header bar with Back button and progress dots */}
       <View style={styles.headerBar}>
         {step > 1 && step < 7 ? (
-          <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
+          <TouchableOpacity style={styles.backBtn} onPress={prevStep} accessibilityRole="button" accessibilityLabel="Back">
             <ChevronLeft size={24} color={'#000000'} />
           </TouchableOpacity>
         ) : (

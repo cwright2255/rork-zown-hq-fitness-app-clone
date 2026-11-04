@@ -1623,3 +1623,74 @@ gcloud run deploy anny-mesh-service --source . --region us-central1 --project zo
 - Stage 3b: check out the commit before it (`832ebce`) and run `firebase deploy --only functions:postLLM --project zown-3c512`, and republish the stage 2 update group (`eas update:republish --group 995d41b4-e180-467d-985f-6b6e2544c096`). The recipe import then asks as before.
 - Stage 4: `gcloud run revisions list --service anny-mesh-service --region us-central1 --project zown-3c512`, then `gcloud run services update-traffic anny-mesh-service --region us-central1 --project zown-3c512 --to-revisions <previous revision>=100`.
 - Nothing from a stage undoes data the stage's version wrote. The only data these stages write is the `instagram` count in `aiUsage`, which does no harm if left.
+
+## Spoken labels on the buttons that are only a picture (once, on the first update with them)
+
+An app update only: no rules, no functions, no new build. Nothing looks different to someone who is not using a screen reader.
+
+**What changed**
+
+A button that is only an icon has no words, so VoiceOver (iPhone) and TalkBack (Android) read it as just "button". Four screens now give each of their icon-only buttons a role (button) and a label that says what it does: 30 buttons get a label, and the 2 that already had one on Social ("Report or block" and "Comment options") get the role. The label follows the screen where the button changes.
+
+- **Sign-up** (`app/auth/register.jsx`): Back; the eye on the password, which says "Show password" and then "Hide password"; the eye on the confirmation, which says "Show confirm password" and then "Hide confirm password".
+- **Onboarding** (`app/onboarding.jsx`): Back, on every step after the first.
+- **The workout** (`app/workout/active.jsx`):
+  - the top left arrow says "Back" and, after a pause, "Asks whether to save your progress", because it opens the Save Progress box and does not leave at once;
+  - the three dots say "Workout menu";
+  - the corner of the demo says "Full screen demo", and its close button in the full screen view says "Close full screen demo";
+  - the control pill says "Previous exercise" on the left and "Next exercise" on the right, and the middle button says what it will do right now: "Start timer", "Pause timer", "Next exercise" once the exercise is done, and "Finish workout" on the last one (`lib/centerButtonLabel.js`);
+  - the music sheet (only once Spotify or Apple Music is connected) says "Search for a song", "Previous song", "Play music" or "Pause music", and "Next song".
+- **Social** (`app/social.jsx`):
+  - at the top, "Messages" and "New post";
+  - on each post, "Like" (then "Unlike") with the number of likes read after it, "Comments" with the number (or "Off"), "Share" with the number, and the three dots, which say "Post options" on your own post and "Report or block" on anyone else's. A number that the author has hidden is not read;
+  - in the search box, "Clear search" once something is typed, and on a person in the results the small follow icon says "Follow options for" and their name;
+  - on the Leaderboard tab and in the Duels tab's list of people you follow, the lightning bolt says "Challenge" and the person's name "to a duel";
+  - in the sheets, "Close comments" and "Send comment" (dimmed until something is typed), "Comment options", "Close editor", "Close insights" and "Close challenge".
+
+**Order**
+
+1. Paste the apply steps and the ship step. Wait for CI.
+2. `cd expo && eas update --branch main --environment production --message "Build 12: spoken labels on the icon buttons"`. Close the app completely and open it twice.
+3. Turn on the screen reader: iPhone, Settings, Accessibility, VoiceOver (or Accessibility Shortcut, to switch it on and off with the side button); Android, Settings, Accessibility, TalkBack. With VoiceOver, one finger swipes right to the next item and left to the one before, and a double tap anywhere presses the item it is on. Use a throwaway account for the sign-up checks.
+
+**Checks**
+
+*Sign-up*
+
+- [ ] Log out and tap Sign Up. Swipe to the top left: "Back, button". Swipe on through the form to the eye at the end of Password: "Show password, button". Double tap: the password can now be read, and the same spot now says "Hide password". The eye at the end of Confirm Password says "Show confirm password" on its own, and does not change the Password box.
+- [ ] Fill in the first screen and Continue. On every screen after it the top left is "Back, button", and it goes back one step.
+
+*Onboarding*
+
+- [ ] Sign up and tap Get Started. On About You the top left says "Back, button" and goes back to the first screen. On the first screen there is no Back.
+
+*A workout set*
+
+- [ ] Start a workout. The top left says "Back, button" and then "Asks whether to save your progress". The next one says "Workout menu, button". Open it: Music, Pause Workout and Exit Workout are read one at a time. (If VoiceOver reads the whole menu as one item, or cannot reach the options one by one, see "If something goes wrong".)
+- [ ] The corner of the demo says "Full screen demo, button" (dimmed if there is no demo picture). Open it: "Close full screen demo, button", and it closes.
+- [ ] Along the bottom: "Previous exercise" (dimmed on the first exercise), then "Start timer" or "Pause timer", then "Next exercise". Press the middle button: it flips between "Pause timer" and "Start timer". Let an exercise finish: the middle button says "Next exercise". On the last exercise, once it finishes, it says "Finish workout".
+- [ ] Easy, OK and Hard, and the Next Moves cards, are read by their words, as before.
+- [ ] With Spotify or Apple Music connected: open Music from the three dots. The four buttons say "Search for a song", "Previous song", "Play music" (or "Pause music" while it plays) and "Next song". Without a music service connected, the sheet says Connect Music and the button says Connect, as before.
+
+*Social*
+
+- [ ] At the top of Social: "Messages, button" and "New post, button". On a post by someone else: "Like, 3, button" (the number is that post's likes), "Comments, 1, button", "Share, 0, button", "Report or block, button". Double tap Like: it now says "Unlike" with one more.
+- [ ] On your own post the three dots say "Post options, button". On a post with comments turned off, "Comments, Off" is dimmed. On a post whose like count is hidden, Like is read with no number.
+- [ ] Type a name in the search box: "Clear search, button" appears and clears it. On a person in the results, the small follow icon says "Follow options for" and their name. The row itself still reads the name.
+- [ ] Open the comments on a post: "Close comments, button" and "Send comment, button" (dimmed until something is typed). Another person's comment has "Comment options, button".
+- [ ] On the Leaderboard tab, each other person's lightning bolt says "Challenge" and their name "to a duel". On the Duels tab, under "Challenge someone you follow", the lightning bolt says the same. Open one: "Close challenge, button".
+- [ ] Nothing looks any different to someone who does not use a screen reader. Turn VoiceOver off and take a quick look at the same screens.
+
+**If something goes wrong**
+
+- **A button still says only "button".** Send me the screen and which button it was. The check that finds an icon-only button without a label (`__tests__/iconButtonLabels.test.js`) only knows the four screens above, so a button on any other screen is not covered.
+- **The three-dot menu, the music sheet or the post menu is read as one item, or its buttons cannot be reached one by one.** Each of these sits on a full-screen button that closes it when tapped, and on an iPhone a button can group what is inside it into one item. That is a different problem from the labels, and this build does not change it; tell me which sheet it was, and it is a separate fix.
+- **A label is wrong or hard to say.** The labels are plain text in each screen; the middle button's wording is in `lib/centerButtonLabel.js`. Tell me what it should say.
+- **Roll back:** `eas update:list --branch main --limit 10`, then `eas update:republish --group 92239470-e5d3-41f4-892f-2d510e9722f8 --message "Roll back to Build 11"`. That is the Build 11 recipe import update. There is nothing else to undo.
+
+**Things this build does not do**
+
+- **It labels the buttons that are only a picture, nothing else.** A button with words (Continue, Easy, Join, Accept, Save) was already read by its words, and is not touched. A card or pill that is picked (a goal, an activity level, a day of the week) is read by its name but is not yet announced as selected or not. That, and every other screen in the app, is later work.
+- **Only the four screens.** The rest of the app has the labels it had before (116 of 719 tap handlers before this build).
+- **No change to what the screen looks like or what a button does.** The numbers read after Like, Comments and Share are the ones already shown.
+- **Nothing is checked by a machine for what VoiceOver actually says.** The tests check that every icon-only button on the four screens has a role and a label, and that the labels that change (Like and Unlike, Show and Hide password, the middle workout button) change. What is said out loud is what this list is for.

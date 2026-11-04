@@ -114,7 +114,7 @@ export default function RegisterScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
           <ChevronLeft size={24} color={'#000000'} />
         </TouchableOpacity>
         <Text style={styles.brand}>ZOWN HQ</Text>
@@ -177,7 +177,12 @@ export default function RegisterScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  >
                     {showPassword ? <EyeOff size={18} color={'#666666'} /> : <Eye size={18} color={'#666666'} />}
                   </TouchableOpacity>
                 </View>
@@ -194,7 +199,12 @@ export default function RegisterScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={8}>
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
                     {showConfirmPassword ? <EyeOff size={18} color={'#666666'} /> : <Eye size={18} color={'#666666'} />}
                   </TouchableOpacity>
                 </View>

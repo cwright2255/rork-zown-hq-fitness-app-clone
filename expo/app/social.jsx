@@ -341,7 +341,7 @@ export default function SocialScreen() {
           style={s.searchInput}
         />
         {!!searchQuery && (
-          <Pressable onPress={() => setSearchQuery('')}>
+          <Pressable onPress={() => setSearchQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
             <Ionicons name="close-circle" size={18} color="#CCC" />
           </Pressable>
         )}
@@ -355,7 +355,13 @@ export default function SocialScreen() {
               <Pressable key={p.id} style={s.peopleRow} onPress={() => messageFromSearch(p)}>
                 <View style={s.peopleAvatar}><Text style={s.peopleAvatarText}>{initials(p.name)}</Text></View>
                 <Text style={s.peopleName}>{p.name}</Text>
-                <Pressable hitSlop={8} onPress={() => setSheetPerson({ uid: p.id, name: p.name, avatar: p.avatar })} style={{ marginRight: 12 }}>
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => setSheetPerson({ uid: p.id, name: p.name, avatar: p.avatar })}
+                  style={{ marginRight: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Follow options for ${p.name}`}
+                >
                   <Ionicons name={following.some((f) => f.uid === p.id) ? 'person' : 'person-add-outline'} size={17} color="#999" />
                 </Pressable>
                 <Ionicons name="chatbubble-outline" size={16} color="#999" />
@@ -381,7 +387,7 @@ export default function SocialScreen() {
                 <Text style={s.feedTime}>{timeAgo(post.createdAt)}{post.editedAt ? ' · edited' : ''}</Text>
               </View>
               {isMe && (
-                <Pressable style={s.postMenuBtn} onPress={() => setPostMenuFor(post)}>
+                <Pressable style={s.postMenuBtn} onPress={() => setPostMenuFor(post)} accessibilityRole="button" accessibilityLabel="Post options">
                   <Ionicons name="ellipsis-vertical" size={18} color="#666" />
                 </Pressable>
               )}
@@ -389,6 +395,7 @@ export default function SocialScreen() {
                 <Pressable
                   style={s.postMenuBtn}
                   testID={`post-more-${post.id}`}
+                  accessibilityRole="button"
                   accessibilityLabel="Report or block"
                   onPress={() => setModerationTarget(postTarget(post))}
                 >
@@ -400,15 +407,35 @@ export default function SocialScreen() {
             {!!post.run && <RunPostCard run={post.run} />}
             <PostMedia media={normalizeMedia(post)} />
             <View style={s.feedActionsRow}>
-              <Pressable style={s.feedActionBtn} onPress={() => handleLike(post)} testID={`like-${post.id}`}>
+              <Pressable
+                style={s.feedActionBtn}
+                onPress={() => handleLike(post)}
+                testID={`like-${post.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={likedByMe[post.id] ? 'Unlike' : 'Like'}
+                accessibilityValue={showLikes ? { text: String(likeCountOf(post)) } : undefined}
+              >
                 <Ionicons name={likedByMe[post.id] ? 'heart' : 'heart-outline'} size={18} color={likedByMe[post.id] ? '#FF3B30' : '#666'} />
                 {showLikes && <Text style={s.feedActionText}>{likeCountOf(post)}</Text>}
               </Pressable>
-              <Pressable style={[s.feedActionBtn, post.commentsDisabled && { opacity: 0.4 }]} onPress={() => openComments(post)} disabled={post.commentsDisabled}>
+              <Pressable
+                style={[s.feedActionBtn, post.commentsDisabled && { opacity: 0.4 }]}
+                onPress={() => openComments(post)}
+                disabled={post.commentsDisabled}
+                accessibilityRole="button"
+                accessibilityLabel="Comments"
+                accessibilityValue={{ text: post.commentsDisabled ? 'Off' : String(post.commentCount || 0) }}
+              >
                 <Ionicons name="chatbubble-outline" size={17} color="#666" />
                 <Text style={s.feedActionText}>{post.commentsDisabled ? 'Off' : (post.commentCount || 0)}</Text>
               </Pressable>
-              <Pressable style={s.feedActionBtn} onPress={() => handleShare(post)}>
+              <Pressable
+                style={s.feedActionBtn}
+                onPress={() => handleShare(post)}
+                accessibilityRole="button"
+                accessibilityLabel="Share"
+                accessibilityValue={showShares ? { text: String(post.shareCount || 0) } : undefined}
+              >
                 <Ionicons name="arrow-redo-outline" size={17} color="#666" />
                 {showShares && <Text style={s.feedActionText}>{post.shareCount || 0}</Text>}
               </Pressable>
@@ -453,7 +480,12 @@ export default function SocialScreen() {
               <Text style={s.leaderName}>{isMe ? 'You' : (entry.name || 'Zown User')}{isClose ? '  ★' : ''}</Text>
               <Text style={s.leaderXp}>{formatBoardValue(board, boardValue(entry, board), units)}</Text>
               {!isMe && (
-                <Pressable style={s.duelIconBtn} onPress={() => setDuelTarget({ uid: entry.id, name: entry.name })}>
+                <Pressable
+                  style={s.duelIconBtn}
+                  onPress={() => setDuelTarget({ uid: entry.id, name: entry.name })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Challenge ${entry.name || 'this person'} to a duel`}
+                >
                   <Ionicons name="flash-outline" size={16} color="#000" />
                 </Pressable>
               )}
@@ -525,7 +557,12 @@ export default function SocialScreen() {
             <View key={f.uid} style={s.leaderRow}>
               <View style={s.leaderAvatar}><Text style={s.leaderAvatarText}>{initials(f.name)}</Text></View>
               <Text style={s.leaderName}>{f.name}{f.close ? '  ★' : ''}</Text>
-              <Pressable style={s.duelIconBtn} onPress={() => setDuelTarget({ uid: f.uid, name: f.name })}>
+              <Pressable
+                style={s.duelIconBtn}
+                onPress={() => setDuelTarget({ uid: f.uid, name: f.name })}
+                accessibilityRole="button"
+                accessibilityLabel={`Challenge ${f.name || 'this person'} to a duel`}
+              >
                 <Ionicons name="flash-outline" size={16} color="#000" />
               </Pressable>
             </View>
@@ -602,10 +639,15 @@ export default function SocialScreen() {
             <Text style={s.headerGreet}>Hello {displayName}!</Text>
             <Text style={s.headerDate}>{dateStr}</Text>
           </View>
-          <Pressable style={s.iconBtn} onPress={() => router.push('/messages')}>
+          <Pressable style={s.iconBtn} onPress={() => router.push('/messages')} accessibilityRole="button" accessibilityLabel="Messages">
             <Ionicons name="chatbubble-outline" size={18} color="#000" />
           </Pressable>
-          <Pressable style={[s.iconBtn, { marginLeft: 8 }]} onPress={() => setComposerOpen(true)}>
+          <Pressable
+            style={[s.iconBtn, { marginLeft: 8 }]}
+            onPress={() => setComposerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="New post"
+          >
             <Ionicons name="add" size={20} color="#000" />
           </Pressable>
         </View>
@@ -645,7 +687,7 @@ export default function SocialScreen() {
           <View style={[s.modalCard, { maxHeight: '75%' }]}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Comments</Text>
-              <Pressable onPress={closeComments}><Ionicons name="close" size={22} color="#000" /></Pressable>
+              <Pressable onPress={closeComments} accessibilityRole="button" accessibilityLabel="Close comments"><Ionicons name="close" size={22} color="#000" /></Pressable>
             </View>
             {loadingComments ? (
               <ActivityIndicator size="large" color="#000" style={{ marginVertical: 30 }} />
@@ -665,6 +707,7 @@ export default function SocialScreen() {
                     <Pressable
                       style={s.postMenuBtn}
                       testID={`comment-more-${item.id}`}
+                      accessibilityRole="button"
                       accessibilityLabel="Comment options"
                       onPress={() => setModerationTarget(commentTarget({ post: commentsPost, comment: item, myUid: user?.uid }))}
                     >
@@ -679,7 +722,13 @@ export default function SocialScreen() {
                 value={commentText} onChangeText={setCommentText} placeholder="Add a comment..."
                 placeholderTextColor="#999" style={s.commentInput} maxLength={MAX_COMMENT_LENGTH}
               />
-              <Pressable onPress={handleAddComment} disabled={!commentText.trim() || sendingComment} style={s.commentSendBtn}>
+              <Pressable
+                onPress={handleAddComment}
+                disabled={!commentText.trim() || sendingComment}
+                style={s.commentSendBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Send comment"
+              >
                 <Ionicons name="send" size={16} color="#FFF" />
               </Pressable>
             </View>
@@ -731,7 +780,7 @@ export default function SocialScreen() {
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Edit post</Text>
-              <Pressable onPress={() => setEditingPost(null)}><Ionicons name="close" size={22} color="#000" /></Pressable>
+              <Pressable onPress={() => setEditingPost(null)} accessibilityRole="button" accessibilityLabel="Close editor"><Ionicons name="close" size={22} color="#000" /></Pressable>
             </View>
             <TextInput
               value={editText} onChangeText={setEditText} placeholder="What's on your mind?"
@@ -750,7 +799,7 @@ export default function SocialScreen() {
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Engagement Insights</Text>
-              <Pressable onPress={() => setInsightsPost(null)}><Ionicons name="close" size={22} color="#000" /></Pressable>
+              <Pressable onPress={() => setInsightsPost(null)} accessibilityRole="button" accessibilityLabel="Close insights"><Ionicons name="close" size={22} color="#000" /></Pressable>
             </View>
             <View style={s.insightsRow}>
               <View style={s.insightsCell}>
@@ -799,7 +848,7 @@ export default function SocialScreen() {
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Challenge {duelTarget?.name}</Text>
-              <Pressable onPress={() => setDuelTarget(null)}><Ionicons name="close" size={22} color="#000" /></Pressable>
+              <Pressable onPress={() => setDuelTarget(null)} accessibilityRole="button" accessibilityLabel="Close challenge"><Ionicons name="close" size={22} color="#000" /></Pressable>
             </View>
             {DUEL_PRESETS.map((preset) => (
               <Pressable key={preset.key} style={s.presetRow} disabled={sendingDuel} onPress={() => handleProposeDuel(preset)}>

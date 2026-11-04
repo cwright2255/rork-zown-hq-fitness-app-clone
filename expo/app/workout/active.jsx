@@ -33,6 +33,7 @@ import { unitFromSetting, historyIn, targetIn, toPounds, fromPounds, weightText 
 import { setHitTarget, sessionOutcome } from '@/lib/trainingMeasures';
 import { logWorkoutStarted, logWorkoutCompleted, logFirstWorkoutCompleted } from '@/src/services/analytics';
 import { isFirstFinishedWorkout } from '@/lib/firstWorkout';
+import { centerButtonLabel } from '@/lib/centerButtonLabel';
 
 // Real workouts don't always carry an explicit hold-time per exercise (strength
 // moves are sets x reps, performed at the user's own pace) — this estimates a
@@ -755,10 +756,15 @@ export default function ActiveWorkoutScreen() {
           the exit-confirm flow this back button now opens instead of
           leaving the workout with no confirmation. */}
       <View style={styles.header}>
-        <Pressable onPress={() => setShowExitConfirm(true)}>
+        <Pressable
+          onPress={() => setShowExitConfirm(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          accessibilityHint="Asks whether to save your progress"
+        >
           <Ionicons name="chevron-back" size={26} color="#000" />
         </Pressable>
-        <Pressable onPress={() => setShowMenu(true)}>
+        <Pressable onPress={() => setShowMenu(true)} accessibilityRole="button" accessibilityLabel="Workout menu">
           <Ionicons name="ellipsis-vertical" size={22} color="#000" />
         </Pressable>
       </View>
@@ -802,6 +808,8 @@ export default function ActiveWorkoutScreen() {
             style={styles.fullscreenBtn}
             onPress={() => setShowFullscreenVideo(true)}
             disabled={!currentVideoUrl}
+            accessibilityRole="button"
+            accessibilityLabel="Full screen demo"
           >
             <Ionicons name="expand-outline" size={20} color={currentVideoUrl ? '#FFF' : 'rgba(255,255,255,0.4)'} />
           </Pressable>
@@ -979,6 +987,8 @@ export default function ActiveWorkoutScreen() {
             style={styles.skipBtn}
             onPress={skipBack}
             disabled={currentIndex === 0}
+            accessibilityRole="button"
+            accessibilityLabel="Previous exercise"
           >
             <Ionicons
               name="play-back"
@@ -993,6 +1003,8 @@ export default function ActiveWorkoutScreen() {
               styles.centerBtn,
               isWorkoutDone && { backgroundColor: '#22C55E' },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel={centerButtonLabel(isWorkoutDone, exerciseComplete, isPlaying)}
             onPress={isWorkoutDone ? async () => {
               const elapsedSeconds = Math.max(
                 1,
@@ -1059,6 +1071,8 @@ export default function ActiveWorkoutScreen() {
             style={styles.skipBtn}
             onPress={skipForward}
             disabled={isWorkoutDone}
+            accessibilityRole="button"
+            accessibilityLabel="Next exercise"
           >
             <Ionicons
               name="play-forward"
@@ -1079,6 +1093,8 @@ export default function ActiveWorkoutScreen() {
           <Pressable
             style={styles.fullscreenCloseBtn}
             onPress={() => setShowFullscreenVideo(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close full screen demo"
           >
             <Ionicons name="close" size={28} color="#FFF" />
           </Pressable>
@@ -1219,11 +1235,11 @@ export default function ActiveWorkoutScreen() {
                   {artistName || 'Unknown Artist'}
                 </Text>
                 <View style={{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:32}}>
-                  <Pressable onPress={() => router.push('/music-search')}>
+                  <Pressable onPress={() => router.push('/music-search')} accessibilityRole="button" accessibilityLabel="Search for a song">
                     <Ionicons name="search" size={22} color="#FFF" />
                   </Pressable>
-                  <Pressable onPress={previousTrack}><Ionicons name="play-skip-back" size={28} color="#FFF" /></Pressable>
-                  <Pressable onPress={() => {
+                  <Pressable onPress={previousTrack} accessibilityRole="button" accessibilityLabel="Previous song"><Ionicons name="play-skip-back" size={28} color="#FFF" /></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={isMusicPlaying ? 'Pause music' : 'Play music'} onPress={() => {
                     const action = isMusicPlaying ? pauseTrack() : playTrack();
                     action.catch((e) => {
                       const noDevice = e?.message?.includes('No active device');
@@ -1237,7 +1253,7 @@ export default function ActiveWorkoutScreen() {
                   }} style={{width:60,height:60,borderRadius:30,backgroundColor:'#1DB954',justifyContent:'center',alignItems:'center'}}>
                     <Ionicons name={isMusicPlaying ? 'pause' : 'play'} size={28} color="#FFF" />
                   </Pressable>
-                  <Pressable onPress={nextTrack}><Ionicons name="play-skip-forward" size={28} color="#FFF" /></Pressable>
+                  <Pressable onPress={nextTrack} accessibilityRole="button" accessibilityLabel="Next song"><Ionicons name="play-skip-forward" size={28} color="#FFF" /></Pressable>
                 </View>
               </>
             ) : (
