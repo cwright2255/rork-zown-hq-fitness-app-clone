@@ -39,7 +39,7 @@ describe('root layout and the plan', () => {
 
   it('knows the plans screen, and keeps the bottom bar off it', () => {
     expect(layout).toMatch(/<Stack\.Screen name="paywall" \/>/);
-    expect(layout).toMatch(/!pathname\.startsWith\('\/paywall'\) && <BottomNavigation \/>/);
+    expect(require('../lib/bottomNavigationRoutes').showsBottomNavigation('/paywall')).toBe(false);
   });
 });
 

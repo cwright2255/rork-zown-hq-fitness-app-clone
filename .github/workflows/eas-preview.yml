@@ -1,16 +1,9 @@
 name: EAS Update Preview
 
 on:
-  push:
-    branches:
-      - feat/fitleus-light-theme-codemod
-      - feat/fitleus-light-theme-infra
-      - feat/fitleus-light-theme-codemod-v2
   pull_request:
     branches:
       - main
-      - feat/fitleus-light-theme
-      - feat/fitleus-light-theme-infra
 
 concurrency:
   group: eas-preview-${{ github.ref }}
@@ -39,12 +32,12 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.4
 
       - name: Install Expo + EAS CLIs
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: 27.4.1
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 

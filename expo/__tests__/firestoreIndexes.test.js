@@ -18,9 +18,9 @@ const have = file.indexes.map(sig);
 
 // Every query the app makes that needs one of these, and where it is.
 const NEEDED = {
-  'workouts: userId ASCENDING, date DESCENDING': 'the workout history (src/hooks/useWorkouts.js, store/workoutStore.js)',
-  'goals: userId ASCENDING, createdAt DESCENDING': 'goals (src/hooks/useGoals.js, store/goalsStore.js)',
-  'aiRecommendations: userId ASCENDING, createdAt DESCENDING': 'the coach\'s recommendations (src/hooks/useAICoach.js)',
+  'workouts: userId ASCENDING, date DESCENDING': 'the workout history (store/workoutStore.js)',
+  'goals: userId ASCENDING, createdAt DESCENDING': 'goals (store/goalsStore.js)',
+  'aiRecommendations: userId ASCENDING, createdAt DESCENDING': 'the coach\'s recommendations (the hook that read them, src/hooks/useAICoach.js, was deleted in Build 13; the index stays until an index deploy can drop it)',
   'raceEntries: raceId ASCENDING, timeSec ASCENDING': 'a virtual race\'s board (store/virtualRaceStore.js)',
   'conversations: participantIds CONTAINS, updatedAt DESCENDING': 'the conversation list (store/messagingStore.js subscribeConversations)',
   'workouts: completed ASCENDING, date ASCENDING': 'the community stats (functions/src/index.js, completed workouts of the last 30 days)',

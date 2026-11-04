@@ -96,7 +96,7 @@ module.exports = [
   },
   {
     // Build tools, scripts, this config and the cloud functions run under node, not on the phone.
-    files: ['*.config.js', 'eslint-import-resolver.js', 'plugins/**', 'scripts/**', 'functions/**', 'backend/**'],
+    files: ['*.config.js', 'eslint-import-resolver.js', 'plugins/**', 'scripts/**', 'functions/**'],
     languageOptions: { globals: globals.node },
   },
   {
@@ -105,7 +105,7 @@ module.exports = [
     // using one is reported.
     files: [
       'app/index.jsx', 'components/RunningMap.jsx', 'constants/performance.js', 'lib/exportMeshToGLB.js', 'lib/meshCache.js',
-      'services/spotifyService.js', 'services/voiceCommandService.js',
+      'services/spotifyService.js',
     ],
     languageOptions: {
       globals: {

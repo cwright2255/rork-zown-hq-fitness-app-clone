@@ -5,7 +5,7 @@ on:
       platform:
         description: Platform to build and submit
         required: true
-        default: all
+        default: ios
         type: choice
         options:
           - all
@@ -25,6 +25,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Run EAS Build and Submit
-        run: npx eas-cli@latest build --platform ${{ github.event.inputs.platform }} --auto-submit --non-interactive
+        run: npx eas-cli@27.4.1 build --platform ${{ github.event.inputs.platform }} --auto-submit --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

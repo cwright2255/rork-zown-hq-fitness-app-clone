@@ -63,7 +63,7 @@ describe('the Blocked people list', () => {
   });
 
   it('has no tab bar, like the rest of Settings', () => {
-    expect(read('app/_layout.jsx')).toContain("!pathname.startsWith('/profile/blocked')");
+    expect(require('../lib/bottomNavigationRoutes').showsBottomNavigation('/profile/blocked')).toBe(false);
   });
 
   it('is emptied when the person logs out, so the next person to sign in on the phone does not inherit it', () => {

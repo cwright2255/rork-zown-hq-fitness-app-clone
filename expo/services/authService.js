@@ -71,11 +71,8 @@ class AuthService {
     try {
       const { isFirebaseConfigured, auth } = require('../src/config/firebase');
       if (!isFirebaseConfigured || !auth) {
-        console.warn('[AuthService] Firebase not configured - using offline login');
-        const user = buildUserShape(null, { email, name: email.split('@')[0] });
-        const token = 'offline-session-' + Date.now();
-        await this._storeToken(token);
-        return { user, token, requiresMFA: false };
+        console.warn('[AuthService] Firebase not configured - sign-in unavailable');
+        throw new Error('Sign-in is not available right now. Please try again later.');
       }
       const { signInWithEmailAndPassword } = require('firebase/auth');
 
@@ -101,11 +98,8 @@ class AuthService {
     try {
       const { isFirebaseConfigured, auth } = require('../src/config/firebase');
       if (!isFirebaseConfigured || !auth) {
-        console.warn('[AuthService] Firebase not configured - using offline registration');
-        const user = buildUserShape(null, { email, name: name || email.split('@')[0] });
-        const token = 'offline-session-' + Date.now();
-        await this._storeToken(token);
-        return { user, token, requiresMFA: false };
+        console.warn('[AuthService] Firebase not configured - registration unavailable');
+        throw new Error('Creating an account is not available right now. Please try again later.');
       }
       const { createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
 
@@ -123,7 +117,7 @@ class AuthService {
       const user = buildUserShape(fbUser, { name, email: fbUser.email || email });
       const token = await fbUser.getIdToken().catch(() => 'firebase-session');
       await this._storeToken(token);
-      // The account exists now: count the sign-up, once (the offline branch above creates no account).
+      // The account exists now: count the sign-up, once.
       logSignUp('email');
 
       return { user, token };
@@ -170,21 +164,6 @@ class AuthService {
     // Signing in with an account that already exists is not a sign-up; only the sign-in that created it is.
     if (isNewUser) logSignUp(provider);
     return { user, token, isNewUser };
-  }
-
-  async verifyMFA(email, code) {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      if (code !== '123456') {
-        throw new Error('Invalid MFA code');
-      }
-      const user = buildUserShape(null, { email, name: email.split('@')[0] });
-      const token = 'mfa-session-token';
-      await this._storeToken(token);
-      return { user, token };
-    } catch {
-      throw new Error('MFA verification failed');
-    }
   }
 
   async logout() {

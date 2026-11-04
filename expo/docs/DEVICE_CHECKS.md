@@ -1694,3 +1694,72 @@ A button that is only an icon has no words, so VoiceOver (iPhone) and TalkBack (
 - **Only the four screens.** The rest of the app has the labels it had before (116 of 719 tap handlers before this build).
 - **No change to what the screen looks like or what a button does.** The numbers read after Like, Comments and Share are the ones already shown.
 - **Nothing is checked by a machine for what VoiceOver actually says.** The tests check that every icon-only button on the four screens has a role and a label, and that the labels that change (Like and Unlike, Show and Hide password, the middle workout button) change. What is said out loud is what this list is for.
+
+## Dead code cleared out, the fake sign-in stubs gone, and the bottom bar kept in a list (once, on the first update with it)
+
+An app update, plus changes to the workflow files in `.github/workflows`. No rules, no functions, no new build. Nothing should look different on the phone: this build removes things nothing used, and the checks below are there to prove it.
+
+**What changed**
+
+- **50 files nothing used were deleted (6,837 lines).** Five screens that nothing in the app opened: Badges, the XP dashboard, and the three that only redirected somewhere else (Messaging to Messages, Create Workout to Quick Workout, Running program by id to the run). The leftover server folder (`backend`, a Hono and tRPC server that the app never called) and the six packages that only it used. Seven unused cards and bars (Achievement, Badge, BadgeItem, Input, ProgressBar, StatCard, WorkoutCard) and the ten files of an unused component set (ui-kit). Two unused constants files (subscription plans, typography), one unused hook, three unused services (audio player, Nutritionix, voice commands), the six unused hooks in `src/hooks`, the unused navigation, types, remote-config and date helpers in `src`, the three files in the top-level types folder, and four unused performance helpers in `utils`. The Shop screens, the Shop store and the Shopify service stay for a future Shopify connection.
+- **The two sign-in stubs are deleted** (`services/authService.js`). `verifyMFA`, which accepted the code 123456 and was called by nothing, and the offline sessions that signed anyone in with any email and password when Firebase was not set up. Without Firebase, Sign In now says "Sign-in is not available right now. Please try again later." and Sign Up says "Creating an account is not available right now. Please try again later." Nothing is stored. With Firebase set up (the app you are holding) nothing changes.
+- **The root layout was tidied** (`app/_layout.jsx`): five names nothing used, a branch that could never run (an onboarded person on the start screen, which the code above it had already returned from), and the four entries for the deleted screens are gone.
+- **The 1,230-character condition that hides the bottom bar is now a list** (`lib/bottomNavigationRoutes.js`): the paths where it is hidden, one per line, grouped. To hide the bar on a new screen, add its path there. The bar is hidden and shown on exactly the same screens as before; `__tests__/bottomNavigationRoutes.test.js` keeps the old condition word for word and compares the two on every screen in the app and on the paths on either side of each rule.
+- **The Spotify screen says "Loading…"** with a real ellipsis while the playlists come in (`app/spotify-integration.jsx`); it had junk characters after the word.
+- **Workflows:** EAS Build and Submit starts on iOS, the only platform `eas.json` submits. bun is pinned to 1.4.4 in every workflow that installs it, and eas-cli to 27.4.1 in every workflow that runs it, so a new release of either cannot break a build on its own. The preview workflow no longer triggers on the old light-theme branches (it runs for pull requests into main).
+
+**Order**
+
+1. Paste the apply steps and the ship step. Wait for CI (it installs from the shorter `bun.lock` and runs the whole suite).
+2. `cd expo && eas update --branch main --environment production --message "Build 13: dead code, sign-in stubs and workflow tidy-up"`. Close the app completely and open it twice.
+3. The workflow changes take effect on their own, as soon as they are on main.
+
+**Checks**
+
+*The bottom bar is there on these screens*
+
+- [ ] Home, then every tab on the bar in turn (Workouts, Running, Nutrition, Health, Shop, Profile, Community, Analytics, and the others the bar offers as you move between areas). The bar is at the bottom of each, with the right tab lit, as before. Also Recipes, Calendar, the Leaderboard, and the running programs list.
+- [ ] Onboarding, on a throwaway account: the bar behaves as it did on the last update (this build did not change it).
+
+*The bottom bar is hidden on these screens*
+
+- [ ] Log out. The start screen, Log In, Sign Up and Forgot Password have no bar.
+- [ ] Start a workout from Workouts: no bar on the active workout, and none on the screen that follows when you finish it. No bar on Quick Workout either.
+- [ ] Profile has the bar. Open Settings, Edit Profile, Help, Licenses, Terms, Privacy Policy, Blocked people, Notifications, Workout History and Calorie History from it: none of them has the bar.
+- [ ] Messages and a message thread, the Coach, and the plans (paywall) screen: no bar.
+- [ ] Shop has the bar. Open a product: no bar.
+- [ ] Running: the active run, a race, a journey and a hike have no bar.
+- [ ] Body Scan and the food scanners (Scan food, Scan barcode): no bar.
+
+*Signing in still works*
+
+- [ ] Sign in with your real account and a right password: you arrive on Home as usual. Sign in with a wrong password: "Invalid email or password", and you stay on Log In.
+
+*The Spotify screen (only if you connect Spotify)*
+
+- [ ] While the playlists come in the screen says "Loading…" with three dots in one character, not strange letters after the word.
+
+*On GitHub*
+
+- [ ] Actions, then EAS Build and Submit, then Run workflow (do not run it): the platform box starts on ios.
+
+**If something goes wrong**
+
+- **The bar shows where it was hidden, or is hidden where it was shown.** Tell me the screen. The comparison with the old condition covers every screen in the app, so it would be a screen added after this build, or a path that opens in a way the test does not know; the fix is one line in `lib/bottomNavigationRoutes.js`.
+- **A screen is blank or the app closes on opening one.** Tell me which. A file that something still used would have been caught by the tests, the lint and a full build of the app (done before this build), so it is unlikely; if it happens, roll back and send me the screen.
+- **Sign In says "not available right now" on the real app.** That means Firebase did not start on the phone, which the old code would have hidden behind a fake session. Tell me; do not retry for long.
+- **A build fails on bun or eas-cli.** The pinned versions are the ones that were newest when the last run went green. If a different version is needed, it is one number to change in the workflow files, in every file at once (`__tests__/workflowVersions.test.js` holds them together).
+- **Roll back:** `eas update:list --branch main --limit 10`, then `eas update:republish --group 516f23bd-9e12-428d-b451-f9a5ed901ffe --message "Roll back to Build 12"`. That is the Build 12 spoken labels update. The workflow files are separate: revert the commit if a build needs the old ones.
+
+**Things this build does not do**
+
+- **It deletes the 50 files the audit listed and nothing else.** 23 more files are not used by the app either (the mesh export helper, the Rigging service, the privacy page text, the older copies of the stores, services and components in `src`, and a performance constants file) but were not on the audit's list, so they stay. Six of them are used by a test only. The Shopify service and its two sample-data files also look unused; they stay on purpose, for a future Shopify connection. One more, `services/appleMusicService.android.js`, looks unused to a script but is loaded on Android.
+- **The audit said "three performance helpers"; there were four unused ones in `utils`.** All four are gone. The fifth file there is used.
+- **The unused store `store/analyticsStore.js` stays**, because logging out now uses it.
+- **The Licenses screen still lists the packages that were removed** (tRPC, Superjson, Hono). It is a list of thanks, not of what is installed; changing it is a separate edit.
+- **The bottom bar's own code still mentions the Badges screen.** It only lights a tab, and harms nothing.
+- **A Firestore index stays** that only a deleted hook used (the coach recommendations by user and date). Dropping an index is a deploy, so it waits for a time when one is going out anyway.
+- **The Rork toolkit in the Metro config is not touched.** That is a separate, careful change.
+- **The EAS build workflows still run `npm install --legacy-peer-deps`.** A test holds that one on purpose (ajv).
+- **The preview workflow still installs the newest `expo` command line (`expo-version: latest`).** Only bun and eas-cli were on the list to pin.
+- **bun and eas-cli were pinned to the versions that were newest the day of the last green run** (bun 1.4.4, eas-cli 27.4.1, from the npm release dates), not read from that run's log. The first green run with the pins is the proof they work; if the old log shows other numbers, tell me and I will change them (one number, in every workflow file).

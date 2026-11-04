@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LottieView from 'lottie-react-native';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { tokens } from '../../theme/tokens';
+import { Platform, StyleSheet, View } from 'react-native';
 
 // A custom `export class ErrorBoundary` from app/_layout.jsx has been
 // removed here multiple times this session and keeps regressing back in
@@ -17,7 +15,6 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-const Head = ({ children }) => null;
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useUserStore } from '@/store/userStore';
@@ -51,11 +48,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { authService } from '@/services/authService';
 import { handleSignedOut } from '@/services/authGate';
 import { logOut } from '@/lib/logOut';
-import Constants from 'expo-constants';
+import { showsBottomNavigation } from '@/lib/bottomNavigationRoutes';
 
 void SplashScreen.preventAutoHideAsync();
-
-const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 
 
@@ -206,8 +201,6 @@ function RootLayoutInner() {
         if (pathname !== '/onboarding') {
           import('expo-router').then(({ router }) => router.replace('/onboarding')).catch(console.error);
         }
-      } else if (isOnboarded && pathname === '/start') {
-        import('expo-router').then(({ router }) => router.replace('/hq')).catch(console.error);
       }
     });
     return () => cancelAnimationFrame(navigationFrame);
@@ -234,13 +227,11 @@ function RootLayoutInner() {
         <Stack.Screen name="analytics" />
         <Stack.Screen name="paywall" />
         <Stack.Screen name="notifications" />
-        <Stack.Screen name="messaging" />
         <Stack.Screen name="messages" />
         <Stack.Screen name="messages/[id]" />
         <Stack.Screen name="rook-connect" />
         <Stack.Screen name="leaderboard" />
         <Stack.Screen name="recipes" />
-        <Stack.Screen name="exp-dashboard" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/register" />
         <Stack.Screen name="auth/forgot-password" />
@@ -248,7 +239,6 @@ function RootLayoutInner() {
         <Stack.Screen name="exercise/[id]" />
         <Stack.Screen name="workout/[id]" />
         <Stack.Screen name="workout/active" />
-        <Stack.Screen name="workout/create" />
         <Stack.Screen name="workout/complete" />
         <Stack.Screen name="workout/form-check" />
         <Stack.Screen name="body-scan/capture" />
@@ -258,7 +248,6 @@ function RootLayoutInner() {
         <Stack.Screen name="running/[id]" />
         <Stack.Screen name="running/active" />
         <Stack.Screen name="running/program/index" />
-        <Stack.Screen name="running/program/[id]" />
         <Stack.Screen name="running/session/[id]" />
         <Stack.Screen name="running/run/[id]" />
         <Stack.Screen name="running/import" />
@@ -289,7 +278,7 @@ function RootLayoutInner() {
       </Stack>
 
         {/* Floating bottom tab bar */}
-        {!pathname.startsWith('/auth/') && pathname !== '/start' && pathname !== '/' && pathname !== '/index' && !/^\/workout\/.+$/.test(pathname) && !/^\/running\/(?!program)[^/]+$/.test(pathname) && !pathname.startsWith('/body-scan') && !pathname.startsWith('/messages') && !pathname.startsWith('/profile/edit') && !pathname.startsWith('/profile/settings') && !pathname.startsWith('/profile/terms') && !pathname.startsWith('/profile/privacy-policy') && !pathname.startsWith('/profile/blocked') && !pathname.startsWith('/profile/licenses') && !pathname.startsWith('/profile/running-log') && !pathname.startsWith('/profile/workout-history') && !pathname.startsWith('/profile/calorie-history') && !pathname.startsWith('/running/hiking') && !pathname.startsWith('/running/run/') && !pathname.startsWith('/running/races/') && !pathname.startsWith('/running/journeys/') && !pathname.startsWith('/profile/notifications') && !pathname.startsWith('/profile/help') && !pathname.startsWith('/coach') && !pathname.startsWith('/shop/product') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/try-on') && !pathname.startsWith('/nutrition/scan') && !pathname.startsWith('/nutrition/barcode-scan') && !pathname.startsWith('/paywall') && <BottomNavigation />}
+        {showsBottomNavigation(pathname) && <BottomNavigation />}
     </View>
   );
 }

@@ -10,15 +10,15 @@ const path = require('path');
 
 const SOURCE_DIRS = ['app', 'components', 'constants', 'data', 'hooks', 'lib', 'services', 'src', 'store', 'utils'];
 
+// Files that name screens without opening them, so they are not counted as a link: the layout (above) and the list of screens where
+// the bottom navigation is hidden.
+const NOT_LINKS = ['lib/bottomNavigationRoutes.js'];
+
 // Screens that are not opened by a path in the code, with why they stay. Delete a line when its screen gets a link.
 const KNOWN_UNLINKED = {
   '/spotify-callback': 'where Spotify sends the person back after logging in (zownhq://spotify-callback)',
   '/spotify-integration': 'opened only by the two Spotify return pages, once login has finished',
   '/spotify-redirect': 'where Spotify sends the person back after logging in (a web address, not a link in the app)',
-  '/messaging': 'a redirect to /messages, kept for any old link',
-  '/workout/create': 'a redirect to the Quick Workout, kept for any old link',
-  '/running/program/[id]': 'a redirect to /running/[id], kept for any old link',
-  '/exp-dashboard': 'real data, not linked yet',
   '/recipes/import-from-share': 'real, but the share-sheet setup it needs is not in app.json yet',
   '/shop/cart': 'the Shop is still sample products; its screens are not wired together',
   '/shop/category/[category]': 'the Shop is still sample products; its screens are not wired together',
@@ -70,7 +70,10 @@ function unreachedScreens(root) {
   const text = {};
   for (const dir of SOURCE_DIRS) {
     if (isDir(path.join(root, dir))) {
-      for (const file of files(path.join(root, dir))) if (!path.basename(file).startsWith('_layout')) text[file] = code(file);
+      for (const file of files(path.join(root, dir))) {
+        const rel = path.relative(root, file).split(path.sep).join('/');
+        if (!path.basename(file).startsWith('_layout') && !NOT_LINKS.includes(rel)) text[file] = code(file);
+      }
     }
   }
   const patterns = Object.fromEntries(Object.keys(screens).map((route) => [route, routePattern(route)]));
@@ -118,6 +121,12 @@ describe('the checker', () => {
   it('does not count the layout, which only names screens and tests their paths', () => {
     write('app/hidden.jsx');
     write('app/_layout.jsx', "const bar = pathname !== '/hidden' && !pathname.startsWith('/hidden/');\n");
+    expect(unreachedScreens(root)).toEqual({ '/hidden': 'app/hidden.jsx' });
+  });
+
+  it('does not count the list of screens where the bottom navigation is hidden', () => {
+    write('app/hidden.jsx');
+    write('lib/bottomNavigationRoutes.js', "export const HIDDEN_ON_PATHS_STARTING_WITH = ['/hidden'];\n");
     expect(unreachedScreens(root)).toEqual({ '/hidden': 'app/hidden.jsx' });
   });
 

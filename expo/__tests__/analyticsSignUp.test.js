@@ -65,9 +65,9 @@ describe('signing up with an email and password', () => {
     expect(mockLogSignUp).not.toHaveBeenCalled();
   });
 
-  it('sends nothing when there is no Firebase and nothing is created (the offline preview)', async () => {
+  it('sends nothing when there is no Firebase and nothing is created (registration is refused)', async () => {
     global.__configured = false;
-    await authService.register('Cj', 'cj@example.com', 'secret123');
+    await expect(authService.register('Cj', 'cj@example.com', 'secret123')).rejects.toThrow('Creating an account is not available right now');
     expect(global.__createUser).not.toHaveBeenCalled();
     expect(mockLogSignUp).not.toHaveBeenCalled();
   });

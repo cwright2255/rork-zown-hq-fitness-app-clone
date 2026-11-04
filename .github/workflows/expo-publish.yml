@@ -36,7 +36,7 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.4
 
       # bun.lock pins the versions, so this publishes exactly the dependencies the tests ran against. A plain npm install has no
       # lockfile to follow: it leaves out query-string (so the bundle fails with "Unable to resolve module query-string")
@@ -45,7 +45,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install EAS CLI
-        run: npm install -g eas-cli@latest
+        run: npm install -g eas-cli@27.4.1
 
       # eas update reads the app config with `expo config` and, when that fails, only says "exited with non-zero code: 1".
       # Running it here first puts the real reason in the log.

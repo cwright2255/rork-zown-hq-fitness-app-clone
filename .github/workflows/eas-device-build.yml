@@ -15,6 +15,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Run EAS Build
-        run: npx eas-cli@latest build --profile development-device --platform ios --non-interactive
+        run: npx eas-cli@27.4.1 build --profile development-device --platform ios --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

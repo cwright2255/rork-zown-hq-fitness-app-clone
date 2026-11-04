@@ -3,6 +3,7 @@
 // service in sessionService.test.js; what the phone shows is checked on the phone (docs/DEVICE_CHECKS.md, "Today's Session").
 import fs from 'fs';
 import path from 'path';
+import { showsBottomNavigation } from '../lib/bottomNavigationRoutes';
 
 const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -125,7 +126,7 @@ describe('the Today\'s Session screen', () => {
     expect(fs.existsSync(path.join(root, 'app/workout/session.jsx'))).toBe(true);
     const layout = read('app/_layout.jsx');
     expect(layout).not.toMatch(/workout\/quick/);
-    expect(layout).toMatch(/!\/\^\\\/workout\\\/\.\+\$\/\.test\(pathname\)/);
+    expect(showsBottomNavigation('/workout/session')).toBe(false);
   });
 });
 

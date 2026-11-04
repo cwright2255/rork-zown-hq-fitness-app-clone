@@ -183,7 +183,7 @@ describe('the import resolver', () => {
   });
 
   it('finds a folder by its index file', () => {
-    expect(resolver.resolve('@/components/ui-kit', importer)).toEqual({ found: true, path: path.join(expoDir, 'components', 'ui-kit', 'index.js') });
+    expect(resolver.resolve('@/src/components/ui', importer)).toEqual({ found: true, path: path.join(expoDir, 'src', 'components', 'ui', 'index.js') });
   });
 
   it('says a file is missing when it is', () => {
