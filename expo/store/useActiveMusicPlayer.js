@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useSpotifyStore } from '@/store/spotifyStore';
 import { useAppleMusicStore } from '@/store/appleMusicStore';
 import { spotifyService } from '@/services/spotifyService';
@@ -24,8 +25,49 @@ import { appleMusicService } from '@/services/appleMusicService';
 // artworkUrl) the UI can read the same way regardless of which service is
 // actually active.
 export function useActiveMusicPlayer() {
-  const spotify = useSpotifyStore();
-  const appleMusic = useAppleMusicStore();
+  // Each player is asked for just what is used below (a selector), with the current track boiled down to the three things that are
+  // shown: its name, its artist and its picture. While music plays, the Spotify store is written to on every poll (the track, how far
+  // into it), and a hook that took the whole store drew the active workout, the Home music widget and the run screen again each time,
+  // though nothing they show had changed. useShallow keeps the answer the same object until one of these values changes.
+  const spotify = useSpotifyStore(useShallow((s) => ({
+    isConnected: s.isConnected,
+    trackName: s.currentTrack?.name || null,
+    artistName: s.currentTrack?.artists?.map((a) => a.name).join(', ') || null,
+    artworkUrl: s.currentTrack?.album?.images?.[0]?.url || null,
+    isPlaying: s.isPlaying,
+    queue: s.queue,
+    playTrack: s.playTrack,
+    pauseTrack: s.pauseTrack,
+    playNextFromQueue: s.playNextFromQueue,
+    nextTrack: s.nextTrack,
+    previousTrack: s.previousTrack,
+    updateCurrentTrack: s.updateCurrentTrack,
+    addToQueue: s.addToQueue,
+    playNext: s.playNext,
+    clearQueue: s.clearQueue,
+    playAlbum: s.playAlbum,
+    startArtistMix: s.startArtistMix,
+  })));
+  const appleMusic = useAppleMusicStore(useShallow((s) => ({
+    isConnected: s.isConnected,
+    canPlayCatalogContent: s.canPlayCatalogContent,
+    trackName: s.currentTrack?.title || null,
+    artistName: s.currentTrack?.artistName || null,
+    artworkUrl: s.currentTrack?.artworkUrl || null,
+    isPlaying: s.isPlaying,
+    queue: s.queue,
+    playTrack: s.playTrack,
+    pauseTrack: s.pauseTrack,
+    playNextFromQueue: s.playNextFromQueue,
+    nextTrack: s.nextTrack,
+    previousTrack: s.previousTrack,
+    updateCurrentTrack: s.updateCurrentTrack,
+    addToQueue: s.addToQueue,
+    playNext: s.playNext,
+    clearQueue: s.clearQueue,
+    playAlbum: s.playAlbum,
+    startArtistMix: s.startArtistMix,
+  })));
 
   // Real, new: queue entries are normalized to {id, trackName, artistName,
   // artworkUrl} for display either way (same shape searchTracks already
@@ -52,9 +94,9 @@ export function useActiveMusicPlayer() {
       serviceLabel: 'Spotify',
       isConnected: true,
       canSearchCatalog: true,
-      trackName: spotify.currentTrack?.name || null,
-      artistName: spotify.currentTrack?.artists?.map((a) => a.name).join(', ') || null,
-      artworkUrl: spotify.currentTrack?.album?.images?.[0]?.url || null,
+      trackName: spotify.trackName,
+      artistName: spotify.artistName,
+      artworkUrl: spotify.artworkUrl,
       isPlaying: spotify.isPlaying,
       playTrack: spotify.playTrack,
       pauseTrack: spotify.pauseTrack,
@@ -106,9 +148,9 @@ export function useActiveMusicPlayer() {
       serviceLabel: 'Apple Music',
       isConnected: true,
       canSearchCatalog: appleMusic.canPlayCatalogContent,
-      trackName: appleMusic.currentTrack?.title || null,
-      artistName: appleMusic.currentTrack?.artistName || null,
-      artworkUrl: appleMusic.currentTrack?.artworkUrl || null,
+      trackName: appleMusic.trackName,
+      artistName: appleMusic.artistName,
+      artworkUrl: appleMusic.artworkUrl,
       isPlaying: appleMusic.isPlaying,
       playTrack: appleMusic.playTrack,
       pauseTrack: appleMusic.pauseTrack,

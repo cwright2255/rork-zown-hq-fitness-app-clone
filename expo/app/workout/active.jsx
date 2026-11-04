@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   Pressable,
   Modal,
   Platform,
@@ -178,9 +179,15 @@ export default function ActiveWorkoutScreen() {
   const program = isProgramSession ? getProgram(programId) : null;
   const programDay = isProgramSession ? getProgramWeek(programId, programWeekParam)?.days[programDayIndexParam] : null;
 
-  const { workouts, customWorkouts, addCompletedWorkout, logSet, getExerciseHistory } = useWorkoutStore();
-  const { addExpActivity } = useExpStore();
-  const { user } = useUserStore();
+  // Each store is asked for just what this screen uses (a selector), not handed whole: while a workout is on, a change somewhere else in a
+  // store (a saved set landing in the history, XP being added, a profile loading) no longer draws the whole screen again.
+  const workouts = useWorkoutStore((s) => s.workouts);
+  const customWorkouts = useWorkoutStore((s) => s.customWorkouts);
+  const addCompletedWorkout = useWorkoutStore((s) => s.addCompletedWorkout);
+  const logSet = useWorkoutStore((s) => s.logSet);
+  const getExerciseHistory = useWorkoutStore((s) => s.getExerciseHistory);
+  const addExpActivity = useExpStore((s) => s.addExpActivity);
+  const user = useUserStore((s) => s.user);
   // Settings > Weight Units. What is saved is always pounds (lib/weightUnits.js): the unit chosen is how a weight is typed and shown here, and the
   // target is worked out in it.
   const weightUnit = useSettingsStore((s) => unitFromSetting(s.weightUnits));
@@ -958,19 +965,23 @@ export default function ActiveWorkoutScreen() {
         </View>
 
         {upcomingExercises.length > 0 ? (
-          <ScrollView
+          // The cards of the exercises still to come, as a list that draws only the ones near the screen (a long workout has many).
+          <FlatList
             horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.nextMovesCarousel}
-          >
-            {upcomingExercises.map((ex, idx) => (
+            data={upcomingExercises}
+            keyExtractor={(ex) => String(ex.id)}
+            renderItem={({ item: ex, index: idx }) => (
               <NextMoveCard
-                key={ex.id}
                 exercise={ex}
                 onPress={() => jumpToExercise(currentIndex + 1 + idx)}
               />
-            ))}
-          </ScrollView>
+            )}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.nextMovesCarousel}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={5}
+          />
         ) : (
           <View style={styles.allDoneRow}>
             <Ionicons name="checkmark-circle" size={24} color="#22C55E" />

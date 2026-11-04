@@ -1763,3 +1763,65 @@ An app update, plus changes to the workflow files in `.github/workflows`. No rul
 - **The EAS build workflows still run `npm install --legacy-peer-deps`.** A test holds that one on purpose (ajv).
 - **The preview workflow still installs the newest `expo` command line (`expo-version: latest`).** Only bun and eas-cli were on the list to pin.
 - **bun and eas-cli were pinned to the versions that were newest the day of the last green run** (bun 1.4.4, eas-cli 27.4.1, from the npm release dates), not read from that run's log. The first green run with the pins is the proof they work; if the old log shows other numbers, tell me and I will change them (one number, in every workflow file).
+
+## Faster busy screens, and limits on the numbers of a saved workout (once: the update first, then the rules)
+
+Two changes, and the order matters a little. **The app update goes first**, and you try Home and the active workout on it. **Then the rules go out**, and you save a long workout and check it landed. The two do not depend on each other (the new limits are far above anything the app writes), but if the update turns out wrong you want to find that out before there is a second thing to roll back.
+
+**What changed**
+
+- **Home and the active workout draw themselves less often.** Both screens used to read whole stores (`const { x } = useSomeStore();`), so any change in a store, however small, drew the whole screen and every widget on it again. A loading flag flipping when you pull to refresh did it, and so did a set landing in the workout history. They now ask each store for just the pieces they show, so a change in something they do not show draws nothing, and a change in something they do show still updates them. The tests count the redraws: Home was drawn again for each of seven kinds of unrelated change and 8 times through one pull to refresh, and now 0; the active workout was drawn again for each of five, and 20 times through twenty music polls, and now 0.
+- **The music hook the active workout reads through (`store/useActiveMusicPlayer.js`) did the same.** While Spotify plays, its store is written to on every poll (the song, how far into it), and the hook read the whole store, so the active workout, the Home music widget and the run screen were drawn again at each poll. It now reads only the song's name, artist and picture, whether it is playing, the queue and the controls. This is the one change outside the two screens, because the active workout read the stores through it.
+- **The exercises still to come on the active workout ("Next Moves") are a list that draws the cards near the screen**, not all of them at once. A long workout has many. Tapping a card still jumps to that exercise.
+- **Limits on a saved workout in `firestore.rules`:** calories up to 15,000, duration up to 24 hours (86,400 seconds), distance up to 1,000 km. A number that is left out is fine; one that is there has to be a number inside its limit. You confirmed these. A workout of exactly 24 hours at the app's own estimate of 0.15 calories a second is 12,960 calories, inside the limits. **The app does not stop its timer at 24 hours**, though: a workout left running for more than a day and then finished is saved with its real length and the database refuses it (see below).
+- **A finished workout can no longer be edited.** One saved part way through (Save and Exit) can be, within the same limits, but it cannot be turned into a finished one: that is only set when the workout is saved. The app never edits a saved workout, so nothing in the app is affected; this is for anyone writing to the database directly.
+
+**Order**
+
+1. Paste the apply steps and the ship step. When the Codespace has Java and the Firebase tools, the ship step also runs the new rules tests (`npm run test:rules`) before it pushes, so a mistake in the rules stops there; if it does not have them it says so and skips that step. Wait for CI. **The `Firestore rules` job in CI is the one that always runs those tests**, and they could not be run on the machine this was built on. If it is red, do not deploy the rules; send me the failure.
+2. `cd expo && eas update` (the same command as before). Close the app completely and open it twice.
+3. Do the "after the update" checks below.
+4. Deploy the rules, from `expo`:
+
+```
+cd expo && firebase deploy --only firestore:rules --project zown-3c512
+```
+
+The deploy compiles the rules before it uploads anything; if it prints an error, nothing was deployed.
+
+5. Do the "after the rules" checks.
+
+**Checks**
+
+*After the update (before the rules)*
+
+- [ ] **Home, does it feel smoother?** Open Home, scroll to the bottom and back, pull down to refresh, open and close a few cards. Tell me "smoother", "the same" or "worse", and where (opening, scrolling, the refresh). I counted redraws, not frames, so this is the real measurement.
+- [ ] Home still moves with what you do. Add a glass of water with +250ml: the Hydration number goes up. Open Total Daily XP, Steps and Calories: each opens in place and takes the full width, as before. Turn a widget off in Edit Home Screen and back on: it goes and comes back.
+- [ ] **The active workout, does it feel smoother?** Start a workout with several exercises. Log a set, tap Next, skip back. Same three answers as above.
+- [ ] Next Moves, on a workout with many exercises (use one with ten or more): the cards slide sideways, they all show up as you slide, and tapping the third one jumps to the third exercise after this one.
+- [ ] Only if you have Spotify or Apple Music connected: play a song, start a workout and let a few songs go by. The screen does not stutter, the song name and the play/pause button in the music panel are right, and skipping a song updates them. The Home music widget also still follows the song.
+
+*After the rules*
+
+- [ ] **A long workout saves.** Record a workout of an hour or more (or one with twenty exercises, leaving it open for a while), and finish it. On the next screen the numbers look right. Close the app completely and open it: the workout is in Workout History with its time and calories. It is there because it came from the server, which is what the rules just held to their limits.
+- [ ] **Save and Exit saves.** Start another workout, finish one exercise, and use Save and Exit. Close the app completely and open it: it is in Workout History as a part-way workout.
+- [ ] **A run saves.** Record a short run (or import one) and finish it: it shows in the Running Log. The limits are on the `workouts` collection, not on runs, so this only checks that nothing else broke.
+- [ ] Firebase console, Firestore, `workouts`: the long workout's document has `duration` in seconds, `caloriesBurned`, and `completed: true`; the Save and Exit one has `completed: false`.
+
+**If something goes wrong**
+
+- **A workout you finished is not in History after you close and reopen the app.** The database refused it, and the app kept it on the phone only until the next load. The usual reason would be a workout left running for more than 24 hours before it was finished, since the app does not stop the timer. Tell me its length and calories. The three limits are in one place in `firestore.rules` (the `withinLimits` function under `match /workouts`); raising one is a one-number change and a rules deploy. To go back to the old rules at once: `git show ec69dfb:expo/firestore.rules > firestore.rules`, then the deploy command above.
+- **Home or the active workout looks wrong, or something on it stops updating.** Tell me which screen and which number or button. Roll back the app: `eas update:list --branch main --limit 10`, then `eas update:republish --group a8b3726a-64bb-4205-966d-99b62c7b0045 --message "Roll back to Build 13"`. That is the Build 13 update. The rules are separate and stay as they are.
+- **Next Moves shows only a few cards and stops.** Slide it a little; the rest should appear. If a card is missing after sliding, tell me how many exercises the workout has.
+
+**Things this build does not do**
+
+- **Home is still one scrolling page, not a virtualized list.** Its long part is a grid of 18 cards that sit side by side, where the card you open takes the full width and pushes the others down, and a list laid out in columns cannot do that. The five sections under the grid are too few for a list to save anything. If Home still janks after the selectors, the next step is the widgets themselves (each reads its own stores whole), not the list.
+- **The set rows on the active workout are not virtualized either.** They are as many as the sets of one exercise, and they are boxes you type in; a list would throw away what you typed when a row scrolled out of view.
+- **The rest of the app still reads stores whole**, about 170 places in 74 files. Only Home, the active workout and the music hook changed. The rest follows only if you see jank on a screen.
+- **Nothing here measured frame rates.** The tests count how many times the code redraws; whether that feels faster is your answer to the checks above.
+- **The app does not hold a workout to 24 hours before it saves.** The timer runs on the clock from when the workout started, so one finished more than a day later is saved with that length and refused by the database. A two-line clamp in `app/workout/active.jsx` would record 24 hours instead; it was left out because it changes what is saved, which this build was not asked to do. Say if you want it.
+- **The numbers are not checked on the server yet** (`onWorkoutComplete` in `functions/src/index.js`). That waits until there are prizes.
+- **The limits cover calories, duration and distance only.** The XP a workout carries is not limited here; XP is decided by the server from the claims (`functions/src/xpLedger.js`).
+- **A person can still delete their own workout**, as before.
+- **The rules tests run in CI and in the Codespace, not in the app's normal tests** (they need the Firestore emulator). `rules-tests/workouts.test.js` has them: just inside and just outside each limit, the owner, another person and a visitor, and the edit lock.

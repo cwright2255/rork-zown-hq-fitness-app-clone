@@ -192,9 +192,28 @@ service cloud.firestore {
       }
     }
 
+    // A saved workout. The phone writes its numbers (calories, duration, distance), so they are held to generous limits here: a
+    // calorie count of at most 15,000, a duration of at most 24 hours (in seconds) and a distance of at most 1,000 km, the same
+    // distance limit as an XP claim. A field that is left out is fine; one that is there has to be a number inside its limit. The
+    // limits are meant to turn away made-up numbers, never a real workout. A workout that was finished (completed is true, or the
+    // field is missing, as on the oldest ones) can no longer be changed. One saved part way (completed is false) can be, but not
+    // into a finished one: that is only set when the workout is created. The function that checks the numbers itself waits until
+    // there are prizes (onWorkoutComplete in functions/src/index.js).
     match /workouts/{workoutId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      function withinLimits() {
+        let d = request.resource.data;
+        return (!('caloriesBurned' in d) || (d.caloriesBurned is number && d.caloriesBurned >= 0 && d.caloriesBurned <= 15000)) &&
+          (!('duration' in d) || (d.duration is number && d.duration >= 0 && d.duration <= 86400)) &&
+          (!('distance' in d) || (d.distance is number && d.distance >= 0 && d.distance <= 1000)) &&
+          (!('distanceKm' in d) || (d.distanceKm is number && d.distanceKm >= 0 && d.distanceKm <= 1000));
+      }
+
+      allow read, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId && withinLimits();
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId &&
+        request.auth.uid == request.resource.data.userId &&
+        resource.data.get('completed', true) == false && request.resource.data.get('completed', true) == false &&
+        withinLimits();
     }
 
     // Real, confirmed fix: loggedSets had no rule at all anywhere in this

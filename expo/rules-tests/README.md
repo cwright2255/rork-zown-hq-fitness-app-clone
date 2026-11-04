@@ -33,4 +33,4 @@ just inside and just outside the limit.
 
 - `helpers.js`: loads the rules and gives each test `as(uid)`, `anon()` and `seed(docs)`.
 - `config.js`: the project id and the rules file, shared with the test that checks the wiring.
-- one test file per area: `users`, `owned-docs`, `social`, `competitions`, `admin-content`, `default-deny`.
+- one test file per area: `users`, `owned-docs`, `workouts`, `social`, `competitions`, `admin-content`, `default-deny`.

@@ -160,11 +160,13 @@ export default function HQScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0); // goes up on each pull-to-refresh, for cards that load their own data
-  const { loadProfile } = useUserStore();
-  const { loadXP } = useExpStore();
-  const { loadWorkouts } = useWorkoutStore();
-  const { loadAllHealth } = useHealthStore();
-  const { loadRuns } = useRunningStore();
+  // Each store is asked for just the pieces Home shows (a selector), not handed whole: a store that changes in a way Home does not show,
+  // such as a loading flag flipping, no longer draws the screen and its widgets again.
+  const loadProfile = useUserStore((s) => s.loadProfile);
+  const loadXP = useExpStore((s) => s.loadXP);
+  const loadWorkouts = useWorkoutStore((s) => s.loadWorkouts);
+  const loadAllHealth = useHealthStore((s) => s.loadAllHealth);
+  const loadRuns = useRunningStore((s) => s.loadRuns);
   const loadCompletedHikes = useHikingStore((s) => s.loadCompletedHikes);
 
   const onRefresh = async () => {
@@ -191,18 +193,36 @@ export default function HQScreen() {
   };
 
   const router = useRouter();
-  const { user, updateUser, saveProfile } = useUserStore();
-  const { getDailyExp, getLevel, getExpToNextLevel, xpHistory } = useExpStore();
-  const { completedWorkouts } = useWorkoutStore();
-  const { hydration, sleep, steps: storeSteps, stepsHistory, addGlass, removeGlass, flightsClimbed } = useHealthStore();
-  const { rookRecovery, loadRookRecovery, loadAppleHealthActivity } = useHealthStore();
+  const user = useUserStore((s) => s.user);
+  const updateUser = useUserStore((s) => s.updateUser);
+  const saveProfile = useUserStore((s) => s.saveProfile);
+  // The XP numbers are worked out by the store's own getters from its state, so each is read as the number the getter gives: the screen is
+  // drawn again when that number changes, and not for the rest of the XP store. The daily XP is today's (getDailyExp, not the lifetime
+  // total), rounded so that fractional XP, which steps XP's per-step rate can produce, never reaches the display as a decimal.
+  const xpVal = useExpStore((s) => (s.getDailyExp ? Math.round(s.getDailyExp()) : 0));
+  const levelVal = useExpStore((s) => (s.getLevel ? s.getLevel() : 1));
+  const expToNextLevelVal = useExpStore((s) => (s.getExpToNextLevel ? Math.max(0, Math.round(s.getExpToNextLevel())) : 0));
+  const xpHistory = useExpStore((s) => s.xpHistory);
+  const completedWorkouts = useWorkoutStore((s) => s.completedWorkouts);
+  const hydration = useHealthStore((s) => s.hydration);
+  const sleep = useHealthStore((s) => s.sleep);
+  const storeSteps = useHealthStore((s) => s.steps);
+  const stepsHistory = useHealthStore((s) => s.stepsHistory);
+  const addGlass = useHealthStore((s) => s.addGlass);
+  const removeGlass = useHealthStore((s) => s.removeGlass);
+  const flightsClimbed = useHealthStore((s) => s.flightsClimbed);
+  const rookRecovery = useHealthStore((s) => s.rookRecovery);
+  const loadRookRecovery = useHealthStore((s) => s.loadRookRecovery);
+  const loadAppleHealthActivity = useHealthStore((s) => s.loadAppleHealthActivity);
   useEffect(() => {
     if (user?.uid) {
       loadRookRecovery();
       loadAppleHealthActivity(user.uid);
     }
   }, [user?.uid]);
-  const { layout: widgetLayout, loadLayout: loadWidgetLayout, isEditing } = useHomeWidgetsStore();
+  const widgetLayout = useHomeWidgetsStore((s) => s.layout);
+  const loadWidgetLayout = useHomeWidgetsStore((s) => s.loadLayout);
+  const isEditing = useHomeWidgetsStore((s) => s.isEditing);
   useEffect(() => {
     if (user?.uid) loadWidgetLayout(user.uid);
   }, [user?.uid]);
@@ -215,7 +235,7 @@ export default function HQScreen() {
     // hiding something new.
     return entry ? entry.enabled : true;
   };
-  const { runs } = useRunningStore();
+  const runs = useRunningStore((s) => s.runs);
   const completedHikes = useHikingStore((s) => s.completedHikes);
 
   // Recommended Workouts: sessions from the Today's Session engine, worked out again whenever what it reads changes (a finished workout, run or
@@ -294,20 +314,12 @@ export default function HQScreen() {
   const sleepVal = rookRecovery?.sleepHours ?? null;
   const hydrationVal = hydration?.glasses || 0;
   const hydrationTarget = hydration?.target || 8;
-  // Real fix: previously getTotalExp() - lifetime cumulative XP, not
-  // daily. Now reads the new getDailyExp() getter (store/expStore.js),
-  // which tracks XP earned specifically today. Math.round guards
-  // against fractional XP (e.g. steps-XP's per-step rate can produce
-  // non-whole amounts) reaching the display as a decimal.
-  const xpVal = getDailyExp ? Math.round(getDailyExp()) : 0;
   // Real fix: Current Level / Next Level / 7-Day XP Earnings in the
   // expanded Total XP card were previously hardcoded ("Level 12", "840
   // XP remaining", and an identical Mon-Sun chart every time) - now
   // reads the store's real level/expToNextLevel and the real per-day
   // history (lib/xpMetrics.js), same computed-metrics pattern already
   // used for calorieMetrics/stepsMetrics above.
-  const levelVal = getLevel ? getLevel() : 1;
-  const expToNextLevelVal = getExpToNextLevel ? Math.max(0, Math.round(getExpToNextLevel())) : 0;
   const xpMetrics = useMemo(() => computeXpMetrics(xpHistory), [xpHistory]);
 
   const toggleExpand = (cardName) => {

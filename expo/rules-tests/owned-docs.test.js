@@ -1,11 +1,11 @@
-// Collections at the top level whose documents carry the id of the person they belong to in a userId field (workouts,
-// logged sets, goals, coach messages, AI recommendations). Being signed in is not enough: the userId has to be yours.
+// Collections at the top level whose documents carry the id of the person they belong to in a userId field (logged sets, goals,
+// coach messages, AI recommendations). Being signed in is not enough: the userId has to be yours. (Workouts are owned the same way,
+// but also have limits on their numbers and cannot be edited once finished: workouts.test.js.)
 const { rulesEnv, ok, no } = require('./helpers');
 
 const env = rulesEnv();
 
 describe.each([
-  ['/workouts/{workoutId}', 'workouts'],
   ['/loggedSets/{setId}', 'loggedSets'],
   ['/goals/{goalId}', 'goals'],
 ])('%s', (rulePath, collection) => {
