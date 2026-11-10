@@ -1880,3 +1880,54 @@ and the screens behind it the same white, and keeps the picture empty. The versi
 - **It does not change a build you already have.** The old launch screen stays in those until the new build replaces them.
 - **It does not change the app icon, the glitch splash or Home.**
 - **It does not make the app open faster.** The launch screen shows for as long as the app takes to load, as before; it is only white now.
+
+## Try-on runtime test (alpha, Build 16)
+
+JavaScript and one picture only: no rules, no functions and **no new build**. The phone pieces it uses (3D drawing, file storage, SHA-256) are
+already inside TestFlight build 24 (app version 1.0.1). After CI is green, `eas update --branch main --environment production` (from inside `expo/`),
+then close the app completely and open it twice.
+
+What it is: a test screen, Settings, About, **Try-On Runtime Test**, that times on the phone what the real 3D try-on will have to do. It uses a
+made-up garment (a plain tube with the same sizes as the real Men's 7in Shorts, M: 17,004 points, about 34,000 triangles, 16 "shape changes") and a made-up
+2048 x 2048 picture. No product file, no model and no pattern file is in the app or in the repo, which is public. Nothing about you leaves the phone.
+
+It measures: a blend of the garment to a new body (with 8, 16 and 32 shape changes), the surface directions after a blend, saving a 3 MB pack to the
+phone and reading it back (read, make usable, check the SHA-256), opening two 2048 x 2048 pictures, the first frame, 3 seconds of turning (frames a
+second), and ten swaps to different bodies (blend, directions, upload and draw). The report puts each number beside its target and says OVER TARGET when it
+is over. The targets are the plan's, not results: blend at most 60 ms, surface directions at most 40 ms, a saved pack readable in at most 500 ms, both
+pictures in at most 1,000 ms, the first frame in at most 500 ms, at least 45 frames a second while turning, and the slow one frame in twenty at most 30 ms.
+
+- [ ] Settings, About: a row "Try-On Runtime Test" under "Test Crash Reporting". Tap it: the screen opens with no bottom bar.
+- [ ] Tap **Run test**. A status line counts through the steps, a grey box shows the garment turning for about 3 seconds, then the report appears
+      (a few seconds in all). The app does not close or freeze.
+- [ ] Tap **Share results** and send them to me (Messages or Mail), with which iPhone it is. A screenshot of the report is fine too.
+- [ ] Run it a second time straight away: the numbers should be about the same (the first run after opening the app is allowed to be slower).
+- [ ] Tap **Run test with my body scan**: your latest 3D body appears in the box with the garment beside it (not fitted), and the report says
+      "BODY SCAN IN THE SCENE: added". If the body is not already on the phone this asks the same mesh service the Body Scan screen uses, so it can
+      take up to a minute on a cold start. Note whether the turning rate (frames a second) is lower than without the body.
+- [ ] Close the screen part way through a run (tap back while the garment is turning): the app stays open and Settings is normal.
+- [ ] Open Body Scan afterwards and look at a scan: it still draws and turns as before.
+
+**What I need back**
+
+The shared report from each of the two runs, which iPhone it was, and whether the box looked smooth or jerky while the garment turned (the numbers say
+the same, but your eyes are the better check). Memory in use is the one thing the phone does not let an app read, so watch for the app being closed by
+the phone, or the box going blank, during the run with the body.
+
+**If something goes wrong**
+
+- **The status line stops on "Opening two 2048 x 2048 pictures...".** The picture could not be opened by the graphics layer. Send me what the screen
+  shows after about 30 seconds and the phone's iOS version.
+- **The report says "GRAPHICS: failed".** The no-graphics numbers above it still count. Send the whole report.
+- **The report says "PACK FROM STORAGE: skipped".** The phone's storage module could not be opened or written; send the reason shown.
+- **The app closes during a run.** Open it again and tell me whether it was the plain run or the run with the body. A close is itself a result: it means
+  the phone ran out of room.
+- **Going back.** `git revert` the commit and `eas update` again. Nothing else in the app depends on this screen.
+
+**Things this does not do**
+
+- **It does not fit a garment to a body.** The garment is a stand-in tube drawn next to the body; whether a real garment drapes true on a body is checked
+  on a computer, with real simulations, before any garment reaches the phone.
+- **It does not read memory.** The picture memory shown is worked out from the pictures' sizes (about 45 MB for two 2048 x 2048 pictures, against about
+  179 MB for the real shorts' two 4096 x 4096 pictures), not read from the phone.
+- **It adds nothing for anyone who does not open it.** The row sits in Settings, About, beside the existing test rows.

@@ -707,6 +707,12 @@ export default function SettingsScreen() {
             }}
           />
           <SettingRow
+            icon="speedometer-outline"
+            label="Try-On Runtime Test"
+            subLabel="Alpha: times the 3D try-on pieces on this phone"
+            onPress={() => router.push('/shop/try-on-runtime-test')}
+          />
+          <SettingRow
             icon="cloud-download-outline"
             label="Current Update"
             subLabel={
