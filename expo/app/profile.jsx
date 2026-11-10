@@ -21,6 +21,7 @@ import { useExpStore } from '@/store/expStore';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useActivityStreak } from '@/services/streakService';
 import { logOut } from '@/lib/logOut';
+import { appVersionLabel } from '@/lib/appVersionLabel';
 
 /* âââ Placeholder data âââ */
 
@@ -357,7 +358,7 @@ return (
         ))}
 
         {/* App version */}
-        <Text style={styles.appVersion}>ZOWN HQ v1.0.0</Text>
+        <Text style={styles.appVersion}>{appVersionLabel()}</Text>
       </ScrollView>
     </SafeAreaView>
   );

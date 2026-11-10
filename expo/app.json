@@ -2,14 +2,14 @@
   "expo": {
     "name": "ZOWN HQ",
     "slug": "zown-hq",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/branding/zown-icon-1024.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/branding/zown-logo-512.png",
+      "image": "./assets/branding/zown-launch-blank.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,

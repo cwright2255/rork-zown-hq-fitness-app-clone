@@ -933,8 +933,9 @@ Needs the app update (`eas update`, then close and reopen twice), the Apple key 
 
 JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
 the app completely and open it twice. The splash is `components/ZownGlitchSplash.jsx`; what it draws at each moment is
-`lib/zownGlitchSpec.js`. The first thing on screen is still the phone's own black launch screen (the Z mark on black): that is part of the
-native build (`app.json`, "splash"), so changing it to white is a separate build and, until then, the jump from black to white is expected.
+`lib/zownGlitchSpec.js`. The first thing on screen is the phone's own launch screen: that is part of the native build (`app.json`, "splash"),
+so it only changes with a new build. A build made before app version 1.0.1 has it black with the Z mark on it, and the jump from black to
+white is expected there; from 1.0.1 it is plain white (see "A plain white launch screen" at the end of this page).
 
 **Not signed in** (Settings, Log Out first, then close the app completely)
 
@@ -954,7 +955,7 @@ native build (`app.json`, "splash"), so changing it to white is a separate build
 
 **Signed in**
 
-- [ ] Close the app completely and open it while signed in: no splash. After the phone's black launch screen you go straight to Home.
+- [ ] Close the app completely and open it while signed in: no splash. After the phone's launch screen you go straight to Home.
 - [ ] An account that was created but never finished onboarding opens on the login screen, with the splash, as it did before.
 - [ ] A Spotify sign-in coming back to the app (Settings, Connect Spotify) still returns to Settings.
 
@@ -1825,3 +1826,57 @@ The deploy compiles the rules before it uploads anything; if it prints an error,
 - **The limits cover calories, duration and distance only.** The XP a workout carries is not limited here; XP is decided by the server from the claims (`functions/src/xpLedger.js`).
 - **A person can still delete their own workout**, as before.
 - **The rules tests run in CI and in the Codespace, not in the app's normal tests** (they need the Firestore emulator). `rules-tests/workouts.test.js` has them: just inside and just outside each limit, the owner, another person and a visitor, and the edit lock.
+
+## A plain white launch screen (once: a new build, then an update on top of it)
+
+Needs a new native build, not only `eas update`: the launch screen is drawn by the phone before any of the app's code has loaded, so it can
+only change with a build. This change also moves the app version from 1.0.0 to 1.0.1 (`app.json`). The updates follow the app version
+(`runtimeVersion` is `{ "policy": "appVersion" }`), so an update published after this change reaches the new build and not the builds made
+before it. That is on purpose: a phone with the old black launch screen would otherwise get the new white blank screen by update and show black,
+then white, then Home.
+
+```
+cd expo
+eas build --platform ios --profile production
+eas submit --platform ios --latest
+```
+
+`eas submit` asks you to sign in to Apple in the terminal. When the build has reached TestFlight (a few minutes after the submit), install it on
+the phone. Then, with the update (`eas update --branch main --environment production`, after CI is green) published, close the app completely
+and open it twice.
+
+What was wrong: on a phone where the app was signed in and then closed completely, the next opening showed the black launch screen with the
+white Z mark on it for a moment before Home. `app.json` ("splash") held that picture, black with the Z on it, and `app/index.jsx` held the same
+black for the blank screen after it, while Home and everything else is white.
+
+What changed: `app.json` "splash" is white with a picture that cannot be seen (`assets/branding/zown-launch-blank.png`, every pixel fully
+transparent), and `LAUNCH_BACKGROUND` in `app/index.jsx` is `#FFFFFF`. `__tests__/launchScreenColour.test.js` keeps the two, the glitch splash
+and the screens behind it the same white, and keeps the picture empty. The version line on Profile and in Settings reads the build's version (`lib/appVersionLabel.js`) instead of a typed-in
+"v1.0.0", so it says 1.0.1 on the new build.
+
+- [ ] On the new build, close the app completely while signed in, then open it: white from the first frame, then Home. No black, no Z mark,
+      no square, no flash of any other colour. Do this five times, once straight after closing it and once after waiting a minute.
+- [ ] Signed out (Settings, Log Out, close the app completely): white from the first frame, then the black ZOWN glitches in on white, as in
+      "Launch splash" above. Nothing black or logo-shaped before it.
+- [ ] Open the app from the Home Screen icon while it is already running in the background: it comes up as it was (no launch screen involved).
+- [ ] Settings, About, App Version, and the line at the very bottom of Profile: both say "ZOWN HQ v1.0.1" (they used to be typed in by hand and said
+      v1.0.0; they now read the version from the build).
+- [ ] Android, only if you run a build there: the launch screen is white too (the same picture and colour are used for both phones).
+
+**If something goes wrong**
+
+- **A black or logo-shaped frame still shows on the first launch after installing.** Check the build number in TestFlight: it should be the newest one,
+  and the phone's app should say 1.0.1. The phone may also hold on to the last launch screen it drew for a few openings after an install; restart the phone and
+  try again, and tell me if it is still there.
+- **The build fails with a launch-screen (storyboard) error.** Send me the last 40 lines of the build log. The old black launch screen is still in the
+  builds you have, so nothing is lost; this change can be taken out and rebuilt.
+- **The app stops getting updates.** It is on a build made before 1.0.1. Install the new one from TestFlight. To check: `eas update:list --branch main --limit 5`
+  shows the runtime version of the newest update; it should be 1.0.1, and the build has to say the same.
+- **Going back.** `git revert` the commit, rebuild and resubmit. Do not publish an update to the old builds from the new code: put `app.json` back to
+  1.0.0 first.
+
+**Things this does not do**
+
+- **It does not change a build you already have.** The old launch screen stays in those until the new build replaces them.
+- **It does not change the app icon, the glitch splash or Home.**
+- **It does not make the app open faster.** The launch screen shows for as long as the app takes to load, as before; it is only white now.

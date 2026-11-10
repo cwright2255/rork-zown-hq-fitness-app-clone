@@ -27,6 +27,7 @@ import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { sendTestReport, forceTestCrash, isCrashReportingAvailable } from '@/lib/crashReporting';
+import { appVersionLabel } from '@/lib/appVersionLabel';
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 const { width } = Dimensions.get('window');
@@ -687,7 +688,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon="information-circle-outline"
             label="App Version"
-            right={<Text style={s.infoText}>ZOWN HQ v1.0.0</Text>}
+            right={<Text style={s.infoText}>{appVersionLabel()}</Text>}
           />
           <SettingRow
             icon="bug-outline"

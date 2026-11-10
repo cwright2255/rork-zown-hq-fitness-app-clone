@@ -47,10 +47,10 @@ const redirectTo = (utils) => {
   const found = utils.UNSAFE_queryAllByType('Redirect');
   return found.length ? found[0].props.href : null;
 };
-const isBlack = (utils) => {
+const isLaunchWhite = (utils) => {
   const blank = utils.getByTestId('launch-blank');
   const style = StyleSheet.flatten(blank.props.style);
-  return style.backgroundColor === '#000000' && style.flex === 1;
+  return style.backgroundColor === '#FFFFFF' && style.flex === 1;
 };
 
 // Firebase's listener: it calls back only when the test says Firebase has answered.
@@ -81,10 +81,10 @@ afterEach(() => {
 });
 
 describe('opening the app: waiting for Firebase', () => {
-  it('shows a plain black screen, the colour of the phone\'s own launch screen, until Firebase has answered', async () => {
+  it('shows a plain white screen, the colour of the phone\'s own launch screen, until Firebase has answered', async () => {
     const utils = render(<Index />);
     await settle();
-    expect(isBlack(utils)).toBe(true);
+    expect(isLaunchWhite(utils)).toBe(true);
     expect(redirectTo(utils)).toBeNull();
     expect(utils.queryByTestId('launch-splash')).toBeNull();
   });
@@ -213,12 +213,12 @@ describe('opening the app: signed in, but not marked as set up on this phone', (
     expect(global.__completeOnboarding).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the black screen while the saved profile is being read', async () => {
+  it('keeps the white screen while the saved profile is being read', async () => {
     global.__fetchProfileComplete = jest.fn(() => new Promise(() => {}));
     const utils = render(<Index />);
     await settle();
     await firebaseAnswers({ uid: 'u1' });
-    expect(isBlack(utils)).toBe(true);
+    expect(isLaunchWhite(utils)).toBe(true);
     expect(redirectTo(utils)).toBeNull();
   });
 

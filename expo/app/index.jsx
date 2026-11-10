@@ -11,9 +11,10 @@ import { logOut } from '@/lib/logOut';
 import { auth, isFirebaseConfigured } from '../src/config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-// What shows for the moment the sign-in check takes, the same black as the phone's own launch screen (app.json, "splash"), so
-// someone who is signed in goes from that to Home with nothing in between. If that launch screen is ever made white, make this white too.
-const LAUNCH_BACKGROUND = '#000000';
+// What shows for the moment the sign-in check takes, the same plain white as the phone's own launch screen (app.json, "splash"),
+// so someone who is signed in goes from that to Home (also white) with nothing in between. The launch screen is part of the
+// build, so these two have to change together, and with a new app version: __tests__/launchScreenColour.test.js keeps them equal.
+const LAUNCH_BACKGROUND = '#FFFFFF';
 
 
 
