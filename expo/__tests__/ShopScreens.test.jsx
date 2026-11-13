@@ -2,12 +2,13 @@
 // mock-up that looked finished: a cart badge that always said 2, search, cart, heart, Join, View All and Clear buttons that did nothing,
 // cards that did nothing when tapped, a product page that was always the same tee with three reviews from people who do not exist and
 // "4.5 (128 reviews)", an Add to Cart with no action, and a Try-On that said "Your look has been saved." without saving anything.
-// These look at what is on the screens and at what can be pressed.
+// These look at what is on the screens and at what can be pressed. The Try-On is now a real 3D try-on with its own tests (TryOnScreen.test.jsx); here it is
+// held to the same rules as the other two: nothing invented, nothing that looks pressable and does nothing.
 import React from 'react';
 import fs from 'fs';
 import path from 'path';
 import { Alert, Pressable } from 'react-native';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -24,10 +25,13 @@ jest.mock('@expo/vector-icons', () => {
   const mockRn = require('react-native');
   return { Ionicons: ({ name }) => mockReact.createElement(mockRn.Text, null, `icon:${name}`) };
 }, { virtual: true });
-jest.mock('expo-image-picker', () => ({ requestCameraPermissionsAsync: jest.fn(), launchCameraAsync: jest.fn() }));
+// The Try-On draws in 3D and reads the person's body; none of that runs here (TryOnScreen.test.jsx covers it). With no body scan it asks for one.
+jest.mock('@/components/TryOnScene', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/lib/tryOn/latestScan', () => ({ latestScan: async () => null }));
+jest.mock('@/lib/loadScanMesh', () => ({ loadScanMesh: jest.fn() }));
+jest.mock('@/lib/tryOn/appPackStore', () => ({ getAppPackStore: () => ({}) }));
 
 import { router as mockRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import ShopScreen from '../app/shop';
 import ProductScreen from '../app/shop/product/[id]';
 import TryOnScreen from '../app/shop/try-on';
@@ -44,11 +48,12 @@ const pressables = (view) => view.UNSAFE_root.findAll((n) => n.type === Pressabl
 const labelOf = (node) => node.findAll((n) => n.type === 'Text').map((t) => [].concat(t.props.children).join('')).filter((t) => !t.startsWith('icon:')).join(' ');
 const pressableWith = (view, label) => pressables(view).find((p) => labelOf(p).includes(label));
 
+// Lets the Try-On's look for a body scan finish, so what it does next happens inside the test and not after it.
+const settle = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
+
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({ status: 'granted' });
-  ImagePicker.launchCameraAsync.mockResolvedValue({ canceled: false, assets: [{ uri: 'file:///photo.jpg' }] });
 });
 afterEach(() => jest.restoreAllMocks());
 
@@ -101,9 +106,12 @@ describe('the Shop tab', () => {
 });
 
 describe('the way buttons are counted', () => {
-  it('finds the buttons on a screen that has them, so "none" above means none', () => {
+  it('finds the buttons on a screen that has them, so "none" above means none', async () => {
     expect(pressables(render(<ProductScreen />))).toHaveLength(12);
-    expect(pressables(render(<TryOnScreen />))).toHaveLength(6);
+    expect(pressables(render(<ShopScreen />))).toHaveLength(0); // and a screen with nothing to press is counted as none
+    const tryOn = render(<TryOnScreen />);
+    await settle();
+    expect(pressables(tryOn).length).toBeGreaterThanOrEqual(1);
   });
 
   it('finds icons by name, so "no cart icon" above means none', () => {
@@ -166,46 +174,36 @@ describe('the product page', () => {
 });
 
 describe('Digital Try-On', () => {
-  it('shows no Save Look or Share before a photo is taken', () => {
-    const all = texts(render(<TryOnScreen />));
-    expect(all).not.toContain('Save Look');
-    expect(all).not.toContain('Share');
-    expect(all).toContain('Take Photo');
-  });
-
-  it('says Coming soon on the preview after a photo is taken, not AR Preview, and offers no Save Look or Share', async () => {
+  it('shows no Save Look or Share, and no longer says Coming soon', async () => {
     const view = render(<TryOnScreen />);
-    fireEvent.press(view.getByText('Take Photo'));
-    await waitFor(() => expect(view.getByText('Retake Photo')).toBeTruthy());
+    await settle();
     const all = texts(view);
-    expect(all).toContain('Coming soon');
-    expect(all).not.toContain('AR Preview');
-    expect(all).not.toContain('Save Look');
-    expect(all).not.toContain('Share');
+    for (const word of ['Save Look', 'Share', 'Coming soon', 'AR Preview', 'Take Photo']) expect(all).not.toContain(word);
     expect(iconNames(view)).not.toContain('bookmark-outline');
     expect(iconNames(view)).not.toContain('share-outline');
   });
 
   it('never tells anyone a look was saved', async () => {
     const view = render(<TryOnScreen />);
-    fireEvent.press(view.getByText('Take Photo'));
-    await waitFor(() => expect(view.getByText('Retake Photo')).toBeTruthy());
+    await settle();
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(source('app/shop/try-on.jsx')).not.toMatch(/Your look has been saved|Saved!|Sharing coming soon/);
   });
 
-  it('keeps the camera working: asks for permission, and explains when it is refused', async () => {
-    ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({ status: 'denied' });
+  it('asks for a body scan when there is none, and the button opens the scan screen', async () => {
     const view = render(<TryOnScreen />);
-    fireEvent.press(view.getByText('Take Photo'));
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('Permission Required', 'Camera access is needed for Digital Try-On.'));
-    expect(ImagePicker.launchCameraAsync).not.toHaveBeenCalled();
-    expect(texts(view)).toContain('Take Photo');
+    await settle();
+    expect(texts(view)).toContain('Take a body scan first. Try-On fits garments to your 3D body.');
+    fireEvent.press(view.getByText('Take a Body Scan'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/body-scan/capture');
   });
 
-  it('has only buttons that do something: Back, Take Photo and the four products', () => {
+  it('has only buttons that do something: Back and Take a Body Scan', async () => {
     const view = render(<TryOnScreen />);
-    expect(pressables(view)).toHaveLength(1 + 1 + 4);
+    await settle();
+    expect(pressables(view)).toHaveLength(2);
+    fireEvent.press(pressables(view)[0]);
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
 });
 

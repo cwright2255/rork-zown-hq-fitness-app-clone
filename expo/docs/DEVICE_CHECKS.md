@@ -1931,3 +1931,76 @@ the phone, or the box going blank, during the run with the body.
 - **It does not read memory.** The picture memory shown is worked out from the pictures' sizes (about 45 MB for two 2048 x 2048 pictures, against about
   179 MB for the real shorts' two 4096 x 4096 pictures), not read from the phone.
 - **It adds nothing for anyone who does not open it.** The row sits in Settings, About, beside the existing test rows.
+
+## Try-on on your own body (once: the rule, then the files, then the update)
+
+JavaScript only: **no new build.** Three steps, in this order, because the Try-On screen needs the files to be there before it can show a garment:
+
+```
+cd expo
+firebase deploy --only storage
+```
+
+Then upload the garment files to the private bucket (the two zips from me: unzip both into one folder, upload the folder `tryon-packs` to the top of
+the bucket; the exact steps and the list of what should be there are in `docs/TRYON_PACKS.md`, "Putting them in place"). Check that Storage shows
+`tryon-packs/v1/` with `manifest.json`, `men/` and `women/` (30 files). Last, after CI is green:
+
+```
+eas update --branch main --environment production
+```
+
+Then close the app completely and open it twice.
+
+What it is: Shop, any product, **Digital Try-On** used to say "Coming soon". It now takes your latest 3D body scan, picks a size for you, and shows a garment fitted to
+your body, which you can turn with your finger. The garment files (about 1 to 2.5 MB each) come down from private storage the first time and are kept on
+the phone. The fitting is done on the phone, and Try-On itself downloads only the garment files; your 3D body is the one Body Scan builds (kept on the phone once made, requested from the mesh service the first time). There are four garments: Men's Shorts and Men's Sweatpants (for a scan
+made as male), Women's Sports Bra and Women's Cami (for a scan made as female). The garment is drawn in one colour; fabric pictures are not part of
+this yet.
+
+- [ ] Shop, any product, Digital Try-On, with no body scan on the account: "Take a body scan first", and the button opens the scan screen. Nothing else is on the screen.
+- [ ] With a body scan: your 3D body appears, and the garment buttons for your group (two of them). Under them is "Size (best fit for you: M)" (or
+      another size) with the size buttons, the recommended one outlined.
+- [ ] The first time, the screen says "Getting the M garment...", then "Fitting it to your body...", then "Keeping it off the skin...", and the garment
+      appears on the body. Under it a line says "Fitted in X s (first time: the garment was downloaded)". **Write down X.** The target is under 15 seconds
+      with a download and a few seconds without.
+- [ ] Turn the body with one finger: body and garment turn together, and the garment does not slide off or sink into the skin anywhere you can see.
+- [ ] Tap a different size: the garment changes in a few seconds and a line says how it fits ("Expected to fit you well.", "Should fit, though it may
+      feel a little tight or loose in places.", "Likely to feel tight on you. Try the next size up.", "Likely to feel loose on you. Try the next size
+      down." or "Your measurements are outside what this garment was tested on..."). The sizes well below and well above yours should read tight or loose.
+- [ ] Tap the other garment, then come back to the first: it comes back faster (nothing downloaded: the line no longer says "first time").
+- [ ] Turn on Airplane Mode and open Try-On again, then a garment you already tried: it still fits with no network. A garment you never opened says
+      "Connect to the internet and try again."
+- [ ] Turn Airplane Mode off and tap Try Again: it works.
+- [ ] Look at the garment where it touches your body: between the thighs (shorts, sweatpants) or between the breasts (bra, cami), and at the waist.
+      A small crease or a wrinkle is expected in a size that does not suit you; a sharp spike or a hole is not.
+- [ ] Go back to the product and open Digital Try-On again: the screen opens and works as before. Do this three times in a row: the app does not slow down or close.
+
+**What I need back**
+
+For each of the four garments: the "Fitted in X s" number from the first run and from a later one, which iPhone it is, the size it recommended, and
+the line about how it fits. A screenshot of each is fine. Say too whether any garment looked wrong on your body (inside the skin, a spike, floating away).
+The garments were checked on made-up bodies on a computer; **yours is the first scan from the real body service they have met**, so this is the check
+that tells us whether the sizes and the fit hold up on it. Memory is the one thing the phone does not let an app read: watch for the app being closed or
+the picture going blank.
+
+**If something goes wrong**
+
+- **"Try-On garments are not available yet."** The files are not in Storage at `tryon-packs/v1/`, the storage rule has not been deployed, or you are
+  signed out. Check the Storage listing first, then `firebase deploy --only storage`.
+- **"A garment file did not download correctly."** One file does not match the list in `manifest.json` (an upload cut short). Tap Try Again; if it is
+  still there, upload that file again and make the manifest again (`docs/TRYON_PACKS.md`).
+- **"Try-On needs the detailed 3D body, which was not available just now."** The body for your scan could not be loaded (it is requested from the same mesh
+  service as Body Scan, so it can take up to a minute on a cold start). Tap Try Again.
+- **The garment floats away from the body or is far too big.** Send a screenshot, the size, and the height and weight on the scan. The body from the mesh
+  service has a known height offset that these files have not been tested against, so this is the most likely first finding.
+- **A fit takes much longer than 15 seconds.** Send the number. The slow part on a computer is the pass that keeps the garment off the skin (0.1 to 0.8
+  seconds); the phone is not measured yet.
+- **Going back.** `git revert` the commit and `eas update` again: the screen goes back to "Coming soon". The files in Storage can stay; nothing else uses them.
+
+**Things this does not do**
+
+- **It does not send your body anywhere new.** The only network use is downloading the garment files, and the same mesh request Body Scan already makes
+  (only when your 3D body is not on the phone yet).
+- **It does not put colour or fabric on the garment**, and it does not simulate cloth on the phone: the garment is blended from what was simulated on
+  other bodies, so a body unlike any of them is flagged ("Your body shape is unusual for this garment, so the drape may be less exact.").
+- **It does not change Body Scan, Shop or anything else.** Only the Try-On screen is different.
