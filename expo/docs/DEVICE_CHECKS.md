@@ -1291,7 +1291,7 @@ This is an app update (`eas update`). Nothing is deployed to Firebase. The Shop 
 - **The Shop tab** (`app/shop.jsx`) says "Coming soon" next to its title and in a grey note that the items are samples and nothing can be bought yet. The cart badge that always said 2 is gone, with the search, cart and heart buttons, "View All", "Clear" and "Join". The cards, categories, looks and banners used to be buttons that did nothing when tapped; they are plain labels now. The Digital Try-On banner says "Coming soon" where it said "Try Now", and the rewards line says it is coming soon instead of offering XP on purchases. The sample items are still there as a preview.
 - **The product page** (`app/shop/product/[id].jsx`) has no reviews and no "4.5 (128 reviews)" (the three reviewers were made up). Add to Cart is greyed out and disabled, a note says it is a sample item, and the share icon, which did nothing, is gone.
 - **Digital Try-On** (`app/shop/try-on.jsx`): the preview badge says "Coming soon" instead of "AR Preview". Save Look (which said "Your look has been saved." without saving anything) and Share are gone.
-- The product page and Try-On cannot be opened from the Shop tab. They could not before either (tapping a card did nothing), so they are not part of the phone check; a test looks at each.
+- The product page cannot be opened from the Shop tab. It could not before either (tapping a card did nothing), so it is not part of the phone check; a test looks at it. Digital Try-On can be opened: since the Try-On build, the banner on the Shop tab opens it (see "Try-on on your own body" below).
 
 You need one phone.
 
@@ -1951,13 +1951,13 @@ eas update --branch main --environment production
 
 Then close the app completely and open it twice.
 
-What it is: Shop, any product, **Digital Try-On** used to say "Coming soon". It now takes your latest 3D body scan, picks a size for you, and shows a garment fitted to
+What it is: the **Digital Try-On** banner at the top of the Shop tab used to say "Coming soon" and could not be tapped. It is now a button that opens the Try-On. It now takes your latest 3D body scan, picks a size for you, and shows a garment fitted to
 your body, which you can turn with your finger. The garment files (about 1 to 2.5 MB each) come down from private storage the first time and are kept on
 the phone. The fitting is done on the phone, and Try-On itself downloads only the garment files; your 3D body is the one Body Scan builds (kept on the phone once made, requested from the mesh service the first time). There are four garments: Men's Shorts and Men's Sweatpants (for a scan
 made as male), Women's Sports Bra and Women's Cami (for a scan made as female). The garment is drawn in one colour; fabric pictures are not part of
 this yet.
 
-- [ ] Shop, any product, Digital Try-On, with no body scan on the account: "Take a body scan first", and the button opens the scan screen. Nothing else is on the screen.
+- [ ] Shop tab, tap the Digital Try-On banner (it says "See how gear fits your 3D body" and "Try it on"; nothing else on the Shop tab is tappable), with no body scan on the account: "Take a body scan first", and the button opens the scan screen. Nothing else is on the screen.
 - [ ] With a body scan: your 3D body appears, and the garment buttons for your group (two of them). Under them is "Size (best fit for you: M)" (or
       another size) with the size buttons, the recommended one outlined.
 - [ ] The first time, the screen says "Getting the M garment...", then "Fitting it to your body...", then "Keeping it off the skin...", and the garment
@@ -1973,7 +1973,7 @@ this yet.
 - [ ] Turn Airplane Mode off and tap Try Again: it works.
 - [ ] Look at the garment where it touches your body: between the thighs (shorts, sweatpants) or between the breasts (bra, cami), and at the waist.
       A small crease or a wrinkle is expected in a size that does not suit you; a sharp spike or a hole is not.
-- [ ] Go back to the product and open Digital Try-On again: the screen opens and works as before. Do this three times in a row: the app does not slow down or close.
+- [ ] Go back to the Shop tab and open the Digital Try-On banner again: the screen opens and works as before. Do this three times in a row: the app does not slow down or close.
 
 **What I need back**
 

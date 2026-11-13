@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 
 
@@ -99,20 +100,20 @@ export default function ShopScreen() {
           <View style={styles.soonPill}><Text style={styles.soonPillText}>Coming soon</Text></View>
         </View>
 
-        {/* Nothing here can be bought or opened yet: the items are samples, so none of the cards or labels is a button. */}
+        {/* Nothing here can be bought or opened yet: the items are samples, so none of the cards or labels is a button. The one exception is the Digital Try-On banner below. */}
         <View style={styles.notice}>
           <Text style={styles.noticeText}>The Shop is coming soon. This is a preview of how it will look, with sample items. Nothing here can be bought yet.</Text>
         </View>
 
-        {/* Digital try-on banner */}
-        <View style={styles.tryOnBanner}>
+        {/* Digital try-on banner: the one thing on this screen that works. It opens the real Try-On (app/shop/try-on.jsx), which fits a garment to the person's own 3D body. */}
+        <Pressable style={styles.tryOnBanner} onPress={() => router.push('/shop/try-on')} accessibilityRole="button" accessibilityLabel="Digital Try-On. See how gear fits your 3D body.">
           <View style={styles.tryOnLeft}>
             <Text style={styles.tryOnTitle}>Digital Try-On</Text>
-            <Text style={styles.tryOnSub}>See how gear looks on you with AR</Text>
-            <View style={styles.tryOnBtn}><Text style={styles.tryOnBtnText}>Coming soon</Text></View>
+            <Text style={styles.tryOnSub}>See how gear fits your 3D body</Text>
+            <View style={styles.tryOnBtn}><Text style={styles.tryOnBtnText}>Try it on</Text></View>
           </View>
           <Ionicons name="body-outline" size={60} color="rgba(255,255,255,0.3)" />
-        </View>
+        </Pressable>
 
         {/* Category scroll */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
