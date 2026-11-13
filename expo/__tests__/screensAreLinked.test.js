@@ -24,7 +24,6 @@ const KNOWN_UNLINKED = {
   '/shop/category/[category]': 'the Shop is still sample products; its screens are not wired together',
   '/shop/collection/[id]': 'the Shop is still sample products; its screens are not wired together',
   '/shop/product/[id]': 'only opened from the two Shop screens above',
-  '/shop/try-on': 'only opened from the Shop product screen',
 };
 
 const isDir = (p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } };

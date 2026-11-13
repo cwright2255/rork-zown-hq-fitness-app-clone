@@ -61,7 +61,7 @@ describe('the Shop tab', () => {
   it('says the Shop is coming soon, in the header and in a note that says nothing can be bought', () => {
     const view = render(<ShopScreen />);
     const all = texts(view);
-    expect(all.filter((t) => t === 'Coming soon').length).toBeGreaterThanOrEqual(2);
+    expect(all.filter((t) => t === 'Coming soon')).toHaveLength(1); // the header only: the Digital Try-On banner works now, so it no longer says it
     expect(all.some((t) => /Shop is coming soon/.test(t) && /Nothing here can be bought yet/.test(t))).toBe(true);
     expect(all).toContain('Shop');
   });
@@ -73,11 +73,23 @@ describe('the Shop tab', () => {
     for (const icon of ['cart-outline', 'cart', 'search-outline', 'heart-outline']) expect(iconNames(view)).not.toContain(icon);
   });
 
-  it('has nothing to press: not one button, so no card, label or banner invites a tap that does nothing', () => {
+  it('has one thing to press, the Digital Try-On banner: no card, label or category invites a tap that does nothing', () => {
     const view = render(<ShopScreen />);
-    expect(pressables(view)).toHaveLength(0);
-    expect(view.UNSAFE_root.findAll((n) => typeof n.props.onPress === 'function')).toHaveLength(0);
+    expect(pressables(view)).toHaveLength(1);
+    expect(labelOf(pressables(view)[0])).toContain('Digital Try-On');
+    expect(view.UNSAFE_root.findAll((n) => typeof n.props.onPress === 'function')).toHaveLength(1);
     expect(view.UNSAFE_root.findAll((n) => typeof n.props.onPressIn === 'function' || typeof n.props.onLongPress === 'function')).toHaveLength(0);
+  });
+
+  it('opens the Try-On from the Digital Try-On banner, and says it works with your 3D body, not AR', () => {
+    const view = render(<ShopScreen />);
+    const all = texts(view);
+    expect(all).toContain('See how gear fits your 3D body');
+    expect(all).toContain('Try it on');
+    expect(all.join('|')).not.toMatch(/\bAR\b/);
+    fireEvent.press(view.getByText('Try it on'));
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+    expect(mockRouter.push).toHaveBeenCalledWith('/shop/try-on');
   });
 
   it('has no View All, Clear, Join or Try Now', () => {
@@ -108,7 +120,7 @@ describe('the Shop tab', () => {
 describe('the way buttons are counted', () => {
   it('finds the buttons on a screen that has them, so "none" above means none', async () => {
     expect(pressables(render(<ProductScreen />))).toHaveLength(12);
-    expect(pressables(render(<ShopScreen />))).toHaveLength(0); // and a screen with nothing to press is counted as none
+    expect(pressables(render(<ShopScreen />))).toHaveLength(1); // the Shop tab has just the Digital Try-On banner, and the cards are counted as not buttons
     const tryOn = render(<TryOnScreen />);
     await settle();
     expect(pressables(tryOn).length).toBeGreaterThanOrEqual(1);
