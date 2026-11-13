@@ -125,6 +125,16 @@ describe('getFile', () => {
     }
   });
 
+  it('puts the server\'s answer in the "missing" message, and the cause in the "unavailable" one', async () => {
+    const refused = new Error('storage answered 403, signed in');
+    refused.status = 403;
+    const a = createPackStore({ fs: memoryFs(), digest, fetchBytes: network({ fail: refused }).fetchBytes });
+    await expect(a.getFile('men/shorts_M.zdp')).rejects.toThrow('manifest.json is not available (storage answered 403, signed in)');
+    // a manifest that downloads but is not JSON: not a refusal, so it is "unavailable" and says why
+    const b = createPackStore({ fs: memoryFs(), digest, fetchBytes: async () => new TextEncoder().encode('not json').buffer });
+    await expect(b.getFile('men/shorts_M.zdp')).rejects.toMatchObject({ code: 'unavailable', message: expect.stringContaining('could not be listed: ') });
+  });
+
   it('tries the manifest again next time after a failure, instead of remembering it', async () => {
     const net = network({ fail: new Error('Network request failed') });
     const store = createPackStore({ fs: memoryFs(), digest, fetchBytes: net.fetchBytes });
@@ -172,5 +182,11 @@ describe('firebaseFetchBytes', () => {
     const get = firebaseFetchBytes({ bucket: 'b', getToken: async () => '', fetchFn });
     await expect(get('manifest.json')).rejects.toMatchObject({ status: 403 });
     expect(fetchFn.mock.calls[0][1].headers).toEqual({});
+  });
+
+  it('says in the error whether a sign-in token was sent, so a refusal can be told apart', async () => {
+    const fetchFn = jest.fn(async () => ({ ok: false, status: 403 }));
+    await expect(firebaseFetchBytes({ bucket: 'b', getToken: async () => '', fetchFn })('manifest.json')).rejects.toThrow('storage answered 403, no sign-in token');
+    await expect(firebaseFetchBytes({ bucket: 'b', getToken: async () => 'tok', fetchFn })('manifest.json')).rejects.toThrow('storage answered 403, signed in');
   });
 });
