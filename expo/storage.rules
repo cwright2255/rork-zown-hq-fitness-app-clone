@@ -26,5 +26,13 @@ service firebase.storage {
           || (request.resource.contentType.matches('video/.*') && request.resource.size < 100 * 1024 * 1024));
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
+
+    // The try-on's garment files: the drape packs and the sizing files (see lib/tryOn/packStore.js and docs/TRYON_PACKS.md). Any signed-in person can read
+    // them, because the app downloads them with the person's own sign-in token; nobody can write them from the app, so they are put here by the project's owner
+    // (the Firebase console or gsutil, which are not held back by these rules). They are the project's own work and are kept out of the public repository.
+    match /tryon-packs/{version}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
   }
 }
