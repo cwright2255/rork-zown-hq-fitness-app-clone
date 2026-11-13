@@ -115,6 +115,58 @@ describe('fitGarment', () => {
   });
 });
 
+describe('fitGarment: the waistband of shorts and pants', () => {
+  const tinyBody = new Float32Array(expected.bodies[1]);
+  const zs = [];
+  for (let i = 2; i < 30; i += 3) zs.push(expected.garments[1][i]);
+  const top = Math.max(...zs);
+  const hem = Math.min(...zs);
+  // The tiny body padded out to the body model's size, with the navel (vertex 4104) 1 cm under the top of the tiny garment; the filler vertices copy one
+  // high vertex of the tiny body, so the floor and the soles are the tiny body's own, and a sphere far from the garment so nothing is pushed.
+  const bodyWithNavel = (navelZ) => {
+    const { positions: small, faces } = bodyWithSphere(tinyBody, [9, 9, 9], 0.2);
+    const positions = new Float32Array(BODY_VERTEX_COUNT * 3);
+    positions.set(small);
+    for (let v = small.length / 3; v < BODY_VERTEX_COUNT; v++) positions.set([0, 0, 1.8], 3 * v);
+    positions.set([0, -0.2, navelZ], 3 * 4104);
+    return { positions, faces };
+  };
+  const sizingFor = (key) => decodeSizing({ ...sizingJson(), garments: { [key]: sizingJson().garments.tiny } });
+  const filesFor = (key) => ({ ['men/' + key + '_M.zdp']: packBytes() });
+  const files = () => filesFor('tiny');
+
+  it('lowers the band of shorts to 3 cm under the navel and keeps the hem where it was', async () => {
+    const { positions, faces } = bodyWithNavel(top - 0.01);
+    const result = await fitGarment({ store: store(filesFor('shorts')) }, { sizing: sizingFor('shorts'), garmentKey: 'shorts', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
+    expect(result.lowered).toBeCloseTo(0.04, 4);
+    const zAfter = [];
+    for (let i = 2; i < 30; i += 3) zAfter.push(result.positions[i]);
+    expect(Math.max(...zAfter)).toBeCloseTo(top - 0.04, 4);
+    expect(Math.min(...zAfter)).toBeCloseTo(hem, 4);
+    for (let p = 0; p < 10; p++) {
+      expect(result.positions[3 * p]).toBeCloseTo(expected.garments[1][3 * p], 4);
+      expect(result.positions[3 * p + 1]).toBeCloseTo(expected.garments[1][3 * p + 1], 4);
+    }
+  });
+
+  it('does the same for sweatpants, and leaves a band that is already under the navel alone', async () => {
+    const low = bodyWithNavel(top + 0.2);
+    const stays = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: low.positions, bodyFaces: low.faces });
+    expect(stays.lowered).toBe(0);
+    for (let i = 0; i < 30; i++) expect(stays.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+    const high = bodyWithNavel(top - 0.01);
+    const moved = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: high.positions, bodyFaces: high.faces });
+    expect(moved.lowered).toBeCloseTo(0.04, 4);
+  });
+
+  it('does not touch a garment that has no waistband', async () => {
+    const { positions, faces } = bodyWithNavel(top - 0.01);
+    const result = await fitGarment({ store: store(files()) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
+    expect(result.lowered).toBe(0);
+    for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+  });
+});
+
 describe('loadSizing', () => {
   it('reads the sizing file for a group from the store', async () => {
     const s = store({ 'men/sizing.json': text(JSON.stringify(sizingJson())) });
