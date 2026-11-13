@@ -78,7 +78,7 @@ export function createPackStore(deps) {
       return await fetchBytes(rel);
     } catch (e) {
       const status = e && e.status;
-      if (status === 401 || status === 403 || status === 404) throw new PackStoreError('missing', 'The try-on file ' + rel + ' is not available (' + status + ').');
+      if (status === 401 || status === 403 || status === 404) throw new PackStoreError('missing', 'The try-on file ' + rel + ' is not available (' + (e.message || status) + ').');
       throw new PackStoreError('offline', 'The try-on file ' + rel + ' could not be downloaded: ' + (e && e.message ? e.message : 'no connection') + '.');
     }
   }
@@ -104,7 +104,8 @@ export function createPackStore(deps) {
             if (parsed && parsed.files) return parsed;
           } catch (e) { /* the kept copy is unreadable */ }
         }
-        throw remoteError instanceof PackStoreError ? remoteError : new PackStoreError('unavailable', 'The try-on files could not be listed.');
+        if (remoteError instanceof PackStoreError) throw remoteError;
+        throw new PackStoreError('unavailable', 'The try-on files could not be listed' + (remoteError && remoteError.message ? ': ' + remoteError.message : '') + '.');
       })();
       manifestPromise.catch(() => { manifestPromise = null; }); // try again next time instead of remembering a failure
     }
@@ -149,7 +150,7 @@ export function firebaseFetchBytes({ bucket, getToken, fetchFn = (...a) => fetch
     const url = 'https://firebasestorage.googleapis.com/v0/b/' + encodeURIComponent(bucket) + '/o/' + encodeURIComponent(PACK_ROOT + rel) + '?alt=media';
     const response = await fetchFn(url, { headers: token ? { Authorization: 'Firebase ' + token } : {} });
     if (!response.ok) {
-      const error = new Error('storage answered ' + response.status);
+      const error = new Error('storage answered ' + response.status + (token ? ', signed in' : ', no sign-in token'));
       error.status = response.status;
       throw error;
     }

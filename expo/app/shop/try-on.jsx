@@ -36,6 +36,12 @@ const unavailableText = (error) => {
   return 'Try-On garments are not available yet.';
 };
 
+// The reason behind a failure, in small print under the friendly text, so a person (or whoever is helping them) can say what went wrong.
+const reasonText = (error) => {
+  const message = error && error.message ? String(error.message) : '';
+  return message ? 'Details: ' + (message.length > 220 ? message.slice(0, 220) + '...' : message) : null;
+};
+
 export default function TryOnScreen() {
   // loading | noScan | unsupported | noDetailedBody | bodyFailed | ready
   const [phase, setPhase] = useState('loading');
@@ -152,7 +158,7 @@ export default function TryOnScreen() {
   else if (phase === 'unsupported') overlay = { text: 'Try-On needs a body scan that says whether it is a male or a female body.' };
   else if (phase === 'noDetailedBody') overlay = { text: 'Try-On needs the detailed 3D body, which was not available just now.', action: { label: 'Try Again', onPress: loadBody } };
   else if (phase === 'bodyFailed') overlay = { text: 'Your 3D body could not be loaded.', action: { label: 'Try Again', onPress: loadBody } };
-  else if (sizingError) overlay = { text: unavailableText(sizingError), action: { label: 'Try Again', onPress: () => loadSizingFor(body.group) } };
+  else if (sizingError) overlay = { text: unavailableText(sizingError), detail: reasonText(sizingError), action: { label: 'Try Again', onPress: () => loadSizingFor(body.group) } };
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -171,6 +177,7 @@ export default function TryOnScreen() {
             <View style={s.overlay}>
               {overlay.busy ? <ActivityIndicator color="#999" /> : <Ionicons name="body-outline" size={48} color="#666" />}
               <Text style={s.overlayText}>{overlay.text}</Text>
+              {!!overlay.detail && <Text style={s.overlayDetail}>{overlay.detail}</Text>}
               {overlay.action && (
                 <Pressable style={s.overlayBtn} onPress={overlay.action.onPress}><Text style={s.overlayBtnText}>{overlay.action.label}</Text></Pressable>
               )}
@@ -210,7 +217,10 @@ export default function TryOnScreen() {
             )}
 
             {fit.status === 'error' && (
-              <Text style={s.note}>{fit.error && fit.error.name === 'PackStoreError' ? unavailableText(fit.error) : 'The garment could not be fitted just now. Try another size or try again.'}</Text>
+              <>
+                <Text style={s.note}>{fit.error && fit.error.name === 'PackStoreError' ? unavailableText(fit.error) : 'The garment could not be fitted just now. Try another size or try again.'}</Text>
+                {!!reasonText(fit.error) && <Text style={s.noteDetail}>{reasonText(fit.error)}</Text>}
+              </>
             )}
             {fitNote.map((line) => <Text key={line} style={s.note}>{line}</Text>)}
             {result && (
@@ -232,6 +242,7 @@ const s = StyleSheet.create({
   stage: { height: 340, backgroundColor: '#1A1A1A', justifyContent: 'center', alignItems: 'center' },
   overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, backgroundColor: '#1A1A1A' },
   overlayText: { fontSize: 14, color: '#BBB', marginTop: 12, textAlign: 'center', lineHeight: 20 },
+  overlayDetail: { fontSize: 11, color: '#888', marginTop: 10, textAlign: 'center', lineHeight: 15 },
   overlayBtn: { marginTop: 16, backgroundColor: '#FFF', paddingHorizontal: 22, height: 40, borderRadius: 20, justifyContent: 'center' },
   overlayBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
   fitting: { position: 'absolute', top: 12, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
@@ -250,5 +261,6 @@ const s = StyleSheet.create({
   pillText: { fontSize: 14, fontWeight: '700', color: '#333' },
   pillTextActive: { color: '#FFF' },
   note: { fontSize: 14, color: '#333', lineHeight: 20, paddingHorizontal: 20, marginTop: 14 },
+  noteDetail: { fontSize: 11, color: '#888', lineHeight: 15, paddingHorizontal: 20, marginTop: 6 },
   timing: { fontSize: 11, color: '#999', lineHeight: 16, paddingHorizontal: 20, marginTop: 12 },
 });

@@ -262,6 +262,31 @@ describe('when the garment files cannot be had', () => {
   });
 });
 
+describe('the reason behind a failure', () => {
+  it('shows the failure\'s own message in small print under the friendly text', async () => {
+    const e = new Error('The try-on file manifest.json is not available (storage answered 403, signed in).');
+    e.name = 'PackStoreError';
+    e.code = 'missing';
+    global.__loadSizing.mockRejectedValueOnce(e);
+    const view = render(<TryOnScreen />);
+    await settle();
+    expect(hasText(view, /not available yet/)).toBe(true);
+    expect(hasText(view, /Details: The try-on file manifest\.json is not available \(storage answered 403, signed in\)/)).toBe(true);
+  });
+
+  it('shortens a very long reason', async () => {
+    const e = new Error('x'.repeat(500));
+    e.name = 'PackStoreError';
+    e.code = 'missing';
+    global.__loadSizing.mockRejectedValueOnce(e);
+    const view = render(<TryOnScreen />);
+    await settle();
+    const line = texts(view).find((t) => t.startsWith('Details: '));
+    expect(line.length).toBeLessThan(240);
+    expect(line.endsWith('...')).toBe(true);
+  });
+});
+
 describe('leaving the screen', () => {
   it('releases the body it built', async () => {
     const view = render(<TryOnScreen />);
