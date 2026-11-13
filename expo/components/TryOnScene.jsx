@@ -106,5 +106,7 @@ export default function TryOnScene({ body, garment, height = 340 }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: '#1A1A1A', overflow: 'hidden' },
+  // width: '100%' matters: the Try-On screen centres what is in its stage (alignItems: 'center'), and a view with a height but no width is then as wide as its
+  // contents, which are only the absolutely placed GLView, so it was 0 wide and nothing was drawn.
+  wrap: { width: '100%', backgroundColor: '#1A1A1A', overflow: 'hidden' },
 });
