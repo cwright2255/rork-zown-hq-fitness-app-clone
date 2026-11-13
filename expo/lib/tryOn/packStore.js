@@ -150,7 +150,10 @@ export function firebaseFetchBytes({ bucket, getToken, fetchFn = (...a) => fetch
     const url = 'https://firebasestorage.googleapis.com/v0/b/' + encodeURIComponent(bucket) + '/o/' + encodeURIComponent(PACK_ROOT + rel) + '?alt=media';
     const response = await fetchFn(url, { headers: token ? { Authorization: 'Firebase ' + token } : {} });
     if (!response.ok) {
-      const error = new Error('storage answered ' + response.status + (token ? ', signed in' : ', no sign-in token'));
+      // Storage's own words for the refusal (a short JSON error), kept so a failure on a phone can be told apart from the screen alone.
+      let said = '';
+      try { said = typeof response.text === 'function' ? String(await response.text()).replace(/\s+/g, ' ').trim().slice(0, 160) : ''; } catch (e) { /* no body to read */ }
+      const error = new Error('storage answered ' + response.status + (token ? ', signed in' : ', no sign-in token') + ' for ' + bucket + '/' + PACK_ROOT + rel + (said ? ': ' + said : ''));
       error.status = response.status;
       throw error;
     }

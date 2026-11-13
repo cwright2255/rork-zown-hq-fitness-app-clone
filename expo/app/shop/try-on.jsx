@@ -39,7 +39,7 @@ const unavailableText = (error) => {
 // The reason behind a failure, in small print under the friendly text, so a person (or whoever is helping them) can say what went wrong.
 const reasonText = (error) => {
   const message = error && error.message ? String(error.message) : '';
-  return message ? 'Details: ' + (message.length > 220 ? message.slice(0, 220) + '...' : message) : null;
+  return message ? 'Details: ' + (message.length > 360 ? message.slice(0, 360) + '...' : message) : null;
 };
 
 export default function TryOnScreen() {
