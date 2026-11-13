@@ -184,6 +184,18 @@ describe('firebaseFetchBytes', () => {
     expect(fetchFn.mock.calls[0][1].headers).toEqual({});
   });
 
+  it('puts the file asked for and Storage\'s own words in the error', async () => {
+    const fetchFn = jest.fn(async () => ({ ok: false, status: 404, text: async () => '{\n  "error": {\n    "code": 404,\n    "message": "Not Found. Could not get object"\n  }\n}' }));
+    await expect(firebaseFetchBytes({ bucket: 'my-bucket', getToken: async () => 'tok', fetchFn })('men/sizing.json')).rejects.toThrow(
+      'storage answered 404, signed in for my-bucket/tryon-packs/v1/men/sizing.json: { "error": { "code": 404, "message": "Not Found. Could not get object" } }',
+    );
+  });
+
+  it('still reports the refusal when Storage\'s answer cannot be read', async () => {
+    const fetchFn = jest.fn(async () => ({ ok: false, status: 403, text: async () => { throw new Error('body gone'); } }));
+    await expect(firebaseFetchBytes({ bucket: 'b', getToken: async () => 'tok', fetchFn })('manifest.json')).rejects.toMatchObject({ status: 403 });
+  });
+
   it('says in the error whether a sign-in token was sent, so a refusal can be told apart', async () => {
     const fetchFn = jest.fn(async () => ({ ok: false, status: 403 }));
     await expect(firebaseFetchBytes({ bucket: 'b', getToken: async () => '', fetchFn })('manifest.json')).rejects.toThrow('storage answered 403, no sign-in token');

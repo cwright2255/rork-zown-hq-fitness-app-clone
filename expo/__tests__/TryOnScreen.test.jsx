@@ -282,7 +282,7 @@ describe('the reason behind a failure', () => {
     const view = render(<TryOnScreen />);
     await settle();
     const line = texts(view).find((t) => t.startsWith('Details: '));
-    expect(line.length).toBeLessThan(240);
+    expect(line.length).toBeLessThan(380);
     expect(line.endsWith('...')).toBe(true);
   });
 });
