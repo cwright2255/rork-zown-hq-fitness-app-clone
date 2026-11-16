@@ -9,6 +9,7 @@ import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import * as THREE from 'three';
 import { buildGarmentGeometry } from '@/lib/tryOn/garmentGeometry';
+import { STAGE_BACKGROUND } from '@/lib/tryOn/stage';
 
 export const GARMENT_COLOR = '#2F3640';
 
@@ -108,5 +109,5 @@ export default function TryOnScene({ body, garment, height = 340 }) {
 const styles = StyleSheet.create({
   // width: '100%' matters: the Try-On screen centres what is in its stage (alignItems: 'center'), and a view with a height but no width is then as wide as its
   // contents, which are only the absolutely placed GLView, so it was 0 wide and nothing was drawn.
-  wrap: { width: '100%', backgroundColor: '#1A1A1A', overflow: 'hidden' },
+  wrap: { width: '100%', backgroundColor: STAGE_BACKGROUND, overflow: 'hidden' },
 });

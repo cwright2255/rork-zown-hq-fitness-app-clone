@@ -12,6 +12,7 @@ jest.mock('expo-gl', () => {
 jest.mock('expo-three', () => ({ Renderer: jest.fn() }));
 
 import TryOnScene from '../components/TryOnScene';
+import { STAGE_BACKGROUND } from '../lib/tryOn/stage';
 
 describe('TryOnScene layout', () => {
   it('fills the width of its parent, so it is not 0 wide inside a centred stage', () => {
@@ -30,5 +31,11 @@ describe('TryOnScene layout', () => {
     const view = render(<TryOnScene body={null} garment={null} />);
     const gl = view.getByTestId('gl');
     expect(StyleSheet.flatten(gl.props.style)).toMatchObject({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 });
+  });
+
+  it('is white behind the body (the graphics are drawn on a see-through background, so this is what shows)', () => {
+    const view = render(<TryOnScene body={null} garment={null} />);
+    expect(STAGE_BACKGROUND).toBe('#FFFFFF');
+    expect(StyleSheet.flatten(view.toJSON().props.style).backgroundColor).toBe(STAGE_BACKGROUND);
   });
 });

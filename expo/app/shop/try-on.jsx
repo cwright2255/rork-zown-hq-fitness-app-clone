@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import TryOnScene from '@/components/TryOnScene';
+import { STAGE_BACKGROUND } from '@/lib/tryOn/stage';
 import { colors } from '@/constants/theme';
 import { loadScanMesh } from '@/lib/loadScanMesh';
 import { latestScan } from '@/lib/tryOn/latestScan';
@@ -239,15 +240,15 @@ const s = StyleSheet.create({
   backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: '#000' },
   content: { paddingBottom: 40 },
-  stage: { height: 340, backgroundColor: '#1A1A1A', justifyContent: 'center', alignItems: 'center' },
-  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, backgroundColor: '#1A1A1A' },
-  overlayText: { fontSize: 14, color: '#BBB', marginTop: 12, textAlign: 'center', lineHeight: 20 },
-  overlayDetail: { fontSize: 11, color: '#888', marginTop: 10, textAlign: 'center', lineHeight: 15 },
-  overlayBtn: { marginTop: 16, backgroundColor: '#FFF', paddingHorizontal: 22, height: 40, borderRadius: 20, justifyContent: 'center' },
-  overlayBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
+  stage: { height: 340, backgroundColor: STAGE_BACKGROUND, justifyContent: 'center', alignItems: 'center' },
+  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, backgroundColor: STAGE_BACKGROUND },
+  overlayText: { fontSize: 14, color: '#555', marginTop: 12, textAlign: 'center', lineHeight: 20 },
+  overlayDetail: { fontSize: 11, color: '#777', marginTop: 10, textAlign: 'center', lineHeight: 15 },
+  overlayBtn: { marginTop: 16, backgroundColor: '#000', paddingHorizontal: 22, height: 40, borderRadius: 20, justifyContent: 'center' },
+  overlayBtnText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
   fitting: { position: 'absolute', top: 12, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
   fittingText: { fontSize: 12, color: '#FFF' },
-  dragHint: { position: 'absolute', bottom: 8, alignSelf: 'center', fontSize: 11, color: '#999' },
+  dragHint: { position: 'absolute', bottom: 8, alignSelf: 'center', fontSize: 11, color: '#777' },
   privacy: { fontSize: 12, color: colors.textSecondary, paddingHorizontal: 20, marginTop: 10 },
   sectionLabel: { fontSize: 14, fontWeight: '700', color: '#000', paddingHorizontal: 20, marginTop: 16, marginBottom: 10 },
   chips: { paddingLeft: 20, paddingRight: 6 },

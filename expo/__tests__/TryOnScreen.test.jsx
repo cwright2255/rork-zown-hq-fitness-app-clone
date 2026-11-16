@@ -2,7 +2,7 @@
 // work have their own tests (tryOnPack, tryOnPushOut, tryOnSizing, tryOnPackStore, tryOnSession); here they are stand-ins, so this looks at what the
 // person sees and can press in each situation, that a slow answer never overwrites a newer one, and that nothing is left loaded when the screen closes.
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() } }), { virtual: true });
@@ -284,6 +284,33 @@ describe('the reason behind a failure', () => {
     const line = texts(view).find((t) => t.startsWith('Details: '));
     expect(line.length).toBeLessThan(380);
     expect(line.endsWith('...')).toBe(true);
+  });
+});
+
+describe('the stage behind the body', () => {
+  const styled = (view, test) => view.UNSAFE_root.findAll((n) => n.type === 'View' && n.props.style && test(StyleSheet.flatten(n.props.style)));
+
+  it('is white', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    await settle(); // the first fit finishes
+    const stage = styled(view, (st) => st.height === 340);
+    expect(stage.length).toBeGreaterThan(0);
+    for (const node of stage) expect(StyleSheet.flatten(node.props.style).backgroundColor).toBe('#FFFFFF');
+  });
+
+  it('keeps the messages laid over it white too, with dark text and a dark button, so they can be read', async () => {
+    global.__latestScan.mockResolvedValue(null);
+    const view = render(<TryOnScreen />);
+    await settle();
+    const overlay = styled(view, (st) => st.position === 'absolute' && st.top === 0 && st.bottom === 0 && st.backgroundColor);
+    expect(overlay.length).toBeGreaterThan(0);
+    expect(StyleSheet.flatten(overlay[0].props.style).backgroundColor).toBe('#FFFFFF');
+    const text = view.getByText(/Take a body scan first/);
+    expect(StyleSheet.flatten(text.props.style).color).toBe('#555');
+    const button = styled(view, (st) => st.backgroundColor === '#000' && st.height === 40);
+    expect(button.length).toBeGreaterThan(0);
+    expect(StyleSheet.flatten(view.getByText('Take a Body Scan').props.style).color).toBe('#FFF');
   });
 });
 
