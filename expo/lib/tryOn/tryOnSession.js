@@ -7,7 +7,8 @@ import { parsePack, blendGarment, shapeNumbers, bodyDistance } from './pack';
 import { buildBodyIndex, boundsOf, pushOut, GAP } from './pushOut';
 import { decodeSizing, chooseSize, sizeFit, verdictOf, measuresNeeded, featureVector, measureBody } from './sizing';
 import { bytesToText } from './packStore';
-import { hasWaistband } from './garments';
+import { hasAnkleHem, hasWaistband } from './garments';
+import { hemToAnkle } from './legLength';
 import { lowerWaistband } from './waistline';
 
 // The body model's mesh. A body that is not this one (the simple stand-in shown when the detailed mesh is not available) cannot be fitted.
@@ -56,7 +57,8 @@ export function recommend(sizing, garmentKey, bodyPositions) {
  * deps: { store, now(): ms, onStep(text) }
  * args: { sizing, garmentKey, group, size (the chosen size), bodyPositions (Float32Array), bodyFaces, choice (from recommend, optional) }
  * Returns { size, positions (Float32Array garment vertices), faces (Uint16Array/Uint32Array), fit (for this size), outsidePack (body shape beyond what the pack was built on),
- *           lowered (metres the waistband was moved down to sit under the navel; 0 for garments without a waistband), pushed (points moved off the skin),
+ *           lowered (metres the waistband was moved down to sit under the navel; 0 for garments without a waistband),
+ *           hemmed (metres the hem was moved down to the ankle bone, negative when moved up; 0 for garments that are not full length), pushed (points moved off the skin),
  *           timings: { pack, blend, push, total } }.
  */
 export async function fitGarment(deps, args) {
@@ -77,6 +79,8 @@ export async function fitGarment(deps, args) {
   const positions = blendGarment(pack, bodyPositions);
   // Shorts and pants: the band goes just under this body's navel, not where the simulation happened to put it.
   const lowered = hasWaistband(group, garmentKey) ? lowerWaistband(positions, bodyPositions) : 0;
+  // Full-length pants: the hem goes to this body's ankle bone (the pattern has one leg length for every height).
+  const hemmed = hasAnkleHem(group, garmentKey) ? hemToAnkle(positions, bodyPositions) : 0;
   const outsidePack = bodyDistance(pack, shapeNumbers(pack, bodyPositions));
   const t2 = now();
 
@@ -97,6 +101,7 @@ export async function fitGarment(deps, args) {
     measures,
     outsidePack: outsidePack.outside,
     lowered,
+    hemmed,
     pushed,
     downloaded,
     timings: { pack: t1 - t0, blend: t2 - t1, push: t3 - t2, total: t3 - t0 },

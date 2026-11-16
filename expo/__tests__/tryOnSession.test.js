@@ -123,11 +123,11 @@ describe('fitGarment: the waistband of shorts and pants', () => {
   const hem = Math.min(...zs);
   // The tiny body padded out to the body model's size, with the navel (vertex 4104) 1 cm under the top of the tiny garment; the filler vertices copy one
   // high vertex of the tiny body, so the floor and the soles are the tiny body's own, and a sphere far from the garment so nothing is pushed.
-  const bodyWithNavel = (navelZ) => {
+  const bodyWithNavel = (navelZ, topZ = 1.8) => {
     const { positions: small, faces } = bodyWithSphere(tinyBody, [9, 9, 9], 0.2);
     const positions = new Float32Array(BODY_VERTEX_COUNT * 3);
     positions.set(small);
-    for (let v = small.length / 3; v < BODY_VERTEX_COUNT; v++) positions.set([0, 0, 1.8], 3 * v);
+    for (let v = small.length / 3; v < BODY_VERTEX_COUNT; v++) positions.set([0, 0, topZ], 3 * v);
     positions.set([0, -0.2, navelZ], 3 * 4104);
     return { positions, faces };
   };
@@ -150,10 +150,10 @@ describe('fitGarment: the waistband of shorts and pants', () => {
   });
 
   it('does the same for sweatpants, and leaves a band that is already under the navel alone', async () => {
+    // (the sweatpants' hem is also brought to the ankle, which is tested below; only the band is looked at here)
     const low = bodyWithNavel(top + 0.2);
     const stays = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: low.positions, bodyFaces: low.faces });
     expect(stays.lowered).toBe(0);
-    for (let i = 0; i < 30; i++) expect(stays.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
     const high = bodyWithNavel(top - 0.01);
     const moved = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: high.positions, bodyFaces: high.faces });
     expect(moved.lowered).toBeCloseTo(0.04, 4);
@@ -164,6 +164,61 @@ describe('fitGarment: the waistband of shorts and pants', () => {
     const result = await fitGarment({ store: store(files()) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
     expect(result.lowered).toBe(0);
     for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+  });
+});
+
+describe('fitGarment: the hem of full-length pants', () => {
+  const tinyBody = new Float32Array(expected.bodies[1]);
+  const gz = (i) => expected.garments[1][3 * i + 2];
+  const top = Math.max(...Array.from({ length: 10 }, (_, i) => gz(i)));
+  const hem = Math.min(...Array.from({ length: 10 }, (_, i) => gz(i)));
+  // The tiny body padded out to the body model's size and made 3.2 m tall (so its knee, 0.285 of that, is above the tiny garment's hem and the garment
+  // has a leg to stretch); the navel is put above the band, so the waistband is left alone and only the hem moves.
+  const tallBody = (navelZ = top + 0.5) => {
+    const { positions: small, faces } = bodyWithSphere(tinyBody, [9, 9, 1], 0.2); // far to the side, and no higher than the body's top: the body's height is its tallest vertex
+    const positions = new Float32Array(BODY_VERTEX_COUNT * 3);
+    positions.set(small);
+    for (let v = small.length / 3; v < BODY_VERTEX_COUNT; v++) positions.set([0, 0, 3.2], 3 * v);
+    positions.set([0, -0.2, navelZ], 3 * 4104);
+    return { positions, faces };
+  };
+  const knee = 0.285 * 3.2;
+  const run = (key, navelZ) => {
+    const { positions, faces } = tallBody(navelZ);
+    const sizingFor = decodeSizing({ ...sizingJson(), garments: { [key]: sizingJson().garments.tiny } });
+    return fitGarment({ store: store({ ['men/' + key + '_M.zdp']: packBytes() }) }, { sizing: sizingFor, garmentKey: key, group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
+  };
+
+  it('brings the hem of sweatpants down towards the ankle (here by the 20 cm limit) and leaves everything above the knee alone', async () => {
+    const result = await run('sweatpants');
+    expect(result.lowered).toBe(0);
+    expect(result.hemmed).toBeCloseTo(0.2, 4);
+    const after = Array.from({ length: 10 }, (_, i) => result.positions[3 * i + 2]);
+    expect(Math.min(...after)).toBeCloseTo(hem - 0.2, 4);
+    for (let i = 0; i < 10; i++) {
+      if (gz(i) >= knee) expect(result.positions[3 * i + 2]).toBeCloseTo(gz(i), 5);
+      else expect(result.positions[3 * i + 2]).toBeLessThan(gz(i));
+      expect(result.positions[3 * i]).toBeCloseTo(expected.garments[1][3 * i], 5);
+    }
+  });
+
+  it('does not touch the hem of shorts', async () => {
+    const result = await run('shorts');
+    expect(result.hemmed).toBe(0);
+    expect(result.lowered).toBe(0);
+    for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+  });
+
+  it('lowers the band and lengthens the legs of sweatpants in the same fit', async () => {
+    const result = await run('sweatpants', top - 0.01);
+    expect(result.lowered).toBeCloseTo(0.04, 4);
+    expect(result.hemmed).toBeCloseTo(0.2, 4);
+  });
+
+  it('does not touch a garment that is not full length', async () => {
+    const { positions, faces } = tallBody();
+    const result = await fitGarment({ store: store({ 'men/tiny_M.zdp': packBytes() }) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
+    expect(result.hemmed).toBe(0);
   });
 });
 
