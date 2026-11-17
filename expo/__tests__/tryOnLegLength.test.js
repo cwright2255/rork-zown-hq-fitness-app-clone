@@ -114,12 +114,23 @@ describe('hemToAnkle', () => {
   });
 });
 
-describe('which garments are full length', () => {
-  it('is the sweatpants only', () => {
-    expect(hasAnkleHem('men', 'sweatpants')).toBe(true);
+describe('which garments are hemmed to the ankle', () => {
+  it('is none: the sweatpants packs (v2.2 pattern) come with the hem at the ankle', () => {
+    expect(hasAnkleHem('men', 'sweatpants')).toBe(false);
     expect(hasAnkleHem('men', 'shorts')).toBe(false);
     expect(hasAnkleHem('women', 'cami')).toBe(false);
     expect(hasAnkleHem('men', 'unknown')).toBe(false);
-    expect(GARMENTS.filter((g) => g.ankleHem).map((g) => g.key)).toEqual(['sweatpants']);
+    expect(GARMENTS.filter((g) => g.ankleHem).map((g) => g.key)).toEqual([]);
+  });
+  it('follows the flag on a garment', () => {
+    const sweatpants = GARMENTS.find((g) => g.key === 'sweatpants');
+    sweatpants.ankleHem = true;
+    try {
+      expect(hasAnkleHem('men', 'sweatpants')).toBe(true);
+      expect(hasAnkleHem('women', 'sweatpants')).toBe(false);
+    } finally {
+      delete sweatpants.ankleHem;
+    }
+    expect(hasAnkleHem('men', 'sweatpants')).toBe(false);
   });
 });

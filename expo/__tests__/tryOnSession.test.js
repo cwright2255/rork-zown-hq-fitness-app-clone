@@ -6,6 +6,7 @@ import { fitGarment, loadSizing, readBodyGeometry, recommend, BODY_VERTEX_COUNT,
 import { PackStoreError } from '../lib/tryOn/packStore';
 import { decodeSizing } from '../lib/tryOn/sizing';
 import { GAP } from '../lib/tryOn/pushOut';
+import { GARMENTS } from '../lib/tryOn/garments';
 
 const DIR = path.join(__dirname, 'fixtures', 'tryon');
 const packBytes = () => { const b = fs.readFileSync(path.join(DIR, 'tiny.zdp')); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
@@ -149,14 +150,13 @@ describe('fitGarment: the waistband of shorts and pants', () => {
     }
   });
 
-  it('does the same for sweatpants, and leaves a band that is already under the navel alone', async () => {
-    // (the sweatpants' hem is also brought to the ankle, which is tested below; only the band is looked at here)
-    const low = bodyWithNavel(top + 0.2);
-    const stays = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: low.positions, bodyFaces: low.faces });
-    expect(stays.lowered).toBe(0);
-    const high = bodyWithNavel(top - 0.01);
-    const moved = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: high.positions, bodyFaces: high.faces });
-    expect(moved.lowered).toBeCloseTo(0.04, 4);
+  it('leaves the band of sweatpants where the pack put it, however high the navel is (their v2.2 pack has its own rise)', async () => {
+    for (const navelZ of [top + 0.2, top - 0.01]) {
+      const { positions, faces } = bodyWithNavel(navelZ);
+      const result = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
+      expect(result.lowered).toBe(0);
+      for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+    }
   });
 
   it('does not touch a garment that has no waistband', async () => {
@@ -189,17 +189,41 @@ describe('fitGarment: the hem of full-length pants', () => {
     return fitGarment({ store: store({ ['men/' + key + '_M.zdp']: packBytes() }) }, { sizing: sizingFor, garmentKey: key, group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
   };
 
-  it('brings the hem of sweatpants down towards the ankle (here by the 20 cm limit) and leaves everything above the knee alone', async () => {
-    const result = await run('sweatpants');
-    expect(result.lowered).toBe(0);
-    expect(result.hemmed).toBeCloseTo(0.2, 4);
-    const after = Array.from({ length: 10 }, (_, i) => result.positions[3 * i + 2]);
-    expect(Math.min(...after)).toBeCloseTo(hem - 0.2, 4);
-    for (let i = 0; i < 10; i++) {
-      if (gz(i) >= knee) expect(result.positions[3 * i + 2]).toBeCloseTo(gz(i), 5);
-      else expect(result.positions[3 * i + 2]).toBeLessThan(gz(i));
-      expect(result.positions[3 * i]).toBeCloseTo(expected.garments[1][3 * i], 5);
+  // No garment is hemmed to the ankle now, so these flag the sweatpants for the length of one test (the way fitGarment reads the list) and unflag them after.
+  const withFlags = async (flags, fn) => {
+    const sweatpants = GARMENTS.find((g) => g.key === 'sweatpants');
+    const before = { waistband: sweatpants.waistband, ankleHem: sweatpants.ankleHem };
+    Object.assign(sweatpants, flags);
+    try {
+      await fn();
+    } finally {
+      for (const k of Object.keys(before)) {
+        if (before[k] === undefined) delete sweatpants[k];
+        else sweatpants[k] = before[k];
+      }
     }
+  };
+
+  it('leaves the hem and the band of sweatpants where the pack put them', async () => {
+    const result = await run('sweatpants', top - 0.01);
+    expect(result.hemmed).toBe(0);
+    expect(result.lowered).toBe(0);
+    for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+  });
+
+  it('brings the hem of a garment flagged ankleHem down towards the ankle (here by the 20 cm limit) and leaves everything above the knee alone', async () => {
+    await withFlags({ ankleHem: true }, async () => {
+      const result = await run('sweatpants');
+      expect(result.lowered).toBe(0);
+      expect(result.hemmed).toBeCloseTo(0.2, 4);
+      const after = Array.from({ length: 10 }, (_, i) => result.positions[3 * i + 2]);
+      expect(Math.min(...after)).toBeCloseTo(hem - 0.2, 4);
+      for (let i = 0; i < 10; i++) {
+        if (gz(i) >= knee) expect(result.positions[3 * i + 2]).toBeCloseTo(gz(i), 5);
+        else expect(result.positions[3 * i + 2]).toBeLessThan(gz(i));
+        expect(result.positions[3 * i]).toBeCloseTo(expected.garments[1][3 * i], 5);
+      }
+    });
   });
 
   it('does not touch the hem of shorts', async () => {
@@ -209,10 +233,12 @@ describe('fitGarment: the hem of full-length pants', () => {
     for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
   });
 
-  it('lowers the band and lengthens the legs of sweatpants in the same fit', async () => {
-    const result = await run('sweatpants', top - 0.01);
-    expect(result.lowered).toBeCloseTo(0.04, 4);
-    expect(result.hemmed).toBeCloseTo(0.2, 4);
+  it('lowers the band and lengthens the legs in the same fit when a garment has both flags', async () => {
+    await withFlags({ waistband: true, ankleHem: true }, async () => {
+      const result = await run('sweatpants', top - 0.01);
+      expect(result.lowered).toBeCloseTo(0.04, 4);
+      expect(result.hemmed).toBeCloseTo(0.2, 4);
+    });
   });
 
   it('does not touch a garment that is not full length', async () => {
