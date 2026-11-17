@@ -79,7 +79,7 @@ export async function fitGarment(deps, args) {
   const positions = blendGarment(pack, bodyPositions);
   // Shorts and pants: the band goes just under this body's navel, not where the simulation happened to put it (and a belly hangs over it, not inside it).
   const waistband = waistbandKind(group, garmentKey);
-  const lowered = waistband ? lowerWaistband(positions, bodyPositions, undefined, waistband === 'seat') : 0;
+  const lowered = waistband ? lowerWaistband(positions, bodyPositions, undefined, waistband === 'tilt') : 0;
   // Full-length pants: the hem goes to this body's ankle bone (the pattern has one leg length for every height).
   const hemmed = hasAnkleHem(group, garmentKey) ? hemToAnkle(positions, bodyPositions) : 0;
   const outsidePack = bodyDistance(pack, shapeNumbers(pack, bodyPositions));

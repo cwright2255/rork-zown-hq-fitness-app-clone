@@ -151,18 +151,28 @@ describe('fitGarment: the waistband of shorts and pants', () => {
     }
   });
 
-  it('lowers the band of sweatpants too, squashing only the part above the seat, and leaves a band that is already under the navel alone', async () => {
-    // the body is 1.8 m tall from a floor at 0, so its seat is at 0.45 x 1.8 = 0.81 m: just above the tiny garment's hem (0.79 m), which must not move
-    const low = bodyWithNavel(top + 0.2);
+  it('tilts the band of sweatpants: lower at the front, as it was at the back, nothing under the seat moved; and leaves a band already under the navel alone', async () => {
+    // the body is 1.8 m tall from a floor at 0, so its seat is at 0.45 x 1.8 = 0.81 m: just above the tiny garment's hem (0.79 m), which must not move.
+    // The tiny garment's points 4 and 5 are the ones furthest to the front (y -0.31 and -0.29): point 4, at 0.9211, is the top of its front; its highest point
+    // (8, at 1.1163) is at the back, and its lowest (0, at 0.7908) is under the seat.
+    const gx = (i) => expected.garments[1][3 * i];
+    const gy = (i) => expected.garments[1][3 * i + 1];
+    const gz = (i) => expected.garments[1][3 * i + 2];
+    const frontTop = gz(4);
+    const low = bodyWithNavel(frontTop + 0.2);
     const stays = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: low.positions, bodyFaces: low.faces });
     expect(stays.lowered).toBe(0);
-    const high = bodyWithNavel(top - 0.01);
+    const high = bodyWithNavel(frontTop - 0.01); // the front has to come down 4 cm
     const moved = await fitGarment({ store: store(filesFor('sweatpants')) }, { sizing: sizingFor('sweatpants'), garmentKey: 'sweatpants', group: 'men', size: 'M', bodyPositions: high.positions, bodyFaces: high.faces });
     expect(moved.lowered).toBeCloseTo(0.04, 4);
-    const zAfter = [];
-    for (let i = 2; i < 30; i += 3) zAfter.push(moved.positions[i]);
-    expect(Math.max(...zAfter)).toBeCloseTo(top - 0.04, 4);
-    expect(Math.min(...zAfter)).toBeCloseTo(hem, 4);
+    expect(moved.positions[3 * 4 + 2]).toBeCloseTo(frontTop - 0.04, 4); // the front of the band came down
+    expect(moved.positions[3 * 8 + 2]).toBeCloseTo(gz(8), 4); // the back of the band did not
+    expect(moved.positions[3 * 0 + 2]).toBeCloseTo(gz(0), 4); // under the seat, nothing moved
+    for (let p = 0; p < 10; p++) {
+      expect(moved.positions[3 * p]).toBeCloseTo(gx(p), 4);
+      expect(moved.positions[3 * p + 1]).toBeCloseTo(gy(p), 4);
+      expect(moved.positions[3 * p + 2]).toBeLessThanOrEqual(gz(p) + 1e-4); // and no point went up
+    }
   });
 
   it('does not touch a garment that has no waistband', async () => {
