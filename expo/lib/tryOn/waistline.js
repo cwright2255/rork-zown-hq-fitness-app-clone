@@ -8,7 +8,12 @@
 // push the cuffs of sweatpants through the floor on short bodies), and everything in between moves in proportion. The sideways and front-to-back
 // shape of the garment is not touched; the push that keeps the garment off the skin runs after this and settles it on the body where the band now is.
 //
+// Pants with long legs (the sweatpants) are squashed about the seat instead: only the part above the seat moves, so the legs and the crotch stay where the
+// simulation put them (squashing the whole garment about the cuffs pulled the crotch about 3.5 cm further down).
+//
 // Frame: the body model's own (x sideways, y front-to-back, z up), the frame the blend gives the garment in.
+
+import { bodyExtent } from './legLength';
 
 // The navel on the body model's mesh (13,718 vertices): the deepest point of the dip in the belly. It is the same point on every body, so it follows
 // the body's shape. Found on the mean body, where it is the strongest dip on the front of the belly, and checked on 128 bodies.
@@ -16,6 +21,9 @@ export const NAVEL_VERTEX = 4104;
 
 // How far under the navel the top of the band goes, in metres: the reference fit for shorts has the band a little under the navel.
 export const WAIST_BELOW_NAVEL = 0.03;
+
+// Where the seat of a pair of pants is, as a fraction of the body's height above the soles: a little under the crotch, which is at about 0.455 of it.
+export const SEAT_FRACTION = 0.45;
 
 // The most the band is ever moved down, in metres. The usual move is 5-12 cm; this stops one odd body from squashing the garment out of shape.
 export const MAX_LOWERING = 0.2;
@@ -34,8 +42,10 @@ export function navelHeight(body) {
 /**
  * Moves the band of a garment (points: Float32Array, 3 per point, changed in place) down so its top is `below` metres under the body's navel, keeping the
  * hem where it is. A band that is already at or under that height (to within a millimetre) is left alone. Returns how far the top moved, in metres (0 when nothing moved).
+ * With aboveSeatOnly, the points at or under the seat (SEAT_FRACTION of the body's height) stay where they are and only the part above the seat is squashed
+ * (when the hem is itself above the seat, as on shorts, this is the same as squashing about the hem).
  */
-export function lowerWaistband(points, body, below = WAIST_BELOW_NAVEL) {
+export function lowerWaistband(points, body, below = WAIST_BELOW_NAVEL, aboveSeatOnly = false) {
   const navel = navelHeight(body);
   if (navel === null || !points || points.length < 6) return 0;
   let top = -Infinity;
@@ -46,10 +56,18 @@ export function lowerWaistband(points, body, below = WAIST_BELOW_NAVEL) {
     if (z > top) top = z;
     if (z < hem) hem = z;
   }
-  const span = top - hem;
+  let base = hem;
+  if (aboveSeatOnly) {
+    const ext = bodyExtent(body);
+    if (!ext) return 0;
+    base = Math.max(hem, ext.floor + SEAT_FRACTION * ext.height);
+  }
+  const span = top - base;
   if (!(span >= MIN_SPAN)) return 0;
   const move = Math.min(top - (navel - below), MAX_LOWERING);
   if (!(move > MIN_MOVE)) return 0;
-  for (let i = 2; i < points.length; i += 3) points[i] -= move * (points[i] - hem) / span;
+  for (let i = 2; i < points.length; i += 3) {
+    if (points[i] > base) points[i] -= move * (points[i] - base) / span;
+  }
   return move;
 }

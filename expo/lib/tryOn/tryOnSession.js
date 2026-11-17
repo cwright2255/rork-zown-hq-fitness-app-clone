@@ -7,7 +7,7 @@ import { parsePack, blendGarment, shapeNumbers, bodyDistance } from './pack';
 import { buildBodyIndex, boundsOf, pushOut, GAP } from './pushOut';
 import { decodeSizing, chooseSize, sizeFit, verdictOf, measuresNeeded, featureVector, measureBody } from './sizing';
 import { bytesToText } from './packStore';
-import { hasAnkleHem, hasWaistband } from './garments';
+import { hasAnkleHem, waistbandKind } from './garments';
 import { hemToAnkle } from './legLength';
 import { lowerWaistband } from './waistline';
 
@@ -77,8 +77,9 @@ export async function fitGarment(deps, args) {
 
   onStep('Fitting it to your body...');
   const positions = blendGarment(pack, bodyPositions);
-  // Shorts and pants: the band goes just under this body's navel, not where the simulation happened to put it.
-  const lowered = hasWaistband(group, garmentKey) ? lowerWaistband(positions, bodyPositions) : 0;
+  // Shorts and pants: the band goes just under this body's navel, not where the simulation happened to put it (and a belly hangs over it, not inside it).
+  const waistband = waistbandKind(group, garmentKey);
+  const lowered = waistband ? lowerWaistband(positions, bodyPositions, undefined, waistband === 'seat') : 0;
   // Full-length pants: the hem goes to this body's ankle bone (the pattern has one leg length for every height).
   const hemmed = hasAnkleHem(group, garmentKey) ? hemToAnkle(positions, bodyPositions) : 0;
   const outsidePack = bodyDistance(pack, shapeNumbers(pack, bodyPositions));

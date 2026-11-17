@@ -2,12 +2,14 @@
 //
 // The garments that have a drape pack, and which body group each belongs to. A pack was built on made-up bodies of one group, so a scan uses the
 // garments of its own group. `key` is the name used in the pack files (tryon-packs/v1/<group>/<key>_<size>.zdp) and in the sizing file.
-// `waistband: true` marks the garments whose band is set just under the navel (lib/tryOn/waistline.js): the shorts.
-// `ankleHem: true` marks the garments whose hem is brought to the wearer's ankle bone (lib/tryOn/legLength.js): none now. The sweatpants packs built from the
-// v2.2 pattern come with its own rise and leg length (band near the navel, hem at the ankle), so the sweatpants take neither correction.
+// `waistband` marks the garments whose band is set just under the navel (lib/tryOn/waistline.js), so a belly hangs over the band instead of being tucked
+// inside it: `true` squashes the whole garment about its hem (the shorts), 'seat' squashes only the part above the seat (the sweatpants, whose legs and
+// crotch stay as simulated).
+// `ankleHem: true` marks the garments whose hem is brought to the wearer's ankle bone (lib/tryOn/legLength.js): none now, because the sweatpants packs built
+// from the v2.2 pattern come with the hem at the ankle.
 export const GARMENTS = [
   { key: 'shorts', group: 'men', label: "Men's Shorts", icon: 'cut-outline', waistband: true },
-  { key: 'sweatpants', group: 'men', label: "Men's Sweatpants", icon: 'walk-outline' },
+  { key: 'sweatpants', group: 'men', label: "Men's Sweatpants", icon: 'walk-outline', waistband: 'seat' },
   { key: 'bra', group: 'women', label: "Women's Sports Bra", icon: 'shirt-outline' },
   { key: 'cami', group: 'women', label: "Women's Cami", icon: 'shirt-outline' },
 ];
@@ -28,9 +30,17 @@ export function hasAnkleHem(group, key) {
   return GARMENTS.some((g) => g.group === group && g.key === key && g.ankleHem === true);
 }
 
-/** True when the garment's band is set under the navel (the shorts). */
+/** How the garment's band is set under the navel: 'hem' (squash about the hem), 'seat' (squash only above the seat), or null when it is not. */
+export function waistbandKind(group, key) {
+  const g = GARMENTS.find((x) => x.group === group && x.key === key);
+  if (!g) return null;
+  if (g.waistband === true) return 'hem';
+  return g.waistband === 'seat' ? 'seat' : null;
+}
+
+/** True when the garment's band is set under the navel (the shorts and the sweatpants). */
 export function hasWaistband(group, key) {
-  return GARMENTS.some((g) => g.group === group && g.key === key && g.waistband === true);
+  return waistbandKind(group, key) !== null;
 }
 
 export const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];

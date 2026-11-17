@@ -1,8 +1,8 @@
 // The waistband of shorts and pants is set just under the navel (lib/tryOn/waistline.js): the band moves down to its place, the hem stays, and
 // the garment's width and depth are not touched.
-import { NAVEL_VERTEX, WAIST_BELOW_NAVEL, MAX_LOWERING, navelHeight, lowerWaistband } from '../lib/tryOn/waistline';
+import { NAVEL_VERTEX, WAIST_BELOW_NAVEL, MAX_LOWERING, SEAT_FRACTION, navelHeight, lowerWaistband } from '../lib/tryOn/waistline';
 import { BODY_VERTEX_COUNT } from '../lib/tryOn/tryOnSession';
-import { GARMENTS, hasWaistband } from '../lib/tryOn/garments';
+import { GARMENTS, hasWaistband, waistbandKind } from '../lib/tryOn/garments';
 
 // A body of the body model's size with the navel at height z; every other vertex is at the origin.
 const bodyWithNavel = (z) => {
@@ -100,17 +100,87 @@ describe('lowerWaistband', () => {
   });
 });
 
+describe('lowerWaistband above the seat only', () => {
+  // bodyWithNavel(1.05) has a floor at 0 and a height of 1.05 m, so its seat is at SEAT_FRACTION x 1.05 = 0.4725 m.
+  const seat = SEAT_FRACTION * 1.05;
+
+  it('puts the top of the band 3 cm under the navel, like the other way', () => {
+    const g = garment(1.15, 0.1);
+    const moved = lowerWaistband(g, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true);
+    expect(SEAT_FRACTION).toBeCloseTo(0.45, 6);
+    expect(moved).toBeCloseTo(1.15 - 1.02, 5);
+    expect(g[2]).toBeCloseTo(1.02, 5);
+    expect(g[5]).toBeCloseTo(1.02, 5);
+  });
+
+  it('leaves everything under the seat where it was, and moves the part above it in proportion', () => {
+    const g = garment(1.15, 0.1);
+    const moved = lowerWaistband(g, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true);
+    expect(g[11]).toBe(Math.fround(0.1)); // the hem does not move at all
+    expect(g[8]).toBeCloseTo(0.625 - (moved * (0.625 - seat)) / (1.15 - seat), 5);
+    expect(g[8]).toBeGreaterThan(0.625 - moved * 0.5); // less than when the whole garment is squashed about its hem
+    const under = Float32Array.from([0, 0, seat - 0.2, 0, 0, seat, 0, 0, 1.15]);
+    lowerWaistband(under, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true);
+    expect(under[2]).toBeCloseTo(seat - 0.2, 6);
+    expect(under[5]).toBeCloseTo(seat, 6);
+    expect(under[8]).toBeCloseTo(1.02, 5);
+  });
+
+  it('leaves the sideways and front-to-back shape alone', () => {
+    const g = garment();
+    const before = Array.from(g);
+    lowerWaistband(g, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true);
+    for (let p = 0; p < 4; p++) {
+      expect(g[3 * p]).toBe(before[3 * p]);
+      expect(g[3 * p + 1]).toBe(before[3 * p + 1]);
+    }
+  });
+
+  it('is the same as squashing about the hem when the hem is above the seat (shorts)', () => {
+    const a = garment(1.15, 0.6);
+    const b = garment(1.15, 0.6);
+    expect(lowerWaistband(a, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true)).toBeCloseTo(lowerWaistband(b, bodyWithNavel(1.05)), 6);
+    for (let i = 0; i < 12; i++) expect(a[i]).toBeCloseTo(b[i], 6);
+  });
+
+  it('never raises a band that is already under the navel, and keeps the 20 cm limit', () => {
+    const low = garment(0.95, 0.1);
+    const before = Array.from(low);
+    expect(lowerWaistband(low, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true)).toBe(0);
+    expect(Array.from(low)).toEqual(before);
+    const high = garment(1.6, 0.1);
+    expect(lowerWaistband(high, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true)).toBeCloseTo(MAX_LOWERING, 6);
+    expect(high[11]).toBe(Math.fround(0.1));
+  });
+
+  it('does nothing for a body with no usable height, or when the part above the seat is too short to squash', () => {
+    const g = garment();
+    const before = Array.from(g);
+    expect(lowerWaistband(g, bodyWithNavel(0.3), WAIST_BELOW_NAVEL, true)).toBe(0); // a body under 0.5 m has no height to find the seat from
+    expect(lowerWaistband(g, new Float32Array(30), WAIST_BELOW_NAVEL, true)).toBe(0);
+    expect(Array.from(g)).toEqual(before);
+    const flat = garment(0.5, 0.1); // its top is only 2.75 cm above the seat
+    expect(lowerWaistband(flat, bodyWithNavel(1.05), WAIST_BELOW_NAVEL, true)).toBe(0);
+  });
+});
+
 describe('which garments have a waistband', () => {
-  it('is the shorts only: the sweatpants packs (v2.2 pattern) come with the band near the navel, and nothing worn above the waist has one', () => {
+  it('is the shorts and the sweatpants, and nothing worn above the waist', () => {
     expect(hasWaistband('men', 'shorts')).toBe(true);
-    expect(hasWaistband('men', 'sweatpants')).toBe(false);
+    expect(hasWaistband('men', 'sweatpants')).toBe(true);
     expect(hasWaistband('women', 'bra')).toBe(false);
     expect(hasWaistband('women', 'cami')).toBe(false);
     expect(hasWaistband('men', 'unknown')).toBe(false);
     expect(hasWaistband('women', 'shorts')).toBe(false); // the shorts pack is the men's
   });
+  it('squashes the shorts about the hem and the sweatpants about the seat', () => {
+    expect(waistbandKind('men', 'shorts')).toBe('hem');
+    expect(waistbandKind('men', 'sweatpants')).toBe('seat');
+    expect(waistbandKind('women', 'cami')).toBeNull();
+    expect(waistbandKind('men', 'unknown')).toBeNull();
+  });
   it('is set only on garments that exist', () => {
-    for (const g of GARMENTS) expect(typeof (g.waistband || false)).toBe('boolean');
-    expect(GARMENTS.filter((g) => g.waistband).map((g) => g.key).sort()).toEqual(['shorts']);
+    for (const g of GARMENTS) expect(g.waistband === undefined || g.waistband === true || g.waistband === 'seat').toBe(true);
+    expect(GARMENTS.filter((g) => g.waistband).map((g) => g.key).sort()).toEqual(['shorts', 'sweatpants']);
   });
 });
