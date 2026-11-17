@@ -101,9 +101,9 @@ describe('lowerWaistband', () => {
 });
 
 describe('which garments have a waistband', () => {
-  it('is the shorts and the sweatpants, and nothing worn above the waist', () => {
+  it('is the shorts only: the sweatpants packs (v2.2 pattern) come with the band near the navel, and nothing worn above the waist has one', () => {
     expect(hasWaistband('men', 'shorts')).toBe(true);
-    expect(hasWaistband('men', 'sweatpants')).toBe(true);
+    expect(hasWaistband('men', 'sweatpants')).toBe(false);
     expect(hasWaistband('women', 'bra')).toBe(false);
     expect(hasWaistband('women', 'cami')).toBe(false);
     expect(hasWaistband('men', 'unknown')).toBe(false);
@@ -111,6 +111,6 @@ describe('which garments have a waistband', () => {
   });
   it('is set only on garments that exist', () => {
     for (const g of GARMENTS) expect(typeof (g.waistband || false)).toBe('boolean');
-    expect(GARMENTS.filter((g) => g.waistband).map((g) => g.key).sort()).toEqual(['shorts', 'sweatpants']);
+    expect(GARMENTS.filter((g) => g.waistband).map((g) => g.key).sort()).toEqual(['shorts']);
   });
 });
