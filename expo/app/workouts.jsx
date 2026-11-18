@@ -56,17 +56,44 @@ function ExerciseCard({ item }) {
   );
 }
 
+// The one card the My Workouts row and the Training Program row both use, so they cannot drift apart.
+function WorkoutTile({ title, subtitle, detail, onPress, testID }) {
+  return (
+    <Pressable style={styles.programCard} onPress={onPress} testID={testID}>
+      <View style={styles.programImage}>
+        <Ionicons name="clipboard-outline" size={28} color="#999" />
+      </View>
+      <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
+      <Text style={styles.cardSubtitle} numberOfLines={1}>{subtitle}</Text>
+      {!!detail && <Text style={styles.cardSubtitle} numberOfLines={1}>{detail}</Text>}
+    </Pressable>
+  );
+}
+
 function MyWorkoutCard({ item }) {
   const subtitle = [item.duration ? `${item.duration} min` : null, item.difficulty]
     .filter(Boolean).join(' · ');
   return (
-    <Pressable style={styles.programCard} onPress={() => router.push(`/workout/${item.id}`)}>
-      <View style={styles.programImage}>
-        <Ionicons name="clipboard-outline" size={28} color="#999" />
-      </View>
-      <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-      <Text style={styles.cardSubtitle} numberOfLines={1}>{subtitle}</Text>
-    </Pressable>
+    <WorkoutTile
+      title={item.name}
+      subtitle={subtitle}
+      onPress={() => router.push(`/workout/${item.id}`)}
+      testID={`workout-card-${item.id}`}
+    />
+  );
+}
+
+// A program's line under the name stays exactly as the program says it ("9 weeks • 3x/week"); its level goes on the line below,
+// because the two together are too long for one line on a tile this wide.
+function ProgramCard({ program }) {
+  return (
+    <WorkoutTile
+      title={program.title}
+      subtitle={program.subtitle}
+      detail={program.level}
+      onPress={() => router.push(`/workout/program/${program.id}`)}
+      testID="program-card"
+    />
   );
 }
 
@@ -212,29 +239,18 @@ export default function WorkoutsScreen() {
             the midpoint of the requested 8-10 week range) - every
             device computes the same program for the same day with no
             server or stored state needed, and it keeps advancing on its
-            own. Real fix: previously an expand-in-place "Preview Week
-            1" toggle; now navigates to the real program overview screen
+            own. It is the same tile as the My Workouts cards (WorkoutTile)
+            and, like them, navigates to the real program overview screen
             (app/workout/program/[id].jsx) with its own Program -> Week
-            -> Day -> Start Session flow, matching how the Running tab's
-            own programs already work and how My Workouts cards already
-            navigate rather than expand in place. */}
+            -> Day -> Start Session flow. */}
         <SectionHeader title="Training Program" />
-        <Pressable style={styles.programFeaturedCard} onPress={() => router.push(`/workout/program/${featuredProgram.id}`)}>
-          <View style={styles.programFeaturedHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.programFeaturedTitle}>{featuredProgram.title}</Text>
-              <Text style={styles.programFeaturedSubtitle}>{featuredProgram.subtitle} · {featuredProgram.level}</Text>
-            </View>
-            <View style={styles.programLevelBadge}>
-              <Text style={styles.programLevelBadgeText}>{featuredProgram.level}</Text>
-            </View>
-          </View>
-          <Text style={styles.programFeaturedDesc}>{featuredProgram.description}</Text>
-          <View style={styles.programToggleRow}>
-            <Text style={styles.programToggleText}>View Program</Text>
-            <Ionicons name="chevron-forward" size={16} color="#666" />
-          </View>
-        </Pressable>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+        >
+          <ProgramCard program={featuredProgram} />
+        </ScrollView>
 
         <SectionHeader
           title="Browse Exercises"
@@ -344,24 +360,6 @@ const styles = StyleSheet.create({
     marginTop: 14, backgroundColor: '#000', borderRadius: 10, paddingVertical: 12, alignItems: 'center',
   },
   recBtnText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
-
-  programFeaturedCard: {
-    marginHorizontal: 20, marginBottom: 24, backgroundColor: '#F5F5F5',
-    borderRadius: 16, padding: 16,
-  },
-  programFeaturedHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  programFeaturedTitle: { fontSize: 17, fontWeight: '700', color: '#000' },
-  programFeaturedSubtitle: { fontSize: 13, color: '#999', marginTop: 2 },
-  programLevelBadge: {
-    backgroundColor: '#000', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  programLevelBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
-  programFeaturedDesc: { fontSize: 13, color: '#666', lineHeight: 18, marginTop: 12 },
-  programToggleRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E5E5E5',
-  },
-  programToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
 
   carousel: { paddingLeft: 20, paddingRight: 6, marginBottom: 24 },
 
