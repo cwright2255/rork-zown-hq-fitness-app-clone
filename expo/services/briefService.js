@@ -1,8 +1,9 @@
 // services/briefService.js
 //
-// The daily Today brief (lib/todayBrief.js): written once a day from everything the Coach knows and kept on the phone, so opening the
-// Home screen again reads the kept one instead of spending another of the day's AI requests. Asking for it never throws: a brief
-// that cannot be had is simply null, and the Home screen then shows the last brief kept (getLastBrief) or says today's is not ready.
+// The daily Today brief (lib/todayBrief.js): written once a day from everything the Coach knows and kept on the phone and in the person's
+// account (services/briefCloud.js), so opening the Home screen again reads the kept one instead of spending another of the day's AI
+// requests, and logging out and back in (which clears the phone) brings back the same brief and not a new one. Asking for it never throws:
+// a brief that cannot be had is simply null, and the Home screen then shows the last brief kept (getLastBrief) or says today's is not ready.
 //
 // getTodayBrief does the keeping and asking; loadBriefMessages reads the app's stores and builds what the AI is told. Both take their
 // stores, AI and storage as arguments (with the real ones as defaults) so a test can stand in for them. peekTodayBrief is the one thing
@@ -25,12 +26,15 @@ import { computeReadiness } from '@/lib/readiness';
 import { hrvTitle } from '@/lib/healthDisplay';
 import { localDateKey } from '@/lib/localDate';
 import { readInsight, rememberInsight } from '@/lib/insightCache';
+import { readCloudBrief, fileCloudBrief } from '@/services/briefCloud';
 import {
   BRIEF_STORAGE_KEY, briefKey, parseBrief, serializeBrief, buildBriefMessages, trendFacts,
 } from '@/lib/todayBrief';
 
 /** How long the brief waits for the stores to load before it goes ahead with what they have. */
 export const BRIEF_LOAD_PATIENCE_MS = 10000;
+/** How long the brief waits for the account to answer before it goes on without it. */
+export const BRIEF_CLOUD_PATIENCE_MS = 8000;
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Briefs being written, by key: two callers asking for the same brief at the same moment share one request.
@@ -40,6 +44,8 @@ const inFlight = new Map();
 // blinking out while the phone's storage is read. Only briefs that exist are held, so a miss is never remembered here.
 const shown = new Map();
 const SHOWN_KEEP = 8;
+// The days this run of the app has already made sure the account holds the brief of, by key, so a brief read from the phone is filed once.
+const filed = new Set();
 const remember = (key, brief) => {
   shown.delete(key);
   shown.set(key, brief);
@@ -70,6 +76,20 @@ const save = async (storage, entries) => {
     // Not being able to keep it only means it is asked for again next time.
   }
 };
+
+// A call to the person's account (services/briefCloud.js) never throws and never waits for ever: one that fails or gets no answer in
+// BRIEF_CLOUD_PATIENCE_MS is null, which is the same as the account having nothing.
+async function inAccount(work) {
+  let timer;
+  try {
+    const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('the account did not answer')), BRIEF_CLOUD_PATIENCE_MS); });
+    return (await Promise.race([Promise.resolve().then(work), timeout])) || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // A load that fails is a load that adds nothing; it never holds up or breaks the others.
 const settle = (work) => Promise.resolve().then(work).catch(() => undefined);
@@ -152,27 +172,49 @@ export async function loadBriefMessages({ user, now = new Date(), patience } = {
 
 /**
  * Today's brief for this person: the kept one if there is one, otherwise a new one from the AI, which is then kept for the rest of the
- * day. When the AI gives nothing, that is kept for half an hour, so a failed try is not repeated every time the Home screen opens;
- * `retry` (the person pressing "Try again") ignores that and asks now.
+ * day. A day has one brief: it is kept in the person's account as well as on the phone, so when the phone's copy is gone (a log out, or the
+ * app starting with Firebase saying nobody is signed in) the account's is read back and no new one is written. When the AI gives nothing,
+ * that is kept for half an hour, so a failed try is not repeated every time the Home screen opens; `retry` (the person pressing
+ * "Try again") ignores that and asks now.
  * Resolves to { headline, points }, or null.
- * `ask`, `buildMessages` and `storage` are only there so a test can stand in for the AI, the stores and the phone's storage.
+ * `ask`, `buildMessages`, `storage` and `cloud` ({ read(uid, day), file(uid, day, text) }) are only there so a test can stand in for the AI,
+ * the stores, the phone's storage and the account.
  */
 export async function getTodayBrief({
   user, now = new Date(), retry = false, ask = generateTodayBrief, buildMessages = loadBriefMessages, storage = AsyncStorage,
+  cloud = { read: readCloudBrief, file: fileCloudBrief },
 }) {
-  const key = briefKey(user?.uid, localDateKey(now));
+  const day = localDateKey(now);
+  const key = briefKey(user?.uid, day);
   if (!key) return null;
 
   const kept = readInsight(await load(storage), key, now.getTime());
   if (kept.found) {
     const brief = parseBrief(kept.text);
-    if (brief) return remember(key, brief);
+    if (brief) {
+      // A brief written before the account kept one (or whose filing failed) is filed now, once, so a log out cannot lose it.
+      if (!filed.has(key)) {
+        filed.add(key);
+        inAccount(() => cloud.file(user.uid, day, kept.text));
+      }
+      return remember(key, brief);
+    }
     if (kept.text === null && !retry) return null;
     // Kept text that is not a brief (damaged, or from another version of the app) is written again, and so is a recent "nothing" when asked to retry.
   }
 
   if (inFlight.has(key)) return inFlight.get(key);
   const request = (async () => {
+    // The brief the account already has for today: the phone's copy was cleared, or another phone wrote it. It is used as it is, and no
+    // request is made to the AI.
+    const stored = await inAccount(() => cloud.read(user.uid, day));
+    const storedBrief = stored && parseBrief(stored);
+    if (storedBrief) {
+      filed.add(key);
+      await save(storage, rememberInsight(await load(storage), key, stored, now.getTime()));
+      return remember(key, storedBrief);
+    }
+
     let brief = null;
     try {
       const messages = await buildMessages({ user, now });
@@ -180,8 +222,20 @@ export async function getTodayBrief({
     } catch {
       brief = null;
     }
+    let text = brief ? serializeBrief(brief) : null;
+    if (brief) {
+      // If the account was not reached a moment ago but has a brief for today (another phone filed one while this one was writing), that one
+      // stands, so the two phones show the same brief.
+      const standing = await inAccount(() => cloud.file(user.uid, day, text));
+      const standingBrief = standing && parseBrief(standing);
+      if (standingBrief) {
+        brief = standingBrief;
+        text = standing;
+        filed.add(key);
+      }
+    }
     // Filed on top of what is kept at this moment, not what was read before the wait.
-    await save(storage, rememberInsight(await load(storage), key, brief ? serializeBrief(brief) : null, now.getTime()));
+    await save(storage, rememberInsight(await load(storage), key, text, now.getTime()));
     return brief ? remember(key, brief) : null;
   })().finally(() => { inFlight.delete(key); });
   inFlight.set(key, request);
