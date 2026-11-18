@@ -2,8 +2,9 @@
 //
 // The 3D view of the Try-On screen: the person's own body (already built by lib/loadScanMesh.js) with the fitted garment on it, drag to turn. The
 // garment is drawn in the same place and turned the same way as the body (it was blended in the body model's own axes), in one colour: the packs hold
-// the garment's shape, not its fabric picture. Same renderer and lights as the body scan viewer (components/ScanMeshViewer.jsx).
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+// the garment's shape, not its fabric picture. A top and a bottom can be worn at once (the hoodie over the sweatpants): each is drawn in its own tone so the layers can be told apart.
+// Same renderer and lights as the body scan viewer (components/ScanMeshViewer.jsx).
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, PanResponder } from 'react-native';
 import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
@@ -11,11 +12,13 @@ import * as THREE from 'three';
 import { buildGarmentGeometry } from '@/lib/tryOn/garmentGeometry';
 import { STAGE_BACKGROUND } from '@/lib/tryOn/stage';
 
-export const GARMENT_COLOR = '#2F3640';
+export const GARMENT_COLOR = '#2F3640'; // a bottom, or a garment worn alone
+export const TOP_COLOR = '#5B6676'; // a top worn over a bottom: lighter, so it reads against the bottom under it (a garment worn alone is GARMENT_COLOR)
 
-/** body: { displayObject } from loadScanMesh, or null. garment: { positions, faces } or null. */
-export default function TryOnScene({ body, garment, height = 340 }) {
-  const parts = useRef({ group: null, bodyObject: null, garmentMesh: null, frame: null });
+/** body: { displayObject } from loadScanMesh, or null. garments: [{ slot: 'bottom' | 'top', positions, faces }] (what is worn, in any order), or garment: one { positions, faces }. */
+export default function TryOnScene({ body, garments, garment, height = 340 }) {
+  const worn = useMemo(() => garments || (garment ? [garment] : null), [garments, garment]);
+  const parts = useRef({ group: null, bodyObject: null, garmentMeshes: [], frame: null });
   const rotation = useRef(0);
   const [ready, setReady] = useState(false);
 
@@ -66,31 +69,33 @@ export default function TryOnScene({ body, garment, height = 340 }) {
     return undefined;
   }, [ready, body]);
 
-  // The garment: made new for each fit, so the one it replaces is released.
+  // The garments: made new for each fit, so the ones they replace are released.
   useEffect(() => {
     const p = parts.current;
     if (!ready || !p.group) return undefined;
     const release = () => {
-      if (p.garmentMesh) {
-        p.group.remove(p.garmentMesh);
-        p.garmentMesh.geometry.dispose();
-        p.garmentMesh.material.dispose();
-        p.garmentMesh = null;
-      }
+      p.garmentMeshes.forEach((mesh) => {
+        p.group.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+      });
+      p.garmentMeshes = [];
     };
     release();
-    if (garment && body && body.displayObject) {
-      const material = new THREE.MeshStandardMaterial({ color: GARMENT_COLOR, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
-      const mesh = new THREE.Mesh(buildGarmentGeometry(THREE, garment.positions, garment.faces), material);
-      const b = body.displayObject; // the same turn and place as the body, because the garment is in the body's own axes
-      mesh.position.copy(b.position);
-      mesh.rotation.copy(b.rotation);
-      mesh.scale.copy(b.scale);
-      p.group.add(mesh);
-      p.garmentMesh = mesh;
+    if (worn && worn.length && body && body.displayObject) {
+      const b = body.displayObject; // the same turn and place as the body, because the garments are in the body's own axes
+      worn.forEach((item) => {
+        const material = new THREE.MeshStandardMaterial({ color: worn.length > 1 && item.slot === 'top' ? TOP_COLOR : GARMENT_COLOR, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+        const mesh = new THREE.Mesh(buildGarmentGeometry(THREE, item.positions, item.faces), material);
+        mesh.position.copy(b.position);
+        mesh.rotation.copy(b.rotation);
+        mesh.scale.copy(b.scale);
+        p.group.add(mesh);
+        p.garmentMeshes.push(mesh);
+      });
     }
     return release;
-  }, [ready, garment, body]);
+  }, [ready, worn, body]);
 
   useEffect(() => () => {
     const p = parts.current;
