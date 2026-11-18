@@ -48,6 +48,7 @@ import { useMealPlanStore } from '@/store/mealPlanStore';
 import { useMessagingStore } from '@/store/messagingStore';
 import { useNutritionStore } from '@/store/nutritionStore';
 import { useOfflineTrailStore } from '@/store/offlineTrailStore';
+import { useRecentExercisesStore } from '@/store/recentExercisesStore';
 import { useRecipeStore, STORAGE_KEYS as RECIPE_KEYS } from '@/store/recipeStore';
 import { useRunTrackerStore, flushRunTracker } from '@/store/runTrackerStore';
 import { useRunningStore } from '@/store/runningStore';
@@ -93,6 +94,7 @@ export const LOG_OUT_STORES = {
   messagingStore: useMessagingStore,
   nutritionStore: useNutritionStore,
   offlineTrailStore: useOfflineTrailStore,
+  recentExercisesStore: useRecentExercisesStore,
   recipeStore: useRecipeStore,
   runTrackerStore: useRunTrackerStore,
   runningStore: useRunningStore,
@@ -136,6 +138,7 @@ export const LOG_OUT_KEYS = [
   'zown-lifetime-storage',
   'zown-meal-plan-storage',
   'zown-nutrition-storage',
+  'zown-recent-exercises',
   'zown-run-tracker',
   'zown-schedule-storage',
   'zown-shop-storage',

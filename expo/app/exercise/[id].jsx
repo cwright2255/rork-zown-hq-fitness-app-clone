@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchExerciseById } from '@/services/exerciseDbService';
+import { useRecentExercisesStore } from '@/store/recentExercisesStore';
 
 function Pill({ label }) {
   return (
@@ -36,7 +37,11 @@ export default function ExerciseDetailScreen() {
     (async () => {
       try {
         const data = await fetchExerciseById(exerciseId);
-        if (!cancelled) setExercise(data);
+        if (!cancelled) {
+          setExercise(data);
+          // Opened: it goes to the front of Recent under Browse Exercises on the Workouts tab.
+          if (data) useRecentExercisesStore.getState().addRecent({ ...data, exerciseId: data.exerciseId ?? exerciseId });
+        }
       } catch (e) {
         if (!cancelled) setError("Couldn't load this exercise.");
       } finally {

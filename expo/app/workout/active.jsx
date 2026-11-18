@@ -1044,6 +1044,9 @@ export default function ActiveWorkoutScreen() {
                 xpEarned,
                 completedAt: new Date().toISOString(),
                 startedAt: workoutStartRef.current,
+                // Which program day this was, so the program's tile on the Workouts tab can say where the person is (lib/trainingProgramProgress.js).
+                // Only a day finished all the way carries it: the part-way save above does not, so it does not count.
+                ...(isProgramSession ? { programId, programWeek: programWeekParam, programDay: programDayIndexParam } : {}),
               }, user?.uid);
               reportEnd(false);
 
