@@ -83,6 +83,32 @@ describe('fitGarment', () => {
     }
   });
 
+  it('over another garment: is kept off that garment as well as off the skin, and the garment underneath is not changed', async () => {
+    const centre = [0, 1, 2].map((d) => { let s = 0; for (let v = 0; v < 10; v++) s += expected.garments[1][3 * v + d]; return s / 10; });
+    const { positions, faces } = bodyWithSphere(tinyBody, centre, 0.5); // the whole garment starts inside the body
+    const layer = bodyWithSphere(new Float32Array(0), centre, 0.52); // a garment 2 cm out from the skin, all round
+    const before = Array.from(layer.positions);
+    const steps = [];
+    const result = await fitGarment({ store: store(files()), onStep: (s) => steps.push(s) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces, under: [layer] });
+    expect(result.layered).toBeGreaterThan(0);
+    expect(result.lifted).toBeGreaterThanOrEqual(0); // (the 8 flat triangles of this garment cut across the sphere, so some of what is under them can poke through)
+    expect(result.pushed).toBe(10);
+    expect(steps[2]).toBe('Fitting it over what you have on...');
+    for (let v = 0; v < 10; v++) {
+      const r = Math.hypot(result.positions[3 * v] - centre[0], result.positions[3 * v + 1] - centre[1], result.positions[3 * v + 2] - centre[2]);
+      expect(r).toBeGreaterThan(0.52 + GAP - 0.03);
+      expect(r).toBeLessThan(0.52 + GAP + 0.01);
+    }
+    expect(Array.from(layer.positions)).toEqual(before);
+    // with nothing worn under it, the same garment comes out nearer the skin
+    const bare = await fitGarment({ store: store(files()) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
+    expect(bare.layered).toBe(0);
+    expect(bare.lifted).toBe(0);
+    for (let v = 0; v < 10; v++) {
+      expect(Math.hypot(bare.positions[3 * v] - centre[0], bare.positions[3 * v + 1] - centre[1], bare.positions[3 * v + 2] - centre[2])).toBeLessThan(0.52);
+    }
+  });
+
   it('reports the fit for the size, the measures, and whether the body is unusual for the pack', async () => {
     const { positions, faces } = bodyWithSphere(tinyBody, [9, 9, 9], 0.2);
     const result = await fitGarment({ store: store(files()) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
@@ -180,6 +206,50 @@ describe('fitGarment: the waistband of shorts and pants', () => {
     const result = await fitGarment({ store: store(files()) }, { sizing, garmentKey: 'tiny', group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces });
     expect(result.lowered).toBe(0);
     for (let i = 0; i < 30; i++) expect(result.positions[i]).toBeCloseTo(expected.garments[1][i], 4);
+  });
+});
+
+describe('fitGarment: more room in the sweatpants', () => {
+  const tinyBody = new Float32Array(expected.bodies[1]);
+  const gp = expected.garments[1];
+  // a sphere in the middle of the tiny garment, a little smaller than the closest of its points is, so every point is a little off the skin
+  const centre = [0, 0, 0];
+  for (let i = 0; i < 10; i++) for (let d = 0; d < 3; d++) centre[d] += gp[3 * i + d] / 10;
+  const dist = (i, c = centre) => Math.hypot(gp[3 * i] - c[0], gp[3 * i + 1] - c[1], gp[3 * i + 2] - c[2]);
+  const radius = Math.min(...Array.from({ length: 10 }, (_, i) => dist(i))) - 0.012;
+  const bodyAround = () => {
+    const { positions: small, faces } = bodyWithSphere(tinyBody, centre, radius);
+    const positions = new Float32Array(BODY_VERTEX_COUNT * 3); positions.set(small);
+    for (let v = small.length / 3; v < BODY_VERTEX_COUNT; v++) positions.set([0, 0, 1.8], 3 * v);
+    positions.set([0, -0.2, 5], 3 * 4104); // the navel far above: the band is not lowered
+    return { positions, faces };
+  };
+  const sizingFor = (key) => decodeSizing({ ...sizingJson(), garments: { [key]: sizingJson().garments.tiny } });
+  const run = (key) => { const { positions, faces } = bodyAround(); return fitGarment({ store: store({ ['men/' + key + '_M.zdp']: packBytes() }) }, { sizing: sizingFor(key), garmentKey: key, group: 'men', size: 'M', bodyPositions: positions, bodyFaces: faces }); };
+  const withRelax = async (amount) => {
+    const g = GARMENTS.find((x) => x.key === 'sweatpants'); const before = g.relax;
+    g.relax = amount;
+    try { return await run('sweatpants'); } finally { g.relax = before; }
+  };
+
+  it('moves the sweatpants out from the skin a little, and says how many points', async () => {
+    const snug = await withRelax(0);
+    const eased = await withRelax(0.015);
+    expect(snug.relaxed).toBe(0);
+    expect(eased.relaxed).toBeGreaterThan(0);
+    let further = 0;
+    for (let i = 0; i < 10; i++) {
+      const d = (r) => Math.hypot(r.positions[3 * i] - centre[0], r.positions[3 * i + 1] - centre[1], r.positions[3 * i + 2] - centre[2]);
+      expect(d(eased)).toBeGreaterThanOrEqual(d(snug) - 1e-5);
+      expect(d(eased) - d(snug)).toBeLessThan(0.0151);
+      if (d(eased) > d(snug) + 1e-4) further++;
+    }
+    expect(further).toBe(eased.relaxed);
+  });
+
+  it('is only for the sweatpants: the shorts are fitted as they were', async () => {
+    const shorts = await run('shorts');
+    expect(shorts.relaxed).toBe(0);
   });
 });
 

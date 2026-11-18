@@ -105,3 +105,55 @@ describe('boundsOf', () => {
     expect(boundsOf(new Float32Array([1, 2, 3, -1, 5, 0, 0, 0, 9]))).toEqual({ min: [-1, 0, 0], max: [1, 5, 9] });
   });
 });
+
+// A thin part of the body, like an ear: a flat lens 10 cm across and 4 mm thick at the middle, whose top and bottom faces meet at a sharp rim.
+function lens() {
+  const n = 16; const verts = [[0, 0, 0.002], [0, 0, -0.002]];
+  for (let j = 0; j < n; j++) verts.push([0.05 * Math.cos((2 * Math.PI * j) / n), 0.05 * Math.sin((2 * Math.PI * j) / n), 0]);
+  const faces = [];
+  for (let j = 0; j < n; j++) { const a = 2 + j; const b = 2 + ((j + 1) % n); faces.push(1, b, a); } // the faces on the bottom first (they face down): they are the ones that win a tie at the rim
+  for (let j = 0; j < n; j++) { const a = 2 + j; const b = 2 + ((j + 1) % n); faces.push(0, a, b); } // the faces on the top face up
+  const body = new Float32Array(verts.length * 3); verts.forEach((v, i) => body.set(v, 3 * i));
+  return { body, faces: Uint16Array.from(faces) };
+}
+
+describe('pushOut beside a thin part of the body (smoothSide)', () => {
+  const { body, faces } = lens();
+  const beside = () => Float32Array.from([0.08, 0, 0.003]); // 3 cm out from the rim and a little above its plane: plainly outside
+
+  it('is built so that the lens faces outward', () => {
+    const index = buildBodyIndex(body, faces);
+    const top = faces.length / 3 - 1; // a top face
+    expect(index.fn[3 * top + 2]).toBeGreaterThan(0.9);
+    expect(index.fn[2]).toBeLessThan(-0.9); // a bottom face
+  });
+
+  it('can judge a point beside the rim to be inside when it goes by the face that happens to be closest (the default)', () => {
+    const p = beside();
+    pushOut(p, buildBodyIndex(body, faces), GAP);
+    expect(Math.hypot(p[0] - 0.05, p[1], p[2])).toBeLessThan(0.01); // pulled in against the rim
+  });
+
+  it('leaves it where it is with smoothSide, which judges a point whose closest point is on the rim by the smoothed normal there', () => {
+    const p = beside();
+    expect(pushOut(p, buildBodyIndex(body, faces), GAP, { smoothSide: true })).toBe(0);
+    expect(Array.from(p)).toEqual(Array.from(beside()));
+  });
+
+  it('still pushes out a point that is inside the lens, and one that is closer than the gap', () => {
+    const inside = Float32Array.from([0.01, 0, 0.0001]); const close = Float32Array.from([0.08, 0, 0.0]);
+    const index = buildBodyIndex(body, faces);
+    expect(pushOut(inside, index, GAP, { smoothSide: true })).toBe(1);
+    const nearRim = Float32Array.from([0.052, 0, 0.001]);
+    expect(pushOut(nearRim, index, GAP, { smoothSide: true })).toBe(1);
+    expect(pushOut(close, index, GAP, { smoothSide: true })).toBe(0); // 3 cm off the rim is clear
+    expect(Math.hypot(nearRim[0] - 0.05, nearRim[1], nearRim[2])).toBeGreaterThan(GAP - 0.0005);
+  });
+
+  it('is the same as the default for a point whose closest point is inside a triangle (the sphere)', () => {
+    const s = sphere(R); const a = Float32Array.from([0.05, 0.02, 0.03, 0.2, 0.0, 0.05, 0.0, 0.0, 0.1005]); const b = Float32Array.from(a);
+    const ia = buildBodyIndex(s.body, s.faces); const ib = buildBodyIndex(s.body, s.faces);
+    pushOut(a, ia, GAP); pushOut(b, ib, GAP, { smoothSide: true });
+    expect(Array.from(b)).toEqual(Array.from(a));
+  });
+});

@@ -7,9 +7,11 @@ import { parsePack, blendGarment, shapeNumbers, bodyDistance } from './pack';
 import { buildBodyIndex, boundsOf, pushOut, GAP } from './pushOut';
 import { decodeSizing, chooseSize, sizeFit, verdictOf, measuresNeeded, featureVector, measureBody } from './sizing';
 import { bytesToText } from './packStore';
-import { hasAnkleHem, waistbandKind } from './garments';
+import { hasAnkleHem, waistbandKind, goesAroundEars, relaxAmount } from './garments';
 import { hemToAnkle } from './legLength';
 import { lowerWaistband } from './waistline';
+import { dressBody, liftOverLayers } from './layers';
+import { relaxFit } from './relax';
 
 // The body model's mesh. A body that is not this one (the simple stand-in shown when the detailed mesh is not available) cannot be fitted.
 export const BODY_VERTEX_COUNT = 13718;
@@ -55,15 +57,19 @@ export function recommend(sizing, garmentKey, bodyPositions) {
 /**
  * Fits one garment in one size on a body.
  * deps: { store, now(): ms, onStep(text) }
- * args: { sizing, garmentKey, group, size (the chosen size), bodyPositions (Float32Array), bodyFaces, choice (from recommend, optional) }
+ * args: { sizing, garmentKey, group, size (the chosen size), bodyPositions (Float32Array), bodyFaces, choice (from recommend, optional),
+ *         under (optional: the garments already worn under this one, each { positions, faces } as returned by this function; a top is kept off them, and they are not changed) }
  * Returns { size, positions (Float32Array garment vertices), faces (Uint16Array/Uint32Array), fit (for this size), outsidePack (body shape beyond what the pack was built on),
  *           lowered (metres the waistband was moved down to sit under the navel; 0 for garments without a waistband),
- *           hemmed (metres the hem was moved down to the ankle bone, negative when moved up; 0 for garments that are not full length), pushed (points moved off the skin),
+ *           hemmed (metres the hem was moved down to the ankle bone, negative when moved up; 0 for garments that are not full length), relaxed (points moved out from the skin to give the
+ *           garment more room, 0 for garments that are worn as simulated), pushed (points moved off the skin
+ *           or off the garments worn under it), lifted (points of this garment raised over a band or fold of the garment under it that stands further out than the skin), layered (how many points of the body had a garment over them, 0 with nothing worn under),
  *           timings: { pack, blend, push, total } }.
  */
 export async function fitGarment(deps, args) {
   const { store, now = () => Date.now(), onStep = () => {} } = deps;
   const { sizing, garmentKey, group, size, bodyPositions, bodyFaces } = args;
+  const under = (args.under || []).filter((layer) => layer && layer.positions && layer.faces);
   const garment = sizing.garments[garmentKey];
   if (!garment || !garment.sizes[size]) throw new TryOnError('no-pack', 'There is no ' + garmentKey + ' in size ' + size + '.');
   const t0 = now();
@@ -85,9 +91,20 @@ export async function fitGarment(deps, args) {
   const outsidePack = bodyDistance(pack, shapeNumbers(pack, bodyPositions));
   const t2 = now();
 
-  onStep('Keeping it off the skin...');
-  const index = buildBodyIndex(bodyPositions, bodyFaces, { bounds: boundsOf(positions) });
-  const pushed = pushOut(positions, index, GAP);
+  // Over another garment: the skin that has that garment over it is taken to be at the garment's surface, so this one is kept off the garment as it is kept off the skin.
+  // The garment underneath is not changed.
+  onStep(under.length ? 'Fitting it over what you have on...' : 'Keeping it off the skin...');
+  const dressed = under.length ? dressBody(bodyPositions, bodyFaces, under) : null;
+  const index = buildBodyIndex(dressed ? dressed.positions : bodyPositions, bodyFaces, { bounds: boundsOf(positions) });
+  // Pants hang a little looser than the snug fit that was simulated (lib/tryOn/relax.js); the push off the skin then runs as always.
+  const relaxed = relaxFit(positions, index, relaxAmount(group, garmentKey));
+  const pushed = pushOut(positions, index, GAP, { smoothSide: goesAroundEars(group, garmentKey) });
+  // A band or a fold of the garment underneath can stand out further than the skin it was measured against: this one is lifted over it where it does.
+  const skin = under.length ? buildBodyIndex(bodyPositions, bodyFaces, { bounds: boundsOf(positions) }) : null;
+  let lifted = under.length ? liftOverLayers(positions, pack.A.faces, under, skin, GAP) : 0;
+  // The dressed body can fold where a bottom bridges a crease of the body (the cleft of the seat), and a top kept off it can end up inside the real skin there. Whatever the
+  // dressed body did, nothing is left inside or against the real skin; anything that was moved is then lifted over the garment underneath once more.
+  if (under.length && pushOut(positions, skin, GAP, { smoothSide: goesAroundEars(group, garmentKey) }) > 0) lifted += liftOverLayers(positions, pack.A.faces, under, skin, GAP);
   const t3 = now();
 
   const measures = measureBody(sizing, bodyPositions, measuresNeeded(garment));
@@ -104,6 +121,9 @@ export async function fitGarment(deps, args) {
     lowered,
     hemmed,
     pushed,
+    relaxed,
+    lifted,
+    layered: dressed ? dressed.moved : 0,
     downloaded,
     timings: { pack: t1 - t0, blend: t2 - t1, push: t3 - t2, total: t3 - t0 },
   };

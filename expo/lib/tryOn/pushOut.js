@@ -8,6 +8,8 @@ export const GAP = 0.004; // metres above the skin
 const FINE_CELL = 0.02; // the fine grid: skin within one cell (2 cm) of a point is found at once
 const COARSE_CELL = 0.08; // the coarse grid, made only if some points have no skin within 2 cm
 const COARSE_RINGS = 3; // how far the coarse grid looks: 3 x 8 cm = 24 cm
+const ON_EDGE = 1e-9; // a closest point whose weight on one corner of its triangle is this small is on an edge or a corner of the mesh, not inside a triangle
+const SMOOTH_MIN = 0.3; // the smoothed normal there must be at least this long (it is made of unit vectors; opposite faces of a thin part cancel it out) to be trusted
 
 /**
  * Works out what the push needs from the body once (surface directions at each vertex and each triangle, and a grid of which triangles are where).
@@ -166,11 +168,31 @@ function nearest(index, g, px, py, pz, rings, res, out) {
 }
 
 /**
+ * The nearest triangle of the surface `index` (from buildBodyIndex) to a point, looking up to `rings` rings of the fine grid (2 cm each) around it.
+ * Returns { f, d, x, y, z, u, v, w, side } (the triangle, the distance, the nearest point, its weights on the triangle's three corners, and the point's side of the triangle:
+ * positive when it is on the side the triangle faces), or null when there is no triangle that close.
+ */
+export function nearestOnSurface(index, px, py, pz, rings = 1) {
+  const res = { f: -1, d2: Infinity, x: 0, y: 0, z: 0, u: 0, v: 0, w: 0 };
+  nearest(index, index.fine, px, py, pz, rings, res, new Float64Array(6));
+  if (res.f < 0) return null;
+  const { fn } = index;
+  const side = (px - res.x) * fn[3 * res.f] + (py - res.y) * fn[3 * res.f + 1] + (pz - res.z) * fn[3 * res.f + 2];
+  return { f: res.f, d: Math.sqrt(res.d2), x: res.x, y: res.y, z: res.z, u: res.u, v: res.v, w: res.w, side };
+}
+
+/**
  * Moves points (Float32Array, 3 per point) in place so none is inside the body or closer than `gap` to it. Returns how many were moved.
  * A point with no skin within 2 cm is either well clear of the body or deep inside it (a garment too small for the body); the coarse grid, made the first
  * time it is needed, looks up to 24 cm to tell which, so a garment is never left inside the body.
+ *
+ * Which side of the skin a point is on is read from the closest triangle's face. Where the closest point is on the rim of a thin part of the body (an ear is a flap
+ * whose two faces meet at the rim), the point is no more on one face's side than the other's, and a point out beside the ear can be judged inside it and pulled
+ * in against it. options.smoothSide judges those points (and only those, closest point on an edge or a corner) by the smoothed normal there instead, which at a rim
+ * points away from the part. It is off by default, so a garment that does not ask for it is pushed exactly as before.
  */
-export function pushOut(points, index, gap = GAP) {
+export function pushOut(points, index, gap = GAP, options = {}) {
+  const { smoothSide = false } = options;
   const { vn, fn, faces } = index;
   const np = points.length / 3;
   const out = new Float64Array(6);
@@ -195,7 +217,8 @@ export function pushOut(points, index, gap = GAP) {
     const l = Math.hypot(nx, ny, nz) || 1;
     nx /= l; ny /= l; nz /= l;
     const dist = Math.sqrt(res.d2);
-    const side = (px - res.x) * fn[3 * res.f] + (py - res.y) * fn[3 * res.f + 1] + (pz - res.z) * fn[3 * res.f + 2]; // > 0 outside (the closest triangle decides)
+    let side = (px - res.x) * fn[3 * res.f] + (py - res.y) * fn[3 * res.f + 1] + (pz - res.z) * fn[3 * res.f + 2]; // > 0 outside (the closest triangle decides)
+    if (smoothSide && l >= SMOOTH_MIN && Math.min(res.u, res.v, res.w) < ON_EDGE) side = (px - res.x) * nx + (py - res.y) * ny + (pz - res.z) * nz;
     const signed = (side >= 0 || dist < 1e-9) ? dist : -dist;
     if (signed < gap) {
       points[3 * p] = res.x + gap * nx;

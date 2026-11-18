@@ -135,7 +135,8 @@ describe('with a body: a man', () => {
     expect(hasText(view, /Women/)).toBe(false);
     expect(hasText(view, /best fit for you: M/)).toBe(true);
     expect(hasText(view, /Expected to fit you well/)).toBe(true);
-    expect(global.__scene.garment.positions).toBeInstanceOf(Float32Array);
+    expect(global.__scene.garments).toHaveLength(1);
+    expect(global.__scene.garments[0].positions).toBeInstanceOf(Float32Array);
     expect(global.__scene.body.displayObject).toEqual({ name: 'body' });
   });
 
@@ -162,12 +163,12 @@ describe('with a body: a man', () => {
   it('fits another size when its pill is pressed, and moves the garment on the body', async () => {
     const view = render(<TryOnScreen />);
     await settle();
-    const first = global.__scene.garment;
+    const first = global.__scene.garments[0];
     await act(async () => { fireEvent.press(pressableWith(view, 'XL')); });
     await settle();
     expect(global.__fitGarment).toHaveBeenCalledTimes(2);
     expect(global.__fitGarment.mock.calls[1][1]).toMatchObject({ garmentKey: 'shorts', size: 'XL' });
-    expect(global.__scene.garment).not.toBe(first);
+    expect(global.__scene.garments[0]).not.toBe(first);
   });
 
   it('starts on that garment\'s own recommended size when another garment is chosen', async () => {
@@ -204,10 +205,10 @@ describe('with a body: a man', () => {
     await act(async () => { fireEvent.press(pressableWith(view, 'L')); });
     await act(async () => { pending.L(); });
     await settle();
-    expect(global.__scene.garment.positions[0]).toBe(3); // L is the third size
+    expect(global.__scene.garments[0].positions[0]).toBe(3); // L is the third size
     await act(async () => { pending.S(); });
     await settle();
-    expect(global.__scene.garment.positions[0]).toBe(3); // the earlier, slower answer for S did not replace it
+    expect(global.__scene.garments[0].positions[0]).toBe(3); // the earlier, slower answer for S did not replace it
   });
 
   it('says what went wrong when a garment cannot be fitted, and the pills still work', async () => {
@@ -215,11 +216,11 @@ describe('with a body: a man', () => {
     const view = render(<TryOnScreen />);
     await settle();
     expect(hasText(view, /could not be fitted just now/)).toBe(true);
-    expect(global.__scene.garment).toBeNull();
+    expect(global.__scene.garments).toEqual([]);
     await act(async () => { fireEvent.press(pressableWith(view, 'L')); });
     await settle();
     expect(hasText(view, /could not be fitted/)).toBe(false);
-    expect(global.__scene.garment).not.toBeNull();
+    expect(global.__scene.garments).toHaveLength(1);
   });
 
   it('says to connect to the internet when the garment has never been downloaded and there is no network', async () => {
@@ -230,6 +231,180 @@ describe('with a body: a man', () => {
     const view = render(<TryOnScreen />);
     await settle();
     expect(hasText(view, /Connect to the internet/)).toBe(true);
+  });
+});
+
+describe('with a body: a man, wearing a top and a bottom together', () => {
+  const withHoodie = () => global.__loadSizing.mockImplementation(async () => sizingFor(['shorts', 'sweatpants', 'hoodie']));
+  // a result whose first number says which garment and size it is: shorts 1-4, sweatpants 11-14, hoodie 101-104
+  const BASE = { shorts: 0, sweatpants: 10, hoodie: 100 };
+  const resultFor = (a, extra = {}) => fitResult(a.size, { positions: new Float32Array([BASE[a.garmentKey] + Object.keys(SIZES).indexOf(a.size) + 1, 0, 0]), ...extra });
+  const callsFor = (key) => global.__fitGarment.mock.calls.filter((c) => c[1].garmentKey === key);
+
+  beforeEach(() => {
+    withHoodie();
+    global.__recommend = jest.fn((sizing, key) => ({ size: key === 'sweatpants' ? 'L' : 'M', verdict: 'good' }));
+    global.__fitGarment = jest.fn(async (deps, args) => resultFor(args));
+  });
+
+  it('offers the hoodie when the sizing has it', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    expect(texts(view)).toEqual(expect.arrayContaining(["Men's Shorts", "Men's Sweatpants", "Men's Hoodie"]));
+  });
+
+  it('does not offer the hoodie while the sizing does not have it (its files are not up yet)', async () => {
+    global.__loadSizing.mockImplementation(async () => sizingFor(['shorts', 'sweatpants']));
+    const view = render(<TryOnScreen />);
+    await settle();
+    expect(texts(view)).toEqual(expect.arrayContaining(["Men's Shorts", "Men's Sweatpants"]));
+    expect(hasText(view, /Hoodie/)).toBe(false);
+  });
+
+  it('starts with the first garment alone, as before', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    expect(global.__fitGarment).toHaveBeenCalledTimes(1);
+    expect(global.__fitGarment.mock.calls[0][1].under).toBeUndefined();
+    expect(global.__scene.garments.map((g) => g.slot)).toEqual(['bottom']);
+    expect(hasText(view, /^Size \(best fit for you: M\)$/)).toBe(true);
+  });
+
+  it('puts the hoodie on over the shorts: the shorts are fitted as when alone, the hoodie is fitted over their result, and both are drawn, bottom first', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    const shortsBefore = callsFor('shorts')[0][1];
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    expect(callsFor('shorts')).toHaveLength(1); // not fitted again
+    const hoodie = callsFor('hoodie');
+    expect(hoodie).toHaveLength(1);
+    expect(hoodie[0][1]).toMatchObject({ garmentKey: 'hoodie', group: 'men', size: 'M' });
+    expect(hoodie[0][1].under).toHaveLength(1);
+    expect(hoodie[0][1].under[0].positions[0]).toBe(2); // the shorts in M, the result that was drawn
+    expect(shortsBefore.under).toBeUndefined();
+    expect(global.__scene.garments.map((g) => [g.slot, g.positions[0]])).toEqual([['bottom', 2], ['top', 102]]);
+    expect(hasText(view, /^Size: Men's Shorts \(best fit for you: M\)$/)).toBe(true);
+    expect(hasText(view, /^Size: Men's Hoodie \(best fit for you: M\)$/)).toBe(true);
+    expect(hasText(view, /Each garment is shown in one colour/)).toBe(true);
+  });
+
+  it('fits the hoodie only once the bottom is fitted', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    let release;
+    global.__fitGarment.mockImplementation((d, a) => (a.garmentKey === 'sweatpants'
+      ? new Promise((resolve) => { release = () => resolve(resultFor(a)); })
+      : Promise.resolve(resultFor(a))));
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Sweatpants")); });
+    await settle();
+    // the sweatpants are still being fitted: the hoodie that was fitted over the shorts is not drawn any more and no hoodie is fitted over nothing
+    expect(callsFor('hoodie').every((c) => c[1].under && c[1].under[0].positions[0] === 2)).toBe(true);
+    expect(global.__scene.garments).toEqual([]);
+    await act(async () => { release(); });
+    await settle();
+    const last = callsFor('hoodie').at(-1)[1];
+    expect(last.under[0].positions[0]).toBe(13); // over the sweatpants in L
+    expect(global.__scene.garments.map((g) => g.positions[0])).toEqual([13, 102]);
+  });
+
+  it('refits the hoodie over the new bottom when the bottom or its size changes, and the bottom is never fitted over anything', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Sweatpants")); });
+    await settle();
+    expect(callsFor('shorts')).toHaveLength(1);
+    expect(callsFor('sweatpants')).toHaveLength(1);
+    expect(callsFor('sweatpants')[0][1].under).toBeUndefined();
+    expect(callsFor('hoodie').at(-1)[1].under[0].positions[0]).toBe(13);
+    expect(texts(view)).not.toContain("Size: Men's Shorts (best fit for you: M)"); // the shorts came off: only one bottom at a time
+    // a bigger size of the sweatpants: the hoodie follows
+    const sweatXL = pressables(view).filter((p) => labelOf(p) === 'XL')[0];
+    await act(async () => { fireEvent.press(sweatXL); });
+    await settle();
+    expect(callsFor('sweatpants').at(-1)[1]).toMatchObject({ size: 'XL' });
+    expect(callsFor('hoodie').at(-1)[1].under[0].positions[0]).toBe(14);
+    expect(global.__scene.garments.map((g) => g.positions[0])).toEqual([14, 102]);
+  });
+
+  it('does not fit the bottom again when only the hoodie\'s size changes', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    const hoodieXL = pressables(view).filter((p) => labelOf(p) === 'XL')[1]; // the second row of sizes is the hoodie's
+    await act(async () => { fireEvent.press(hoodieXL); });
+    await settle();
+    expect(callsFor('shorts')).toHaveLength(1);
+    expect(callsFor('hoodie').at(-1)[1]).toMatchObject({ size: 'XL' });
+    expect(global.__scene.garments.map((g) => g.positions[0])).toEqual([2, 104]);
+  });
+
+  it('takes the hoodie off with a tap and leaves the bottom as it was', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    const calls = global.__fitGarment.mock.calls.length;
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    expect(global.__fitGarment.mock.calls.length).toBe(calls); // nothing fitted again
+    expect(global.__scene.garments.map((g) => g.slot)).toEqual(['bottom']);
+    expect(hasText(view, /Men's Hoodie \(best/)).toBe(false);
+  });
+
+  it('fits the hoodie on the bare body when the bottom is taken off', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Shorts")); });
+    await settle();
+    expect(callsFor('hoodie').at(-1)[1].under).toBeUndefined();
+    expect(global.__scene.garments.map((g) => g.slot)).toEqual(['top']);
+  });
+
+  it('draws nothing but the body when everything is taken off', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Shorts")); });
+    await settle();
+    expect(global.__scene.garments).toEqual([]);
+    expect(texts(view).some((x) => /^Size/.test(x))).toBe(false);
+  });
+
+  it('still fits the hoodie when the bottom cannot be fitted, and says which one failed', async () => {
+    const view = render(<TryOnScreen />);
+    await settle();
+    global.__fitGarment.mockImplementation(async (d, a) => { if (a.garmentKey === 'sweatpants') throw new Error('bad pack'); return resultFor(a); });
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Sweatpants")); });
+    await settle();
+    expect(hasText(view, /Men's Sweatpants could not be fitted just now/)).toBe(true);
+    expect(callsFor('hoodie').at(-1)[1].under).toBeUndefined();
+    expect(global.__scene.garments.map((g) => g.slot)).toEqual(['top']);
+  });
+
+  it('says what it says about the fit for each garment, with its name when there are two', async () => {
+    global.__fitGarment.mockImplementation(async (d, a) => resultFor(a, { fit: { verdict: a.garmentKey === 'hoodie' ? 'loose' : 'good' } }));
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    expect(hasText(view, /^Men's Hoodie: Likely to feel loose on you/)).toBe(true);
+    expect(hasText(view, /^Men's Shorts: Expected to fit you well/)).toBe(true);
+  });
+
+  it('adds the two fit times together', async () => {
+    global.__fitGarment.mockImplementation(async (d, a) => resultFor(a, { timings: { pack: 5, blend: 20, push: 275, total: a.garmentKey === 'hoodie' ? 700 : 300 } }));
+    const view = render(<TryOnScreen />);
+    await settle();
+    await act(async () => { fireEvent.press(pressableWith(view, "Men's Hoodie")); });
+    await settle();
+    expect(hasText(view, /Fitted in 1\.0 s/)).toBe(true);
   });
 });
 
