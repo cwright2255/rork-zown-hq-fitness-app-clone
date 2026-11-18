@@ -1,7 +1,7 @@
 // The daily Today brief, the pure part (lib/todayBrief.js): the key it is kept under, checking the AI's answer, and the facts it is given.
 import {
-  BRIEF_STORAGE_KEY, BRIEF_MAX_POINTS, BRIEF_HEADLINE_MAX, BRIEF_POINT_MAX, BRIEF_SYSTEM_PROMPT, BRIEF_REQUEST,
-  briefKey, parseBrief, serializeBrief, readinessFact, trendFacts, dateFact, buildBriefMessages,
+  BRIEF_STORAGE_KEY, BRIEF_DOC, BRIEF_MAX_POINTS, BRIEF_HEADLINE_MAX, BRIEF_POINT_MAX, BRIEF_SYSTEM_PROMPT, BRIEF_REQUEST,
+  briefKey, parseBrief, serializeBrief, briefFromAccount, readinessFact, trendFacts, dateFact, buildBriefMessages,
 } from '../lib/todayBrief';
 import { computeReadiness } from '../lib/readiness';
 import { shiftDateKey } from '../lib/localDate';
@@ -224,5 +224,25 @@ describe('buildBriefMessages', () => {
     history[TODAY] = { hrv: 50, restingHeartRate: 60, sleepHours: 8 };
     const readiness = computeReadiness({ history, today: TODAY });
     expect(buildBriefMessages({ now: NOW, readiness })[1].content).toContain('Readiness today, worked out in the app from their own readings: 82 out of 100 (High).');
+  });
+});
+
+describe('the brief kept in the person\'s account', () => {
+  const text = serializeBrief({ headline: 'A good day to train', points: ['Sleep was 8 hours.'] });
+
+  it('is one document named todayBrief', () => {
+    expect(BRIEF_DOC).toBe('todayBrief');
+  });
+
+  it('is the text filed for that day', () => {
+    expect(briefFromAccount({ day: TODAY, text, at: 1 }, TODAY)).toBe(text);
+  });
+
+  it('is nothing for another day, for text that is not a brief, or for a document that is not there', () => {
+    expect(briefFromAccount({ day: day(-1), text, at: 1 }, TODAY)).toBeNull();
+    expect(briefFromAccount({ day: TODAY, text: 'no brief here', at: 1 }, TODAY)).toBeNull();
+    expect(briefFromAccount({ day: TODAY }, TODAY)).toBeNull();
+    for (const data of [null, undefined, 'text', 7, []]) expect(briefFromAccount(data, TODAY)).toBeNull();
+    expect(briefFromAccount({ day: TODAY, text }, undefined)).toBeNull();
   });
 });

@@ -324,6 +324,12 @@ and Legend, and the card is always on Home: check it on a Free account and on a 
       reading or a workout you do not have. If you have an injury or an allergy set in your profile, the brief respects it.
 - [ ] Close the app and open it again, or go to another tab and back: the same brief shows at once, with no "Writing your brief" and no
       blink. It changes the next day, not before.
+- [ ] One brief a day, kept in your account: Firebase console, Firestore, `users`, your account, `data`, `todayBrief` holds `day` (today), `text`
+      (the brief as the AI wrote it) and `at`. Note the headline on Home, then log out (Profile, Log Out) and log in again the same day: the
+      same headline shows, "Writing your brief" does not, and the `insight` count in `aiUsage` for today has not gone up. Do it once more after
+      closing the app completely before you log in. Nothing is deployed for this (rules and functions stay as they are: `users/{uid}/data/`
+      is already yours to read and write); it is the `eas update` only.
+- [ ] The next day the document is replaced with that day's brief (`day` is the new date), and the Home card shows a new brief.
 - [ ] Firebase console, Firestore, `aiUsage`: today's `insight` count for your account went up by one for the brief, and the `coach`
       count did not move. This is the same on a Free account.
 - [ ] Switch your plan in Firestore under `entitlements` between Free, Pro and Legend (or delete the document): the brief card stays and

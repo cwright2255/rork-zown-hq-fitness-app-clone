@@ -12,6 +12,9 @@ export const BRIEF_MAX_POINTS = 4;
 export const BRIEF_HEADLINE_MAX = 120;
 export const BRIEF_POINT_MAX = 240;
 
+/** The one document in the person's account (users/{uid}/data/todayBrief) that holds the brief for the day it was written. */
+export const BRIEF_DOC = 'todayBrief';
+
 /** The key a person's brief for one day is kept under, or null when there is nothing to key it by. */
 export function briefKey(uid, day) {
   if (typeof uid !== 'string' || !uid || typeof day !== 'string' || !day) return null;
@@ -45,6 +48,15 @@ export function parseBrief(text) {
 
 /** What is kept on the phone for a brief: the same JSON the AI was asked for, so parseBrief reads it back. */
 export const serializeBrief = (brief) => JSON.stringify({ headline: brief.headline, points: brief.points });
+
+/**
+ * The text of the brief an account's document holds for `day`, or null: the document is missing, is for another day, or does not hold a brief
+ * (damaged, or from another version of the app). `data` is what the document holds, `{ day, text, at }`.
+ */
+export function briefFromAccount(data, day) {
+  if (!data || typeof data !== 'object' || typeof day !== 'string' || data.day !== day) return null;
+  return parseBrief(data.text) ? data.text : null;
+}
 
 /**
  * What the person is taken to ask for. It says what the note is about, in fitness words: the server's topic check reads the whole request

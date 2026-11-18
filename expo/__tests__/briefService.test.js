@@ -10,6 +10,9 @@ jest.mock('firebase/firestore', () => ({
   collection: jest.fn(), addDoc: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: jest.fn(), serverTimestamp: jest.fn(), orderBy: jest.fn(), limit: jest.fn(),
 }), { virtual: true });
 jest.mock('../src/config/firebase', () => ({ functions: { fake: true }, db: {} }));
+// The account's copy of the brief (services/briefCloud.js): by default an account that has nothing and keeps what it is given. The tests of
+// "one brief a day" below pass their own stand-in as `cloud`.
+jest.mock('@/services/briefCloud', () => ({ readCloudBrief: jest.fn(async () => null), fileCloudBrief: jest.fn(async (uid, day, text) => text) }));
 jest.mock('@/services/coachSnapshotService', () => ({
   loadSnapshotSources: (...a) => global.__s.loadSnapshotSources(...a),
   loadHabitSources: (...a) => global.__s.loadHabitSources(...a),
@@ -27,7 +30,7 @@ jest.mock('@/store/weightLogStore', () => ({ useWeightLogStore: { getState: () =
 jest.mock('@/store/settingsStore', () => ({ useSettingsStore: { getState: () => global.__s.settings } }));
 
 import {
-  getTodayBrief, getLastBrief, peekTodayBrief, loadBriefSources, loadBriefMessages, BRIEF_LOAD_PATIENCE_MS,
+  getTodayBrief, getLastBrief, peekTodayBrief, loadBriefSources, loadBriefMessages, BRIEF_LOAD_PATIENCE_MS, BRIEF_CLOUD_PATIENCE_MS,
 } from '../services/briefService';
 import { generateTodayBrief } from '@/services/aiService';
 import { BRIEF_STORAGE_KEY, BRIEF_REQUEST } from '../lib/todayBrief';
@@ -77,6 +80,127 @@ afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 describe('where the brief is kept', () => {
   it('is the same place every release, so a brief kept by an earlier one is still found', () => {
     expect(BRIEF_STORAGE_KEY).toBe('zown-brief-cache');
+  });
+});
+
+// The account the brief is also kept in (services/briefCloud.js), as a stand-in that keeps one brief per person and day: the first one filed
+// stands, as the real one does in a transaction.
+const makeAccount = (start = {}) => {
+  const docs = { ...start };
+  return {
+    docs,
+    read: jest.fn(async (uid, d) => (docs[uid]?.day === d ? docs[uid].text : null)),
+    file: jest.fn(async (uid, d, text) => {
+      if (docs[uid]?.day === d) return docs[uid].text;
+      docs[uid] = { day: d, text };
+      return text;
+    }),
+  };
+};
+
+describe('one brief a day, even after a log out', () => {
+  const TEXT = JSON.stringify(BRIEF);
+  const OTHER = { headline: 'Ease off today', points: ['Your sleep was short.'] };
+
+  it('files the brief it writes in the account, under the person and the day', async () => {
+    const cloud = makeAccount();
+    const user = { uid: 'file1' };
+    expect(await getTodayBrief({ user, now: NOW, ask: async () => BRIEF, buildMessages: async () => [], storage: makeStorage(), cloud })).toEqual(BRIEF);
+    expect(cloud.file).toHaveBeenCalledTimes(1);
+    expect(cloud.file).toHaveBeenCalledWith('file1', '2026-10-20', TEXT);
+    expect(cloud.docs.file1).toEqual({ day: '2026-10-20', text: TEXT });
+  });
+
+  it('brings the same brief back after a log out cleared the phone, without asking the AI again or reading the stores', async () => {
+    const cloud = makeAccount();
+    const user = { uid: 'out1' };
+    const ask = jest.fn(async () => BRIEF);
+    const buildMessages = jest.fn(async () => []);
+    await getTodayBrief({ user, now: NOW, ask, buildMessages, storage: makeStorage(), cloud });
+    const afterLogOut = makeStorage(); // nothing kept on the phone
+    const later = new Date(2026, 9, 20, 19, 0);
+    expect(await getTodayBrief({ user, now: later, ask, buildMessages, storage: afterLogOut, cloud })).toEqual(BRIEF);
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(buildMessages).toHaveBeenCalledTimes(1);
+    // And the phone has it again, so the next open does not need the account.
+    expect(JSON.parse(afterLogOut.data[BRIEF_STORAGE_KEY])['brief|out1|2026-10-20'].text).toBe(TEXT);
+  });
+
+  it('does not bring back an earlier day\'s brief for today: a new day has a new brief', async () => {
+    const cloud = makeAccount({ new1: { day: '2026-10-19', text: TEXT } });
+    const ask = jest.fn(async () => OTHER);
+    expect(await getTodayBrief({ user: { uid: 'new1' }, now: NOW, ask, buildMessages: async () => [], storage: makeStorage(), cloud })).toEqual(OTHER);
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(cloud.docs.new1).toEqual({ day: '2026-10-20', text: JSON.stringify(OTHER) });
+  });
+
+  it('shows the brief another phone filed while this one was writing its own, so the two agree', async () => {
+    const cloud = makeAccount();
+    cloud.read = jest.fn(async () => null); // not there yet when this phone looked
+    const user = { uid: 'two1' };
+    const ask = jest.fn(async () => {
+      cloud.docs.two1 = { day: '2026-10-20', text: JSON.stringify(OTHER) }; // the other phone files its brief while this one waits for the AI
+      return BRIEF;
+    });
+    const storage = makeStorage();
+    expect(await getTodayBrief({ user, now: NOW, ask, buildMessages: async () => [], storage, cloud })).toEqual(OTHER);
+    expect(JSON.parse(JSON.parse(storage.data[BRIEF_STORAGE_KEY])['brief|two1|2026-10-20'].text)).toEqual(OTHER);
+  });
+
+  it('files a brief the phone already had, once, so a log out cannot lose it', async () => {
+    const cloud = makeAccount();
+    const storage = makeStorage({ [BRIEF_STORAGE_KEY]: JSON.stringify({ 'brief|have1|2026-10-20': { text: TEXT, at: NOW.getTime() } }) });
+    const ask = jest.fn(async () => OTHER);
+    const user = { uid: 'have1' };
+    expect(await getTodayBrief({ user, now: NOW, ask, buildMessages: async () => [], storage, cloud })).toEqual(BRIEF);
+    expect(await getTodayBrief({ user, now: NOW, ask, buildMessages: async () => [], storage, cloud })).toEqual(BRIEF);
+    expect(ask).not.toHaveBeenCalled();
+    expect(cloud.file).toHaveBeenCalledTimes(1);
+    expect(cloud.file).toHaveBeenCalledWith('have1', '2026-10-20', TEXT);
+  });
+
+  it('reads the phone first: a kept brief is shown without waiting for the account', async () => {
+    jest.useFakeTimers();
+    const cloud = makeAccount();
+    cloud.file = jest.fn(() => new Promise(() => {})); // never answers
+    const storage = makeStorage({ [BRIEF_STORAGE_KEY]: JSON.stringify({ 'brief|fast1|2026-10-20': { text: TEXT, at: NOW.getTime() } }) });
+    expect(await getTodayBrief({ user: { uid: 'fast1' }, now: NOW, ask: jest.fn(), buildMessages: async () => [], storage, cloud })).toEqual(BRIEF);
+  });
+
+  it('still writes a brief when the account cannot be read or written, as before', async () => {
+    const cloud = { read: jest.fn(async () => { throw new Error('permission-denied'); }), file: jest.fn(async () => { throw new Error('unavailable'); }) };
+    const storage = makeStorage();
+    const ask = jest.fn(async () => BRIEF);
+    expect(await getTodayBrief({ user: { uid: 'down1' }, now: NOW, ask, buildMessages: async () => [], storage, cloud })).toEqual(BRIEF);
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(storage.data[BRIEF_STORAGE_KEY])['brief|down1|2026-10-20'].text).toBe(TEXT);
+  });
+
+  it('goes on without the account when it does not answer in time', async () => {
+    jest.useFakeTimers();
+    const cloud = { read: jest.fn(() => new Promise(() => {})), file: jest.fn(() => new Promise(() => {})) };
+    const ask = jest.fn(async () => BRIEF);
+    const done = getTodayBrief({ user: { uid: 'slow1' }, now: NOW, ask, buildMessages: async () => [], storage: makeStorage(), cloud });
+    await jest.advanceTimersByTimeAsync(BRIEF_CLOUD_PATIENCE_MS);
+    await jest.advanceTimersByTimeAsync(BRIEF_CLOUD_PATIENCE_MS);
+    expect(await done).toEqual(BRIEF);
+    expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('a "Try again" after a failed try reads the account first, and asks only when it has nothing', async () => {
+    const cloud = makeAccount({ retry1: { day: '2026-10-20', text: TEXT } });
+    const storage = makeStorage({ [BRIEF_STORAGE_KEY]: JSON.stringify({ 'brief|retry1|2026-10-20': { text: null, at: NOW.getTime() } }) });
+    const ask = jest.fn(async () => OTHER);
+    expect(await getTodayBrief({ user: { uid: 'retry1' }, now: NOW, retry: true, ask, buildMessages: async () => [], storage, cloud })).toEqual(BRIEF);
+    expect(ask).not.toHaveBeenCalled();
+  });
+
+  it('a damaged brief in the account is not used', async () => {
+    const cloud = makeAccount();
+    cloud.read = jest.fn(async () => 'not a brief');
+    const ask = jest.fn(async () => BRIEF);
+    expect(await getTodayBrief({ user: { uid: 'bad1' }, now: NOW, ask, buildMessages: async () => [], storage: makeStorage(), cloud })).toEqual(BRIEF);
+    expect(ask).toHaveBeenCalledTimes(1);
   });
 });
 
