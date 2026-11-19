@@ -8,8 +8,8 @@
 
 ### 1. Clone and install
 ```bash
-git clone https://github.com/cwright2255/rork-zown-hq-fitness-app-clone.git
-cd rork-zown-hq-fitness-app-clone/expo
+git clone https://github.com/cwright2255/zown-hq.git
+cd zown-hq/expo
 npm install --legacy-peer-deps
 ```
 

@@ -22,7 +22,7 @@ EAS auto-creates the channel and branch on the first `eas update` call â no
 The workflow authenticates to Expo using a personal access token. Add it once:
 
 1. In Expo, go to **Account Settings â Access Tokens** (or visit https://expo.dev/accounts/cwright_7/settings/access-tokens) and copy the token.
-2. In GitHub, go to **`cwright2255/rork-zown-hq-fitness-app-clone` â Settings â Secrets and variables â Actions â New repository secret**.
+2. In GitHub, go to **`cwright2255/zown-hq` â Settings â Secrets and variables â Actions â New repository secret**.
 3. Name it exactly **`EXPO_TOKEN`** (the workflow references `${{ secrets.EXPO_TOKEN }}`).
 4. Paste the token value and click **Add secret**.
 
