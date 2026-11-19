@@ -42,14 +42,12 @@ describe('three\'s loaders, as expo-three asks for them', () => {
   });
 });
 
-describe('the other redirects in the config', () => {
-  it('still sends ai and @ai-sdk/* to the stub, whatever the platform', () => {
-    const stub = path.resolve(__dirname, '..', 'metro-stubs/ai-sdk-stub.js');
-    ['ai', '@ai-sdk/provider-utils', '@ai-sdk/react'].forEach((name) => {
-      const calls = [];
-      const result = config.resolver.resolveRequest({ resolveRequest: () => calls.push(name) }, name, 'ios');
-      expect(result).toEqual({ filePath: stub, type: 'sourceFile' });
-      expect(calls).toEqual([]);
+describe('the rest of the config', () => {
+  it('sends every other request on to the resolver underneath, as it was asked for, on every platform', () => {
+    ['ios', 'android', 'web'].forEach((platform) => {
+      ['react', 'expo-router', 'expo-haptics', 'react-native-maps'].forEach((name) => {
+        expect(asked(name, platform)).toEqual([name]);
+      });
     });
   });
 
