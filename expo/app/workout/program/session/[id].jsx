@@ -17,6 +17,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
 
 export default function WorkoutProgramSessionDetailScreen() {
@@ -71,6 +72,8 @@ export default function WorkoutProgramSessionDetailScreen() {
             </View>
           ))}
         </View>
+
+        <PreviewMuscleHeat exercises={day.exercises} />
       </ScrollView>
 
       <View style={styles.bottomBar}>

@@ -11,8 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRunningStore } from '@/store/runningStore';
 import { useUserStore } from '@/store/userStore';
-import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
-import { getTargetMuscles } from '@/lib/muscleFatigue';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
 
 function summarizeIntervals(intervals) {
   const runIv = intervals.find((iv) => iv.type === 'run');
@@ -205,7 +204,7 @@ export default function RunPreviewScreen() {
         </View>
 
         <View style={styles.section}>
-          <MuscleHeatmapCard mode="target" targetMuscles={getTargetMuscles('running')} title="Muscles You'll Work" />
+          <PreviewMuscleHeat running style={{ marginTop: 0 }} />
         </View>
       </ScrollView>
 

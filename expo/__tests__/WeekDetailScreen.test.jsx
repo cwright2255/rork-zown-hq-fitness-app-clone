@@ -7,6 +7,8 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => global.__params,
 }), { virtual: true });
 jest.mock('@/components/ScreenHeader', () => ({ __esModule: true, default: () => null }));
+// The heat figure under the list (3D, needs the phone's graphics) is not what these look at; PreviewMuscleHeatScreens.test.jsx covers it.
+jest.mock('@/components/PreviewMuscleHeat', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/store/runningStore', () => ({
   useRunningStore: () => ({ programProgress: global.__progress }),
 }));

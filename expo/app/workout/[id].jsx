@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import MuscleHeatmapCard from '@/components/MuscleHeatmapCard';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { useUserStore } from '@/store/userStore';
 
@@ -296,11 +296,10 @@ export default function WorkoutDetailScreen() {
                 </View>
               ))}
             </ScrollView>
-            <View style={{ marginTop: 10, marginHorizontal: 20 }}>
-              <MuscleHeatmapCard mode="target" targetMuscles={targetMuscles} title="Muscles Targeted" />
-            </View>
           </View>
         )}
+
+        <PreviewMuscleHeat exercises={exercises} style={{ marginTop: 0, marginHorizontal: 20, marginBottom: 16 }} />
       </ScrollView>
 
       {/* ── Three-dot popup menu ── */}

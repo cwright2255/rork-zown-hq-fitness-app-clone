@@ -25,6 +25,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import ScreenHeader from '@/components/ScreenHeader';
 import PrimaryButton from '@/components/PrimaryButton';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
 import { getProgram, getProgramWeek, getSessionIntervals } from '@/data/runningPrograms';
 
 function formatMinSec(totalSeconds) {
@@ -97,6 +98,8 @@ export default function RunningSessionDetailScreen() {
             <Text style={styles.distanceGoal}>{week.targetDistanceKm} km continuous run</Text>
           </View>
         ) : null}
+
+        <PreviewMuscleHeat running />
       </ScrollView>
 
       <View style={styles.bottomBar}>
