@@ -39,7 +39,17 @@ const pressables = (view) => view.UNSAFE_root.findAll((n) => n.type === Pressabl
 const labelOf = (node) => node.findAll((n) => n.type === 'Text').map((t) => [].concat(t.props.children).join('')).filter((t) => !t.startsWith('icon:')).join(' ');
 const pressableWith = (view, label) => pressables(view).find((p) => labelOf(p) === label);
 const hasText = (view, re) => texts(view).some((t) => re.test(t));
-const settle = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
+// Lets the screen finish what it started. Once the scan and the sizing are in, the screen waits one timer tick of its own before it fits
+// ("let the screen show fitting before the blend takes the phone's attention"), and a garment worn over another is fitted after that one.
+// Whether ONE tick of ours is enough for that depends on how quick the machine is: on a quick CI runner it was not, once ("starts with the
+// first garment alone" expected one fit and saw none). So this waits several rounds, each longer than the screen's tick; a round with
+// nothing left to do costs a few milliseconds.
+const SETTLE_ROUNDS = 6;
+const settle = async () => {
+  for (let round = 0; round < SETTLE_ROUNDS; round += 1) {
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+  }
+};
 
 const SIZES = { S: {}, M: {}, L: {}, XL: {} };
 const sizingFor = (garments) => ({ garments: Object.fromEntries(garments.map((g) => [g, { features: ['waist'], sizes: SIZES }])) });
@@ -201,8 +211,13 @@ describe('with a body: a man', () => {
     await settle();
     const pending = {};
     global.__fitGarment.mockImplementation((d, a) => new Promise((resolve) => { pending[a.size] = () => resolve(fitResult(a.size)); }));
+    // Each fit is only asked for once the screen's own tick has passed, and the answers below exist only after that: let each one start
+    // (S first, then L while S is still waiting) before answering anything.
     await act(async () => { fireEvent.press(pressableWith(view, 'S')); });
+    await settle();
     await act(async () => { fireEvent.press(pressableWith(view, 'L')); });
+    await settle();
+    expect(Object.keys(pending).sort()).toEqual(['L', 'S']); // both were asked for, and neither has been answered
     await act(async () => { pending.L(); });
     await settle();
     expect(global.__scene.garments[0].positions[0]).toBe(3); // L is the third size

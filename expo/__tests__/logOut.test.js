@@ -181,7 +181,7 @@ const EVERY_KEY_THE_APP_SAVES = [
   'running-storage', 'health-storage', 'workout-storage', 'hiking-storage', 'settings-storage', 'apple-music-storage', 'spotify-storage',
   'offline-trails', 'zown-user-storage', 'zown-achievement-storage', 'zown-badge-storage', 'zown-battlepass-storage',
   'zown-entitlement-storage', 'zown-exp-storage', 'zown-lifetime-storage', 'zown-meal-plan-storage', 'zown-nutrition-storage',
-  'zown-run-tracker', 'zown-schedule-storage', 'zown-shop-storage', 'zown-social-graph', 'zown-training-feedback-storage',
+  'zown-recent-exercises', 'zown-run-tracker', 'zown-schedule-storage', 'zown-shop-storage', 'zown-social-graph', 'zown-training-feedback-storage',
   'zown-virtual-journeys', 'zown-virtual-races',
   '@recipes_saved', '@grocery_list',
   'spotify_access_token', 'spotify_refresh_token', 'spotify_token_expires_at', 'spotify_is_client_credentials', 'spotify_last_device_id',

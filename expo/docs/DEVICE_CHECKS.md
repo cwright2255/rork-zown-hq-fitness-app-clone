@@ -418,6 +418,36 @@ server) is not brought back by it; finish one new workout for these checks.
       (The app holds your newest 240; only once you have more than that does the oldest one make room.)
 - [ ] Home, Workout History card, and the streak: they count the new workout the same way as the full Workout History does.
 
+## Workouts tab: buttons first, My Workouts above Browse, This Week, the plan, program progress, exercise search (once, on the first update with them)
+
+JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
+the app completely and open it twice.
+
+- [ ] Workouts: "Quick Workout" and "Today's Session" are the first things under the title, above "Your Stats". Neither is at the bottom any more.
+      Both still open their screens.
+- [ ] The order down the page is: Your Stats, Recommended For You, Training Program, My Workouts, Browse Exercises.
+- [ ] "This Week" is the week as it runs, Monday to now. On a Monday morning it is 0 until you finish something; on a Wednesday it counts Monday,
+      Tuesday and today, not last Thursday.
+- [ ] Recommended For You (a Pro feature): the plan shows three days and "Show all 7 days". Tap it: every day is listed, and it now says "Show fewer
+      days". A day that has exercises has an arrow on the right; a rest day does not.
+- [ ] Tap a training day: it opens as a workout with that day's exercises and Start, under the same name the row has. Go back and tap the same day
+      again: it opens the same workout, and "My Workouts" has it once, not twice. (The day is saved to My Workouts when you first open it.)
+      Tap a rest day: nothing happens.
+- [ ] Training Program: the tile is the same size and shape as the My Workouts cards. Before you finish a program day it shows the name, "9 weeks • 3x/week"
+      and the level, and nothing else.
+- [ ] Open the program, start a day from Week 1 and finish it all the way. Back on Workouts the tile has a line "Week 1 of 9". Finish the other days
+      of Week 1: it says "Week 2 of 9". A day you leave with Save and Exit does not move it. Firebase console, Firestore, `workouts`: the finished day has
+      `programId`, `programWeek` and `programDay`; the one saved part-way has none. (Program days finished before this update are not counted: they were
+      saved without the week. Progress starts from the update.)
+- [ ] Browse Exercises: there is a search box and a row of choices (All and body parts). With nothing typed it shows the same first ten as before.
+      Type part of an exercise's name: the row shows the matches. Clear the box (the x) and the ten come back.
+- [ ] Tap a body part (Chest, say): the row shows that body part only. Tap it again, or All, to go back. A body part and a search work together.
+- [ ] Open an exercise from the row, go back: a "Recent" choice has appeared. Open two more, then Recent: they are listed newest first. Close the app
+      completely and open it twice: Recent is still there. Log out and in as someone else (or the same account): Recent is gone until you open one.
+- [ ] Type something that does not exist ("zzzz"): "Searching more exercises..." for a few seconds, then "No exercises match. Try another word, or View All."
+      It stops by itself. (The phone searches the exercises it has loaded, and fetches up to five more pages of them while a search finds too few;
+      View All lists the whole library.)
+
 ## Food star ratings and the Nutrition, Search Food and Body Scan layouts (once, on the first update with them)
 
 JavaScript only: no rules, no functions and no new build. After CI is green, `eas update --branch main --environment production`, then close
