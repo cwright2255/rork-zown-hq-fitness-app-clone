@@ -41,7 +41,7 @@ describe('the leftover server', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('left zod and react-query in place, which the Rork toolkit in the Metro config needs as peers', () => {
+  it('left zod and react-query in place', () => {
     expect(Object.keys(pkg.dependencies)).toEqual(expect.arrayContaining(['zod', '@tanstack/react-query']));
   });
 

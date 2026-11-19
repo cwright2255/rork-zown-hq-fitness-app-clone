@@ -1796,7 +1796,6 @@ An app update, plus changes to the workflow files in `.github/workflows`. No rul
 - **The Licenses screen still lists the packages that were removed** (tRPC, Superjson, Hono). It is a list of thanks, not of what is installed; changing it is a separate edit.
 - **The bottom bar's own code still mentions the Badges screen.** It only lights a tab, and harms nothing.
 - **A Firestore index stays** that only a deleted hook used (the coach recommendations by user and date). Dropping an index is a deploy, so it waits for a time when one is going out anyway.
-- **The Rork toolkit in the Metro config is not touched.** That is a separate, careful change.
 - **The EAS build workflows still run `npm install --legacy-peer-deps`.** A test holds that one on purpose (ajv).
 - **The preview workflow still installs the newest `expo` command line (`expo-version: latest`).** Only bun and eas-cli were on the list to pin.
 - **bun and eas-cli were pinned to the versions that were newest the day of the last green run** (bun 1.4.4, eas-cli 27.4.1, from the npm release dates), not read from that run's log. The first green run with the pins is the proof they work; if the old log shows other numbers, tell me and I will change them (one number, in every workflow file).
@@ -2040,3 +2039,17 @@ the picture going blank.
 - **It does not put colour or fabric on the garment**, and it does not simulate cloth on the phone: the garment is blended from what was simulated on
   other bodies, so a body unlike any of them is flagged ("Your body shape is unusual for this garment, so the drape may be less exact.").
 - **It does not change Body Scan, Shop or anything else.** Only the Try-On screen is different.
+
+## Build tooling cleanup: the app opens as before (once, on the first update with it)
+
+JavaScript only: no rules, no functions and no new build. The build no longer goes through a third-party toolkit in the Metro config, so its package
+and the 41 packages only it pulled in (an AI SDK, an analytics client, web map libraries and `expo-device`) are gone from `package.json` and `bun.lock`.
+Nothing in the app imported any of them. After CI is green, `eas update --branch main --environment production`, then close the app completely and
+open it twice.
+
+- [ ] The app opens to Home (or the sign-in screen when signed out) with no white screen and no error screen, both times.
+- [ ] Open each of the five tabs, and one screen inside each. They load as before.
+- [ ] Settings, Connect Spotify (if you use it): the connect screen opens as before. The Spotify token proxy's base URL variable is now
+      `EXPO_PUBLIC_API_BASE_URL`; if the old name was ever set in EAS (`eas env:list production`), set the new one instead.
+
+In the Codespace, `npm start` now runs `expo start --tunnel` directly (and `start-web` and `start-web-dev` run it with `--web`).

@@ -91,7 +91,7 @@ module.exports = [
   },
   {
     // The tests run under jest and node.
-    files: ['__tests__/**', 'rules-tests/**', 'jest.setup.js', 'jest.global-setup.js', 'mocks/**', 'metro-stubs/**'],
+    files: ['__tests__/**', 'rules-tests/**', 'jest.setup.js', 'jest.global-setup.js', 'mocks/**'],
     languageOptions: { globals: { ...globals.jest, ...globals.node } },
   },
   {

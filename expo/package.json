@@ -9,7 +9,6 @@
     "@react-native-firebase/analytics": "^26.4.0",
     "@react-native-firebase/app": "^26.4.0",
     "@react-native-firebase/crashlytics": "^26.4.0",
-    "@rork-ai/toolkit-sdk": "0.2.51",
     "@tanstack/react-query": "^5.85.5",
     "axios": "^1.10.0",
     "expo": "^54.0.31",
@@ -93,9 +92,9 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "test:rules": "firebase emulators:exec --only firestore --project demo-zown-rules \"jest --config jest.rules.config.js --runInBand\"",
-    "start": "bunx rork start -p n6dgejrmm3wincmkq5smp --tunnel",
-    "start-web": "bunx rork start -p n6dgejrmm3wincmkq5smp --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p n6dgejrmm3wincmkq5smp --web --tunnel",
+    "start": "expo start --tunnel",
+    "start-web": "expo start --web --tunnel",
+    "start-web-dev": "DEBUG=expo* expo start --web --tunnel",
     "test": "jest"
   },
   "version": "1.0.0"
