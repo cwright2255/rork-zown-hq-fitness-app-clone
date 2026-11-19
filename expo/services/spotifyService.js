@@ -76,7 +76,7 @@ const makeSpotifyRedirectUri = () => {
 
 class SpotifyService {
   baseUrl = 'https://api.spotify.com/v1';
-  apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+  apiBaseUrl = process.env.EXPO_PUBLIC_SPOTIFY_PROXY_URL || '';
   clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || 'cb884c0e045d4683bd3f0b38cb0e151e';
   nativeRedirectUri = makeSpotifyRedirectUri();
   hostedWebRedirectUri = makeSpotifyRedirectUri();

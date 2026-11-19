@@ -2049,7 +2049,8 @@ open it twice.
 
 - [ ] The app opens to Home (or the sign-in screen when signed out) with no white screen and no error screen, both times.
 - [ ] Open each of the five tabs, and one screen inside each. They load as before.
-- [ ] Settings, Connect Spotify (if you use it): the connect screen opens as before. The Spotify token proxy's base URL variable is now
-      `EXPO_PUBLIC_API_BASE_URL`; if the old name was ever set in EAS (`eas env:list production`), set the new one instead.
+- [ ] Settings, Connect Spotify (if you use it): the connect screen opens as before. The Spotify token proxy's base URL variable is
+      `EXPO_PUBLIC_SPOTIFY_PROXY_URL`. It has a name of its own because `EXPO_PUBLIC_API_BASE_URL` is the Cloud Functions address the recipe import
+      uses, and one value must not serve both. Nothing in the repo or the workflows sets it, so the proxy list on a phone is empty, as it was before.
 
 In the Codespace, `npm start` now runs `expo start --tunnel` directly (and `start-web` and `start-web-dev` run it with `--web`).
