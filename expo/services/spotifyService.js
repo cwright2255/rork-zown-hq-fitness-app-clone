@@ -359,6 +359,14 @@ class SpotifyService {
     try {
       return JSON.parse(text);
     } catch (parseError) {
+      // A player command (pause, play, next, previous, switch device) has nothing to hand back: Spotify's answer to it
+      // is the status. A 2xx means it was done, so a body that is not JSON must not be reported to the person as a
+      // failed pause. Reading data (GET) and creating things (a playlist's id is needed) still fail on a body that
+      // cannot be read, as before.
+      if (method !== 'GET' && endpoint.startsWith('me/player')) {
+        console.warn(`Spotify answered ${method} ${endpoint} with ${res.status} and a body that is not JSON; treating it as done:`, text.slice(0, 200));
+        return null;
+      }
       console.error('Spotify API returned a non-JSON response:', text.slice(0, 200));
       throw new Error('Spotify returned an unexpected response. Please try again.');
     }
