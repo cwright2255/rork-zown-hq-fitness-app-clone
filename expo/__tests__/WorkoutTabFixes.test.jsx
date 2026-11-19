@@ -1,10 +1,11 @@
 // The Workouts tab (app/workouts.jsx), six things that were wrong with it:
 //   1. Quick Workout and Today's Session were at the very bottom; they are first on the page.
-//   2. My Workouts came after Browse Exercises; it is above it.
+//   2. My Workouts came after the exercise browser; it is above everything that follows it.
 //   3. "This Week" counted the last 7 days; it counts the week, Monday to now.
 //   4. The recommended plan showed 3 of its days and none could be opened; all show on request, and a day opens as a workout.
 //   5. The program's tile said nothing of where the person is in it; it says "Week 2 of 9".
-//   6. Browse Exercises was always the same first ten; it has search, body-part choices and Recent.
+//   6. Browse Exercises showed the same first ten movements; the row under Recommended For You is now Community Workouts (ready-made
+//      workouts that save and open like a plan day), and the movements are a small link at the bottom.
 // The Workouts screen is the real one. The stores the screen reads are stood in for, so each test can set what they hold.
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
@@ -25,15 +26,6 @@ jest.mock('@/src/components/EmptyState', () => ({ __esModule: true, default: () 
 jest.mock('@/src/components/LoadingSkeleton', () => ({ __esModule: true, default: () => null }));
 let mockUser = { uid: 'u1', fitnessLevel: 'beginner' };
 jest.mock('@/store/userStore', () => ({ useUserStore: () => ({ user: mockUser }) }));
-let mockExercises = [];
-let mockHasNextPage = false;
-let mockIsLoadingExercises = false;
-const mockLoadExercises = jest.fn();
-jest.mock('@/store/exerciseStore', () => ({
-  useExerciseStore: () => ({
-    exercises: mockExercises, isLoading: mockIsLoadingExercises, hasNextPage: mockHasNextPage, loadExercises: mockLoadExercises,
-  }),
-}));
 jest.mock('@/services/coachSnapshotService', () => ({ getProfileFromStores: () => ({}) }));
 let mockWorkouts = [];
 let mockCompleted = [];
@@ -57,7 +49,8 @@ jest.mock('@/store/workoutStore', () => {
 import { router } from 'expo-router';
 import WorkoutsScreen from '../app/workouts';
 import { getFeaturedProgram } from '../data/workoutPrograms';
-import { useRecentExercisesStore } from '../store/recentExercisesStore';
+import { COMMUNITY_WORKOUTS, COMMUNITY_CATEGORIES } from '../data/communityWorkouts';
+import { communityWorkoutMinutes } from '../lib/communityWorkouts';
 
 // Every piece of text on the screen, in the order it is drawn.
 function textsOf(node, out = []) {
@@ -81,32 +74,21 @@ const DAYS = [
 const PROMPT = 'Create a 7-day plan for a beginner user with goals: Build Muscle, Strength. About the user: 30 years old.';
 const planFor = (days = DAYS, over = {}) => ({ id: 'rec-1', prompt: PROMPT, structuredData: { days }, ...over });
 
-const PARTS = ['WAIST', 'CHEST', 'BACK', 'UPPER LEGS'];
-const ex = (n, over = {}) => ({
-  exerciseId: `e${n}`, name: `Move ${String(n).padStart(2, '0')}`, gifUrl: '', bodyParts: [PARTS[n % PARTS.length]], equipments: ['BODY WEIGHT'], ...over,
-});
-const library = (count) => Array.from({ length: count }, (_, i) => ex(i));
-
 beforeEach(() => {
   mockUser = { uid: 'u1', fitnessLevel: 'beginner' };
-  mockExercises = library(60);
-  mockHasNextPage = false;
-  mockIsLoadingExercises = false;
   mockWorkouts = [];
   mockCompleted = [];
   mockRecommendation = planFor();
-  mockLoadExercises.mockReset();
   mockAddWorkout.mockReset();
   mockAddWorkout.mockImplementation(async (w) => ({ ...w, id: w.id ?? 'local-1' }));
   router.push.mockClear();
-  useRecentExercisesStore.setState({ recent: [] });
 });
 
 describe('1 and 2: the order of the page', () => {
-  it('puts Quick Workout and Today\'s Session first, then Your Stats, the plan, the program, My Workouts and Browse Exercises', () => {
+  it('puts Quick Workout and Today\'s Session first, then Your Stats, the plan, Community Workouts, the program, My Workouts and the movements link', () => {
     mockWorkouts = [{ id: 'w1', name: 'Iron Hour', duration: 45, difficulty: 'Intermediate' }];
     const t = texts(render(<WorkoutsScreen />));
-    const order = ['Workouts', 'Quick Workout', "Today's Session", 'Your Stats', 'Recommended For You', 'Training Program', 'My Workouts', 'Browse Exercises'];
+    const order = ['Workouts', 'Quick Workout', "Today's Session", 'Your Stats', 'Recommended For You', 'Community Workouts', 'Training Program', 'My Workouts', 'Browse all movements'];
     const places = order.map((label) => t.indexOf(label));
     expect(places.every((i) => i >= 0)).toBe(true);
     expect([...places].sort((a, b) => a - b)).toEqual(places);
@@ -127,9 +109,20 @@ describe('1 and 2: the order of the page', () => {
     expect(router.push).toHaveBeenLastCalledWith('/workout/session');
   });
 
-  it('puts My Workouts above Browse Exercises when there are no workouts yet, too', () => {
-    const t = texts(render(<WorkoutsScreen />));
-    expect(t.indexOf('My Workouts')).toBeLessThan(t.indexOf('Browse Exercises'));
+  it('puts Community Workouts straight under Recommended For You and above the program and My Workouts, with or without saved workouts', () => {
+    [[], [{ id: 'w1', name: 'Iron Hour', duration: 45, difficulty: 'Intermediate' }]].forEach((saved) => {
+      mockWorkouts = saved;
+      const t = texts(render(<WorkoutsScreen />));
+      const at = (label) => t.indexOf(label);
+      expect(at('Recommended For You')).toBeLessThan(at('Community Workouts'));
+      expect(at('Community Workouts')).toBeLessThan(at('Training Program'));
+      expect(at('Community Workouts')).toBeLessThan(at('My Workouts'));
+      // nothing but the plan card sits between the two headings
+      const between = t.slice(at('Recommended For You') + 1, at('Community Workouts'));
+      expect(between).toContain('Refresh Plan');
+      expect(between).not.toContain('Training Program');
+      expect(between).not.toContain('My Workouts');
+    });
   });
 });
 
@@ -284,126 +277,129 @@ describe('5: where the person is in the program', () => {
   });
 });
 
-describe('6: Browse Exercises', () => {
-  const cards = (utils) => texts(utils).filter((x) => /^Move \d\d$/.test(x));
+describe('6: Community Workouts', () => {
+  const cardIds = (utils) => utils.queryAllByTestId(/^community-card-/).map((n) => n.props.testID.replace('community-card-', ''));
+  const slugsIn = (category) => COMMUNITY_WORKOUTS.filter((w) => category === 'All' || w.category === category).map((w) => w.slug);
+  const sample = COMMUNITY_WORKOUTS.find((w) => w.slug === 'goblet-gang');
 
-  it('shows the first ten as it always did, with nothing typed and nothing chosen', () => {
+  it('shows every ready-made workout under All, in the order they are written, with a choice for each category', () => {
     const utils = render(<WorkoutsScreen />);
-    expect(cards(utils)).toEqual(Array.from({ length: 10 }, (_, i) => `Move ${String(i).padStart(2, '0')}`));
+    expect(cardIds(utils)).toEqual(slugsIn('All'));
+    expect(cardIds(utils).length).toBeGreaterThanOrEqual(28);
+    ['All', ...COMMUNITY_CATEGORIES].forEach((label) => expect(utils.getByTestId(`chip-${label}`)).toBeTruthy());
   });
 
-  it('finds an exercise past the first ten by typing part of its name, and goes back when the box is cleared', () => {
-    const utils = render(<WorkoutsScreen />);
-    fireEvent.changeText(utils.getByTestId('exercise-search'), 'move 47');
-    expect(cards(utils)).toEqual(['Move 47']);
-    fireEvent.press(utils.getByTestId('exercise-search-clear'));
-    expect(cards(utils)).toHaveLength(10);
-    expect(utils.queryByTestId('exercise-search-clear')).toBeNull();
+  it('puts the length and level on the line under the name, then the number of exercises and what it needs', () => {
+    const t = texts(render(<WorkoutsScreen />));
+    const i = t.indexOf('Goblet Gang');
+    expect(i).toBeGreaterThan(-1);
+    expect(t.slice(i, i + 4)).toEqual(['Goblet Gang', `${communityWorkoutMinutes(sample)} min · Beginner`, '6 exercises', 'Dumbbells and a bench']);
+    const j = t.indexOf('Living Room Reset');
+    expect(t.slice(j, j + 4)).toEqual(['Living Room Reset', '17 min · Beginner', '5 exercises', 'No equipment']);
   });
 
-  it('offers the body parts the phone holds as choices, and shows one body part when it is chosen', () => {
+  it('shows only that category when it is chosen, every category has something, and All brings the rest back', () => {
     const utils = render(<WorkoutsScreen />);
-    ['All', 'Waist', 'Chest', 'Back', 'Upper Legs'].forEach((label) => expect(utils.getByTestId(`chip-${label}`)).toBeTruthy());
-    fireEvent.press(utils.getByTestId('chip-Chest'));
-    const shown = cards(utils);
-    expect(shown.length).toBe(15);
-    expect(shown.length).toBeLessThanOrEqual(20);
-    expect(shown.every((name) => PARTS[Number(name.slice(5)) % 4] === 'CHEST')).toBe(true);
-    fireEvent.press(utils.getByTestId('chip-Chest')); // tapping it again clears it
-    expect(cards(utils)).toHaveLength(10);
-  });
-
-  it('puts a body part and a search together, and All clears both choices', () => {
-    const utils = render(<WorkoutsScreen />);
-    fireEvent.press(utils.getByTestId('chip-Waist'));
-    fireEvent.changeText(utils.getByTestId('exercise-search'), 'move 1');
-    expect(cards(utils)).toEqual(['Move 12', 'Move 16']);
+    COMMUNITY_CATEGORIES.forEach((category) => {
+      fireEvent.press(utils.getByTestId(`chip-${category}`));
+      expect(cardIds(utils)).toEqual(slugsIn(category));
+      expect(cardIds(utils).length).toBeGreaterThan(0);
+    });
     fireEvent.press(utils.getByTestId('chip-All'));
-    expect(cards(utils).length).toBeGreaterThan(2);
+    expect(cardIds(utils)).toEqual(slugsIn('All'));
   });
 
-  it('has no Recent choice until an exercise has been opened, then lists what was opened, newest first', () => {
+  it('saves a tapped workout to My Workouts under one fixed id, as a plan day is saved, and opens it', async () => {
     const utils = render(<WorkoutsScreen />);
-    expect(utils.queryByTestId('chip-Recent')).toBeNull();
-    act(() => {
-      useRecentExercisesStore.getState().addRecent(ex(30));
-      useRecentExercisesStore.getState().addRecent({ exerciseId: 'far', name: 'Far Away Lift', bodyParts: ['BACK'], equipments: [] });
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-goblet-gang')); });
+    expect(mockAddWorkout).toHaveBeenCalledTimes(1);
+    const [workout, uid] = mockAddWorkout.mock.calls[0];
+    expect(uid).toBe('u1');
+    expect(workout).toMatchObject({
+      id: 'community-goblet-gang', name: 'Goblet Gang', category: 'Lower Body', difficulty: 'beginner', source: 'community', duration: 25, xpReward: 100,
     });
-    fireEvent.press(utils.getByTestId('chip-Recent'));
+    expect(workout.exercises).toEqual(sample.exercises);
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith('/workout/community-goblet-gang');
+  });
+
+  it('opens the workout under the id the store gives it back', async () => {
+    mockAddWorkout.mockImplementation(async (w) => ({ ...w, id: 'from-the-store' }));
+    const utils = render(<WorkoutsScreen />);
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-core-in-ten')); });
+    expect(router.push).toHaveBeenCalledWith('/workout/from-the-store');
+  });
+
+  it('opens one it has already saved, without saving a second copy', async () => {
+    mockWorkouts = [{ id: 'community-goblet-gang', name: 'Goblet Gang' }];
+    const utils = render(<WorkoutsScreen />);
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-goblet-gang')); });
+    expect(mockAddWorkout).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/workout/community-goblet-gang');
+  });
+
+  it('saves a workout it has not saved yet even when others are saved', async () => {
+    mockWorkouts = [{ id: 'community-goblet-gang', name: 'Goblet Gang' }, { id: 'w1', name: 'Mine' }];
+    const utils = render(<WorkoutsScreen />);
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-core-in-ten')); });
+    expect(mockAddWorkout).toHaveBeenCalledTimes(1);
+    expect(mockAddWorkout.mock.calls[0][0].id).toBe('community-core-in-ten');
+  });
+
+  it('works from a category the person has chosen', async () => {
+    const utils = render(<WorkoutsScreen />);
+    fireEvent.press(utils.getByTestId('chip-Core'));
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-midsection-mission')); });
+    expect(router.push).toHaveBeenCalledWith('/workout/community-midsection-mission');
+  });
+
+  it('does not save the workout twice when it is tapped again while it is still saving, and can be tapped again afterwards', async () => {
+    let finish;
+    mockAddWorkout.mockImplementation((w) => new Promise((resolve) => { finish = () => resolve({ ...w }); }));
+    const utils = render(<WorkoutsScreen />);
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-goblet-gang')); });
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-goblet-gang')); });
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-core-in-ten')); });
+    expect(mockAddWorkout).toHaveBeenCalledTimes(1);
+    await act(async () => { finish(); });
+    expect(router.push).toHaveBeenCalledTimes(1);
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-core-in-ten')); });
+    expect(mockAddWorkout).toHaveBeenCalledTimes(2);
+  });
+
+  it('works for a person with no account id yet: the store keeps it on the phone, and it still opens', async () => {
+    mockUser = { fitnessLevel: 'beginner' };
+    const utils = render(<WorkoutsScreen />);
+    await act(async () => { fireEvent.press(utils.getByTestId('community-card-goblet-gang')); });
+    expect(mockAddWorkout.mock.calls[0][1]).toBeUndefined();
+    expect(router.push).toHaveBeenCalledWith('/workout/community-goblet-gang');
+  });
+
+  it('no longer shows the movement browser: no Browse Exercises, no search, no body-part choices, no Recent, no View All', () => {
+    const utils = render(<WorkoutsScreen />);
     const t = texts(utils);
-    const first = t.indexOf('Far Away Lift');
-    expect(first).toBeGreaterThan(-1);
-    expect(t.indexOf('Move 30')).toBeGreaterThan(first);
-    expect(cards(utils)).toEqual(['Move 30']); // nothing else of the library is mixed in
-  });
-
-  it('opens an exercise from Recent as it does from the row', () => {
-    const utils = render(<WorkoutsScreen />);
-    act(() => { useRecentExercisesStore.getState().addRecent({ exerciseId: 'far', name: 'Far Away Lift', bodyParts: [], equipments: [] }); });
-    fireEvent.press(utils.getByTestId('chip-Recent'));
-    fireEvent.press(utils.getByText('Far Away Lift'));
-    expect(router.push).toHaveBeenLastCalledWith('/exercise/far');
-  });
-
-  it('drops back to All when Log Out empties Recent while it is chosen', () => {
-    const utils = render(<WorkoutsScreen />);
-    act(() => { useRecentExercisesStore.getState().addRecent(ex(30)); });
-    fireEvent.press(utils.getByTestId('chip-Recent'));
-    act(() => { useRecentExercisesStore.setState({ recent: [] }); });
+    expect(t).not.toContain('Browse Exercises');
+    expect(t).not.toContain('View All');
+    expect(t).not.toContain('Recent');
+    expect(utils.queryByTestId('exercise-search')).toBeNull();
     expect(utils.queryByTestId('chip-Recent')).toBeNull();
-    expect(cards(utils)).toHaveLength(10);
+    expect(utils.queryByTestId('chip-Chest')).toBeNull();
   });
 
-  it('says so when nothing matches, and does not ask for more exercises when the whole library is already held', () => {
+  it('ends with a small Browse all movements link that opens the exercise library', () => {
     const utils = render(<WorkoutsScreen />);
-    fireEvent.changeText(utils.getByTestId('exercise-search'), 'zzzz');
-    expect(utils.getByTestId('exercise-no-results')).toBeTruthy();
-    expect(utils.getByText(/No exercises match/)).toBeTruthy();
-    expect(mockLoadExercises).not.toHaveBeenCalled();
+    const t = texts(utils);
+    expect(t[t.length - 1]).toBe('Browse all movements');
+    fireEvent.press(utils.getByTestId('browse-movements'));
+    expect(router.push).toHaveBeenLastCalledWith('/exercise');
   });
 
-  describe('searching past what the phone holds', () => {
-    it('asks for the next page of exercises while a search finds too few, and stops after five', () => {
-      mockHasNextPage = true;
-      const utils = render(<WorkoutsScreen />);
-      expect(mockLoadExercises).not.toHaveBeenCalled(); // nothing typed: no extra loading
-      fireEvent.changeText(utils.getByTestId('exercise-search'), 'zzzz');
-      expect(mockLoadExercises).toHaveBeenCalledTimes(5);
-      mockLoadExercises.mock.calls.forEach((args) => expect(args).toEqual([false]));
-      fireEvent.changeText(utils.getByTestId('exercise-search'), 'zzzzz');
-      expect(mockLoadExercises).toHaveBeenCalledTimes(5); // a search that matches nothing does not walk the whole library
-    });
-
-    it('does not ask for more when the search already fills the row', () => {
-      mockHasNextPage = true;
-      const utils = render(<WorkoutsScreen />);
-      fireEvent.changeText(utils.getByTestId('exercise-search'), 'move');
-      expect(mockLoadExercises).not.toHaveBeenCalled();
-    });
-
-    it('does not ask for more inside Recent, which is only what was opened', () => {
-      mockHasNextPage = true;
-      const utils = render(<WorkoutsScreen />);
-      act(() => { useRecentExercisesStore.getState().addRecent(ex(30)); });
-      fireEvent.press(utils.getByTestId('chip-Recent'));
-      fireEvent.changeText(utils.getByTestId('exercise-search'), 'zzzz');
-      expect(mockLoadExercises).not.toHaveBeenCalled();
-    });
-
-    it('says it is searching while a page is on its way, instead of saying nothing matches', () => {
-      mockHasNextPage = true;
-      mockIsLoadingExercises = true;
-      const utils = render(<WorkoutsScreen />);
-      fireEvent.changeText(utils.getByTestId('exercise-search'), 'zzzz');
-      expect(utils.getByText('Searching more exercises…')).toBeTruthy();
-      expect(utils.queryByText(/No exercises match/)).toBeNull();
-    });
-  });
-
-  it('keeps the retry state when no exercises have loaded at all', () => {
-    mockExercises = [];
+  it('keeps the program and My Workouts as they were', () => {
+    mockWorkouts = [{ id: 'w1', name: 'Iron Hour', duration: 45, difficulty: 'Intermediate' }];
     const utils = render(<WorkoutsScreen />);
-    expect(utils.queryByTestId('exercise-no-results')).toBeNull();
-    expect(cards(utils)).toEqual([]);
+    fireEvent.press(utils.getByTestId('program-card'));
+    expect(router.push).toHaveBeenLastCalledWith(`/workout/program/${getFeaturedProgram().id}`);
+    fireEvent.press(utils.getByTestId('workout-card-w1'));
+    expect(router.push).toHaveBeenLastCalledWith('/workout/w1');
   });
 });

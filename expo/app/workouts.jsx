@@ -1,14 +1,11 @@
-import LoadingSkeleton from '@/src/components/LoadingSkeleton';
 import EmptyState from '@/src/components/EmptyState';
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput,
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView,
   RefreshControl, Pressable, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useExerciseStore } from '@/store/exerciseStore';
 import { useWorkoutStore } from '@/store/workoutStore';
-import { useRecentExercisesStore } from '@/store/recentExercisesStore';
 import { useUserStore } from '@/store/userStore';
 import { useLifetimeStore } from '@/store/lifetimeStore';
 import { lifetimeOf } from '@/lib/lifetimeTotals';
@@ -20,13 +17,13 @@ import { titlesForPlan, titleForPlan, goalsFromPrompt } from '@/lib/workoutNames
 import { workoutsThisWeek } from '@/lib/workoutWeek';
 import { dayHasExercises, workoutFromPlanDay, planDayWorkoutId } from '@/lib/planDayWorkout';
 import { programProgress, progressLabel } from '@/lib/trainingProgramProgress';
-import { bodyPartChoices, exercisesToShow, BROWSE_FILTERED_COUNT } from '@/lib/exerciseBrowse';
+import { COMMUNITY_CATEGORIES } from '@/data/communityWorkouts';
+import {
+  communityWorkoutsFor, communityWorkoutMinutes, levelLabel, workoutFromCommunity, communityWorkoutId,
+} from '@/lib/communityWorkouts';
 
 // The plan shows this many days until the person asks for all of them.
 const PLAN_DAYS_SHOWN = 3;
-// While someone is searching, the phone may fetch this many more pages of exercises (50 each) looking for a match, and no more: a
-// search that matches nothing must not walk the whole library.
-const SEARCH_EXTRA_PAGES = 5;
 
 function SectionHeader({ title, onViewAll }) {
   return (
@@ -50,27 +47,11 @@ function StatBox({ value, label }) {
   );
 }
 
-function ExerciseCard({ item }) {
-  const subtitle = [item.bodyParts?.[0], item.equipments?.[0]].filter(Boolean).join(' · ');
+// The one card the My Workouts row, the Training Program row and the Community Workouts row all use, so they cannot drift apart.
+// `busy` dims it while the workout it opens is being saved.
+function WorkoutTile({ title, subtitle, details, onPress, testID, busy }) {
   return (
-    <Pressable style={styles.featuredCard} onPress={() => router.push(`/exercise/${item.exerciseId}`)}>
-      {item.gifUrl ? (
-        <Image source={{ uri: item.gifUrl }} style={styles.featuredImage} resizeMode="cover" />
-      ) : (
-        <View style={styles.featuredImage}>
-          <Ionicons name="barbell-outline" size={32} color="#999" />
-        </View>
-      )}
-      <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-      <Text style={styles.cardSubtitle} numberOfLines={1}>{subtitle}</Text>
-    </Pressable>
-  );
-}
-
-// The one card the My Workouts row and the Training Program row both use, so they cannot drift apart.
-function WorkoutTile({ title, subtitle, details, onPress, testID }) {
-  return (
-    <Pressable style={styles.programCard} onPress={onPress} testID={testID}>
+    <Pressable style={[styles.programCard, busy && styles.tileBusy]} onPress={onPress} testID={testID}>
       <View style={styles.programImage}>
         <Ionicons name="clipboard-outline" size={28} color="#999" />
       </View>
@@ -119,27 +100,32 @@ function ProgramCard({ program, progress }) {
   );
 }
 
+// A pre-made workout (data/communityWorkouts.js): its length and level on the line under the name, then how many exercises and what it needs.
+function CommunityCard({ workout, onPress, busy }) {
+  return (
+    <WorkoutTile
+      title={workout.name}
+      subtitle={`${communityWorkoutMinutes(workout)} min · ${levelLabel(workout.difficulty)}`}
+      details={[`${workout.exercises.length} exercises`, workout.equipment]}
+      onPress={onPress}
+      testID={`community-card-${workout.slug}`}
+      busy={busy}
+    />
+  );
+}
+
 export default function WorkoutsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAllDays, setShowAllDays] = useState(false);
   const [openingDay, setOpeningDay] = useState(null);
-  const [query, setQuery] = useState('');
-  const [choice, setChoice] = useState('all');
-  const [searchPages, setSearchPages] = useState(0);
+  const [communityChoice, setCommunityChoice] = useState('All');
+  const [openingCommunity, setOpeningCommunity] = useState(null);
   const { user } = useUserStore();
-  const {
-    exercises, isLoading: isLoadingExercises, hasNextPage, loadExercises,
-  } = useExerciseStore();
   const {
     workouts, completedWorkouts, loadWorkoutTemplates, getWorkoutStreak, addWorkout,
     workoutRecommendation, isLoadingRecommendation,
     loadWorkoutRecommendation, generateNewWorkoutRecommendation,
   } = useWorkoutStore();
-  const recent = useRecentExercisesStore((s) => s.recent);
-
-  useEffect(() => {
-    if (exercises.length === 0) loadExercises(true);
-  }, []);
 
   useEffect(() => {
     if (user?.uid) {
@@ -152,7 +138,6 @@ export default function WorkoutsScreen() {
     setRefreshing(true);
     try {
       await Promise.all([
-        loadExercises(true),
         user?.uid ? loadWorkoutTemplates(user.uid) : Promise.resolve(),
         user?.uid ? loadWorkoutRecommendation(user.uid) : Promise.resolve(),
       ]);
@@ -184,27 +169,7 @@ export default function WorkoutsScreen() {
   // This Week is the week as it runs, Monday to now (lib/workoutWeek.js), not the last seven days.
   const thisWeekCount = workoutsThisWeek(completedWorkouts);
 
-  // Browse Exercises: the first ten as before, or what the person searched for, one body part, or what they opened lately (lib/exerciseBrowse.js).
-  const activeChoice = choice === 'recent' && recent.length === 0 ? 'all' : choice;
-  const shown = useMemo(
-    () => exercisesToShow({ exercises, recent, query, choice: activeChoice }),
-    [exercises, recent, query, activeChoice],
-  );
-  const searching = shown.filtering && activeChoice !== 'recent';
-  const bodyParts = useMemo(() => {
-    const list = bodyPartChoices(exercises);
-    const picked = activeChoice.startsWith('bp:') ? activeChoice.slice(3) : '';
-    if (picked && !list.some((b) => b.value === picked)) list.push({ value: picked, label: picked.replace(/\b\w/g, (c) => c.toUpperCase()) });
-    return list;
-  }, [exercises, activeChoice]);
-  // The phone holds the exercises it has loaded, so a search that finds too few asks for the next page, a few times at most.
-  useEffect(() => {
-    if (!searching || shown.total >= BROWSE_FILTERED_COUNT) return;
-    if (!hasNextPage || isLoadingExercises || searchPages >= SEARCH_EXTRA_PAGES) return;
-    setSearchPages((n) => n + 1);
-    loadExercises(false);
-  }, [searching, shown.total, hasNextPage, isLoadingExercises, exercises.length, searchPages]);
-  const stillSearching = searching && shown.total < BROWSE_FILTERED_COUNT && (isLoadingExercises || (hasNextPage && searchPages < SEARCH_EXTRA_PAGES));
+  const communityShown = communityWorkoutsFor(communityChoice);
   const planDays = workoutRecommendation?.structuredData?.days || [];
   // Made-up names from the list (lib/workoutNames.js), the same ones Quick Workout gives day one. The plan keeps the name it was made under:
   // its goals are read back from the request that made it, and only when that says nothing are the person's goals now used.
@@ -241,6 +206,24 @@ export default function WorkoutsScreen() {
       router.push(`/workout/${saved.id}`);
     } finally {
       setOpeningDay(null);
+    }
+  };
+
+  // Tapping a community workout saves it to My Workouts and opens it, the same way (lib/communityWorkouts.js). One already saved (it has one
+  // fixed id) is opened as it is, not saved again.
+  const openCommunityWorkout = async (community) => {
+    if (openingCommunity !== null) return;
+    const id = communityWorkoutId(community.slug);
+    if (workouts.some((w) => String(w.id) === id)) {
+      router.push(`/workout/${id}`);
+      return;
+    }
+    setOpeningCommunity(community.slug);
+    try {
+      const saved = await addWorkout(workoutFromCommunity(community), user?.uid);
+      router.push(`/workout/${saved.id}`);
+    } finally {
+      setOpeningCommunity(null);
     }
   };
 
@@ -343,6 +326,34 @@ export default function WorkoutsScreen() {
           )}
         </View>
 
+        {/* Community Workouts -- ready-made workouts from data/communityWorkouts.js, in the same card as My Workouts. A tap saves one to
+            My Workouts and opens it (lib/communityWorkouts.js), as a day of the plan above does. */}
+        <SectionHeader title="Community Workouts" />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {['All', ...COMMUNITY_CATEGORIES].map((label) => (
+            <Chip key={label} label={label} active={communityChoice === label} onPress={() => setCommunityChoice(label)} />
+          ))}
+        </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+          testID="community-row"
+        >
+          {communityShown.map((item) => (
+            <CommunityCard
+              key={item.slug}
+              workout={item}
+              busy={openingCommunity === item.slug}
+              onPress={() => openCommunityWorkout(item)}
+            />
+          ))}
+        </ScrollView>
+
         {/* Training Program -- real content from data/workoutPrograms.js.
             getFeaturedProgram() deterministically rotates which program
             is shown here based on the current date (9-week rotation,
@@ -385,81 +396,11 @@ export default function WorkoutsScreen() {
           </ScrollView>
         )}
 
-        <SectionHeader
-          title="Browse Exercises"
-          onViewAll={() => router.push('/exercise')}
-        />
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search exercises"
-            placeholderTextColor="#999"
-            autoCorrect={false}
-            autoCapitalize="none"
-            returnKeyType="search"
-            testID="exercise-search"
-          />
-          {query.length > 0 && (
-            <Pressable onPress={() => setQuery('')} hitSlop={10} testID="exercise-search-clear">
-              <Ionicons name="close-circle" size={18} color="#BBB" />
-            </Pressable>
-          )}
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Chip label="All" active={activeChoice === 'all'} onPress={() => setChoice('all')} />
-          {recent.length > 0 && (
-            <Chip label="Recent" active={activeChoice === 'recent'} onPress={() => setChoice('recent')} />
-          )}
-          {bodyParts.map((bp) => (
-            <Chip
-              key={bp.value}
-              label={bp.label}
-              active={activeChoice === `bp:${bp.value}`}
-              onPress={() => setChoice(activeChoice === `bp:${bp.value}` ? 'all' : `bp:${bp.value}`)}
-            />
-          ))}
-        </ScrollView>
-        {isLoadingExercises && exercises.length === 0 && activeChoice !== 'recent' ? (
-          <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
-            <LoadingSkeleton width="100%" height={150} borderRadius={12} style={{ marginBottom: 12 }} />
-          </View>
-        ) : exercises.length === 0 && activeChoice !== 'recent' ? (
-          <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
-            <EmptyState
-              icon="Dumbbell"
-              title="Couldn't load exercises"
-              subtitle="Pull down to refresh and try again"
-              buttonText="Retry"
-              onPress={() => loadExercises(true)}
-            />
-          </View>
-        ) : shown.items.length === 0 ? (
-          <View style={styles.noResults}>
-            {stillSearching && <ActivityIndicator color="#000" style={{ marginBottom: 6 }} />}
-            <Text style={styles.noResultsText} testID="exercise-no-results">
-              {stillSearching ? 'Searching more exercises…' : 'No exercises match. Try another word, or View All.'}
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carousel}
-            keyboardShouldPersistTaps="handled"
-          >
-            {shown.items.map((item) => (
-              <ExerciseCard key={item.exerciseId} item={item} />
-            ))}
-          </ScrollView>
-        )}
+        {/* The movements themselves (the exercise library) are one tap away, at the bottom. */}
+        <Pressable style={styles.moreLink} onPress={() => router.push('/exercise')} hitSlop={8} testID="browse-movements">
+          <Text style={styles.moreLinkText}>Browse all movements</Text>
+          <Ionicons name="chevron-forward" size={14} color="#666" />
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -512,33 +453,23 @@ const styles = StyleSheet.create({
   },
   recBtnText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
 
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, height: 40,
-    marginHorizontal: 20, marginBottom: 10, paddingHorizontal: 12,
-    backgroundColor: '#F5F5F5', borderRadius: 12,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: '#000', paddingVertical: 0 },
   chipRow: { paddingLeft: 20, paddingRight: 6, gap: 8, marginBottom: 12 },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: '#F0F0F0' },
   chipActive: { backgroundColor: '#000' },
   chipText: { fontSize: 13, fontWeight: '600', color: '#333' },
   chipTextActive: { color: '#FFF' },
-  noResults: { paddingHorizontal: 20, marginBottom: 24, alignItems: 'center' },
-  noResultsText: { fontSize: 13, color: '#999', textAlign: 'center' },
 
   carousel: { paddingLeft: 20, paddingRight: 6, marginBottom: 24 },
 
-  featuredCard: { width: 200, marginRight: 14 },
-  featuredImage: {
-    height: 120, borderRadius: 14, backgroundColor: '#F0F0F0',
-    justifyContent: 'center', alignItems: 'center',
-  },
-
   programCard: { width: 160, marginRight: 14 },
+  tileBusy: { opacity: 0.5 },
   programImage: {
     height: 100, borderRadius: 14, backgroundColor: '#E8E8E8',
     justifyContent: 'center', alignItems: 'center',
   },
+
+  moreLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, marginBottom: 8 },
+  moreLinkText: { fontSize: 13, fontWeight: '600', color: '#666' },
 
   cardTitle: { fontSize: 14, fontWeight: '600', color: '#000', marginTop: 8 },
   cardSubtitle: { fontSize: 12, color: '#999', marginTop: 2 },

@@ -1,4 +1,4 @@
-// The Training Program card on the Workouts tab is the same card as the My Workouts cards.
+// The Training Program card and the Community Workouts cards on the Workouts tab are the same card as the My Workouts cards.
 // The Workouts screen is the real one; the workout store is stood in for with two saved workouts.
 import React from 'react';
 import fs from 'fs';
@@ -121,6 +121,17 @@ describe('the Training Program card', () => {
   });
 });
 
+describe('the Community Workouts cards', () => {
+  it('are built the same way as a My Workouts card: the same size, picture box, title and line under it', () => {
+    const utils = render(<WorkoutsScreen />);
+    const workout = shape(utils.getByTestId('workout-card-w1'));
+    const community = shape(utils.getByTestId('community-card-goblet-gang'));
+    expect(community.style).toEqual(workout.style);
+    expect(community.children.slice(0, 3)).toEqual(workout.children.slice(0, 3));
+    expect(StyleSheet.flatten(utils.getByTestId('community-card-goblet-gang').props.style).width).toBe(160);
+  });
+});
+
 describe('the My Workouts cards', () => {
   it('still show the name, "N min · level", and open the workout when tapped', () => {
     const utils = render(<WorkoutsScreen />);
@@ -135,8 +146,8 @@ describe('the My Workouts cards', () => {
 describe('one card for both rows', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'app', 'workouts.jsx'), 'utf8');
 
-  it('is written once: both cards are made by WorkoutTile, and the card styles are used nowhere else', () => {
-    expect((source.match(/<WorkoutTile\b/g) || []).length).toBe(2);
+  it('is written once: all three kinds of card are made by WorkoutTile, and the card styles are used nowhere else', () => {
+    expect((source.match(/<WorkoutTile\b/g) || []).length).toBe(3); // My Workouts, Training Program, Community Workouts
     expect((source.match(/styles\.programCard\b/g) || []).length).toBe(1);
     expect((source.match(/styles\.programImage\b/g) || []).length).toBe(1);
   });

@@ -1,7 +1,7 @@
 // The made-up names (lib/workoutNames.js) on the Workouts tab: the 7-day plan and its days, and the three Training Programs (data/workoutPrograms.js).
 // The Workouts screen is the real one; the workout store is stood in for with a plan that is already built.
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, within } from '@testing-library/react-native';
 
 jest.mock('../src/config/firebase', () => ({ db: {}, functions: {} }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -72,8 +72,10 @@ describe('the 7-day plan on the Workouts tab', () => {
       const shown = utils.getByTestId(`plan-day-name-${i}`).props.children;
       expect(shown).toBe(expected[i]);
       expect(Object.values(NAME_POOLS).flat()).toContain(shown);
-      expect(utils.getByText(DAYS[i].day)).toBeTruthy();
-      expect(utils.getByText(DAYS[i].focus)).toBeTruthy();
+      // looked for inside the day's own row: a Community Workouts choice can have the same words ("Lower Body")
+      const row = within(utils.getByTestId(`plan-day-${i}`));
+      expect(row.getByText(DAYS[i].day)).toBeTruthy();
+      expect(row.getByText(DAYS[i].focus)).toBeTruthy();
     });
     // the fourth day is not on this card
     expect(utils.queryByTestId('plan-day-name-3')).toBeNull();
