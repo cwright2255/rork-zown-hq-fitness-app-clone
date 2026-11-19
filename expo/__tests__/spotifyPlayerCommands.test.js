@@ -2,6 +2,10 @@
 // command was done. A pause that Spotify accepted but answered with a body that is not JSON used to be shown as
 // "Playback Failed - Spotify returned an unexpected response". Reading data, and creating a playlist (its id is needed),
 // still fail on a body that cannot be read.
+//
+// Spotify also answers a command it will not carry out in the player's current state with 403 "Player command failed:
+// Restriction violated". That is not the allowed users list problem the app used to say every 403 was. A pause refused
+// that way is treated as done (the store reads the real state back right after); any other command says what happened.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -90,5 +94,40 @@ describe('everything else is unchanged', () => {
   it('a JSON body is parsed for a command too', async () => {
     global.fetch = jest.fn(async () => answer(200, '{"ok":true}'));
     await expect(spotifyService.fetchWebApi('me/player/next', 'POST')).resolves.toEqual({ ok: true });
+  });
+});
+
+describe('Spotify refusing a command with "Restriction violated"', () => {
+  const restriction = () => answer(403, JSON.stringify({ error: { status: 403, message: 'Player command failed: Restriction violated', reason: 'UNKNOWN' } }));
+
+  it('is not reported as the allowed users list problem', async () => {
+    global.fetch = jest.fn(async () => restriction());
+    const error = await spotifyService.fetchWebApi('me/player/pause', 'PUT').catch((e) => e);
+    expect(error).toMatchObject({ status: 403, reason: 'UNKNOWN', restricted: true });
+    expect(error.message).not.toMatch(/allowed users|Development Mode/);
+  });
+
+  it('pause() treats it as done and does not throw', async () => {
+    global.fetch = jest.fn(async () => restriction());
+    await expect(spotifyService.pause()).resolves.toBeUndefined();
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('play still fails, with a message that says what happened', async () => {
+    global.fetch = jest.fn(async () => restriction());
+    await expect(spotifyService.fetchWebApi('me/player/play', 'PUT')).rejects.toThrow("Spotify can't do that right now");
+  });
+
+  it('pause() still fails when there is no active device', async () => {
+    global.fetch = jest.fn(async () => answer(404, JSON.stringify({ error: { status: 404, message: 'Player command failed: No active device found', reason: 'NO_ACTIVE_DEVICE' } })));
+    await expect(spotifyService.pause()).rejects.toMatchObject({ status: 404, reason: 'NO_ACTIVE_DEVICE' });
+  });
+
+  it('the other 403s keep their own messages', async () => {
+    global.fetch = jest.fn(async () => answer(403, JSON.stringify({ error: { status: 403, message: 'Player command failed: Premium required', reason: 'PREMIUM_REQUIRED' } })));
+    await expect(spotifyService.pause()).rejects.toThrow('Spotify Premium is required');
+    global.fetch = jest.fn(async () => answer(403, JSON.stringify({ error: { status: 403, message: 'User not registered in the Developer Dashboard' } })));
+    await expect(spotifyService.pause()).rejects.toThrow(/allowed users list.*\[Spotify says: User not registered in the Developer Dashboard\]/);
   });
 });

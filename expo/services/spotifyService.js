@@ -315,6 +315,16 @@ class SpotifyService {
           if (errorData?.error?.reason === 'PREMIUM_REQUIRED') {
             throw new Error('Spotify Premium is required to play music from Zown.');
           }
+          // "Player command failed: Restriction violated" (reason UNKNOWN) is Spotify refusing a player command in
+          // the player's current state. It has nothing to do with the allowed users list below, which is not what
+          // the person should be told. Callers that can tell what the command meant (pause) look at `restricted`.
+          if (/restriction violated/i.test(errorData?.error?.message || '')) {
+            const restricted = new Error("Spotify can't do that right now. Check Spotify on this phone, then try again.");
+            restricted.status = 403;
+            restricted.reason = errorData.error.reason;
+            restricted.restricted = true;
+            throw restricted;
+          }
           // Real fix: confirmed against Spotify's own docs
           // (developer.spotify.com/documentation/web-api/concepts/quota-modes)
           // - a 403 here specifically means this Spotify account isn't yet
@@ -1093,6 +1103,13 @@ It does NOT provide access to:
     try {
       await this.fetchWebApi('me/player/pause', 'PUT');
     } catch (error) {
+      // Spotify refuses a pause with "Restriction violated" when the player is not in a state that can be paused
+      // (already paused, or no longer playing); one report says it paused despite the refusal. What the person asked
+      // for, music not playing, is what they get, and the store reads the real state back from Spotify right after.
+      if (error?.restricted) {
+        console.warn('Spotify refused the pause as a restriction violation; reading the player state instead:', error.message);
+        return;
+      }
       console.error('Failed to pause track:', error);
       throw error;
     }
