@@ -2,7 +2,7 @@
 
 ## Overview
 
-This PR introduces the **Fitleus light-theme design-token scaffold** for the rork-zown-hq-fitness-app-clone Expo/React Native codebase. The app today uses a hardcoded dark palette (pure-black backgrounds with white/gray foregrounds). This PR does **not** change any component visuals â it only adds:
+This PR introduces the **Fitleus light-theme design-token scaffold** for the zown-hq Expo/React Native codebase. The app today uses a hardcoded dark palette (pure-black backgrounds with white/gray foregrounds). This PR does **not** change any component visuals â it only adds:
 
 1. A typed token module (`theme/tokens.ts`) generated from the **Fitleus â Fitness Mobile App UI Kit** Figma file (`KHk1iWcXDRTCqY5mQhMYbE`).
 2. A React Context `ThemeProvider` exposing those tokens via a `useTheme()` hook.

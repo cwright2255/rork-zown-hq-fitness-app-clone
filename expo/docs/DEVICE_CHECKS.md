@@ -1606,7 +1606,7 @@ These two show only that nothing broke. The server does not check the token yet,
 Before the deploy, check that the new reader finds the caption on a real post. From the Codespace, with the part of a post's link after `/p/` or `/reel/` in place of `<code>` (a post that has a caption):
 
 ```
-cd /workspaces/rork-zown-hq-fitness-app-clone/expo/functions
+cd "$(git rev-parse --show-toplevel)/expo/functions"
 curl -s -A 'Mozilla/5.0 (compatible; RecipeBot/1.0)' 'https://www.instagram.com/p/<code>/embed/captioned/' > /tmp/embed.html
 NODE_NO_WARNINGS=1 node --input-type=module -e "import { readFileSync } from 'node:fs'; import { readEmbedPage } from './src/instagramCaption.js'; const out = readEmbedPage(readFileSync('/tmp/embed.html', 'utf8')); console.log(out.ok ? out : out.reason)"
 ```
@@ -1614,7 +1614,7 @@ NODE_NO_WARNINGS=1 node --input-type=module -e "import { readFileSync } from 'no
 It prints `{ ok: true, caption: '...', username: '...', thumbnail: '...' }` with the post's caption, the poster's user name and the address of the post's picture (`https://...`). A `thumbnail: null` does not stop the deploy (the recipe just comes in without a picture), but tell me. If it prints `no-caption-pattern`, do not deploy: send me what `grep -a -o 'edge_media_to_caption.\{0,200\}' /tmp/embed.html | head -1` prints. Then the deploy:
 
 ```
-cd /workspaces/rork-zown-hq-fitness-app-clone/expo && firebase deploy --only functions:instagramEmbed --project zown-3c512
+cd "$(git rev-parse --show-toplevel)/expo" && firebase deploy --only functions:instagramEmbed --project zown-3c512
 ```
 
 - [ ] Firebase console, Functions: `instagramEmbed` has a new deploy time.
