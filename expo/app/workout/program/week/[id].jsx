@@ -10,7 +10,9 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
 import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
+import { weekExercises } from '@/lib/workoutMuscleHeat';
 
 export default function WorkoutProgramWeekDetailScreen() {
   const params = useLocalSearchParams();
@@ -56,6 +58,8 @@ export default function WorkoutProgramWeekDetailScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </Pressable>
         ))}
+
+        <PreviewMuscleHeat exercises={weekExercises(week)} />
       </ScrollView>
     </View>
   );

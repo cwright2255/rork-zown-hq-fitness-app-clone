@@ -16,6 +16,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/ScreenHeader';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
 import { useRunningStore } from '@/store/runningStore';
 import { getProgram, getProgramWeek, getSessionIntervals } from '@/data/runningPrograms';
 import { isSessionDone } from '@/lib/programProgress';
@@ -93,6 +94,8 @@ export default function WeekDetailScreen() {
             </Pressable>
           );
         })}
+
+        <PreviewMuscleHeat running />
       </ScrollView>
     </View>
   );
@@ -102,7 +105,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   emptyText: { fontSize: 14, color: '#999' },
-  scrollContent: { padding: 20, paddingBottom: 60 },
+  // The bottom nav bar stays visible on this screen (app/_layout.jsx only hides it on one-segment /running/ paths), so the heat card at the
+  // end of the list needs room to scroll up above it.
+  scrollContent: { padding: 20, paddingBottom: 120 },
   dayRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: '#F5F5F5', borderRadius: 14, padding: 16, marginBottom: 12,

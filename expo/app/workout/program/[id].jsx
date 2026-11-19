@@ -13,7 +13,9 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getProgram } from '@/data/workoutPrograms';
+import PreviewMuscleHeat from '@/components/PreviewMuscleHeat';
+import { getProgram, getProgramWeek } from '@/data/workoutPrograms';
+import { weekExercises } from '@/lib/workoutMuscleHeat';
 
 function WeekRow({ item, onPress }) {
   return (
@@ -101,6 +103,10 @@ export default function WorkoutProgramOverviewScreen() {
               onPress={() => router.push(`/workout/program/week/${programId}-w${item.week}`)}
             />
           ))}
+        </View>
+
+        <View style={styles.section}>
+          <PreviewMuscleHeat exercises={weekExercises(getProgramWeek(programId, 1))} />
         </View>
       </ScrollView>
     </View>
